@@ -1,4 +1,4 @@
-import TechStack from "Common/Types/ServiceCatalog/TechStack";
+import TechStack from "Common/Types/Service/TechStack";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import React, { FunctionComponent, ReactElement } from "react";
 

@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import ServiceMonitor from "Common/Models/DatabaseModels/ServiceMonitor";
 import React, {
   Fragment,
   FunctionComponent,
@@ -24,10 +25,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const MonitorGroupMonitors: FunctionComponent<
+const ServiceMonitors: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -41,40 +41,41 @@ const MonitorGroupMonitors: FunctionComponent<
   const [unassignError, setUnassignError] = useState<string | null>(null);
   const [showModelForm, setShowModelForm] = useState<boolean>(false);
 
-  const fetchMonitorsInGroup: PromiseVoidFunction = async (): Promise<void> => {
-    // Fetch MonitorStatus by ID
-    try {
-      setIsLoading(true);
-      const monitorGroupMonitors: ListResult<MonitorGroupResource> =
-        await ModelAPI.getList<MonitorGroupResource>({
-          modelType: MonitorGroupResource,
-          query: {
-            monitorGroupId: modelId,
-          },
-          select: {
-            monitorId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {},
-        });
+  const fetchMonitorsInService: PromiseVoidFunction =
+    async (): Promise<void> => {
+      // Fetch MonitorStatus by ID
+      try {
+        setIsLoading(true);
+        const serviceMonitors: ListResult<ServiceMonitor> =
+          await ModelAPI.getList<ServiceMonitor>({
+            modelType: ServiceMonitor,
+            query: {
+              serviceId: modelId,
+            },
+            select: {
+              monitorId: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {},
+          });
 
-      const monitorIds: ObjectID[] = monitorGroupMonitors.data.map(
-        (monitorGroupMonitor: MonitorGroupResource) => {
-          return monitorGroupMonitor.monitorId!;
-        },
-      );
+        const monitorIds: ObjectID[] = serviceMonitors.data.map(
+          (serviceMonitor: ServiceMonitor) => {
+            return serviceMonitor.monitorId!;
+          },
+        );
 
-      setMonitorIds(monitorIds);
-      setIsLoading(false);
-    } catch (err) {
-      setIsLoading(false);
-      setError(API.getFriendlyMessage(err));
-    }
-  };
+        setMonitorIds(monitorIds);
+        setIsLoading(false);
+      } catch (err) {
+        setIsLoading(false);
+        setError(API.getFriendlyMessage(err));
+      }
+    };
 
   useEffect(() => {
-    fetchMonitorsInGroup().catch((error: Error) => {
+    fetchMonitorsInService().catch((error: Error) => {
       setError(API.getFriendlyMessage(error));
     });
   }, []);
@@ -116,18 +117,17 @@ const MonitorGroupMonitors: FunctionComponent<
             isLoading: false,
           },
         ]}
-        title={"Monitors in Group"}
-        description="List of monitors that are added to this monitor group."
-        noItemsMessage={"No monitors added to this monitor group."}
+        title={"Service Monitors"}
+        description="List of monitors that are added to this service."
+        noItemsMessage={"No monitors added to this service."}
       />
 
       {showUnassignModal ? (
         <ConfirmModal
-          title={`Unassign Monitor from Monitor Group`}
+          title={`Unassign Monitor from Service`}
           description={
             <div>
-              Are you sure you want to unassign the monitor from this monitor
-              group?
+              Are you sure you want to unassign the monitor from this service?
             </div>
           }
           error={unassignError || ""}
@@ -142,13 +142,13 @@ const MonitorGroupMonitors: FunctionComponent<
           onSubmit={async () => {
             try {
               setIsUnassignLoading(true);
-              // get MonitorGroupMonitorId
-              const monitorGroupMonitor: ListResult<MonitorGroupResource> =
-                await ModelAPI.getList<MonitorGroupResource>({
-                  modelType: MonitorGroupResource,
+              // get ServiceMonitorId
+              const serviceMonitor: ListResult<ServiceMonitor> =
+                await ModelAPI.getList<ServiceMonitor>({
+                  modelType: ServiceMonitor,
                   query: {
                     monitorId: selectedMonitor!.id!,
-                    monitorGroupId: modelId!,
+                    serviceId: modelId!,
                   },
                   select: {
                     _id: true,
@@ -158,22 +158,22 @@ const MonitorGroupMonitors: FunctionComponent<
                   sort: {},
                 });
 
-              if (monitorGroupMonitor.data.length === 0) {
+              if (serviceMonitor.data.length === 0) {
                 setUnassignError("Service monitor not found");
                 setIsUnassignLoading(false);
                 return;
               }
 
-              await ModelAPI.deleteItem<MonitorGroupResource>({
-                modelType: MonitorGroupResource,
-                id: monitorGroupMonitor.data[0]!.id!,
+              await ModelAPI.deleteItem<ServiceMonitor>({
+                modelType: ServiceMonitor,
+                id: serviceMonitor.data[0]!.id!,
               });
 
               setIsUnassignLoading(false);
               setSelectedMonitor(null);
               setShowUnassignModal(false);
               setUnassignError(null);
-              fetchMonitorsInGroup().catch((error: Error) => {
+              fetchMonitorsInService().catch((error: Error) => {
                 setError(API.getFriendlyMessage(error));
               });
             } catch (err) {
@@ -187,37 +187,38 @@ const MonitorGroupMonitors: FunctionComponent<
       )}
 
       {showModelForm ? (
-        <ModelFormModal<MonitorGroupResource>
-          modelType={MonitorGroupResource}
-          name="Assign Monitor to Group"
-          title="Assign Monitor to Group"
-          description="Assign a monitor to this group. This is helpful for determining the health of the group."
+        <ModelFormModal<ServiceMonitor>
+          modelType={ServiceMonitor}
+          name="Assign Monitor to Service"
+          title="Assign Monitor to Service"
+          description="Assign a monitor to this service. This is helpful for determining the health of the service."
           onClose={() => {
             setShowModelForm(false);
           }}
           submitButtonText="Assign"
           onSuccess={() => {
             setShowModelForm(false);
-            fetchMonitorsInGroup().catch((error: Error) => {
+            fetchMonitorsInService().catch((error: Error) => {
               setError(API.getFriendlyMessage(error));
             });
           }}
-          onBeforeCreate={(monitorGroupMonitor: MonitorGroupResource) => {
-            monitorGroupMonitor.monitorGroupId = modelId;
-            monitorGroupMonitor.projectId = ProjectUtil.getCurrentProjectId()!;
-            return Promise.resolve(monitorGroupMonitor);
+          onBeforeCreate={(serviceMonitor: ServiceMonitor) => {
+            serviceMonitor.serviceId = modelId;
+            serviceMonitor.projectId =
+              ProjectUtil.getCurrentProjectId()!;
+            return Promise.resolve(serviceMonitor);
           }}
           formProps={{
             name: "Assign Monitor",
-            modelType: MonitorGroupResource,
-            id: "create-monitor-group-resource",
+            modelType: ServiceMonitor,
+            id: "create-service-monitor",
             fields: [
               {
                 field: {
                   monitor: true,
                 },
                 title: "Select Monitor",
-                description: "Select monitor to assign to this group.",
+                description: "Select monitor to assign to this service.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: Monitor,
@@ -238,4 +239,4 @@ const MonitorGroupMonitors: FunctionComponent<
   );
 };
 
-export default MonitorGroupMonitors;
+export default ServiceMonitors;

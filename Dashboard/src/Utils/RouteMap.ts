@@ -31,20 +31,20 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
 };
 
-export const ServiceCatalogRoutePath: Dictionary<string> = {
-  [PageMap.SERVICE_CATALOG_VIEW]: `${RouteParams.ModelID}`,
-  [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
-  [PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]: `${RouteParams.ModelID}/dependencies`,
-  [PageMap.SERVICE_CATALOG_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
-  [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
-  [PageMap.SERVICE_CATALOG_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
-  [PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
-  [PageMap.SERVICE_CATALOG_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
-  [PageMap.SERVICE_CATALOG_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
-  [PageMap.SERVICE_CATALOG_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
-  [PageMap.SERVICE_CATALOG_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
-  [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: `${RouteParams.ModelID}/telemetry-service`,
-  [PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
+export const ServiceRoutePath: Dictionary<string> = {
+  [PageMap.SERVICE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SERVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.SERVICE_VIEW_DEPENDENCIES]: `${RouteParams.ModelID}/dependencies`,
+  [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.SERVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
+  [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.SERVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVICE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.SERVICE_VIEW_TELEMETRY_SERVICES]: `${RouteParams.ModelID}/telemetry-service`,
+  [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
 };
 
 export const CodeRepositoryRoutePath: Dictionary<string> = {
@@ -860,94 +860,94 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/*`,
+  [PageMap.SERVICE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/*`,
   ),
 
-  [PageMap.SERVICE_CATALOG]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog`,
+  [PageMap.SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service`,
   ),
 
-  // Root-level Service Catalog pages
-  [PageMap.SERVICE_CATALOG_DEPENDENCY_GRAPH]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/dependency-graph`,
+  // Root-level Service pages
+  [PageMap.SERVICE_DEPENDENCY_GRAPH]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/dependency-graph`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW]
+  [PageMap.SERVICE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_OWNERS]
+  [PageMap.SERVICE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_OWNERS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]
+  [PageMap.SERVICE_VIEW_DEPENDENCIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_DEPENDENCIES]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_DELETE]
+  [PageMap.SERVICE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_DELETE]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_SETTINGS]
+  [PageMap.SERVICE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SETTINGS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_MONITORS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_MONITORS]
+  [PageMap.SERVICE_VIEW_MONITORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_MONITORS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]
+  [PageMap.SERVICE_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_INCIDENTS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_ALERTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_ALERTS]
+  [PageMap.SERVICE_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_ALERTS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_LOGS]
+  [PageMap.SERVICE_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_LOGS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_TRACES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_TRACES]
+  [PageMap.SERVICE_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_TRACES]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_METRICS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_METRICS]
+  [PageMap.SERVICE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_METRICS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]
+  [PageMap.SERVICE_VIEW_TELEMETRY_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_TELEMETRY_SERVICES]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]
+  [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_CODE_REPOSITORIES]
     }`,
   ),
 

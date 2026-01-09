@@ -88,10 +88,10 @@ const DashboardRoutes: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Routes/DashboardRoutes");
 });
-const ServiceCatalogRoutes: React.LazyExoticComponent<
+const ServiceRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
-  return import("./Routes/ServiceCatalogRoutes");
+  return import("./Routes/ServiceRoutes");
 });
 const CodeRepositoryRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
@@ -457,10 +457,10 @@ const App: () => JSX.Element = () => {
             element={<DashboardRoutes {...commonPageProps} />}
           />
 
-          {/* Service Catalog */}
+          {/* Service */}
           <PageRoute
-            path={RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ""}
-            element={<ServiceCatalogRoutes {...commonPageProps} />}
+            path={RouteMap[PageMap.SERVICE_ROOT]?.toString() || ""}
+            element={<ServiceRoutes {...commonPageProps} />}
           />
 
           {/* Code Repository */}

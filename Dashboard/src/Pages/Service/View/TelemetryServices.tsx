@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import ServiceTelemetryService from "Common/Models/DatabaseModels/ServiceTelemetryService";
 import React, {
   Fragment,
   FunctionComponent,
@@ -8,7 +9,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import MonitorsTable from "../../../Components/Monitor/MonitorTable";
+import TelemetryServicesTable from "../../../Components/TelemetryService/TelemetryServiceTable";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -18,63 +19,68 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const MonitorGroupMonitors: FunctionComponent<
+const ServiceTelemetryServices: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [monitorIds, setMonitorIds] = useState<Array<ObjectID> | null>(null);
+  const [telemetryServiceIds, setTelemetryServiceIds] =
+    useState<Array<ObjectID> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showUnassignModal, setShowUnassignModal] = useState<boolean>(false);
-  const [selectedMonitor, setSelectedMonitor] = useState<Monitor | null>(null);
+  const [selectedTelemetryService, setSelectedTelemetryService] =
+    useState<TelemetryService | null>(null);
   const [isUnassignLoading, setIsUnassignLoading] = useState<boolean>(false);
   const [unassignError, setUnassignError] = useState<string | null>(null);
   const [showModelForm, setShowModelForm] = useState<boolean>(false);
 
-  const fetchMonitorsInGroup: PromiseVoidFunction = async (): Promise<void> => {
-    // Fetch MonitorStatus by ID
-    try {
-      setIsLoading(true);
-      const monitorGroupMonitors: ListResult<MonitorGroupResource> =
-        await ModelAPI.getList<MonitorGroupResource>({
-          modelType: MonitorGroupResource,
-          query: {
-            monitorGroupId: modelId,
-          },
-          select: {
-            monitorId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {},
-        });
+  const fetchTelemetryServicesInService: PromiseVoidFunction =
+    async (): Promise<void> => {
+      // Fetch TelemetryServiceStatus by ID
+      try {
+        setIsLoading(true);
+        const serviceTelemetryServices: ListResult<ServiceTelemetryService> =
+          await ModelAPI.getList<ServiceTelemetryService>({
+            modelType: ServiceTelemetryService,
+            query: {
+              serviceId: modelId,
+            },
+            select: {
+              telemetryServiceId: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {},
+          });
 
-      const monitorIds: ObjectID[] = monitorGroupMonitors.data.map(
-        (monitorGroupMonitor: MonitorGroupResource) => {
-          return monitorGroupMonitor.monitorId!;
-        },
-      );
+        const telemetryServiceIds: ObjectID[] =
+          serviceTelemetryServices.data.map(
+            (
+              serviceTelemetryService: ServiceTelemetryService,
+            ) => {
+              return serviceTelemetryService.telemetryServiceId!;
+            },
+          );
 
-      setMonitorIds(monitorIds);
-      setIsLoading(false);
-    } catch (err) {
-      setIsLoading(false);
-      setError(API.getFriendlyMessage(err));
-    }
-  };
+        setTelemetryServiceIds(telemetryServiceIds);
+        setIsLoading(false);
+      } catch (err) {
+        setIsLoading(false);
+        setError(API.getFriendlyMessage(err));
+      }
+    };
 
   useEffect(() => {
-    fetchMonitorsInGroup().catch((error: Error) => {
+    fetchTelemetryServicesInService().catch((error: Error) => {
       setError(API.getFriendlyMessage(error));
     });
   }, []);
@@ -89,17 +95,20 @@ const MonitorGroupMonitors: FunctionComponent<
 
   return (
     <Fragment>
-      <MonitorsTable
+      <TelemetryServicesTable
         disableCreate={true}
         query={{
-          _id: new Includes(monitorIds || []),
+          _id: new Includes(telemetryServiceIds || []),
         }}
         actionButtons={[
           {
             buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
             title: "Unassign",
-            onClick: (monitor: Monitor, onCompleteAction: VoidFunction) => {
-              setSelectedMonitor(monitor);
+            onClick: (
+              telemetryService: TelemetryService,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setSelectedTelemetryService(telemetryService);
               setShowUnassignModal(true);
               onCompleteAction();
             },
@@ -107,7 +116,7 @@ const MonitorGroupMonitors: FunctionComponent<
         ]}
         cardButtons={[
           {
-            title: "Assign Monitor",
+            title: "Assign Telemetry Service",
             buttonStyle: ButtonStyleType.NORMAL,
             onClick: () => {
               setShowModelForm(true);
@@ -116,18 +125,18 @@ const MonitorGroupMonitors: FunctionComponent<
             isLoading: false,
           },
         ]}
-        title={"Monitors in Group"}
-        description="List of monitors that are added to this monitor group."
-        noItemsMessage={"No monitors added to this monitor group."}
+        title={"Telemetry Services for this Service"}
+        description="List of Telemetry Services that are assigned to this service."
+        noItemsMessage={"No Telemetry Services added to this service."}
       />
 
       {showUnassignModal ? (
         <ConfirmModal
-          title={`Unassign Monitor from Monitor Group`}
+          title={`Unassign TelemetryService from Service`}
           description={
             <div>
-              Are you sure you want to unassign the monitor from this monitor
-              group?
+              Are you sure you want to unassign the telemetryService from this
+              service?
             </div>
           }
           error={unassignError || ""}
@@ -137,18 +146,18 @@ const MonitorGroupMonitors: FunctionComponent<
           onClose={() => {
             setShowUnassignModal(false);
             setUnassignError(null);
-            setSelectedMonitor(null);
+            setSelectedTelemetryService(null);
           }}
           onSubmit={async () => {
             try {
               setIsUnassignLoading(true);
-              // get MonitorGroupMonitorId
-              const monitorGroupMonitor: ListResult<MonitorGroupResource> =
-                await ModelAPI.getList<MonitorGroupResource>({
-                  modelType: MonitorGroupResource,
+              // get ServiceTelemetryServiceId
+              const serviceTelemetryService: ListResult<ServiceTelemetryService> =
+                await ModelAPI.getList<ServiceTelemetryService>({
+                  modelType: ServiceTelemetryService,
                   query: {
-                    monitorId: selectedMonitor!.id!,
-                    monitorGroupId: modelId!,
+                    telemetryServiceId: selectedTelemetryService!.id!,
+                    serviceId: modelId!,
                   },
                   select: {
                     _id: true,
@@ -158,22 +167,22 @@ const MonitorGroupMonitors: FunctionComponent<
                   sort: {},
                 });
 
-              if (monitorGroupMonitor.data.length === 0) {
-                setUnassignError("Service monitor not found");
+              if (serviceTelemetryService.data.length === 0) {
+                setUnassignError("Service Telemetry Service not found");
                 setIsUnassignLoading(false);
                 return;
               }
 
-              await ModelAPI.deleteItem<MonitorGroupResource>({
-                modelType: MonitorGroupResource,
-                id: monitorGroupMonitor.data[0]!.id!,
+              await ModelAPI.deleteItem<ServiceTelemetryService>({
+                modelType: ServiceTelemetryService,
+                id: serviceTelemetryService.data[0]!.id!,
               });
 
               setIsUnassignLoading(false);
-              setSelectedMonitor(null);
+              setSelectedTelemetryService(null);
               setShowUnassignModal(false);
               setUnassignError(null);
-              fetchMonitorsInGroup().catch((error: Error) => {
+              fetchTelemetryServicesInService().catch((error: Error) => {
                 setError(API.getFriendlyMessage(error));
               });
             } catch (err) {
@@ -187,45 +196,49 @@ const MonitorGroupMonitors: FunctionComponent<
       )}
 
       {showModelForm ? (
-        <ModelFormModal<MonitorGroupResource>
-          modelType={MonitorGroupResource}
-          name="Assign Monitor to Group"
-          title="Assign Monitor to Group"
-          description="Assign a monitor to this group. This is helpful for determining the health of the group."
+        <ModelFormModal<ServiceTelemetryService>
+          modelType={ServiceTelemetryService}
+          name="Assign Telemetry Service to Service"
+          title="Assign Telemetry Service to Service"
+          description="Assign a Telemetry Service to this service. This is helpful for determining the health of the service."
           onClose={() => {
             setShowModelForm(false);
           }}
           submitButtonText="Assign"
           onSuccess={() => {
             setShowModelForm(false);
-            fetchMonitorsInGroup().catch((error: Error) => {
+            fetchTelemetryServicesInService().catch((error: Error) => {
               setError(API.getFriendlyMessage(error));
             });
           }}
-          onBeforeCreate={(monitorGroupMonitor: MonitorGroupResource) => {
-            monitorGroupMonitor.monitorGroupId = modelId;
-            monitorGroupMonitor.projectId = ProjectUtil.getCurrentProjectId()!;
-            return Promise.resolve(monitorGroupMonitor);
+          onBeforeCreate={(
+            serviceTelemetryService: ServiceTelemetryService,
+          ) => {
+            serviceTelemetryService.serviceId = modelId;
+            serviceTelemetryService.projectId =
+              ProjectUtil.getCurrentProjectId()!;
+            return Promise.resolve(serviceTelemetryService);
           }}
           formProps={{
-            name: "Assign Monitor",
-            modelType: MonitorGroupResource,
-            id: "create-monitor-group-resource",
+            name: "Assign Telemetry Service",
+            modelType: ServiceTelemetryService,
+            id: "create-service-telemetryService",
             fields: [
               {
                 field: {
-                  monitor: true,
+                  telemetryService: true,
                 },
-                title: "Select Monitor",
-                description: "Select monitor to assign to this group.",
+                title: "Select TelemetryService",
+                description:
+                  "Select Telemetry Service to assign to this service.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
-                  type: Monitor,
+                  type: TelemetryService,
                   labelField: "name",
                   valueField: "_id",
                 },
                 required: true,
-                placeholder: "Select Monitor",
+                placeholder: "Select Telemetry Service",
               },
             ],
             formType: FormType.Create,
@@ -238,4 +251,4 @@ const MonitorGroupMonitors: FunctionComponent<
   );
 };
 
-export default MonitorGroupMonitors;
+export default ServiceTelemetryServices;
