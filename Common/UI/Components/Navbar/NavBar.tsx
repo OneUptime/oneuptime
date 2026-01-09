@@ -13,6 +13,7 @@ import NavBarMenuItem from "./NavBarMenuItem";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Navigation from "../../Utils/Navigation";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
+import Icon, { ThickProp } from "../Icon/Icon";
 
 export interface NavItem {
   id: string;
@@ -249,12 +250,126 @@ const Navbar: FunctionComponent<ComponentProps> = (
   // Desktop view
   const className: string =
     props.className ||
-    "bg-white flex text-center lg:space-x-8 lg:py-2 hidden md:flex";
+    "bg-white flex text-center items-center lg:py-2 hidden md:flex";
+
+  // Find active item in more menu items (needed for breadcrumb)
+  const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems?.find((item: MoreMenuItem) => {
+    const routeToCheck: Route = item.activeRoute || item.route;
+    return Navigation.isStartWith(routeToCheck);
+  });
+
+  // Group items by category for the menu
+  const categories: Map<string, MoreMenuItem[]> = new Map();
+  props.moreMenuItems?.forEach((item: MoreMenuItem) => {
+    const cat: string = item.category || "Other";
+    if (!categories.has(cat)) {
+      categories.set(cat, []);
+    }
+    categories.get(cat)!.push(item);
+  });
+
+  // Convert to sections array for NavBarMenu
+  const sections: Array<{ title: string; items: Array<ReactElement> }> = [];
+  categories.forEach((items: MoreMenuItem[], category: string) => {
+    sections.push({
+      title: category,
+      items: items.map((item: MoreMenuItem) => {
+        return (
+          <NavBarMenuItem
+            key={item.title}
+            title={item.title}
+            description={item.description}
+            route={item.route}
+            icon={item.icon}
+            iconColor={item.iconColor}
+            onClick={forceHideMoreMenu}
+          />
+        );
+      }),
+    });
+  });
+
+  // Find Home item from navItems
+  const homeItem: NavItem | undefined = props.items.find((item: NavItem) => item.title === "Home");
+  const otherNavItems: NavItem[] = props.items.filter((item: NavItem) => item.title !== "Home");
 
   return (
-    <nav className={props.rightElement ? `flex justify-between` : ""}>
+    <nav className={props.rightElement ? `flex justify-between items-center` : ""}>
       <div data-testid="nav-children" className={className}>
-        {props.items.map((item: any) => {
+        {/* Combined Home > Product breadcrumb */}
+        <div className="flex items-center">
+          {/* Home link */}
+          {homeItem && (
+            <NavBarItem
+              key={homeItem.id}
+              id={homeItem.id}
+              title={homeItem.title}
+              icon={homeItem.icon}
+              activeRoute={homeItem.activeRoute}
+              route={homeItem.route}
+              exact={true}
+            />
+          )}
+
+          {/* Separator and active product */}
+          {activeMoreItem && (
+            <>
+              <span className="text-gray-400 mx-1">/</span>
+              <div
+                onMouseOver={showMoreMenu}
+                onMouseLeave={hideMoreMenu}
+                className="relative"
+              >
+                <button
+                  onClick={showMoreMenu}
+                  onMouseOver={showMoreMenu}
+                  className="bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                >
+                  <Icon icon={activeMoreItem.icon} className="mr-1.5 h-4 w-4" thick={ThickProp.Thick} />
+                  <span>{activeMoreItem.title}</span>
+                  <Icon icon={IconProp.ChevronDown} className="ml-1.5 h-3 w-3 text-gray-500" />
+                </button>
+                {isMoreMenuVisible && (
+                  <NavBarMenu 
+                    sections={sections}
+                    footer={props.moreMenuFooter}
+                  />
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Show Products button when no product is selected */}
+          {!activeMoreItem && props.moreMenuItems && props.moreMenuItems.length > 0 && (
+            <>
+              <span className="text-gray-400 mx-1">/</span>
+              <div
+                onMouseOver={showMoreMenu}
+                onMouseLeave={hideMoreMenu}
+                className="relative"
+              >
+                <button
+                  onClick={showMoreMenu}
+                  onMouseOver={showMoreMenu}
+                  className="text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                >
+                  <Icon icon={IconProp.Squares} className="mr-1.5 h-4 w-4" thick={ThickProp.Thick} />
+                  <span>{props.moreMenuTitle || "Products"}</span>
+                  <Icon icon={IconProp.ChevronDown} className="ml-1.5 h-3 w-3 text-gray-400" />
+                </button>
+                {isMoreMenuVisible && (
+                  <NavBarMenu 
+                    sections={sections}
+                    footer={props.moreMenuFooter}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Other nav items */}
+        {otherNavItems.map((item: NavItem) => {
           return (
             <NavBarItem
               key={item.id}
@@ -267,95 +382,6 @@ const Navbar: FunctionComponent<ComponentProps> = (
             />
           );
         })}
-
-        {/* Products menu for desktop - shows active product if one is selected */}
-        {props.moreMenuItems && props.moreMenuItems.length > 0 && (() => {
-          // Find active item in more menu items
-          const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems.find((item: MoreMenuItem) => {
-            const routeToCheck: Route = item.activeRoute || item.route;
-            return Navigation.isStartWith(routeToCheck);
-          });
-
-          // Group items by category
-          const categories: Map<string, MoreMenuItem[]> = new Map();
-          props.moreMenuItems.forEach((item: MoreMenuItem) => {
-            const cat: string = item.category || "Other";
-            if (!categories.has(cat)) {
-              categories.set(cat, []);
-            }
-            categories.get(cat)!.push(item);
-          });
-
-          // Convert to sections array for NavBarMenu
-          const sections: Array<{ title: string; items: Array<ReactElement> }> = [];
-          categories.forEach((items: MoreMenuItem[], category: string) => {
-            sections.push({
-              title: category,
-              items: items.map((item: MoreMenuItem) => {
-                return (
-                  <NavBarMenuItem
-                    key={item.title}
-                    title={item.title}
-                    description={item.description}
-                    route={item.route}
-                    icon={item.icon}
-                    iconColor={item.iconColor}
-                    onClick={forceHideMoreMenu}
-                  />
-                );
-              }),
-            });
-          });
-
-          const menuTitle: string = props.moreMenuTitle || "Products";
-
-          return (
-            <>
-              {/* Show active product - clicking opens the products menu */}
-              {activeMoreItem && (
-                <NavBarItem
-                  id={`active-product-${activeMoreItem.title.toLowerCase().replace(/\s+/g, "-")}`}
-                  title={activeMoreItem.title}
-                  icon={activeMoreItem.icon}
-                  activeRoute={activeMoreItem.activeRoute || activeMoreItem.route}
-                  exact={false}
-                  onMouseLeave={hideMoreMenu}
-                  onMouseOver={showMoreMenu}
-                  onClick={showMoreMenu}
-                >
-                  <div onMouseOver={showMoreMenu} onMouseLeave={hideMoreMenu}>
-                    {isMoreMenuVisible && (
-                      <NavBarMenu 
-                        sections={sections}
-                        footer={props.moreMenuFooter}
-                      />
-                    )}
-                  </div>
-                </NavBarItem>
-              )}
-
-              {/* Products dropdown menu - only show when no active product */}
-              {!activeMoreItem && (
-                <NavBarItem
-                  title={menuTitle}
-                  icon={IconProp.Squares}
-                  onMouseLeave={hideMoreMenu}
-                  onMouseOver={showMoreMenu}
-                  onClick={showMoreMenu}
-                >
-                  <div onMouseOver={showMoreMenu} onMouseLeave={hideMoreMenu}>
-                    {isMoreMenuVisible && (
-                      <NavBarMenu 
-                        sections={sections}
-                        footer={props.moreMenuFooter}
-                      />
-                    )}
-                  </div>
-                </NavBarItem>
-              )}
-            </>
-          );
-        })()}
       </div>
 
       {props.rightElement && (
