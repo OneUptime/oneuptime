@@ -10,7 +10,7 @@ export interface ComponentProps {
   icon: IconProp;
   description: string;
   onClick: () => void;
-  iconColor?: string; // Tailwind color name like "blue", "purple", "amber"
+  iconColor?: string | undefined; // Tailwind color name like "blue", "purple", "amber"
 }
 
 const NavBarMenuItem: FunctionComponent<ComponentProps> = (
