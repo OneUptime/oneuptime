@@ -439,7 +439,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 return (
                   <Fragment>
                     <ServiceElement
-                      telemetryService={telemetryService}
+                      service={telemetryService}
                     />
                   </Fragment>
                 );

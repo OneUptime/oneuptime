@@ -165,7 +165,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: MetricType): ReactElement => {
               return (
                 <ServicesElement
-                  telemetryServices={item.services || []}
+                  services={item.services || []}
                 />
               );
             },

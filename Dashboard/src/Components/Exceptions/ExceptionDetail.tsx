@@ -104,7 +104,7 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
       fieldType: FieldType.Element,
       getElement: () => {
         return (
-          <ServiceElement telemetryService={props.telemetryService!} />
+          <ServiceElement service={props.telemetryService!} />
         );
       },
     });

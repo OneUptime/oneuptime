@@ -597,7 +597,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             getElement: () => {
               return (
                 <ServiceElement
-                  telemetryService={telemetryService}
+                  service={telemetryService}
                   onNavigateComplete={() => {
                     onClose();
                   }}

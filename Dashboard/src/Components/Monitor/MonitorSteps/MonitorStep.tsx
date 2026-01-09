@@ -385,7 +385,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         placeholder: "No telemetry services entered",
         getElement: (): ReactElement => {
           return (
-            <ServicesElement telemetryServices={telemetryServices} />
+            <ServicesElement services={telemetryServices} />
           );
         },
       });
@@ -484,7 +484,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         placeholder: "No telemetry services entered",
         getElement: (): ReactElement => {
           return (
-            <ServicesElement telemetryServices={telemetryServices} />
+            <ServicesElement services={telemetryServices} />
           );
         },
       });

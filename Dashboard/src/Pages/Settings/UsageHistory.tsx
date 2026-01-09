@@ -63,9 +63,9 @@ const Settings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              telemetryService: true,
+              service: true,
             },
-            title: "Telemetry Service",
+            title: "Service",
             type: FieldType.Entity,
             filterEntityType: Service,
             filterQuery: {
@@ -108,19 +108,19 @@ const Settings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              telemetryService: {
+              service: {
                 name: true,
                 _id: true,
                 serviceColor: true,
               },
             },
-            title: "Telemetry Service",
+            title: "Service",
             type: FieldType.Element,
             getElement: (item: TelemetryUsageBilling) => {
               return (
                 <ServiceElement
-                  telemetryService={
-                    item["telemetryService"] as Service
+                  service={
+                    item["service"] as Service
                   }
                 />
               );

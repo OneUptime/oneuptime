@@ -410,8 +410,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex space-x-5">
         <ServiceElement
-          telemetryService={telemetryService}
-          telemetryServiceNameClassName="mt-0.5"
+          service={telemetryService}
+          serviceNameClassName="mt-0.5"
         />
       </div>
     );
