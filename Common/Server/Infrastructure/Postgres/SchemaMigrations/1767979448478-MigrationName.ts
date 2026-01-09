@@ -30,7 +30,8 @@ export class MigrationName1767979448478 implements MigrationInterface {
      * Step 4: Migrate TelemetryService data to Service table (BEFORE renaming columns and adding FK)
      * Preserve the same _id so existing references remain valid
      */
-    const telemetryServiceTableExists = await queryRunner.query(`
+    const telemetryServiceTableExists: Array<{ exists: boolean }> =
+      await queryRunner.query(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables
                 WHERE table_schema = 'public'
@@ -75,7 +76,8 @@ export class MigrationName1767979448478 implements MigrationInterface {
     }
 
     // Step 5: Migrate TelemetryServiceLabel to ServiceLabel
-    const telemetryServiceLabelExists = await queryRunner.query(`
+    const telemetryServiceLabelExists: Array<{ exists: boolean }> =
+      await queryRunner.query(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables
                 WHERE table_schema = 'public'
@@ -112,7 +114,8 @@ export class MigrationName1767979448478 implements MigrationInterface {
     );
 
     // Step 8: Migrate MetricTypeTelemetryService to MetricTypeService
-    const metricTypeTelemetryServiceExists = await queryRunner.query(`
+    const metricTypeTelemetryServiceExists: Array<{ exists: boolean }> =
+      await queryRunner.query(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables
                 WHERE table_schema = 'public'
