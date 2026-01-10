@@ -120,7 +120,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       description: "Distributed tracing analysis.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
       activeRoute: RouteMap[PageMap.TRACES],
-      icon: IconProp.RectangleStack,
+      icon: IconProp.Waterfall,
       iconColor: "yellow",
       category: "Observability",
     },

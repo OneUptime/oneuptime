@@ -239,6 +239,7 @@ export default class Service extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
     title: "Description",
     description: "Friendly description that will help you remember",
     example:

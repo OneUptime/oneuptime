@@ -1307,9 +1307,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.FlowDiagram) {
-    // Flow diagram icon matching home page workflows - two boxes at top, one at bottom, connected
+    // Flow diagram icon matching home page workflows - two boxes at top, one at bottom, connected (rotated 180°)
     return getSvgWrapper(
-      <>
+      <g style={{ transform: "rotate(180deg)", transformOrigin: "center" }}>
         <rect x="3" y="3" width="6" height="4" rx="1" strokeWidth="1.5" />
         <rect x="15" y="3" width="6" height="4" rx="1" strokeWidth="1.5" />
         <rect x="9" y="17" width="6" height="4" rx="1" strokeWidth="1.5" />
@@ -1317,7 +1317,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
           strokeLinecap="round"
           d="M6 7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M12 12v5"
         />
-      </>,
+      </g>,
     );
   } else if (icon === IconProp.Bug) {
     // Bug icon for exceptions - matching home page
@@ -1360,6 +1360,16 @@ const Icon: FunctionComponent<ComponentProps> = ({
           strokeLinejoin="round"
           d="M2 20h20"
         />
+      </>,
+    );
+  } else if (icon === IconProp.Waterfall) {
+    // Waterfall/span diagram icon for traces - matching home page
+    return getSvgWrapper(
+      <>
+        <rect x="2" y="3" width="20" height="4" rx="0.5" />
+        <rect x="2" y="10" width="10" height="4" rx="0.5" />
+        <rect x="2" y="17" width="5" height="4" rx="0.5" />
+        <rect x="17" y="17" width="5" height="4" rx="0.5" />
       </>,
     );
   }

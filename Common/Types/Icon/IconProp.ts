@@ -146,6 +146,7 @@ enum IconProp {
   Bug = "Bug",
   ChartPie = "ChartPie",
   Heartbeat = "Heartbeat",
+  Waterfall = "Waterfall",
 }
 
 export default IconProp;
