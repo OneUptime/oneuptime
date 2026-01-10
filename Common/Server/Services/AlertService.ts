@@ -1171,7 +1171,7 @@ ${alertSeverity.name}
     metricType.name = alertCountMetric.name;
     metricType.description = "Number of alerts created";
     metricType.unit = "";
-    metricType.telemetryServices = [];
+    metricType.services = [];
     metricTypesMap[alertCountMetric.name] = metricType;
 
     // is the alert acknowledged?
