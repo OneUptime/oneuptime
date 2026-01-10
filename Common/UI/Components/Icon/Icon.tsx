@@ -1330,6 +1330,38 @@ const Icon: FunctionComponent<ComponentProps> = ({
         />
       </>,
     );
+  } else if (icon === IconProp.ChartPie) {
+    // Pie chart icon for dashboards - matching home page
+    return getSvgWrapper(
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"
+        />
+      </>,
+    );
+  } else if (icon === IconProp.Heartbeat) {
+    // Heartbeat/line chart icon for metrics - matching home page
+    return getSvgWrapper(
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2 12h3l2-4 3 8 3-6 2 4h7"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2 20h20"
+        />
+      </>,
+    );
   }
 
   return <></>;

@@ -144,6 +144,8 @@ enum IconProp {
   FlowDiagram = "FlowDiagram",
   GitHub = "GitHub",
   Bug = "Bug",
+  ChartPie = "ChartPie",
+  Heartbeat = "Heartbeat",
 }
 
 export default IconProp;

@@ -103,7 +103,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
       activeRoute: RouteMap[PageMap.LOGS],
       icon: IconProp.Logs,
-      iconColor: "purple",
+      iconColor: "amber",
       category: "Observability",
     },
     {
@@ -111,8 +111,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       description: "Monitor system metrics.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
       activeRoute: RouteMap[PageMap.METRICS],
-      icon: IconProp.ChartBar,
-      iconColor: "green",
+      icon: IconProp.Heartbeat,
+      iconColor: "purple",
       category: "Observability",
     },
     {
@@ -121,7 +121,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
       activeRoute: RouteMap[PageMap.TRACES],
       icon: IconProp.RectangleStack,
-      iconColor: "blue",
+      iconColor: "yellow",
       category: "Observability",
     },
     {
@@ -152,7 +152,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         RouteMap[PageMap.DASHBOARDS] as Route,
       ),
       activeRoute: RouteMap[PageMap.DASHBOARDS],
-      icon: IconProp.Window,
+      icon: IconProp.ChartPie,
       iconColor: "indigo",
       category: "Analytics & Automation",
     },
