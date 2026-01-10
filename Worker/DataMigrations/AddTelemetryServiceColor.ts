@@ -13,19 +13,18 @@ export default class AddTelemetryServiceColor extends DataMigrationBase {
   public override async migrate(): Promise<void> {
     // get all the users with email isVerified true.
 
-    const services: Array<Service> =
-      await ServiceService.findBy({
-        query: {},
-        select: {
-          _id: true,
-          serviceColor: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const services: Array<Service> = await ServiceService.findBy({
+      query: {},
+      select: {
+        _id: true,
+        serviceColor: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
 
     for (const service of services) {
       if (!service.serviceColor) {

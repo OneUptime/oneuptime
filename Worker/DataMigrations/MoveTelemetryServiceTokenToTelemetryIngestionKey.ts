@@ -6,9 +6,11 @@ export default class MoveTelemetryServiceTokenToTelemetryIngestionKey extends Da
   }
 
   public override async migrate(): Promise<void> {
-    // This migration is no longer needed as the telemetryServiceToken field
-    // has been removed from the Service model. The migration was used to move
-    // tokens from TelemetryService to TelemetryIngestionKey.
+    /*
+     * This migration is no longer needed as the telemetryServiceToken field
+     * has been removed from the Service model. The migration was used to move
+     * tokens from TelemetryService to TelemetryIngestionKey.
+     */
     return;
   }
 
