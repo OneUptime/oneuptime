@@ -1,7 +1,7 @@
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -25,7 +25,7 @@ export interface ComponentProps {
   onMonitorStepExceptionMonitorChanged: (
     monitorStepExceptionMonitor: MonitorStepExceptionMonitor,
   ) => void;
-  telemetryServices: Array<TelemetryService>;
+  telemetryServices: Array<Service>;
 }
 
 type ExceptionMonitorFormValues = {
@@ -217,7 +217,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownOptions: props.telemetryServices.map(
-              (service: TelemetryService): { label: string; value: string } => {
+              (service: Service): { label: string; value: string } => {
                 return {
                   label: service.name || "Untitled Service",
                   value: service.id?.toString() || "",

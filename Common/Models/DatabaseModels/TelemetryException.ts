@@ -17,7 +17,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
-import TelemetryService from "./TelemetryService";
+import Service from "./Service";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -142,17 +142,16 @@ export default class TelemetryException extends DatabaseBaseModel {
     ],
   })
   @TableColumn({
-    manyToOneRelationColumn: "telemetryServiceId",
+    manyToOneRelationColumn: "serviceId",
     type: TableColumnType.Entity,
-    modelType: TelemetryService,
-    title: "Telemetry Service",
-    description:
-      "Relation to Telemetry Service Resource in which this object belongs",
+    modelType: Service,
+    title: "Service",
+    description: "Relation to Service Resource in which this object belongs",
     example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @ManyToOne(
     () => {
-      return TelemetryService;
+      return Service;
     },
     {
       eager: false,
@@ -161,8 +160,8 @@ export default class TelemetryException extends DatabaseBaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "telemetryServiceId" })
-  public telemetryService?: TelemetryService = undefined;
+  @JoinColumn({ name: "serviceId" })
+  public service?: Service = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -186,9 +185,8 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
-    title: "Telemetry Service ID",
-    description:
-      "ID of your Telemetry Service resource where this object belongs",
+    title: "Service ID",
+    description: "ID of your Service resource where this object belongs",
     example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @Column({
@@ -196,7 +194,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public telemetryServiceId?: ObjectID = undefined;
+  public serviceId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

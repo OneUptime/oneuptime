@@ -20,7 +20,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  // Build the main navigation items
+  // Build the main navigation items - only Home now
   const navItems: NavItem[] = [
     {
       id: "home-nav-bar-item",
@@ -29,95 +29,50 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
       activeRoute: RouteMap[PageMap.HOME],
     },
+  ];
+
+  // Build the products menu items - all products organized by category
+  const moreMenuItems: MoreMenuItem[] = [
+    // Essentials
     {
-      id: "monitors-nav-bar-item",
       title: "Monitors",
-      icon: IconProp.AltGlobe,
+      description: "Monitor any resource.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route),
       activeRoute: RouteMap[PageMap.MONITORS],
+      icon: IconProp.AltGlobe,
+      iconColor: "blue",
+      category: "Essentials",
     },
     {
-      id: "alerts-nav-bar-item",
-      title: "Alerts",
-      icon: IconProp.ExclaimationCircle,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS] as Route),
-      activeRoute: RouteMap[PageMap.ALERTS],
-    },
-    {
-      id: "incidents-nav-bar-item",
-      title: "Incidents",
-      icon: IconProp.Alert,
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.INCIDENTS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.INCIDENTS],
-    },
-    {
-      id: "telemetry-nav-bar-item",
-      title: "Telemetry and APM",
-      icon: IconProp.Cube,
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TELEMETRY] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.TELEMETRY],
-    },
-    {
-      id: "status-pages-nav-bar-item",
       title: "Status Pages",
-      icon: IconProp.CheckCircle,
+      description: "Real-time status updates.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.STATUS_PAGES] as Route,
       ),
       activeRoute: RouteMap[PageMap.STATUS_PAGES],
+      icon: IconProp.CheckCircle,
+      iconColor: "emerald",
+      category: "Essentials",
     },
     {
-      id: "dashboards-nav-bar-item",
-      title: "Dashboards",
-      icon: IconProp.Window,
+      title: "Incidents",
+      description: "Detect and resolve fast.",
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.DASHBOARDS] as Route,
+        RouteMap[PageMap.INCIDENTS] as Route,
       ),
-      activeRoute: RouteMap[PageMap.DASHBOARDS],
-    },
-  ];
-
-  // Build the "More" menu items - colors match home page product menu
-  const moreMenuItems: MoreMenuItem[] = [
-    {
-      title: "AI Agent",
-      description: "Auto-fix issues with AI-powered PRs.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-      ),
-      icon: IconProp.Brain,
-      iconColor: "violet",
+      activeRoute: RouteMap[PageMap.INCIDENTS],
+      icon: IconProp.Alert,
+      iconColor: "rose",
+      category: "Essentials",
     },
     {
-      title: "Service Catalog",
-      description: "Manage services and dependencies.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVICE_CATALOG] as Route,
-      ),
-      icon: IconProp.SquareStack,
-      iconColor: "blue",
-    },
-    {
-      title: "Code Repositories",
-      description: "GitHub and GitLab integrations.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CODE_REPOSITORY] as Route,
-      ),
-      icon: IconProp.Code,
-      iconColor: "gray",
-    },
-    {
-      title: "Scheduled Maintenance",
-      description: "Plan and manage maintenance.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
-      ),
-      icon: IconProp.Clock,
+      title: "Alerts",
+      description: "Notification management.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS] as Route),
+      activeRoute: RouteMap[PageMap.ALERTS],
+      icon: IconProp.ExclaimationCircle,
       iconColor: "amber",
+      category: "Essentials",
     },
     {
       title: "On-Call Duty",
@@ -125,8 +80,81 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.ON_CALL_DUTY] as Route,
       ),
+      activeRoute: RouteMap[PageMap.ON_CALL_DUTY],
       icon: IconProp.Call,
       iconColor: "stone",
+      category: "Essentials",
+    },
+    {
+      title: "Scheduled Maintenance",
+      description: "Plan and manage maintenance.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS],
+      icon: IconProp.Clock,
+      iconColor: "cyan",
+      category: "Essentials",
+    },
+    // Observability
+    {
+      title: "Logs",
+      description: "Search and analyze logs.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+      activeRoute: RouteMap[PageMap.LOGS],
+      icon: IconProp.Logs,
+      iconColor: "amber",
+      category: "Observability",
+    },
+    {
+      title: "Metrics",
+      description: "Monitor system metrics.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
+      activeRoute: RouteMap[PageMap.METRICS],
+      icon: IconProp.Heartbeat,
+      iconColor: "purple",
+      category: "Observability",
+    },
+    {
+      title: "Traces",
+      description: "Distributed tracing analysis.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
+      activeRoute: RouteMap[PageMap.TRACES],
+      icon: IconProp.Waterfall,
+      iconColor: "yellow",
+      category: "Observability",
+    },
+    {
+      title: "Exceptions",
+      description: "Catch and fix bugs early.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.EXCEPTIONS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.EXCEPTIONS],
+      icon: IconProp.Bug,
+      iconColor: "orange",
+      category: "Observability",
+    },
+    {
+      title: "Services",
+      description: "Manage service dependencies.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
+      activeRoute: RouteMap[PageMap.SERVICES],
+      icon: IconProp.SquareStack,
+      iconColor: "indigo",
+      category: "Observability",
+    },
+    // Automation & Analytics
+    {
+      title: "Dashboards",
+      description: "Visualize all your data.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DASHBOARDS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.DASHBOARDS],
+      icon: IconProp.ChartPie,
+      iconColor: "indigo",
+      category: "Analytics & Automation",
     },
     {
       title: "Workflows",
@@ -134,15 +162,42 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.WORKFLOWS] as Route,
       ),
+      activeRoute: RouteMap[PageMap.WORKFLOWS],
       icon: IconProp.FlowDiagram,
       iconColor: "sky",
+      category: "Analytics & Automation",
     },
+    {
+      title: "AI Agent",
+      description: "AI-powered issue resolution.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.AI_AGENT_TASKS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
+      icon: IconProp.Brain,
+      iconColor: "violet",
+      category: "Analytics & Automation",
+    },
+    {
+      title: "Code Repositories",
+      description: "GitHub and GitLab integrations.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CODE_REPOSITORY] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CODE_REPOSITORY],
+      icon: IconProp.Code,
+      iconColor: "gray",
+      category: "Analytics & Automation",
+    },
+    // Settings
     {
       title: "Project Settings",
       description: "Configure your project.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+      activeRoute: RouteMap[PageMap.SETTINGS],
       icon: IconProp.Settings,
       iconColor: "slate",
+      category: "Settings",
     },
   ];
 

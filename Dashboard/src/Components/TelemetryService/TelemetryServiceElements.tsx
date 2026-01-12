@@ -1,10 +1,10 @@
 import TelemetryServiceElement from "./TelemetryServiceElement";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  telemetryServices: Array<TelemetryService>;
+  telemetryServices: Array<Service>;
   onNavigateComplete?: (() => void) | undefined;
 }
 
@@ -15,7 +15,7 @@ const TelemetryServicesElement: FunctionComponent<ComponentProps> = (
     <TableColumnListComponent
       items={props.telemetryServices}
       moreText="more services"
-      getEachElement={(telemetryService: TelemetryService) => {
+      getEachElement={(telemetryService: Service) => {
         return (
           <TelemetryServiceElement
             telemetryService={telemetryService}

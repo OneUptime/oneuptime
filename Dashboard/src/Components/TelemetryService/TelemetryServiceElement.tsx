@@ -6,11 +6,11 @@ import ObjectID from "Common/Types/ObjectID";
 import ColorSquareCube from "Common/UI/Components/ColorSquareCube/ColorSquareCube";
 import AppLink from "../AppLink/AppLink";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  telemetryService: TelemetryService;
+  telemetryService: Service;
   onNavigateComplete?: (() => void) | undefined;
   telemetryServiceNameClassName?: string;
 }
@@ -40,7 +40,7 @@ const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.TELEMETRY_SERVICES_VIEW] as Route,
+          RouteMap[PageMap.SERVICE_VIEW] as Route,
           {
             modelId: new ObjectID(props.telemetryService._id as string),
           },

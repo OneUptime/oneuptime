@@ -2084,7 +2084,7 @@ ${incidentSeverity.name}
     metricType.name = incidentCountMetric.name;
     metricType.description = "Number of incidents created";
     metricType.unit = "";
-    metricType.telemetryServices = [];
+    metricType.services = [];
 
     // add to map.
     metricTypesMap[incidentCountMetric.name] = metricType;

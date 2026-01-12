@@ -31,20 +31,19 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
 };
 
-export const ServiceCatalogRoutePath: Dictionary<string> = {
-  [PageMap.SERVICE_CATALOG_VIEW]: `${RouteParams.ModelID}`,
-  [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
-  [PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]: `${RouteParams.ModelID}/dependencies`,
-  [PageMap.SERVICE_CATALOG_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
-  [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
-  [PageMap.SERVICE_CATALOG_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
-  [PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
-  [PageMap.SERVICE_CATALOG_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
-  [PageMap.SERVICE_CATALOG_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
-  [PageMap.SERVICE_CATALOG_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
-  [PageMap.SERVICE_CATALOG_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
-  [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: `${RouteParams.ModelID}/telemetry-service`,
-  [PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
+export const ServiceRoutePath: Dictionary<string> = {
+  [PageMap.SERVICE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SERVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.SERVICE_VIEW_DEPENDENCIES]: `${RouteParams.ModelID}/dependencies`,
+  [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.SERVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
+  [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.SERVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVICE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
 };
 
 export const CodeRepositoryRoutePath: Dictionary<string> = {
@@ -72,45 +71,30 @@ export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
-export const TelemetryRoutePath: Dictionary<string> = {
-  [PageMap.TELEMETRY_SERVICES]: "services",
-  [PageMap.TELEMETRY_DOCUMENTATION]: "documentation",
-  [PageMap.TELEMETRY_LOGS]: "logs",
-  [PageMap.TELEMETRY_TRACES]: "traces",
-  [PageMap.TELEMETRY_METRICS]: "metrics",
-  [PageMap.TELEMETRY_EXCEPTIONS]: "exceptions/unresolved",
-  [PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]: "exceptions/resolved",
-  [PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]: "exceptions/unresolved",
-  [PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]: "exceptions/archived",
-  [PageMap.TELEMETRY_SERVICES_VIEW_ROOT]: "services",
+// Logs product routes
+export const LogsRoutePath: Dictionary<string> = {
+  [PageMap.LOGS]: "",
+};
 
-  [PageMap.TELEMETRY_METRIC_ROOT]: `metric`,
-  [PageMap.TELEMETRY_METRIC_VIEW]: `metric/view`,
+// Metrics product routes
+export const MetricsRoutePath: Dictionary<string> = {
+  [PageMap.METRICS]: "",
+  [PageMap.METRIC_VIEW]: "view",
+};
 
-  [PageMap.TELEMETRY_TRACE_ROOT]: `traces/view`,
-  [PageMap.TELEMETRY_TRACE_VIEW]: `traces/view/${RouteParams.ModelID}`, // modelID is spanId
+// Traces product routes
+export const TracesRoutePath: Dictionary<string> = {
+  [PageMap.TRACES]: "",
+  [PageMap.TRACE_VIEW]: `view/${RouteParams.ModelID}`,
+};
 
-  [PageMap.TELEMETRY_EXCEPTIONS_ROOT]: `exceptions`,
-  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: `exceptions/${RouteParams.ModelID}`,
-
-  [PageMap.TELEMETRY_LOG_ROOT]: `logs`,
-
-  [PageMap.TELEMETRY_SERVICES_VIEW]: `services/${RouteParams.ModelID}`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: `services/${RouteParams.ModelID}/delete`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: `services/${RouteParams.ModelID}/logs`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]: `services/${RouteParams.ModelID}/exceptions/${RouteParams.SubModelID}`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: `services/${RouteParams.ModelID}/traces`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_TRACE]: `services/${RouteParams.ModelID}/traces/${RouteParams.SubModelID}`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: `services/${RouteParams.ModelID}/metrics`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_METRIC]: `services/${RouteParams.ModelID}/metrics/view`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: `services/${RouteParams.ModelID}/settings`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]: `services/${RouteParams.ModelID}/documentation`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]: `services/${RouteParams.ModelID}/exceptions`,
-
-  // service exceptions.
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]: `services/${RouteParams.ModelID}/exceptions/archived`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]: `services/${RouteParams.ModelID}/exceptions/unresolved`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]: `services/${RouteParams.ModelID}/exceptions/resolved`,
+export const ExceptionsRoutePath: Dictionary<string> = {
+  [PageMap.EXCEPTIONS]: "unresolved",
+  [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
+  [PageMap.EXCEPTIONS_RESOLVED]: "resolved",
+  [PageMap.EXCEPTIONS_ARCHIVED]: "archived",
+  [PageMap.EXCEPTIONS_VIEW_ROOT]: "",
+  [PageMap.EXCEPTIONS_VIEW]: `${RouteParams.ModelID}`,
 };
 
 export const DashboardsRoutePath: Dictionary<string> = {
@@ -865,94 +849,86 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/*`,
+  [PageMap.SERVICE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/*`,
   ),
 
-  [PageMap.SERVICE_CATALOG]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog`,
+  [PageMap.SERVICES]: new Route(`/dashboard/${RouteParams.ProjectID}/service`),
+
+  // Root-level Service pages
+  [PageMap.SERVICE_DEPENDENCY_GRAPH]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/dependency-graph`,
   ),
 
-  // Root-level Service Catalog pages
-  [PageMap.SERVICE_CATALOG_DEPENDENCY_GRAPH]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/dependency-graph`,
-  ),
-
-  [PageMap.SERVICE_CATALOG_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW]
+  [PageMap.SERVICE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_OWNERS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_OWNERS]
+  [PageMap.SERVICE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_OWNERS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_DEPENDENCIES]
+  [PageMap.SERVICE_VIEW_DEPENDENCIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_DEPENDENCIES]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_DELETE]
+  [PageMap.SERVICE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_DELETE]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_SETTINGS]
+  [PageMap.SERVICE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SETTINGS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_MONITORS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_MONITORS]
+  [PageMap.SERVICE_VIEW_MONITORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_MONITORS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]
+  [PageMap.SERVICE_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_INCIDENTS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_ALERTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_ALERTS]
+  [PageMap.SERVICE_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_ALERTS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_LOGS]
+  [PageMap.SERVICE_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_LOGS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_TRACES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_TRACES]
+  [PageMap.SERVICE_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_TRACES]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_METRICS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_METRICS]
+  [PageMap.SERVICE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_METRICS]
     }`,
   ),
 
-  [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]
-    }`,
-  ),
-
-  [PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
-      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]
+  [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_CODE_REPOSITORIES]
     }`,
   ),
 
@@ -1390,196 +1366,34 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/error-tracker/`,
   ),
 
-  [PageMap.TELEMETRY_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/*`,
+  // Logs Product Routes
+  [PageMap.LOGS_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/*`),
+
+  [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs`),
+
+  // Metrics Product Routes
+  [PageMap.METRICS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/*`,
   ),
 
-  [PageMap.TELEMETRY]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES]
+  [PageMap.METRICS]: new Route(`/dashboard/${RouteParams.ProjectID}/metrics`),
+
+  [PageMap.METRIC_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRIC_VIEW]
     }`,
   ),
 
-  [PageMap.TELEMETRY_SERVICES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES]
-    }`,
+  // Traces Product Routes
+  [PageMap.TRACES_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/*`,
   ),
 
-  [PageMap.TELEMETRY_DOCUMENTATION]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_DOCUMENTATION]
-    }`,
-  ),
+  [PageMap.TRACES]: new Route(`/dashboard/${RouteParams.ProjectID}/traces`),
 
-  [PageMap.TELEMETRY_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_LOGS]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_METRICS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_METRICS]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_METRIC_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_METRIC_VIEW]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_TRACE_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_TRACE_VIEW]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_TRACE_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_TRACE_ROOT]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_EXCEPTIONS_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ROOT]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_TRACES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_TRACES]
-    }`,
-  ),
-
-  // Exceptions
-
-  [PageMap.TELEMETRY_EXCEPTIONS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_VIEW]
-    }`,
-  ),
-
-  // Exceptions - Unresolved, Resolved, Archived.
-  [PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]
-    }`,
-  ),
-
-  // Service Exceptions - Unresolved, Resolved, Archived.
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_ROOT]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_TRACE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_TRACE]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_METRIC]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_METRIC]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_DELETE]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]
-    }`,
-  ),
-
-  //TELEMETRY_SERVICE_VIEW_LOGS
-  [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_LOGS]
-    }`,
-  ),
-
-  // view exceptions.
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]
-    }`,
-  ),
-
-  //TELEMETRY_SERVICE_VIEW_TRACES
-  [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_TRACES]
-    }`,
-  ),
-
-  // Metrics
-  [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_METRICS]
+  [PageMap.TRACE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACE_VIEW]
     }`,
   ),
 
@@ -2143,6 +1957,45 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
+    }`,
+  ),
+
+  // Exceptions (standalone menu item)
+  [PageMap.EXCEPTIONS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/*`,
+  ),
+
+  [PageMap.EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_UNRESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_UNRESOLVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_RESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_RESOLVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW]
     }`,
   ),
 };

@@ -33,7 +33,7 @@ import {
 // Metadata structure for Fix Exception tasks
 export interface FixExceptionMetadata extends TaskMetadata {
   exceptionId: string;
-  telemetryServiceId?: string;
+  serviceId?: string;
   stackTrace?: string;
   errorMessage?: string;
 }
@@ -73,32 +73,24 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       const exceptionDetails: ExceptionDetails =
         await context.backendAPI.getExceptionDetails(metadata.exceptionId);
 
-      if (!exceptionDetails.telemetryService) {
-        await this.log(
-          context,
-          "No telemetry service linked to this exception",
-          "error",
-        );
-        return this.createFailureResult(
-          "No telemetry service linked to this exception",
-          { isError: true },
-        );
+      if (!exceptionDetails.service) {
+        await this.log(context, "No service linked to this exception", "error");
+        return this.createFailureResult("No service linked to this exception", {
+          isError: true,
+        });
       }
 
       await this.log(
         context,
         `Exception: ${exceptionDetails.exception.message.substring(0, 100)}...`,
       );
-      await this.log(
-        context,
-        `Service: ${exceptionDetails.telemetryService.name}`,
-      );
+      await this.log(context, `Service: ${exceptionDetails.service.name}`);
 
       // Step 3: Get linked code repositories
       await this.log(context, "Finding linked code repositories...");
       const repositories: Array<CodeRepositoryInfo> =
         await context.backendAPI.getCodeRepositories(
-          exceptionDetails.telemetryService.id,
+          exceptionDetails.service.id,
         );
 
       if (repositories.length === 0) {
@@ -351,7 +343,7 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       exceptionMessage: exceptionDetails.exception.message,
       exceptionType: exceptionDetails.exception.exceptionType,
       stackTrace: exceptionDetails.exception.stackTrace,
-      serviceName: exceptionDetails.telemetryService?.name || "Unknown Service",
+      serviceName: exceptionDetails.service?.name || "Unknown Service",
       summary: agentResult.summary,
     });
 

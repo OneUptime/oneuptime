@@ -1307,9 +1307,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.FlowDiagram) {
-    // Flow diagram icon matching home page workflows - two boxes at top, one at bottom, connected
+    // Flow diagram icon matching home page workflows - two boxes at top, one at bottom, connected (rotated 180°)
     return getSvgWrapper(
-      <>
+      <g style={{ transform: "rotate(180deg)", transformOrigin: "center" }}>
         <rect x="3" y="3" width="6" height="4" rx="1" strokeWidth="1.5" />
         <rect x="15" y="3" width="6" height="4" rx="1" strokeWidth="1.5" />
         <rect x="9" y="17" width="6" height="4" rx="1" strokeWidth="1.5" />
@@ -1317,6 +1317,59 @@ const Icon: FunctionComponent<ComponentProps> = ({
           strokeLinecap="round"
           d="M6 7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M12 12v5"
         />
+      </g>,
+    );
+  } else if (icon === IconProp.Bug) {
+    // Bug icon for exceptions - matching home page
+    return getSvgWrapper(
+      <>
+        <ellipse cx="12" cy="14" rx="5" ry="6" />
+        <path
+          strokeLinecap="round"
+          d="M9 8.5C9 6.5 10.5 5 12 5s3 1.5 3 3.5M4 11l3 1m10-1 3 1M4 17l3-1m10 1 3-1M12 8v12M9 14h6"
+        />
+      </>,
+    );
+  } else if (icon === IconProp.ChartPie) {
+    // Pie chart icon for dashboards - matching home page
+    return getSvgWrapper(
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"
+        />
+      </>,
+    );
+  } else if (icon === IconProp.Heartbeat) {
+    // Heartbeat/line chart icon for metrics - matching home page
+    return getSvgWrapper(
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2 12h3l2-4 3 8 3-6 2 4h7"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2 20h20"
+        />
+      </>,
+    );
+  } else if (icon === IconProp.Waterfall) {
+    // Waterfall/span diagram icon for traces - matching home page
+    return getSvgWrapper(
+      <>
+        <rect x="2" y="3" width="20" height="4" rx="0.5" />
+        <rect x="2" y="10" width="10" height="4" rx="0.5" />
+        <rect x="2" y="17" width="5" height="4" rx="0.5" />
+        <rect x="17" y="17" width="5" height="4" rx="0.5" />
       </>,
     );
   }

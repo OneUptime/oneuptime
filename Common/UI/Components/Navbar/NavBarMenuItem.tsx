@@ -10,7 +10,7 @@ export interface ComponentProps {
   icon: IconProp;
   description: string;
   onClick: () => void;
-  iconColor?: string; // Tailwind color name like "blue", "purple", "amber"
+  iconColor?: string | undefined; // Tailwind color name like "blue", "purple", "amber"
 }
 
 const NavBarMenuItem: FunctionComponent<ComponentProps> = (
@@ -84,6 +84,30 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
       hoverBg: "hover:bg-violet-50",
       hoverRing: "group-hover:ring-violet-300",
     },
+    orange: {
+      bg: "bg-orange-50",
+      ring: "ring-orange-200",
+      hoverBg: "hover:bg-orange-50",
+      hoverRing: "group-hover:ring-orange-300",
+    },
+    stone: {
+      bg: "bg-stone-100",
+      ring: "ring-stone-300",
+      hoverBg: "hover:bg-stone-50",
+      hoverRing: "group-hover:ring-stone-400",
+    },
+    sky: {
+      bg: "bg-sky-50",
+      ring: "ring-sky-200",
+      hoverBg: "hover:bg-sky-50",
+      hoverRing: "group-hover:ring-sky-300",
+    },
+    emerald: {
+      bg: "bg-emerald-50",
+      ring: "ring-emerald-200",
+      hoverBg: "hover:bg-emerald-50",
+      hoverRing: "group-hover:ring-emerald-300",
+    },
   };
 
   const colors: {
@@ -98,7 +122,7 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
       <Link
         onClick={props.onClick}
         to={props.route}
-        className={`group flex items-center gap-3 rounded-lg p-2.5 transition-colors ${colors.hoverBg}`}
+        className={`group flex items-start gap-3 rounded-lg p-2.5 transition-colors ${colors.hoverBg}`}
       >
         <div
           className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${colors.bg} ring-1 ${colors.ring} ${colors.hoverRing} transition-all`}

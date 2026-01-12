@@ -37,7 +37,7 @@ export class Service extends DatabaseService<Model> {
         projectId: true,
         message: true,
         stackTrace: true,
-        telemetryServiceId: true,
+        serviceId: true,
         exceptionType: true,
       },
       props,
@@ -160,9 +160,8 @@ export class Service extends DatabaseService<Model> {
       metadata.errorMessage = telemetryException.message;
     }
 
-    if (telemetryException.telemetryServiceId) {
-      metadata.telemetryServiceId =
-        telemetryException.telemetryServiceId.toString();
+    if (telemetryException.serviceId) {
+      metadata.serviceId = telemetryException.serviceId.toString();
     }
 
     return metadata;

@@ -1,4 +1,4 @@
-import TelemetryServiceElement from "../../Components/TelemetryService/TelemetryServiceElement";
+import ServiceElement from "../../Components/Service/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Currency from "Common/Types/Currency";
@@ -9,7 +9,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -63,11 +63,11 @@ const Settings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              telemetryService: true,
+              service: true,
             },
-            title: "Telemetry Service",
+            title: "Service",
             type: FieldType.Entity,
-            filterEntityType: TelemetryService,
+            filterEntityType: Service,
             filterQuery: {
               projectId: ProjectUtil.getCurrentProjectId()!,
             },
@@ -108,22 +108,16 @@ const Settings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              telemetryService: {
+              service: {
                 name: true,
                 _id: true,
                 serviceColor: true,
               },
             },
-            title: "Telemetry Service",
+            title: "Service",
             type: FieldType.Element,
             getElement: (item: TelemetryUsageBilling) => {
-              return (
-                <TelemetryServiceElement
-                  telemetryService={
-                    item["telemetryService"] as TelemetryService
-                  }
-                />
-              );
+              return <ServiceElement service={item["service"] as Service} />;
             },
           },
           {

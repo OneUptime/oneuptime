@@ -9,7 +9,7 @@ export interface AIAgentTaskMetadataBase {
 export interface FixExceptionTaskMetadata extends AIAgentTaskMetadataBase {
   taskType: AIAgentTaskType.FixException;
   exceptionId: string;
-  telemetryServiceId?: string;
+  serviceId?: string;
   stackTrace?: string;
   errorMessage?: string;
 }

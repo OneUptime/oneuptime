@@ -1,8 +1,7 @@
 import AIAgentService from "../Services/AIAgentService";
 import LlmProviderService from "../Services/LlmProviderService";
 import TelemetryExceptionService from "../Services/TelemetryExceptionService";
-import ServiceCatalogTelemetryServiceService from "../Services/ServiceCatalogTelemetryServiceService";
-import ServiceCatalogCodeRepositoryService from "../Services/ServiceCatalogCodeRepositoryService";
+import ServiceCodeRepositoryService from "../Services/ServiceCodeRepositoryService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
 import AIAgentTaskService from "../Services/AIAgentTaskService";
@@ -16,8 +15,7 @@ import Response from "../Utils/Response";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
-import ServiceCatalogTelemetryService from "../../Models/DatabaseModels/ServiceCatalogTelemetryService";
-import ServiceCatalogCodeRepository from "../../Models/DatabaseModels/ServiceCatalogCodeRepository";
+import ServiceCodeRepository from "../../Models/DatabaseModels/ServiceCodeRepository";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
@@ -164,7 +162,7 @@ export default class AIAgentDataAPI {
             data["exceptionId"] as string,
           );
 
-          // Get exception with telemetry service
+          // Get exception with service
           const exception: TelemetryException | null =
             await TelemetryExceptionService.findOneById({
               id: exceptionId,
@@ -174,8 +172,8 @@ export default class AIAgentDataAPI {
                 stackTrace: true,
                 exceptionType: true,
                 fingerprint: true,
-                telemetryServiceId: true,
-                telemetryService: {
+                serviceId: true,
+                service: {
                   _id: true,
                   name: true,
                   description: true,
@@ -206,11 +204,11 @@ export default class AIAgentDataAPI {
               exceptionType: exception.exceptionType,
               fingerprint: exception.fingerprint,
             },
-            telemetryService: exception.telemetryServiceId
+            service: exception.serviceId
               ? {
-                  id: exception.telemetryServiceId.toString(),
-                  name: exception.telemetryService?.name,
-                  description: exception.telemetryService?.description,
+                  id: exception.serviceId.toString(),
+                  name: exception.service?.name,
+                  description: exception.service?.description,
                 }
               : null,
           });
@@ -220,7 +218,7 @@ export default class AIAgentDataAPI {
       },
     );
 
-    // Get code repositories linked to a telemetry service via ServiceCatalog
+    // Get code repositories linked to a service
     this.router.post(
       "/ai-agent-data/get-code-repositories",
       async (
@@ -242,55 +240,22 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Get telemetry service ID
-          if (!data["telemetryServiceId"]) {
+          // Get service ID (supports both serviceId and legacy telemetryServiceId)
+          const serviceIdParam: string | undefined =
+            (data["serviceId"] as string) ||
+            (data["telemetryServiceId"] as string);
+
+          if (!serviceIdParam) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("telemetryServiceId is required"),
+              new BadDataException("serviceId is required"),
             );
           }
 
-          const telemetryServiceId: ObjectID = new ObjectID(
-            data["telemetryServiceId"] as string,
-          );
+          const serviceId: ObjectID = new ObjectID(serviceIdParam);
 
-          // Step 1: Find ServiceCatalogs linked to this TelemetryService
-          const serviceCatalogTelemetryServices: Array<ServiceCatalogTelemetryService> =
-            await ServiceCatalogTelemetryServiceService.findBy({
-              query: {
-                telemetryServiceId: telemetryServiceId,
-              },
-              select: {
-                serviceCatalogId: true,
-              },
-              skip: 0,
-              limit: LIMIT_MAX,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (serviceCatalogTelemetryServices.length === 0) {
-            logger.debug(
-              `No service catalogs found for telemetry service ${telemetryServiceId.toString()}`,
-            );
-            return Response.sendJsonObjectResponse(req, res, {
-              repositories: [],
-            });
-          }
-
-          // Extract service catalog IDs
-          const serviceCatalogIds: Array<ObjectID> =
-            serviceCatalogTelemetryServices
-              .filter((s: ServiceCatalogTelemetryService) => {
-                return s.serviceCatalogId;
-              })
-              .map((s: ServiceCatalogTelemetryService) => {
-                return s.serviceCatalogId as ObjectID;
-              });
-
-          // Step 2: Find CodeRepositories linked to these ServiceCatalogs
+          // Find CodeRepositories linked to this Service
           const repositories: Array<{
             id: string;
             name: string;
@@ -302,70 +267,67 @@ export default class AIAgentDataAPI {
             gitHubAppInstallationId: string | null;
           }> = [];
 
-          for (const serviceCatalogId of serviceCatalogIds) {
-            const serviceCatalogCodeRepositories: Array<ServiceCatalogCodeRepository> =
-              await ServiceCatalogCodeRepositoryService.findBy({
-                query: {
-                  serviceCatalogId: serviceCatalogId,
+          const serviceCodeRepositories: Array<ServiceCodeRepository> =
+            await ServiceCodeRepositoryService.findBy({
+              query: {
+                serviceId: serviceId,
+              },
+              select: {
+                codeRepositoryId: true,
+                servicePathInRepository: true,
+                codeRepository: {
+                  _id: true,
+                  name: true,
+                  repositoryHostedAt: true,
+                  organizationName: true,
+                  repositoryName: true,
+                  mainBranchName: true,
+                  gitHubAppInstallationId: true,
                 },
-                select: {
-                  codeRepositoryId: true,
-                  servicePathInRepository: true,
-                  codeRepository: {
-                    _id: true,
-                    name: true,
-                    repositoryHostedAt: true,
-                    organizationName: true,
-                    repositoryName: true,
-                    mainBranchName: true,
-                    gitHubAppInstallationId: true,
-                  },
-                },
-                skip: 0,
-                limit: LIMIT_MAX,
-                props: {
-                  isRoot: true,
-                },
-              });
+              },
+              skip: 0,
+              limit: LIMIT_MAX,
+              props: {
+                isRoot: true,
+              },
+            });
 
-            for (const scr of serviceCatalogCodeRepositories) {
-              if (scr.codeRepository) {
-                // Check if we already have this repository
-                const existingRepo: boolean = repositories.some(
-                  (r: {
-                    id: string;
-                    name: string;
-                    repositoryHostedAt: string;
-                    organizationName: string;
-                    repositoryName: string;
-                    mainBranchName: string;
-                    servicePathInRepository: string | null;
-                    gitHubAppInstallationId: string | null;
-                  }) => {
-                    return r.id === scr.codeRepository?._id?.toString();
-                  },
-                );
-                if (!existingRepo) {
-                  repositories.push({
-                    id: scr.codeRepository._id?.toString() || "",
-                    name: scr.codeRepository.name || "",
-                    repositoryHostedAt:
-                      scr.codeRepository.repositoryHostedAt || "",
-                    organizationName: scr.codeRepository.organizationName || "",
-                    repositoryName: scr.codeRepository.repositoryName || "",
-                    mainBranchName: scr.codeRepository.mainBranchName || "main",
-                    servicePathInRepository:
-                      scr.servicePathInRepository || null,
-                    gitHubAppInstallationId:
-                      scr.codeRepository.gitHubAppInstallationId || null,
-                  });
-                }
+          for (const scr of serviceCodeRepositories) {
+            if (scr.codeRepository) {
+              // Check if we already have this repository
+              const existingRepo: boolean = repositories.some(
+                (r: {
+                  id: string;
+                  name: string;
+                  repositoryHostedAt: string;
+                  organizationName: string;
+                  repositoryName: string;
+                  mainBranchName: string;
+                  servicePathInRepository: string | null;
+                  gitHubAppInstallationId: string | null;
+                }) => {
+                  return r.id === scr.codeRepository?._id?.toString();
+                },
+              );
+              if (!existingRepo) {
+                repositories.push({
+                  id: scr.codeRepository._id?.toString() || "",
+                  name: scr.codeRepository.name || "",
+                  repositoryHostedAt:
+                    scr.codeRepository.repositoryHostedAt || "",
+                  organizationName: scr.codeRepository.organizationName || "",
+                  repositoryName: scr.codeRepository.repositoryName || "",
+                  mainBranchName: scr.codeRepository.mainBranchName || "main",
+                  servicePathInRepository: scr.servicePathInRepository || null,
+                  gitHubAppInstallationId:
+                    scr.codeRepository.gitHubAppInstallationId || null,
+                });
               }
             }
           }
 
           logger.debug(
-            `Found ${repositories.length} code repositories for telemetry service ${telemetryServiceId.toString()}`,
+            `Found ${repositories.length} code repositories for service ${serviceId.toString()}`,
           );
 
           return Response.sendJsonObjectResponse(req, res, {

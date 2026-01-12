@@ -9,7 +9,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import TelemetryServiceElement from "./TelemetryServiceElement";
@@ -29,8 +29,8 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <ModelTable<TelemetryService>
-      modelType={TelemetryService}
+    <ModelTable<Service>
+      modelType={Service}
       id="services-table"
       isDeleteable={false}
       isEditable={false}
@@ -76,7 +76,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
       ]}
       showRefreshButton={true}
       viewPageRoute={RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_ROOT]!,
+        RouteMap[PageMap.SERVICE_VIEW]!,
       )}
       filters={[
         {
@@ -123,7 +123,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
           },
           title: "Name",
           type: FieldType.Element,
-          getElement: (service: TelemetryService): ReactElement => {
+          getElement: (service: Service): ReactElement => {
             return (
               <Fragment>
                 <TelemetryServiceElement telemetryService={service} />
@@ -148,7 +148,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
           title: "Labels",
           type: FieldType.EntityArray,
 
-          getElement: (item: TelemetryService): ReactElement => {
+          getElement: (item: Service): ReactElement => {
             return <LabelsElement labels={item["labels"] || []} />;
           },
         },

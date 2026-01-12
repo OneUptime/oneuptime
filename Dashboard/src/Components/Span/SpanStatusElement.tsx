@@ -41,12 +41,9 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
       {props.title ? (
         <div className={`${props.titleClassName} hover:underline`}>
           <AppLink
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
-              {
-                modelId: props.traceId,
-              },
-            )}
+            to={RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
+              modelId: props.traceId,
+            })}
           >
             <p>{props.title}</p>
           </AppLink>

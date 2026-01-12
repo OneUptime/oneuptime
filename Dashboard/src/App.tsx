@@ -63,10 +63,20 @@ const OngoingScheduledEvents: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Home/OngoingScheduledMaintenance");
 });
-const TelemetryRoutes: React.LazyExoticComponent<
+const LogsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
-  return import("./Routes/TelemetryRoutes");
+  return import("./Routes/LogsRoutes");
+});
+const MetricsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/MetricsRoutes");
+});
+const TracesRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/TracesRoutes");
 });
 const MonitorsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
@@ -88,10 +98,10 @@ const DashboardRoutes: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Routes/DashboardRoutes");
 });
-const ServiceCatalogRoutes: React.LazyExoticComponent<
+const ServiceRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
-  return import("./Routes/ServiceCatalogRoutes");
+  return import("./Routes/ServiceRoutes");
 });
 const CodeRepositoryRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
@@ -177,6 +187,11 @@ const AIAgentTasksRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
   return import("./Routes/AIAgentTasksRoutes");
+});
+const ExceptionsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/ExceptionsRoutes");
 });
 const PageNotFound: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
@@ -422,10 +437,22 @@ const App: () => JSX.Element = () => {
               />
             }
           />
-          {/* Telemetry */}
+          {/* Logs */}
           <PageRoute
-            path={RouteMap[PageMap.TELEMETRY_ROOT]?.toString() || ""}
-            element={<TelemetryRoutes {...commonPageProps} />}
+            path={RouteMap[PageMap.LOGS_ROOT]?.toString() || ""}
+            element={<LogsRoutes {...commonPageProps} />}
+          />
+
+          {/* Metrics */}
+          <PageRoute
+            path={RouteMap[PageMap.METRICS_ROOT]?.toString() || ""}
+            element={<MetricsRoutes {...commonPageProps} />}
+          />
+
+          {/* Traces */}
+          <PageRoute
+            path={RouteMap[PageMap.TRACES_ROOT]?.toString() || ""}
+            element={<TracesRoutes {...commonPageProps} />}
           />
 
           {/* Monitors */}
@@ -452,10 +479,10 @@ const App: () => JSX.Element = () => {
             element={<DashboardRoutes {...commonPageProps} />}
           />
 
-          {/* Service Catalog */}
+          {/* Service */}
           <PageRoute
-            path={RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ""}
-            element={<ServiceCatalogRoutes {...commonPageProps} />}
+            path={RouteMap[PageMap.SERVICE_ROOT]?.toString() || ""}
+            element={<ServiceRoutes {...commonPageProps} />}
           />
 
           {/* Code Repository */}
@@ -608,6 +635,13 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.AI_AGENT_TASKS_ROOT]?.toString() || ""}
             element={<AIAgentTasksRoutes {...commonPageProps} />}
+          />
+
+          {/** Exceptions */}
+
+          <PageRoute
+            path={RouteMap[PageMap.EXCEPTIONS_ROOT]?.toString() || ""}
+            element={<ExceptionsRoutes {...commonPageProps} />}
           />
 
           {/* 👇️ only match this when no other routes match */}

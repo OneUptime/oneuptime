@@ -247,32 +247,27 @@ import ScheduledMaintenanceStateService, {
 import ScheduledMaintenanceStateTimelineService, {
   Service as ScheduledMaintenanceStateTimelineServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
-import ServiceCatalogOwnerTeamService, {
-  Service as ServiceCatalogOwnerTeamServiceType,
-} from "Common/Server/Services/ServiceCatalogOwnerTeamService";
-import ServiceCatalogOwnerUserService, {
-  Service as ServiceCatalogOwnerUserServiceType,
-} from "Common/Server/Services/ServiceCatalogOwnerUserService";
-import ServiceCatalogService, {
-  Service as ServiceCatalogServiceType,
-} from "Common/Server/Services/ServiceCatalogService";
-import ServiceCatalogDependencyService, {
-  Service as ServiceCatalogDependencyServiceType,
-} from "Common/Server/Services/ServiceCatalogDependencyService";
-import ServiceCatalogMonitor from "Common/Models/DatabaseModels/ServiceCatalogMonitor";
-import ServiceCatalogMonitorService, {
-  Service as ServiceCatalogMonitorServiceType,
-} from "Common/Server/Services/ServiceCatalogMonitorService";
+import ServiceOwnerTeamService, {
+  Service as ServiceOwnerTeamServiceType,
+} from "Common/Server/Services/ServiceOwnerTeamService";
+import ServiceOwnerUserService, {
+  Service as ServiceOwnerUserServiceType,
+} from "Common/Server/Services/ServiceOwnerUserService";
+import ServiceService, {
+  Service as ServiceServiceType,
+} from "Common/Server/Services/ServiceService";
+import ServiceDependencyService, {
+  Service as ServiceDependencyServiceType,
+} from "Common/Server/Services/ServiceDependencyService";
+import ServiceMonitor from "Common/Models/DatabaseModels/ServiceMonitor";
+import ServiceMonitorService, {
+  Service as ServiceMonitorServiceType,
+} from "Common/Server/Services/ServiceMonitorService";
 
-import ServiceCatalogTelemetryService from "Common/Models/DatabaseModels/ServiceCatalogTelemetryService";
-import ServiceCatalogTelemetryServiceService, {
-  Service as ServiceCatalogTelemetryServiceServiceType,
-} from "Common/Server/Services/ServiceCatalogTelemetryServiceService";
-
-import ServiceCatalogCodeRepository from "Common/Models/DatabaseModels/ServiceCatalogCodeRepository";
-import ServiceCatalogCodeRepositoryService, {
-  Service as ServiceCatalogCodeRepositoryServiceType,
-} from "Common/Server/Services/ServiceCatalogCodeRepositoryService";
+import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
+import ServiceCodeRepositoryService, {
+  Service as ServiceCodeRepositoryServiceType,
+} from "Common/Server/Services/ServiceCodeRepositoryService";
 
 import ShortLinkService, {
   Service as ShortLinkServiceType,
@@ -329,9 +324,6 @@ import TeamComplianceSettingService, {
 import TeamService, {
   Service as TeamServiceType,
 } from "Common/Server/Services/TeamService";
-import TelemetryServiceService, {
-  Service as TelemetryServiceServiceType,
-} from "Common/Server/Services/TelemetryServiceService";
 import TelemetryUsageBillingService, {
   Service as TelemetryUsageBillingServiceType,
 } from "Common/Server/Services/TelemetryUsageBillingService";
@@ -451,9 +443,9 @@ import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/Schedule
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
-import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
-import ServiceCatalogOwnerTeam from "Common/Models/DatabaseModels/ServiceCatalogOwnerTeam";
-import ServiceCatalogOwnerUser from "Common/Models/DatabaseModels/ServiceCatalogOwnerUser";
+import Service from "Common/Models/DatabaseModels/Service";
+import ServiceOwnerTeam from "Common/Models/DatabaseModels/ServiceOwnerTeam";
+import ServiceOwnerUser from "Common/Models/DatabaseModels/ServiceOwnerUser";
 import ShortLink from "Common/Models/DatabaseModels/ShortLink";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 // Custom Fields API
@@ -472,7 +464,6 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
@@ -485,7 +476,7 @@ import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
-import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
+import ServiceDependency from "Common/Models/DatabaseModels/ServiceDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
@@ -987,10 +978,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ServiceCatalogDependency,
-        ServiceCatalogDependencyServiceType
-      >(ServiceCatalogDependency, ServiceCatalogDependencyService).getRouter(),
+      new BaseAPI<ServiceDependency, ServiceDependencyServiceType>(
+        ServiceDependency,
+        ServiceDependencyService,
+      ).getRouter(),
     );
 
     app.use(
@@ -1006,31 +997,17 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceCatalogMonitor, ServiceCatalogMonitorServiceType>(
-        ServiceCatalogMonitor,
-        ServiceCatalogMonitorService,
+      new BaseAPI<ServiceMonitor, ServiceMonitorServiceType>(
+        ServiceMonitor,
+        ServiceMonitorService,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ServiceCatalogTelemetryService,
-        ServiceCatalogTelemetryServiceServiceType
-      >(
-        ServiceCatalogTelemetryService,
-        ServiceCatalogTelemetryServiceService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ServiceCatalogCodeRepository,
-        ServiceCatalogCodeRepositoryServiceType
-      >(
-        ServiceCatalogCodeRepository,
-        ServiceCatalogCodeRepositoryService,
+      new BaseAPI<ServiceCodeRepository, ServiceCodeRepositoryServiceType>(
+        ServiceCodeRepository,
+        ServiceCodeRepositoryService,
       ).getRouter(),
     );
 
@@ -1086,25 +1063,25 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceCatalog, ServiceCatalogServiceType>(
-        ServiceCatalog,
-        ServiceCatalogService,
+      new BaseAPI<Service, ServiceServiceType>(
+        Service,
+        ServiceService,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceCatalogOwnerTeam, ServiceCatalogOwnerTeamServiceType>(
-        ServiceCatalogOwnerTeam,
-        ServiceCatalogOwnerTeamService,
+      new BaseAPI<ServiceOwnerTeam, ServiceOwnerTeamServiceType>(
+        ServiceOwnerTeam,
+        ServiceOwnerTeamService,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceCatalogOwnerUser, ServiceCatalogOwnerUserServiceType>(
-        ServiceCatalogOwnerUser,
-        ServiceCatalogOwnerUserService,
+      new BaseAPI<ServiceOwnerUser, ServiceOwnerUserServiceType>(
+        ServiceOwnerUser,
+        ServiceOwnerUserService,
       ).getRouter(),
     );
 
@@ -1234,14 +1211,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<Workflow, WorkflowServiceType>(
         Workflow,
         WorkflowService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TelemetryService, TelemetryServiceServiceType>(
-        TelemetryService,
-        TelemetryServiceService,
       ).getRouter(),
     );
 

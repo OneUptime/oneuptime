@@ -19,7 +19,7 @@ import API from "../../Utils/API/API";
 import { APP_API_URL } from "../../Config";
 import PageLoader from "../Loader/PageLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
+import Service from "../../../Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -99,9 +99,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [pageError, setPageError] = useState<string>("");
 
-  const [serviceMap, setServiceMap] = useState<Dictionary<TelemetryService>>(
-    {},
-  );
+  const [serviceMap, setServiceMap] = useState<Dictionary<Service>>({});
 
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
 
@@ -237,29 +235,28 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [displayedLogs, selectedLogId]);
 
-  const loadTelemetryServices: PromiseVoidFunction =
+  const loadServices: PromiseVoidFunction =
     useCallback(async (): Promise<void> => {
       try {
         setIsPageLoading(true);
         setPageError("");
 
-        const telemetryServices: ListResult<TelemetryService> =
-          await ModelAPI.getList({
-            modelType: TelemetryService,
-            query: {},
-            select: {
-              name: true,
-              serviceColor: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          });
-        const services: Dictionary<TelemetryService> = {};
+        const telemetryServices: ListResult<Service> = await ModelAPI.getList({
+          modelType: Service,
+          query: {},
+          select: {
+            name: true,
+            serviceColor: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+        const services: Dictionary<Service> = {};
 
-        telemetryServices.data.forEach((service: TelemetryService) => {
+        telemetryServices.data.forEach((service: Service) => {
           if (!service.id) {
             return;
           }
@@ -315,8 +312,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }, []);
 
   useEffect(() => {
-    void loadTelemetryServices();
-  }, [loadTelemetryServices]);
+    void loadServices();
+  }, [loadServices]);
 
   const resetPage: () => void = (): void => {
     if (props.onPageChange) {

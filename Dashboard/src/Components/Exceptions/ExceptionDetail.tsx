@@ -1,11 +1,11 @@
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import { JSONObject } from "Common/Types/JSON";
 import Card from "Common/UI/Components/Card/Card";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
-import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
+import ServiceElement from "../Service/ServiceElement";
 
 export interface ComponentProps {
   exceptionType?: string | undefined;
@@ -16,7 +16,7 @@ export interface ComponentProps {
   lastSeenAt?: Date | undefined;
   occuranceCount?: number | undefined;
   attributes?: JSONObject | undefined;
-  telemetryService?: TelemetryService | undefined;
+  telemetryService?: Service | undefined;
 }
 
 const ExceptionDetail: FunctionComponent<ComponentProps> = (
@@ -103,9 +103,7 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
       description: "The service that this exception was received from.",
       fieldType: FieldType.Element,
       getElement: () => {
-        return (
-          <TelemetryServiceElement telemetryService={props.telemetryService!} />
-        );
+        return <ServiceElement service={props.telemetryService!} />;
       },
     });
   }

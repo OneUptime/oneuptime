@@ -20,7 +20,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const viewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ROOT]!,
+    RouteMap[PageMap.EXCEPTIONS_VIEW_ROOT]!,
   );
 
   const getResolvedIcon: GetReactElementFunction = (): ReactElement => {

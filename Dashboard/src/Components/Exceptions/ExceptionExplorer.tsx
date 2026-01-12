@@ -503,7 +503,11 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         modelType={TelemetryException}
         modelId={props.telemetryExceptionId}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.TELEMETRY] as Route);
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.EXCEPTIONS] as Route,
+            ),
+          );
         }}
       />
     </div>

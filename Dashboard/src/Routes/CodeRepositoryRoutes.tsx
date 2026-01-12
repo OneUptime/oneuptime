@@ -41,10 +41,10 @@ const CodeRepositoryViewSettings: LazyExoticComponent<
   return import("../Pages/CodeRepository/View/Settings");
 });
 
-const CodeRepositoryViewServiceCatalogs: LazyExoticComponent<
+const CodeRepositoryViewServices: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/CodeRepository/View/ServiceCatalogs");
+  return import("../Pages/CodeRepository/View/Services");
 });
 
 const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
@@ -120,7 +120,7 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <Suspense fallback={Loader}>
-              <CodeRepositoryViewServiceCatalogs
+              <CodeRepositoryViewServices
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.CODE_REPOSITORY_VIEW_SERVICES] as Route

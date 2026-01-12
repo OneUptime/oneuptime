@@ -23,7 +23,7 @@ import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   id: string;
-  telemetryServiceIds?: Array<ObjectID> | undefined;
+  serviceIds?: Array<ObjectID> | undefined;
   enableRealtime?: boolean;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -41,8 +41,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const refreshQuery: RefreshQueryFunction = (): Query<Log> => {
     const query: Query<Log> = {};
 
-    if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
-      query.serviceId = new Includes(props.telemetryServiceIds);
+    if (props.serviceIds && props.serviceIds.length > 0) {
+      query.serviceId = new Includes(props.serviceIds);
     }
 
     if (props.traceIds && props.traceIds.length > 0) {
@@ -86,12 +86,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setFilterOptions(refreshQuery());
     setPage(1);
-  }, [
-    props.telemetryServiceIds,
-    props.traceIds,
-    props.spanIds,
-    props.logQuery,
-  ]);
+  }, [props.serviceIds, props.traceIds, props.spanIds, props.logQuery]);
 
   const select: Select<Log> = React.useMemo(() => {
     return {
@@ -322,12 +317,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             return undefined;
           }
 
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
-            {
-              modelId: traceId,
-            },
-          );
+          return RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
+            modelId: traceId,
+          });
         }}
         getSpanRoute={(spanId: string, log: Log) => {
           const traceId: string | undefined = log.traceId?.toString();
@@ -337,7 +329,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           }
 
           const route: Route = RouteUtil.populateRouteParams(
-            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+            RouteMap[PageMap.TRACE_VIEW]!,
             {
               modelId: traceId,
             },
