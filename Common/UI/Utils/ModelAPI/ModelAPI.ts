@@ -334,9 +334,11 @@ export default class ModelAPI {
       if (project && project.id) {
         headers["tenantid"] = project.id.toString();
       } else {
-        // Fallback to getCurrentProjectId() when full project data is not yet loaded
-        // This can happen after SSO login when the project ID is available in URL/SessionStorage
-        // but the full project data hasn't been fetched yet
+        /*
+         * Fallback to getCurrentProjectId() when full project data is not yet loaded
+         * This can happen after SSO login when the project ID is available in URL/SessionStorage
+         * but the full project data hasn't been fetched yet
+         */
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
         if (projectId) {
           headers["tenantid"] = projectId.toString();
