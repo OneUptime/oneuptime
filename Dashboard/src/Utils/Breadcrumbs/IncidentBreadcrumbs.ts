@@ -141,22 +141,11 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW,
-      [
-        "Project",
-        "Incidents",
-        "Settings",
-        "Note Templates",
-        "View Template",
-      ],
+      ["Project", "Incidents", "Settings", "Note Templates", "View Template"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES,
-      [
-        "Project",
-        "Incidents",
-        "Settings",
-        "Postmortem Templates",
-      ],
+      ["Project", "Incidents", "Settings", "Postmortem Templates"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW,

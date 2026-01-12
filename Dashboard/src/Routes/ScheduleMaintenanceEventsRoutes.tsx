@@ -118,37 +118,49 @@ const ScheduledMaintenanceEventCreate: LazyExoticComponent<
 const ScheduledMaintenanceSettingsState: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceState");
+  return import(
+    "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceState"
+  );
 });
 
 const ScheduledMaintenanceSettingsTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates");
+  return import(
+    "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates"
+  );
 });
 
 const ScheduledMaintenanceSettingsTemplatesView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplateView");
+  return import(
+    "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplateView"
+  );
 });
 
 const ScheduledMaintenanceSettingsNoteTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplates");
+  return import(
+    "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplates"
+  );
 });
 
 const ScheduledMaintenanceSettingsNoteTemplatesView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplateView");
+  return import(
+    "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplateView"
+  );
 });
 
 const ScheduledMaintenanceSettingsCustomFields: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCusomFields");
+  return import(
+    "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCusomFields"
+  );
 });
 
 const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (

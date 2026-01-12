@@ -207,25 +207,33 @@ const StatusPageViewNotificationLogs: LazyExoticComponent<
 const StatusPagesSettingsAnnouncementTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/StatusPages/Settings/StatusPageAnnouncementTemplates");
+  return import(
+    "../Pages/StatusPages/Settings/StatusPageAnnouncementTemplates"
+  );
 });
 
 const StatusPagesSettingsAnnouncementTemplatesView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/StatusPages/Settings/StatusPageAnnouncementTemplateView");
+  return import(
+    "../Pages/StatusPages/Settings/StatusPageAnnouncementTemplateView"
+  );
 });
 
 const StatusPagesSettingsSubscriberTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/StatusPages/Settings/SubscriberNotificationTemplates");
+  return import(
+    "../Pages/StatusPages/Settings/SubscriberNotificationTemplates"
+  );
 });
 
 const StatusPagesSettingsSubscriberTemplatesView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/StatusPages/Settings/SubscriberNotificationTemplateView");
+  return import(
+    "../Pages/StatusPages/Settings/SubscriberNotificationTemplateView"
+  );
 });
 
 const StatusPagesSettingsCustomFields: LazyExoticComponent<
@@ -325,7 +333,8 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
+                    PageMap
+                      .STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
                   ] as Route
                 }
               />
@@ -336,7 +345,8 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             StatusPagesRoutePath[
-              PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
+              PageMap
+                .STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
             ] || ""
           }
           element={
@@ -356,9 +366,8 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
-            StatusPagesRoutePath[
-              PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS
-            ] || ""
+            StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS] ||
+            ""
           }
           element={
             <Suspense fallback={Loader}>

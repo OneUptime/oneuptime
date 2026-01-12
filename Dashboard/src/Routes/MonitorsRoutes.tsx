@@ -288,7 +288,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] || ""}
+          path={
+            MonitorsRoutePath[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] || ""
+          }
           element={
             <Suspense fallback={Loader}>
               <MonitorSettingsCustomFields

@@ -173,12 +173,7 @@ export function getStatusPagesBreadcrumbs(
     // Status Pages Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES,
-      [
-        "Project",
-        "Status Pages",
-        "Settings",
-        "Announcement Templates",
-      ],
+      ["Project", "Status Pages", "Settings", "Announcement Templates"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES_VIEW,
@@ -211,12 +206,7 @@ export function getStatusPagesBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS,
-      [
-        "Project",
-        "Status Pages",
-        "Settings",
-        "Custom Fields",
-      ],
+      ["Project", "Status Pages", "Settings", "Custom Fields"],
     ),
   };
   return breadcrumpLinksMap[path];

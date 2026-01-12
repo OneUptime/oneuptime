@@ -99,13 +99,7 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW,
-      [
-        "Project",
-        "Alerts",
-        "Settings",
-        "Note Templates",
-        "View Template",
-      ],
+      ["Project", "Alerts", "Settings", "Note Templates", "View Template"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS, [
       "Project",

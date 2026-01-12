@@ -103,21 +103,11 @@ export function getScheduleMaintenanceBreadcrumbs(
     // Scheduled Maintenance Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE,
-      [
-        "Project",
-        "Scheduled Maintenance",
-        "Settings",
-        "State",
-      ],
+      ["Project", "Scheduled Maintenance", "Settings", "State"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES,
-      [
-        "Project",
-        "Scheduled Maintenance",
-        "Settings",
-        "Templates",
-      ],
+      ["Project", "Scheduled Maintenance", "Settings", "Templates"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES_VIEW,
@@ -131,12 +121,7 @@ export function getScheduleMaintenanceBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES,
-      [
-        "Project",
-        "Scheduled Maintenance",
-        "Settings",
-        "Note Templates",
-      ],
+      ["Project", "Scheduled Maintenance", "Settings", "Note Templates"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES_VIEW,
@@ -150,12 +135,7 @@ export function getScheduleMaintenanceBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS,
-      [
-        "Project",
-        "Scheduled Maintenance",
-        "Settings",
-        "Custom Fields",
-      ],
+      ["Project", "Scheduled Maintenance", "Settings", "Custom Fields"],
     ),
   };
   return breadcrumpLinksMap[path];

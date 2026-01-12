@@ -118,7 +118,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Postmortem Templates",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES] as Route,
+              RouteMap[
+                PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES
+              ] as Route,
             ),
           },
           icon: IconProp.Book,

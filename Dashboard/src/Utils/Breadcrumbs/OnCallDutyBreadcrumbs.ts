@@ -123,12 +123,10 @@ export function getOnCallDutyBreadcrumbs(
     ]),
 
     // On-Call Duty Settings (Product-level)
-    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS, [
-      "Project",
-      "On-Call Duty",
-      "Settings",
-      "Custom Fields",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS,
+      ["Project", "On-Call Duty", "Settings", "Custom Fields"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

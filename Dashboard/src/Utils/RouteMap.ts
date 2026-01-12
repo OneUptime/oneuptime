@@ -228,7 +228,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
 
   // Scheduled Maintenance Settings
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE]: "settings/state",
-  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES]: "settings/templates",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES]:
+    "settings/templates",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES]:
     "settings/note-templates",

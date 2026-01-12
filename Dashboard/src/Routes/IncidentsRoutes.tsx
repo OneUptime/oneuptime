@@ -348,8 +348,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
-            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW] ||
-            ""
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW
+            ] || ""
           }
           element={
             <Suspense fallback={Loader}>
