@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddOAuthProviderType1768217403078 implements MigrationInterface {
-  name = "AddOAuthProviderType1768217403078";
+  public name = "AddOAuthProviderType1768217403078";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     /*

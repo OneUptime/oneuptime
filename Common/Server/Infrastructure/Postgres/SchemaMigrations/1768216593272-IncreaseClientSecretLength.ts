@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class IncreaseClientSecretLength1768216593272
   implements MigrationInterface
 {
-  name = "IncreaseClientSecretLength1768216593272";
+  public name = "IncreaseClientSecretLength1768216593272";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     /*

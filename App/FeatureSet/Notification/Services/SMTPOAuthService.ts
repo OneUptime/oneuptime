@@ -89,7 +89,7 @@ export default class SMTPOAuthService {
         logger.debug("Using cached OAuth token from Redis");
         return cachedToken.accessToken;
       }
-    } catch (error) {
+    } catch {
       // Redis might not be connected, continue to fetch new token
       logger.debug("Redis cache unavailable, fetching new token");
     }
@@ -173,7 +173,7 @@ export default class SMTPOAuthService {
       const now: number = Math.floor(Date.now() / 1000);
 
       // Create JWT claims
-      const jwtClaims: object = {
+      const jwtClaims: Record<string, unknown> = {
         iss: config.clientId, // Issuer
         sub: config.username, // Subject (user to impersonate)
         scope: config.scope,
