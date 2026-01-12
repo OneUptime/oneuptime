@@ -2,6 +2,7 @@ import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -212,6 +213,23 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
+              oauthProviderType: true,
+            },
+            title: "OAuth Provider Type",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(OAuthProviderType),
+            required: true,
+            defaultValue: OAuthProviderType.ClientCredentials,
+            description:
+              "Select the OAuth grant type. Use 'Client Credentials' for Microsoft 365 and most providers. Use 'JWT Bearer' for Google Workspace service accounts.",
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
+            field: {
               clientId: true,
             },
             title: "OAuth Client ID",
@@ -220,7 +238,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             required: true,
             placeholder: "12345678-1234-1234-1234-123456789012",
             description:
-              "The Application (Client) ID from your OAuth provider (e.g., Microsoft Entra, Google Cloud Console).",
+              "For Client Credentials: Application (Client) ID from your OAuth provider. For JWT Bearer (Google): Service account email (client_email from JSON key file).",
             disableSpellCheck: true,
             showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
               return values["authType"] === SMTPAuthenticationType.OAuth;
@@ -232,11 +250,11 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             },
             title: "OAuth Client Secret",
             stepId: "oauth-info",
-            fieldType: FormFieldSchemaType.EncryptedText,
+            fieldType: FormFieldSchemaType.LongText,
             required: true,
             placeholder: "Client secret value",
             description:
-              "The client secret from your OAuth application registration.",
+              "For Client Credentials: Client secret from your OAuth application. For JWT Bearer (Google): The entire private_key from your service account JSON file (including BEGIN/END markers).",
             disableSpellCheck: true,
             showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
               return values["authType"] === SMTPAuthenticationType.OAuth;
@@ -357,6 +375,14 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             title: "Auth Type",
             type: FieldType.Text,
             noValueMessage: "Username/Password",
+          },
+          {
+            field: {
+              oauthProviderType: true,
+            },
+            title: "OAuth Type",
+            type: FieldType.Text,
+            noValueMessage: "-",
           },
         ]}
       />
