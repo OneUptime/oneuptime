@@ -31,17 +31,17 @@ export interface SMTPOAuthConfig {
  * Supports multiple OAuth 2.0 grant types:
  *
  * - Client Credentials (OAuthProviderType.ClientCredentials)
- *   Used by: Microsoft 365, Azure AD, and most OAuth 2.0 providers
+ *   Standard OAuth 2.0 client credentials flow (RFC 6749)
  *   Required fields: Client ID, Client Secret, Token URL, Scope
  *
  * - JWT Bearer Assertion (OAuthProviderType.JWTBearer)
- *   Used by: Google Workspace service accounts
+ *   JWT Bearer token grant flow (RFC 7523)
  *   Required fields:
- *   - Client ID: Service account email (client_email from JSON key)
- *   - Client Secret: Private key (private_key from JSON key)
+ *   - Client ID: Issuer identifier (e.g., service account email)
+ *   - Client Secret: Private key for signing the JWT
  *   - Token URL: OAuth token endpoint
  *   - Scope: Required scopes
- *   - Username: Email address to impersonate
+ *   - Username: Subject/user to impersonate
  */
 export default class SMTPOAuthService {
   private static readonly TOKEN_CACHE_NAMESPACE = "smtp-oauth-tokens";
@@ -90,21 +90,21 @@ export default class SMTPOAuthService {
 
   /**
    * Fetch token using JWT Bearer assertion flow (RFC 7523).
-   * Used by Google Workspace service accounts and other providers that require signed JWTs.
+   * Used by providers that require signed JWT assertions for authentication.
    */
   private static async fetchJWTBearerToken(config: SMTPOAuthConfig): Promise<string> {
     if (!config.username) {
       throw new BadDataException(
-        "Username (email address to impersonate) is required for JWT Bearer OAuth. " +
-        "This should be the email address that will send emails."
+        "Username (subject) is required for JWT Bearer OAuth. " +
+        "This is typically the email address or user identifier to impersonate."
       );
     }
 
     // Validate that clientSecret looks like a private key
     if (!config.clientSecret.includes("-----BEGIN") || !config.clientSecret.includes("PRIVATE KEY")) {
       throw new BadDataException(
-        "For JWT Bearer OAuth, the Client Secret must be a private key. " +
-        "It should start with '-----BEGIN PRIVATE KEY-----' or '-----BEGIN RSA PRIVATE KEY-----'."
+        "For JWT Bearer OAuth, the Client Secret must be a private key in PEM format. " +
+        "It should contain '-----BEGIN PRIVATE KEY-----' or '-----BEGIN RSA PRIVATE KEY-----'."
       );
     }
 
@@ -151,19 +151,19 @@ export default class SMTPOAuthService {
         if (errorText.includes("invalid_grant")) {
           throw new BadDataException(
             `OAuth failed: invalid_grant. This usually means: ` +
-            `1) Domain-wide delegation is not enabled, ` +
-            `2) The service account is not authorized in your admin console, ` +
-            `3) The user email '${config.username}' doesn't exist or can't be impersonated, or ` +
-            `4) The scope '${config.scope}' is not authorized. ` +
-            `Please check your OAuth provider's admin console for domain-wide delegation settings.`
+            `1) The issuer (Client ID) is not authorized, ` +
+            `2) The subject '${config.username}' doesn't exist or can't be impersonated, ` +
+            `3) The scope '${config.scope}' is not authorized, or ` +
+            `4) Required delegations/permissions are not configured. ` +
+            `Please check your OAuth provider's configuration.`
           );
         }
 
         if (errorText.includes("unauthorized_client")) {
           throw new BadDataException(
             `OAuth failed: unauthorized_client. ` +
-            `The service account '${config.clientId}' is not authorized to impersonate users. ` +
-            `Please enable domain-wide delegation and authorize the client ID in your admin console.`
+            `The issuer '${config.clientId}' is not authorized. ` +
+            `Please verify that the client has the required permissions and delegations configured.`
           );
         }
 
@@ -203,14 +203,14 @@ export default class SMTPOAuthService {
 
       throw new BadDataException(
         `Failed to authenticate with OAuth provider: ${error instanceof Error ? error.message : "Unknown error"}. ` +
-        `Please verify your credentials and OAuth provider settings.`
+        `Please verify your credentials and provider settings.`
       );
     }
   }
 
   /**
    * Fetch token using OAuth 2.0 client credentials flow (RFC 6749).
-   * Used by Microsoft 365, Azure AD, and most OAuth 2.0 providers.
+   * Standard OAuth 2.0 grant type supported by most providers.
    */
   private static async fetchClientCredentialsToken(config: SMTPOAuthConfig): Promise<string> {
     const params = new URLSearchParams();
@@ -292,7 +292,7 @@ export default class SMTPOAuthService {
    * Create the XOAUTH2 token string for SMTP authentication.
    * Format: base64("user=" + userName + "^Aauth=Bearer " + accessToken + "^A^A")
    *
-   * This format is used by most OAuth-enabled SMTP servers including Microsoft 365 and Google.
+   * This format is used by most OAuth-enabled SMTP servers.
    *
    * @param username - The email address to authenticate as
    * @param accessToken - The OAuth access token
@@ -306,31 +306,4 @@ export default class SMTPOAuthService {
     const authString = `user=${username}\x01auth=Bearer ${accessToken}\x01\x01`;
     return Buffer.from(authString).toString("base64");
   }
-
-  /**
-   * Helper to build Microsoft 365 token URL from tenant ID.
-   * @param tenantId - The Azure AD tenant ID
-   * @returns The full token URL
-   */
-  public static buildMicrosoft365TokenUrl(tenantId: string): URL {
-    return URL.fromString(
-      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
-    );
-  }
-
-  /**
-   * Default scope for Microsoft 365 SMTP.
-   */
-  public static readonly MICROSOFT_365_SMTP_SCOPE =
-    "https://outlook.office365.com/.default";
-
-  /**
-   * Default scope for Google Workspace SMTP.
-   */
-  public static readonly GOOGLE_SMTP_SCOPE = "https://mail.google.com/";
-
-  /**
-   * Google OAuth token URL.
-   */
-  public static readonly GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 }
