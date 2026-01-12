@@ -55,11 +55,6 @@ export default class SMTPOAuthService {
   private static readonly TOKEN_BUFFER_SECONDS: number = 300; // Refresh token 5 minutes before expiry
   private static readonly JWT_EXPIRY_SECONDS: number = 3600; // JWTs are valid for max 1 hour
   private static readonly FETCH_TIMEOUT_MS: number = 30000; // 30 second timeout for token requests
-  private static readonly MAX_IN_FLIGHT_REQUESTS: number = 100; // Prevent unbounded growth
-
-  // Track in-flight token requests to prevent duplicate fetches (thundering herd prevention)
-  // This is per-container but still valuable to prevent concurrent requests within same container
-  private static inFlightRequests: Map<string, Promise<string>> = new Map();
 
   /**
    * Generate a cache key for the given config.
@@ -75,7 +70,6 @@ export default class SMTPOAuthService {
    * Features:
    * - Token caching in Redis with automatic expiration
    * - Cross-container cache sharing
-   * - In-flight request deduplication (prevents multiple simultaneous fetches)
    * - Request timeout to prevent hanging
    *
    * @param config - OAuth configuration
@@ -101,47 +95,8 @@ export default class SMTPOAuthService {
       logger.debug("Redis cache unavailable, fetching new token");
     }
 
-    // Check if there's already an in-flight request for this token
-    // This prevents thundering herd when multiple emails are sent simultaneously
-    const existingRequest: Promise<string> | undefined =
-      this.inFlightRequests.get(cacheKey);
-    if (existingRequest) {
-      logger.debug("Waiting for in-flight OAuth token request");
-      return existingRequest;
-    }
-
-    // Safety check: prevent unbounded growth of in-flight map
-    if (this.inFlightRequests.size >= this.MAX_IN_FLIGHT_REQUESTS) {
-      logger.warn(
-        `In-flight OAuth requests at maximum (${this.MAX_IN_FLIGHT_REQUESTS}), clearing stale entries`,
-      );
-      this.inFlightRequests.clear();
-    }
-
-    // Create a new token fetch promise and track it
-    const tokenPromise: Promise<string> = this.fetchTokenWithCleanup(
-      config,
-      cacheKey,
-    );
-    this.inFlightRequests.set(cacheKey, tokenPromise);
-
-    return tokenPromise;
-  }
-
-  /**
-   * Fetch token and ensure cleanup of in-flight tracking.
-   */
-  private static async fetchTokenWithCleanup(
-    config: SMTPOAuthConfig,
-    cacheKey: string,
-  ): Promise<string> {
-    try {
-      const token: string = await this.fetchToken(config);
-      return token;
-    } finally {
-      // Always clean up the in-flight request tracker to prevent memory leaks
-      this.inFlightRequests.delete(cacheKey);
-    }
+    // Fetch a new token
+    return this.fetchToken(config);
   }
 
   /**
