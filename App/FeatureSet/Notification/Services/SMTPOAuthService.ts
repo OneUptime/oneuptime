@@ -28,6 +28,13 @@ export interface SMTPOAuthConfig {
 
 /**
  * Generic service for fetching OAuth2 access tokens for SMTP authentication.
+ *
+ * Scalability Notes:
+ * - Token caching is per-container (in-memory). Each container maintains its own cache.
+ * - This is acceptable because OAuth tokens are valid for ~1 hour and the overhead of
+ *   each container fetching its own token is minimal.
+ * - Within each container, in-flight request deduplication prevents thundering herd.
+ *
  * Supports multiple OAuth 2.0 grant types:
  *
  * - Client Credentials (OAuthProviderType.ClientCredentials)
@@ -44,19 +51,37 @@ export interface SMTPOAuthConfig {
  *   - Username: Subject/user to impersonate
  */
 export default class SMTPOAuthService {
-  private static readonly TOKEN_CACHE_NAMESPACE = "smtp-oauth-tokens";
-  private static readonly TOKEN_BUFFER_SECONDS = 300; // Refresh token 5 minutes before expiry
-  private static readonly JWT_EXPIRY_SECONDS = 3600; // JWTs are valid for max 1 hour
+  private static readonly TOKEN_CACHE_NAMESPACE: string = "smtp-oauth-tokens";
+  private static readonly TOKEN_BUFFER_SECONDS: number = 300; // Refresh token 5 minutes before expiry
+  private static readonly JWT_EXPIRY_SECONDS: number = 3600; // JWTs are valid for max 1 hour
+  private static readonly FETCH_TIMEOUT_MS: number = 30000; // 30 second timeout for token requests
+  private static readonly MAX_IN_FLIGHT_REQUESTS: number = 100; // Prevent unbounded growth
+
+  // Track in-flight token requests to prevent duplicate fetches (thundering herd prevention)
+  // This map is bounded and cleaned up properly to prevent memory leaks
+  private static inFlightRequests: Map<string, Promise<string>> = new Map();
+
+  /**
+   * Generate a cache key for the given config.
+   */
+  private static getCacheKey(config: SMTPOAuthConfig): string {
+    return `${config.tokenUrl.toString()}:${config.clientId}:${config.username || ""}`;
+  }
 
   /**
    * Get an access token for SMTP authentication.
    * Uses the provider type specified in config to determine the grant type.
    *
+   * Features:
+   * - Token caching with automatic refresh before expiry
+   * - In-flight request deduplication (prevents multiple simultaneous fetches)
+   * - Request timeout to prevent hanging
+   *
    * @param config - OAuth configuration
    * @returns The access token
    */
   public static async getAccessToken(config: SMTPOAuthConfig): Promise<string> {
-    const cacheKey = `${config.tokenUrl.toString()}:${config.clientId}:${config.username || ""}`;
+    const cacheKey: string = this.getCacheKey(config);
 
     // Check if we have a cached token that's still valid
     if (LocalCache.hasValue(this.TOKEN_CACHE_NAMESPACE, cacheKey)) {
@@ -72,50 +97,126 @@ export default class SMTPOAuthService {
       }
     }
 
-    // Fetch a new token using the appropriate method based on provider type
-    let token: string;
-
-    switch (config.providerType) {
-      case OAuthProviderType.JWTBearer:
-        token = await this.fetchJWTBearerToken(config);
-        break;
-      case OAuthProviderType.ClientCredentials:
-      default:
-        token = await this.fetchClientCredentialsToken(config);
-        break;
+    // Check if there's already an in-flight request for this token
+    // This prevents thundering herd when multiple emails are sent simultaneously
+    const existingRequest: Promise<string> | undefined =
+      this.inFlightRequests.get(cacheKey);
+    if (existingRequest) {
+      logger.debug("Waiting for in-flight OAuth token request");
+      return existingRequest;
     }
 
-    return token;
+    // Safety check: prevent unbounded growth of in-flight map
+    if (this.inFlightRequests.size >= this.MAX_IN_FLIGHT_REQUESTS) {
+      logger.warn(
+        `In-flight OAuth requests at maximum (${this.MAX_IN_FLIGHT_REQUESTS}), clearing stale entries`,
+      );
+      this.inFlightRequests.clear();
+    }
+
+    // Create a new token fetch promise and track it
+    const tokenPromise: Promise<string> = this.fetchTokenWithCleanup(
+      config,
+      cacheKey,
+    );
+    this.inFlightRequests.set(cacheKey, tokenPromise);
+
+    return tokenPromise;
+  }
+
+  /**
+   * Fetch token and ensure cleanup of in-flight tracking.
+   */
+  private static async fetchTokenWithCleanup(
+    config: SMTPOAuthConfig,
+    cacheKey: string,
+  ): Promise<string> {
+    try {
+      const token: string = await this.fetchToken(config);
+      return token;
+    } finally {
+      // Always clean up the in-flight request tracker to prevent memory leaks
+      this.inFlightRequests.delete(cacheKey);
+    }
+  }
+
+  /**
+   * Fetch a new token based on the provider type.
+   */
+  private static async fetchToken(config: SMTPOAuthConfig): Promise<string> {
+    switch (config.providerType) {
+      case OAuthProviderType.JWTBearer:
+        return this.fetchJWTBearerToken(config);
+      case OAuthProviderType.ClientCredentials:
+      default:
+        return this.fetchClientCredentialsToken(config);
+    }
+  }
+
+  /**
+   * Fetch with timeout wrapper to prevent hanging requests.
+   */
+  private static async fetchWithTimeout(
+    url: string,
+    options: RequestInit,
+  ): Promise<Response> {
+    const controller: AbortController = new AbortController();
+    const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => {
+      controller.abort();
+    }, this.FETCH_TIMEOUT_MS);
+
+    try {
+      const response: Response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      return response;
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new BadDataException(
+          `OAuth token request timed out after ${this.FETCH_TIMEOUT_MS}ms. ` +
+            `Please check your network connectivity and Token URL.`,
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   /**
    * Fetch token using JWT Bearer assertion flow (RFC 7523).
    * Used by providers that require signed JWT assertions for authentication.
    */
-  private static async fetchJWTBearerToken(config: SMTPOAuthConfig): Promise<string> {
+  private static async fetchJWTBearerToken(
+    config: SMTPOAuthConfig,
+  ): Promise<string> {
     if (!config.username) {
       throw new BadDataException(
         "Username (subject) is required for JWT Bearer OAuth. " +
-        "This is typically the email address or user identifier to impersonate."
+          "This is typically the email address or user identifier to impersonate.",
       );
     }
 
     // Validate that clientSecret looks like a private key
-    if (!config.clientSecret.includes("-----BEGIN") || !config.clientSecret.includes("PRIVATE KEY")) {
+    if (
+      !config.clientSecret.includes("-----BEGIN") ||
+      !config.clientSecret.includes("PRIVATE KEY")
+    ) {
       throw new BadDataException(
         "For JWT Bearer OAuth, the Client Secret must be a private key in PEM format. " +
-        "It should contain '-----BEGIN PRIVATE KEY-----' or '-----BEGIN RSA PRIVATE KEY-----'."
+          "It should contain '-----BEGIN PRIVATE KEY-----' or '-----BEGIN RSA PRIVATE KEY-----'.",
       );
     }
 
     try {
       logger.debug("Creating JWT for OAuth token request");
 
-      const now = Math.floor(Date.now() / 1000);
+      const now: number = Math.floor(Date.now() / 1000);
 
       // Create JWT claims
-      const jwtClaims = {
-        iss: config.clientId, // Issuer (service account email for Google)
+      const jwtClaims: object = {
+        iss: config.clientId, // Issuer
         sub: config.username, // Subject (user to impersonate)
         scope: config.scope,
         aud: config.tokenUrl.toString(),
@@ -124,58 +225,71 @@ export default class SMTPOAuthService {
       };
 
       // Sign the JWT with the private key
-      const signedJwt = jwt.sign(jwtClaims, config.clientSecret, {
+      const signedJwt: string = jwt.sign(jwtClaims, config.clientSecret, {
         algorithm: "RS256",
       });
 
-      logger.debug(`Fetching OAuth token from ${config.tokenUrl.toString()} using JWT Bearer`);
+      logger.debug(
+        `Fetching OAuth token from ${config.tokenUrl.toString()} using JWT Bearer`,
+      );
 
       // Exchange JWT for access token
-      const params = new URLSearchParams();
-      params.append("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer");
+      const params: URLSearchParams = new URLSearchParams();
+      params.append(
+        "grant_type",
+        "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      );
       params.append("assertion", signedJwt);
 
-      const response: Response = await fetch(config.tokenUrl.toString(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+      const response: Response = await this.fetchWithTimeout(
+        config.tokenUrl.toString(),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: params.toString(),
         },
-        body: params.toString(),
-      });
+      );
 
       if (!response.ok) {
         const errorText: string = await response.text();
-        logger.error(`Failed to fetch OAuth token: ${response.status} - ${errorText}`);
+        logger.error(
+          `Failed to fetch OAuth token: ${response.status} - ${errorText}`,
+        );
 
         // Provide helpful error messages for common issues
         if (errorText.includes("invalid_grant")) {
           throw new BadDataException(
             `OAuth failed: invalid_grant. This usually means: ` +
-            `1) The issuer (Client ID) is not authorized, ` +
-            `2) The subject '${config.username}' doesn't exist or can't be impersonated, ` +
-            `3) The scope '${config.scope}' is not authorized, or ` +
-            `4) Required delegations/permissions are not configured. ` +
-            `Please check your OAuth provider's configuration.`
+              `1) The issuer (Client ID) is not authorized, ` +
+              `2) The subject '${config.username}' doesn't exist or can't be impersonated, ` +
+              `3) The scope '${config.scope}' is not authorized, or ` +
+              `4) Required delegations/permissions are not configured. ` +
+              `Please check your OAuth provider's configuration.`,
           );
         }
 
         if (errorText.includes("unauthorized_client")) {
           throw new BadDataException(
             `OAuth failed: unauthorized_client. ` +
-            `The issuer '${config.clientId}' is not authorized. ` +
-            `Please verify that the client has the required permissions and delegations configured.`
+              `The issuer '${config.clientId}' is not authorized. ` +
+              `Please verify that the client has the required permissions and delegations configured.`,
           );
         }
 
         throw new BadDataException(
-          `Failed to authenticate with OAuth provider: ${response.status}. Error: ${errorText}`
+          `Failed to authenticate with OAuth provider: ${response.status}. Error: ${errorText}`,
         );
       }
 
-      const tokenData: OAuthTokenResponse = (await response.json()) as OAuthTokenResponse;
+      const tokenData: OAuthTokenResponse =
+        (await response.json()) as OAuthTokenResponse;
 
       if (!tokenData.access_token) {
-        throw new BadDataException("OAuth response did not contain an access token");
+        throw new BadDataException(
+          "OAuth response did not contain an access token",
+        );
       }
 
       // Cache the token
@@ -196,14 +310,14 @@ export default class SMTPOAuthService {
       if (error instanceof Error && error.message.includes("PEM")) {
         throw new BadDataException(
           `Invalid private key format. Make sure you copied the entire private key, ` +
-          `including the '-----BEGIN PRIVATE KEY-----' and '-----END PRIVATE KEY-----' markers. ` +
-          `Error: ${error.message}`
+            `including the '-----BEGIN PRIVATE KEY-----' and '-----END PRIVATE KEY-----' markers. ` +
+            `Error: ${error.message}`,
         );
       }
 
       throw new BadDataException(
         `Failed to authenticate with OAuth provider: ${error instanceof Error ? error.message : "Unknown error"}. ` +
-        `Please verify your credentials and provider settings.`
+          `Please verify your credentials and provider settings.`,
       );
     }
   }
@@ -212,23 +326,30 @@ export default class SMTPOAuthService {
    * Fetch token using OAuth 2.0 client credentials flow (RFC 6749).
    * Standard OAuth 2.0 grant type supported by most providers.
    */
-  private static async fetchClientCredentialsToken(config: SMTPOAuthConfig): Promise<string> {
-    const params = new URLSearchParams();
+  private static async fetchClientCredentialsToken(
+    config: SMTPOAuthConfig,
+  ): Promise<string> {
+    const params: URLSearchParams = new URLSearchParams();
     params.append("client_id", config.clientId);
     params.append("client_secret", config.clientSecret);
     params.append("scope", config.scope);
     params.append("grant_type", "client_credentials");
 
     try {
-      logger.debug(`Fetching OAuth token from ${config.tokenUrl.toString()} using Client Credentials`);
+      logger.debug(
+        `Fetching OAuth token from ${config.tokenUrl.toString()} using Client Credentials`,
+      );
 
-      const response: Response = await fetch(config.tokenUrl.toString(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+      const response: Response = await this.fetchWithTimeout(
+        config.tokenUrl.toString(),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: params.toString(),
         },
-        body: params.toString(),
-      });
+      );
 
       if (!response.ok) {
         const errorText: string = await response.text();
@@ -237,8 +358,8 @@ export default class SMTPOAuthService {
         );
         throw new BadDataException(
           `Failed to authenticate with OAuth provider: ${response.status}. ` +
-          `Please check your OAuth credentials (Client ID, Client Secret, Token URL, and Scope). ` +
-          `Error: ${errorText}`,
+            `Please check your OAuth credentials (Client ID, Client Secret, Token URL, and Scope). ` +
+            `Error: ${errorText}`,
         );
       }
 
@@ -254,7 +375,9 @@ export default class SMTPOAuthService {
       // Cache the token
       this.cacheToken(config, tokenData);
 
-      logger.debug("Successfully obtained and cached OAuth token via Client Credentials");
+      logger.debug(
+        "Successfully obtained and cached OAuth token via Client Credentials",
+      );
 
       return tokenData.access_token;
     } catch (error) {
@@ -267,16 +390,21 @@ export default class SMTPOAuthService {
 
       throw new BadDataException(
         `Failed to authenticate with OAuth provider: ${error instanceof Error ? error.message : "Unknown error"}. ` +
-        `Please check your OAuth credentials and network connectivity.`,
+          `Please check your OAuth credentials and network connectivity.`,
       );
     }
   }
 
   /**
    * Cache the token for future use.
+   * Token is cached with a buffer time before actual expiry to ensure
+   * we refresh before the token becomes invalid.
    */
-  private static cacheToken(config: SMTPOAuthConfig, tokenData: OAuthTokenResponse): void {
-    const cacheKey = `${config.tokenUrl.toString()}:${config.clientId}:${config.username || ""}`;
+  private static cacheToken(
+    config: SMTPOAuthConfig,
+    tokenData: OAuthTokenResponse,
+  ): void {
+    const cacheKey: string = this.getCacheKey(config);
     const expiresAt: number =
       Date.now() + (tokenData.expires_in - this.TOKEN_BUFFER_SECONDS) * 1000;
 
@@ -303,7 +431,7 @@ export default class SMTPOAuthService {
     accessToken: string,
   ): string {
     // ^A is Control+A which is ASCII code 1 (0x01)
-    const authString = `user=${username}\x01auth=Bearer ${accessToken}\x01\x01`;
+    const authString: string = `user=${username}\x01auth=Bearer ${accessToken}\x01\x01`;
     return Buffer.from(authString).toString("base64");
   }
 }
