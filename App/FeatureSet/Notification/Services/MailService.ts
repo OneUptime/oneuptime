@@ -84,8 +84,10 @@ class TransporterPool {
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
   ): Promise<Transporter> {
-    // For OAuth, we need to create a new transporter each time to get fresh tokens
-    // The access token has a limited lifetime and needs to be refreshed
+    /*
+     * For OAuth, we need to create a new transporter each time to get fresh tokens
+     * The access token has a limited lifetime and needs to be refreshed
+     */
     if (emailServer.authType === SMTPAuthenticationType.OAuth) {
       return await this.createOAuthTransporter(emailServer, options);
     }
@@ -136,15 +138,18 @@ class TransporterPool {
       );
     }
 
-    // Get the access token using the generic OAuth service
-    // Provider type determines which grant flow to use (Client Credentials vs JWT Bearer)
+    /*
+     * Get the access token using the generic OAuth service
+     * Provider type determines which grant flow to use (Client Credentials vs JWT Bearer)
+     */
     const accessToken: string = await SMTPOAuthService.getAccessToken({
       clientId: emailServer.clientId,
       clientSecret: emailServer.clientSecret,
       tokenUrl: emailServer.tokenUrl,
       scope: emailServer.scope,
       username: emailServer.username, // Required for JWT Bearer (user to impersonate)
-      providerType: emailServer.oauthProviderType || OAuthProviderType.ClientCredentials,
+      providerType:
+        emailServer.oauthProviderType || OAuthProviderType.ClientCredentials,
     });
 
     logger.debug("Creating OAuth transporter for SMTP");

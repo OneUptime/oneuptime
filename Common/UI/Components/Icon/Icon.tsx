@@ -1355,11 +1355,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
           strokeLinejoin="round"
           d="M2 12h3l2-4 3 8 3-6 2 4h7"
         />
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M2 20h20"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2 20h20" />
       </>,
     );
   } else if (icon === IconProp.Waterfall) {

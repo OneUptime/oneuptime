@@ -80,11 +80,10 @@ export default class SMTPOAuthService {
 
     // Try to get cached token from Redis
     try {
-      const cachedToken: CachedToken | null =
-        (await GlobalCache.getJSONObject(
-          this.TOKEN_CACHE_NAMESPACE,
-          cacheKey,
-        )) as CachedToken | null;
+      const cachedToken: CachedToken | null = (await GlobalCache.getJSONObject(
+        this.TOKEN_CACHE_NAMESPACE,
+        cacheKey,
+      )) as CachedToken | null;
 
       if (cachedToken && cachedToken.expiresAt > Date.now()) {
         logger.debug("Using cached OAuth token from Redis");

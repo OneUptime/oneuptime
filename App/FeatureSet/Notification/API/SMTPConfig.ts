@@ -104,7 +104,9 @@ router.post(
         clientSecret: config.clientSecret,
         tokenUrl: config.tokenUrl ? URL.fromString(config.tokenUrl) : undefined,
         scope: config.scope,
-        oauthProviderType: config.oauthProviderType as OAuthProviderType | undefined,
+        oauthProviderType: config.oauthProviderType as
+          | OAuthProviderType
+          | undefined,
       };
 
       try {

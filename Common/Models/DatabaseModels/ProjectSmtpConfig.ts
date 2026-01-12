@@ -689,7 +689,8 @@ export default class ProjectSmtpConfig extends BaseModel {
     title: "OAuth Token URL",
     description:
       "The OAuth token endpoint URL. For Microsoft 365: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
-    example: "https://login.microsoftonline.com/your-tenant-id/oauth2/v2.0/token",
+    example:
+      "https://login.microsoftonline.com/your-tenant-id/oauth2/v2.0/token",
   })
   @Column({
     nullable: true,

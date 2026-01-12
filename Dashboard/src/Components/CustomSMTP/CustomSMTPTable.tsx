@@ -163,7 +163,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             title: "Use SSL / TLS",
             stepId: "server-info",
             fieldType: FormFieldSchemaType.Toggle,
-            description: "Enable secure email communication. Recommended for most providers.",
+            description:
+              "Enable secure email communication. Recommended for most providers.",
           },
           {
             field: {
@@ -172,8 +173,9 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             title: "Authentication Type",
             stepId: "authentication",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(SMTPAuthenticationType),
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              SMTPAuthenticationType,
+            ),
             required: true,
             defaultValue: SMTPAuthenticationType.UsernamePassword,
             description:
@@ -206,8 +208,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             disableSpellCheck: true,
             showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
               return (
-                values["authType"] === SMTPAuthenticationType.UsernamePassword ||
-                !values["authType"]
+                values["authType"] ===
+                  SMTPAuthenticationType.UsernamePassword || !values["authType"]
               );
             },
           },
@@ -268,7 +270,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             stepId: "oauth-info",
             fieldType: FormFieldSchemaType.URL,
             required: true,
-            placeholder: "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
+            placeholder:
+              "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
             description:
               "The OAuth token endpoint URL. For Microsoft 365: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
             disableSpellCheck: true,
