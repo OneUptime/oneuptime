@@ -120,6 +120,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     },
     {
       title: "Settings",
+      defaultCollapsed: true,
       items: [
         {
           link: {

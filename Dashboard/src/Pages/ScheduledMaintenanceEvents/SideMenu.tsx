@@ -79,6 +79,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Settings",
+      defaultCollapsed: true,
       items: [
         {
           link: {

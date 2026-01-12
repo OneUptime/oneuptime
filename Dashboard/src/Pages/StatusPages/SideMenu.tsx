@@ -39,6 +39,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
     },
     {
       title: "Settings",
+      defaultCollapsed: true,
       items: [
         {
           link: {
