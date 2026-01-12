@@ -284,7 +284,7 @@ const SubscriberNotificationTemplateView: FunctionComponent<
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteMap[
-              PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES
+              PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
             ] as Route,
           );
         }}

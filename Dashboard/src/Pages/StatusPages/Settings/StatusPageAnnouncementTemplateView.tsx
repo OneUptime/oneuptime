@@ -252,7 +252,7 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteMap[
-              PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES
+              PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
             ] as Route,
           );
         }}

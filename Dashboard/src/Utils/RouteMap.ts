@@ -258,44 +258,8 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: `telemetry-ingestion-keys/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_MONITORS_STATUS]: "monitors-status",
-  [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: "monitor-custom-fields",
-  [PageMap.SETTINGS_MONITOR_SECRETS]: "monitor-secrets",
-
-  [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: "incident-custom-fields",
-  [PageMap.SETTINGS_INCIDENTS_STATE]: "incidents-state",
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
-  [PageMap.SETTINGS_INCIDENTS_SEVERITY]: "incidents-severity",
-  [PageMap.SETTINGS_INCIDENT_TEMPLATES]: "incident-templates",
-  [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: `incident-templates/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: "incident-note-templates",
-  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: `incident-note-templates/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES]:
-    "incident-postmortem-templates",
-  [PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW]: `incident-postmortem-templates/${RouteParams.ModelID}`,
-
-  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES]:
-    "status-page-announcement-templates",
-  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW]: `status-page-announcement-templates/${RouteParams.ModelID}`,
-
-  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES]:
-    "status-page-subscriber-notification-templates",
-  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW]: `status-page-subscriber-notification-templates/${RouteParams.ModelID}`,
-
-  [PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]: "alert-custom-fields",
-  [PageMap.SETTINGS_ALERTS_STATE]: "alerts-state",
-  [PageMap.SETTINGS_ALERTS_SEVERITY]: "alerts-severity",
-  [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES]: "alert-note-templates",
-  [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW]: `alert-note-templates/${RouteParams.ModelID}`,
-
-  [PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS]:
-    "on-call-duty-policy-custom-fields",
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS]:
-    "scheduled-maintenance-custom-fields",
-  [PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS]: "status-page-custom-fields",
-
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]: "scheduled-maintenance-state",
 
   [PageMap.SETTINGS_DOMAINS]: "domains",
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
@@ -305,12 +269,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_USERS]: "users",
   [PageMap.SETTINGS_USER_VIEW]: `users/${RouteParams.ModelID}`,
 
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]:
-    "scheduled-maintenance-templates",
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]: `scheduled-maintenance-templates/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES]:
-    "scheduled-maintenance-note-templates",
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW]: `scheduled-maintenance-note-templates/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_BILLING]: "billing",
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
@@ -1761,55 +1719,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_MONITORS_STATUS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_MONITORS_STATUS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[
-        PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW
-      ]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[
-        PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES
-      ]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW]:
-    new Route(
-      `/dashboard/${RouteParams.ProjectID}/settings/${
-        SettingsRoutePath[
-          PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
-        ]
-      }`,
-    ),
-
-  [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_STATE]
-    }`,
-  ),
-
   [PageMap.SETTINGS_SLACK_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SLACK_INTEGRATION]
@@ -1819,84 +1728,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENTS_SEVERITY]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENTS_SEVERITY]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_ALERTS_STATE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_ALERTS_STATE]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_ALERTS_SEVERITY]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_ALERTS_SEVERITY]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]
     }`,
   ),
 
@@ -1942,31 +1773,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[
-        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
-      ]
-    }`,
-  ),
   [PageMap.SETTINGS_BILLING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_BILLING]
@@ -2095,37 +1901,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.WORKFLOW_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/${
       WorkflowRoutePath[PageMap.WORKFLOW_VIEW_SETTINGS]
-    }`,
-  ),
-
-  /// custom fields settings.
-
-  [PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_MONITOR_SECRETS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_MONITOR_SECRETS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS]
-    }`,
-  ),
-  [PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS]
     }`,
   ),
 

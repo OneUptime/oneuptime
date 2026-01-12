@@ -127,7 +127,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelId={Navigation.getLastParamAsObjectID()}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES] as Route,
+            RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] as Route,
           );
         }}
       />

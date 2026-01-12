@@ -14,34 +14,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Labels",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MONITORS_STATUS, [
-      "Project",
-      "Settings",
-      "Monitor Status",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS, [
-      "Project",
-      "Settings",
-      "Monitor Custom Fields",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MONITOR_SECRETS, [
-      "Project",
-      "Settings",
-      "Monitor Secrets",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS,
-      ["Project", "Settings", "Status Page Custom Fields"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS,
-      ["Project", "Settings", "On-Call Puty Custom Fields"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENTS_STATE, [
-      "Project",
-      "Settings",
-      "Incident State",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SLACK_INTEGRATION, [
       "Project",
       "Settings",
@@ -50,78 +22,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
       ["Project", "Settings", "Microsoft Teams Integration"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENTS_SEVERITY, [
-      "Project",
-      "Settings",
-      "Incident Severity",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENT_TEMPLATES, [
-      "Project",
-      "Settings",
-      "Incident Templates",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES,
-      ["Project", "Settings", "Scheduled Maintenance Templates"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES_VIEW,
-      [
-        "Project",
-        "Settings",
-        "Scheduled Maintenance Templates",
-        "View Template",
-      ],
-    ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW, [
-      "Project",
-      "Settings",
-      "Incident Templates",
-      "View Template",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES, [
-      "Project",
-      "Settings",
-      "Incident Note Templates",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW,
-      ["Project", "Settings", "Incident Note Templates", "View Template"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES,
-      ["Project", "Settings", "Incident Postmortem Templates"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW,
-      ["Project", "Settings", "Incident Postmortem Templates", "View Template"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS, [
-      "Project",
-      "Settings",
-      "Incident Custom Fields",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE,
-      ["Project", "Settings", "Scheduled Maintenance State"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES,
-      ["Project", "Settings", "Scheduled Maintenance Note Templates"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW,
-      [
-        "Project",
-        "Settings",
-        "Scheduled Maintenance Note Templates",
-        "View Template",
-      ],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS,
-      ["Project", "Settings", "Scheduled Maintenance Custom Fields"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TEAMS, [
       "Project",
