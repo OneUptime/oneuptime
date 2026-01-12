@@ -217,6 +217,7 @@ import { MigrationName1767896933148 } from "./1767896933148-MigrationName";
 import { RenameServiceCatalogToService1767966850199 } from "./1767966850199-RenameServiceCatalogToService";
 import { MigrationName1767979055522 } from "./1767979055522-MigrationName";
 import { MigrationName1767979448478 } from "./1767979448478-MigrationName";
+import { IncreaseClientSecretLength1768216593272 } from "./1768216593272-IncreaseClientSecretLength";
 
 export default [
   InitialMigration,
@@ -438,4 +439,5 @@ export default [
   MigrationName1767979055522,
   MigrationName1767979448478,
   MigrationName1767896933148,
+  IncreaseClientSecretLength1768216593272,
 ];

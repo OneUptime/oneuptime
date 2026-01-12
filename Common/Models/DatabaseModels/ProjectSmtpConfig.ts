@@ -652,16 +652,15 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.Password,
+    type: TableColumnType.VeryLongText,
     title: "OAuth Client Secret",
     description:
-      "The Client Secret from your OAuth application registration. Required for OAuth authentication.",
+      "The Client Secret from your OAuth application registration. Required for OAuth authentication. For Google service accounts, this is the private key from the JSON key file.",
     example: "your-client-secret",
   })
   @Column({
     nullable: true,
-    type: ColumnType.Password,
-    length: ColumnLength.Password,
+    type: ColumnType.VeryLongText,
   })
   public clientSecret?: string = undefined;
 
