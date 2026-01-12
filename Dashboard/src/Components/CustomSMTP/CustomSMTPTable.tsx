@@ -376,14 +376,6 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             type: FieldType.Text,
             noValueMessage: "Username/Password",
           },
-          {
-            field: {
-              oauthProviderType: true,
-            },
-            title: "OAuth Type",
-            type: FieldType.Text,
-            noValueMessage: "-",
-          },
         ]}
       />
 
