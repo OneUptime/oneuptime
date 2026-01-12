@@ -334,7 +334,8 @@ export const generateSchemasResponse: (
           name: "userName",
           type: "string",
           multiValued: false,
-          description: "Unique identifier for the User, typically email address",
+          description:
+            "Unique identifier for the User, typically email address",
           required: true,
           caseExact: false,
           mutability: "readWrite",
@@ -582,7 +583,9 @@ export const generateResourceTypesResponse: (
  */
 export const getScimErrorTypeFromException: (
   err: Exception,
-) => SCIMErrorType | undefined = (err: Exception): SCIMErrorType | undefined => {
+) => SCIMErrorType | undefined = (
+  err: Exception,
+): SCIMErrorType | undefined => {
   const errorName: string = err.constructor.name;
 
   switch (errorName) {
@@ -672,7 +675,9 @@ export const generateBulkResponse: (
 export const parseBulkOperationPath: (path: string) => {
   resourceType: string;
   resourceId: string | undefined;
-} = (path: string): { resourceType: string; resourceId: string | undefined } => {
+} = (
+  path: string,
+): { resourceType: string; resourceId: string | undefined } => {
   // Remove leading slash if present
   const cleanPath: string = path.startsWith("/") ? path.substring(1) : path;
   const parts: string[] = cleanPath.split("/");

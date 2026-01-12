@@ -141,21 +141,27 @@ router.post(
         oneuptimeRequest.bearerTokenData as JSONObject;
       const statusPageId: ObjectID = bearerData["statusPageId"] as ObjectID;
       const projectId: ObjectID = bearerData["projectId"] as ObjectID;
-      const scimConfig: StatusPageSCIM = bearerData["scimConfig"] as StatusPageSCIM;
+      const scimConfig: StatusPageSCIM = bearerData[
+        "scimConfig"
+      ] as StatusPageSCIM;
       const statusPageScimId: string = req.params["statusPageScimId"]!;
 
       // Validate the bulk request
-      const validation: { valid: boolean; error?: string } = validateBulkRequest(
-        req.body,
-        1000,
-      );
+      const validation: { valid: boolean; error?: string } =
+        validateBulkRequest(req.body, 1000);
       if (!validation.valid) {
-        logger.debug(`Status Page SCIM Bulk - validation failed: ${validation.error}`);
+        logger.debug(
+          `Status Page SCIM Bulk - validation failed: ${validation.error}`,
+        );
         res.status(400);
         return Response.sendJsonObjectResponse(
           req,
           res,
-          generateSCIMErrorResponse(400, validation.error!, SCIMErrorType.InvalidValue),
+          generateSCIMErrorResponse(
+            400,
+            validation.error!,
+            SCIMErrorType.InvalidValue,
+          ),
         );
       }
 
@@ -171,8 +177,12 @@ router.post(
       for (const operation of operations) {
         const method: string = (operation["method"] as string).toUpperCase();
         const path: string = operation["path"] as string;
-        const bulkId: string | undefined = operation["bulkId"] as string | undefined;
-        const data: JSONObject | undefined = operation["data"] as JSONObject | undefined;
+        const bulkId: string | undefined = operation["bulkId"] as
+          | string
+          | undefined;
+        const data: JSONObject | undefined = operation["data"] as
+          | JSONObject
+          | undefined;
 
         const { resourceType, resourceId } = parseBulkOperationPath(path);
 
@@ -198,7 +208,9 @@ router.post(
                 ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
 
               if (!email) {
-                throw new BadRequestException("Email is required for user creation");
+                throw new BadRequestException(
+                  "Email is required for user creation",
+                );
               }
 
               // Check if user already exists for this status page
@@ -218,10 +230,13 @@ router.post(
                 });
 
               if (!user) {
-                const privateUser: StatusPagePrivateUser = new StatusPagePrivateUser();
+                const privateUser: StatusPagePrivateUser =
+                  new StatusPagePrivateUser();
                 privateUser.statusPageId = statusPageId;
                 privateUser.email = new Email(email);
-                privateUser.password = new HashedString(Text.generateRandomText(32));
+                privateUser.password = new HashedString(
+                  Text.generateRandomText(32),
+                );
                 privateUser.projectId = projectId;
 
                 user = await StatusPagePrivateUserService.create({
@@ -378,7 +393,9 @@ router.post(
               "Groups are not supported for Status Page SCIM. Only Users are available.",
             );
           } else {
-            throw new BadRequestException(`Unknown resource type: ${resourceType}`);
+            throw new BadRequestException(
+              `Unknown resource type: ${resourceType}`,
+            );
           }
         } catch (err: unknown) {
           errorCount++;
@@ -398,7 +415,11 @@ router.post(
             method: method,
             bulkId: bulkId,
             status: status.toString(),
-            response: generateSCIMErrorResponse(status, error.message, scimType),
+            response: generateSCIMErrorResponse(
+              status,
+              error.message,
+              scimType,
+            ),
           };
 
           logger.debug(
@@ -422,7 +443,11 @@ router.post(
         `Status Page SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
       );
 
-      return Response.sendJsonObjectResponse(req, res, generateBulkResponse(results));
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        generateBulkResponse(results),
+      );
     } catch (err) {
       logger.error(err);
       return next(err);

@@ -300,17 +300,21 @@ router.post(
       const projectScimId: string = req.params["projectScimId"]!;
 
       // Validate the bulk request
-      const validation: { valid: boolean; error?: string } = validateBulkRequest(
-        req.body,
-        1000,
-      );
+      const validation: { valid: boolean; error?: string } =
+        validateBulkRequest(req.body, 1000);
       if (!validation.valid) {
-        logger.debug(`Project SCIM Bulk - validation failed: ${validation.error}`);
+        logger.debug(
+          `Project SCIM Bulk - validation failed: ${validation.error}`,
+        );
         res.status(400);
         return Response.sendJsonObjectResponse(
           req,
           res,
-          generateSCIMErrorResponse(400, validation.error!, SCIMErrorType.InvalidValue),
+          generateSCIMErrorResponse(
+            400,
+            validation.error!,
+            SCIMErrorType.InvalidValue,
+          ),
         );
       }
 
@@ -326,8 +330,12 @@ router.post(
       for (const operation of operations) {
         const method: string = (operation["method"] as string).toUpperCase();
         const path: string = operation["path"] as string;
-        const bulkId: string | undefined = operation["bulkId"] as string | undefined;
-        const data: JSONObject | undefined = operation["data"] as JSONObject | undefined;
+        const bulkId: string | undefined = operation["bulkId"] as
+          | string
+          | undefined;
+        const data: JSONObject | undefined = operation["data"] as
+          | JSONObject
+          | undefined;
 
         const { resourceType, resourceId } = parseBulkOperationPath(path);
 
@@ -387,7 +395,12 @@ router.post(
                 scimConfig.teams.length > 0 &&
                 !scimConfig.enablePushGroups
               ) {
-                await handleUserTeamOperations("add", projectId, user.id!, scimConfig);
+                await handleUserTeamOperations(
+                  "add",
+                  projectId,
+                  user.id!,
+                  scimConfig,
+                );
               }
 
               const createdUser: JSONObject = formatUserForSCIM(
@@ -413,26 +426,29 @@ router.post(
               const userId: ObjectID = new ObjectID(resourceId);
 
               // Check if user exists and is part of the project
-              const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
-                query: {
-                  projectId: projectId,
-                  userId: userId,
-                },
-                select: {
-                  userId: true,
-                  user: {
-                    _id: true,
-                    email: true,
-                    name: true,
-                    createdAt: true,
-                    updatedAt: true,
+              const projectUser: TeamMember | null =
+                await TeamMemberService.findOneBy({
+                  query: {
+                    projectId: projectId,
+                    userId: userId,
                   },
-                },
-                props: { isRoot: true },
-              });
+                  select: {
+                    userId: true,
+                    user: {
+                      _id: true,
+                      email: true,
+                      name: true,
+                      createdAt: true,
+                      updatedAt: true,
+                    },
+                  },
+                  props: { isRoot: true },
+                });
 
               if (!projectUser || !projectUser.user) {
-                throw new NotFoundException("User not found or not part of this project");
+                throw new NotFoundException(
+                  "User not found or not part of this project",
+                );
               }
 
               // Update user information
@@ -444,12 +460,22 @@ router.post(
 
               // Handle user deactivation by removing from teams
               if (active === false && !scimConfig.enablePushGroups) {
-                await handleUserTeamOperations("remove", projectId, userId, scimConfig);
+                await handleUserTeamOperations(
+                  "remove",
+                  projectId,
+                  userId,
+                  scimConfig,
+                );
               }
 
               // Handle user activation by adding to teams
               if (active === true && !scimConfig.enablePushGroups) {
-                await handleUserTeamOperations("add", projectId, userId, scimConfig);
+                await handleUserTeamOperations(
+                  "add",
+                  projectId,
+                  userId,
+                  scimConfig,
+                );
               }
 
               if (email || name) {
@@ -515,7 +541,12 @@ router.post(
                   throw new BadRequestException("No teams configured for SCIM");
                 }
 
-                await handleUserTeamOperations("remove", projectId, userId, scimConfig);
+                await handleUserTeamOperations(
+                  "remove",
+                  projectId,
+                  userId,
+                  scimConfig,
+                );
               }
 
               operationResult = {
@@ -577,11 +608,13 @@ router.post(
               for (const member of members) {
                 const userId: string = member["value"] as string;
                 if (userId) {
-                  const userExists: User | null = await UserService.findOneById({
-                    id: new ObjectID(userId),
-                    select: { _id: true },
-                    props: { isRoot: true },
-                  });
+                  const userExists: User | null = await UserService.findOneById(
+                    {
+                      id: new ObjectID(userId),
+                      select: { _id: true },
+                      props: { isRoot: true },
+                    },
+                  );
 
                   if (userExists) {
                     const existingMember: TeamMember | null =
@@ -601,7 +634,8 @@ router.post(
                       newTeamMember.userId = new ObjectID(userId);
                       newTeamMember.teamId = targetTeam.id!;
                       newTeamMember.hasAcceptedInvitation = true;
-                      newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+                      newTeamMember.invitationAcceptedAt =
+                        OneUptimeDate.getCurrentDate();
 
                       await TeamMemberService.create({
                         data: newTeamMember,
@@ -650,7 +684,9 @@ router.post(
               });
 
               if (!team) {
-                throw new NotFoundException("Group not found or not part of this project");
+                throw new NotFoundException(
+                  "Group not found or not part of this project",
+                );
               }
 
               // Update team name if provided
@@ -682,11 +718,13 @@ router.post(
               for (const member of members) {
                 const userId: string = member["value"] as string;
                 if (userId) {
-                  const userExists: User | null = await UserService.findOneById({
-                    id: new ObjectID(userId),
-                    select: { _id: true },
-                    props: { isRoot: true },
-                  });
+                  const userExists: User | null = await UserService.findOneById(
+                    {
+                      id: new ObjectID(userId),
+                      select: { _id: true },
+                      props: { isRoot: true },
+                    },
+                  );
 
                   if (userExists) {
                     const newTeamMember: TeamMember = new TeamMember();
@@ -694,7 +732,8 @@ router.post(
                     newTeamMember.userId = new ObjectID(userId);
                     newTeamMember.teamId = team.id!;
                     newTeamMember.hasAcceptedInvitation = true;
-                    newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+                    newTeamMember.invitationAcceptedAt =
+                      OneUptimeDate.getCurrentDate();
 
                     await TeamMemberService.create({
                       data: newTeamMember,
@@ -755,7 +794,9 @@ router.post(
               });
 
               if (!team) {
-                throw new NotFoundException("Group not found or not part of this project");
+                throw new NotFoundException(
+                  "Group not found or not part of this project",
+                );
               }
 
               // Handle SCIM patch operations
@@ -765,7 +806,9 @@ router.post(
               for (const patchOp of patchOperations) {
                 const op: string = patchOp["op"] as string;
                 const patchPath: string = patchOp["path"] as string;
-                const value: SCIMMember[] | string = patchOp["value"] as SCIMMember[] | string;
+                const value: SCIMMember[] | string = patchOp["value"] as
+                  | SCIMMember[]
+                  | string;
 
                 if (patchPath === "members") {
                   if (op === "replace") {
@@ -781,15 +824,17 @@ router.post(
                     });
 
                     // Add new members
-                    const membersToAdd: Array<SCIMMember> = (value as SCIMMember[]) || [];
+                    const membersToAdd: Array<SCIMMember> =
+                      (value as SCIMMember[]) || [];
                     for (const member of membersToAdd) {
                       const userId: string = member["value"] as string;
                       if (userId) {
-                        const userExists: User | null = await UserService.findOneById({
-                          id: new ObjectID(userId),
-                          select: { _id: true },
-                          props: { isRoot: true },
-                        });
+                        const userExists: User | null =
+                          await UserService.findOneById({
+                            id: new ObjectID(userId),
+                            select: { _id: true },
+                            props: { isRoot: true },
+                          });
 
                         if (userExists) {
                           const newTeamMember: TeamMember = new TeamMember();
@@ -797,7 +842,8 @@ router.post(
                           newTeamMember.userId = new ObjectID(userId);
                           newTeamMember.teamId = team.id!;
                           newTeamMember.hasAcceptedInvitation = true;
-                          newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+                          newTeamMember.invitationAcceptedAt =
+                            OneUptimeDate.getCurrentDate();
 
                           await TeamMemberService.create({
                             data: newTeamMember,
@@ -807,7 +853,8 @@ router.post(
                       }
                     }
                   } else if (op === "add") {
-                    const membersToAdd: Array<SCIMMember> = (value as SCIMMember[]) || [];
+                    const membersToAdd: Array<SCIMMember> =
+                      (value as SCIMMember[]) || [];
                     for (const member of membersToAdd) {
                       const userId: string = member["value"] as string;
                       if (userId) {
@@ -823,11 +870,12 @@ router.post(
                           });
 
                         if (!existingMember) {
-                          const userExists: User | null = await UserService.findOneById({
-                            id: new ObjectID(userId),
-                            select: { _id: true },
-                            props: { isRoot: true },
-                          });
+                          const userExists: User | null =
+                            await UserService.findOneById({
+                              id: new ObjectID(userId),
+                              select: { _id: true },
+                              props: { isRoot: true },
+                            });
 
                           if (userExists) {
                             const newTeamMember: TeamMember = new TeamMember();
@@ -835,7 +883,8 @@ router.post(
                             newTeamMember.userId = new ObjectID(userId);
                             newTeamMember.teamId = team.id!;
                             newTeamMember.hasAcceptedInvitation = true;
-                            newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+                            newTeamMember.invitationAcceptedAt =
+                              OneUptimeDate.getCurrentDate();
 
                             await TeamMemberService.create({
                               data: newTeamMember,
@@ -846,7 +895,8 @@ router.post(
                       }
                     }
                   } else if (op === "remove") {
-                    const membersToRemove: Array<SCIMMember> = (value as SCIMMember[]) || [];
+                    const membersToRemove: Array<SCIMMember> =
+                      (value as SCIMMember[]) || [];
                     for (const member of membersToRemove) {
                       const userId: string = member["value"] as string;
                       if (userId) {
@@ -924,7 +974,9 @@ router.post(
               });
 
               if (!team) {
-                throw new NotFoundException("Group not found or not part of this project");
+                throw new NotFoundException(
+                  "Group not found or not part of this project",
+                );
               }
 
               if (!team.isTeamDeleteable) {
@@ -961,7 +1013,9 @@ router.post(
               };
             }
           } else {
-            throw new BadRequestException(`Unknown resource type: ${resourceType}`);
+            throw new BadRequestException(
+              `Unknown resource type: ${resourceType}`,
+            );
           }
         } catch (err: unknown) {
           errorCount++;
@@ -981,7 +1035,11 @@ router.post(
             method: method,
             bulkId: bulkId,
             status: status.toString(),
-            response: generateSCIMErrorResponse(status, error.message, scimType),
+            response: generateSCIMErrorResponse(
+              status,
+              error.message,
+              scimType,
+            ),
           };
 
           logger.debug(
@@ -1005,7 +1063,11 @@ router.post(
         `Project SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
       );
 
-      return Response.sendJsonObjectResponse(req, res, generateBulkResponse(results));
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        generateBulkResponse(results),
+      );
     } catch (err) {
       logger.error(err);
       return next(err);
