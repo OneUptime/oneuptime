@@ -4,7 +4,7 @@ import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import { JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
-import jwt from "jsonwebtoken";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 
 interface OAuthTokenResponse {
   access_token: string;
@@ -183,9 +183,10 @@ export default class SMTPOAuthService {
       };
 
       // Sign the JWT with the private key
-      const signedJwt: string = jwt.sign(jwtClaims, config.clientSecret, {
-        algorithm: "RS256",
-      });
+      const signedJwt: string = JSONWebToken.signWithPrivateKey(
+        jwtClaims,
+        config.clientSecret,
+      );
 
       logger.debug(
         `Fetching OAuth token from ${config.tokenUrl.toString()} using JWT Bearer`,
@@ -391,7 +392,9 @@ export default class SMTPOAuthService {
       );
     } catch (error) {
       // Log but don't fail if caching fails - token is still valid
-      logger.warn("Failed to cache OAuth token in Redis:", error);
+      logger.warn(
+        `Failed to cache OAuth token in Redis: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

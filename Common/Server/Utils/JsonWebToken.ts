@@ -84,6 +84,20 @@ class JSONWebToken {
     });
   }
 
+  /**
+   * Sign a JWT with a custom private key using RS256 algorithm.
+   * Used for OAuth JWT Bearer flows that require asymmetric signing.
+   */
+  @CaptureSpan()
+  public static signWithPrivateKey(
+    payload: Record<string, unknown>,
+    privateKey: string,
+  ): string {
+    return jwt.sign(payload, privateKey, {
+      algorithm: "RS256",
+    });
+  }
+
   @CaptureSpan()
   public static decodeJsonPayload(token: string): JSONObject {
     const decodedToken: string = JSON.stringify(
