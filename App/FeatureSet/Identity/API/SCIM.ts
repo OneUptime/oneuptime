@@ -33,6 +33,12 @@ import {
   parseSCIMQueryParams,
   generateSchemasResponse,
   generateResourceTypesResponse,
+  validateBulkRequest,
+  parseBulkOperationPath,
+  generateBulkResponse,
+  SCIMBulkOperationResponse,
+  generateSCIMErrorResponse,
+  SCIMErrorType,
 } from "../Utils/SCIMUtils";
 import {
   AppApiClientUrl,
@@ -265,6 +271,741 @@ router.get(
 
       logger.debug("Project SCIM ResourceTypes response prepared successfully");
       return Response.sendJsonObjectResponse(req, res, resourceTypesResponse);
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+// SCIM Bulk Operations endpoint - POST /scim/v2/Bulk
+router.post(
+  "/scim/v2/:projectScimId/Bulk",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      logger.debug(
+        `Project SCIM Bulk request - scimId: ${req.params["projectScimId"]!}`,
+      );
+
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+      const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
+      const projectScimId: string = req.params["projectScimId"]!;
+
+      // Validate the bulk request
+      const validation: { valid: boolean; error?: string } = validateBulkRequest(
+        req.body,
+        1000,
+      );
+      if (!validation.valid) {
+        logger.debug(`Project SCIM Bulk - validation failed: ${validation.error}`);
+        res.status(400);
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          generateSCIMErrorResponse(400, validation.error!, SCIMErrorType.InvalidValue),
+        );
+      }
+
+      const operations: JSONObject[] = req.body["Operations"] as JSONObject[];
+      const failOnErrors: number = (req.body["failOnErrors"] as number) || 0;
+      const results: SCIMBulkOperationResponse[] = [];
+      let errorCount: number = 0;
+
+      logger.debug(
+        `Project SCIM Bulk - processing ${operations.length} operations`,
+      );
+
+      for (const operation of operations) {
+        const method: string = (operation["method"] as string).toUpperCase();
+        const path: string = operation["path"] as string;
+        const bulkId: string | undefined = operation["bulkId"] as string | undefined;
+        const data: JSONObject | undefined = operation["data"] as JSONObject | undefined;
+
+        const { resourceType, resourceId } = parseBulkOperationPath(path);
+
+        let operationResult: SCIMBulkOperationResponse = {
+          method: method,
+          bulkId: bulkId,
+          status: "400",
+        };
+
+        try {
+          // Handle Users operations
+          if (resourceType === "Users") {
+            if (method === "POST") {
+              // Create User
+              if (!scimConfig.autoProvisionUsers) {
+                throw new BadRequestException(
+                  "Auto-provisioning is disabled for this project",
+                );
+              }
+
+              const email: string =
+                (data!["userName"] as string) ||
+                ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
+              const name: string = parseNameFromSCIM(data!);
+
+              if (!email) {
+                throw new BadRequestException("userName or email is required");
+              }
+
+              // Check if user already exists
+              let user: User | null = await UserService.findOneBy({
+                query: { email: new Email(email) },
+                select: {
+                  _id: true,
+                  email: true,
+                  name: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+                props: { isRoot: true },
+              });
+
+              // Create user if doesn't exist
+              if (!user) {
+                user = await UserService.createByEmail({
+                  email: new Email(email),
+                  name: name ? new Name(name) : new Name("Unknown"),
+                  isEmailVerified: true,
+                  generateRandomPassword: true,
+                  props: { isRoot: true },
+                });
+              }
+
+              // Add user to default teams if configured and push groups is not enabled
+              if (
+                scimConfig.teams &&
+                scimConfig.teams.length > 0 &&
+                !scimConfig.enablePushGroups
+              ) {
+                await handleUserTeamOperations("add", projectId, user.id!, scimConfig);
+              }
+
+              const createdUser: JSONObject = formatUserForSCIM(
+                user,
+                req,
+                projectScimId,
+                "project",
+              );
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: "201",
+                location: `/scim/v2/${projectScimId}/Users/${user.id?.toString()}`,
+                response: createdUser,
+              };
+            } else if (method === "PUT" || method === "PATCH") {
+              // Update User
+              if (!resourceId) {
+                throw new BadRequestException("User ID is required");
+              }
+
+              const userId: ObjectID = new ObjectID(resourceId);
+
+              // Check if user exists and is part of the project
+              const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
+                query: {
+                  projectId: projectId,
+                  userId: userId,
+                },
+                select: {
+                  userId: true,
+                  user: {
+                    _id: true,
+                    email: true,
+                    name: true,
+                    createdAt: true,
+                    updatedAt: true,
+                  },
+                },
+                props: { isRoot: true },
+              });
+
+              if (!projectUser || !projectUser.user) {
+                throw new NotFoundException("User not found or not part of this project");
+              }
+
+              // Update user information
+              const email: string =
+                (data!["userName"] as string) ||
+                ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
+              const name: string = parseNameFromSCIM(data!);
+              const active: boolean = data!["active"] as boolean;
+
+              // Handle user deactivation by removing from teams
+              if (active === false && !scimConfig.enablePushGroups) {
+                await handleUserTeamOperations("remove", projectId, userId, scimConfig);
+              }
+
+              // Handle user activation by adding to teams
+              if (active === true && !scimConfig.enablePushGroups) {
+                await handleUserTeamOperations("add", projectId, userId, scimConfig);
+              }
+
+              if (email || name) {
+                const updateData: { email?: Email; name?: Name } = {};
+                if (email) {
+                  updateData.email = new Email(email);
+                }
+                if (name) {
+                  updateData.name = new Name(name);
+                }
+
+                await UserService.updateOneById({
+                  id: userId,
+                  data: updateData,
+                  props: { isRoot: true },
+                });
+              }
+
+              // Fetch updated user
+              const updatedUser: User | null = await UserService.findOneById({
+                id: userId,
+                select: {
+                  _id: true,
+                  email: true,
+                  name: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+                props: { isRoot: true },
+              });
+
+              const userResponse: JSONObject = formatUserForSCIM(
+                updatedUser || projectUser.user,
+                req,
+                projectScimId,
+                "project",
+              );
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: "200",
+                location: `/scim/v2/${projectScimId}/Users/${resourceId}`,
+                response: userResponse,
+              };
+            } else if (method === "DELETE") {
+              // Delete User
+              if (!resourceId) {
+                throw new BadRequestException("User ID is required");
+              }
+
+              if (!scimConfig.autoDeprovisionUsers) {
+                throw new BadRequestException(
+                  "Auto-deprovisioning is disabled for this project",
+                );
+              }
+
+              const userId: ObjectID = new ObjectID(resourceId);
+
+              // Remove user from teams the SCIM configured
+              if (!scimConfig.enablePushGroups) {
+                if (!scimConfig.teams || scimConfig.teams.length === 0) {
+                  throw new BadRequestException("No teams configured for SCIM");
+                }
+
+                await handleUserTeamOperations("remove", projectId, userId, scimConfig);
+              }
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: "204",
+                location: `/scim/v2/${projectScimId}/Users/${resourceId}`,
+              };
+            }
+          }
+          // Handle Groups operations
+          else if (resourceType === "Groups") {
+            if (method === "POST") {
+              // Create Group
+              const displayName: string = data!["displayName"] as string;
+
+              if (!displayName) {
+                throw new BadRequestException("displayName is required");
+              }
+
+              // Check if team already exists
+              const existingTeam: Team | null = await TeamService.findOneBy({
+                query: {
+                  projectId: projectId,
+                  name: displayName,
+                },
+                select: {
+                  _id: true,
+                  name: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  projectId: true,
+                },
+                props: { isRoot: true },
+              });
+
+              let targetTeam: Team;
+
+              if (existingTeam) {
+                targetTeam = existingTeam;
+              } else {
+                // Create new team
+                const team: Team = new Team();
+                team.projectId = projectId;
+                team.name = displayName;
+                team.isTeamEditable = true;
+                team.isTeamDeleteable = true;
+                team.shouldHaveAtLeastOneMember = false;
+
+                targetTeam = await TeamService.create({
+                  data: team,
+                  props: { isRoot: true },
+                });
+              }
+
+              // Handle members if provided
+              const members: Array<SCIMMember> =
+                (data!["members"] as Array<SCIMMember>) || [];
+              for (const member of members) {
+                const userId: string = member["value"] as string;
+                if (userId) {
+                  const userExists: User | null = await UserService.findOneById({
+                    id: new ObjectID(userId),
+                    select: { _id: true },
+                    props: { isRoot: true },
+                  });
+
+                  if (userExists) {
+                    const existingMember: TeamMember | null =
+                      await TeamMemberService.findOneBy({
+                        query: {
+                          projectId: projectId,
+                          userId: new ObjectID(userId),
+                          teamId: targetTeam.id!,
+                        },
+                        select: { _id: true },
+                        props: { isRoot: true },
+                      });
+
+                    if (!existingMember) {
+                      const newTeamMember: TeamMember = new TeamMember();
+                      newTeamMember.projectId = projectId;
+                      newTeamMember.userId = new ObjectID(userId);
+                      newTeamMember.teamId = targetTeam.id!;
+                      newTeamMember.hasAcceptedInvitation = true;
+                      newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+
+                      await TeamMemberService.create({
+                        data: newTeamMember,
+                        props: { isRoot: true },
+                      });
+                    }
+                  }
+                }
+              }
+
+              const groupResponse: JSONObject = await formatTeamForSCIM(
+                targetTeam,
+                projectScimId,
+                true,
+              );
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: existingTeam ? "200" : "201",
+                location: `/scim/v2/${projectScimId}/Groups/${targetTeam.id?.toString()}`,
+                response: groupResponse,
+              };
+            } else if (method === "PUT") {
+              // Update Group (Replace)
+              if (!resourceId) {
+                throw new BadRequestException("Group ID is required");
+              }
+
+              const groupId: ObjectID = new ObjectID(resourceId);
+
+              // Check if team exists
+              const team: Team | null = await TeamService.findOneBy({
+                query: {
+                  projectId: projectId,
+                  _id: groupId,
+                },
+                select: {
+                  _id: true,
+                  name: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  projectId: true,
+                },
+                props: { isRoot: true },
+              });
+
+              if (!team) {
+                throw new NotFoundException("Group not found or not part of this project");
+              }
+
+              // Update team name if provided
+              const displayName: string = data!["displayName"] as string;
+              if (displayName && displayName !== team.name) {
+                await TeamService.updateOneById({
+                  id: team.id!,
+                  data: { name: displayName },
+                  props: { isRoot: true },
+                });
+              }
+
+              // Handle members update - replace all members
+              const members: Array<SCIMMember> =
+                (data!["members"] as Array<SCIMMember>) || [];
+
+              // Remove all existing members
+              await TeamMemberService.deleteBy({
+                query: {
+                  projectId: projectId,
+                  teamId: team.id!,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: { isRoot: true },
+              });
+
+              // Add new members
+              for (const member of members) {
+                const userId: string = member["value"] as string;
+                if (userId) {
+                  const userExists: User | null = await UserService.findOneById({
+                    id: new ObjectID(userId),
+                    select: { _id: true },
+                    props: { isRoot: true },
+                  });
+
+                  if (userExists) {
+                    const newTeamMember: TeamMember = new TeamMember();
+                    newTeamMember.projectId = projectId;
+                    newTeamMember.userId = new ObjectID(userId);
+                    newTeamMember.teamId = team.id!;
+                    newTeamMember.hasAcceptedInvitation = true;
+                    newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+
+                    await TeamMemberService.create({
+                      data: newTeamMember,
+                      props: { isRoot: true },
+                    });
+                  }
+                }
+              }
+
+              // Fetch updated team
+              const updatedTeam: Team | null = await TeamService.findOneById({
+                id: team.id!,
+                select: {
+                  _id: true,
+                  name: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  projectId: true,
+                },
+                props: { isRoot: true },
+              });
+
+              const groupResponse: JSONObject = await formatTeamForSCIM(
+                updatedTeam || team,
+                projectScimId,
+                true,
+              );
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: "200",
+                location: `/scim/v2/${projectScimId}/Groups/${resourceId}`,
+                response: groupResponse,
+              };
+            } else if (method === "PATCH") {
+              // Patch Group
+              if (!resourceId) {
+                throw new BadRequestException("Group ID is required");
+              }
+
+              const groupId: ObjectID = new ObjectID(resourceId);
+
+              // Check if team exists
+              const team: Team | null = await TeamService.findOneBy({
+                query: {
+                  projectId: projectId,
+                  _id: groupId,
+                },
+                select: {
+                  _id: true,
+                  name: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  projectId: true,
+                },
+                props: { isRoot: true },
+              });
+
+              if (!team) {
+                throw new NotFoundException("Group not found or not part of this project");
+              }
+
+              // Handle SCIM patch operations
+              const patchOperations: JSONObject[] =
+                (data!["Operations"] as JSONObject[]) || [];
+
+              for (const patchOp of patchOperations) {
+                const op: string = patchOp["op"] as string;
+                const patchPath: string = patchOp["path"] as string;
+                const value: SCIMMember[] | string = patchOp["value"] as SCIMMember[] | string;
+
+                if (patchPath === "members") {
+                  if (op === "replace") {
+                    // Remove all existing members
+                    await TeamMemberService.deleteBy({
+                      query: {
+                        projectId: projectId,
+                        teamId: team.id!,
+                      },
+                      limit: LIMIT_MAX,
+                      skip: 0,
+                      props: { isRoot: true },
+                    });
+
+                    // Add new members
+                    const membersToAdd: Array<SCIMMember> = (value as SCIMMember[]) || [];
+                    for (const member of membersToAdd) {
+                      const userId: string = member["value"] as string;
+                      if (userId) {
+                        const userExists: User | null = await UserService.findOneById({
+                          id: new ObjectID(userId),
+                          select: { _id: true },
+                          props: { isRoot: true },
+                        });
+
+                        if (userExists) {
+                          const newTeamMember: TeamMember = new TeamMember();
+                          newTeamMember.projectId = projectId;
+                          newTeamMember.userId = new ObjectID(userId);
+                          newTeamMember.teamId = team.id!;
+                          newTeamMember.hasAcceptedInvitation = true;
+                          newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+
+                          await TeamMemberService.create({
+                            data: newTeamMember,
+                            props: { isRoot: true },
+                          });
+                        }
+                      }
+                    }
+                  } else if (op === "add") {
+                    const membersToAdd: Array<SCIMMember> = (value as SCIMMember[]) || [];
+                    for (const member of membersToAdd) {
+                      const userId: string = member["value"] as string;
+                      if (userId) {
+                        const existingMember: TeamMember | null =
+                          await TeamMemberService.findOneBy({
+                            query: {
+                              projectId: projectId,
+                              userId: new ObjectID(userId),
+                              teamId: team.id!,
+                            },
+                            select: { _id: true },
+                            props: { isRoot: true },
+                          });
+
+                        if (!existingMember) {
+                          const userExists: User | null = await UserService.findOneById({
+                            id: new ObjectID(userId),
+                            select: { _id: true },
+                            props: { isRoot: true },
+                          });
+
+                          if (userExists) {
+                            const newTeamMember: TeamMember = new TeamMember();
+                            newTeamMember.projectId = projectId;
+                            newTeamMember.userId = new ObjectID(userId);
+                            newTeamMember.teamId = team.id!;
+                            newTeamMember.hasAcceptedInvitation = true;
+                            newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+
+                            await TeamMemberService.create({
+                              data: newTeamMember,
+                              props: { isRoot: true },
+                            });
+                          }
+                        }
+                      }
+                    }
+                  } else if (op === "remove") {
+                    const membersToRemove: Array<SCIMMember> = (value as SCIMMember[]) || [];
+                    for (const member of membersToRemove) {
+                      const userId: string = member["value"] as string;
+                      if (userId) {
+                        await TeamMemberService.deleteBy({
+                          query: {
+                            projectId: projectId,
+                            userId: new ObjectID(userId),
+                            teamId: team.id!,
+                          },
+                          limit: LIMIT_MAX,
+                          skip: 0,
+                          props: { isRoot: true },
+                        });
+                      }
+                    }
+                  }
+                } else if (patchPath === "displayName" && op === "replace") {
+                  const newName: string = value as string;
+                  if (newName) {
+                    await TeamService.updateOneById({
+                      id: team.id!,
+                      data: { name: newName },
+                      props: { isRoot: true },
+                    });
+                  }
+                }
+              }
+
+              // Fetch updated team
+              const updatedTeam: Team | null = await TeamService.findOneById({
+                id: team.id!,
+                select: {
+                  _id: true,
+                  name: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  projectId: true,
+                },
+                props: { isRoot: true },
+              });
+
+              const groupResponse: JSONObject = await formatTeamForSCIM(
+                updatedTeam || team,
+                projectScimId,
+                true,
+              );
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: "200",
+                location: `/scim/v2/${projectScimId}/Groups/${resourceId}`,
+                response: groupResponse,
+              };
+            } else if (method === "DELETE") {
+              // Delete Group
+              if (!resourceId) {
+                throw new BadRequestException("Group ID is required");
+              }
+
+              const groupId: ObjectID = new ObjectID(resourceId);
+
+              // Check if team exists
+              const team: Team | null = await TeamService.findOneBy({
+                query: {
+                  projectId: projectId,
+                  _id: groupId,
+                },
+                select: {
+                  _id: true,
+                  name: true,
+                  isTeamDeleteable: true,
+                },
+                props: { isRoot: true },
+              });
+
+              if (!team) {
+                throw new NotFoundException("Group not found or not part of this project");
+              }
+
+              if (!team.isTeamDeleteable) {
+                throw new BadRequestException("This group cannot be deleted");
+              }
+
+              // Remove all team members first
+              await TeamMemberService.deleteBy({
+                query: {
+                  projectId: projectId,
+                  teamId: team.id!,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: { isRoot: true },
+              });
+
+              // Delete the team
+              await TeamService.deleteBy({
+                query: {
+                  projectId: projectId,
+                  _id: team.id!,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: { isRoot: true },
+              });
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: "204",
+                location: `/scim/v2/${projectScimId}/Groups/${resourceId}`,
+              };
+            }
+          } else {
+            throw new BadRequestException(`Unknown resource type: ${resourceType}`);
+          }
+        } catch (err: unknown) {
+          errorCount++;
+          const error: Error = err as Error;
+          let status: number = 500;
+          let scimType: SCIMErrorType | undefined;
+
+          if (error.constructor.name === "BadRequestException") {
+            status = 400;
+            scimType = SCIMErrorType.InvalidValue;
+          } else if (error.constructor.name === "NotFoundException") {
+            status = 404;
+            scimType = SCIMErrorType.NoTarget;
+          }
+
+          operationResult = {
+            method: method,
+            bulkId: bulkId,
+            status: status.toString(),
+            response: generateSCIMErrorResponse(status, error.message, scimType),
+          };
+
+          logger.debug(
+            `Project SCIM Bulk - operation failed: ${error.message}`,
+          );
+
+          // Check if we should stop processing due to failOnErrors
+          if (failOnErrors > 0 && errorCount >= failOnErrors) {
+            logger.debug(
+              `Project SCIM Bulk - stopping due to failOnErrors threshold (${failOnErrors})`,
+            );
+            results.push(operationResult);
+            break;
+          }
+        }
+
+        results.push(operationResult);
+      }
+
+      logger.debug(
+        `Project SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
+      );
+
+      return Response.sendJsonObjectResponse(req, res, generateBulkResponse(results));
     } catch (err) {
       logger.error(err);
       return next(err);

@@ -189,9 +189,9 @@ export const generateServiceProviderConfig: (
       supported: true,
     },
     bulk: {
-      supported: false,
-      maxOperations: 0,
-      maxPayloadSize: 0,
+      supported: true,
+      maxOperations: 1000,
+      maxPayloadSize: 1048576, // 1MB
     },
     filter: {
       supported: true,
@@ -619,4 +619,168 @@ export const getHttpStatusFromException: (err: Exception) => number = (
     default:
       return 500;
   }
+};
+
+/**
+ * SCIM Bulk Operation as per RFC 7644 Section 3.7
+ */
+export interface SCIMBulkOperation {
+  method: "POST" | "PUT" | "PATCH" | "DELETE";
+  path: string;
+  bulkId?: string;
+  version?: string;
+  data?: JSONObject;
+}
+
+/**
+ * SCIM Bulk Operation Response
+ */
+export interface SCIMBulkOperationResponse {
+  method: string;
+  bulkId?: string;
+  version?: string;
+  location?: string;
+  status: string;
+  response?: JSONObject;
+}
+
+/**
+ * SCIM Bulk Request
+ */
+export interface SCIMBulkRequest {
+  schemas: string[];
+  Operations: SCIMBulkOperation[];
+  failOnErrors?: number;
+}
+
+/**
+ * Generate SCIM Bulk Response
+ */
+export const generateBulkResponse: (
+  operations: SCIMBulkOperationResponse[],
+) => JSONObject = (operations: SCIMBulkOperationResponse[]): JSONObject => {
+  return {
+    schemas: ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+    Operations: operations as unknown as JSONObject[],
+  };
+};
+
+/**
+ * Parse path to extract resource type and ID
+ * Path format: /ResourceType or /ResourceType/{id}
+ */
+export const parseBulkOperationPath: (path: string) => {
+  resourceType: string;
+  resourceId: string | undefined;
+} = (path: string): { resourceType: string; resourceId: string | undefined } => {
+  // Remove leading slash if present
+  const cleanPath: string = path.startsWith("/") ? path.substring(1) : path;
+  const parts: string[] = cleanPath.split("/");
+
+  return {
+    resourceType: parts[0] || "",
+    resourceId: parts[1],
+  };
+};
+
+/**
+ * Validate SCIM Bulk Request
+ */
+export const validateBulkRequest: (
+  body: JSONObject,
+  maxOperations: number,
+) => { valid: boolean; error?: string } = (
+  body: JSONObject,
+  maxOperations: number = 1000,
+): { valid: boolean; error?: string } => {
+  // Check for required schema
+  const schemas: string[] = body["schemas"] as string[];
+  if (
+    !schemas ||
+    !schemas.includes("urn:ietf:params:scim:api:messages:2.0:BulkRequest")
+  ) {
+    return {
+      valid: false,
+      error:
+        "Invalid or missing schema. Expected urn:ietf:params:scim:api:messages:2.0:BulkRequest",
+    };
+  }
+
+  // Check for operations array
+  const operations: JSONObject[] = body["Operations"] as JSONObject[];
+  if (!operations || !Array.isArray(operations)) {
+    return { valid: false, error: "Operations array is required" };
+  }
+
+  // Check operation count
+  if (operations.length === 0) {
+    return { valid: false, error: "At least one operation is required" };
+  }
+
+  if (operations.length > maxOperations) {
+    return {
+      valid: false,
+      error: `Too many operations. Maximum allowed is ${maxOperations}`,
+    };
+  }
+
+  // Validate each operation
+  for (let i: number = 0; i < operations.length; i++) {
+    const op: JSONObject = operations[i]!;
+    const method: string = op["method"] as string;
+    const path: string = op["path"] as string;
+
+    if (!method) {
+      return { valid: false, error: `Operation ${i + 1}: method is required` };
+    }
+
+    const validMethods: string[] = ["POST", "PUT", "PATCH", "DELETE"];
+    if (!validMethods.includes(method.toUpperCase())) {
+      return {
+        valid: false,
+        error: `Operation ${i + 1}: invalid method '${method}'. Must be one of: ${validMethods.join(", ")}`,
+      };
+    }
+
+    if (!path) {
+      return { valid: false, error: `Operation ${i + 1}: path is required` };
+    }
+
+    // POST requires data
+    if (method.toUpperCase() === "POST" && !op["data"]) {
+      return {
+        valid: false,
+        error: `Operation ${i + 1}: data is required for POST operations`,
+      };
+    }
+
+    // PUT requires data
+    if (method.toUpperCase() === "PUT" && !op["data"]) {
+      return {
+        valid: false,
+        error: `Operation ${i + 1}: data is required for PUT operations`,
+      };
+    }
+
+    // PATCH typically requires data (Operations array in SCIM PATCH)
+    if (method.toUpperCase() === "PATCH" && !op["data"]) {
+      return {
+        valid: false,
+        error: `Operation ${i + 1}: data is required for PATCH operations`,
+      };
+    }
+
+    // For PUT, PATCH, DELETE - path must include resource ID
+    if (["PUT", "PATCH", "DELETE"].includes(method.toUpperCase())) {
+      const { resourceId } = parseBulkOperationPath(path);
+      if (!resourceId) {
+        return {
+          valid: false,
+          error: `Operation ${i + 1}: resource ID is required in path for ${method} operations`,
+        };
+      }
+    }
+  }
+
+  return { valid: true };
 };

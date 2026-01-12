@@ -22,6 +22,12 @@ import {
   generateServiceProviderConfig,
   generateSchemasResponse,
   generateResourceTypesResponse,
+  validateBulkRequest,
+  parseBulkOperationPath,
+  generateBulkResponse,
+  SCIMBulkOperationResponse,
+  generateSCIMErrorResponse,
+  SCIMErrorType,
 } from "../Utils/SCIMUtils";
 import Text from "Common/Types/Text";
 import HashedString from "Common/Types/HashedString";
@@ -109,6 +115,314 @@ router.get(
         "Status Page SCIM ResourceTypes response prepared successfully",
       );
       return Response.sendJsonObjectResponse(req, res, resourceTypesResponse);
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+// SCIM Bulk Operations endpoint - POST /status-page-scim/v2/Bulk
+router.post(
+  "/status-page-scim/v2/:statusPageScimId/Bulk",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      logger.debug(
+        `Status Page SCIM Bulk request - scimId: ${req.params["statusPageScimId"]!}`,
+      );
+
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const statusPageId: ObjectID = bearerData["statusPageId"] as ObjectID;
+      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+      const scimConfig: StatusPageSCIM = bearerData["scimConfig"] as StatusPageSCIM;
+      const statusPageScimId: string = req.params["statusPageScimId"]!;
+
+      // Validate the bulk request
+      const validation: { valid: boolean; error?: string } = validateBulkRequest(
+        req.body,
+        1000,
+      );
+      if (!validation.valid) {
+        logger.debug(`Status Page SCIM Bulk - validation failed: ${validation.error}`);
+        res.status(400);
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          generateSCIMErrorResponse(400, validation.error!, SCIMErrorType.InvalidValue),
+        );
+      }
+
+      const operations: JSONObject[] = req.body["Operations"] as JSONObject[];
+      const failOnErrors: number = (req.body["failOnErrors"] as number) || 0;
+      const results: SCIMBulkOperationResponse[] = [];
+      let errorCount: number = 0;
+
+      logger.debug(
+        `Status Page SCIM Bulk - processing ${operations.length} operations`,
+      );
+
+      for (const operation of operations) {
+        const method: string = (operation["method"] as string).toUpperCase();
+        const path: string = operation["path"] as string;
+        const bulkId: string | undefined = operation["bulkId"] as string | undefined;
+        const data: JSONObject | undefined = operation["data"] as JSONObject | undefined;
+
+        const { resourceType, resourceId } = parseBulkOperationPath(path);
+
+        let operationResult: SCIMBulkOperationResponse = {
+          method: method,
+          bulkId: bulkId,
+          status: "400",
+        };
+
+        try {
+          // Handle Users operations only (Status Page SCIM doesn't support Groups)
+          if (resourceType === "Users") {
+            if (method === "POST") {
+              // Create User
+              if (!scimConfig.autoProvisionUsers) {
+                throw new BadRequestException(
+                  "Auto-provisioning is disabled for this status page",
+                );
+              }
+
+              const email: string =
+                (data!["userName"] as string) ||
+                ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
+
+              if (!email) {
+                throw new BadRequestException("Email is required for user creation");
+              }
+
+              // Check if user already exists for this status page
+              let user: StatusPagePrivateUser | null =
+                await StatusPagePrivateUserService.findOneBy({
+                  query: {
+                    statusPageId: statusPageId,
+                    email: new Email(email),
+                  },
+                  select: {
+                    _id: true,
+                    email: true,
+                    createdAt: true,
+                    updatedAt: true,
+                  },
+                  props: { isRoot: true },
+                });
+
+              if (!user) {
+                const privateUser: StatusPagePrivateUser = new StatusPagePrivateUser();
+                privateUser.statusPageId = statusPageId;
+                privateUser.email = new Email(email);
+                privateUser.password = new HashedString(Text.generateRandomText(32));
+                privateUser.projectId = projectId;
+
+                user = await StatusPagePrivateUserService.create({
+                  data: privateUser as StatusPagePrivateUser,
+                  props: { isRoot: true },
+                });
+              }
+
+              const createdUser: JSONObject = formatUserForSCIM(
+                user,
+                req,
+                statusPageScimId,
+                "status-page",
+              );
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: "201",
+                location: `/status-page-scim/v2/${statusPageScimId}/Users/${user.id?.toString()}`,
+                response: createdUser,
+              };
+            } else if (method === "PUT" || method === "PATCH") {
+              // Update User
+              if (!resourceId) {
+                throw new BadRequestException("User ID is required");
+              }
+
+              const userId: ObjectID = new ObjectID(resourceId);
+
+              // Check if user exists and belongs to this status page
+              const statusPageUser: StatusPagePrivateUser | null =
+                await StatusPagePrivateUserService.findOneBy({
+                  query: {
+                    statusPageId: statusPageId,
+                    _id: userId,
+                  },
+                  select: {
+                    _id: true,
+                    email: true,
+                    createdAt: true,
+                    updatedAt: true,
+                  },
+                  props: { isRoot: true },
+                });
+
+              if (!statusPageUser) {
+                throw new NotFoundException(
+                  "User not found or not part of this status page",
+                );
+              }
+
+              // Update user information
+              const email: string =
+                (data!["userName"] as string) ||
+                ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
+              const active: boolean = data!["active"] as boolean;
+
+              // Handle user deactivation by deleting from status page
+              if (active === false && scimConfig.autoDeprovisionUsers) {
+                await StatusPagePrivateUserService.deleteOneById({
+                  id: userId,
+                  props: { isRoot: true },
+                });
+
+                operationResult = {
+                  method: method,
+                  bulkId: bulkId,
+                  status: "204",
+                  location: `/status-page-scim/v2/${statusPageScimId}/Users/${resourceId}`,
+                };
+              } else {
+                // Update email if provided
+                if (email && email !== statusPageUser.email?.toString()) {
+                  await StatusPagePrivateUserService.updateOneById({
+                    id: userId,
+                    data: { email: new Email(email) },
+                    props: { isRoot: true },
+                  });
+                }
+
+                // Fetch updated user
+                const updatedUser: StatusPagePrivateUser | null =
+                  await StatusPagePrivateUserService.findOneById({
+                    id: userId,
+                    select: {
+                      _id: true,
+                      email: true,
+                      createdAt: true,
+                      updatedAt: true,
+                    },
+                    props: { isRoot: true },
+                  });
+
+                const userResponse: JSONObject = formatUserForSCIM(
+                  updatedUser || statusPageUser,
+                  req,
+                  statusPageScimId,
+                  "status-page",
+                );
+
+                operationResult = {
+                  method: method,
+                  bulkId: bulkId,
+                  status: "200",
+                  location: `/status-page-scim/v2/${statusPageScimId}/Users/${resourceId}`,
+                  response: userResponse,
+                };
+              }
+            } else if (method === "DELETE") {
+              // Delete User
+              if (!resourceId) {
+                throw new BadRequestException("User ID is required");
+              }
+
+              if (!scimConfig.autoDeprovisionUsers) {
+                throw new BadRequestException(
+                  "Auto-deprovisioning is disabled for this status page",
+                );
+              }
+
+              const userId: ObjectID = new ObjectID(resourceId);
+
+              // Check if user exists
+              const statusPageUser: StatusPagePrivateUser | null =
+                await StatusPagePrivateUserService.findOneBy({
+                  query: {
+                    statusPageId: statusPageId,
+                    _id: userId,
+                  },
+                  select: { _id: true },
+                  props: { isRoot: true },
+                });
+
+              if (!statusPageUser) {
+                throw new NotFoundException("User not found");
+              }
+
+              // Delete the user from status page
+              await StatusPagePrivateUserService.deleteOneById({
+                id: userId,
+                props: { isRoot: true },
+              });
+
+              operationResult = {
+                method: method,
+                bulkId: bulkId,
+                status: "204",
+                location: `/status-page-scim/v2/${statusPageScimId}/Users/${resourceId}`,
+              };
+            }
+          } else if (resourceType === "Groups") {
+            throw new BadRequestException(
+              "Groups are not supported for Status Page SCIM. Only Users are available.",
+            );
+          } else {
+            throw new BadRequestException(`Unknown resource type: ${resourceType}`);
+          }
+        } catch (err: unknown) {
+          errorCount++;
+          const error: Error = err as Error;
+          let status: number = 500;
+          let scimType: SCIMErrorType | undefined;
+
+          if (error.constructor.name === "BadRequestException") {
+            status = 400;
+            scimType = SCIMErrorType.InvalidValue;
+          } else if (error.constructor.name === "NotFoundException") {
+            status = 404;
+            scimType = SCIMErrorType.NoTarget;
+          }
+
+          operationResult = {
+            method: method,
+            bulkId: bulkId,
+            status: status.toString(),
+            response: generateSCIMErrorResponse(status, error.message, scimType),
+          };
+
+          logger.debug(
+            `Status Page SCIM Bulk - operation failed: ${error.message}`,
+          );
+
+          // Check if we should stop processing due to failOnErrors
+          if (failOnErrors > 0 && errorCount >= failOnErrors) {
+            logger.debug(
+              `Status Page SCIM Bulk - stopping due to failOnErrors threshold (${failOnErrors})`,
+            );
+            results.push(operationResult);
+            break;
+          }
+        }
+
+        results.push(operationResult);
+      }
+
+      logger.debug(
+        `Status Page SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
+      );
+
+      return Response.sendJsonObjectResponse(req, res, generateBulkResponse(results));
     } catch (err) {
       logger.error(err);
       return next(err);
