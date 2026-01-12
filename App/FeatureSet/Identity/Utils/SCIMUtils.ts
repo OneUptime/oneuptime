@@ -637,11 +637,11 @@ export interface SCIMBulkOperation {
  */
 export interface SCIMBulkOperationResponse {
   method: string;
-  bulkId?: string;
-  version?: string;
-  location?: string;
+  bulkId?: string | undefined;
+  version?: string | undefined;
+  location?: string | undefined;
   status: string;
-  response?: JSONObject;
+  response?: JSONObject | undefined;
 }
 
 /**
