@@ -3,6 +3,7 @@ import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -52,6 +53,7 @@ router.post(
             clientSecret: true,
             tokenUrl: true,
             scope: true,
+            oauthProviderType: true,
           },
         });
 
@@ -102,6 +104,7 @@ router.post(
         clientSecret: config.clientSecret,
         tokenUrl: config.tokenUrl ? URL.fromString(config.tokenUrl) : undefined,
         scope: config.scope,
+        oauthProviderType: config.oauthProviderType as OAuthProviderType | undefined,
       };
 
       try {

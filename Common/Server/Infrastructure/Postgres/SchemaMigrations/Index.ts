@@ -218,6 +218,7 @@ import { RenameServiceCatalogToService1767966850199 } from "./1767966850199-Rena
 import { MigrationName1767979055522 } from "./1767979055522-MigrationName";
 import { MigrationName1767979448478 } from "./1767979448478-MigrationName";
 import { IncreaseClientSecretLength1768216593272 } from "./1768216593272-IncreaseClientSecretLength";
+import { AddOAuthProviderType1768217403078 } from "./1768217403078-AddOAuthProviderType";
 
 export default [
   InitialMigration,
@@ -440,4 +441,5 @@ export default [
   MigrationName1767979448478,
   MigrationName1767896933148,
   IncreaseClientSecretLength1768216593272,
+  AddOAuthProviderType1768217403078,
 ];

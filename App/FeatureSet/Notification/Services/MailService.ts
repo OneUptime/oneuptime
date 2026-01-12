@@ -13,6 +13,7 @@ import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -136,11 +137,14 @@ class TransporterPool {
     }
 
     // Get the access token using the generic OAuth service
+    // Provider type determines which grant flow to use (Client Credentials vs JWT Bearer)
     const accessToken: string = await SMTPOAuthService.getAccessToken({
       clientId: emailServer.clientId,
       clientSecret: emailServer.clientSecret,
       tokenUrl: emailServer.tokenUrl,
       scope: emailServer.scope,
+      username: emailServer.username, // Required for JWT Bearer (user to impersonate)
+      providerType: emailServer.oauthProviderType || OAuthProviderType.ClientCredentials,
     });
 
     logger.debug("Creating OAuth transporter for SMTP");

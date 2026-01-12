@@ -3,6 +3,7 @@ import URL from "../API/URL";
 import Email from "../Email";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
+import OAuthProviderType from "./OAuthProviderType";
 import SMTPAuthenticationType from "./SMTPAuthenticationType";
 
 export default interface EmailServer {
@@ -21,4 +22,5 @@ export default interface EmailServer {
   clientSecret?: string | undefined; // OAuth Application Client Secret
   tokenUrl?: URL | undefined; // OAuth token endpoint URL (e.g., https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token)
   scope?: string | undefined; // OAuth scope(s), space-separated (e.g., https://outlook.office365.com/.default)
+  oauthProviderType?: OAuthProviderType | undefined; // OAuth grant type: Client Credentials or JWT Bearer
 }

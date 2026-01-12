@@ -3,6 +3,8 @@ import logger from "Common/Server/Utils/Logger";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
+import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
+import jwt from "jsonwebtoken";
 
 interface OAuthTokenResponse {
   access_token: string;
@@ -18,40 +20,43 @@ interface CachedToken extends JSONObject {
 export interface SMTPOAuthConfig {
   clientId: string;
   clientSecret: string;
-  tokenUrl: URL; // Full OAuth token endpoint URL
-  scope: string; // OAuth scope(s), space-separated if multiple
+  tokenUrl: URL;
+  scope: string;
+  username?: string; // Email address to send as (required for JWT Bearer to impersonate user)
+  providerType: OAuthProviderType; // The OAuth grant type to use
 }
 
 /**
  * Generic service for fetching OAuth2 access tokens for SMTP authentication.
- * Supports any OAuth 2.0 provider that implements the client credentials grant flow.
+ * Supports multiple OAuth 2.0 grant types:
  *
- * Common configurations:
+ * - Client Credentials (OAuthProviderType.ClientCredentials)
+ *   Used by: Microsoft 365, Azure AD, and most OAuth 2.0 providers
+ *   Required fields: Client ID, Client Secret, Token URL, Scope
  *
- * Microsoft 365:
- *   - tokenUrl: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token
- *   - scope: https://outlook.office365.com/.default
- *
- * Google Workspace (requires service account):
- *   - tokenUrl: https://oauth2.googleapis.com/token
- *   - scope: https://mail.google.com/
- *
- * Custom OAuth Provider:
- *   - tokenUrl: Your provider's token endpoint
- *   - scope: Required scope(s) for SMTP access
+ * - JWT Bearer Assertion (OAuthProviderType.JWTBearer)
+ *   Used by: Google Workspace service accounts
+ *   Required fields:
+ *   - Client ID: Service account email (client_email from JSON key)
+ *   - Client Secret: Private key (private_key from JSON key)
+ *   - Token URL: OAuth token endpoint
+ *   - Scope: Required scopes
+ *   - Username: Email address to impersonate
  */
 export default class SMTPOAuthService {
   private static readonly TOKEN_CACHE_NAMESPACE = "smtp-oauth-tokens";
   private static readonly TOKEN_BUFFER_SECONDS = 300; // Refresh token 5 minutes before expiry
+  private static readonly JWT_EXPIRY_SECONDS = 3600; // JWTs are valid for max 1 hour
 
   /**
-   * Get an access token for SMTP authentication using OAuth 2.0 client credentials flow.
+   * Get an access token for SMTP authentication.
+   * Uses the provider type specified in config to determine the grant type.
    *
-   * @param config - OAuth configuration including clientId, clientSecret, tokenUrl, and scope
+   * @param config - OAuth configuration
    * @returns The access token
    */
   public static async getAccessToken(config: SMTPOAuthConfig): Promise<string> {
-    const cacheKey = `${config.tokenUrl.toString()}:${config.clientId}`;
+    const cacheKey = `${config.tokenUrl.toString()}:${config.clientId}:${config.username || ""}`;
 
     // Check if we have a cached token that's still valid
     if (LocalCache.hasValue(this.TOKEN_CACHE_NAMESPACE, cacheKey)) {
@@ -67,12 +72,147 @@ export default class SMTPOAuthService {
       }
     }
 
-    // Fetch a new token
-    const token: string = await this.fetchNewToken(config);
+    // Fetch a new token using the appropriate method based on provider type
+    let token: string;
+
+    switch (config.providerType) {
+      case OAuthProviderType.JWTBearer:
+        token = await this.fetchJWTBearerToken(config);
+        break;
+      case OAuthProviderType.ClientCredentials:
+      default:
+        token = await this.fetchClientCredentialsToken(config);
+        break;
+    }
+
     return token;
   }
 
-  private static async fetchNewToken(config: SMTPOAuthConfig): Promise<string> {
+  /**
+   * Fetch token using JWT Bearer assertion flow (RFC 7523).
+   * Used by Google Workspace service accounts and other providers that require signed JWTs.
+   */
+  private static async fetchJWTBearerToken(config: SMTPOAuthConfig): Promise<string> {
+    if (!config.username) {
+      throw new BadDataException(
+        "Username (email address to impersonate) is required for JWT Bearer OAuth. " +
+        "This should be the email address that will send emails."
+      );
+    }
+
+    // Validate that clientSecret looks like a private key
+    if (!config.clientSecret.includes("-----BEGIN") || !config.clientSecret.includes("PRIVATE KEY")) {
+      throw new BadDataException(
+        "For JWT Bearer OAuth, the Client Secret must be a private key. " +
+        "It should start with '-----BEGIN PRIVATE KEY-----' or '-----BEGIN RSA PRIVATE KEY-----'."
+      );
+    }
+
+    try {
+      logger.debug("Creating JWT for OAuth token request");
+
+      const now = Math.floor(Date.now() / 1000);
+
+      // Create JWT claims
+      const jwtClaims = {
+        iss: config.clientId, // Issuer (service account email for Google)
+        sub: config.username, // Subject (user to impersonate)
+        scope: config.scope,
+        aud: config.tokenUrl.toString(),
+        iat: now,
+        exp: now + this.JWT_EXPIRY_SECONDS,
+      };
+
+      // Sign the JWT with the private key
+      const signedJwt = jwt.sign(jwtClaims, config.clientSecret, {
+        algorithm: "RS256",
+      });
+
+      logger.debug(`Fetching OAuth token from ${config.tokenUrl.toString()} using JWT Bearer`);
+
+      // Exchange JWT for access token
+      const params = new URLSearchParams();
+      params.append("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer");
+      params.append("assertion", signedJwt);
+
+      const response: Response = await fetch(config.tokenUrl.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
+      });
+
+      if (!response.ok) {
+        const errorText: string = await response.text();
+        logger.error(`Failed to fetch OAuth token: ${response.status} - ${errorText}`);
+
+        // Provide helpful error messages for common issues
+        if (errorText.includes("invalid_grant")) {
+          throw new BadDataException(
+            `OAuth failed: invalid_grant. This usually means: ` +
+            `1) Domain-wide delegation is not enabled, ` +
+            `2) The service account is not authorized in your admin console, ` +
+            `3) The user email '${config.username}' doesn't exist or can't be impersonated, or ` +
+            `4) The scope '${config.scope}' is not authorized. ` +
+            `Please check your OAuth provider's admin console for domain-wide delegation settings.`
+          );
+        }
+
+        if (errorText.includes("unauthorized_client")) {
+          throw new BadDataException(
+            `OAuth failed: unauthorized_client. ` +
+            `The service account '${config.clientId}' is not authorized to impersonate users. ` +
+            `Please enable domain-wide delegation and authorize the client ID in your admin console.`
+          );
+        }
+
+        throw new BadDataException(
+          `Failed to authenticate with OAuth provider: ${response.status}. Error: ${errorText}`
+        );
+      }
+
+      const tokenData: OAuthTokenResponse = (await response.json()) as OAuthTokenResponse;
+
+      if (!tokenData.access_token) {
+        throw new BadDataException("OAuth response did not contain an access token");
+      }
+
+      // Cache the token
+      this.cacheToken(config, tokenData);
+
+      logger.debug("Successfully obtained and cached OAuth token via JWT Bearer");
+
+      return tokenData.access_token;
+    } catch (error) {
+      if (error instanceof BadDataException) {
+        throw error;
+      }
+
+      logger.error("Error fetching OAuth token via JWT Bearer:");
+      logger.error(error);
+
+      // Handle JWT signing errors
+      if (error instanceof Error && error.message.includes("PEM")) {
+        throw new BadDataException(
+          `Invalid private key format. Make sure you copied the entire private key, ` +
+          `including the '-----BEGIN PRIVATE KEY-----' and '-----END PRIVATE KEY-----' markers. ` +
+          `Error: ${error.message}`
+        );
+      }
+
+      throw new BadDataException(
+        `Failed to authenticate with OAuth provider: ${error instanceof Error ? error.message : "Unknown error"}. ` +
+        `Please verify your credentials and OAuth provider settings.`
+      );
+    }
+  }
+
+  /**
+   * Fetch token using OAuth 2.0 client credentials flow (RFC 6749).
+   * Used by Microsoft 365, Azure AD, and most OAuth 2.0 providers.
+   */
+  private static async fetchClientCredentialsToken(config: SMTPOAuthConfig): Promise<string> {
     const params = new URLSearchParams();
     params.append("client_id", config.clientId);
     params.append("client_secret", config.clientSecret);
@@ -80,7 +220,7 @@ export default class SMTPOAuthService {
     params.append("grant_type", "client_credentials");
 
     try {
-      logger.debug(`Fetching new OAuth token from ${config.tokenUrl.toString()}`);
+      logger.debug(`Fetching OAuth token from ${config.tokenUrl.toString()} using Client Credentials`);
 
       const response: Response = await fetch(config.tokenUrl.toString(), {
         method: "POST",
@@ -96,7 +236,9 @@ export default class SMTPOAuthService {
           `Failed to fetch OAuth token: ${response.status} - ${errorText}`,
         );
         throw new BadDataException(
-          `Failed to authenticate with OAuth provider: ${response.status}. Please check your OAuth credentials (Client ID, Client Secret, Token URL, and Scope). Error: ${errorText}`,
+          `Failed to authenticate with OAuth provider: ${response.status}. ` +
+          `Please check your OAuth credentials (Client ID, Client Secret, Token URL, and Scope). ` +
+          `Error: ${errorText}`,
         );
       }
 
@@ -110,18 +252,9 @@ export default class SMTPOAuthService {
       }
 
       // Cache the token
-      const cacheKey = `${config.tokenUrl.toString()}:${config.clientId}`;
-      const expiresAt: number =
-        Date.now() + (tokenData.expires_in - this.TOKEN_BUFFER_SECONDS) * 1000;
+      this.cacheToken(config, tokenData);
 
-      const cachedToken: CachedToken = {
-        accessToken: tokenData.access_token,
-        expiresAt,
-      };
-
-      LocalCache.setJSON(this.TOKEN_CACHE_NAMESPACE, cacheKey, cachedToken);
-
-      logger.debug("Successfully obtained and cached OAuth token");
+      logger.debug("Successfully obtained and cached OAuth token via Client Credentials");
 
       return tokenData.access_token;
     } catch (error) {
@@ -129,13 +262,30 @@ export default class SMTPOAuthService {
         throw error;
       }
 
-      logger.error("Error fetching OAuth token:");
+      logger.error("Error fetching OAuth token via Client Credentials:");
       logger.error(error);
 
       throw new BadDataException(
-        `Failed to authenticate with OAuth provider: ${error instanceof Error ? error.message : "Unknown error"}. Please check your OAuth credentials and network connectivity.`,
+        `Failed to authenticate with OAuth provider: ${error instanceof Error ? error.message : "Unknown error"}. ` +
+        `Please check your OAuth credentials and network connectivity.`,
       );
     }
+  }
+
+  /**
+   * Cache the token for future use.
+   */
+  private static cacheToken(config: SMTPOAuthConfig, tokenData: OAuthTokenResponse): void {
+    const cacheKey = `${config.tokenUrl.toString()}:${config.clientId}:${config.username || ""}`;
+    const expiresAt: number =
+      Date.now() + (tokenData.expires_in - this.TOKEN_BUFFER_SECONDS) * 1000;
+
+    const cachedToken: CachedToken = {
+      accessToken: tokenData.access_token,
+      expiresAt,
+    };
+
+    LocalCache.setJSON(this.TOKEN_CACHE_NAMESPACE, cacheKey, cachedToken);
   }
 
   /**
@@ -178,4 +328,9 @@ export default class SMTPOAuthService {
    * Default scope for Google Workspace SMTP.
    */
   public static readonly GOOGLE_SMTP_SCOPE = "https://mail.google.com/";
+
+  /**
+   * Google OAuth token URL.
+   */
+  public static readonly GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 }

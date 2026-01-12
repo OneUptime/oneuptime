@@ -10,7 +10,10 @@ This guide covers how to configure OAuth 2.0 authentication for Microsoft 365 an
 
 ## OAuth 2.0 Authentication
 
-OAuth 2.0 provides a more secure way to authenticate with email servers, especially for enterprise environments that have disabled basic authentication. OneUptime uses the **client credentials flow** which is ideal for server-to-server communication without user interaction.
+OAuth 2.0 provides a more secure way to authenticate with email servers, especially for enterprise environments that have disabled basic authentication. OneUptime supports two OAuth grant types:
+
+- **Client Credentials** - Used by Microsoft 365 and most OAuth providers
+- **JWT Bearer** - Used by Google Workspace service accounts
 
 ### Required Fields for OAuth
 
@@ -22,8 +25,9 @@ When configuring SMTP with OAuth authentication in OneUptime, you'll need:
 | **Port** | SMTP port (typically 587 for STARTTLS or 465 for implicit TLS) |
 | **Username** | The email address to send from |
 | **Authentication Type** | Select "OAuth" |
-| **Client ID** | Application/Client ID from your OAuth provider |
-| **Client Secret** | Client secret from your OAuth provider |
+| **OAuth Provider Type** | Select "Client Credentials" for Microsoft 365, or "JWT Bearer" for Google Workspace |
+| **Client ID** | Application/Client ID from your OAuth provider (for Google: service account email) |
+| **Client Secret** | Client secret from your OAuth provider (for Google: private key) |
 | **Token URL** | OAuth token endpoint URL |
 | **Scope** | Required OAuth scope(s) for SMTP access |
 
@@ -110,6 +114,7 @@ In OneUptime, create or edit an SMTP configuration with these settings:
 | Port | `587` |
 | Username | The email address you granted permissions to (e.g., `sender@yourdomain.com`) |
 | Authentication Type | `OAuth` |
+| OAuth Provider Type | `Client Credentials` |
 | Client ID | Your Application (client) ID from Step 1 |
 | Client Secret | The secret value from Step 2 |
 | Token URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
@@ -189,14 +194,17 @@ In OneUptime, create or edit an SMTP configuration with these settings:
 |-------|-------|
 | Hostname | `smtp.gmail.com` |
 | Port | `587` |
-| Username | The Google Workspace email address to send from (e.g., `notifications@yourdomain.com`) |
+| Username | The Google Workspace email address to send from (e.g., `notifications@yourdomain.com`). This user will be impersonated by the service account. |
 | Authentication Type | `OAuth` |
-| Client ID | The `client_id` from your service account JSON |
-| Client Secret | The `private_key` from your service account JSON |
+| OAuth Provider Type | `JWT Bearer` |
+| Client ID | The `client_email` from your service account JSON (e.g., `your-service@your-project.iam.gserviceaccount.com`) |
+| Client Secret | The `private_key` from your service account JSON (the entire key including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`) |
 | Token URL | `https://oauth2.googleapis.com/token` |
 | Scope | `https://mail.google.com/` |
 | From Email | Same as Username |
 | Secure (TLS) | Enabled |
+
+**Important:** For Google (JWT Bearer), the Client ID is the **service account email** (`client_email`), NOT the numerical `client_id`. The service account will impersonate the user specified in the Username field to send emails.
 
 ---
 
