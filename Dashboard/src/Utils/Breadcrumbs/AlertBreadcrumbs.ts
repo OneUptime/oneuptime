@@ -77,6 +77,42 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Alerts",
       "Description",
     ]),
+
+    // Alert Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_STATE, [
+      "Project",
+      "Alerts",
+      "Settings",
+      "Alert State",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_SEVERITY, [
+      "Project",
+      "Alerts",
+      "Settings",
+      "Alert Severity",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES, [
+      "Project",
+      "Alerts",
+      "Settings",
+      "Note Templates",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Alerts",
+        "Settings",
+        "Note Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS, [
+      "Project",
+      "Alerts",
+      "Settings",
+      "Custom Fields",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

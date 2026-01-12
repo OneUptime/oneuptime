@@ -99,6 +99,64 @@ export function getScheduleMaintenanceBreadcrumbs(
         "Description",
       ],
     ),
+
+    // Scheduled Maintenance Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE,
+      [
+        "Project",
+        "Scheduled Maintenance",
+        "Settings",
+        "State",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES,
+      [
+        "Project",
+        "Scheduled Maintenance",
+        "Settings",
+        "Templates",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Scheduled Maintenance",
+        "Settings",
+        "Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES,
+      [
+        "Project",
+        "Scheduled Maintenance",
+        "Settings",
+        "Note Templates",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Scheduled Maintenance",
+        "Settings",
+        "Note Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS,
+      [
+        "Project",
+        "Scheduled Maintenance",
+        "Settings",
+        "Custom Fields",
+      ],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

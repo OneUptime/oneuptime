@@ -74,6 +74,65 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    {
+      title: "Settings",
+      items: [
+        {
+          link: {
+            title: "Incident State",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_STATE] as Route,
+            ),
+          },
+          icon: IconProp.ArrowCircleRight,
+        },
+        {
+          link: {
+            title: "Incident Severity",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_SEVERITY] as Route,
+            ),
+          },
+          icon: IconProp.Alert,
+        },
+        {
+          link: {
+            title: "Incident Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
+            ),
+          },
+          icon: IconProp.Template,
+        },
+        {
+          link: {
+            title: "Note Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route,
+            ),
+          },
+          icon: IconProp.Pencil,
+        },
+        {
+          link: {
+            title: "Postmortem Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES] as Route,
+            ),
+          },
+          icon: IconProp.Book,
+        },
+        {
+          link: {
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
   ];
 
   return <SideMenu sections={sections} />;

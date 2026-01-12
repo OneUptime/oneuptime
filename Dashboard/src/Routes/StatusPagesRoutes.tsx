@@ -203,6 +203,37 @@ const StatusPageViewNotificationLogs: LazyExoticComponent<
   return import("../Pages/StatusPages/View/NotificationLogs");
 });
 
+// Settings Pages
+const StatusPagesSettingsAnnouncementTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/Settings/StatusPageAnnouncementTemplates");
+});
+
+const StatusPagesSettingsAnnouncementTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/Settings/StatusPageAnnouncementTemplateView");
+});
+
+const StatusPagesSettingsSubscriberTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/Settings/SubscriberNotificationTemplates");
+});
+
+const StatusPagesSettingsSubscriberTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/Settings/SubscriberNotificationTemplateView");
+});
+
+const StatusPagesSettingsCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/Settings/StatusPageCustomFields");
+});
+
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -236,6 +267,106 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               <StatusPageAnnouncements
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Settings Routes */}
+        <PageRoute
+          path={
+            StatusPagesRoutePath[
+              PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPagesSettingsAnnouncementTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[
+              PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES_VIEW
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPagesSettingsAnnouncementTemplatesView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[
+              PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPagesSettingsSubscriberTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[
+              PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPagesSettingsSubscriberTemplatesView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap
+                      .STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[
+              PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPagesSettingsCustomFields
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS] as Route
+                }
               />
             </Suspense>
           }

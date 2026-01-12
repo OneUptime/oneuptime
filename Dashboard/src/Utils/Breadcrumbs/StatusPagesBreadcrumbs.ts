@@ -169,6 +169,55 @@ export function getStatusPagesBreadcrumbs(
       "View Status Page",
       "Delete Status Page",
     ]),
+
+    // Status Pages Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES,
+      [
+        "Project",
+        "Status Pages",
+        "Settings",
+        "Announcement Templates",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Status Pages",
+        "Settings",
+        "Announcement Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES,
+      [
+        "Project",
+        "Status Pages",
+        "Settings",
+        "Subscriber Notification Templates",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Status Pages",
+        "Settings",
+        "Subscriber Notification Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS,
+      [
+        "Project",
+        "Status Pages",
+        "Settings",
+        "Custom Fields",
+      ],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

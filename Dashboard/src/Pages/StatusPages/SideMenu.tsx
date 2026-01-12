@@ -37,6 +37,42 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    {
+      title: "Settings",
+      items: [
+        {
+          link: {
+            title: "Announcement Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Announcement,
+        },
+        {
+          link: {
+            title: "Subscriber Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Email,
+        },
+        {
+          link: {
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
   ];
 
   return <SideMenu sections={sections} />;

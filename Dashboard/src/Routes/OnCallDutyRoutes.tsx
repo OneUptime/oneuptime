@@ -140,6 +140,13 @@ const OnCallDutyUserTimeLogs: LazyExoticComponent<
   return import("../Pages/OnCallDuty/OnCallDutyUserTimeLogs");
 });
 
+// Settings Pages
+const OnCallDutySettingsCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/Settings/OnCallDutyPolicyCustomFields");
+});
+
 const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -279,6 +286,24 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ON_CALLDUTY_USER_TIME_LOGS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Settings Routes */}
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS] ||
+            ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutySettingsCustomFields
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS] as Route
                 }
               />
             </Suspense>

@@ -106,6 +106,74 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Incident",
       "Settings",
     ]),
+
+    // Incident Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_STATE, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Incident State",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_SEVERITY, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Incident Severity",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_TEMPLATES, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Incident Templates",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Incident Templates",
+      "View Template",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Note Templates",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Incidents",
+        "Settings",
+        "Note Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES,
+      [
+        "Project",
+        "Incidents",
+        "Settings",
+        "Postmortem Templates",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW,
+      [
+        "Project",
+        "Incidents",
+        "Settings",
+        "Postmortem Templates",
+        "View Template",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Custom Fields",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

@@ -131,6 +131,25 @@ const MonitorCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Monitor/Create");
   });
 
+// Settings Pages
+const MonitorSettingsStatus: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/Settings/MonitorStatus");
+});
+
+const MonitorSettingsCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/Settings/MonitorCustomFields");
+});
+
+const MonitorSettingsSecrets: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/Settings/MonitorSecrets");
+});
+
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -250,6 +269,45 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               <MonitorCreate
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_CREATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Settings Routes */}
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorSettingsStatus
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITORS_SETTINGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorSettingsCustomFields
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_SECRETS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorSettingsSecrets
+                {...props}
+                pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_SECRETS] as Route}
               />
             </Suspense>
           }

@@ -101,6 +101,37 @@ const AlertDescription: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Alerts/View/Description");
   });
 
+// Settings Pages
+const AlertSettingsState: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/Settings/AlertState");
+});
+
+const AlertSettingsSeverity: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/Settings/AlertSeverity");
+});
+
+const AlertSettingsNoteTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/Settings/AlertNoteTemplates");
+});
+
+const AlertSettingsNoteTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/Settings/AlertNoteTemplateDetail");
+});
+
+const AlertSettingsCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/Settings/AlertCustomFields");
+});
+
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
@@ -161,6 +192,75 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                   RouteMap[
                     PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                   ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Settings Routes */}
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_STATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertSettingsState
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_STATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_SEVERITY] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertSettingsSeverity
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_SEVERITY] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertSettingsNoteTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <AlertSettingsNoteTemplatesView
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertSettingsCustomFields
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] as Route
                 }
               />
             </Suspense>

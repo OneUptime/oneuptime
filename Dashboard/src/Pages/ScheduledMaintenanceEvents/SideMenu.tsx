@@ -77,6 +77,55 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    {
+      title: "Settings",
+      items: [
+        {
+          link: {
+            title: "Event State",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE
+              ] as Route,
+            ),
+          },
+          icon: IconProp.ArrowCircleRight,
+        },
+        {
+          link: {
+            title: "Event Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Template,
+        },
+        {
+          link: {
+            title: "Note Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Pencil,
+        },
+        {
+          link: {
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS
+              ] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
   ];
 
   return <SideMenu sections={sections} />;

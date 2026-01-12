@@ -146,6 +146,38 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    {
+      title: "Settings",
+      items: [
+        {
+          link: {
+            title: "Monitor Status",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS] as Route,
+            ),
+          },
+          icon: IconProp.AltGlobe,
+        },
+        {
+          link: {
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
+        {
+          link: {
+            title: "Secrets",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_SETTINGS_SECRETS] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+      ],
+    },
   );
 
   return <SideMenu sections={sections} />;

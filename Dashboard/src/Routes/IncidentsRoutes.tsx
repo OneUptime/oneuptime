@@ -128,6 +128,61 @@ const IncidentCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Incidents/Create");
   });
 
+// Settings Pages
+const IncidentSettingsState: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentState");
+});
+
+const IncidentSettingsSeverity: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentSeverity");
+});
+
+const IncidentSettingsTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentTemplates");
+});
+
+const IncidentSettingsTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentTemplatesView");
+});
+
+const IncidentSettingsNoteTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentNoteTemplates");
+});
+
+const IncidentSettingsNoteTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentNoteTemplateView");
+});
+
+const IncidentSettingsPostmortemTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentPostmortemTemplates");
+});
+
+const IncidentSettingsPostmortemTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentPostmortemTemplateView");
+});
+
+const IncidentSettingsCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentCustomFields");
+});
+
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
@@ -213,6 +268,154 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               <IncidentCreate
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Settings Routes */}
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_STATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsState
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_STATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SEVERITY] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsSeverity
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENTS_SETTINGS_SEVERITY] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_TEMPLATES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsTemplatesView
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsNoteTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW] ||
+            ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsNoteTemplatesView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsPostmortemTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsPostmortemTemplatesView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsCustomFields
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS] as Route
+                }
               />
             </Suspense>
           }

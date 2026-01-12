@@ -102,6 +102,26 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "View Monitor",
       "Delete Monitor",
     ]),
+
+    // Monitor Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Monitor Status",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Custom Fields",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_SECRETS, [
+      "Project",
+      "Monitors",
+      "Settings",
+      "Secrets",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

@@ -74,6 +74,47 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    {
+      title: "Settings",
+      items: [
+        {
+          link: {
+            title: "Alert State",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_STATE] as Route,
+            ),
+          },
+          icon: IconProp.ArrowCircleRight,
+        },
+        {
+          link: {
+            title: "Alert Severity",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_SEVERITY] as Route,
+            ),
+          },
+          icon: IconProp.Alert,
+        },
+        {
+          link: {
+            title: "Note Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] as Route,
+            ),
+          },
+          icon: IconProp.Pencil,
+        },
+        {
+          link: {
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
   ];
 
   return <SideMenu sections={sections} />;

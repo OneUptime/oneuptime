@@ -114,6 +114,43 @@ const ScheduledMaintenanceEventCreate: LazyExoticComponent<
   return import("../Pages/ScheduledMaintenanceEvents/Create");
 });
 
+// Settings Pages
+const ScheduledMaintenanceSettingsState: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceState");
+});
+
+const ScheduledMaintenanceSettingsTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates");
+});
+
+const ScheduledMaintenanceSettingsTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplateView");
+});
+
+const ScheduledMaintenanceSettingsNoteTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplates");
+});
+
+const ScheduledMaintenanceSettingsNoteTemplatesView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNoteTemplateView");
+});
+
+const ScheduledMaintenanceSettingsCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCusomFields");
+});
+
 const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -223,6 +260,128 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Settings Routes */}
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceSettingsState
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceSettingsTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES_VIEW
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceSettingsTemplatesView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceSettingsNoteTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES_VIEW
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceSettingsNoteTemplatesView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap
+                      .SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceSettingsCustomFields
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS
+                  ] as Route
                 }
               />
             </Suspense>
