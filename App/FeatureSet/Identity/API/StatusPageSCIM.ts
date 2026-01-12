@@ -20,6 +20,8 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   formatUserForSCIM,
   generateServiceProviderConfig,
+  generateSchemasResponse,
+  generateResourceTypesResponse,
 } from "../Utils/SCIMUtils";
 import Text from "Common/Types/Text";
 import HashedString from "Common/Types/HashedString";
@@ -47,6 +49,66 @@ router.get(
       );
 
       return Response.sendJsonObjectResponse(req, res, serviceProviderConfig);
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+// SCIM Schemas endpoint - GET /status-page-scim/v2/Schemas
+router.get(
+  "/status-page-scim/v2/:statusPageScimId/Schemas",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      logger.debug(
+        `Status Page SCIM Schemas - scimId: ${req.params["statusPageScimId"]!}`,
+      );
+
+      const schemasResponse: JSONObject = generateSchemasResponse(
+        req,
+        req.params["statusPageScimId"]!,
+        "status-page",
+      );
+
+      logger.debug("Status Page SCIM Schemas response prepared successfully");
+      return Response.sendJsonObjectResponse(req, res, schemasResponse);
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+// SCIM ResourceTypes endpoint - GET /status-page-scim/v2/ResourceTypes
+router.get(
+  "/status-page-scim/v2/:statusPageScimId/ResourceTypes",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      logger.debug(
+        `Status Page SCIM ResourceTypes - scimId: ${req.params["statusPageScimId"]!}`,
+      );
+
+      const resourceTypesResponse: JSONObject = generateResourceTypesResponse(
+        req,
+        req.params["statusPageScimId"]!,
+        "status-page",
+      );
+
+      logger.debug(
+        "Status Page SCIM ResourceTypes response prepared successfully",
+      );
+      return Response.sendJsonObjectResponse(req, res, resourceTypesResponse);
     } catch (err) {
       logger.error(err);
       return next(err);
@@ -154,10 +216,10 @@ router.get(
         },
       );
 
-      // Paginate the results
+      // Paginate the results (startIndex is 1-based in SCIM)
       const paginatedUsers: Array<JSONObject> = users.slice(
-        (startIndex - 1) * count,
-        startIndex * count,
+        startIndex - 1,
+        startIndex - 1 + count,
       );
 
       logger.debug(

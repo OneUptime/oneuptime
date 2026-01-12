@@ -4,6 +4,23 @@ import { JSONObject } from "Common/Types/JSON";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
+import Exception from "Common/Types/Exception/Exception";
+
+/**
+ * SCIM Error types as defined in RFC 7644
+ */
+export enum SCIMErrorType {
+  InvalidFilter = "invalidFilter",
+  TooMany = "tooMany",
+  Uniqueness = "uniqueness",
+  Mutability = "mutability",
+  InvalidSyntax = "invalidSyntax",
+  InvalidPath = "invalidPath",
+  NoTarget = "noTarget",
+  InvalidValue = "invalidValue",
+  InvalidVers = "invalidVers",
+  Sensitive = "sensitive",
+}
 
 /**
  * Shared SCIM utility functions for both Project SCIM and Status Page SCIM
@@ -172,9 +189,9 @@ export const generateServiceProviderConfig: (
       supported: true,
     },
     bulk: {
-      supported: true,
-      maxOperations: 1000,
-      maxPayloadSize: 1048576,
+      supported: false,
+      maxOperations: 0,
+      maxPayloadSize: 0,
     },
     filter: {
       supported: true,
@@ -262,4 +279,344 @@ export const parseSCIMQueryParams: (req: ExpressRequest) => {
   );
 
   return { startIndex, count };
+};
+
+/**
+ * Generate SCIM-compliant error response as per RFC 7644
+ */
+export const generateSCIMErrorResponse: (
+  status: number,
+  detail: string,
+  scimType?: SCIMErrorType,
+) => JSONObject = (
+  status: number,
+  detail: string,
+  scimType?: SCIMErrorType,
+): JSONObject => {
+  const errorResponse: JSONObject = {
+    schemas: ["urn:ietf:params:scim:api:messages:2.0:Error"],
+    status: status.toString(),
+    detail: detail,
+  };
+
+  if (scimType) {
+    errorResponse["scimType"] = scimType;
+  }
+
+  return errorResponse;
+};
+
+/**
+ * Generate SCIM Schemas endpoint response
+ */
+export const generateSchemasResponse: (
+  req: ExpressRequest,
+  scimId: string,
+  scimType: "project" | "status-page",
+) => JSONObject = (
+  req: ExpressRequest,
+  scimId: string,
+  scimType: "project" | "status-page",
+): JSONObject => {
+  const baseUrl: string = `${req.protocol}://${req.get("host")}`;
+  const endpointPath: string =
+    scimType === "project"
+      ? `/scim/v2/${scimId}`
+      : `/status-page-scim/v2/${scimId}`;
+
+  const schemas: JSONObject[] = [
+    {
+      id: "urn:ietf:params:scim:schemas:core:2.0:User",
+      name: "User",
+      description: "User Schema",
+      attributes: [
+        {
+          name: "userName",
+          type: "string",
+          multiValued: false,
+          description: "Unique identifier for the User, typically email address",
+          required: true,
+          caseExact: false,
+          mutability: "readWrite",
+          returned: "default",
+          uniqueness: "server",
+        },
+        {
+          name: "name",
+          type: "complex",
+          multiValued: false,
+          description: "The components of the user's name",
+          required: false,
+          subAttributes: [
+            {
+              name: "formatted",
+              type: "string",
+              multiValued: false,
+              description: "The full name",
+              required: false,
+              mutability: "readWrite",
+              returned: "default",
+            },
+            {
+              name: "familyName",
+              type: "string",
+              multiValued: false,
+              description: "The family name or last name",
+              required: false,
+              mutability: "readWrite",
+              returned: "default",
+            },
+            {
+              name: "givenName",
+              type: "string",
+              multiValued: false,
+              description: "The given name or first name",
+              required: false,
+              mutability: "readWrite",
+              returned: "default",
+            },
+          ],
+          mutability: "readWrite",
+          returned: "default",
+        },
+        {
+          name: "displayName",
+          type: "string",
+          multiValued: false,
+          description: "The name of the User suitable for display",
+          required: false,
+          mutability: "readWrite",
+          returned: "default",
+        },
+        {
+          name: "emails",
+          type: "complex",
+          multiValued: true,
+          description: "Email addresses for the user",
+          required: false,
+          subAttributes: [
+            {
+              name: "value",
+              type: "string",
+              multiValued: false,
+              description: "Email address value",
+              required: false,
+              mutability: "readWrite",
+              returned: "default",
+            },
+            {
+              name: "type",
+              type: "string",
+              multiValued: false,
+              description: "Type of email (work, home, other)",
+              required: false,
+              canonicalValues: ["work", "home", "other"],
+              mutability: "readWrite",
+              returned: "default",
+            },
+            {
+              name: "primary",
+              type: "boolean",
+              multiValued: false,
+              description: "Indicates if this is the primary email",
+              required: false,
+              mutability: "readWrite",
+              returned: "default",
+            },
+          ],
+          mutability: "readWrite",
+          returned: "default",
+        },
+        {
+          name: "active",
+          type: "boolean",
+          multiValued: false,
+          description: "Indicates whether the user is active",
+          required: false,
+          mutability: "readWrite",
+          returned: "default",
+        },
+      ],
+      meta: {
+        resourceType: "Schema",
+        location: `${baseUrl}${endpointPath}/Schemas/urn:ietf:params:scim:schemas:core:2.0:User`,
+      },
+    },
+  ];
+
+  // Add Group schema only for project SCIM
+  if (scimType === "project") {
+    schemas.push({
+      id: "urn:ietf:params:scim:schemas:core:2.0:Group",
+      name: "Group",
+      description: "Group Schema (Teams in OneUptime)",
+      attributes: [
+        {
+          name: "displayName",
+          type: "string",
+          multiValued: false,
+          description: "Human-readable name for the Group/Team",
+          required: true,
+          mutability: "readWrite",
+          returned: "default",
+          uniqueness: "server",
+        },
+        {
+          name: "members",
+          type: "complex",
+          multiValued: true,
+          description: "A list of members of the Group",
+          required: false,
+          subAttributes: [
+            {
+              name: "value",
+              type: "string",
+              multiValued: false,
+              description: "Identifier of the member",
+              required: false,
+              mutability: "immutable",
+              returned: "default",
+            },
+            {
+              name: "$ref",
+              type: "reference",
+              referenceTypes: ["User"],
+              multiValued: false,
+              description: "URI of the member resource",
+              required: false,
+              mutability: "immutable",
+              returned: "default",
+            },
+            {
+              name: "display",
+              type: "string",
+              multiValued: false,
+              description: "Display name of the member",
+              required: false,
+              mutability: "immutable",
+              returned: "default",
+            },
+          ],
+          mutability: "readWrite",
+          returned: "default",
+        },
+      ],
+      meta: {
+        resourceType: "Schema",
+        location: `${baseUrl}${endpointPath}/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group`,
+      },
+    });
+  }
+
+  return {
+    schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+    totalResults: schemas.length,
+    itemsPerPage: schemas.length,
+    startIndex: 1,
+    Resources: schemas,
+  };
+};
+
+/**
+ * Generate SCIM ResourceTypes endpoint response
+ */
+export const generateResourceTypesResponse: (
+  req: ExpressRequest,
+  scimId: string,
+  scimType: "project" | "status-page",
+) => JSONObject = (
+  req: ExpressRequest,
+  scimId: string,
+  scimType: "project" | "status-page",
+): JSONObject => {
+  const baseUrl: string = `${req.protocol}://${req.get("host")}`;
+  const endpointPath: string =
+    scimType === "project"
+      ? `/scim/v2/${scimId}`
+      : `/status-page-scim/v2/${scimId}`;
+
+  const resourceTypes: JSONObject[] = [
+    {
+      schemas: ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+      id: "User",
+      name: "User",
+      endpoint: "/Users",
+      description: "User Account",
+      schema: "urn:ietf:params:scim:schemas:core:2.0:User",
+      schemaExtensions: [],
+      meta: {
+        resourceType: "ResourceType",
+        location: `${baseUrl}${endpointPath}/ResourceTypes/User`,
+      },
+    },
+  ];
+
+  // Add Group resource type only for project SCIM
+  if (scimType === "project") {
+    resourceTypes.push({
+      schemas: ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+      id: "Group",
+      name: "Group",
+      endpoint: "/Groups",
+      description: "Group (Team in OneUptime)",
+      schema: "urn:ietf:params:scim:schemas:core:2.0:Group",
+      schemaExtensions: [],
+      meta: {
+        resourceType: "ResourceType",
+        location: `${baseUrl}${endpointPath}/ResourceTypes/Group`,
+      },
+    });
+  }
+
+  return {
+    schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+    totalResults: resourceTypes.length,
+    itemsPerPage: resourceTypes.length,
+    startIndex: 1,
+    Resources: resourceTypes,
+  };
+};
+
+/**
+ * Map HTTP status codes to SCIM error types
+ */
+export const getScimErrorTypeFromException: (
+  err: Exception,
+) => SCIMErrorType | undefined = (err: Exception): SCIMErrorType | undefined => {
+  const errorName: string = err.constructor.name;
+
+  switch (errorName) {
+    case "BadRequestException":
+      return SCIMErrorType.InvalidValue;
+    case "NotFoundException":
+      return SCIMErrorType.NoTarget;
+    case "NotAuthorizedException":
+      return undefined; // No specific SCIM type for auth errors
+    default:
+      return undefined;
+  }
+};
+
+/**
+ * Get HTTP status code from exception
+ */
+export const getHttpStatusFromException: (err: Exception) => number = (
+  err: Exception,
+): number => {
+  const errorName: string = err.constructor.name;
+
+  switch (errorName) {
+    case "BadRequestException":
+      return 400;
+    case "NotAuthorizedException":
+      return 401;
+    case "PaymentRequiredException":
+      return 402;
+    case "NotFoundException":
+      return 404;
+    case "NotImplementedException":
+      return 501;
+    default:
+      return 500;
+  }
 };

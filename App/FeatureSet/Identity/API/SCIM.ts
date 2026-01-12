@@ -31,6 +31,8 @@ import {
   generateServiceProviderConfig,
   generateUsersListResponse,
   parseSCIMQueryParams,
+  generateSchemasResponse,
+  generateResourceTypesResponse,
 } from "../Utils/SCIMUtils";
 import {
   AppApiClientUrl,
@@ -212,6 +214,64 @@ router.get(
   },
 );
 
+// SCIM Schemas endpoint - GET /scim/v2/Schemas
+router.get(
+  "/scim/v2/:projectScimId/Schemas",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      logger.debug(
+        `Project SCIM Schemas - scimId: ${req.params["projectScimId"]!}`,
+      );
+
+      const schemasResponse: JSONObject = generateSchemasResponse(
+        req,
+        req.params["projectScimId"]!,
+        "project",
+      );
+
+      logger.debug("Project SCIM Schemas response prepared successfully");
+      return Response.sendJsonObjectResponse(req, res, schemasResponse);
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+// SCIM ResourceTypes endpoint - GET /scim/v2/ResourceTypes
+router.get(
+  "/scim/v2/:projectScimId/ResourceTypes",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      logger.debug(
+        `Project SCIM ResourceTypes - scimId: ${req.params["projectScimId"]!}`,
+      );
+
+      const resourceTypesResponse: JSONObject = generateResourceTypesResponse(
+        req,
+        req.params["projectScimId"]!,
+        "project",
+      );
+
+      logger.debug("Project SCIM ResourceTypes response prepared successfully");
+      return Response.sendJsonObjectResponse(req, res, resourceTypesResponse);
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
 // Basic Users endpoint - GET /scim/v2/Users
 router.get(
   "/scim/v2/:projectScimId/Users",
@@ -378,10 +438,10 @@ router.get(
         },
       );
 
-      // now paginate the results
+      // now paginate the results (startIndex is 1-based in SCIM)
       const paginatedUsers: Array<JSONObject> = users.slice(
-        (startIndex - 1) * count,
-        startIndex * count,
+        startIndex - 1,
+        startIndex - 1 + count,
       );
 
       logger.debug(`SCIM Users response prepared with ${users.length} users`);
@@ -716,10 +776,10 @@ router.get(
 
       const groups: Array<JSONObject> = await Promise.all(groupsPromises);
 
-      // Paginate results
+      // Paginate results (startIndex is 1-based in SCIM)
       const paginatedGroups: Array<JSONObject> = groups.slice(
-        (startIndex - 1) * count,
-        startIndex * count,
+        startIndex - 1,
+        startIndex - 1 + count,
       );
 
       logger.debug(
