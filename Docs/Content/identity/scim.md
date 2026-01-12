@@ -95,7 +95,7 @@ Status Page SCIM allows identity providers to manage subscribers to private stat
 
 1. **Add OneUptime from Azure AD Gallery**
    - In Azure AD, go to **Enterprise Applications** > **New Application**
-   - Search for "OneUptime" or add a **Non-gallery application**
+   - Add a **Non-gallery application**
 
 2. **Configure SCIM Settings**
    - In the OneUptime application, go to **Provisioning**

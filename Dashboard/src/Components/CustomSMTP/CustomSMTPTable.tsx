@@ -2,6 +2,8 @@ import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
+import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -9,11 +11,13 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, {
@@ -86,6 +90,13 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             id: "authentication",
           },
           {
+            title: "OAuth Settings",
+            id: "oauth-info",
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
             title: "Email",
             id: "email-info",
           },
@@ -129,6 +140,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Hostname,
             required: true,
             placeholder: "smtp.server.com",
+            description:
+              "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)",
             disableSpellCheck: true,
           },
           {
@@ -140,6 +153,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Port,
             required: true,
             placeholder: "587",
+            description:
+              "SMTP port. Common ports: 587 (STARTTLS), 465 (SSL/TLS)",
           },
           {
             field: {
@@ -148,17 +163,35 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             title: "Use SSL / TLS",
             stepId: "server-info",
             fieldType: FormFieldSchemaType.Toggle,
-            description: "Make email communication secure?",
+            description:
+              "Enable secure email communication. Recommended for most providers.",
+          },
+          {
+            field: {
+              authType: true,
+            },
+            title: "Authentication Type",
+            stepId: "authentication",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              SMTPAuthenticationType,
+            ),
+            required: true,
+            defaultValue: SMTPAuthenticationType.UsernamePassword,
+            description:
+              "Select the authentication method. Use OAuth for providers like Microsoft 365, Google Workspace, etc.",
           },
           {
             field: {
               username: true,
             },
-            title: "Username",
+            title: "Username / Email",
             stepId: "authentication",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "emailuser",
+            placeholder: "emailuser@company.com",
+            description:
+              "For OAuth, this should be the email address you want to send from.",
             disableSpellCheck: true,
           },
           {
@@ -170,7 +203,97 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.EncryptedText,
             required: false,
             placeholder: "Password",
+            description:
+              "Required for Username and Password authentication. Not used for OAuth.",
             disableSpellCheck: true,
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return (
+                values["authType"] ===
+                  SMTPAuthenticationType.UsernamePassword || !values["authType"]
+              );
+            },
+          },
+          {
+            field: {
+              oauthProviderType: true,
+            },
+            title: "OAuth Provider Type",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(OAuthProviderType),
+            required: true,
+            defaultValue: OAuthProviderType.ClientCredentials,
+            description:
+              "Select the OAuth grant type. Use 'Client Credentials' for Microsoft 365 and most providers. Use 'JWT Bearer' for Google Workspace service accounts.",
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
+            field: {
+              clientId: true,
+            },
+            title: "OAuth Client ID",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "12345678-1234-1234-1234-123456789012",
+            description:
+              "For Client Credentials: Application (Client) ID from your OAuth provider. For JWT Bearer (Google): Service account email (client_email from JSON key file).",
+            disableSpellCheck: true,
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
+            field: {
+              clientSecret: true,
+            },
+            title: "OAuth Client Secret",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.LongText,
+            required: true,
+            placeholder: "Client secret value",
+            description:
+              "For Client Credentials: Client secret from your OAuth application. For JWT Bearer (Google): The entire private_key from your service account JSON file (including BEGIN/END markers).",
+            disableSpellCheck: true,
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
+            field: {
+              tokenUrl: true,
+            },
+            title: "OAuth Token URL",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.URL,
+            required: true,
+            placeholder:
+              "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
+            description:
+              "The OAuth token endpoint URL. For Microsoft 365: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
+            disableSpellCheck: true,
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
+            field: {
+              scope: true,
+            },
+            title: "OAuth Scope",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "https://outlook.office365.com/.default",
+            description:
+              "The OAuth scope(s) required for SMTP access. For Microsoft 365: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+            disableSpellCheck: true,
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
           },
           {
             field: {
@@ -247,6 +370,14 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             },
             title: "Server Host",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              authType: true,
+            },
+            title: "Auth Type",
+            type: FieldType.Text,
+            noValueMessage: "Username/Password",
           },
         ]}
       />

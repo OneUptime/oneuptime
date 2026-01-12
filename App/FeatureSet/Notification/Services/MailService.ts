@@ -4,6 +4,7 @@ import {
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../Config";
+import SMTPOAuthService from "./SMTPOAuthService";
 import SendgridMail, { MailDataRequired } from "@sendgrid/mail";
 import Hostname from "Common/Types/API/Hostname";
 import OneUptimeDate from "Common/Types/Date";
@@ -12,6 +13,8 @@ import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
+import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import MailStatus from "Common/Types/Mail/MailStatus";
@@ -28,6 +31,7 @@ import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import fsp from "fs/promises";
 import Handlebars from "handlebars";
 import nodemailer, { Transporter } from "nodemailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
 
@@ -71,14 +75,23 @@ class TransporterPool {
   private static getPoolKey(emailServer: EmailServer): string {
     const { portNumber, mode } = this.resolveConnectionSettings(emailServer);
     const username: string = emailServer.username || "noauth";
+    const authType: string = emailServer.authType || "password";
 
-    return `${emailServer.host.toString()}:${portNumber}:${username}:${mode}`;
+    return `${emailServer.host.toString()}:${portNumber}:${username}:${mode}:${authType}`;
   }
 
-  public static getTransporter(
+  public static async getTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
-  ): Transporter {
+  ): Promise<Transporter> {
+    /*
+     * For OAuth, we need to create a new transporter each time to get fresh tokens
+     * The access token has a limited lifetime and needs to be refreshed
+     */
+    if (emailServer.authType === SMTPAuthenticationType.OAuth) {
+      return await this.createOAuthTransporter(emailServer, options);
+    }
+
     const key: string = this.getPoolKey(emailServer);
 
     if (!this.pools.has(key)) {
@@ -91,6 +104,72 @@ class TransporterPool {
     }
 
     return this.pools.get(key)!;
+  }
+
+  private static async createOAuthTransporter(
+    emailServer: EmailServer,
+    options: { timeout?: number | undefined },
+  ): Promise<Transporter> {
+    const { portNumber, wantsSecureConnection, secureConnection, requireTLS } =
+      this.resolveConnectionSettings(emailServer);
+
+    let tlsOptions: tls.ConnectionOptions | undefined = undefined;
+
+    if (!wantsSecureConnection) {
+      tlsOptions = {
+        rejectUnauthorized: false,
+      };
+    }
+
+    if (
+      !emailServer.clientId ||
+      !emailServer.clientSecret ||
+      !emailServer.tokenUrl ||
+      !emailServer.scope
+    ) {
+      throw new BadDataException(
+        "OAuth configuration is incomplete. Please provide Client ID, Client Secret, Token URL, and Scope.",
+      );
+    }
+
+    if (!emailServer.username) {
+      throw new BadDataException(
+        "Username (email address) is required for OAuth authentication.",
+      );
+    }
+
+    /*
+     * Get the access token using the generic OAuth service
+     * Provider type determines which grant flow to use (Client Credentials vs JWT Bearer)
+     */
+    const accessToken: string = await SMTPOAuthService.getAccessToken({
+      clientId: emailServer.clientId,
+      clientSecret: emailServer.clientSecret,
+      tokenUrl: emailServer.tokenUrl,
+      scope: emailServer.scope,
+      username: emailServer.username, // Required for JWT Bearer (user to impersonate)
+      providerType:
+        emailServer.oauthProviderType || OAuthProviderType.ClientCredentials,
+    });
+
+    logger.debug("Creating OAuth transporter for SMTP");
+    logger.debug(`OAuth token obtained for user: ${emailServer.username}`);
+
+    // Use nodemailer's built-in XOAUTH2 support
+    return nodemailer.createTransport({
+      host: emailServer.host.toString(),
+      port: portNumber,
+      secure: secureConnection,
+      requireTLS,
+      tls: tlsOptions,
+      authMethod: "XOAUTH2",
+      auth: {
+        type: "OAuth2",
+        user: emailServer.username,
+        accessToken: accessToken,
+      },
+      connectionTimeout: options.timeout || 60000,
+    } as nodemailer.TransportOptions);
   }
 
   private static createTransporter(
@@ -108,19 +187,29 @@ class TransporterPool {
       };
     }
 
+    // Determine auth configuration based on auth type
+    let auth: SMTPTransport.Options["auth"] | undefined = undefined;
+
+    const authType: SMTPAuthenticationType =
+      emailServer.authType || SMTPAuthenticationType.UsernamePassword;
+
+    if (authType === SMTPAuthenticationType.UsernamePassword) {
+      if (emailServer.username && emailServer.password) {
+        auth = {
+          user: emailServer.username,
+          pass: emailServer.password,
+        };
+      }
+    }
+    // For SMTPAuthenticationType.None, auth remains undefined
+
     return nodemailer.createTransport({
       host: emailServer.host.toString(),
       port: portNumber,
       secure: secureConnection,
       requireTLS,
       tls: tlsOptions,
-      auth:
-        emailServer.username && emailServer.password
-          ? {
-              user: emailServer.username,
-              pass: emailServer.password,
-            }
-          : undefined,
+      auth,
       connectionTimeout: options.timeout || 60000,
       pool: true, // Enable connection pooling
       maxConnections: this.MAX_CONCURRENT_CONNECTIONS,
@@ -314,13 +403,13 @@ export default class MailService {
     return subjectHandlebars(vars).toString();
   }
 
-  private static createMailer(
+  private static async createMailer(
     emailServer: EmailServer,
     options: {
       timeout?: number | undefined;
     },
-  ): Transporter {
-    return TransporterPool.getTransporter(emailServer, options);
+  ): Promise<Transporter> {
+    return await TransporterPool.getTransporter(emailServer, options);
   }
 
   private static async transportMail(
@@ -331,7 +420,7 @@ export default class MailService {
       timeout?: number | undefined;
     },
   ): Promise<void> {
-    const mailer: Transporter = this.createMailer(options.emailServer, {
+    const mailer: Transporter = await this.createMailer(options.emailServer, {
       timeout: options.timeout,
     });
 

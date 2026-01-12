@@ -86,6 +86,15 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Emails",
+    links: [
+      {
+        title: "SMTP",
+        url: "/docs/emails/smtp",
+      },
+    ],
+  },
+  {
     title: "Identity",
     links: [
       {

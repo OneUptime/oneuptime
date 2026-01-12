@@ -213,9 +213,12 @@ import { AddAIAgentIsDefault1766918848434 } from "./1766918848434-AddAIAgentIsDe
 import { MigrationName1766923324521 } from "./1766923324521-MigrationName";
 import { AddGitHubAppInstallationIdToProject1766958924188 } from "./1766958924188-AddGitHubAppInstallationIdToProject";
 import { MigrationName1767009661768 } from "./1767009661768-MigrationName";
+import { MigrationName1767896933148 } from "./1767896933148-MigrationName";
 import { RenameServiceCatalogToService1767966850199 } from "./1767966850199-RenameServiceCatalogToService";
 import { MigrationName1767979055522 } from "./1767979055522-MigrationName";
 import { MigrationName1767979448478 } from "./1767979448478-MigrationName";
+import { IncreaseClientSecretLength1768216593272 } from "./1768216593272-IncreaseClientSecretLength";
+import { AddOAuthProviderType1768217403078 } from "./1768217403078-AddOAuthProviderType";
 
 export default [
   InitialMigration,
@@ -436,4 +439,7 @@ export default [
   RenameServiceCatalogToService1767966850199,
   MigrationName1767979055522,
   MigrationName1767979448478,
+  MigrationName1767896933148,
+  IncreaseClientSecretLength1768216593272,
+  AddOAuthProviderType1768217403078,
 ];
