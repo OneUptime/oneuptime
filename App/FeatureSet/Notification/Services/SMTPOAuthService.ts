@@ -1,6 +1,6 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import logger from "Common/Server/Utils/Logger";
-import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import { JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
@@ -30,10 +30,10 @@ export interface SMTPOAuthConfig {
  * Generic service for fetching OAuth2 access tokens for SMTP authentication.
  *
  * Scalability Notes:
- * - Token caching is per-container (in-memory). Each container maintains its own cache.
- * - This is acceptable because OAuth tokens are valid for ~1 hour and the overhead of
- *   each container fetching its own token is minimal.
- * - Within each container, in-flight request deduplication prevents thundering herd.
+ * - Token caching uses Redis (GlobalCache) for cross-container sharing
+ * - All containers share the same token cache, reducing OAuth API calls
+ * - Tokens auto-expire in Redis based on their TTL
+ * - In-flight request deduplication prevents thundering herd within each container
  *
  * Supports multiple OAuth 2.0 grant types:
  *
@@ -58,7 +58,7 @@ export default class SMTPOAuthService {
   private static readonly MAX_IN_FLIGHT_REQUESTS: number = 100; // Prevent unbounded growth
 
   // Track in-flight token requests to prevent duplicate fetches (thundering herd prevention)
-  // This map is bounded and cleaned up properly to prevent memory leaks
+  // This is per-container but still valuable to prevent concurrent requests within same container
   private static inFlightRequests: Map<string, Promise<string>> = new Map();
 
   /**
@@ -73,7 +73,8 @@ export default class SMTPOAuthService {
    * Uses the provider type specified in config to determine the grant type.
    *
    * Features:
-   * - Token caching with automatic refresh before expiry
+   * - Token caching in Redis with automatic expiration
+   * - Cross-container cache sharing
    * - In-flight request deduplication (prevents multiple simultaneous fetches)
    * - Request timeout to prevent hanging
    *
@@ -83,18 +84,21 @@ export default class SMTPOAuthService {
   public static async getAccessToken(config: SMTPOAuthConfig): Promise<string> {
     const cacheKey: string = this.getCacheKey(config);
 
-    // Check if we have a cached token that's still valid
-    if (LocalCache.hasValue(this.TOKEN_CACHE_NAMESPACE, cacheKey)) {
-      const cachedToken: CachedToken = LocalCache.getJSON(
-        this.TOKEN_CACHE_NAMESPACE,
-        cacheKey,
-      ) as CachedToken;
+    // Try to get cached token from Redis
+    try {
+      const cachedToken: CachedToken | null =
+        (await GlobalCache.getJSONObject(
+          this.TOKEN_CACHE_NAMESPACE,
+          cacheKey,
+        )) as CachedToken | null;
 
-      const now: number = Date.now();
-      if (cachedToken.expiresAt > now) {
-        logger.debug("Using cached OAuth token for SMTP");
+      if (cachedToken && cachedToken.expiresAt > Date.now()) {
+        logger.debug("Using cached OAuth token from Redis");
         return cachedToken.accessToken;
       }
+    } catch (error) {
+      // Redis might not be connected, continue to fetch new token
+      logger.debug("Redis cache unavailable, fetching new token");
     }
 
     // Check if there's already an in-flight request for this token
@@ -292,10 +296,12 @@ export default class SMTPOAuthService {
         );
       }
 
-      // Cache the token
-      this.cacheToken(config, tokenData);
+      // Cache the token in Redis
+      await this.cacheToken(config, tokenData);
 
-      logger.debug("Successfully obtained and cached OAuth token via JWT Bearer");
+      logger.debug(
+        "Successfully obtained and cached OAuth token via JWT Bearer",
+      );
 
       return tokenData.access_token;
     } catch (error) {
@@ -372,8 +378,8 @@ export default class SMTPOAuthService {
         );
       }
 
-      // Cache the token
-      this.cacheToken(config, tokenData);
+      // Cache the token in Redis
+      await this.cacheToken(config, tokenData);
 
       logger.debug(
         "Successfully obtained and cached OAuth token via Client Credentials",
@@ -396,24 +402,43 @@ export default class SMTPOAuthService {
   }
 
   /**
-   * Cache the token for future use.
-   * Token is cached with a buffer time before actual expiry to ensure
-   * we refresh before the token becomes invalid.
+   * Cache the token in Redis with automatic expiration.
+   * Token expires in Redis slightly before actual token expiry to ensure
+   * we always have a valid token.
    */
-  private static cacheToken(
+  private static async cacheToken(
     config: SMTPOAuthConfig,
     tokenData: OAuthTokenResponse,
-  ): void {
+  ): Promise<void> {
     const cacheKey: string = this.getCacheKey(config);
-    const expiresAt: number =
-      Date.now() + (tokenData.expires_in - this.TOKEN_BUFFER_SECONDS) * 1000;
+
+    // Calculate expiration time with buffer
+    const expiresInSeconds: number = Math.max(
+      tokenData.expires_in - this.TOKEN_BUFFER_SECONDS,
+      60, // Minimum 60 seconds cache time
+    );
+
+    const expiresAt: number = Date.now() + expiresInSeconds * 1000;
 
     const cachedToken: CachedToken = {
       accessToken: tokenData.access_token,
       expiresAt,
     };
 
-    LocalCache.setJSON(this.TOKEN_CACHE_NAMESPACE, cacheKey, cachedToken);
+    try {
+      await GlobalCache.setJSON(
+        this.TOKEN_CACHE_NAMESPACE,
+        cacheKey,
+        cachedToken,
+        { expiresInSeconds },
+      );
+      logger.debug(
+        `OAuth token cached in Redis, expires in ${expiresInSeconds} seconds`,
+      );
+    } catch (error) {
+      // Log but don't fail if caching fails - token is still valid
+      logger.warn("Failed to cache OAuth token in Redis:", error);
+    }
   }
 
   /**
