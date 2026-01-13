@@ -11,7 +11,7 @@ import InboundEmailProvider, {
   ParsedInboundEmail,
 } from "Common/Server/Services/InboundEmail/InboundEmailProvider";
 import { JSONObject } from "Common/Types/JSON";
-import IncomingEmailIngestQueueService from "../Services/Queue/IncomingEmailIngestQueueService";
+import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -21,6 +21,14 @@ router.post(
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       logger.debug("Received incoming email webhook");
+
+      // Check if inbound email is configured
+      if (!InboundEmailProviderFactory.isConfigured()) {
+        logger.error("Inbound email is not configured");
+        throw new BadDataException(
+          "Inbound email is not configured. Please set the INBOUND_EMAIL_DOMAIN environment variable.",
+        );
+      }
 
       const provider: InboundEmailProvider =
         InboundEmailProviderFactory.getProvider();
@@ -62,8 +70,8 @@ router.post(
 
       logger.debug(`Extracted secret key: ${secretKey}`);
 
-      // Queue the email for async processing
-      await IncomingEmailIngestQueueService.addIncomingEmailIngestJob({
+      // Queue the email for async processing using the unified ProbeIngest queue
+      await ProbeIngestQueueService.addIncomingEmailJob({
         secretKey: secretKey,
         emailFrom: parsedEmail.from,
         emailTo: parsedEmail.to,

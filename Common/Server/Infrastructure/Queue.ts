@@ -15,7 +15,6 @@ export enum QueueName {
   Worker = "Worker",
   Telemetry = "Telemetry",
   IncomingRequestIngest = "IncomingRequestIngest",
-  IncomingEmailIngest = "IncomingEmailIngest",
   ServerMonitorIngest = "ServerMonitorIngest",
   ProbeIngest = "ProbeIngest",
 }

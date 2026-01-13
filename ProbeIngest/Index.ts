@@ -14,7 +14,6 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "./Jobs/ProbeIngest/ProcessProbeIngest";
-import "./Jobs/IncomingEmailIngest/ProcessIncomingEmailIngest";
 import { PROBE_INGEST_CONCURRENCY } from "./Config";
 import "ejs";
 
