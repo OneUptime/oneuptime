@@ -97,6 +97,12 @@ Usage:
   value: {{ $.Values.vapid.publicKey }}
 - name: VAPID_SUBJECT
   value: {{ $.Values.vapid.subject }}
+- name: INBOUND_EMAIL_PROVIDER
+  value: {{ default "SendGrid" $.Values.inboundEmail.provider | quote }}
+- name: INBOUND_EMAIL_DOMAIN
+  value: {{ default "" $.Values.inboundEmail.domain | quote }}
+- name: INBOUND_EMAIL_WEBHOOK_SECRET
+  value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_SERVER_MONITOR_INGEST_HOSTNAME
