@@ -93,7 +93,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     // Add video link button if provided
     if (props.videoLink) {
       cardButtons.push({
-        title: "Watch Video",
+        title: "Watch Demo",
         icon: IconProp.Play,
         buttonStyle: ButtonStyleType.OUTLINE,
         className: "hidden md:flex",

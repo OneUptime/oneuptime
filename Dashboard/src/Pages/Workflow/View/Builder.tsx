@@ -261,7 +261,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <p className="text-sm text-gray-400 mr-3 mt-2">{saveStatus}</p>
               <div className="hidden md:block">
                 <Button
-                  title="Watch Video"
+                  title="Watch Demo"
                   icon={IconProp.Play}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   onClick={() => {

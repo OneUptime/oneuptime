@@ -1049,7 +1049,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     // Add video link button if provided
     if (props.videoLink) {
       headerbuttons.push({
-        title: "Watch Video",
+        title: "Watch Demo",
         icon: IconProp.Play,
         buttonStyle: ButtonStyleType.OUTLINE,
         className: "hidden md:flex",
