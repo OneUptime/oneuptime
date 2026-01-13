@@ -1,7 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
-import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -66,14 +65,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <>
-        <Banner
-          openInNewTab={true}
-          title="Need help with configuring SCIM?"
-          description="Learn more about SCIM (System for Cross-domain Identity Management) setup and configuration for Status Pages"
-          link={Route.fromString("/docs/identity/scim")}
-          hideOnMobile={true}
-        />
-
         <ModelTable<StatusPageSCIM>
           key={refresher.toString()}
           modelType={StatusPageSCIM}
@@ -91,6 +82,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             description:
               "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users with access to your private Status Page.",
           }}
+          documentationLink={Route.fromString("/docs/identity/scim")}
           formSteps={[
             {
               title: "Basic Info",

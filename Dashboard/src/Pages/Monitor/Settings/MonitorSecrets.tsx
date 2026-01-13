@@ -1,11 +1,10 @@
 import MonitorsElement from "../../../Components/Monitor/Monitors";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../../PageComponentProps";
-import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ErrorFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
-import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -32,13 +31,6 @@ const MonitorSecrets: FunctionComponent<
 
   return (
     <Fragment>
-      <Banner
-        openInNewTab={true}
-        title="How to use Monitor Secrets?"
-        description="Learn how to use monitor secrets to store sensitive information like API keys, passwords, etc. that can be shared with monitors."
-        link={URL.fromString("https://www.youtube.com/watch?v=V5eIpd_IPlU")}
-        hideOnMobile={true}
-      />
       <ModelTable<MonitorSecret>
         userPreferencesKey={"monitor-secrets-table"}
         modelType={MonitorSecret}
@@ -74,6 +66,7 @@ const MonitorSecrets: FunctionComponent<
           description:
             "Monitor secrets are used to store sensitive information like API keys, passwords, etc. that can be shared with monitors.",
         }}
+        documentationLink={Route.fromString("/docs/monitor/monitor-secrets")}
         noItemsMessage={
           'No monitor secret found. Click on the "Create" button to add a new monitor secret.'
         }

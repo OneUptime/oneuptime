@@ -1,6 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -67,14 +66,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <>
-        <Banner
-          openInNewTab={true}
-          title="Need help with configuring SCIM?"
-          description="Learn more about SCIM (System for Cross-domain Identity Management) setup and configuration"
-          link={Route.fromString("/docs/identity/scim")}
-          hideOnMobile={true}
-        />
-
         <ModelTable<ProjectSCIM>
           key={refresher.toString()}
           modelType={ProjectSCIM}

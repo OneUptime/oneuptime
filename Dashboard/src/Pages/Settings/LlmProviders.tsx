@@ -2,7 +2,6 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import Banner from "Common/UI/Components/Banner/Banner";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -171,14 +170,6 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ]}
         />
 
-        <Banner
-          openInNewTab={true}
-          title="Need help with setting up Custom LLM Providers?"
-          description="Here is a guide which will help you get set up with your own LLM Provider configurations."
-          link={Route.fromString("/docs/ai/llm-provider")}
-          hideOnMobile={true}
-        />
-
         <ModelTable<LlmProvider>
           modelType={LlmProvider}
           query={{
@@ -197,6 +188,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ? "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers. You will not be charged for AI usage when you bring your own models."
               : "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
           }}
+          documentationLink={Route.fromString("/docs/ai/llm-provider")}
           selectMoreFields={{
             apiKey: true,
           }}

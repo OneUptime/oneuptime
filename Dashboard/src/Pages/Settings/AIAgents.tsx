@@ -3,7 +3,6 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import Banner from "Common/UI/Components/Banner/Banner";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
@@ -92,14 +91,6 @@ const AIAgentsPage: FunctionComponent<
           ]}
         />
 
-        <Banner
-          openInNewTab={true}
-          title="Need help with setting up Custom AI Agents?"
-          description="Here is a guide which will help you get set up"
-          link={Route.fromString("/docs/ai/ai-agent")}
-          hideOnMobile={true}
-        />
-
         <ModelTable<AIAgent>
           modelType={AIAgent}
           query={{
@@ -117,6 +108,7 @@ const AIAgentsPage: FunctionComponent<
             description:
               "Self-Hosted AI Agents run on your infrastructure and can be customized for your specific incident management needs.",
           }}
+          documentationLink={Route.fromString("/docs/ai/ai-agent")}
           selectMoreFields={{
             iconFileId: true,
           }}

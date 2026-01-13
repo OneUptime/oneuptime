@@ -4,7 +4,6 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -102,14 +101,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ]}
         />
 
-        <Banner
-          openInNewTab={true}
-          title="Need help with setting up Custom Probes?"
-          description="Here is a guide which will help you get set up"
-          link={Route.fromString("/docs/probe/custom-probe")}
-          hideOnMobile={true}
-        />
-
         <ModelTable<Probe>
           modelType={Probe}
           query={{
@@ -127,6 +118,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             description:
               "Custom Probes help you monitor internal resources that is behind your firewall.",
           }}
+          documentationLink={Route.fromString("/docs/probe/custom-probe")}
           selectMoreFields={{
             key: true,
             iconFileId: true,
