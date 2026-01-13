@@ -16,6 +16,12 @@ export default class InboundEmailProviderFactory {
       return this.instance;
     }
 
+    if (!InboundEmailDomain) {
+      throw new BadDataException(
+        "Inbound email is not configured. Please set the INBOUND_EMAIL_DOMAIN environment variable.",
+      );
+    }
+
     switch (InboundEmailProviderConfig) {
       case InboundEmailProviderType.SendGrid:
         this.instance = new SendGridInboundProvider({
@@ -23,7 +29,7 @@ export default class InboundEmailProviderFactory {
           webhookSecret: InboundEmailWebhookSecret,
         });
         break;
-        
+
       default:
         throw new BadDataException(
           `Unknown inbound email provider: ${InboundEmailProviderConfig}`,
@@ -31,6 +37,13 @@ export default class InboundEmailProviderFactory {
     }
 
     return this.instance;
+  }
+
+  /**
+   * Check if inbound email is configured
+   */
+  public static isConfigured(): boolean {
+    return Boolean(InboundEmailDomain);
   }
 
   /**
@@ -54,7 +67,7 @@ export default class InboundEmailProviderFactory {
   /**
    * Get the inbound domain
    */
-  public static getInboundDomain(): string {
+  public static getInboundDomain(): string | undefined {
     return InboundEmailDomain;
   }
 

@@ -3,6 +3,9 @@ import Card from "Common/UI/Components/Card/Card";
 import { INBOUND_EMAIL_DOMAIN } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Link from "Common/UI/Components/Link/Link";
+import URL from "Common/Types/API/URL";
 
 export interface ComponentProps {
   secretKey: ObjectID;
@@ -11,6 +14,36 @@ export interface ComponentProps {
 const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  if (!INBOUND_EMAIL_DOMAIN) {
+    return (
+      <Card
+        title={`Incoming Email Address`}
+        description={
+          <div className="space-y-3">
+            <ErrorMessage
+              message={
+                <span>
+                  Inbound email is not configured. Please ask your OneUptime
+                  administrator to set up the inbound email environment
+                  variables.{" "}
+                  <Link
+                    to={URL.fromString(
+                      "/docs/self-hosted/sendgrid-inbound-email",
+                    )}
+                    openInNewTab={true}
+                    className="underline"
+                  >
+                    View Setup Documentation
+                  </Link>
+                </span>
+              }
+            />
+          </div>
+        }
+      />
+    );
+  }
+
   const emailAddress: string = `monitor-${props.secretKey.toString()}@${INBOUND_EMAIL_DOMAIN}`;
 
   return (

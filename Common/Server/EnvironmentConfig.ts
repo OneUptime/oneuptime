@@ -537,8 +537,8 @@ export const InboundEmailProvider: InboundEmailProviderType =
   (process.env["INBOUND_EMAIL_PROVIDER"] as InboundEmailProviderType) ||
   InboundEmailProviderType.SendGrid;
 
-export const InboundEmailDomain: string =
-  process.env["INBOUND_EMAIL_DOMAIN"] || "inbound.oneuptime.com";
+export const InboundEmailDomain: string | undefined =
+  process.env["INBOUND_EMAIL_DOMAIN"] || undefined;
 
 export const InboundEmailWebhookSecret: string | undefined =
   process.env["INBOUND_EMAIL_WEBHOOK_SECRET"] || undefined;
