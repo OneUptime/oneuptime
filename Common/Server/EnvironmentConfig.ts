@@ -542,9 +542,3 @@ export const InboundEmailDomain: string =
 
 export const InboundEmailWebhookSecret: string | undefined =
   process.env["INBOUND_EMAIL_WEBHOOK_SECRET"] || undefined;
-
-export const IncomingEmailIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_INCOMING_EMAIL_INGEST_HOSTNAME"] || "localhost"}:${
-    process.env["INCOMING_EMAIL_INGEST_PORT"] || 80
-  }`,
-);
