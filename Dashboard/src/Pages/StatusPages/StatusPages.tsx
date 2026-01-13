@@ -2,7 +2,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
-import Banner from "Common/UI/Components/Banner/Banner";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -15,13 +14,6 @@ import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <div>
-      <Banner
-        openInNewTab={true}
-        title="Need a demo of status pages?"
-        description="Watch this video which will help you build status page for your company in under 12 minutes."
-        link={URL.fromString("https://youtu.be/F6BNipy5VCk")}
-        hideOnMobile={true}
-      />
       <ModelTable<StatusPage>
         modelType={StatusPage}
         id="status-page-table"
@@ -35,6 +27,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Status Pages",
           description: "Here is a list of status pages for this project.",
         }}
+        videoLink={URL.fromString("https://youtu.be/F6BNipy5VCk")}
         showViewIdButton={true}
         noItemsMessage={"No status pages found."}
         formFields={[

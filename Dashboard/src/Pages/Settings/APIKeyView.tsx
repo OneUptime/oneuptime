@@ -8,7 +8,6 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
-import Banner from "Common/UI/Components/Banner/Banner";
 import { FormProps } from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -245,6 +244,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
           title: "API Key Details",
           description: "Here are more details for this API Key.",
         }}
+        videoLink={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
         refresher={refresher}
         isEditable={true}
         formFields={[
@@ -339,14 +339,6 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         onUpdateComplete={() => {
           setRefresher(!refresher);
         }}
-      />
-
-      <Banner
-        openInNewTab={true}
-        title="Questions about Permissions?"
-        description="Watch this 5 minute video to learn how permissions work in OneUptime."
-        link={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
-        hideOnMobile={true}
       />
 
       {/* Allow Permissions */}

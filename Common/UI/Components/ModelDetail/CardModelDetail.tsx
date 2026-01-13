@@ -37,6 +37,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   refresher?: boolean;
   createOrUpdateApiUrl?: URL | undefined;
   documentationLink?: Route | URL | undefined;
+  videoLink?: Route | URL | undefined;
 }
 
 const CardModelDetail: <TBaseModel extends BaseModel>(
@@ -82,6 +83,20 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
         buttonStyle: ButtonStyleType.OUTLINE,
         onClick: () => {
           Navigation.navigate(props.documentationLink!, {
+            openInNewTab: true,
+          });
+        },
+      });
+    }
+
+    // Add video link button if provided
+    if (props.videoLink) {
+      cardButtons.push({
+        title: "Watch Video",
+        icon: IconProp.Play,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: () => {
+          Navigation.navigate(props.videoLink!, {
             openInNewTab: true,
           });
         },

@@ -276,6 +276,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           title: "Team Details",
           description: "Here are more details for this team.",
         }}
+        videoLink={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
         isEditable={true}
         formFields={[
           {
@@ -604,14 +605,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       <TeamComplianceStatusTable
         ref={complianceStatusTableRef}
         teamId={modelId}
-      />
-
-      <Banner
-        openInNewTab={true}
-        title="Questions about Team Permissions?"
-        description="Watch this 5 minute video to learn how team permissions work in OneUptime."
-        link={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
-        hideOnMobile={true}
       />
 
       {/* Team Permisison Table */}

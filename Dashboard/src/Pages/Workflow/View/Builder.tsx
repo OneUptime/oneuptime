@@ -12,7 +12,6 @@ import ComponentMetadata, {
   NodeDataProp,
   NodeType,
 } from "Common/Types/Workflow/Component";
-import Banner from "Common/UI/Components/Banner/Banner";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -254,19 +253,27 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
-        <Banner
-          openInNewTab={true}
-          title="Need help with building workflows?"
-          description="Watch this 10 minute video which will help you connect Slack with OneUptime using workflows"
-          link={URL.fromString("https://youtu.be/k1-reCQTZnM")}
-          hideOnMobile={true}
-        />
         <Card
           title={"Workflow Builder"}
           description={"Workflow builder for OneUptime"}
           rightElement={
             <div className="flex">
               <p className="text-sm text-gray-400 mr-3 mt-2">{saveStatus}</p>
+              <div>
+                <Button
+                  title="Watch Video"
+                  icon={IconProp.Play}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  onClick={() => {
+                    Navigation.navigate(
+                      URL.fromString("https://youtu.be/k1-reCQTZnM"),
+                      {
+                        openInNewTab: true,
+                      },
+                    );
+                  }}
+                />
+              </div>
               <div>
                 <Button
                   title="Add Component"

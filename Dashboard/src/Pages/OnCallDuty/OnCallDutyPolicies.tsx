@@ -2,7 +2,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
-import Banner from "Common/UI/Components/Banner/Banner";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -16,14 +15,6 @@ const OnCallDutyPage: FunctionComponent<
 > = (): ReactElement => {
   return (
     <Fragment>
-      <Banner
-        openInNewTab={true}
-        title="Learn how on-call policy works"
-        description="Watch this video to learn how to build effective on-call policies for your team."
-        link={URL.fromString("https://youtu.be/HzhKmCryYdc")}
-        hideOnMobile={true}
-      />
-
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
         id="on-call-duty-table"
@@ -39,6 +30,7 @@ const OnCallDutyPage: FunctionComponent<
           description:
             "Here is a list of on-call-duty policies for this project.",
         }}
+        videoLink={URL.fromString("https://youtu.be/HzhKmCryYdc")}
         noItemsMessage={"No on-call policy found."}
         formFields={[
           {

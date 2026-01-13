@@ -154,6 +154,7 @@ export interface BaseTableProps<
     | ((data: Array<TBaseModel>, totalCount: number) => void);
   cardProps?: CardComponentProps | undefined;
   documentationLink?: Route | URL | undefined;
+  videoLink?: Route | URL | undefined;
   showCreateForm?: undefined | boolean;
   columns: Columns<TBaseModel>;
   filters: Array<Filter<TBaseModel>>;
@@ -1038,6 +1039,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyle: ButtonStyleType.OUTLINE,
         onClick: () => {
           Navigation.navigate(props.documentationLink!, {
+            openInNewTab: true,
+          });
+        },
+      });
+    }
+
+    // Add video link button if provided
+    if (props.videoLink) {
+      headerbuttons.push({
+        title: "Watch Video",
+        icon: IconProp.Play,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: () => {
+          Navigation.navigate(props.videoLink!, {
             openInNewTab: true,
           });
         },

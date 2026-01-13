@@ -32,6 +32,7 @@ import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSc
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
@@ -42,6 +43,7 @@ export interface ComponentProps {
   actionButtons?: Array<ActionButtonSchema<Monitor>> | undefined;
   cardButtons?: Array<CardButtonSchema> | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
+  videoLink?: Route | URL | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -208,6 +210,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           props.description || "Here is a list of monitors for this project.",
         buttons: cardbuttons,
       }}
+      videoLink={props.videoLink}
       selectMoreFields={{
         disableActiveMonitoring: true,
         isNoProbeEnabledOnThisMonitor: true,

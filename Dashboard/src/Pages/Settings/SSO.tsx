@@ -4,7 +4,6 @@ import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import DigestMethod from "Common/Types/SSO/DigestMethod";
 import SignatureMethod from "Common/Types/SSO/SignatureMethod";
-import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -39,14 +38,6 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <>
-        <Banner
-          openInNewTab={true}
-          title="Need help with configuring SSO?"
-          description="Watch this 10 minute video which will help you get set up"
-          link={URL.fromString("https://youtu.be/tq4WRgxbIwk")}
-          hideOnMobile={true}
-        />
-
         <ModelTable<ProjectSSO>
           modelType={ProjectSSO}
           userPreferencesKey={"project-sso-table"}
@@ -63,6 +54,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             description:
               "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.",
           }}
+          videoLink={URL.fromString("https://youtu.be/tq4WRgxbIwk")}
           formSteps={[
             {
               title: "Basic Info",

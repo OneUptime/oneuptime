@@ -6,7 +6,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
-import Banner from "Common/UI/Components/Banner/Banner";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelProgress from "Common/UI/Components/ModelProgress/ModelProgress";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -28,14 +27,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
-        <Banner
-          openInNewTab={true}
-          title="Need a demo of workflows?"
-          description="Watch this 10 minute video which will help you connect Slack with OneUptime using workflows"
-          link={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
-          hideOnMobile={true}
-        />
-
         {plan && (plan === PlanType.Growth || plan === PlanType.Scale) && (
           <ModelProgress<WorkflowLog>
             totalCount={WorkflowPlan[plan]}
@@ -68,6 +59,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Workflows",
             description: "Here is a list of workflows for this project.",
           }}
+          videoLink={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
           noItemsMessage={"No workflows found."}
           formSteps={[
             {
