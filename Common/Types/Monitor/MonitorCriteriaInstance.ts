@@ -94,6 +94,33 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.IncomingEmail) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.EmailReceivedAt,
+            filterType: FilterType.RecievedInMinutes,
+            value: 30,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} is online`,
+        description: `This criteria checks if the ${arg.monitorName} is online`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.Logs) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -645,6 +672,46 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           {
             title: `${arg.monitorName} is offline`,
             description: `${arg.monitorName} is currently offline.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        name: `Check if ${arg.monitorName} is offline`,
+        description: `This criteria checks if the ${arg.monitorName} is offline`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.IncomingEmail) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.EmailReceivedAt,
+            filterType: FilterType.NotRecievedInMinutes,
+            value: 30, // if email is not received in 30 minutes, then the monitor is offline
+          },
+        ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline. No email received.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
+        incidents: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline. No email received.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
