@@ -144,6 +144,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/synthetic-monitor",
       },
       {
+        title: "Incoming Email Monitor",
+        url: "/docs/monitor/incoming-email-monitor",
+      },
+      {
         title: "JavaScript Expressions",
         url: "/docs/monitor/javascript-expression",
       },
@@ -236,6 +240,10 @@ if (!IsBillingEnabled) {
       {
         title: "GitHub Integration",
         url: "/docs/self-hosted/github-integration",
+      },
+      {
+        title: "SendGrid Inbound Email",
+        url: "/docs/self-hosted/sendgrid-inbound-email",
       },
     ],
   });
