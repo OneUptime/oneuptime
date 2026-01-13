@@ -527,3 +527,24 @@ export const VapidSubject: string =
 export const EnterpriseLicenseValidationUrl: URL = URL.fromString(
   "https://oneuptime.com/api/enterprise-license/validate",
 );
+
+// Inbound Email Configuration for Incoming Email Monitor
+export enum InboundEmailProviderType {
+  SendGrid = "SendGrid",
+}
+
+export const InboundEmailProvider: InboundEmailProviderType =
+  (process.env["INBOUND_EMAIL_PROVIDER"] as InboundEmailProviderType) ||
+  InboundEmailProviderType.SendGrid;
+
+export const InboundEmailDomain: string =
+  process.env["INBOUND_EMAIL_DOMAIN"] || "inbound.oneuptime.com";
+
+export const InboundEmailWebhookSecret: string | undefined =
+  process.env["INBOUND_EMAIL_WEBHOOK_SECRET"] || undefined;
+
+export const IncomingEmailIngestHostname: Hostname = Hostname.fromString(
+  `${process.env["SERVER_INCOMING_EMAIL_INGEST_HOSTNAME"] || "localhost"}:${
+    process.env["INCOMING_EMAIL_INGEST_PORT"] || 80
+  }`,
+);

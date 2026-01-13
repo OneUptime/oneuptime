@@ -258,3 +258,6 @@ export const GitHubAppClientId: string | null =
   env("GITHUB_APP_CLIENT_ID") || null;
 
 export const GitHubAppName: string | null = env("GITHUB_APP_NAME") || null;
+
+export const INBOUND_EMAIL_DOMAIN: string =
+  env("INBOUND_EMAIL_DOMAIN") || "inbound.oneuptime.com";

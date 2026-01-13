@@ -8,6 +8,7 @@ enum MonitorType {
   Kubernetes = "Kubernetes",
   IP = "IP",
   IncomingRequest = "Incoming Request",
+  IncomingEmail = "Incoming Email",
   Port = "Port",
   Server = "Server",
   SSLCertificate = "SSL Certificate",
@@ -90,6 +91,12 @@ export class MonitorTypeHelper {
         title: "Incoming Request",
         description:
           "This monitor type lets you ping OneUptime from any external device or service with a custom payload.",
+      },
+      {
+        monitorType: MonitorType.IncomingEmail,
+        title: "Incoming Email",
+        description:
+          "This monitor type triggers alerts when emails are received at a unique email address with matching criteria.",
       },
       {
         monitorType: MonitorType.Port,
@@ -202,6 +209,7 @@ export class MonitorTypeHelper {
       MonitorType.SyntheticMonitor,
       MonitorType.CustomJavaScriptCode,
       MonitorType.IncomingRequest,
+      MonitorType.IncomingEmail,
       MonitorType.Server,
       MonitorType.Logs,
       MonitorType.Metrics,
@@ -215,6 +223,7 @@ export class MonitorTypeHelper {
   ): boolean {
     return (
       monitorType === MonitorType.IncomingRequest ||
+      monitorType === MonitorType.IncomingEmail ||
       monitorType === MonitorType.Server
     );
   }

@@ -2,6 +2,7 @@ import logger from "../Logger";
 import VMUtil from "../VM/VMAPI";
 import APIRequestCriteria from "./Criteria/APIRequestCriteria";
 import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
+import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
 import IncomingRequestCriteria from "./Criteria/IncomingRequestCriteria";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
@@ -391,6 +392,18 @@ ${contextBlock}
 
       if (incomingRequestResult) {
         return incomingRequestResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.IncomingEmail) {
+      const incomingEmailResult: string | null =
+        await IncomingEmailCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (incomingEmailResult) {
+        return incomingEmailResult;
       }
     }
 
