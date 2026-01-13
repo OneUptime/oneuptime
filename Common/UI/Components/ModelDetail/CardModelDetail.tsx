@@ -1,5 +1,6 @@
 import PermissionUtil from "../../Utils/Permission";
 import User from "../../Utils/User";
+import Navigation from "../../Utils/Navigation";
 import { ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
@@ -13,6 +14,7 @@ import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
+import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import {
   PermissionHelper,
@@ -34,6 +36,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   createEditModalWidth?: ModalWidth | undefined;
   refresher?: boolean;
   createOrUpdateApiUrl?: URL | undefined;
+  documentationLink?: Route | URL | undefined;
 }
 
 const CardModelDetail: <TBaseModel extends BaseModel>(
@@ -70,6 +73,20 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
       ) || User.isMasterAdmin();
 
     let cardButtons: Array<CardButtonSchema | ReactElement> = [];
+
+    // Add documentation link button first if provided
+    if (props.documentationLink) {
+      cardButtons.push({
+        title: "View Documentation",
+        icon: IconProp.Book,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: () => {
+          Navigation.navigate(props.documentationLink!, {
+            openInNewTab: true,
+          });
+        },
+      });
+    }
 
     if (props.isEditable && hasPermissionToEdit) {
       cardButtons.push({

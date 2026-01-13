@@ -153,6 +153,7 @@ export interface BaseTableProps<
     | undefined
     | ((data: Array<TBaseModel>, totalCount: number) => void);
   cardProps?: CardComponentProps | undefined;
+  documentationLink?: Route | URL | undefined;
   showCreateForm?: undefined | boolean;
   columns: Columns<TBaseModel>;
   filters: Array<Filter<TBaseModel>>;
@@ -1029,8 +1030,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     // add header buttons.
     let headerbuttons: Array<CardButtonSchema | ReactElement> = [];
 
+    // Add documentation link button first if provided
+    if (props.documentationLink) {
+      headerbuttons.push({
+        title: "View Documentation",
+        icon: IconProp.Book,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: () => {
+          Navigation.navigate(props.documentationLink!, {
+            openInNewTab: true,
+          });
+        },
+      });
+    }
+
     if (props.cardProps?.buttons && props.cardProps?.buttons.length > 0) {
-      headerbuttons = [...props.cardProps.buttons];
+      headerbuttons = [...headerbuttons, ...props.cardProps.buttons];
     }
 
     const permissions: Array<Permission> | null =

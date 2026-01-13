@@ -92,6 +92,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             description:
               "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users from your identity provider.",
           }}
+          documentationLink={Route.fromString("/docs/identity/scim")}
           formSteps={[
             {
               title: "Basic Info",
