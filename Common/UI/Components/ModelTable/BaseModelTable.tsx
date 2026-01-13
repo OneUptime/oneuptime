@@ -1037,6 +1037,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         title: "View Documentation",
         icon: IconProp.Book,
         buttonStyle: ButtonStyleType.OUTLINE,
+        className: "hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.documentationLink!, {
             openInNewTab: true,
@@ -1051,6 +1052,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         title: "Watch Video",
         icon: IconProp.Play,
         buttonStyle: ButtonStyleType.OUTLINE,
+        className: "hidden md:flex",
         onClick: () => {
           Navigation.navigate(props.videoLink!, {
             openInNewTab: true,

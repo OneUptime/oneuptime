@@ -259,7 +259,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           rightElement={
             <div className="flex">
               <p className="text-sm text-gray-400 mr-3 mt-2">{saveStatus}</p>
-              <div>
+              <div className="hidden md:block">
                 <Button
                   title="Watch Video"
                   icon={IconProp.Play}
