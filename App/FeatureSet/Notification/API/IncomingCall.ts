@@ -64,11 +64,8 @@ router.post(
             greetingMessage: true,
             noAnswerMessage: true,
             noOneAvailableMessage: true,
-            busyMessage: true,
-            maxConcurrentCalls: true,
             repeatPolicyIfNoOneAnswers: true,
             repeatPolicyIfNoOneAnswersTimes: true,
-            maxTotalCallDurationSeconds: true,
             routingPhoneNumber: true,
           },
           props: {
@@ -147,28 +144,6 @@ router.post(
             return res.send(twiml);
           }
         }
-      }
-
-      // Check concurrent calls
-      const activeCallsCount: number = (
-        await IncomingCallLogService.countBy({
-          query: {
-            incomingCallPolicyId: new ObjectID(policyId),
-            status: IncomingCallStatus.Initiated,
-          },
-          props: {
-            isRoot: true,
-          },
-        })
-      ).toNumber();
-
-      if (activeCallsCount >= (policy.maxConcurrentCalls || 1)) {
-        const twiml: string = provider.generateHangupResponse(
-          policy.busyMessage ||
-            "All lines are currently busy. Please try again in a few minutes.",
-        );
-        res.type("text/xml");
-        return res.send(twiml);
       }
 
       // Create call log
