@@ -62,7 +62,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES] as Route,
             ),
           },
-          icon: IconProp.Phone,
+          icon: IconProp.Call,
         },
       ],
     },

@@ -36,7 +36,7 @@ export default class TwilioCallProvider implements ICallProvider {
     const searchOptions: {
       voiceEnabled: boolean;
       limit: number;
-      areaCode?: string;
+      areaCode?: number;
       contains?: string;
     } = {
       voiceEnabled: true,
@@ -44,18 +44,19 @@ export default class TwilioCallProvider implements ICallProvider {
     };
 
     if (options.areaCode) {
-      searchOptions.areaCode = options.areaCode;
+      searchOptions.areaCode = parseInt(options.areaCode);
     }
 
     if (options.contains) {
       searchOptions.contains = options.contains;
     }
 
-    const numbers: Twilio.Twilio["availablePhoneNumbers"] extends (
-      countryCode: string,
-    ) => { local: { list: (opts: object) => Promise<infer R> } }
-      ? R
-      : never = await this.client
+    const numbers: Array<{
+      phoneNumber: string;
+      friendlyName: string;
+      locality?: string;
+      region?: string;
+    }> = await this.client
       .availablePhoneNumbers(options.countryCode)
       .local.list(searchOptions);
 
@@ -65,18 +66,23 @@ export default class TwilioCallProvider implements ICallProvider {
         friendlyName: string;
         locality?: string;
         region?: string;
-      }) => {
-        return {
+      }): AvailablePhoneNumber => {
+        const result: AvailablePhoneNumber = {
           phoneNumber: n.phoneNumber,
           friendlyName: n.friendlyName,
-          locality: n.locality,
-          region: n.region,
           country: options.countryCode,
           providerCostPerMonthInUSDCents: pricing.basePricePerMonthInUSDCents,
           customerCostPerMonthInUSDCents: this.applyMarkup(
             pricing.basePricePerMonthInUSDCents,
           ),
         };
+        if (n.locality) {
+          result.locality = n.locality;
+        }
+        if (n.region) {
+          result.region = n.region;
+        }
+        return result;
       },
     );
   }
@@ -134,26 +140,30 @@ export default class TwilioCallProvider implements ICallProvider {
         .countries(countryCode)
         .fetch();
 
-      // Twilio returns prices as strings, we need to convert to cents
+      // Twilio returns prices - we need to convert to cents
       // The pricing structure has phoneNumberPrices with basePrice
       const phoneNumberPrices: Array<{
-        basePrice: string;
+        basePrice: number | string;
         numberType: string;
-      }> = pricing.phoneNumberPrices as Array<{
-        basePrice: string;
+      }> = (pricing.phoneNumberPrices || []) as Array<{
+        basePrice: number | string;
         numberType: string;
       }>;
 
       // Find local number pricing
-      const localPricing: { basePrice: string; numberType: string } | undefined =
-        phoneNumberPrices.find(
-          (p: { basePrice: string; numberType: string }) => {
-            return p.numberType === "local";
-          },
-        );
+      const localPricing:
+        | { basePrice: number | string; numberType: string }
+        | undefined = phoneNumberPrices.find(
+        (p: { basePrice: number | string; numberType: string }) => {
+          return p.numberType === "local";
+        },
+      );
 
       if (localPricing) {
-        const basePriceInDollars: number = parseFloat(localPricing.basePrice);
+        const basePriceInDollars: number =
+          typeof localPricing.basePrice === "string"
+            ? parseFloat(localPricing.basePrice)
+            : localPricing.basePrice;
         return {
           basePricePerMonthInUSDCents: Math.round(basePriceInDollars * 100),
         };
@@ -177,7 +187,7 @@ export default class TwilioCallProvider implements ICallProvider {
   public generateDialResponse(options: DialOptions): string {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
-    const dial: Twilio.twiml.VoiceResponse.Dial = response.dial({
+    const dial: ReturnType<Twilio.twiml.VoiceResponse["dial"]> = response.dial({
       action: options.statusCallbackUrl,
       method: "POST",
       timeout: options.timeoutSeconds,
@@ -204,7 +214,7 @@ export default class TwilioCallProvider implements ICallProvider {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
     response.say({ voice: "alice" }, message);
-    const dial: Twilio.twiml.VoiceResponse.Dial = response.dial({
+    const dial: ReturnType<Twilio.twiml.VoiceResponse["dial"]> = response.dial({
       action: nextDialOptions.statusCallbackUrl,
       method: "POST",
       timeout: nextDialOptions.timeoutSeconds,

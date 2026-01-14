@@ -74,7 +74,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   tableName: "IncomingCallPolicy",
   singularName: "Incoming Call Policy",
   pluralName: "Incoming Call Policies",
-  icon: IconProp.Phone,
+  icon: IconProp.Call,
   tableDescription:
     "Manage incoming call routing policies with escalation rules for on-call teams",
 })

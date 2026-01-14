@@ -8,10 +8,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ProjectUtil from "Common/UI/Utils/Project";
-import UserElement from "Common/UI/Components/User/User";
+import UserElement from "../../../Components/User/User";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import DashboardNavigation from "../../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const IncomingCallPolicyEscalationPage: FunctionComponent<
@@ -33,7 +32,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
         showViewIdButton={true}
         query={{
           incomingCallPolicyId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
@@ -41,7 +40,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
           item: IncomingCallPolicyEscalationRule,
         ): Promise<IncomingCallPolicyEscalationRule> => {
           item.incomingCallPolicyId = modelId;
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
 
           // Validation: either userId or onCallDutyPolicyScheduleId must be set
           if (!item.userId && !item.onCallDutyPolicyScheduleId) {
@@ -108,13 +107,6 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               type: OnCallDutyPolicySchedule,
               labelField: "name",
               valueField: "_id",
-            },
-            fetchDropdownOptions: async () => {
-              return {
-                query: {
-                  projectId: ProjectUtil.getCurrentProjectId()!,
-                },
-              };
             },
             required: false,
             placeholder: "Select On-Call Schedule",

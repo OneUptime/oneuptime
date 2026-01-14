@@ -5,12 +5,12 @@ import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DashboardNavigation from "../../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Pill from "Common/UI/Components/Pill/Pill";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
-import { Green, Red, Yellow, Gray } from "Common/Types/BrandColors";
-import UserElement from "Common/UI/Components/User/User";
+import { Green, Red, Yellow, Grey } from "Common/Types/BrandColors";
+import UserElement from "../../../Components/User/User";
 
 const IncomingCallPolicyLogsPage: FunctionComponent<
   PageComponentProps
@@ -28,17 +28,17 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
       case IncomingCallStatus.Failed:
         return <Pill text="Failed" color={Red} />;
       case IncomingCallStatus.Initiated:
-        return <Pill text="Initiated" color={Gray} />;
+        return <Pill text="Initiated" color={Grey} />;
       case IncomingCallStatus.Ringing:
         return <Pill text="Ringing" color={Yellow} />;
       case IncomingCallStatus.Escalated:
         return <Pill text="Escalated" color={Yellow} />;
       case IncomingCallStatus.CallerHungUp:
-        return <Pill text="Caller Hung Up" color={Gray} />;
+        return <Pill text="Caller Hung Up" color={Grey} />;
       case IncomingCallStatus.Busy:
         return <Pill text="Busy" color={Red} />;
       default:
-        return <Pill text="Unknown" color={Gray} />;
+        return <Pill text="Unknown" color={Grey} />;
     }
   };
 
@@ -56,7 +56,7 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
         showViewIdButton={true}
         query={{
           incomingCallPolicyId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         sortBy="startedAt"
         sortOrder={SortOrder.Descending}

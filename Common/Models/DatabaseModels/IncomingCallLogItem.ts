@@ -42,7 +42,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableName: "IncomingCallLogItem",
   singularName: "Incoming Call Log Item",
   pluralName: "Incoming Call Log Items",
-  icon: IconProp.Phone,
+  icon: IconProp.Call,
   tableDescription:
     "Child log for each escalation attempt / user ring within a call.",
 })

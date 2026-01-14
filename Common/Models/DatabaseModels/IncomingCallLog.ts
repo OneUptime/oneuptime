@@ -41,7 +41,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableName: "IncomingCallLog",
   singularName: "Incoming Call Log",
   pluralName: "Incoming Call Logs",
-  icon: IconProp.Phone,
+  icon: IconProp.Call,
   tableDescription:
     "Parent log for each incoming call instance. Groups all escalation attempts together.",
 })

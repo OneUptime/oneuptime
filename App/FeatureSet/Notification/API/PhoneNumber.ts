@@ -78,13 +78,26 @@ router.post(
 
       const provider: ICallProvider = await CallProviderFactory.getProvider();
 
+      const searchOptions: {
+        countryCode: string;
+        areaCode?: string;
+        contains?: string;
+        limit?: number;
+      } = {
+        countryCode,
+        limit: 10,
+      };
+
+      if (areaCode) {
+        searchOptions.areaCode = areaCode;
+      }
+
+      if (contains) {
+        searchOptions.contains = contains;
+      }
+
       const numbers: AvailablePhoneNumber[] =
-        await provider.searchAvailableNumbers({
-          countryCode,
-          areaCode,
-          contains,
-          limit: 10,
-        });
+        await provider.searchAvailableNumbers(searchOptions);
 
       // Apply markup to customer price
       const numbersWithMarkup: AvailablePhoneNumber[] = numbers.map(
@@ -100,7 +113,7 @@ router.post(
       );
 
       // If billing is not enabled, don't show cost
-      const responseNumbers: Array<{
+      type ResponseNumber = {
         phoneNumber: string;
         friendlyName: string;
         locality?: string;
@@ -108,18 +121,27 @@ router.post(
         country: string;
         providerCostPerMonthInUSDCents?: number;
         customerCostPerMonthInUSDCents?: number;
-      }> = numbersWithMarkup.map((n: AvailablePhoneNumber) => {
-        if (!IsBillingEnabled) {
-          return {
-            phoneNumber: n.phoneNumber,
-            friendlyName: n.friendlyName,
-            locality: n.locality,
-            region: n.region,
-            country: n.country,
-          };
-        }
-        return n;
-      });
+      };
+
+      const responseNumbers: Array<ResponseNumber> = numbersWithMarkup.map(
+        (n: AvailablePhoneNumber): ResponseNumber => {
+          if (!IsBillingEnabled) {
+            const result: ResponseNumber = {
+              phoneNumber: n.phoneNumber,
+              friendlyName: n.friendlyName,
+              country: n.country,
+            };
+            if (n.locality) {
+              result.locality = n.locality;
+            }
+            if (n.region) {
+              result.region = n.region;
+            }
+            return result;
+          }
+          return n;
+        },
+      );
 
       return Response.sendJsonObjectResponse(req, res, {
         availableNumbers: responseNumbers,

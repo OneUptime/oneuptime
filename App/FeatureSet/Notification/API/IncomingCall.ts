@@ -66,10 +66,6 @@ router.post(
 
       const provider: ICallProvider = await CallProviderFactory.getProvider();
 
-      // Validate webhook signature
-      const signature: string =
-        (req.headers["x-twilio-signature"] as string) || "";
-
       // Parse incoming call data
       const callData: IncomingCallData = provider.parseIncomingCallWebhook(
         req as unknown as WebhookRequest,
@@ -172,15 +168,17 @@ router.post(
       }
 
       // Check concurrent calls
-      const activeCallsCount: number = await IncomingCallLogService.countBy({
-        query: {
-          incomingCallPolicyId: new ObjectID(policyId),
-          status: IncomingCallStatus.Initiated,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const activeCallsCount: number = (
+        await IncomingCallLogService.countBy({
+          query: {
+            incomingCallPolicyId: new ObjectID(policyId),
+            status: IncomingCallStatus.Initiated,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber();
 
       if (activeCallsCount >= (policy.maxConcurrentCalls || 1)) {
         const twiml: string = provider.generateHangupResponse(
@@ -193,10 +191,14 @@ router.post(
 
       // Create call log
       const callLog: IncomingCallLog = new IncomingCallLog();
-      callLog.projectId = policy.projectId;
+      if (policy.projectId) {
+        callLog.projectId = policy.projectId;
+      }
       callLog.incomingCallPolicyId = new ObjectID(policyId);
       callLog.callerPhoneNumber = new Phone(callData.callerPhoneNumber);
-      callLog.routingPhoneNumber = policy.routingPhoneNumber;
+      if (policy.routingPhoneNumber) {
+        callLog.routingPhoneNumber = policy.routingPhoneNumber;
+      }
       callLog.callProviderCallId = callData.callId;
       callLog.status = IncomingCallStatus.Initiated;
       callLog.startedAt = new Date();
@@ -254,11 +256,19 @@ router.post(
 
       // Create call log item
       const callLogItem: IncomingCallLogItem = new IncomingCallLogItem();
-      callLogItem.projectId = policy.projectId;
+      if (policy.projectId) {
+        callLogItem.projectId = policy.projectId;
+      }
       callLogItem.incomingCallLogId = createdCallLog.id!;
-      callLogItem.incomingCallPolicyEscalationRuleId = firstRule.id;
-      callLogItem.userId = userToCall.id;
-      callLogItem.userPhoneNumber = userToCall.alertPhoneNumber;
+      if (firstRule.id) {
+        callLogItem.incomingCallPolicyEscalationRuleId = firstRule.id;
+      }
+      if (userToCall.id) {
+        callLogItem.userId = userToCall.id;
+      }
+      if (userToCall.alertPhoneNumber) {
+        callLogItem.userPhoneNumber = userToCall.alertPhoneNumber;
+      }
       callLogItem.status = IncomingCallStatus.Ringing;
       callLogItem.startedAt = new Date();
       callLogItem.isAnswered = false;
@@ -584,18 +594,15 @@ async function getUserToCall(
 
   // If rule has an on-call schedule, get the current on-call user
   if (rule.onCallDutyPolicyScheduleId) {
-    const currentOnCallUsers: Array<User> =
-      await OnCallDutyPolicyScheduleService.getCurrentOnCallUsers({
-        scheduleId: rule.onCallDutyPolicyScheduleId,
-        props: {
-          isRoot: true,
-        },
-      });
+    const currentOnCallUserId: ObjectID | null =
+      await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
+        rule.onCallDutyPolicyScheduleId,
+      );
 
-    if (currentOnCallUsers.length > 0) {
+    if (currentOnCallUserId) {
       // Get the full user with phone number
       return await UserService.findOneById({
-        id: currentOnCallUsers[0]!.id!,
+        id: currentOnCallUserId,
         select: {
           _id: true,
           alertPhoneNumber: true,
@@ -621,13 +628,7 @@ function generateGreetingAndDialTwiml(
   timeoutSeconds: number,
   statusCallbackUrl: string,
 ): string {
-  // First say the greeting, then dial
-  const greetingTwiml: string = provider.generateGreetingResponse(
-    greetingMessage,
-  );
-
-  // Extract just the <Say> part and combine with Dial
-  // For now, we'll use the escalation response which says a message then dials
+  // Use the escalation response which says a message then dials
   return provider.generateEscalationResponse(greetingMessage, {
     toPhoneNumber,
     fromPhoneNumber,
@@ -649,11 +650,19 @@ async function dialNextUser(
 ): Promise<ExpressResponse> {
   // Create call log item
   const callLogItem: IncomingCallLogItem = new IncomingCallLogItem();
-  callLogItem.projectId = policy.projectId;
+  if (policy.projectId) {
+    callLogItem.projectId = policy.projectId;
+  }
   callLogItem.incomingCallLogId = callLog.id!;
-  callLogItem.incomingCallPolicyEscalationRuleId = rule.id;
-  callLogItem.userId = userToCall.id;
-  callLogItem.userPhoneNumber = userToCall.alertPhoneNumber;
+  if (rule.id) {
+    callLogItem.incomingCallPolicyEscalationRuleId = rule.id;
+  }
+  if (userToCall.id) {
+    callLogItem.userId = userToCall.id;
+  }
+  if (userToCall.alertPhoneNumber) {
+    callLogItem.userPhoneNumber = userToCall.alertPhoneNumber;
+  }
   callLogItem.status = IncomingCallStatus.Ringing;
   callLogItem.startedAt = new Date();
   callLogItem.isAnswered = false;
