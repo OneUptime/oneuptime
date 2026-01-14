@@ -37,7 +37,6 @@ router.post(
       const isValid: boolean = await provider.validateWebhook({
         headers: req.headers as Record<string, string>,
         body: req.body as JSONObject,
-        rawBody: (req as ExpressRequest & { rawBody?: string }).rawBody,
       });
 
       if (!isValid) {
@@ -76,8 +75,8 @@ router.post(
         emailFrom: parsedEmail.from,
         emailTo: parsedEmail.to,
         emailSubject: parsedEmail.subject,
-        emailBody: parsedEmail.textBody,
-        emailBodyHtml: parsedEmail.htmlBody,
+        emailBody: parsedEmail.body,
+        emailBodyHtml: parsedEmail.bodyHtml,
         emailHeaders: parsedEmail.headers,
         attachments: parsedEmail.attachments,
       });

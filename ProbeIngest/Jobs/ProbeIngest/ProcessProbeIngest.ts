@@ -16,6 +16,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import { JSONObject } from "Common/Types/JSON";
 import { PROBE_INGEST_CONCURRENCY } from "../../Config";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
@@ -63,7 +64,7 @@ async function processProbeFromQueue(
 ): Promise<void> {
   const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
     jobData.probeMonitorResponse?.["probeMonitorResponse"] as JSONObject,
-  ) as ProbeMonitorResponse;
+  ) as unknown as ProbeMonitorResponse;
 
   if (!probeResponse) {
     throw new BadDataException("ProbeMonitorResponse not found");
@@ -86,15 +87,18 @@ async function processProbeFromQueue(
     probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
     // save the probe response to the monitor test.
-    await MonitorTestService.updateOneById({
+    const stepResponse: MonitorStepProbeResponse = {
+      [probeResponse.monitorStepId.toString()]: {
+        ...JSON.parse(JSON.stringify(probeResponse)),
+        monitoredAt: OneUptimeDate.getCurrentDate(),
+      } as ProbeMonitorResponse,
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (MonitorTestService as any).updateOneById({
       id: testId,
       data: {
-        monitorStepProbeResponse: {
-          [probeResponse.monitorStepId.toString()]: {
-            ...JSON.parse(JSON.stringify(probeResponse)),
-            monitoredAt: OneUptimeDate.getCurrentDate(),
-          },
-        } as JSONObject,
+        monitorStepProbeResponse: stepResponse,
       },
       props: {
         isRoot: true,
