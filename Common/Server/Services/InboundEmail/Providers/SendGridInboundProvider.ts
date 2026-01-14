@@ -4,9 +4,8 @@ import InboundEmailProvider, {
 } from "../InboundEmailProvider";
 import { JSONObject } from "../../../../Types/JSON";
 
-export interface SendGridInboundConfig extends InboundEmailProviderConfig {
-  // SendGrid-specific configuration options can be added here
-}
+// SendGrid uses the base config - add SendGrid-specific options here if needed in the future
+export type SendGridInboundConfig = InboundEmailProviderConfig;
 
 /**
  * SendGrid Inbound Parse provider implementation
@@ -48,7 +47,9 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     const headers: Record<string, string> | undefined = this.parseHeaders(
       rawData["headers"]?.toString(),
     );
-    const attachments = this.parseAttachments(rawData);
+    const attachments:
+      | Array<{ filename: string; contentType: string; size: number }>
+      | undefined = this.parseAttachments(rawData);
 
     return {
       from,
