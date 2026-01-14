@@ -119,7 +119,7 @@ export class MonitorTypeHelper {
         title: "Server / VM",
         description:
           "This monitor type lets you monitor any server, VM, or any machine.",
-        icon: IconProp.Database,
+        icon: IconProp.Cube,
       },
       {
         monitorType: MonitorType.SSLCertificate,
