@@ -40,10 +40,10 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                   props.onChange(option.value);
                 }
               }}
-              className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none transition-all duration-200 hover:border-indigo-500 hover:shadow-md ${
+              className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none transition-all duration-200 hover:border-indigo-400 hover:shadow-md ${
                 isSelected
-                  ? "border-indigo-600 ring-2 ring-indigo-600 bg-indigo-50"
-                  : "border-gray-300 bg-white"
+                  ? "border-indigo-500 bg-indigo-50/50"
+                  : "border-gray-200 bg-white"
               }`}
               role="radio"
               aria-checked={isSelected}
@@ -52,28 +52,28 @@ const CardSelect: FunctionComponent<ComponentProps> = (
               <div className="flex w-full items-start">
                 <div
                   className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                    isSelected ? "bg-indigo-600" : "bg-gray-100"
+                    isSelected ? "bg-indigo-100" : "bg-gray-100"
                   }`}
                 >
                   <Icon
                     icon={option.icon}
                     size={SizeProp.Large}
                     className={`h-5 w-5 ${
-                      isSelected ? "text-white" : "text-gray-600"
+                      isSelected ? "text-indigo-600" : "text-gray-600"
                     }`}
                   />
                 </div>
                 <div className="ml-4 flex-1">
                   <span
                     className={`block text-sm font-semibold ${
-                      isSelected ? "text-indigo-900" : "text-gray-900"
+                      isSelected ? "text-gray-900" : "text-gray-900"
                     }`}
                   >
                     {option.title}
                   </span>
                   <span
                     className={`mt-1 block text-sm ${
-                      isSelected ? "text-indigo-700" : "text-gray-500"
+                      isSelected ? "text-gray-600" : "text-gray-500"
                     }`}
                   >
                     {option.description}
@@ -84,7 +84,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                     <Icon
                       icon={IconProp.CheckCircle}
                       size={SizeProp.Large}
-                      className="h-5 w-5 text-indigo-600"
+                      className="h-5 w-5 text-indigo-500"
                     />
                   </div>
                 )}
