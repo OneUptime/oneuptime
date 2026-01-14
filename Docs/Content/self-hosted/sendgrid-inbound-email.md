@@ -64,7 +64,7 @@ For better deliverability and to avoid emails being marked as spam:
 | Field | Value |
 |-------|-------|
 | **Receiving Domain** | Your inbound subdomain (e.g., `inbound.yourdomain.com`) |
-| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/webhook` |
+| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid` |
 | **Check incoming emails for spam** | Optional - enable if desired |
 | **Send raw, full MIME message** | Leave unchecked (not required) |
 | **POST the raw, full MIME message** | Leave unchecked (not required) |
@@ -185,7 +185,7 @@ Use "Email Received" criteria to ensure you receive periodic emails:
 
 1. **Ensure OneUptime is publicly accessible:**
    - The webhook URL must be reachable from the internet
-   - Test with: `curl -X POST https://your-oneuptime-domain.com/incoming-email/webhook`
+   - Test with: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
 
 2. **Check firewall rules:**
    - Allow incoming HTTPS traffic from SendGrid's IP ranges
