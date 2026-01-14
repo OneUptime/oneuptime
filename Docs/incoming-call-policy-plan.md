@@ -23,6 +23,12 @@ The main policy model that stores configuration for a routing phone number.
 | `slug` | Slug | URL-friendly identifier |
 | `projectId` | ObjectID | Reference to project |
 | `routingPhoneNumber` | Phone | Twilio number for incoming calls |
+| `twilioPhoneNumberSid` | ShortText | Twilio SID of purchased number |
+| `phoneNumberCountryCode` | ShortText | Country code (US, GB, etc.) |
+| `phoneNumberAreaCode` | ShortText | Area code if applicable |
+| `twilioCostPerMonthInUSDCents` | Number | Twilio's base cost (for accounting) |
+| `customerCostPerMonthInUSDCents` | Number | Customer price (with markup) |
+| `phoneNumberPurchasedAt` | Date | When number was purchased |
 | `greetingMessage` | LongText | Custom TTS greeting (default: "Please wait while we connect you to the on-call engineer.") |
 | `noAnswerMessage` | LongText | Message when escalation exhausted (default: "No one is available. Please try again later.") |
 | `isEnabled` | Boolean | Enable/disable policy |
@@ -354,11 +360,14 @@ Add under "Advanced" section:
 | `/Common/Server/Services/IncomingCallLogService.ts` | Parent log service |
 | `/Common/Server/Services/IncomingCallLogItemService.ts` | Child log item service |
 | `/App/FeatureSet/Notification/Services/IncomingCallService.ts` | Core routing logic |
+| `/App/FeatureSet/Notification/Services/PhoneNumberService.ts` | Twilio phone number management |
 | `/App/FeatureSet/Notification/API/IncomingCall.ts` | Webhook endpoints |
+| `/App/FeatureSet/Notification/API/PhoneNumber.ts` | Phone number search/purchase endpoints |
 | `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicies.tsx` | List page |
 | `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/View.tsx` | View page |
 | `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/EscalationRules.tsx` | Rules page |
 | `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/Logs.tsx` | Logs page |
+| `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/PhoneNumber.tsx` | Phone number search & purchase page |
 | `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/SideMenu.tsx` | Policy sub-menu |
 
 ### Files to Modify
@@ -371,6 +380,277 @@ Add under "Advanced" section:
 | `/Dashboard/src/Utils/PageMap.ts` | Add page entries |
 | `/Dashboard/src/Utils/RouteMap.ts` | Add route entries |
 | `/Common/Models/DatabaseModels/Index.ts` | Export new models |
+
+---
+
+## Phone Number Purchasing Flow
+
+### Overview
+
+Customers search for available Twilio phone numbers by country and area code, see a list of options, and select the one they want. OneUptime then purchases it via Twilio API.
+
+### UI Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Get Routing Phone Number                                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Country:  [United States ▼]                                │
+│                                                             │
+│  Area Code (optional): [415]                                │
+│                                                             │
+│  [Search Available Numbers]                                 │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  Available Numbers:                                         │
+│                                                             │
+│  ○ +1 (415) 555-0123    San Francisco, CA    $1.20/month   │
+│  ○ +1 (415) 555-0456    San Francisco, CA    $1.20/month   │
+│  ○ +1 (415) 555-0789    San Francisco, CA    $1.20/month   │
+│  ○ +1 (415) 555-0321    San Francisco, CA    $1.20/month   │
+│                                                             │
+│  (Price includes all fees)                                  │
+│                                                             │
+│  [Purchase Selected Number]                                 │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Note:** UI shows `customerCostPerMonthInUSDCents` (with markup), not Twilio's base cost.
+
+### API Endpoints (New)
+
+**File:** `/App/FeatureSet/Notification/API/PhoneNumber.ts`
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/phone-number/search` | POST | Search available Twilio numbers by country/area code |
+| `/phone-number/purchase` | POST | Purchase a specific phone number |
+| `/phone-number/release/:id` | DELETE | Release a phone number back to Twilio |
+
+### Search Request/Response
+
+**POST `/phone-number/search`**
+
+Request:
+```typescript
+{
+  projectId: ObjectID;
+  countryCode: string;      // "US", "GB", "CA", etc.
+  areaCode?: string;        // "415", "212", etc. (optional)
+  contains?: string;        // Search for numbers containing digits (optional)
+}
+```
+
+Response:
+```typescript
+{
+  availableNumbers: Array<{
+    phoneNumber: string;      // "+14155550123"
+    friendlyName: string;     // "(415) 555-0123"
+    locality: string;         // "San Francisco"
+    region: string;           // "CA"
+    country: string;          // "US"
+    twilioCostPerMonthInUSDCents: number;    // 100 (Twilio's cost)
+    customerCostPerMonthInUSDCents: number;  // 120 (with markup)
+  }>;
+}
+```
+
+### Purchase Request/Response
+
+**POST `/phone-number/purchase`**
+
+Request:
+```typescript
+{
+  projectId: ObjectID;
+  phoneNumber: string;              // "+14155550123"
+  incomingCallPolicyId: ObjectID;   // Link to policy
+}
+```
+
+Response:
+```typescript
+{
+  success: boolean;
+  phoneNumberSid: string;   // Twilio SID for the purchased number
+  phoneNumber: string;
+}
+```
+
+### Pricing & Markup
+
+**Environment Variable:**
+```bash
+# Markup multiplier for phone number costs
+# 1.0 = no markup (charge exactly Twilio cost)
+# 1.2 = 20% markup
+# 1.5 = 50% markup
+PHONE_NUMBER_PRICE_MULTIPLIER=1.2
+```
+
+**Pricing Flow:**
+```
+Twilio Base Price (e.g., $1.00/month)
+         │
+         ▼
+  × PHONE_NUMBER_PRICE_MULTIPLIER (e.g., 1.2)
+         │
+         ▼
+  Customer Price (e.g., $1.20/month)
+```
+
+### Twilio API Integration
+
+**Service:** `/App/FeatureSet/Notification/Services/PhoneNumberService.ts`
+
+```typescript
+class PhoneNumberService {
+  // Get phone number pricing from Twilio Pricing API
+  async getPhoneNumberPricing(countryCode: string): Promise<{
+    basePricePerMonth: number;  // Twilio cost in USD
+    customerPricePerMonth: number;  // With markup applied
+  }> {
+    const client = getTwilioClient();
+
+    // Twilio Pricing API for phone numbers
+    const pricing = await client.pricing.v1.phoneNumbers
+      .countries(countryCode)
+      .fetch();
+
+    // Get local number price (most common type)
+    const localPrice = pricing.phoneNumberPrices.find(
+      p => p.number_type === 'local'
+    );
+
+    const basePricePerMonth = parseFloat(localPrice?.current_price || '1.00');
+    const multiplier = parseFloat(process.env.PHONE_NUMBER_PRICE_MULTIPLIER || '1.0');
+    const customerPricePerMonth = basePricePerMonth * multiplier;
+
+    return {
+      basePricePerMonth,
+      customerPricePerMonth,
+    };
+  }
+
+  // Search available numbers via Twilio (with pricing)
+  async searchAvailableNumbers(options: {
+    countryCode: string;
+    areaCode?: string;
+    contains?: string;
+    limit?: number;  // default 10
+  }): Promise<AvailableNumber[]> {
+    const client = getTwilioClient();
+
+    // Get pricing for this country
+    const pricing = await this.getPhoneNumberPricing(options.countryCode);
+
+    // Use Twilio AvailablePhoneNumbers API
+    const numbers = await client
+      .availablePhoneNumbers(options.countryCode)
+      .local.list({
+        areaCode: options.areaCode,
+        contains: options.contains,
+        limit: options.limit || 10,
+        voiceEnabled: true,
+      });
+
+    return numbers.map(n => ({
+      phoneNumber: n.phoneNumber,
+      friendlyName: n.friendlyName,
+      locality: n.locality,
+      region: n.region,
+      country: options.countryCode,
+      twilioCostPerMonthInUSDCents: Math.round(pricing.basePricePerMonth * 100),
+      customerCostPerMonthInUSDCents: Math.round(pricing.customerPricePerMonth * 100),
+    }));
+  }
+
+  // Purchase a number via Twilio
+  async purchaseNumber(phoneNumber: string): Promise<string> {
+    const client = getTwilioClient();
+
+    const purchased = await client.incomingPhoneNumbers.create({
+      phoneNumber: phoneNumber,
+      voiceUrl: getIncomingCallWebhookUrl(),  // Set webhook URL
+      voiceMethod: 'POST',
+    });
+
+    return purchased.sid;
+  }
+
+  // Release a number back to Twilio
+  async releaseNumber(phoneNumberSid: string): Promise<void> {
+    const client = getTwilioClient();
+    await client.incomingPhoneNumbers(phoneNumberSid).remove();
+  }
+
+  // Update webhook URL for a number
+  async updateWebhookUrl(phoneNumberSid: string, webhookUrl: string): Promise<void> {
+    const client = getTwilioClient();
+    await client.incomingPhoneNumbers(phoneNumberSid).update({
+      voiceUrl: webhookUrl,
+    });
+  }
+}
+```
+
+### New Fields in IncomingCallPolicy
+
+Add to `IncomingCallPolicy` model:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `twilioPhoneNumberSid` | ShortText | Twilio SID of purchased number |
+| `phoneNumberCountryCode` | ShortText | Country code (US, GB, etc.) |
+| `phoneNumberAreaCode` | ShortText | Area code if applicable |
+| `twilioCostPerMonthInUSDCents` | Number | Twilio's base cost (for accounting) |
+| `customerCostPerMonthInUSDCents` | Number | Customer price (with markup) |
+| `phoneNumberPurchasedAt` | Date | When number was purchased |
+
+### UI Components (New)
+
+**File:** `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/PhoneNumberPurchase.tsx`
+
+- Country dropdown (populated from Twilio supported countries)
+- Area code input field
+- Search button
+- Results list with radio selection
+- Purchase button
+- Loading states
+- Error handling
+
+### Phone Number Release Flow
+
+When an `IncomingCallPolicy` is deleted:
+
+1. Check if `twilioPhoneNumberSid` exists
+2. Call `PhoneNumberService.releaseNumber(sid)`
+3. Number is released back to Twilio
+4. Stop monthly billing for that number
+
+### Country Support
+
+Common countries to support initially:
+- United States (US)
+- Canada (CA)
+- United Kingdom (GB)
+- Australia (AU)
+- Germany (DE)
+- France (FR)
+
+Can be expanded based on Twilio availability.
+
+### Error Handling
+
+| Scenario | User Message |
+|----------|--------------|
+| No numbers available | "No phone numbers available for this area code. Try a different area code or country." |
+| Purchase failed | "Failed to purchase phone number. Please try again or contact support." |
+| Number already taken | "This number is no longer available. Please select another." |
+| Insufficient balance | "Insufficient balance to purchase phone number. Please add funds." |
 
 ---
 
