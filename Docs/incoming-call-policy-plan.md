@@ -824,4 +824,315 @@ async calculateCallCost(
   return incomingCost + outgoingCost;
 }
 ```
+
+### Cost Deduction Timing
+
+**Important:** Balance is checked and an estimated cost is **pre-authorized at the start of the call**, not at the end. This prevents calls from exceeding available balance.
+
+```
+Incoming Call Received
+         │
+         ▼
+┌─────────────────────────┐
+│ Check Project Balance   │
+│ Pre-authorize estimated │
+│ cost (e.g., 10 minutes) │
+└───────────┬─────────────┘
+            │
+      ┌─────┴─────┐
+      │           │
+  Sufficient   Insufficient
+      │           │
+      ▼           ▼
+  Route Call   Play "Service
+               unavailable"
+            │
+            ▼
+     Call Completes
+            │
+            ▼
+┌─────────────────────────┐
+│ Calculate actual cost   │
+│ Adjust balance          │
+│ (refund or charge diff) │
+└─────────────────────────┘
+```
+
+---
+
+## Webhook Security
+
+All incoming webhooks must be validated to ensure they originate from the configured call provider and not from malicious actors.
+
+### Webhook URL Structure
+
+Webhook URLs include a **path secret** for additional security (similar to SendGrid webhooks):
+
+```
+https://api.oneuptime.com/incoming-call/{policyId}/{pathSecret}/voice
+https://api.oneuptime.com/incoming-call/{policyId}/{pathSecret}/dial-status/{logItemId}
+```
+
+**Fields to add to `IncomingCallPolicy`:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `webhookPathSecret` | ShortText | Random secret included in webhook URL (generated on creation) |
+
+### Signature Validation
+
+Each call provider has its own signature validation mechanism. The `ICallProvider` interface includes validation:
+
+```typescript
+interface ICallProvider {
+  // ... existing methods ...
+
+  // Webhook signature validation
+  validateWebhookSignature(request: Request, signature: string): boolean;
+}
+```
+
+**Twilio Implementation:**
+
+```typescript
+class TwilioCallProvider implements ICallProvider {
+  validateWebhookSignature(request: Request, signature: string): boolean {
+    const authToken = this.config.authToken;
+    const url = request.originalUrl;
+    const params = request.body;
+
+    return Twilio.validateRequest(authToken, signature, url, params);
+  }
+}
+```
+
+**Webhook Middleware:**
+
+```typescript
+// In /App/FeatureSet/Notification/Middleware/IncomingCallWebhookAuth.ts
+
+async function validateIncomingCallWebhook(req, res, next) {
+  const { policyId, pathSecret } = req.params;
+
+  // 1. Validate path secret
+  const policy = await IncomingCallPolicyService.findOneById(policyId);
+  if (!policy || policy.webhookPathSecret !== pathSecret) {
+    return res.status(403).send('Invalid webhook path');
+  }
+
+  // 2. Validate provider signature
+  const provider = CallProviderFactory.getProvider();
+  const signature = req.headers['x-twilio-signature']; // or provider-specific header
+
+  if (!provider.validateWebhookSignature(req, signature)) {
+    return res.status(403).send('Invalid signature');
+  }
+
+  next();
+}
+```
+
+---
+
+## Edge Cases
+
+### No One Currently On-Call
+
+If the escalation rule points to a schedule but no one is currently on-call:
+
+1. Skip to the next escalation rule
+2. If all rules exhausted, play the **`noOneAvailableMessage`** (user-configurable in Policy Settings)
+
+**New field in `IncomingCallPolicy`:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `noOneAvailableMessage` | LongText | Message when no one is on-call or reachable (default: "We're sorry, but no on-call engineer is currently available. Please try again later or contact support.") |
+
+### User Has No Phone Number Configured
+
+If an escalation rule routes to a specific user (or the on-call user from a schedule) but they have no incoming call phone number configured:
+
+1. Log the skip in `IncomingCallLogItem` with status `Failed` and message "User has no incoming call phone number"
+2. Proceed to next escalation rule
+3. If all rules exhausted, play the **`noOneAvailableMessage`**
+
+### Multiple Simultaneous Calls
+
+When multiple calls arrive at the same routing number simultaneously:
+
+1. **First call** - Routes normally through escalation rules
+2. **Subsequent calls** - Receive a busy message
+
+**New field in `IncomingCallPolicy`:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `busyMessage` | LongText | Message when line is busy (default: "All lines are currently busy. Please try again in a few minutes.") |
+| `maxConcurrentCalls` | Number | Maximum simultaneous calls to route (default: 1) |
+
+**Implementation:**
+
+```typescript
+// Track active calls per policy
+const activeCallsCount = await IncomingCallLogService.countBy({
+  incomingCallPolicyId: policy._id,
+  status: { $in: ['Initiated', 'Ringing', 'Connected'] }
+});
+
+if (activeCallsCount >= policy.maxConcurrentCalls) {
+  return provider.generateHangupResponse(policy.busyMessage);
+}
+```
+
+### Total Call Timeout
+
+**New field in `IncomingCallPolicy`:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `maxTotalCallDurationSeconds` | Number | Maximum duration for entire call including all escalations (default: 300 = 5 minutes) |
+
+If the total call duration exceeds this limit, play `noAnswerMessage` and hang up.
+
+---
+
+## User Incoming Call Phone Number
+
+Users must configure a dedicated phone number for receiving incoming call routing. This number must be verified via SMS before it can be used.
+
+### User Model Changes
+
+**File:** `/Common/Models/DatabaseModels/User.ts`
+
+Add new fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `incomingCallPhoneNumber` | Phone | Phone number for receiving routed calls |
+| `isIncomingCallPhoneNumberVerified` | Boolean | Whether the number has been verified |
+| `incomingCallPhoneNumberVerificationCode` | ShortText | 6-digit verification code (temporary) |
+| `incomingCallPhoneNumberVerificationCodeExpiry` | Date | When the code expires |
+
+### Verification Flow
+
+```
+User enters phone number in Settings
+              │
+              ▼
+┌──────────────────────────────┐
+│ Generate 6-digit code        │
+│ Store with 10-minute expiry  │
+│ Send SMS to phone number     │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│ User enters code in UI       │
+└──────────────┬───────────────┘
+               │
+        ┌──────┴──────┐
+        │             │
+     Matches      Doesn't Match
+        │             │
+        ▼             ▼
+   Set verified    Show error
+   = true          "Invalid code"
+```
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/user/incoming-call-phone/send-verification` | POST | Send verification SMS |
+| `/user/incoming-call-phone/verify` | POST | Verify the code |
+| `/user/incoming-call-phone/remove` | DELETE | Remove verified number |
+
+### UI Location
+
+**File:** `/Dashboard/src/Pages/Settings/UserSettings.tsx` (or similar)
+
+Add section:
+- "Incoming Call Phone Number"
+- Phone number input
+- "Send Verification Code" button
+- Verification code input (shown after sending)
+- "Verify" button
+- Status indicator (Verified / Not Verified)
+
+### Call Routing Logic
+
+When routing a call to a user:
+
+```typescript
+async function getUserPhoneNumberForIncomingCall(userId: ObjectID): Promise<Phone | null> {
+  const user = await UserService.findOneById(userId);
+
+  if (!user.incomingCallPhoneNumber || !user.isIncomingCallPhoneNumberVerified) {
+    return null; // User cannot receive incoming calls
+  }
+
+  return user.incomingCallPhoneNumber;
+}
+```
+
+---
+
+## Database Indexes
+
+For optimal query performance, add the following indexes:
+
+### IncomingCallPolicy
+
+```typescript
+// Lookup by routing phone number (on incoming call)
+@Index({ routingPhoneNumber: 1 }, { unique: true })
+
+// Lookup by project
+@Index({ projectId: 1 })
+```
+
+### IncomingCallPolicyEscalationRule
+
+```typescript
+// Get rules for a policy in order
+@Index({ incomingCallPolicyId: 1, order: 1 })
+
+// Lookup by project
+@Index({ projectId: 1 })
+```
+
+### IncomingCallLog
+
+```typescript
+// Lookup by provider call ID (on status webhook)
+@Index({ callProviderCallId: 1 })
+
+// Lookup by policy (for logs page)
+@Index({ incomingCallPolicyId: 1, createdAt: -1 })
+
+// Lookup by project
+@Index({ projectId: 1, createdAt: -1 })
+
+// Count active calls (for concurrent call check)
+@Index({ incomingCallPolicyId: 1, status: 1 })
+```
+
+### IncomingCallLogItem
+
+```typescript
+// Lookup by parent log
+@Index({ incomingCallLogId: 1, createdAt: 1 })
+
+// Lookup by project
+@Index({ projectId: 1 })
+```
+
+### User (new index)
+
+```typescript
+// Lookup by incoming call phone number
+@Index({ incomingCallPhoneNumber: 1 }, { sparse: true })
+```
+
 ---
