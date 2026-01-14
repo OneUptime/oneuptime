@@ -2080,6 +2080,21 @@
       },
       "additionalProperties": false
     },
+    "inboundEmail": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": ["string", "null"]
+        },
+        "domain": {
+          "type": ["string", "null"]
+        },
+        "webhookSecret": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
     "keda": {
       "type": "object",
       "properties": {
