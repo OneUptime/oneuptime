@@ -12,14 +12,14 @@ import InboundEmailProvider, {
 } from "Common/Server/Services/InboundEmail/InboundEmailProvider";
 import { JSONObject } from "Common/Types/JSON";
 import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
-import { MultipartFormDataMiddleware } from "Common/Server/Utils/Multer";
+import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
 
 const router: ExpressRouter = Express.getRouter();
 
-// Main webhook endpoint for inbound emails
+// Webhook endpoint for SendGrid inbound emails
 // SendGrid sends data as multipart/form-data
 router.post(
-  "/incoming-email/webhook",
+  "/incoming-email/sendgrid",
   MultipartFormDataMiddleware,
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {

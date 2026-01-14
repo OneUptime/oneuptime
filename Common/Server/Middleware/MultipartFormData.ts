@@ -7,7 +7,7 @@ const upload: multer.Multer = multer({ storage: multer.memoryStorage() });
 
 // Middleware for handling any file uploads (multipart/form-data)
 // This is useful for webhooks that send data as multipart/form-data (e.g., SendGrid inbound email)
-export const MultipartFormDataMiddleware: RequestHandler =
+const MultipartFormDataMiddleware: RequestHandler =
   upload.any() as unknown as RequestHandler;
 
-export default upload;
+export default MultipartFormDataMiddleware;
