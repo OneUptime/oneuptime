@@ -137,6 +137,9 @@ export default class Markdown {
     };
 
     renderer.code = function (code, language) {
+      if (language === "mermaid") {
+        return `<div class="mermaid">${code}</div>`;
+      }
       return `<pre><code class="language-${language}">${code}</code></pre>`;
     };
 

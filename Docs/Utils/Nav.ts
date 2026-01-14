@@ -226,10 +226,6 @@ DocsNav.push({
   title: "Self Hosted",
   links: [
     {
-      title: "Architecture",
-      url: "/docs/self-hosted/architecture",
-    },
-    {
       title: "Slack Integration",
       url: "/docs/self-hosted/slack-integration",
     },
@@ -244,6 +240,10 @@ DocsNav.push({
     {
       title: "SendGrid Inbound Email",
       url: "/docs/self-hosted/sendgrid-inbound-email",
+    },
+    {
+      title: "Architecture",
+      url: "/docs/self-hosted/architecture",
     },
   ],
 });
