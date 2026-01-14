@@ -220,6 +220,7 @@ import { MigrationName1767979448478 } from "./1767979448478-MigrationName";
 import { IncreaseClientSecretLength1768216593272 } from "./1768216593272-IncreaseClientSecretLength";
 import { AddOAuthProviderType1768217403078 } from "./1768217403078-AddOAuthProviderType";
 import { AddIncomingEmailMonitor1768335589018 } from "./1768335589018-AddIncomingEmailMonitor";
+import { MigrationName1768422356713 } from "./1768422356713-MigrationName";
 
 export default [
   InitialMigration,
@@ -444,4 +445,5 @@ export default [
   IncreaseClientSecretLength1768216593272,
   AddOAuthProviderType1768217403078,
   AddIncomingEmailMonitor1768335589018,
+  MigrationName1768422356713
 ];

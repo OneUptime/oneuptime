@@ -45,7 +45,7 @@ router.post(
         InboundEmailProviderFactory.getProvider();
 
       // Get the secret from the URL path if provided
-      const pathSecret: string | undefined = req.params["secret"];
+      const pathSecret: string = req.params["secret"] || "";
 
       // Validate the webhook request (secret from path takes precedence)
       const isValid: boolean = await provider.validateWebhook({
