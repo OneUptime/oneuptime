@@ -67,11 +67,11 @@ const MonitorCreate: FunctionComponent<
                 monitorType: true,
               },
               title: "Monitor Type",
+              description: "Select the type of monitor you want to create",
               stepId: "monitor-info",
-              fieldType: FormFieldSchemaType.Dropdown,
+              fieldType: FormFieldSchemaType.CardSelect,
               required: true,
-              placeholder: "Select Monitor Type",
-              dropdownOptions: MonitorTypeUtil.monitorTypesAsDropdownOptions(),
+              cardSelectOptions: MonitorTypeUtil.monitorTypesAsCardSelectOptions(),
             },
             {
               field: {

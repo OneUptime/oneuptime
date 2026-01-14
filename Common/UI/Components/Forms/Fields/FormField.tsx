@@ -1,5 +1,6 @@
 import Dictionary from "../../../../Types/Dictionary";
 import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import CardSelect from "../../CardSelect/CardSelect";
 import CategoryCheckbox from "../../CategoryCheckbox/Index";
 import CheckboxElement, {
   CategoryCheckboxValue,
@@ -357,6 +358,25 @@ const FormField: <T extends GenericObject>(
               }
               options={props.field.dropdownOptions || []}
               placeholder={props.field.placeholder || ""}
+              value={
+                props.currentValues &&
+                (props.currentValues as any)[props.fieldName]
+                  ? (props.currentValues as any)[props.fieldName]
+                  : ""
+              }
+            />
+          )}
+
+          {props.field.fieldType === FormFieldSchemaType.CardSelect && (
+            <CardSelect
+              error={props.touched && props.error ? props.error : undefined}
+              tabIndex={index}
+              dataTestId={props.field.dataTestId}
+              onChange={(value: string) => {
+                onChange(value);
+                props.setFieldValue(props.fieldName, value);
+              }}
+              options={props.field.cardSelectOptions || []}
               value={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
