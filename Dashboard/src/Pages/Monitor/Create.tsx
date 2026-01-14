@@ -7,7 +7,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import {

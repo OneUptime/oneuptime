@@ -16,8 +16,10 @@ import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormD
 
 const router: ExpressRouter = Express.getRouter();
 
-// Webhook endpoint for SendGrid inbound emails
-// SendGrid sends data as multipart/form-data
+/*
+ * Webhook endpoint for SendGrid inbound emails
+ * SendGrid sends data as multipart/form-data
+ */
 router.post(
   "/incoming-email/sendgrid",
   MultipartFormDataMiddleware,
@@ -26,7 +28,9 @@ router.post(
       logger.debug("Received incoming email webhook");
 
       // Log raw body for debugging
-      logger.debug(`Request body keys: ${Object.keys(req.body || {}).join(", ")}`);
+      logger.debug(
+        `Request body keys: ${Object.keys(req.body || {}).join(", ")}`,
+      );
 
       // Check if inbound email is configured
       if (!InboundEmailProviderFactory.isConfigured()) {

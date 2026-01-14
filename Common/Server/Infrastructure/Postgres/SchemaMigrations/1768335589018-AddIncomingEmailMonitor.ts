@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddIncomingEmailMonitor1768335589018 implements MigrationInterface {
+export class AddIncomingEmailMonitor1768335589018
+  implements MigrationInterface
+{
   public name = "AddIncomingEmailMonitor1768335589018";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -43,9 +45,7 @@ export class AddIncomingEmailMonitor1768335589018 implements MigrationInterface 
     await queryRunner.query(
       `ALTER TABLE "Monitor" DROP COLUMN "incomingEmailMonitorLastEmailReceivedAt"`,
     );
-    await queryRunner.query(
-      `DROP INDEX "IDX_Monitor_incomingEmailSecretKey"`,
-    );
+    await queryRunner.query(`DROP INDEX "IDX_Monitor_incomingEmailSecretKey"`);
     await queryRunner.query(
       `ALTER TABLE "Monitor" DROP COLUMN "incomingEmailSecretKey"`,
     );

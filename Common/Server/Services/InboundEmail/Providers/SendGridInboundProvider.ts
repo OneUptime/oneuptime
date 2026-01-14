@@ -31,8 +31,10 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
   public async parseInboundEmail(
     rawData: JSONObject,
   ): Promise<ParsedInboundEmail> {
-    // SendGrid Inbound Parse webhook format
-    // Reference: https://docs.sendgrid.com/for-developers/parsing-email/setting-up-the-inbound-parse-webhook
+    /*
+     * SendGrid Inbound Parse webhook format
+     * Reference: https://docs.sendgrid.com/for-developers/parsing-email/setting-up-the-inbound-parse-webhook
+     */
 
     const from: string = this.extractEmailAddress(
       rawData["from"]?.toString() || "",
@@ -63,8 +65,10 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     headers: Record<string, string>;
     body: JSONObject | string;
   }): Promise<boolean> {
-    // SendGrid Inbound Parse doesn't provide webhook signature verification by default
-    // We can optionally validate using a custom header if configured
+    /*
+     * SendGrid Inbound Parse doesn't provide webhook signature verification by default
+     * We can optionally validate using a custom header if configured
+     */
     if (this.config.webhookSecret) {
       const providedSecret: string | undefined =
         data.headers["x-oneuptime-webhook-secret"];
@@ -72,18 +76,24 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
       return providedSecret === this.config.webhookSecret;
     }
 
-    // If no webhook secret is configured, accept all requests
-    // This is acceptable for SendGrid as the webhook URL itself is a secret
+    /*
+     * If no webhook secret is configured, accept all requests
+     * This is acceptable for SendGrid as the webhook URL itself is a secret
+     */
     return true;
   }
 
   public extractSecretKeyFromEmail(email: string): string | null {
-    // Extract from: monitor-{secretKey}@inbound.domain.com
-    // Handle email formats like "name@domain" or "Name <name@domain>"
+    /*
+     * Extract from: monitor-{secretKey}@inbound.domain.com
+     * Handle email formats like "name@domain" or "Name <name@domain>"
+     */
     const emailAddress: string = this.extractEmailAddress(email);
 
-    // Create regex pattern that matches the email prefix format
-    // The secret key is a UUID-like string
+    /*
+     * Create regex pattern that matches the email prefix format
+     * The secret key is a UUID-like string
+     */
     const pattern: RegExp = new RegExp(
       `^monitor-([a-zA-Z0-9-]+)@${this.escapeRegex(this.config.inboundDomain)}$`,
       "i",
@@ -147,7 +157,9 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
    */
   private parseAttachments(
     rawData: JSONObject,
-  ): Array<{ filename: string; contentType: string; size: number }> | undefined {
+  ):
+    | Array<{ filename: string; contentType: string; size: number }>
+    | undefined {
     const attachmentCount: number = parseInt(
       rawData["attachments"]?.toString() || "0",
       10,

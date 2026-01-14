@@ -159,9 +159,7 @@ const checkOnlineStatus: (monitor: Monitor) => Promise<void> = async (
 
     await MonitorResourceUtil.monitorResource(incomingEmailRequest);
 
-    logger.debug(
-      `Processed incoming email monitor: ${monitor.id?.toString()}`,
-    );
+    logger.debug(`Processed incoming email monitor: ${monitor.id?.toString()}`);
   } catch (error) {
     logger.error(
       `Error while processing incoming email monitor: ${monitor.id?.toString()}`,
