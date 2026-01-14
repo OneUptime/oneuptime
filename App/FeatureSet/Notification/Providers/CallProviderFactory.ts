@@ -1,7 +1,7 @@
 import { ICallProvider } from "Common/Types/Call/CallProvider";
 import CallProviderType from "Common/Types/Call/CallProviderType";
 import TwilioCallProvider from "./TwilioCallProvider";
-import { getTwilioConfig } from "../Config";
+import { getTwilioConfig, CallProvider } from "../Config";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 
@@ -39,10 +39,7 @@ export default class CallProviderFactory {
   }
 
   public static getProviderType(): CallProviderType {
-    const providerTypeString: string =
-      process.env["CALL_PROVIDER"] || "twilio";
-
-    switch (providerTypeString.toLowerCase()) {
+    switch (CallProvider.toLowerCase()) {
       case "twilio":
         return CallProviderType.Twilio;
       default:

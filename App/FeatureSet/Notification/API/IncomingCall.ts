@@ -1,4 +1,5 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
+import { IncomingCallMinimumBalanceRequiredInCents } from "../Config";
 import {
   DialStatusData,
   ICallProvider,
@@ -33,25 +34,6 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import Project from "Common/Models/DatabaseModels/Project";
 
 const router: ExpressRouter = Express.getRouter();
-
-// Environment variables for call costs
-const INCOMING_CALL_COST_IN_CENTS_PER_MINUTE: number = process.env[
-  "INCOMING_CALL_COST_IN_CENTS_PER_MINUTE"
-]
-  ? parseInt(process.env["INCOMING_CALL_COST_IN_CENTS_PER_MINUTE"])
-  : 2;
-
-const INCOMING_CALL_FORWARD_COST_IN_CENTS_PER_MINUTE: number = process.env[
-  "INCOMING_CALL_FORWARD_COST_IN_CENTS_PER_MINUTE"
-]
-  ? parseInt(process.env["INCOMING_CALL_FORWARD_COST_IN_CENTS_PER_MINUTE"])
-  : 2;
-
-// Minimum balance required to process a call (estimate for 10 minutes)
-const MINIMUM_BALANCE_REQUIRED: number =
-  10 *
-  (INCOMING_CALL_COST_IN_CENTS_PER_MINUTE +
-    INCOMING_CALL_FORWARD_COST_IN_CENTS_PER_MINUTE);
 
 // Handle incoming voice call
 router.post(
@@ -127,7 +109,7 @@ router.post(
         if (
           !project ||
           !project.smsOrCallCurrentBalanceInUSDCents ||
-          project.smsOrCallCurrentBalanceInUSDCents < MINIMUM_BALANCE_REQUIRED
+          project.smsOrCallCurrentBalanceInUSDCents < IncomingCallMinimumBalanceRequiredInCents
         ) {
           // Try to auto-recharge
           try {
@@ -156,7 +138,7 @@ router.post(
             !updatedProject ||
             !updatedProject.smsOrCallCurrentBalanceInUSDCents ||
             updatedProject.smsOrCallCurrentBalanceInUSDCents <
-              MINIMUM_BALANCE_REQUIRED
+              IncomingCallMinimumBalanceRequiredInCents
           ) {
             const twiml: string = provider.generateHangupResponse(
               "Sorry, this service is temporarily unavailable due to insufficient balance.",

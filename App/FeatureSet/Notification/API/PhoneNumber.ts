@@ -1,4 +1,5 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
+import { PhoneNumberPriceMultiplier } from "../Config";
 import {
   AvailablePhoneNumber,
   ICallProvider,
@@ -23,13 +24,6 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Phone from "Common/Types/Phone";
 
 const router: ExpressRouter = Express.getRouter();
-
-// Environment variable for phone number price multiplier
-const PHONE_NUMBER_PRICE_MULTIPLIER: number = process.env[
-  "PHONE_NUMBER_PRICE_MULTIPLIER"
-]
-  ? parseFloat(process.env["PHONE_NUMBER_PRICE_MULTIPLIER"])
-  : 1.2; // Default 20% markup
 
 // Search available phone numbers
 router.post(
@@ -106,7 +100,7 @@ router.post(
             ...number,
             customerCostPerMonthInUSDCents: Math.round(
               number.providerCostPerMonthInUSDCents *
-                PHONE_NUMBER_PRICE_MULTIPLIER,
+                PhoneNumberPriceMultiplier,
             ),
           };
         },
@@ -258,7 +252,7 @@ router.post(
             purchased.providerCostPerMonthInUSDCents,
           customerCostPerMonthInUSDCents: Math.round(
             purchased.providerCostPerMonthInUSDCents *
-              PHONE_NUMBER_PRICE_MULTIPLIER,
+              PhoneNumberPriceMultiplier,
           ),
           phoneNumberPurchasedAt: new Date(),
         },

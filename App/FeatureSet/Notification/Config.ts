@@ -334,3 +334,29 @@ export const IncomingCallOutboundCostPerMinuteInCents: number = process.env[
 
 export const IncomingCallEnabled: boolean =
   process.env["INCOMING_CALL_ENABLED"] !== "false"; // Enabled by default
+
+// Phone number price multiplier (derived from markup percentage)
+export const PhoneNumberPriceMultiplier: number =
+  1 + IncomingCallPhoneNumberMarkupPercentage / 100;
+
+// Call costs for incoming calls
+export const IncomingCallCostPerMinuteInCents: number = process.env[
+  "INCOMING_CALL_COST_IN_CENTS_PER_MINUTE"
+]
+  ? parseInt(process.env["INCOMING_CALL_COST_IN_CENTS_PER_MINUTE"])
+  : 2; // $0.02 per minute
+
+export const IncomingCallForwardCostPerMinuteInCents: number = process.env[
+  "INCOMING_CALL_FORWARD_COST_IN_CENTS_PER_MINUTE"
+]
+  ? parseInt(process.env["INCOMING_CALL_FORWARD_COST_IN_CENTS_PER_MINUTE"])
+  : 2; // $0.02 per minute for forwarding
+
+// Minimum balance required to process a call (estimate for 10 minutes)
+export const IncomingCallMinimumBalanceRequiredInCents: number =
+  10 *
+  (IncomingCallCostPerMinuteInCents + IncomingCallForwardCostPerMinuteInCents);
+
+// Call provider type
+export const CallProvider: string =
+  process.env["CALL_PROVIDER"] || "twilio";
