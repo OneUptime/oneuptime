@@ -2,9 +2,265 @@
 
 ## Overview
 
-Create a standalone **Incoming Call Policy** that handles incoming calls to a Twilio phone number. The policy has its own escalation rules where each rule can route to either an On-Call Schedule OR a specific User (never both).
+Create a standalone **Incoming Call Policy** that handles incoming calls to a phone number. The policy has its own escalation rules where each rule can route to either an On-Call Schedule OR a specific User (never both).
 
 **Use Case:** Instead of giving customers multiple phone numbers for different on-call engineers, provide a single phone number. When called, OneUptime automatically routes the call to whoever is currently on-call, with automatic escalation if unanswered.
+
+---
+
+## Call Provider Abstraction Layer
+
+The system is designed to be **provider-agnostic**. Twilio is the initial implementation, but the architecture supports swapping to any other provider (Vonage, Bandwidth, Plivo, etc.) without changing business logic.
+
+### Environment Variable
+
+```bash
+# Select which call provider to use
+CALL_PROVIDER=twilio (by default, if no call provider is mentioned)
+```
+
+### Provider Interface
+
+**File:** `/Common/Types/Call/CallProvider.ts`
+
+```typescript
+// Available call providers
+enum CallProviderType {
+  Twilio = "twilio"
+}
+
+// Phone number from provider search
+interface AvailablePhoneNumber {
+  phoneNumber: string;           // "+14155550123"
+  friendlyName: string;          // "(415) 555-0123"
+  locality?: string;             // "San Francisco"
+  region?: string;               // "CA"
+  country: string;               // "US"
+  providerCostPerMonthInUSDCents: number;
+  customerCostPerMonthInUSDCents: number;
+}
+
+// Purchased phone number details
+interface PurchasedPhoneNumber {
+  phoneNumberId: string;         // Provider's ID (e.g., Twilio SID)
+  phoneNumber: string;
+  providerCostPerMonthInUSDCents: number;
+}
+
+// Call provider interface - all providers must implement this
+interface ICallProvider {
+  // Phone number management
+  searchAvailableNumbers(options: SearchNumberOptions): Promise<AvailablePhoneNumber[]>;
+  purchaseNumber(phoneNumber: string, webhookUrl: string): Promise<PurchasedPhoneNumber>;
+  releaseNumber(phoneNumberId: string): Promise<void>;
+  updateWebhookUrl(phoneNumberId: string, webhookUrl: string): Promise<void>;
+
+  // Pricing
+  getPhoneNumberPricing(countryCode: string): Promise<{ basePricePerMonth: number }>;
+
+  // Voice response generation (provider-specific markup)
+  generateGreetingResponse(message: string): string;
+  generateDialResponse(options: DialOptions): string;
+  generateHangupResponse(message?: string): string;
+
+  // Webhook parsing
+  parseIncomingCallWebhook(request: Request): IncomingCallData;
+  parseDialStatusWebhook(request: Request): DialStatusData;
+}
+
+interface SearchNumberOptions {
+  countryCode: string;
+  areaCode?: string;
+  contains?: string;
+  limit?: number;
+}
+
+interface DialOptions {
+  toPhoneNumber: string;
+  fromPhoneNumber: string;
+  timeoutSeconds: number;
+  statusCallbackUrl: string;
+}
+
+interface IncomingCallData {
+  callId: string;              // Provider's call ID
+  callerPhoneNumber: string;
+  calledPhoneNumber: string;
+}
+
+interface DialStatusData {
+  callId: string;
+  dialStatus: "completed" | "busy" | "no-answer" | "failed" | "canceled";
+  dialDurationSeconds?: number;
+}
+```
+
+### Twilio Implementation
+
+**File:** `/App/FeatureSet/Notification/Providers/TwilioCallProvider.ts`
+
+```typescript
+class TwilioCallProvider implements ICallProvider {
+  private client: Twilio.Twilio;
+
+  constructor(config: TwilioConfig) {
+    this.client = new Twilio.Twilio(config.accountSid, config.authToken);
+  }
+
+  async searchAvailableNumbers(options: SearchNumberOptions): Promise<AvailablePhoneNumber[]> {
+    const pricing = await this.getPhoneNumberPricing(options.countryCode);
+    const numbers = await this.client
+      .availablePhoneNumbers(options.countryCode)
+      .local.list({
+        areaCode: options.areaCode,
+        contains: options.contains,
+        limit: options.limit || 10,
+        voiceEnabled: true,
+      });
+
+    return numbers.map(n => ({
+      phoneNumber: n.phoneNumber,
+      friendlyName: n.friendlyName,
+      locality: n.locality,
+      region: n.region,
+      country: options.countryCode,
+      providerCostPerMonthInUSDCents: Math.round(pricing.basePricePerMonth * 100),
+      customerCostPerMonthInUSDCents: this.applyMarkup(pricing.basePricePerMonth),
+    }));
+  }
+
+  async purchaseNumber(phoneNumber: string, webhookUrl: string): Promise<PurchasedPhoneNumber> {
+    const purchased = await this.client.incomingPhoneNumbers.create({
+      phoneNumber,
+      voiceUrl: webhookUrl,
+      voiceMethod: 'POST',
+    });
+
+    return {
+      phoneNumberId: purchased.sid,
+      phoneNumber: purchased.phoneNumber,
+      providerCostPerMonthInUSDCents: /* from pricing */,
+    };
+  }
+
+  async releaseNumber(phoneNumberId: string): Promise<void> {
+    await this.client.incomingPhoneNumbers(phoneNumberId).remove();
+  }
+
+  // Generate TwiML for Twilio
+  generateGreetingResponse(message: string): string {
+    const response = new Twilio.twiml.VoiceResponse();
+    response.say({ voice: 'alice' }, message);
+    return response.toString();
+  }
+
+  generateDialResponse(options: DialOptions): string {
+    const response = new Twilio.twiml.VoiceResponse();
+    response.dial({
+      action: options.statusCallbackUrl,
+      method: 'POST',
+      timeout: options.timeoutSeconds,
+      callerId: options.fromPhoneNumber,
+    }).number(options.toPhoneNumber);
+    return response.toString();
+  }
+
+  generateHangupResponse(message?: string): string {
+    const response = new Twilio.twiml.VoiceResponse();
+    if (message) {
+      response.say({ voice: 'alice' }, message);
+    }
+    response.hangup();
+    return response.toString();
+  }
+
+  parseIncomingCallWebhook(request: Request): IncomingCallData {
+    return {
+      callId: request.body.CallSid,
+      callerPhoneNumber: request.body.From,
+      calledPhoneNumber: request.body.To,
+    };
+  }
+
+  parseDialStatusWebhook(request: Request): DialStatusData {
+    return {
+      callId: request.body.CallSid,
+      dialStatus: this.mapTwilioStatus(request.body.DialCallStatus),
+      dialDurationSeconds: parseInt(request.body.DialCallDuration || '0'),
+    };
+  }
+
+  private mapTwilioStatus(status: string): DialStatusData['dialStatus'] {
+    const map: Record<string, DialStatusData['dialStatus']> = {
+      'completed': 'completed',
+      'busy': 'busy',
+      'no-answer': 'no-answer',
+      'failed': 'failed',
+      'canceled': 'canceled',
+    };
+    return map[status] || 'failed';
+  }
+}
+```
+
+### Provider Factory
+
+**File:** `/App/FeatureSet/Notification/Providers/CallProviderFactory.ts`
+
+```typescript
+class CallProviderFactory {
+  private static instance: ICallProvider | null = null;
+
+  static getProvider(): ICallProvider {
+    if (this.instance) {
+      return this.instance;
+    }
+
+    const providerType = process.env.CALL_PROVIDER || 'twilio';
+
+    switch (providerType) {
+      case 'twilio':
+        this.instance = new TwilioCallProvider(getTwilioConfig());
+        break;
+      case 'vonage':
+        // Future: this.instance = new VonageCallProvider(getVonageConfig());
+        throw new Error('Vonage provider not yet implemented');
+      case 'bandwidth':
+        // Future: this.instance = new BandwidthCallProvider(getBandwidthConfig());
+        throw new Error('Bandwidth provider not yet implemented');
+      default:
+        throw new Error(`Unknown call provider: ${providerType}`);
+    }
+
+    return this.instance;
+  }
+}
+```
+
+### Future Provider Template (Vonage Example)
+
+**File:** `/App/FeatureSet/Notification/Providers/VonageCallProvider.ts` (Future)
+
+```typescript
+class VonageCallProvider implements ICallProvider {
+  // Vonage uses NCCO (Nexmo Call Control Objects) instead of TwiML
+
+  generateDialResponse(options: DialOptions): string {
+    // Return NCCO JSON instead of TwiML
+    return JSON.stringify([
+      {
+        action: 'connect',
+        timeout: options.timeoutSeconds,
+        from: options.fromPhoneNumber,
+        endpoint: [{ type: 'phone', number: options.toPhoneNumber }],
+        eventUrl: [options.statusCallbackUrl],
+      }
+    ]);
+  }
+
+  // ... other methods
+}
+```
 
 ---
 
@@ -22,11 +278,11 @@ The main policy model that stores configuration for a routing phone number.
 | `description` | LongText | Optional description |
 | `slug` | Slug | URL-friendly identifier |
 | `projectId` | ObjectID | Reference to project |
-| `routingPhoneNumber` | Phone | Twilio number for incoming calls |
-| `twilioPhoneNumberSid` | ShortText | Twilio SID of purchased number |
+| `routingPhoneNumber` | Phone | Phone number for incoming calls |
+| `callProviderPhoneNumberId` | ShortText | Provider's ID for the number (e.g., Twilio SID) |
 | `phoneNumberCountryCode` | ShortText | Country code (US, GB, etc.) |
 | `phoneNumberAreaCode` | ShortText | Area code if applicable |
-| `twilioCostPerMonthInUSDCents` | Number | Twilio's base cost (for accounting) |
+| `callProviderCostPerMonthInUSDCents` | Number | Call provider's base cost (for accounting) |
 | `customerCostPerMonthInUSDCents` | Number | Customer price (with markup) |
 | `phoneNumberPurchasedAt` | Date | When number was purchased |
 | `greetingMessage` | LongText | Custom TTS greeting (default: "Please wait while we connect you to the on-call engineer.") |
@@ -67,7 +323,7 @@ Parent log for each incoming call instance. Groups all escalation attempts toget
 | `incomingCallPolicyId` | ObjectID | Policy reference |
 | `callerPhoneNumber` | Phone | Incoming caller number |
 | `routingPhoneNumber` | Phone | The routing number called |
-| `twilioCallSid` | ShortText | Twilio call identifier |
+| `callProviderCallId` | ShortText | Call provider's call identifier |
 | `status` | Enum | Initiated/Connected/NoAnswer/Failed/Completed/CallerHungUp |
 | `callDurationInSeconds` | Number | Total call duration |
 | `callCostInUSDCents` | Number | Total cost for this call |
@@ -116,102 +372,6 @@ enum IncomingCallStatus {
 
 ---
 
-## API Endpoints
-
-### Twilio Webhook Endpoints
-
-**File:** `/App/FeatureSet/Notification/API/IncomingCall.ts`
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/incoming-call/voice/:policyId` | POST | Handle incoming calls from Twilio |
-| `/incoming-call/dial-status/:logId` | POST | Handle dial completion/no-answer callbacks |
-| `/incoming-call/call-complete/:logId` | POST | Final call completion callback |
-
-### Admin CRUD Endpoints
-
-Auto-generated via model decorators:
-
-**IncomingCallPolicy:**
-- `POST /incoming-call-policy` - Create policy
-- `GET /incoming-call-policy/:id` - Get policy
-- `PUT /incoming-call-policy/:id` - Update policy
-- `DELETE /incoming-call-policy/:id` - Delete policy
-- `GET /incoming-call-policy` - List policies
-
-**IncomingCallPolicyEscalationRule:**
-- `POST /incoming-call-policy-escalation-rule` - Create rule
-- `GET /incoming-call-policy-escalation-rule/:id` - Get rule
-- `PUT /incoming-call-policy-escalation-rule/:id` - Update rule
-- `DELETE /incoming-call-policy-escalation-rule/:id` - Delete rule
-
----
-
-## Services
-
-### 1. IncomingCallService
-
-Core routing logic for handling incoming calls.
-
-**File:** `/App/FeatureSet/Notification/Services/IncomingCallService.ts`
-
-```typescript
-class IncomingCallService {
-  // Look up policy by Twilio phone number
-  getIncomingCallPolicyByPhoneNumber(phone: Phone): Promise<IncomingCallPolicy | null>
-
-  // Get user phone for an escalation rule
-  // If rule has scheduleId -> get current on-call user from schedule
-  // If rule has userId -> get that user's phone directly
-  getUserPhoneForEscalationRule(rule: IncomingCallPolicyEscalationRule): Promise<{user: User, phone: Phone} | null>
-
-  // Generate TwiML for incoming call (greeting + first dial)
-  generateIncomingCallTwiml(policy: IncomingCallPolicy, userPhone: Phone, logId: ObjectID, ruleId: ObjectID): string
-
-  // Generate TwiML for escalation (message + next dial)
-  generateEscalationTwiml(policy: IncomingCallPolicy, userPhone: Phone, logId: ObjectID, ruleId: ObjectID): string
-
-  // Generate TwiML for no users available
-  generateNoAnswerTwiml(policy: IncomingCallPolicy): string
-
-  // Handle dial status and return next action
-  handleDialStatus(logId: ObjectID, dialStatus: string): Promise<{twiml: string, completed: boolean}>
-
-  // Get next escalation rule in order
-  getNextEscalationRule(policyId: ObjectID, currentOrder: number): Promise<IncomingCallPolicyEscalationRule | null>
-}
-```
-
-### 2. IncomingCallPolicyService
-
-**File:** `/Common/Server/Services/IncomingCallPolicyService.ts`
-
-Standard DatabaseService with:
-- Phone number uniqueness validation per project
-- `getByPhoneNumber(phone)` helper method
-
-### 3. IncomingCallPolicyEscalationRuleService
-
-**File:** `/Common/Server/Services/IncomingCallPolicyEscalationRuleService.ts`
-
-Standard DatabaseService with:
-- **Validation:** Ensure exactly one of `onCallDutyPolicyScheduleId` or `userId` is set
-- Order management helpers
-
-### 4. IncomingCallLogService
-
-**File:** `/Common/Server/Services/IncomingCallLogService.ts`
-
-Standard DatabaseService with logging helpers.
-
-### 5. IncomingCallLogItemService
-
-**File:** `/Common/Server/Services/IncomingCallLogItemService.ts`
-
-Standard DatabaseService for individual escalation attempt logs.
-
----
-
 ## Call Flow
 
 ```
@@ -226,7 +386,7 @@ Incoming Call to Routing Number
                ▼
 ┌──────────────────────────────┐
 │  <Say> Greeting Message      │
-│  "Please wait while we..."   │
+│  "Please wait while we..." (custom from incoming call policy)  │
 └──────────────┬───────────────┘
                │
                ▼
@@ -250,7 +410,7 @@ Incoming Call to Routing Number
                │
                ▼
 ┌──────────────────────────────┐
-│  <Dial timeout="30">         │
+│  <Dial timeout="30 (custom from esclaation policy)">         │
 │    User's Phone Number       │
 │  action="/dial-status/:logId"│
 └──────────────┬───────────────┘
@@ -270,7 +430,7 @@ Incoming Call to Routing Number
                │             │
                ▼             ▼
         <Say> "Next      <Say> No Answer
-        engineer..."     Message
+        engineer..."      Message
         <Dial>           <Hangup>
 ```
 
@@ -344,50 +504,11 @@ Add under "Advanced" section:
 
 ---
 
-## Files Summary
-
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `/Common/Models/DatabaseModels/IncomingCallPolicy.ts` | Main policy model |
-| `/Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule.ts` | Escalation rules model |
-| `/Common/Models/DatabaseModels/IncomingCallLog.ts` | Parent call log model |
-| `/Common/Models/DatabaseModels/IncomingCallLogItem.ts` | Child log for each escalation attempt |
-| `/Common/Types/IncomingCall/IncomingCallStatus.ts` | Status enum |
-| `/Common/Server/Services/IncomingCallPolicyService.ts` | Policy service |
-| `/Common/Server/Services/IncomingCallPolicyEscalationRuleService.ts` | Escalation service |
-| `/Common/Server/Services/IncomingCallLogService.ts` | Parent log service |
-| `/Common/Server/Services/IncomingCallLogItemService.ts` | Child log item service |
-| `/App/FeatureSet/Notification/Services/IncomingCallService.ts` | Core routing logic |
-| `/App/FeatureSet/Notification/Services/PhoneNumberService.ts` | Twilio phone number management |
-| `/App/FeatureSet/Notification/API/IncomingCall.ts` | Webhook endpoints |
-| `/App/FeatureSet/Notification/API/PhoneNumber.ts` | Phone number search/purchase endpoints |
-| `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicies.tsx` | List page |
-| `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/View.tsx` | View page |
-| `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/EscalationRules.tsx` | Rules page |
-| `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/Logs.tsx` | Logs page |
-| `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/PhoneNumber.tsx` | Phone number search & purchase page |
-| `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/SideMenu.tsx` | Policy sub-menu |
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `/Common/Types/Permission.ts` | Add incoming call policy permissions |
-| `/App/FeatureSet/Notification/Index.ts` | Register IncomingCall API |
-| `/Dashboard/src/Pages/OnCallDuty/SideMenu.tsx` | Add "Incoming Call Policy" under Advanced section |
-| `/Dashboard/src/Utils/PageMap.ts` | Add page entries |
-| `/Dashboard/src/Utils/RouteMap.ts` | Add route entries |
-| `/Common/Models/DatabaseModels/Index.ts` | Export new models |
-
----
-
 ## Phone Number Purchasing Flow
 
 ### Overview
 
-Customers search for available Twilio phone numbers by country and area code, see a list of options, and select the one they want. OneUptime then purchases it via Twilio API.
+Customers search for available phone numbers by country and area code, see a list of options, and select the one they want. OneUptime then purchases it via the configured call provider's API.
 
 ### UI Flow
 
@@ -417,7 +538,7 @@ Customers search for available Twilio phone numbers by country and area code, se
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Note:** UI shows `customerCostPerMonthInUSDCents` (with markup), not Twilio's base cost.
+**Note:** UI shows `customerCostPerMonthInUSDCents` (with markup), not the provider's base cost. If billing is not enabled do not show cost. 
 
 ### API Endpoints (New)
 
@@ -425,9 +546,9 @@ Customers search for available Twilio phone numbers by country and area code, se
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/phone-number/search` | POST | Search available Twilio numbers by country/area code |
+| `/phone-number/search` | POST | Search available numbers by country/area code |
 | `/phone-number/purchase` | POST | Purchase a specific phone number |
-| `/phone-number/release/:id` | DELETE | Release a phone number back to Twilio |
+| `/phone-number/release/:id` | DELETE | Release a phone number back to provider |
 
 ### Search Request/Response
 
@@ -452,7 +573,7 @@ Response:
     locality: string;         // "San Francisco"
     region: string;           // "CA"
     country: string;          // "US"
-    twilioCostPerMonthInUSDCents: number;    // 100 (Twilio's cost)
+    callProviderCostPerMonthInUSDCents: number;    // 100 (Twilio's cost)
     customerCostPerMonthInUSDCents: number;  // 120 (with markup)
   }>;
 }
@@ -475,7 +596,7 @@ Response:
 ```typescript
 {
   success: boolean;
-  phoneNumberSid: string;   // Twilio SID for the purchased number
+  phoneNumberId: string;   // Provider's ID for the purchased number
   phoneNumber: string;
 }
 ```
@@ -493,7 +614,7 @@ PHONE_NUMBER_PRICE_MULTIPLIER=1.2
 
 **Pricing Flow:**
 ```
-Twilio Base Price (e.g., $1.00/month)
+Provider Base Price (e.g., $1.00/month)
          │
          ▼
   × PHONE_NUMBER_PRICE_MULTIPLIER (e.g., 1.2)
@@ -502,100 +623,39 @@ Twilio Base Price (e.g., $1.00/month)
   Customer Price (e.g., $1.20/month)
 ```
 
-### Twilio API Integration
+### Phone Number API Implementation
 
-**Service:** `/App/FeatureSet/Notification/Services/PhoneNumberService.ts`
+The `/phone-number/*` endpoints use `CallProviderFactory.getProvider()` to delegate to the configured provider:
 
 ```typescript
-class PhoneNumberService {
-  // Get phone number pricing from Twilio Pricing API
-  async getPhoneNumberPricing(countryCode: string): Promise<{
-    basePricePerMonth: number;  // Twilio cost in USD
-    customerPricePerMonth: number;  // With markup applied
-  }> {
-    const client = getTwilioClient();
+// In /App/FeatureSet/Notification/API/PhoneNumber.ts
 
-    // Twilio Pricing API for phone numbers
-    const pricing = await client.pricing.v1.phoneNumbers
-      .countries(countryCode)
-      .fetch();
+router.post('/search', async (req, res) => {
+  const provider = CallProviderFactory.getProvider();
+  const numbers = await provider.searchAvailableNumbers({
+    countryCode: req.body.countryCode,
+    areaCode: req.body.areaCode,
+    limit: 10,
+  });
+  // Apply markup from PHONE_NUMBER_PRICE_MULTIPLIER
+  res.json({ availableNumbers: numbers });
+});
 
-    // Get local number price (most common type)
-    const localPrice = pricing.phoneNumberPrices.find(
-      p => p.number_type === 'local'
-    );
+router.post('/purchase', async (req, res) => {
+  const provider = CallProviderFactory.getProvider();
+  const webhookUrl = getIncomingCallWebhookUrl(req.body.incomingCallPolicyId);
+  const result = await provider.purchaseNumber(req.body.phoneNumber, webhookUrl);
+  res.json({ success: true, ...result });
+});
 
-    const basePricePerMonth = parseFloat(localPrice?.current_price || '1.00');
-    const multiplier = parseFloat(process.env.PHONE_NUMBER_PRICE_MULTIPLIER || '1.0');
-    const customerPricePerMonth = basePricePerMonth * multiplier;
-
-    return {
-      basePricePerMonth,
-      customerPricePerMonth,
-    };
-  }
-
-  // Search available numbers via Twilio (with pricing)
-  async searchAvailableNumbers(options: {
-    countryCode: string;
-    areaCode?: string;
-    contains?: string;
-    limit?: number;  // default 10
-  }): Promise<AvailableNumber[]> {
-    const client = getTwilioClient();
-
-    // Get pricing for this country
-    const pricing = await this.getPhoneNumberPricing(options.countryCode);
-
-    // Use Twilio AvailablePhoneNumbers API
-    const numbers = await client
-      .availablePhoneNumbers(options.countryCode)
-      .local.list({
-        areaCode: options.areaCode,
-        contains: options.contains,
-        limit: options.limit || 10,
-        voiceEnabled: true,
-      });
-
-    return numbers.map(n => ({
-      phoneNumber: n.phoneNumber,
-      friendlyName: n.friendlyName,
-      locality: n.locality,
-      region: n.region,
-      country: options.countryCode,
-      twilioCostPerMonthInUSDCents: Math.round(pricing.basePricePerMonth * 100),
-      customerCostPerMonthInUSDCents: Math.round(pricing.customerPricePerMonth * 100),
-    }));
-  }
-
-  // Purchase a number via Twilio
-  async purchaseNumber(phoneNumber: string): Promise<string> {
-    const client = getTwilioClient();
-
-    const purchased = await client.incomingPhoneNumbers.create({
-      phoneNumber: phoneNumber,
-      voiceUrl: getIncomingCallWebhookUrl(),  // Set webhook URL
-      voiceMethod: 'POST',
-    });
-
-    return purchased.sid;
-  }
-
-  // Release a number back to Twilio
-  async releaseNumber(phoneNumberSid: string): Promise<void> {
-    const client = getTwilioClient();
-    await client.incomingPhoneNumbers(phoneNumberSid).remove();
-  }
-
-  // Update webhook URL for a number
-  async updateWebhookUrl(phoneNumberSid: string, webhookUrl: string): Promise<void> {
-    const client = getTwilioClient();
-    await client.incomingPhoneNumbers(phoneNumberSid).update({
-      voiceUrl: webhookUrl,
-    });
-  }
-}
+router.delete('/release/:id', async (req, res) => {
+  const provider = CallProviderFactory.getProvider();
+  await provider.releaseNumber(req.params.id);
+  res.json({ success: true });
+});
 ```
+
+This delegates all provider-specific logic to the `ICallProvider` implementation (e.g., `TwilioCallProvider`).
 
 ### New Fields in IncomingCallPolicy
 
@@ -603,10 +663,10 @@ Add to `IncomingCallPolicy` model:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `twilioPhoneNumberSid` | ShortText | Twilio SID of purchased number |
+| `callProviderPhoneNumberId` | ShortText | Provider's ID for the number |
 | `phoneNumberCountryCode` | ShortText | Country code (US, GB, etc.) |
 | `phoneNumberAreaCode` | ShortText | Area code if applicable |
-| `twilioCostPerMonthInUSDCents` | Number | Twilio's base cost (for accounting) |
+| `callProviderCostPerMonthInUSDCents` | Number | Provider's base cost (for accounting) |
 | `customerCostPerMonthInUSDCents` | Number | Customer price (with markup) |
 | `phoneNumberPurchasedAt` | Date | When number was purchased |
 
@@ -614,7 +674,7 @@ Add to `IncomingCallPolicy` model:
 
 **File:** `/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/PhoneNumberPurchase.tsx`
 
-- Country dropdown (populated from Twilio supported countries)
+- Country dropdown (populated from provider's supported countries)
 - Area code input field
 - Search button
 - Results list with radio selection
@@ -626,9 +686,9 @@ Add to `IncomingCallPolicy` model:
 
 When an `IncomingCallPolicy` is deleted:
 
-1. Check if `twilioPhoneNumberSid` exists
-2. Call `PhoneNumberService.releaseNumber(sid)`
-3. Number is released back to Twilio
+1. Check if `callProviderPhoneNumberId` exists
+2. Call `provider.releaseNumber(phoneNumberId)`
+3. Number is released back to the provider
 4. Stop monthly billing for that number
 
 ### Country Support
@@ -641,7 +701,7 @@ Common countries to support initially:
 - Germany (DE)
 - France (FR)
 
-Can be expanded based on Twilio availability.
+Can be expanded based on provider availability.
 
 ### Error Handling
 
@@ -658,10 +718,10 @@ Can be expanded based on Twilio availability.
 
 ### Cost Components
 
-Twilio charges for two things:
+Call providers typically charge for two things:
 1. **Phone Number** - Monthly fee (~$1-2/month per number)
 2. **Call Minutes** - Per-minute charges for:
-   - Incoming leg (caller → OneUptime Twilio number)
+   - Incoming leg (caller → OneUptime routing number)
    - Outgoing leg (OneUptime → on-call user's phone)
 
 ### Billing Model
@@ -735,18 +795,10 @@ Incoming Call Received
 
 ### Phone Number Cost (Monthly)
 
-Options for handling phone number fees:
 
-**Option A: Include in Platform Fee**
-- OneUptime absorbs phone number cost
-- Simpler for customers
-
-**Option B: Pass-through Cost**
 - Add `phoneNumberMonthlyCostInUSDCents` field to `IncomingCallPolicy`
-- Charge monthly via existing Stripe billing
+- Charge monthly via existing Stripe billing (in worker, maybe we need the payment status and last paid fields in IncomingOnCallPolicy model)
 - Create scheduled job to bill monthly
-
-**Recommendation:** Start with Option A (include in platform fee) for simplicity. Can add pass-through later if needed.
 
 ### Integration with Existing Billing
 
@@ -772,44 +824,4 @@ async calculateCallCost(
   return incomingCost + outgoingCost;
 }
 ```
-
-### UI: Balance Display
-
-Add to existing **Project Settings → Billing** page:
-- Show balance usage breakdown (SMS vs Calls vs Incoming Call Routing)
-- No new UI needed - uses existing balance display
-
 ---
-
-## Comparison with OnCallDutyPolicy
-
-| Aspect | OnCallDutyPolicy | IncomingCallPolicy |
-|--------|------------------|-------------------|
-| Purpose | Alert notifications (SMS, Email, Call) | Incoming call routing only |
-| Escalation Target | Schedule + Team + User (all three) | Schedule OR User (one only) |
-| Trigger | Incident/Alert created | Incoming phone call |
-| Time Unit | Minutes | Seconds |
-| Repeat Logic | Based on acknowledgment | Based on call answer |
-
----
-
-## Testing Plan
-
-### Unit Tests
-- Test escalation rule validation (either schedule or user, not both)
-- Test TwiML generation
-- Test user phone lookup for both schedule and direct user
-
-### Integration Tests
-- Mock Twilio webhooks
-- Test full routing flow with schedule target
-- Test full routing flow with user target
-- Test escalation through multiple rules
-
-### Manual Testing
-1. Create policy with routing number
-2. Add escalation rule with schedule
-3. Add escalation rule with specific user
-4. Make test call and verify routing
-5. Test escalation by not answering
-6. Verify logs are recorded
