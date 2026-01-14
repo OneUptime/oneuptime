@@ -445,5 +445,5 @@ export default [
   IncreaseClientSecretLength1768216593272,
   AddOAuthProviderType1768217403078,
   AddIncomingEmailMonitor1768335589018,
-  MigrationName1768422356713
+  MigrationName1768422356713,
 ];
