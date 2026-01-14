@@ -530,40 +530,6 @@ export default class IncomingCallPolicy extends BaseModel {
     ],
   })
   @TableColumn({
-    required: false,
-    type: TableColumnType.LongText,
-    title: "Busy Message",
-    description: "Message when all lines are busy",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-    default: "All lines are currently busy. Please try again in a few minutes.",
-  })
-  public busyMessage?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncomingCallPolicy,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncomingCallPolicy,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectIncomingCallPolicy,
-    ],
-  })
-  @TableColumn({
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
@@ -647,77 +613,6 @@ export default class IncomingCallPolicy extends BaseModel {
     type: ColumnType.Number,
   })
   public repeatPolicyIfNoOneAnswersTimes?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncomingCallPolicy,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncomingCallPolicy,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectIncomingCallPolicy,
-    ],
-  })
-  @TableColumn({
-    required: true,
-    isDefaultValueColumn: true,
-    type: TableColumnType.Number,
-    title: "Max Concurrent Calls",
-    description: "Maximum simultaneous calls to route",
-    defaultValue: 1,
-  })
-  @Column({
-    nullable: false,
-    default: 1,
-    type: ColumnType.Number,
-  })
-  public maxConcurrentCalls?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncomingCallPolicy,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncomingCallPolicy,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectIncomingCallPolicy,
-    ],
-  })
-  @TableColumn({
-    required: true,
-    isDefaultValueColumn: true,
-    type: TableColumnType.Number,
-    title: "Max Total Call Duration (Seconds)",
-    description:
-      "Maximum duration for entire call including all escalations (default: 300 = 5 minutes)",
-    defaultValue: 300,
-  })
-  @Column({
-    nullable: false,
-    default: 300,
-    type: ColumnType.Number,
-  })
-  public maxTotalCallDurationSeconds?: number = undefined;
 
   @ColumnAccessControl({
     create: [
