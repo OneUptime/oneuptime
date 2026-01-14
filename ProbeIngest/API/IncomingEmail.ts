@@ -12,15 +12,21 @@ import InboundEmailProvider, {
 } from "Common/Server/Services/InboundEmail/InboundEmailProvider";
 import { JSONObject } from "Common/Types/JSON";
 import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
+import { MultipartFormDataMiddleware } from "Common/Server/Utils/Multer";
 
 const router: ExpressRouter = Express.getRouter();
 
 // Main webhook endpoint for inbound emails
+// SendGrid sends data as multipart/form-data
 router.post(
   "/incoming-email/webhook",
+  MultipartFormDataMiddleware,
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       logger.debug("Received incoming email webhook");
+
+      // Log raw body for debugging
+      logger.debug(`Request body keys: ${Object.keys(req.body || {}).join(", ")}`);
 
       // Check if inbound email is configured
       if (!InboundEmailProviderFactory.isConfigured()) {
