@@ -71,7 +71,8 @@ const MonitorCreate: FunctionComponent<
               stepId: "monitor-info",
               fieldType: FormFieldSchemaType.CardSelect,
               required: true,
-              cardSelectOptions: MonitorTypeUtil.monitorTypesAsCardSelectOptions(),
+              cardSelectOptions:
+                MonitorTypeUtil.monitorTypesAsCardSelectOptions(),
             },
             {
               field: {
