@@ -1,5 +1,5 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
-import { PhoneNumberPriceMultiplier } from "../Config";
+import { PhoneNumberPriceMultiplier, NotificationWebhookHost } from "../Config";
 import {
   AvailablePhoneNumber,
   ICallProvider,
@@ -227,7 +227,7 @@ router.post(
       }
 
       // Construct webhook URL
-      const webhookUrl: string = `${process.env["HOST"] || "https://api.oneuptime.com"}/notification/incoming-call/${incomingCallPolicyId.toString()}/voice`;
+      const webhookUrl: string = `${NotificationWebhookHost}/notification/incoming-call/${incomingCallPolicyId.toString()}/voice`;
 
       const provider: ICallProvider = await CallProviderFactory.getProvider();
 

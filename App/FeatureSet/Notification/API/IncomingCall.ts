@@ -1,5 +1,8 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
-import { IncomingCallMinimumBalanceRequiredInCents } from "../Config";
+import {
+  IncomingCallMinimumBalanceRequiredInCents,
+  NotificationWebhookHost,
+} from "../Config";
 import {
   DialStatusData,
   ICallProvider,
@@ -289,7 +292,7 @@ router.post(
         "Please wait while we connect you to the on-call engineer.";
 
       // Construct status callback URL
-      const statusCallbackUrl: string = `${process.env["HOST"] || "https://api.oneuptime.com"}/notification/incoming-call/${policyId}/dial-status/${createdCallLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
+      const statusCallbackUrl: string = `${NotificationWebhookHost}/notification/incoming-call/${policyId}/dial-status/${createdCallLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
 
       // Generate greeting + dial TwiML
       const twiml: string = generateGreetingAndDialTwiml(
@@ -697,7 +700,7 @@ async function dialNextUser(
     });
 
   // Construct status callback URL
-  const statusCallbackUrl: string = `${process.env["HOST"] || "https://api.oneuptime.com"}/notification/incoming-call/${policyId}/dial-status/${callLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
+  const statusCallbackUrl: string = `${NotificationWebhookHost}/notification/incoming-call/${policyId}/dial-status/${callLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
 
   // Generate dial TwiML with escalation message
   const escalationMessage: string = `Connecting you to the next available engineer.`;
