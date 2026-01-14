@@ -58,6 +58,7 @@ const MonitorCriteria: FunctionComponent<
         select: {
           monitorType: true,
           incomingRequestSecretKey: true,
+          incomingEmailSecretKey: true,
           serverMonitorSecretKey: true,
         },
         requestOptions: {},
@@ -210,6 +211,36 @@ const MonitorCriteria: FunctionComponent<
                   />{" "}
                   Resetting the secret key will generate a new key. Secret is
                   used to authenticate incoming requests.
+                </p>
+              }
+              modelId={modelId}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {monitor?.monitorType === MonitorType.IncomingEmail ? (
+          <div className="mt-5">
+            <ResetObjectID<Monitor>
+              modelType={Monitor}
+              onUpdateComplete={async () => {
+                await fetchItem();
+              }}
+              fieldName={"incomingEmailSecretKey"}
+              title={"Reset Incoming Email Secret Key"}
+              description={
+                <p className="mt-2">
+                  Your current incoming email secret key is {"  "}
+                  <InlineCode
+                    text={
+                      monitor.incomingEmailSecretKey?.toString() ||
+                      "No key generated"
+                    }
+                  />{" "}
+                  Resetting the secret key will generate a new key and change
+                  the email address for this monitor. You will need to update
+                  any systems sending emails to the old address.
                 </p>
               }
               modelId={modelId}
