@@ -13,11 +13,11 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
-  "IncomingEmailMonitor:CheckHeartbeat",
+  "IncomingEmailMonitor:CheckOnlineStatus",
   { schedule: EVERY_THIRTY_SECONDS, runOnStartup: false },
   async () => {
     logger.debug(
-      "Checking IncomingEmailMonitor:CheckHeartbeat at " +
+      "Checking IncomingEmailMonitor:CheckOnlineStatus at " +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           OneUptimeDate.getCurrentDate(),
         ),
@@ -87,7 +87,7 @@ RunCron(
     logger.debug(totalIncomingEmailMonitors);
 
     for (const monitor of totalIncomingEmailMonitors) {
-      checkHeartBeat(monitor).catch((error: Error) => {
+      checkOnlineStatus(monitor).catch((error: Error) => {
         logger.error(
           `Error while processing incoming email monitor: ${monitor.id?.toString()}`,
         );
@@ -97,7 +97,7 @@ RunCron(
   },
 );
 
-const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
+const checkOnlineStatus: (monitor: Monitor) => Promise<void> = async (
   monitor: Monitor,
 ): Promise<void> => {
   try {

@@ -5,7 +5,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
-import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   secretKey: ObjectID;
@@ -27,7 +27,7 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
                   administrator to set up the inbound email environment
                   variables.{" "}
                   <Link
-                    to={URL.fromString(
+                    to={Route.fromString(
                       "/docs/self-hosted/sendgrid-inbound-email",
                     )}
                     openInNewTab={true}
