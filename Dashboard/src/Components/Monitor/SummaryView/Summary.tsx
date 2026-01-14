@@ -2,6 +2,7 @@ import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMoni
 import ProbePicker from "./ProbePicker";
 import SummaryInfo from "./SummaryInfo";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -17,6 +18,8 @@ export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
   incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
+  incomingEmailMonitorRequest?: IncomingEmailMonitorRequest | undefined;
+  incomingEmailMonitorHeartbeatCheckedAt?: Date | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   probes?: Array<Probe>;
   monitorType: MonitorType;
@@ -89,6 +92,10 @@ const Summary: FunctionComponent<ComponentProps> = (
           telemetryMonitorSummary={props.telemetryMonitorSummary}
           incomingRequestMonitorHeartbeatCheckedAt={
             props.incomingRequestMonitorHeartbeatCheckedAt
+          }
+          incomingEmailMonitorRequest={props.incomingEmailMonitorRequest}
+          incomingEmailMonitorHeartbeatCheckedAt={
+            props.incomingEmailMonitorHeartbeatCheckedAt
           }
           evaluationSummary={props.evaluationSummary}
         />

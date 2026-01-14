@@ -7,7 +7,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import {
@@ -152,10 +154,8 @@ const MonitorCreate: FunctionComponent<
               title: "Interval",
               id: "monitoring-interval",
               showIf: (values: FormValues<Monitor>) => {
-                return (
-                  values.monitorType !== MonitorType.Manual &&
-                  values.monitorType !== MonitorType.IncomingRequest &&
-                  values.monitorType !== MonitorType.Server
+                return MonitorTypeHelper.doesMonitorTypeHaveInterval(
+                  values.monitorType as MonitorType,
                 );
               },
             },

@@ -482,6 +482,10 @@ export class Service extends DatabaseService<Model> {
       createBy.data.incomingRequestSecretKey = ObjectID.generate();
     }
 
+    if (createBy.data.monitorType === MonitorType.IncomingEmail) {
+      createBy.data.incomingEmailSecretKey = ObjectID.generate();
+    }
+
     if (!createBy.props.tenantId) {
       throw new BadDataException("ProjectId required to create monitor.");
     }

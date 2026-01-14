@@ -217,6 +217,19 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.IncomingEmail) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.EmailReceivedAt ||
+          i.value === CheckOn.EmailSubject ||
+          i.value === CheckOn.EmailFrom ||
+          i.value === CheckOn.EmailBody ||
+          i.value === CheckOn.EmailTo ||
+          i.value === CheckOn.JavaScriptExpression
+        );
+      });
+    }
+
     if (
       monitorType === MonitorType.Website ||
       monitorType === MonitorType.API
@@ -332,6 +345,35 @@ export default class CriteriaFilterUtil {
         return (
           i.value === FilterType.NotRecievedInMinutes ||
           i.value === FilterType.RecievedInMinutes
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.EmailReceivedAt) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.NotRecievedInMinutes ||
+          i.value === FilterType.RecievedInMinutes
+        );
+      });
+    }
+
+    if (
+      checkOn === CheckOn.EmailSubject ||
+      checkOn === CheckOn.EmailFrom ||
+      checkOn === CheckOn.EmailBody ||
+      checkOn === CheckOn.EmailTo
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.StartsWith ||
+          i.value === FilterType.EndsWith ||
+          i.value === FilterType.IsEmpty ||
+          i.value === FilterType.IsNotEmpty
         );
       });
     }
@@ -510,6 +552,26 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.IncomingRequest) {
       return "5";
+    }
+
+    if (checkOn === CheckOn.EmailReceivedAt) {
+      return "5";
+    }
+
+    if (checkOn === CheckOn.EmailSubject) {
+      return "Alert: Server Down";
+    }
+
+    if (checkOn === CheckOn.EmailFrom) {
+      return "alerts@example.com";
+    }
+
+    if (checkOn === CheckOn.EmailBody) {
+      return "Error occurred";
+    }
+
+    if (checkOn === CheckOn.EmailTo) {
+      return "monitor@inbound.oneuptime.com";
     }
 
     if (

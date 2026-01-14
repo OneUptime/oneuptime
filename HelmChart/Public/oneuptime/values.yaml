@@ -861,5 +861,17 @@ gitHubApp:
   privateKey:
   webhookSecret:
 
+# Inbound Email Configuration
+# Required for Incoming Email Monitor feature
+# See documentation: https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email
+inboundEmail:
+  # Email provider type (currently only SendGrid is supported)
+  provider: SendGrid
+  # The domain configured for inbound email (e.g., inbound.yourdomain.com)
+  # Required for the Incoming Email Monitor feature to work
+  domain:
+  # Optional webhook secret for validating incoming webhooks from the email provider
+  webhookSecret:
+
 keda:
   enabled: true

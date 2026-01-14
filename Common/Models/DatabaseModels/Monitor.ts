@@ -20,6 +20,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
+import IncomingEmailMonitorRequest from "../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import IncomingMonitorRequest from "../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
@@ -951,6 +952,114 @@ export default class Monitor extends BaseModel {
     nullable: true,
   })
   public incomingMonitorRequest?: IncomingMonitorRequest = undefined;
+
+  // Incoming Email Monitor fields
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    isDefaultValueColumn: false,
+    computed: true,
+    title: "Incoming Email Secret Key",
+    description:
+      "This field is for Incoming Email Monitor only. Secret Key used to generate unique email address.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incomingEmailSecretKey?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Incoming Email Monitor Last Email Received At",
+    description:
+      "This field is for Incoming Email Monitor only. When was the last email received?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public incomingEmailMonitorLastEmailReceivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Incoming Email Monitor Request",
+    description:
+      "This field is for Incoming Email Monitor only. Last email data received.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public incomingEmailMonitorRequest?: IncomingEmailMonitorRequest = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title:
+      "When was the last time we checked the heartbeat for incoming email?",
+    description:
+      "This field is for Incoming Email monitor only. When was the last time we checked the heartbeat?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public incomingEmailMonitorHeartbeatCheckedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [

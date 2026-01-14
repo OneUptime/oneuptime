@@ -1,5 +1,6 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
+import IncomingEmailMonitorLink from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailMonitorLink";
 import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -49,6 +50,7 @@ const MonitorDocumentation: FunctionComponent<
         select: {
           monitorType: true,
           incomingRequestSecretKey: true,
+          incomingEmailSecretKey: true,
           serverMonitorSecretKey: true,
         },
       });
@@ -85,6 +87,14 @@ const MonitorDocumentation: FunctionComponent<
       {monitorType === MonitorType.IncomingRequest &&
       monitor?.incomingRequestSecretKey ? (
         <IncomingMonitorLink secretKey={monitor?.incomingRequestSecretKey} />
+      ) : (
+        <></>
+      )}
+
+      {/* Incoming Email Address */}
+      {monitorType === MonitorType.IncomingEmail &&
+      monitor?.incomingEmailSecretKey ? (
+        <IncomingEmailMonitorLink secretKey={monitor?.incomingEmailSecretKey} />
       ) : (
         <></>
       )}

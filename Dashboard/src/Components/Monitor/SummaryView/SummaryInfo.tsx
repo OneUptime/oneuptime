@@ -1,11 +1,13 @@
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import IncomingRequestMonitorView from "./IncomingRequestMonitorSummaryView";
+import IncomingEmailMonitorSummaryView from "./IncomingEmailMonitorSummaryView";
 import PingMonitorView from "./PingMonitorView";
 import SSLCertificateMonitorView from "./SSLCertificateMonitorView";
 import ServerMonitorSummaryView from "./ServerMonitorView";
 import SyntheticMonitorView from "./SyntheticMonitorView";
 import WebsiteMonitorSummaryView from "./WebsiteMonitorView";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -21,8 +23,10 @@ import EvaluationLogList from "./EvaluationLogList";
 export interface ComponentProps {
   monitorType: MonitorType;
   incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
+  incomingEmailMonitorHeartbeatCheckedAt?: Date | undefined;
   probeMonitorResponses?: Array<ProbeMonitorResponse> | undefined; // this is an array because of multiple monitor steps.
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
+  incomingEmailMonitorRequest?: IncomingEmailMonitorRequest | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
@@ -148,6 +152,19 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     );
   }
 
+  if (
+    !props.incomingEmailMonitorRequest &&
+    props.monitorType === MonitorType.IncomingEmail
+  ) {
+    return (
+      <ErrorMessage
+        message={
+          "No summary available. Looks like no email has been received yet."
+        }
+      />
+    );
+  }
+
   return (
     <div>
       {props.probeMonitorResponses &&
@@ -171,6 +188,24 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
           />
           {renderEvaluationLogs(
             props.incomingMonitorRequest.evaluationSummary ||
+              props.evaluationSummary,
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {props.incomingEmailMonitorRequest &&
+      props.monitorType === MonitorType.IncomingEmail ? (
+        <div className="space-y-6">
+          <IncomingEmailMonitorSummaryView
+            incomingEmailMonitorHeartbeatCheckedAt={
+              props.incomingEmailMonitorHeartbeatCheckedAt
+            }
+            incomingEmailMonitorRequest={props.incomingEmailMonitorRequest}
+          />
+          {renderEvaluationLogs(
+            props.incomingEmailMonitorRequest.evaluationSummary ||
               props.evaluationSummary,
           )}
         </div>

@@ -148,6 +148,11 @@ x-common-runtime-variables: &common-runtime-variables
     GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
     GITHUB_APP_WEBHOOK_SECRET: ${GITHUB_APP_WEBHOOK_SECRET}
 
+    # Inbound Email Configuration (for Incoming Email Monitor)
+    INBOUND_EMAIL_PROVIDER: ${INBOUND_EMAIL_PROVIDER}
+    INBOUND_EMAIL_DOMAIN: ${INBOUND_EMAIL_DOMAIN}
+    INBOUND_EMAIL_WEBHOOK_SECRET: ${INBOUND_EMAIL_WEBHOOK_SECRET}
+
 services:
 
     

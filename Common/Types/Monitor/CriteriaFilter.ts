@@ -47,6 +47,13 @@ export enum CheckOn {
 
   // Metric Monitors.
   MetricValue = "Metric Value",
+
+  // Incoming Email monitors.
+  EmailSubject = "Email Subject",
+  EmailFrom = "Email From Address",
+  EmailBody = "Email Body",
+  EmailTo = "Email To Address",
+  EmailReceivedAt = "Email Received",
 }
 
 export interface ServerMonitorOptions {

@@ -1,6 +1,7 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
+import IncomingEmailMonitorLink from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailMonitorLink";
 import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";
 import Summary from "../../../Components/Monitor/SummaryView/Summary";
 import ProbeUtil from "../../../Utils/Probe";
@@ -13,6 +14,7 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -96,6 +98,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [incomingMonitorRequest, setIncomingMonitorRequest] = useState<
     IncomingMonitorRequest | undefined
   >(undefined);
+
+  const [incomingEmailMonitorRequest, setIncomingEmailMonitorRequest] =
+    useState<IncomingEmailMonitorRequest | undefined>(undefined);
 
   const [serverMonitorResponse, setServerMonitorResponse] = useState<
     ServerMonitorResponse | undefined
@@ -190,6 +195,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           telemetryMonitorLastMonitorAt: true,
           telemetryMonitorNextMonitorAt: true,
           monitorSteps: true,
+          // Incoming Email Monitor fields
+          incomingEmailSecretKey: true,
+          incomingEmailMonitorRequest: true,
+          incomingEmailMonitorHeartbeatCheckedAt: true,
+          incomingEmailMonitorLastEmailReceivedAt: true,
         },
       });
 
@@ -240,6 +250,12 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       if (item?.incomingMonitorRequest) {
         setIncomingMonitorRequest(item.incomingMonitorRequest);
+      }
+
+      if (item?.incomingEmailMonitorRequest) {
+        setIncomingEmailMonitorRequest(
+          item.incomingEmailMonitorRequest as IncomingEmailMonitorRequest,
+        );
       }
 
       if (item?.serverMonitorResponse) {
@@ -567,6 +583,14 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <></>
       )}
 
+      {/* Incoming Email Monitor Link */}
+      {monitorType === MonitorType.IncomingEmail &&
+      monitor?.incomingEmailSecretKey ? (
+        <IncomingEmailMonitorLink secretKey={monitor?.incomingEmailSecretKey} />
+      ) : (
+        <></>
+      )}
+
       {monitorType === MonitorType.Server &&
       monitor?.serverMonitorSecretKey &&
       !monitor.serverMonitorRequestReceivedAt ? (
@@ -599,6 +623,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         incomingMonitorRequest={incomingMonitorRequest}
         incomingRequestMonitorHeartbeatCheckedAt={
           monitor?.incomingRequestMonitorHeartbeatCheckedAt
+        }
+        incomingEmailMonitorRequest={incomingEmailMonitorRequest}
+        incomingEmailMonitorHeartbeatCheckedAt={
+          monitor?.incomingEmailMonitorHeartbeatCheckedAt
         }
         probeMonitorResponses={probeResponses}
         serverMonitorResponse={serverMonitorResponse}

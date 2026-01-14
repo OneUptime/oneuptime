@@ -1,5 +1,3 @@
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
-
 export interface NavLink {
   title: string;
   url: string;
@@ -144,6 +142,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/synthetic-monitor",
       },
       {
+        title: "Incoming Email Monitor",
+        url: "/docs/monitor/incoming-email-monitor",
+      },
+      {
         title: "JavaScript Expressions",
         url: "/docs/monitor/javascript-expression",
       },
@@ -220,26 +222,31 @@ const DocsNav: NavGroup[] = [
   },
 ];
 
-// Is self hosted install, then...
-if (!IsBillingEnabled) {
-  DocsNav.push({
-    title: "Self Hosted",
-    links: [
-      {
-        title: "Slack Integration",
-        url: "/docs/self-hosted/slack-integration",
-      },
-      {
-        title: "Microsoft Teams Integration",
-        url: "/docs/self-hosted/microsoft-teams-integration",
-      },
-      {
-        title: "GitHub Integration",
-        url: "/docs/self-hosted/github-integration",
-      },
-    ],
-  });
-}
+DocsNav.push({
+  title: "Self Hosted",
+  links: [
+    {
+      title: "Architecture",
+      url: "/docs/self-hosted/architecture",
+    },
+    {
+      title: "Slack Integration",
+      url: "/docs/self-hosted/slack-integration",
+    },
+    {
+      title: "Microsoft Teams Integration",
+      url: "/docs/self-hosted/microsoft-teams-integration",
+    },
+    {
+      title: "GitHub Integration",
+      url: "/docs/self-hosted/github-integration",
+    },
+    {
+      title: "SendGrid Inbound Email",
+      url: "/docs/self-hosted/sendgrid-inbound-email",
+    },
+  ],
+});
 
 // Export the array of navigation groups
 export default DocsNav;

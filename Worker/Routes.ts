@@ -27,6 +27,7 @@ import "./Jobs/Alert/KeepCurrentStateConsistent";
 import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
+import "./Jobs/IncomingEmailMonitor/CheckOnlineStatus";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
 // Monitor Owners

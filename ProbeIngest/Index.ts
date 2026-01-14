@@ -2,6 +2,7 @@ import MonitorAPI from "./API/Monitor";
 import ProbeIngest from "./API/Probe";
 import RegisterAPI from "./API/Register";
 import MetricsAPI from "./API/Metrics";
+import IncomingEmailAPI from "./API/IncomingEmail";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -25,6 +26,7 @@ app.use([`/${APP_NAME}`, "/ingestor", "/"], RegisterAPI);
 app.use([`/${APP_NAME}`, "/ingestor", "/"], MonitorAPI);
 app.use([`/${APP_NAME}`, "/ingestor", "/"], ProbeIngest);
 app.use([`/${APP_NAME}`, "/"], MetricsAPI);
+app.use([`/${APP_NAME}`, "/"], IncomingEmailAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {

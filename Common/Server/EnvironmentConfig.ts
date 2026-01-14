@@ -48,6 +48,7 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "GITHUB_APP_NAME",
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
+  "INBOUND_EMAIL_DOMAIN",
 ];
 
 const FRONTEND_ENV_ALLOW_PREFIXES: Array<string> = [
@@ -527,3 +528,18 @@ export const VapidSubject: string =
 export const EnterpriseLicenseValidationUrl: URL = URL.fromString(
   "https://oneuptime.com/api/enterprise-license/validate",
 );
+
+// Inbound Email Configuration for Incoming Email Monitor
+export enum InboundEmailProviderType {
+  SendGrid = "SendGrid",
+}
+
+export const InboundEmailProvider: InboundEmailProviderType =
+  (process.env["INBOUND_EMAIL_PROVIDER"] as InboundEmailProviderType) ||
+  InboundEmailProviderType.SendGrid;
+
+export const InboundEmailDomain: string | undefined =
+  process.env["INBOUND_EMAIL_DOMAIN"] || undefined;
+
+export const InboundEmailWebhookSecret: string | undefined =
+  process.env["INBOUND_EMAIL_WEBHOOK_SECRET"] || undefined;
