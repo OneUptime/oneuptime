@@ -48,6 +48,15 @@ router.post(
 
       const provider: ICallProvider = await CallProviderFactory.getProvider();
 
+      // Validate webhook signature to ensure request is from the call provider
+      const signature: string =
+        (req.headers["x-twilio-signature"] as string) || "";
+      if (!provider.validateWebhookSignature(req as unknown as WebhookRequest, signature)) {
+        logger.error("Invalid webhook signature for incoming call");
+        res.status(403).send("Forbidden");
+        return;
+      }
+
       // Parse incoming call data
       const callData: IncomingCallData = provider.parseIncomingCallWebhook(
         req as unknown as WebhookRequest,
@@ -315,6 +324,15 @@ router.post(
       }
 
       const provider: ICallProvider = await CallProviderFactory.getProvider();
+
+      // Validate webhook signature to ensure request is from the call provider
+      const signature: string =
+        (req.headers["x-twilio-signature"] as string) || "";
+      if (!provider.validateWebhookSignature(req as unknown as WebhookRequest, signature)) {
+        logger.error("Invalid webhook signature for dial status callback");
+        res.status(403).send("Forbidden");
+        return;
+      }
 
       // Parse dial status
       const dialStatus: DialStatusData = provider.parseDialStatusWebhook(
