@@ -82,8 +82,32 @@ router.post(
         return res.send(twiml);
       }
 
+      // Create call log early so we can track all outcomes
+      const callLog: IncomingCallLog = new IncomingCallLog();
+      if (policy.projectId) {
+        callLog.projectId = policy.projectId;
+      }
+      callLog.incomingCallPolicyId = new ObjectID(policyId);
+      callLog.callerPhoneNumber = new Phone(callData.callerPhoneNumber);
+      if (policy.routingPhoneNumber) {
+        callLog.routingPhoneNumber = policy.routingPhoneNumber;
+      }
+      callLog.callProviderCallId = callData.callId;
+      callLog.status = IncomingCallStatus.Initiated;
+      callLog.startedAt = new Date();
+      callLog.currentEscalationRuleOrder = 1;
+      callLog.repeatCount = 0;
+
       // Check if policy is enabled
       if (!policy.isEnabled) {
+        callLog.status = IncomingCallStatus.Failed;
+        callLog.statusMessage = "Policy is disabled";
+        callLog.endedAt = new Date();
+        await IncomingCallLogService.create({
+          data: callLog,
+          props: { isRoot: true },
+        });
+
         const twiml: string = provider.generateHangupResponse(
           "Sorry, this service is currently disabled.",
         );
@@ -137,6 +161,14 @@ router.post(
             updatedProject.smsOrCallCurrentBalanceInUSDCents <
               IncomingCallMinimumBalanceRequiredInCents
           ) {
+            callLog.status = IncomingCallStatus.Failed;
+            callLog.statusMessage = "Insufficient balance";
+            callLog.endedAt = new Date();
+            await IncomingCallLogService.create({
+              data: callLog,
+              props: { isRoot: true },
+            });
+
             const twiml: string = provider.generateHangupResponse(
               "Sorry, this service is temporarily unavailable due to insufficient balance.",
             );
@@ -146,22 +178,7 @@ router.post(
         }
       }
 
-      // Create call log
-      const callLog: IncomingCallLog = new IncomingCallLog();
-      if (policy.projectId) {
-        callLog.projectId = policy.projectId;
-      }
-      callLog.incomingCallPolicyId = new ObjectID(policyId);
-      callLog.callerPhoneNumber = new Phone(callData.callerPhoneNumber);
-      if (policy.routingPhoneNumber) {
-        callLog.routingPhoneNumber = policy.routingPhoneNumber;
-      }
-      callLog.callProviderCallId = callData.callId;
-      callLog.status = IncomingCallStatus.Initiated;
-      callLog.startedAt = new Date();
-      callLog.currentEscalationRuleOrder = 1;
-      callLog.repeatCount = 0;
-
+      // Save the call log now that initial checks passed
       const createdCallLog: IncomingCallLog =
         await IncomingCallLogService.create({
           data: callLog,
@@ -190,6 +207,16 @@ router.post(
         });
 
       if (!firstRule) {
+        await IncomingCallLogService.updateOneById({
+          id: createdCallLog.id!,
+          data: {
+            status: IncomingCallStatus.Failed,
+            statusMessage: "No escalation rules configured",
+            endedAt: new Date(),
+          },
+          props: { isRoot: true },
+        });
+
         const twiml: string = provider.generateHangupResponse(
           policy.noOneAvailableMessage ||
             "We're sorry, but no on-call engineer is currently available.",
@@ -202,7 +229,16 @@ router.post(
       const userToCall: User | null = await getUserToCall(firstRule);
 
       if (!userToCall || !userToCall.alertPhoneNumber) {
-        // No user available, try next rule or end call
+        await IncomingCallLogService.updateOneById({
+          id: createdCallLog.id!,
+          data: {
+            status: IncomingCallStatus.Failed,
+            statusMessage: "No on-call user available or user has no phone number",
+            endedAt: new Date(),
+          },
+          props: { isRoot: true },
+        });
+
         const twiml: string = provider.generateHangupResponse(
           policy.noOneAvailableMessage ||
             "We're sorry, but no on-call engineer is currently available.",
@@ -503,6 +539,16 @@ router.post(
       if (!userToCall || !userToCall.alertPhoneNumber) {
         // Skip this rule and try the next one (recursive approach via TwiML redirect would be complex)
         // For simplicity, end the call if no user available
+        await IncomingCallLogService.updateOneById({
+          id: new ObjectID(callLogId),
+          data: {
+            status: IncomingCallStatus.Failed,
+            statusMessage: "No on-call user available or user has no phone number",
+            endedAt: new Date(),
+          },
+          props: { isRoot: true },
+        });
+
         const twiml: string = provider.generateHangupResponse(
           policy.noOneAvailableMessage ||
             "We're sorry, but no on-call engineer is currently available.",
