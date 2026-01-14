@@ -38,10 +38,12 @@ export default abstract class InboundEmailProvider {
 
   /**
    * Validate webhook signature/authentication
+   * @param data.pathSecret - Secret from the URL path (e.g., /incoming-email/sendgrid/:secret)
    */
   public abstract validateWebhook(data: {
     headers: Record<string, string>;
     body: JSONObject | string;
+    pathSecret: string;
   }): Promise<boolean>;
 
   /**

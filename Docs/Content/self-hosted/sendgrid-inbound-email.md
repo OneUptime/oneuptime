@@ -64,7 +64,7 @@ For better deliverability and to avoid emails being marked as spam:
 | Field | Value |
 |-------|-------|
 | **Receiving Domain** | Your inbound subdomain (e.g., `inbound.yourdomain.com`) |
-| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid` |
+| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
 | **Check incoming emails for spam** | Optional - enable if desired |
 | **Send raw, full MIME message** | Leave unchecked (not required) |
 | **POST the raw, full MIME message** | Leave unchecked (not required) |
@@ -127,7 +127,7 @@ After creation, you'll see the unique email address for this monitor (e.g., `mon
 |----------|-------------|----------|---------|
 | `INBOUND_EMAIL_PROVIDER` | The inbound email provider to use | Yes | - |
 | `INBOUND_EMAIL_DOMAIN` | The subdomain configured for inbound emails | Yes | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Secret for validating webhook requests | No | - |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Secret for validating webhook requests. When set, append this secret to the webhook URL: `/incoming-email/sendgrid/YOUR_SECRET` | No | - |
 
 ## Supported Email Criteria
 
@@ -219,7 +219,7 @@ To check if SendGrid is successfully sending webhooks:
 ## Security Best Practices
 
 1. **Use HTTPS:** Always use HTTPS for your webhook endpoint
-2. **Webhook Secret:** Configure `INBOUND_EMAIL_WEBHOOK_SECRET` for additional validation
+2. **Webhook Secret:** Configure `INBOUND_EMAIL_WEBHOOK_SECRET` and include it in your webhook URL (e.g., `/incoming-email/sendgrid/your-secret`) for additional validation
 3. **Domain Verification:** Verify your domain in SendGrid for better email security
 4. **Restrict Access:** Only create monitors for trusted email sources
 5. **Monitor Logs:** Regularly review incoming email logs for suspicious activity

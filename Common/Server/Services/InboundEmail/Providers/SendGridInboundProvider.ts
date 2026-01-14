@@ -65,16 +65,15 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
   public async validateWebhook(data: {
     headers: Record<string, string>;
     body: JSONObject | string;
+    pathSecret: string;
   }): Promise<boolean> {
     /*
      * SendGrid Inbound Parse doesn't provide webhook signature verification by default
-     * We can optionally validate using a custom header if configured
+     * We validate using a secret in the URL path
+     * URL format: /incoming-email/sendgrid/{webhookSecret}
      */
     if (this.config.webhookSecret) {
-      const providedSecret: string | undefined =
-        data.headers["x-oneuptime-webhook-secret"];
-
-      return providedSecret === this.config.webhookSecret;
+      return data.pathSecret === this.config.webhookSecret;
     }
 
     /*

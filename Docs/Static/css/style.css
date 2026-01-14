@@ -723,7 +723,8 @@ img,video {
     line-height: 1.7142857;
     margin-top: 1.7142857em;
     margin-bottom: 1.7142857em;
-    border-radius: .375rem;
+    border-radius: .75rem;
+    padding: 1rem 1.25rem;
 }
 
 .prose :where(pre code):not(:where([class~=not-prose],[class~=not-prose] *)) {
@@ -3175,4 +3176,88 @@ img,video {
     .dark\:\[\@supports\(backdrop-filter\:blur\(0\)\)\]\:bg-slate-900\/75:where(.dark,.dark *) {
         background-color:rgba(15,23,42,.75)
     }
+}
+
+/* Custom code block styling for better appearance */
+pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1.25rem 1.5rem;
+    background: #0d1117;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+/* Ensure inline code looks distinct */
+code:not(.hljs) {
+    background-color: rgba(110, 118, 129, 0.15);
+    padding: 0.2em 0.4em;
+    border-radius: 0.375rem;
+    font-size: 0.875em;
+}
+
+/* PowerShell specific enhancements */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+    color: #ff7b72;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-attribute,
+.hljs-literal,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type {
+    color: #a5d6ff;
+}
+
+.hljs-comment,
+.hljs-quote {
+    color: #8b949e;
+    font-style: italic;
+}
+
+.hljs-variable,
+.hljs-params,
+.hljs-class .hljs-title {
+    color: #ffa657;
+}
+
+.hljs-function {
+    color: #d2a8ff;
+}
+
+.hljs-number {
+    color: #79c0ff;
+}
+
+/* Code block container enhancements */
+.prose pre {
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Better scrollbar for code blocks */
+pre::-webkit-scrollbar {
+    height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }

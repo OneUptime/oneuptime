@@ -19,9 +19,10 @@ const router: ExpressRouter = Express.getRouter();
 /*
  * Webhook endpoint for SendGrid inbound emails
  * SendGrid sends data as multipart/form-data
+ * The webhook secret must be passed as the last path segment: /incoming-email/sendgrid/:secret
  */
 router.post(
-  "/incoming-email/sendgrid",
+  "/incoming-email/sendgrid/:secret",
   MultipartFormDataMiddleware,
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
@@ -43,10 +44,14 @@ router.post(
       const provider: InboundEmailProvider =
         InboundEmailProviderFactory.getProvider();
 
-      // Validate the webhook request
+      // Get the secret from the URL path if provided
+      const pathSecret: string | undefined = req.params["secret"];
+
+      // Validate the webhook request (secret from path takes precedence)
       const isValid: boolean = await provider.validateWebhook({
         headers: req.headers as Record<string, string>,
         body: req.body as JSONObject,
+        pathSecret: pathSecret,
       });
 
       if (!isValid) {
