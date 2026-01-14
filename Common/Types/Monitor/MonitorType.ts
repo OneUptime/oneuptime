@@ -62,7 +62,7 @@ export class MonitorTypeHelper {
         title: "Manual",
         description:
           "This monitor is a static monitor and will not actually monitor anything. It will however help you to integrate OneUptime with external monitoring tools and utilities.",
-        icon: IconProp.Wrench,
+        icon: IconProp.EmptyCircle,
       },
       {
         monitorType: MonitorType.Website,
@@ -160,14 +160,14 @@ export class MonitorTypeHelper {
         title: "Traces",
         description:
           "This monitor type lets you monitor traces from any source.",
-        icon: IconProp.Activity,
+        icon: IconProp.Waterfall,
       },
       {
         monitorType: MonitorType.Metrics,
         title: "Metrics",
         description:
           "This monitor type lets you monitor metrics from any source.",
-        icon: IconProp.ChartBar,
+        icon: IconProp.Heartbeat,
       },
     ];
 
