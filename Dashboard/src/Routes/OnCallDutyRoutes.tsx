@@ -147,6 +147,43 @@ const OnCallDutySettingsCustomFields: LazyExoticComponent<
   return import("../Pages/OnCallDuty/Settings/OnCallDutyPolicyCustomFields");
 });
 
+// Incoming Call Policies
+const IncomingCallPoliciesPage: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/IncomingCallPolicies");
+});
+
+const IncomingCallPolicyViewLayout: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/IncomingCallPolicy/Layout");
+});
+
+const IncomingCallPolicyView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/IncomingCallPolicy/Index");
+});
+
+const IncomingCallPolicyViewEscalation: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/IncomingCallPolicy/Escalation");
+});
+
+const IncomingCallPolicyViewLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/IncomingCallPolicy/Logs");
+});
+
+const IncomingCallPolicyViewDelete: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/IncomingCallPolicy/Delete");
+});
+
 const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -304,6 +341,24 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Incoming Call Policies */}
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES] ||
+            ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncomingCallPoliciesPage
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES] as Route
                 }
               />
             </Suspense>
@@ -544,6 +599,89 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+
+      {/* Incoming Call Policy View Routes */}
+      <PageRoute
+        path={
+          OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW] ||
+          ""
+        }
+        element={
+          <Suspense fallback={Loader}>
+            <IncomingCallPolicyViewLayout {...props} />
+          </Suspense>
+        }
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <IncomingCallPolicyView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncomingCallPolicyViewEscalation
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncomingCallPolicyViewLogs
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncomingCallPolicyViewDelete
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE
+                  ] as Route
                 }
               />
             </Suspense>

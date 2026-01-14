@@ -127,6 +127,54 @@ export function getOnCallDutyBreadcrumbs(
       PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS,
       ["Project", "On-Call Duty", "Settings", "Custom Fields"],
     ),
+
+    // Incoming Call Policies
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES,
+      ["Project", "On-Call Duty", "Incoming Call Policies"],
+    ),
+  };
+  return breadcrumpLinksMap[path];
+}
+
+export function getIncomingCallPolicyBreadcrumbs(
+  path: string,
+): Array<Link> | undefined {
+  const breadcrumpLinksMap: Dictionary<Link[]> = {
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW,
+      ["Project", "On-Call Duty", "Incoming Call Policies", "View Policy"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION,
+      [
+        "Project",
+        "On-Call Duty",
+        "Incoming Call Policies",
+        "View Policy",
+        "Escalation Rules",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS,
+      [
+        "Project",
+        "On-Call Duty",
+        "Incoming Call Policies",
+        "View Policy",
+        "Call Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE,
+      [
+        "Project",
+        "On-Call Duty",
+        "Incoming Call Policies",
+        "View Policy",
+        "Delete",
+      ],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

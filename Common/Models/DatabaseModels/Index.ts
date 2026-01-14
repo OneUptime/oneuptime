@@ -69,6 +69,12 @@ import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "./OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 
+// Incoming Call Policy
+import IncomingCallPolicy from "./IncomingCallPolicy";
+import IncomingCallPolicyEscalationRule from "./IncomingCallPolicyEscalationRule";
+import IncomingCallLog from "./IncomingCallLog";
+import IncomingCallLogItem from "./IncomingCallLogItem";
+
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
 import ProbeOwnerUser from "./ProbeOwnerUser";
@@ -225,6 +231,12 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyExecutionLog,
   OnCallDutyPolicyExecutionLogTimeline,
   OnCallDutyPolicyUserOverride,
+
+  // Incoming Call Policy
+  IncomingCallPolicy,
+  IncomingCallPolicyEscalationRule,
+  IncomingCallLog,
+  IncomingCallLogItem,
 
   Monitor,
   MonitorSecret,

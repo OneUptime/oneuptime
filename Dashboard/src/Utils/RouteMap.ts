@@ -314,6 +314,13 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+
+  // Incoming Call Policy
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]: "incoming-call-policies",
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW]: `incoming-call-policies/${RouteParams.ModelID}`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]: `incoming-call-policies/${RouteParams.ModelID}/escalation`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS]: `incoming-call-policies/${RouteParams.ModelID}/logs`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]: `incoming-call-policies/${RouteParams.ModelID}/delete`,
 };
 
 export const MonitorGroupRoutePath: Dictionary<string> = {
@@ -1565,6 +1572,37 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SETTINGS_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  // Incoming Call Policy Routes
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]
     }`,
   ),
 
