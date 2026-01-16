@@ -498,25 +498,6 @@ export class Service extends DatabaseService<StatusPage> {
         };
       }
 
-      // if it does not have public access, check if this user has access.
-
-      const items: Array<StatusPage> = await this.findBy({
-        query: {
-          _id: statusPageId.toString(),
-        },
-        select: {
-          _id: true,
-        },
-        skip: 0,
-        limit: 1,
-        props: props,
-      });
-
-      if (items.length > 0) {
-        return {
-          hasReadAccess: true,
-        };
-      }
     } catch (err) {
       logger.error(err);
     }
