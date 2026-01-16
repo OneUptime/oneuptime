@@ -54,20 +54,6 @@ const StatusPageSCIMLogsTable: FunctionComponent<
       noValueMessage: "-",
     },
     {
-      field: { httpMethod: true },
-      title: "Method",
-      type: FieldType.Text,
-      hideOnMobile: true,
-      noValueMessage: "-",
-    },
-    {
-      field: { httpStatusCode: true },
-      title: "Status Code",
-      type: FieldType.Number,
-      hideOnMobile: true,
-      noValueMessage: "-",
-    },
-    {
       field: { createdAt: true },
       title: "Time",
       type: FieldType.DateTime,
@@ -110,7 +96,6 @@ const StatusPageSCIMLogsTable: FunctionComponent<
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
-        showViewIdButton={true}
         isViewable={false}
         userPreferencesKey="status-page-scim-logs-table"
         query={{
