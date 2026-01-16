@@ -31,7 +31,6 @@ export default class ProjectUtil {
     }
 
     // Only return the projectId if it's a valid UUID
-    // This prevents URL path segments like "email", "subscribe" etc. from being used as project IDs
     if (projectId && ObjectID.isValidUUID(projectId)) {
       return new ObjectID(projectId);
     }
