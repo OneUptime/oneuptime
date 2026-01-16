@@ -2,6 +2,8 @@ import SCIMMiddleware from "Common/Server/Middleware/SCIMAuthorization";
 import UserService from "Common/Server/Services/UserService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import TeamService from "Common/Server/Services/TeamService";
+import { createProjectSCIMLog } from "../Utils/SCIMLogger";
+import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -1063,12 +1065,44 @@ router.post(
         `Project SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
       );
 
+      const bulkResponse: JSONObject = generateBulkResponse(results);
+
+      // Log the bulk operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(projectScimId),
+        operationType: "BulkOperation",
+        status: errorCount > 0 ? SCIMLogStatus.Warning : SCIMLogStatus.Success,
+        statusMessage: `Processed ${results.length} operations with ${errorCount} errors`,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 200,
+        requestBody: req.body,
+        responseBody: bulkResponse,
+      });
+
       return Response.sendJsonObjectResponse(
         req,
         res,
-        generateBulkResponse(results),
+        bulkResponse,
       );
     } catch (err) {
+      // Log the error
+      const oneuptimeRequestErr: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerDataErr: JSONObject =
+        oneuptimeRequestErr.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerDataErr["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "BulkOperation",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 500,
+        requestBody: req.body,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -1249,12 +1283,41 @@ router.get(
 
       logger.debug(`SCIM Users response prepared with ${users.length} users`);
 
+      const responseBody: JSONObject = generateUsersListResponse(paginatedUsers, startIndex, users.length);
+
+      // Log the operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "ListUsers",
+        status: SCIMLogStatus.Success,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 200,
+        responseBody: responseBody,
+      });
+
       return Response.sendJsonObjectResponse(
         req,
         res,
-        generateUsersListResponse(paginatedUsers, startIndex, users.length),
+        responseBody,
       );
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "ListUsers",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 500,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -1325,8 +1388,36 @@ router.get(
         "project",
       );
 
+      // Log the operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "GetUser",
+        status: SCIMLogStatus.Success,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 200,
+        affectedUserEmail: projectUser.user.email?.toString(),
+        responseBody: user,
+      });
+
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "GetUser",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 404,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -1475,6 +1566,21 @@ const handleUserUpdate: (
           req.params["projectScimId"]!,
           "project",
         );
+
+        // Log the operation
+        void createProjectSCIMLog({
+          projectId: projectId,
+          projectScimId: new ObjectID(req.params["projectScimId"]!),
+          operationType: "UpdateUser",
+          status: SCIMLogStatus.Success,
+          httpMethod: req.method,
+          requestPath: req.path,
+          httpStatusCode: 200,
+          affectedUserEmail: email,
+          requestBody: scimUser,
+          responseBody: user,
+        });
+
         return Response.sendJsonObjectResponse(req, res, user);
       }
     }
@@ -1489,8 +1595,38 @@ const handleUserUpdate: (
       "project",
     );
 
+    // Log the operation
+    void createProjectSCIMLog({
+      projectId: projectId,
+      projectScimId: new ObjectID(req.params["projectScimId"]!),
+      operationType: "UpdateUser",
+      status: SCIMLogStatus.Success,
+      httpMethod: req.method,
+      requestPath: req.path,
+      httpStatusCode: 200,
+      affectedUserEmail: projectUser.user.email?.toString(),
+      requestBody: scimUser,
+      responseBody: user,
+    });
+
     return Response.sendJsonObjectResponse(req, res, user);
   } catch (err) {
+    // Log the error
+    const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const bearerData: JSONObject =
+      oneuptimeRequest.bearerTokenData as JSONObject;
+    void createProjectSCIMLog({
+      projectId: bearerData["projectId"] as ObjectID,
+      projectScimId: new ObjectID(req.params["projectScimId"]!),
+      operationType: "UpdateUser",
+      status: SCIMLogStatus.Error,
+      statusMessage: (err as Error).message,
+      httpMethod: req.method,
+      requestPath: req.path,
+      httpStatusCode: 400,
+      requestBody: req.body,
+    });
+
     logger.error(err);
     return next(err);
   }
@@ -1589,14 +1725,43 @@ router.get(
         `SCIM Groups response prepared with ${groups.length} groups`,
       );
 
-      return Response.sendJsonObjectResponse(req, res, {
+      const responseBody: JSONObject = {
         schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         totalResults: groups.length,
         startIndex: startIndex,
         itemsPerPage: paginatedGroups.length,
         Resources: paginatedGroups,
+      };
+
+      // Log the operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "ListGroups",
+        status: SCIMLogStatus.Success,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 200,
+        responseBody: responseBody,
       });
+
+      return Response.sendJsonObjectResponse(req, res, responseBody);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "ListGroups",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 500,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -1663,8 +1828,36 @@ router.get(
         true, // Include members for individual group request
       );
 
+      // Log the operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "GetGroup",
+        status: SCIMLogStatus.Success,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 200,
+        affectedGroupName: team.name?.toString(),
+        responseBody: group,
+      });
+
       return Response.sendJsonObjectResponse(req, res, group);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "GetGroup",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 404,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -1826,6 +2019,20 @@ router.post(
         `SCIM Create group - returning group with id: ${teamForResponse.id}`,
       );
 
+      // Log the operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "CreateGroup",
+        status: SCIMLogStatus.Success,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: createdNewTeam ? 201 : 200,
+        affectedGroupName: displayName,
+        requestBody: scimGroup,
+        responseBody: groupResponse,
+      });
+
       if (createdNewTeam) {
         res.status(201);
       } else {
@@ -1834,6 +2041,22 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, groupResponse);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "CreateGroup",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 400,
+        requestBody: req.body,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -1992,11 +2215,42 @@ router.put(
           req.params["projectScimId"]!,
           true,
         );
+
+        // Log the operation
+        void createProjectSCIMLog({
+          projectId: projectId,
+          projectScimId: new ObjectID(req.params["projectScimId"]!),
+          operationType: "UpdateGroup",
+          status: SCIMLogStatus.Success,
+          httpMethod: "PUT",
+          requestPath: req.path,
+          httpStatusCode: 200,
+          affectedGroupName: displayName || updatedTeam.name?.toString(),
+          requestBody: scimGroup,
+          responseBody: updatedGroup,
+        });
+
         return Response.sendJsonObjectResponse(req, res, updatedGroup);
       }
 
       throw new NotFoundException("Failed to retrieve updated group");
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "UpdateGroup",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "PUT",
+        requestPath: req.path,
+        httpStatusCode: 400,
+        requestBody: req.body,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -2083,11 +2337,38 @@ router.delete(
 
       logger.debug(`SCIM Delete group - team successfully deleted`);
 
+      // Log the operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "DeleteGroup",
+        status: SCIMLogStatus.Success,
+        httpMethod: "DELETE",
+        requestPath: req.path,
+        httpStatusCode: 204,
+        affectedGroupName: team.name?.toString(),
+      });
+
       res.status(204);
       return Response.sendJsonObjectResponse(req, res, {
         message: "Group deleted",
       });
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "DeleteGroup",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "DELETE",
+        requestPath: req.path,
+        httpStatusCode: 400,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -2327,11 +2608,42 @@ router.patch(
           req.params["projectScimId"]!,
           true,
         );
+
+        // Log the operation
+        void createProjectSCIMLog({
+          projectId: projectId,
+          projectScimId: new ObjectID(req.params["projectScimId"]!),
+          operationType: "UpdateGroup",
+          status: SCIMLogStatus.Success,
+          httpMethod: "PATCH",
+          requestPath: req.path,
+          httpStatusCode: 200,
+          affectedGroupName: updatedTeam.name?.toString(),
+          requestBody: scimPatch,
+          responseBody: updatedGroup,
+        });
+
         return Response.sendJsonObjectResponse(req, res, updatedGroup);
       }
 
       throw new NotFoundException("Failed to retrieve updated group");
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "UpdateGroup",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "PATCH",
+        requestPath: req.path,
+        httpStatusCode: 400,
+        requestBody: req.body,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -2429,9 +2741,39 @@ router.post(
         `SCIM Create user - returning created user with id: ${user.id}`,
       );
 
+      // Log the operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "CreateUser",
+        status: SCIMLogStatus.Success,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 201,
+        affectedUserEmail: email,
+        requestBody: scimUser,
+        responseBody: createdUser,
+      });
+
       res.status(201);
       return Response.sendJsonObjectResponse(req, res, createdUser);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "CreateUser",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 400,
+        requestBody: req.body,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -2492,11 +2834,37 @@ router.delete(
         `SCIM Delete user - user successfully deprovisioned from project`,
       );
 
+      // Log the operation
+      void createProjectSCIMLog({
+        projectId: projectId,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "DeleteUser",
+        status: SCIMLogStatus.Success,
+        httpMethod: "DELETE",
+        requestPath: req.path,
+        httpStatusCode: 204,
+      });
+
       res.status(204);
       return Response.sendJsonObjectResponse(req, res, {
         message: "User deprovisioned",
       });
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createProjectSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        projectScimId: new ObjectID(req.params["projectScimId"]!),
+        operationType: "DeleteUser",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "DELETE",
+        requestPath: req.path,
+        httpStatusCode: 400,
+      });
+
       logger.error(err);
       return next(err);
     }

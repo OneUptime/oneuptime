@@ -1,5 +1,7 @@
 import SCIMMiddleware from "Common/Server/Middleware/SCIMAuthorization";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
+import { createStatusPageSCIMLog } from "../Utils/SCIMLogger";
+import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -443,12 +445,46 @@ router.post(
         `Status Page SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
       );
 
+      const bulkResponse: JSONObject = generateBulkResponse(results);
+
+      // Log the bulk operation
+      void createStatusPageSCIMLog({
+        projectId: projectId,
+        statusPageId: statusPageId,
+        statusPageScimId: new ObjectID(statusPageScimId),
+        operationType: "BulkOperation",
+        status: errorCount > 0 ? SCIMLogStatus.Warning : SCIMLogStatus.Success,
+        statusMessage: `Processed ${results.length} operations with ${errorCount} errors`,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 200,
+        requestBody: req.body,
+        responseBody: bulkResponse,
+      });
+
       return Response.sendJsonObjectResponse(
         req,
         res,
-        generateBulkResponse(results),
+        bulkResponse,
       );
     } catch (err) {
+      // Log the error
+      const oneuptimeRequestErr: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerDataErr: JSONObject =
+        oneuptimeRequestErr.bearerTokenData as JSONObject;
+      void createStatusPageSCIMLog({
+        projectId: bearerDataErr["projectId"] as ObjectID,
+        statusPageId: bearerDataErr["statusPageId"] as ObjectID,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "BulkOperation",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 500,
+        requestBody: req.body,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -565,14 +601,45 @@ router.get(
         `Status Page SCIM Users response prepared with ${users.length} users`,
       );
 
-      return Response.sendJsonObjectResponse(req, res, {
+      const responseBody: JSONObject = {
         schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         totalResults: users.length,
         startIndex: startIndex,
         itemsPerPage: paginatedUsers.length,
         Resources: paginatedUsers,
+      };
+
+      // Log the operation
+      void createStatusPageSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        statusPageId: statusPageId,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "ListUsers",
+        status: SCIMLogStatus.Success,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 200,
+        responseBody: responseBody,
       });
+
+      return Response.sendJsonObjectResponse(req, res, responseBody);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createStatusPageSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        statusPageId: bearerData["statusPageId"] as ObjectID,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "ListUsers",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 500,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -642,8 +709,38 @@ router.get(
         `Status Page SCIM Get user - returning user with id: ${statusPageUser.id}`,
       );
 
+      // Log the operation
+      void createStatusPageSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        statusPageId: statusPageId,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "GetUser",
+        status: SCIMLogStatus.Success,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 200,
+        affectedUserEmail: statusPageUser.email?.toString(),
+        responseBody: user,
+      });
+
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createStatusPageSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        statusPageId: bearerData["statusPageId"] as ObjectID,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "GetUser",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "GET",
+        requestPath: req.path,
+        httpStatusCode: 404,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -747,9 +844,41 @@ router.post(
         `Status Page SCIM Create user - returning created user with id: ${user.id}`,
       );
 
+      // Log the operation
+      void createStatusPageSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        statusPageId: statusPageId,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "CreateUser",
+        status: SCIMLogStatus.Success,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 201,
+        affectedUserEmail: email,
+        requestBody: scimUser,
+        responseBody: createdUser,
+      });
+
       res.status(201);
       return Response.sendJsonObjectResponse(req, res, createdUser);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createStatusPageSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        statusPageId: bearerData["statusPageId"] as ObjectID,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "CreateUser",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "POST",
+        requestPath: req.path,
+        httpStatusCode: 400,
+        requestBody: req.body,
+      });
+
       logger.error(err);
       return next(err);
     }
@@ -890,6 +1019,22 @@ const handleStatusPageUserUpdate: (
           req.params["statusPageScimId"]!,
           "status-page",
         );
+
+        // Log the operation
+        void createStatusPageSCIMLog({
+          projectId: bearerData["projectId"] as ObjectID,
+          statusPageId: statusPageId,
+          statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+          operationType: "UpdateUser",
+          status: SCIMLogStatus.Success,
+          httpMethod: req.method,
+          requestPath: req.path,
+          httpStatusCode: 200,
+          affectedUserEmail: email,
+          requestBody: scimUser,
+          responseBody: user,
+        });
+
         return Response.sendJsonObjectResponse(req, res, user);
       }
     }
@@ -906,8 +1051,40 @@ const handleStatusPageUserUpdate: (
       "status-page",
     );
 
+    // Log the operation
+    void createStatusPageSCIMLog({
+      projectId: bearerData["projectId"] as ObjectID,
+      statusPageId: statusPageId,
+      statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+      operationType: "UpdateUser",
+      status: SCIMLogStatus.Success,
+      httpMethod: req.method,
+      requestPath: req.path,
+      httpStatusCode: 200,
+      affectedUserEmail: statusPageUser.email?.toString(),
+      requestBody: scimUser,
+      responseBody: user,
+    });
+
     return Response.sendJsonObjectResponse(req, res, user);
   } catch (err) {
+    // Log the error
+    const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const bearerData: JSONObject =
+      oneuptimeRequest.bearerTokenData as JSONObject;
+    void createStatusPageSCIMLog({
+      projectId: bearerData["projectId"] as ObjectID,
+      statusPageId: bearerData["statusPageId"] as ObjectID,
+      statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+      operationType: "UpdateUser",
+      status: SCIMLogStatus.Error,
+      statusMessage: (err as Error).message,
+      httpMethod: req.method,
+      requestPath: req.path,
+      httpStatusCode: 400,
+      requestBody: req.body,
+    });
+
     logger.error(err);
     return next(err);
   }
@@ -994,10 +1171,38 @@ router.delete(
         `Status Page SCIM Delete user - user deleted successfully for userId: ${userId}`,
       );
 
+      // Log the operation
+      void createStatusPageSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        statusPageId: statusPageId,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "DeleteUser",
+        status: SCIMLogStatus.Success,
+        httpMethod: "DELETE",
+        requestPath: req.path,
+        httpStatusCode: 204,
+      });
+
       // Return 204 No Content for successful deletion
       res.status(204);
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
+      // Log the error
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      void createStatusPageSCIMLog({
+        projectId: bearerData["projectId"] as ObjectID,
+        statusPageId: bearerData["statusPageId"] as ObjectID,
+        statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+        operationType: "DeleteUser",
+        status: SCIMLogStatus.Error,
+        statusMessage: (err as Error).message,
+        httpMethod: "DELETE",
+        requestPath: req.path,
+        httpStatusCode: 400,
+      });
+
       logger.error(err);
       return next(err);
     }

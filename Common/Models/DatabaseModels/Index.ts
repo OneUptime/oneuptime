@@ -197,6 +197,8 @@ import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
+import ProjectSCIMLog from "./ProjectSCIMLog";
+import StatusPageSCIMLog from "./StatusPageSCIMLog";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -417,6 +419,8 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyTimeLog,
 
   ProjectSCIM,
+  ProjectSCIMLog,
+  StatusPageSCIMLog,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

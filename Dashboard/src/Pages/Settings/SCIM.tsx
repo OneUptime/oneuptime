@@ -22,6 +22,8 @@ import React, {
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import ProjectSCIMLogsTable from "../../Components/SCIMLogs/ProjectSCIMLogsTable";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -65,8 +67,12 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <>
-        <ModelTable<ProjectSCIM>
+      <Tabs
+        tabs={[
+          {
+            name: "Configuration",
+            children: (
+              <ModelTable<ProjectSCIM>
           key={refresher.toString()}
           modelType={ProjectSCIM}
           userPreferencesKey={"project-scim-table"}
@@ -262,9 +268,18 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               },
             },
           ]}
-        />
+              />
+            ),
+          },
+          {
+            name: "Logs",
+            children: <ProjectSCIMLogsTable />,
+          },
+        ]}
+        onTabChange={() => {}}
+      />
 
-        {showSCIMUrlId && currentSCIMConfig && (
+      {showSCIMUrlId && currentSCIMConfig && (
           <ConfirmModal
             title={`SCIM Configuration URLs`}
             description={
@@ -403,7 +418,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             submitButtonType={ButtonStyleType.NORMAL}
           />
         )}
-      </>
     </Fragment>
   );
 };

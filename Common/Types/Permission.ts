@@ -164,6 +164,9 @@ enum Permission {
   ReadWorkspaceNotificationLog = "ReadWorkspaceNotificationLog",
   ReadLlmLog = "ReadLlmLog",
 
+  ReadProjectSCIMLog = "ReadProjectSCIMLog",
+  ReadStatusPageSCIMLog = "ReadStatusPageSCIMLog",
+
   CreateIncidentOwnerTeam = "CreateIncidentOwnerTeam",
   DeleteIncidentOwnerTeam = "DeleteIncidentOwnerTeam",
   EditIncidentOwnerTeam = "EditIncidentOwnerTeam",
@@ -1369,6 +1372,23 @@ export class PermissionHelper {
         permission: Permission.ReadEmailLog,
         title: "Read Email Log",
         description: "This permission can read email logs of the project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.ReadProjectSCIMLog,
+        title: "Read Project SCIM Log",
+        description:
+          "This permission can read SCIM provisioning logs of the project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadStatusPageSCIMLog,
+        title: "Read Status Page SCIM Log",
+        description:
+          "This permission can read SCIM provisioning logs of status pages in the project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

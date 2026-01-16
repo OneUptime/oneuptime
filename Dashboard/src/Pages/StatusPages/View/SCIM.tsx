@@ -20,6 +20,8 @@ import React, {
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import StatusPageSCIMLogsTable from "../../../Components/SCIMLogs/StatusPageSCIMLogsTable";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -64,8 +66,12 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <>
-        <ModelTable<StatusPageSCIM>
+      <Tabs
+        tabs={[
+          {
+            name: "Configuration",
+            children: (
+              <ModelTable<StatusPageSCIM>
           key={refresher.toString()}
           modelType={StatusPageSCIM}
           userPreferencesKey={"status-page-scim-table"}
@@ -216,9 +222,22 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               },
             },
           ]}
-        />
+              />
+            ),
+          },
+          {
+            name: "Logs",
+            children: (
+              <StatusPageSCIMLogsTable
+                query={{ statusPageId: modelId }}
+              />
+            ),
+          },
+        ]}
+        onTabChange={() => {}}
+      />
 
-        {showSCIMUrlId && currentSCIMConfig ? (
+      {showSCIMUrlId && currentSCIMConfig ? (
           <ConfirmModal
             title={`SCIM URLs - ${currentSCIMConfig.name}`}
             description={
@@ -346,7 +365,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         ) : (
           <></>
         )}
-      </>
     </Fragment>
   );
 };
