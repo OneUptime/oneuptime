@@ -180,7 +180,7 @@ const StatusPageSCIMLogsTable: FunctionComponent<
           submitButtonText="Close"
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SimpleLogViewer title="Log Output" height="500px">
+          <SimpleLogViewer height="500px">
             {logModalText}
           </SimpleLogViewer>
         </Modal>

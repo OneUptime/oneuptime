@@ -71,12 +71,18 @@ const SimpleLogViewer: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const scrollbarStyles: React.CSSProperties = {
+    maxHeight: height,
+    scrollbarWidth: "thin",
+    scrollbarColor: "#475569 #1e293b",
+  };
+
   return (
     <div className="rounded-lg overflow-hidden border border-slate-700 bg-slate-900 shadow-lg">
       {/* Log Content */}
       <div
-        className="overflow-auto font-mono text-sm leading-6 p-4"
-        style={{ maxHeight: height }}
+        className="overflow-auto font-mono text-sm leading-6 p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-500"
+        style={scrollbarStyles}
       >
         {renderContent()}
       </div>
