@@ -39,6 +39,7 @@ export interface ComponentProps {
   outerDivClassName?: string | undefined;
   autoFocus?: boolean | undefined;
   disableSpellCheck?: boolean | undefined;
+  showSecondsForDateTime?: boolean | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -188,6 +189,11 @@ const Input: FunctionComponent<ComponentProps> = (
           }
           readOnly={props.readOnly || props.disabled || false}
           type={props.type || "text"}
+          step={
+            props.type === InputType.DATETIME_LOCAL && props.showSecondsForDateTime
+              ? "1"
+              : undefined
+          }
           placeholder={props.placeholder}
           className={className}
           onBlur={() => {

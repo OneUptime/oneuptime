@@ -158,6 +158,9 @@ const StartAndEndDate: DateFilterFunction = (
                 value={startDateTime || ""}
                 placeholder={`Start Date`}
                 type={inputType}
+                showSecondsForDateTime={
+                  props.type === StartAndEndDateType.DateTime
+                }
               />
             </div>
           </div>
@@ -192,6 +195,9 @@ const StartAndEndDate: DateFilterFunction = (
                 value={endDateTime || ""}
                 placeholder={`End Date`}
                 type={inputType}
+                showSecondsForDateTime={
+                  props.type === StartAndEndDateType.DateTime
+                }
               />
             </div>
           </div>

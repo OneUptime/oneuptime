@@ -207,6 +207,39 @@ describe("Input", () => {
     );
   });
 
+  test("sets step attribute to 1 for datetime-local when showSecondsForDateTime is true", () => {
+    const dataTestId: string = "testid";
+
+    render(
+      <Input
+        type={InputType.DATETIME_LOCAL}
+        showSecondsForDateTime={true}
+        dataTestId={dataTestId}
+      />,
+    );
+
+    expect(screen.getByTestId<HTMLInputElement>(dataTestId)).toHaveAttribute(
+      "step",
+      "1",
+    );
+  });
+
+  test("does not set step attribute for datetime-local when showSecondsForDateTime is false", () => {
+    const dataTestId: string = "testid";
+
+    render(
+      <Input
+        type={InputType.DATETIME_LOCAL}
+        showSecondsForDateTime={false}
+        dataTestId={dataTestId}
+      />,
+    );
+
+    expect(
+      screen.getByTestId<HTMLInputElement>(dataTestId),
+    ).not.toHaveAttribute("step");
+  });
+
   test("uses YYYY-MM-DD for date type", () => {
     const date: string = "2023-04-22T00:00:00";
     const dataTestId: string = "testid";
