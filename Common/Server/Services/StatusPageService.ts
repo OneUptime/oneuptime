@@ -382,8 +382,6 @@ export class Service extends DatabaseService<StatusPage> {
     const statusPageId: ObjectID = data.statusPageId;
     const req: ExpressRequest = data.req;
 
-    const props: DatabaseCommonInteractionProps =
-      await CommonAPI.getDatabaseCommonInteractionProps(req);
     try {
       // get status page by id.
       const statusPage: StatusPage | null = await this.findOneById({
