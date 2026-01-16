@@ -201,7 +201,9 @@ router.post(
       const results: SCIMBulkOperationResponse[] = [];
       let errorCount: number = 0;
 
-      executionSteps.push(`Processing ${operations.length} operations (failOnErrors=${failOnErrors})`);
+      executionSteps.push(
+        `Processing ${operations.length} operations (failOnErrors=${failOnErrors})`,
+      );
       logger.debug(
         `Status Page SCIM Bulk - processing ${operations.length} operations`,
       );
@@ -218,7 +220,9 @@ router.post(
           | undefined;
 
         const { resourceType, resourceId } = parseBulkOperationPath(path);
-        executionSteps.push(`Operation ${opIndex + 1}: ${method} ${path} (resourceType=${resourceType}, resourceId=${resourceId || "N/A"})`);
+        executionSteps.push(
+          `Operation ${opIndex + 1}: ${method} ${path} (resourceType=${resourceType}, resourceId=${resourceId || "N/A"})`,
+        );
 
         let operationResult: SCIMBulkOperationResponse = {
           method: method,
@@ -231,9 +235,13 @@ router.post(
           if (resourceType === "Users") {
             if (method === "POST") {
               // Create User
-              executionSteps.push(`  [POST User] Checking auto-provisioning status`);
+              executionSteps.push(
+                `  [POST User] Checking auto-provisioning status`,
+              );
               if (!scimConfig.autoProvisionUsers) {
-                executionSteps.push(`  [POST User] Auto-provisioning is disabled`);
+                executionSteps.push(
+                  `  [POST User] Auto-provisioning is disabled`,
+                );
                 throw new BadRequestException(
                   "Auto-provisioning is disabled for this status page",
                 );
@@ -243,7 +251,9 @@ router.post(
                 (data!["userName"] as string) ||
                 ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
 
-              executionSteps.push(`  [POST User] Extracted email: ${email || "not found"}`);
+              executionSteps.push(
+                `  [POST User] Extracted email: ${email || "not found"}`,
+              );
               if (!email) {
                 throw new BadRequestException(
                   "Email is required for user creation",
@@ -251,7 +261,9 @@ router.post(
               }
 
               // Check if user already exists for this status page
-              executionSteps.push(`  [POST User] Checking if user already exists`);
+              executionSteps.push(
+                `  [POST User] Checking if user already exists`,
+              );
               let user: StatusPagePrivateUser | null =
                 await StatusPagePrivateUserService.findOneBy({
                   query: {
@@ -268,7 +280,9 @@ router.post(
                 });
 
               if (!user) {
-                executionSteps.push(`  [POST User] User does not exist, creating new user`);
+                executionSteps.push(
+                  `  [POST User] User does not exist, creating new user`,
+                );
                 const privateUser: StatusPagePrivateUser =
                   new StatusPagePrivateUser();
                 privateUser.statusPageId = statusPageId;
@@ -283,9 +297,13 @@ router.post(
                   props: { isRoot: true },
                 });
                 usersCreated++;
-                executionSteps.push(`  [POST User] User created with ID: ${user.id?.toString()}`);
+                executionSteps.push(
+                  `  [POST User] User created with ID: ${user.id?.toString()}`,
+                );
               } else {
-                executionSteps.push(`  [POST User] User already exists with ID: ${user.id?.toString()}`);
+                executionSteps.push(
+                  `  [POST User] User already exists with ID: ${user.id?.toString()}`,
+                );
               }
 
               const createdUser: JSONObject = formatUserForSCIM(
@@ -302,12 +320,16 @@ router.post(
                 location: `/status-page-scim/v2/${statusPageScimId}/Users/${user.id?.toString()}`,
                 response: createdUser,
               };
-              executionSteps.push(`  [POST User] Operation completed successfully`);
+              executionSteps.push(
+                `  [POST User] Operation completed successfully`,
+              );
             } else if (method === "PUT" || method === "PATCH") {
               // Update User
               executionSteps.push(`  [${method} User] Starting user update`);
               if (!resourceId) {
-                executionSteps.push(`  [${method} User] Error: User ID is required`);
+                executionSteps.push(
+                  `  [${method} User] Error: User ID is required`,
+                );
                 throw new BadRequestException("User ID is required");
               }
 
@@ -336,7 +358,9 @@ router.post(
                   "User not found or not part of this status page",
                 );
               }
-              executionSteps.push(`  [${method} User] User found: ${statusPageUser.email?.toString()}`);
+              executionSteps.push(
+                `  [${method} User] User found: ${statusPageUser.email?.toString()}`,
+              );
 
               // Update user information
               const email: string =
@@ -344,17 +368,23 @@ router.post(
                 ((data!["emails"] as JSONObject[])?.[0]?.["value"] as string);
               const active: boolean = data!["active"] as boolean;
 
-              executionSteps.push(`  [${method} User] Update data - email: ${email || "not provided"}, active: ${active !== undefined ? active : "not provided"}`);
+              executionSteps.push(
+                `  [${method} User] Update data - email: ${email || "not provided"}, active: ${active !== undefined ? active : "not provided"}`,
+              );
 
               // Handle user deactivation by deleting from status page
               if (active === false && scimConfig.autoDeprovisionUsers) {
-                executionSteps.push(`  [${method} User] User marked inactive, deleting from status page`);
+                executionSteps.push(
+                  `  [${method} User] User marked inactive, deleting from status page`,
+                );
                 await StatusPagePrivateUserService.deleteOneById({
                   id: userId,
                   props: { isRoot: true },
                 });
                 usersDeactivated++;
-                executionSteps.push(`  [${method} User] User deleted via deactivation`);
+                executionSteps.push(
+                  `  [${method} User] User deleted via deactivation`,
+                );
 
                 operationResult = {
                   method: method,
@@ -365,7 +395,9 @@ router.post(
               } else {
                 // Update email if provided
                 if (email && email !== statusPageUser.email?.toString()) {
-                  executionSteps.push(`  [${method} User] Updating email from ${statusPageUser.email?.toString()} to ${email}`);
+                  executionSteps.push(
+                    `  [${method} User] Updating email from ${statusPageUser.email?.toString()} to ${email}`,
+                  );
                   await StatusPagePrivateUserService.updateOneById({
                     id: userId,
                     data: { email: new Email(email) },
@@ -373,7 +405,9 @@ router.post(
                   });
                   usersUpdated++;
                 } else {
-                  executionSteps.push(`  [${method} User] No email change needed`);
+                  executionSteps.push(
+                    `  [${method} User] No email change needed`,
+                  );
                 }
 
                 // Fetch updated user
@@ -403,18 +437,24 @@ router.post(
                   location: `/status-page-scim/v2/${statusPageScimId}/Users/${resourceId}`,
                   response: userResponse,
                 };
-                executionSteps.push(`  [${method} User] Operation completed successfully`);
+                executionSteps.push(
+                  `  [${method} User] Operation completed successfully`,
+                );
               }
             } else if (method === "DELETE") {
               // Delete User
               executionSteps.push(`  [DELETE User] Starting user deletion`);
               if (!resourceId) {
-                executionSteps.push(`  [DELETE User] Error: User ID is required`);
+                executionSteps.push(
+                  `  [DELETE User] Error: User ID is required`,
+                );
                 throw new BadRequestException("User ID is required");
               }
 
               if (!scimConfig.autoDeprovisionUsers) {
-                executionSteps.push(`  [DELETE User] Auto-deprovisioning is disabled`);
+                executionSteps.push(
+                  `  [DELETE User] Auto-deprovisioning is disabled`,
+                );
                 throw new BadRequestException(
                   "Auto-deprovisioning is disabled for this status page",
                 );
@@ -438,10 +478,14 @@ router.post(
                 executionSteps.push(`  [DELETE User] User not found`);
                 throw new NotFoundException("User not found");
               }
-              executionSteps.push(`  [DELETE User] User found: ${statusPageUser.email?.toString()}`);
+              executionSteps.push(
+                `  [DELETE User] User found: ${statusPageUser.email?.toString()}`,
+              );
 
               // Delete the user from status page
-              executionSteps.push(`  [DELETE User] Deleting user from status page`);
+              executionSteps.push(
+                `  [DELETE User] Deleting user from status page`,
+              );
               await StatusPagePrivateUserService.deleteOneById({
                 id: userId,
                 props: { isRoot: true },
@@ -457,7 +501,9 @@ router.post(
               };
             }
           } else if (resourceType === "Groups") {
-            executionSteps.push(`  [Groups] Groups are not supported for Status Page SCIM`);
+            executionSteps.push(
+              `  [Groups] Groups are not supported for Status Page SCIM`,
+            );
             throw new BadRequestException(
               "Groups are not supported for Status Page SCIM. Only Users are available.",
             );
@@ -481,7 +527,9 @@ router.post(
             scimType = SCIMErrorType.NoTarget;
           }
 
-          executionSteps.push(`  Operation ${opIndex + 1} failed: ${error.message} (status=${status})`);
+          executionSteps.push(
+            `  Operation ${opIndex + 1} failed: ${error.message} (status=${status})`,
+          );
 
           operationResult = {
             method: method,
@@ -500,7 +548,9 @@ router.post(
 
           // Check if we should stop processing due to failOnErrors
           if (failOnErrors > 0 && errorCount >= failOnErrors) {
-            executionSteps.push(`Stopping due to failOnErrors threshold (${failOnErrors} errors reached)`);
+            executionSteps.push(
+              `Stopping due to failOnErrors threshold (${failOnErrors} errors reached)`,
+            );
             logger.debug(
               `Status Page SCIM Bulk - stopping due to failOnErrors threshold (${failOnErrors})`,
             );
@@ -512,8 +562,12 @@ router.post(
         results.push(operationResult);
       }
 
-      executionSteps.push(`Bulk operation completed: ${results.length} operations processed`);
-      executionSteps.push(`Summary: ${usersCreated} created, ${usersUpdated} updated, ${usersDeleted} deleted, ${usersDeactivated} deactivated, ${errorCount} errors`);
+      executionSteps.push(
+        `Bulk operation completed: ${results.length} operations processed`,
+      );
+      executionSteps.push(
+        `Summary: ${usersCreated} created, ${usersUpdated} updated, ${usersDeleted} deleted, ${usersDeactivated} deactivated, ${errorCount} errors`,
+      );
       logger.debug(
         `Status Page SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
       );
@@ -547,11 +601,7 @@ router.post(
         },
       });
 
-      return Response.sendJsonObjectResponse(
-        req,
-        res,
-        bulkResponse,
-      );
+      return Response.sendJsonObjectResponse(req, res, bulkResponse);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -615,7 +665,9 @@ router.get(
         LIMIT_PER_PROJECT,
       );
       const filter: string = req.query["filter"] as string;
-      executionSteps.push(`Parsed query params: startIndex=${startIndex}, count=${count}, filter=${filter || "none"}`);
+      executionSteps.push(
+        `Parsed query params: startIndex=${startIndex}, count=${count}, filter=${filter || "none"}`,
+      );
 
       logger.debug(
         `Status Page SCIM Users - statusPageId: ${statusPageId}, startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
@@ -652,7 +704,9 @@ router.get(
               logger.debug(
                 `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, invalid email format in filter: ${email}`,
               );
-              executionSteps.push(`Invalid email format: ${email}, returning empty list`);
+              executionSteps.push(
+                `Invalid email format: ${email}, returning empty list`,
+              );
               const emptyResponse: JSONObject = {
                 schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
                 totalResults: 0,
@@ -678,7 +732,9 @@ router.get(
             }
           }
         } else {
-          executionSteps.push(`Filter present but not a userName filter: ${filter}`);
+          executionSteps.push(
+            `Filter present but not a userName filter: ${filter}`,
+          );
         }
       } else {
         executionSteps.push("No filter provided, listing all users");
@@ -722,7 +778,9 @@ router.get(
         startIndex - 1,
         startIndex - 1 + count,
       );
-      executionSteps.push(`Paginated results: returning ${paginatedUsers.length} users (page ${Math.floor((startIndex - 1) / count) + 1})`);
+      executionSteps.push(
+        `Paginated results: returning ${paginatedUsers.length} users (page ${Math.floor((startIndex - 1) / count) + 1})`,
+      );
 
       logger.debug(
         `Status Page SCIM Users response prepared with ${users.length} users`,
@@ -748,7 +806,11 @@ router.get(
         requestPath: req.path,
         httpStatusCode: 200,
         responseBody: responseBody,
-        queryParams: { filter: filter || null, startIndex, count } as JSONObject,
+        queryParams: {
+          filter: filter || null,
+          startIndex,
+          count,
+        } as JSONObject,
         steps: executionSteps,
         additionalContext: {
           totalUsersOnStatusPage: users.length,
@@ -774,7 +836,11 @@ router.get(
         httpMethod: "GET",
         requestPath: req.path,
         httpStatusCode: 500,
-        queryParams: { filter: req.query["filter"] || null, startIndex: req.query["startIndex"] || 1, count: req.query["count"] || 100 } as JSONObject,
+        queryParams: {
+          filter: req.query["filter"] || null,
+          startIndex: req.query["startIndex"] || 1,
+          count: req.query["count"] || 100,
+        } as JSONObject,
         steps: executionSteps,
       });
 
@@ -933,12 +999,16 @@ router.post(
       executionSteps.push("Authenticated and extracted status page context");
 
       if (!scimConfig.autoProvisionUsers) {
-        executionSteps.push("Error: Auto-provisioning is disabled for this status page");
+        executionSteps.push(
+          "Error: Auto-provisioning is disabled for this status page",
+        );
         throw new BadRequestException(
           "Auto-provisioning is disabled for this status page",
         );
       }
-      executionSteps.push("Auto-provisioning is enabled, proceeding with user creation");
+      executionSteps.push(
+        "Auto-provisioning is enabled, proceeding with user creation",
+      );
 
       const scimUser: JSONObject = req.body;
 
@@ -955,17 +1025,23 @@ router.post(
         (scimUser["userName"] as string) ||
         ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
 
-      executionSteps.push(`Extracted email from SCIM payload: ${email || "not found"}`);
+      executionSteps.push(
+        `Extracted email from SCIM payload: ${email || "not found"}`,
+      );
 
       if (!email) {
-        executionSteps.push("Error: Email is required but not found in request");
+        executionSteps.push(
+          "Error: Email is required but not found in request",
+        );
         throw new BadRequestException("Email is required for user creation");
       }
 
       logger.debug(`Status Page SCIM Create user - email: ${email}`);
 
       // Check if user already exists for this status page
-      executionSteps.push("Checking if user already exists on this status page");
+      executionSteps.push(
+        "Checking if user already exists on this status page",
+      );
       let user: StatusPagePrivateUser | null =
         await StatusPagePrivateUserService.findOneBy({
           query: {
@@ -984,7 +1060,9 @@ router.post(
       let isNewUser: boolean = false;
       if (!user) {
         isNewUser = true;
-        executionSteps.push("User does not exist, creating new status page private user");
+        executionSteps.push(
+          "User does not exist, creating new status page private user",
+        );
         logger.debug(
           `Status Page SCIM Create user - creating new user with email: ${email}`,
         );
@@ -1002,9 +1080,13 @@ router.post(
           data: privateUser as any,
           props: { isRoot: true },
         });
-        executionSteps.push(`User created successfully with ID: ${user.id?.toString()}`);
+        executionSteps.push(
+          `User created successfully with ID: ${user.id?.toString()}`,
+        );
       } else {
-        executionSteps.push(`User already exists with ID: ${user.id?.toString()}, returning existing user`);
+        executionSteps.push(
+          `User already exists with ID: ${user.id?.toString()}, returning existing user`,
+        );
         logger.debug(
           `Status Page SCIM Create user - user already exists with id: ${user.id}`,
         );
@@ -1150,7 +1232,9 @@ const handleStatusPageUserUpdate: (
       ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
     const active: boolean = scimUser["active"] as boolean;
 
-    executionSteps.push(`Parsed update data - email: ${email || "not provided"}, active: ${active !== undefined ? active : "not provided"}`);
+    executionSteps.push(
+      `Parsed update data - email: ${email || "not provided"}, active: ${active !== undefined ? active : "not provided"}`,
+    );
 
     logger.debug(
       `Status Page SCIM Update user - email: ${email}, active: ${active}`,
@@ -1167,7 +1251,9 @@ const handleStatusPageUserUpdate: (
         "scimConfig"
       ] as StatusPageSCIM;
       if (scimConfig.autoDeprovisionUsers) {
-        executionSteps.push("Auto-deprovisioning is enabled, deleting user from status page");
+        executionSteps.push(
+          "Auto-deprovisioning is enabled, deleting user from status page",
+        );
         await StatusPagePrivateUserService.deleteOneById({
           id: new ObjectID(userId),
           props: { isRoot: true },
@@ -1205,9 +1291,10 @@ const handleStatusPageUserUpdate: (
 
         // Return empty response for deleted user
         return Response.sendJsonObjectResponse(req, res, {});
-      } else {
-        executionSteps.push("Auto-deprovisioning is disabled, user will not be deleted");
       }
+      executionSteps.push(
+        "Auto-deprovisioning is disabled, user will not be deleted",
+      );
     }
 
     // Prepare update data
@@ -1219,7 +1306,9 @@ const handleStatusPageUserUpdate: (
     if (email && email !== statusPageUser.email?.toString()) {
       updateData.email = new Email(email);
       emailUpdated = true;
-      executionSteps.push(`Email will be updated: ${previousEmail} -> ${email}`);
+      executionSteps.push(
+        `Email will be updated: ${previousEmail} -> ${email}`,
+      );
     } else {
       executionSteps.push("No email change detected");
     }
@@ -1400,12 +1489,16 @@ router.delete(
       executionSteps.push(`Target user ID: ${userId}`);
 
       if (!scimConfig.autoDeprovisionUsers) {
-        executionSteps.push("Error: Auto-deprovisioning is disabled for this status page");
+        executionSteps.push(
+          "Error: Auto-deprovisioning is disabled for this status page",
+        );
         throw new BadRequestException(
           "Auto-deprovisioning is disabled for this status page",
         );
       }
-      executionSteps.push("Auto-deprovisioning is enabled, proceeding with user deletion");
+      executionSteps.push(
+        "Auto-deprovisioning is enabled, proceeding with user deletion",
+      );
 
       logger.debug(
         `Status Page SCIM Delete user - statusPageId: ${statusPageId}, userId: ${userId}`,

@@ -291,12 +291,12 @@ router.post(
   ): Promise<void> => {
     const executionSteps: string[] = [];
     executionSteps.push("Received SCIM BulkOperation request");
-    let usersCreated: number = 0;
-    let usersUpdated: number = 0;
-    let usersDeleted: number = 0;
-    let groupsCreated: number = 0;
-    let groupsUpdated: number = 0;
-    let groupsDeleted: number = 0;
+    const usersCreated: number = 0;
+    const usersUpdated: number = 0;
+    const usersDeleted: number = 0;
+    const groupsCreated: number = 0;
+    const groupsUpdated: number = 0;
+    const groupsDeleted: number = 0;
 
     try {
       logger.debug(
@@ -351,7 +351,9 @@ router.post(
       const results: SCIMBulkOperationResponse[] = [];
       let errorCount: number = 0;
 
-      executionSteps.push(`Processing ${operations.length} operations (failOnErrors: ${failOnErrors})`);
+      executionSteps.push(
+        `Processing ${operations.length} operations (failOnErrors: ${failOnErrors})`,
+      );
 
       logger.debug(
         `Project SCIM Bulk - processing ${operations.length} operations`,
@@ -1092,9 +1094,15 @@ router.post(
       logger.debug(
         `Project SCIM Bulk - completed processing ${results.length} operations with ${errorCount} errors`,
       );
-      executionSteps.push(`Completed processing ${results.length} operations with ${errorCount} errors`);
-      executionSteps.push(`Users: ${usersCreated} created, ${usersUpdated} updated, ${usersDeleted} deleted`);
-      executionSteps.push(`Groups: ${groupsCreated} created, ${groupsUpdated} updated, ${groupsDeleted} deleted`);
+      executionSteps.push(
+        `Completed processing ${results.length} operations with ${errorCount} errors`,
+      );
+      executionSteps.push(
+        `Users: ${usersCreated} created, ${usersUpdated} updated, ${usersDeleted} deleted`,
+      );
+      executionSteps.push(
+        `Groups: ${groupsCreated} created, ${groupsUpdated} updated, ${groupsDeleted} deleted`,
+      );
 
       const bulkResponse: JSONObject = generateBulkResponse(results);
 
@@ -1125,11 +1133,7 @@ router.post(
         },
       });
 
-      return Response.sendJsonObjectResponse(
-        req,
-        res,
-        bulkResponse,
-      );
+      return Response.sendJsonObjectResponse(req, res, bulkResponse);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -1183,7 +1187,9 @@ router.get(
       // Parse query parameters
       const { startIndex, count } = parseSCIMQueryParams(req);
       const filter: string = req.query["filter"] as string;
-      executionSteps.push(`Parsed query params: startIndex=${startIndex}, count=${count}, filter=${filter || "none"}`);
+      executionSteps.push(
+        `Parsed query params: startIndex=${startIndex}, count=${count}, filter=${filter || "none"}`,
+      );
 
       logger.debug(
         `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
@@ -1232,8 +1238,14 @@ router.get(
 
                 // Check if auto-provisioning is enabled
                 if (!scimConfig.autoProvisionUsers) {
-                  executionSteps.push("Auto-provisioning disabled, returning empty list");
-                  const emptyResponse: JSONObject = generateUsersListResponse([], startIndex, 0);
+                  executionSteps.push(
+                    "Auto-provisioning disabled, returning empty list",
+                  );
+                  const emptyResponse: JSONObject = generateUsersListResponse(
+                    [],
+                    startIndex,
+                    0,
+                  );
                   void createProjectSCIMLog({
                     projectId: projectId,
                     projectScimId: new ObjectID(req.params["projectScimId"]!),
@@ -1262,7 +1274,9 @@ router.get(
                 logger.debug(
                   `Project SCIM Users list - creating new user for email: ${email}`,
                 );
-                executionSteps.push(`Auto-provisioning enabled, creating new user for: ${email}`);
+                executionSteps.push(
+                  `Auto-provisioning enabled, creating new user for: ${email}`,
+                );
                 const newUser: User = await UserService.createByEmail({
                   email: new Email(email),
                   name: new Name(email),
@@ -1282,7 +1296,9 @@ router.get(
                   logger.debug(
                     `Project SCIM Users list - adding user to ${scimConfig.teams.length} configured teams`,
                   );
-                  executionSteps.push(`Adding user to ${scimConfig.teams.length} default teams`);
+                  executionSteps.push(
+                    `Adding user to ${scimConfig.teams.length} default teams`,
+                  );
                   await handleUserTeamOperations(
                     "add",
                     projectId,
@@ -1301,8 +1317,14 @@ router.get(
               logger.debug(
                 `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, invalid email format in filter: ${email}`,
               );
-              executionSteps.push(`Invalid email format in filter: ${email}, returning empty list`);
-              const emptyResponse: JSONObject = generateUsersListResponse([], startIndex, 0);
+              executionSteps.push(
+                `Invalid email format in filter: ${email}, returning empty list`,
+              );
+              const emptyResponse: JSONObject = generateUsersListResponse(
+                [],
+                startIndex,
+                0,
+              );
               void createProjectSCIMLog({
                 projectId: projectId,
                 projectScimId: new ObjectID(req.params["projectScimId"]!),
@@ -1316,15 +1338,13 @@ router.get(
                 queryParams: { filter, startIndex, count } as JSONObject,
                 steps: executionSteps,
               });
-              return Response.sendJsonObjectResponse(
-                req,
-                res,
-                emptyResponse,
-              );
+              return Response.sendJsonObjectResponse(req, res, emptyResponse);
             }
           }
         } else {
-          executionSteps.push(`Filter present but not a userName filter: ${filter}`);
+          executionSteps.push(
+            `Filter present but not a userName filter: ${filter}`,
+          );
         }
       } else {
         executionSteps.push("No filter provided, listing all users");
@@ -1386,11 +1406,17 @@ router.get(
         startIndex - 1,
         startIndex - 1 + count,
       );
-      executionSteps.push(`Paginated results: returning ${paginatedUsers.length} users (page ${Math.floor((startIndex - 1) / count) + 1})`);
+      executionSteps.push(
+        `Paginated results: returning ${paginatedUsers.length} users (page ${Math.floor((startIndex - 1) / count) + 1})`,
+      );
 
       logger.debug(`SCIM Users response prepared with ${users.length} users`);
 
-      const responseBody: JSONObject = generateUsersListResponse(paginatedUsers, startIndex, users.length);
+      const responseBody: JSONObject = generateUsersListResponse(
+        paginatedUsers,
+        startIndex,
+        users.length,
+      );
       executionSteps.push("Generated SCIM-compliant ListResponse");
 
       // Log the operation
@@ -1403,7 +1429,11 @@ router.get(
         requestPath: req.path,
         httpStatusCode: 200,
         responseBody: responseBody,
-        queryParams: { filter: filter || null, startIndex, count } as JSONObject,
+        queryParams: {
+          filter: filter || null,
+          startIndex,
+          count,
+        } as JSONObject,
         steps: executionSteps,
         additionalContext: {
           totalUsersInProject: users.length,
@@ -1415,11 +1445,7 @@ router.get(
         },
       });
 
-      return Response.sendJsonObjectResponse(
-        req,
-        res,
-        responseBody,
-      );
+      return Response.sendJsonObjectResponse(req, res, responseBody);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
       // Log the error
@@ -1435,7 +1461,11 @@ router.get(
         httpMethod: "GET",
         requestPath: req.path,
         httpStatusCode: 500,
-        queryParams: { filter: req.query["filter"] || null, startIndex: req.query["startIndex"] || 1, count: req.query["count"] || 100 } as JSONObject,
+        queryParams: {
+          filter: req.query["filter"] || null,
+          startIndex: req.query["startIndex"] || 1,
+          count: req.query["count"] || 100,
+        } as JSONObject,
         steps: executionSteps,
       });
 
@@ -1633,7 +1663,9 @@ const handleUserUpdate: (
       executionSteps.push(`User not found or not part of project: ${userId}`);
       throw new NotFoundException("User not found or not part of this project");
     }
-    executionSteps.push(`Found existing user: ${projectUser.user.email?.toString()}`);
+    executionSteps.push(
+      `Found existing user: ${projectUser.user.email?.toString()}`,
+    );
 
     // Update user information
     const email: string =
@@ -1642,7 +1674,9 @@ const handleUserUpdate: (
     const name: string = parseNameFromSCIM(scimUser);
     const active: boolean = scimUser["active"] as boolean;
 
-    executionSteps.push(`Parsed update fields - email: ${email || "unchanged"}, name: ${name || "unchanged"}, active: ${active !== undefined ? active : "unchanged"}`);
+    executionSteps.push(
+      `Parsed update fields - email: ${email || "unchanged"}, name: ${name || "unchanged"}, active: ${active !== undefined ? active : "unchanged"}`,
+    );
 
     logger.debug(
       `SCIM Update user - email: ${email}, name: ${name}, active: ${active}`,
@@ -1656,7 +1690,9 @@ const handleUserUpdate: (
       logger.debug(
         `SCIM Update user - user marked as inactive, removing from teams`,
       );
-      executionSteps.push("User marked as inactive, removing from configured teams");
+      executionSteps.push(
+        "User marked as inactive, removing from configured teams",
+      );
       await handleUserTeamOperations(
         "remove",
         projectId,
@@ -1872,7 +1908,9 @@ router.get(
       // Parse query parameters
       const { startIndex, count } = parseSCIMQueryParams(req);
       const filter: string = req.query["filter"] as string;
-      executionSteps.push(`Parsed query params: startIndex=${startIndex}, count=${count}, filter=${filter || "none"}`);
+      executionSteps.push(
+        `Parsed query params: startIndex=${startIndex}, count=${count}, filter=${filter || "none"}`,
+      );
 
       logger.debug(
         `SCIM Groups list - projectId: ${projectId}, startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
@@ -1899,7 +1937,9 @@ router.get(
           executionSteps.push(`Filter parsed: displayName eq "${displayName}"`);
           query.name = displayName;
         } else {
-          executionSteps.push(`Filter present but not a displayName filter: ${filter}`);
+          executionSteps.push(
+            `Filter present but not a displayName filter: ${filter}`,
+          );
         }
       } else {
         executionSteps.push("No filter provided, listing all groups");
@@ -1937,7 +1977,9 @@ router.get(
         startIndex - 1,
         startIndex - 1 + count,
       );
-      executionSteps.push(`Paginated results: returning ${paginatedGroups.length} groups (page ${Math.floor((startIndex - 1) / count) + 1})`);
+      executionSteps.push(
+        `Paginated results: returning ${paginatedGroups.length} groups (page ${Math.floor((startIndex - 1) / count) + 1})`,
+      );
 
       logger.debug(
         `SCIM Groups response prepared with ${groups.length} groups`,
@@ -1962,7 +2004,11 @@ router.get(
         requestPath: req.path,
         httpStatusCode: 200,
         responseBody: responseBody,
-        queryParams: { filter: filter || null, startIndex, count } as JSONObject,
+        queryParams: {
+          filter: filter || null,
+          startIndex,
+          count,
+        } as JSONObject,
         steps: executionSteps,
         additionalContext: {
           totalGroupsInProject: groups.length,
@@ -1987,7 +2033,11 @@ router.get(
         httpMethod: "GET",
         requestPath: req.path,
         httpStatusCode: 500,
-        queryParams: { filter: req.query["filter"] || null, startIndex: req.query["startIndex"] || 1, count: req.query["count"] || 100 } as JSONObject,
+        queryParams: {
+          filter: req.query["filter"] || null,
+          startIndex: req.query["startIndex"] || 1,
+          count: req.query["count"] || 100,
+        } as JSONObject,
         steps: executionSteps,
       });
 
@@ -2052,7 +2102,9 @@ router.get(
         logger.debug(
           `SCIM Get group - team not found or not part of project for groupId: ${groupId}`,
         );
-        executionSteps.push(`Team not found or not part of project: ${groupId}`);
+        executionSteps.push(
+          `Team not found or not part of project: ${groupId}`,
+        );
         throw new NotFoundException(
           "Group not found or not part of this project",
         );
@@ -2175,7 +2227,9 @@ router.post(
         logger.debug(
           `SCIM Create group - team already exists with id: ${existingTeam.id}, reusing existing team`,
         );
-        executionSteps.push(`Team already exists with ID: ${existingTeam.id}, reusing`);
+        executionSteps.push(
+          `Team already exists with ID: ${existingTeam.id}, reusing`,
+        );
         targetTeam = existingTeam;
       } else {
         // Create new team
@@ -2211,7 +2265,9 @@ router.post(
         logger.debug(
           `SCIM Create group - ensuring ${members.length} members are part of team ${targetTeam.id}`,
         );
-        executionSteps.push(`Processing ${members.length} members from request`);
+        executionSteps.push(
+          `Processing ${members.length} members from request`,
+        );
         for (const member of members) {
           const userId: string = member["value"] as string;
           if (userId) {
@@ -2263,7 +2319,9 @@ router.post(
             }
           }
         }
-        executionSteps.push(`Members processed: ${membersAdded} added, ${membersSkipped} skipped (already members or not found)`);
+        executionSteps.push(
+          `Members processed: ${membersAdded} added, ${membersSkipped} skipped (already members or not found)`,
+        );
       } else {
         executionSteps.push("No members provided in request");
       }
@@ -2291,8 +2349,11 @@ router.post(
         req.params["projectScimId"]!,
         true,
       );
-      const finalMemberCount: number = (groupResponse["members"] as Array<any>)?.length || 0;
-      executionSteps.push(`Group formatted with ${finalMemberCount} total members`);
+      const finalMemberCount: number =
+        (groupResponse["members"] as Array<any>)?.length || 0;
+      executionSteps.push(
+        `Group formatted with ${finalMemberCount} total members`,
+      );
 
       logger.debug(
         `SCIM Create group - returning group with id: ${teamForResponse.id}`,
@@ -2414,7 +2475,9 @@ router.put(
         logger.debug(
           `SCIM Update group - team not found or not part of project for groupId: ${groupId}`,
         );
-        executionSteps.push(`Team not found or not part of project: ${groupId}`);
+        executionSteps.push(
+          `Team not found or not part of project: ${groupId}`,
+        );
         throw new NotFoundException(
           "Group not found or not part of this project",
         );
@@ -2427,7 +2490,9 @@ router.put(
       let nameUpdated: boolean = false;
       if (displayName && displayName !== team.name) {
         logger.debug(`SCIM Update group - updating name to: ${displayName}`);
-        executionSteps.push(`Updating team name from "${team.name}" to "${displayName}"`);
+        executionSteps.push(
+          `Updating team name from "${team.name}" to "${displayName}"`,
+        );
         await TeamService.updateOneById({
           id: team.id!,
           data: { name: displayName },
@@ -2446,7 +2511,9 @@ router.put(
       logger.debug(
         `SCIM Update group - replacing members with ${members.length} members`,
       );
-      executionSteps.push(`Replacing all members with ${members.length} members from request`);
+      executionSteps.push(
+        `Replacing all members with ${members.length} members from request`,
+      );
 
       // Remove all existing members
       executionSteps.push("Removing all existing team members");
@@ -2511,7 +2578,9 @@ router.put(
           }
         }
       }
-      executionSteps.push(`Members added: ${membersAdded}, skipped: ${membersSkipped}`);
+      executionSteps.push(
+        `Members added: ${membersAdded}, skipped: ${membersSkipped}`,
+      );
 
       // Fetch updated team
       executionSteps.push("Fetching final team state for response");
@@ -2533,8 +2602,11 @@ router.put(
           req.params["projectScimId"]!,
           true,
         );
-        const finalMemberCount: number = (updatedGroup["members"] as Array<any>)?.length || 0;
-        executionSteps.push(`Group formatted with ${finalMemberCount} total members`);
+        const finalMemberCount: number =
+          (updatedGroup["members"] as Array<any>)?.length || 0;
+        executionSteps.push(
+          `Group formatted with ${finalMemberCount} total members`,
+        );
 
         // Log the operation
         void createProjectSCIMLog({
@@ -2646,7 +2718,9 @@ router.delete(
         logger.debug(
           `SCIM Delete group - team not found or not part of project for groupId: ${groupId}`,
         );
-        executionSteps.push(`Team not found or not part of project: ${groupId}`);
+        executionSteps.push(
+          `Team not found or not part of project: ${groupId}`,
+        );
         throw new NotFoundException(
           "Group not found or not part of this project",
         );
@@ -2798,7 +2872,9 @@ router.patch(
         logger.debug(
           `SCIM Patch group - team not found or not part of project for groupId: ${groupId}`,
         );
-        executionSteps.push(`Team not found or not part of project: ${groupId}`);
+        executionSteps.push(
+          `Team not found or not part of project: ${groupId}`,
+        );
         throw new NotFoundException(
           "Group not found or not part of this project",
         );
@@ -2816,13 +2892,17 @@ router.patch(
         const path: string = operation["path"] as string;
         const value: any = operation["value"];
 
-        executionSteps.push(`Processing operation: ${op} on path: ${path || "root"}`);
+        executionSteps.push(
+          `Processing operation: ${op} on path: ${path || "root"}`,
+        );
 
         if (path === "members") {
           if (op === "replace") {
             // Replace all members
             logger.debug(`SCIM Patch group - replacing all members`);
-            executionSteps.push("Replacing all members - removing existing members");
+            executionSteps.push(
+              "Replacing all members - removing existing members",
+            );
             membersReplaced = true;
 
             // Remove all existing members
@@ -2838,7 +2918,9 @@ router.patch(
 
             // Add new members
             const members: Array<SCIMMember> = value || [];
-            executionSteps.push(`Adding ${members.length} new members after replace`);
+            executionSteps.push(
+              `Adding ${members.length} new members after replace`,
+            );
             for (const member of members) {
               const userId: string = member["value"] as string;
               if (userId) {
@@ -2968,7 +3050,9 @@ router.patch(
             logger.debug(
               `SCIM Patch group - updating displayName to: ${newName}`,
             );
-            executionSteps.push(`Updating displayName from "${team.name}" to "${newName}"`);
+            executionSteps.push(
+              `Updating displayName from "${team.name}" to "${newName}"`,
+            );
             await TeamService.updateOneById({
               id: team.id!,
               data: { name: newName },
@@ -2978,7 +3062,9 @@ router.patch(
           }
         }
       }
-      executionSteps.push(`Operations completed: ${membersAdded} added, ${membersRemoved} removed, replaced=${membersReplaced}, nameUpdated=${nameUpdated}`);
+      executionSteps.push(
+        `Operations completed: ${membersAdded} added, ${membersRemoved} removed, replaced=${membersReplaced}, nameUpdated=${nameUpdated}`,
+      );
 
       // Fetch updated team
       executionSteps.push("Fetching final team state for response");
@@ -3000,8 +3086,11 @@ router.patch(
           req.params["projectScimId"]!,
           true,
         );
-        const finalMemberCount: number = (updatedGroup["members"] as Array<any>)?.length || 0;
-        executionSteps.push(`Group formatted with ${finalMemberCount} total members`);
+        const finalMemberCount: number =
+          (updatedGroup["members"] as Array<any>)?.length || 0;
+        executionSteps.push(
+          `Group formatted with ${finalMemberCount} total members`,
+        );
 
         // Log the operation
         void createProjectSCIMLog({
@@ -3088,10 +3177,14 @@ router.post(
       const projectId: ObjectID = bearerData["projectId"] as ObjectID;
       const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
 
-      executionSteps.push("Validated SCIM authentication and extracted project configuration");
+      executionSteps.push(
+        "Validated SCIM authentication and extracted project configuration",
+      );
 
       if (!scimConfig.autoProvisionUsers) {
-        executionSteps.push("Auto-provisioning is disabled - rejecting request");
+        executionSteps.push(
+          "Auto-provisioning is disabled - rejecting request",
+        );
         throw new BadRequestException(
           "Auto-provisioning is disabled for this project",
         );
@@ -3105,12 +3198,16 @@ router.post(
         ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
       name = parseNameFromSCIM(scimUser);
 
-      executionSteps.push(`Parsed user data from request: email=${email}, name=${name || "not provided"}`);
+      executionSteps.push(
+        `Parsed user data from request: email=${email}, name=${name || "not provided"}`,
+      );
 
       logger.debug(`SCIM Create user - email: ${email}, name: ${name}`);
 
       if (!email) {
-        executionSteps.push("Email validation failed - no userName or email provided");
+        executionSteps.push(
+          "Email validation failed - no userName or email provided",
+        );
         throw new BadRequestException("userName or email is required");
       }
 
@@ -3131,7 +3228,9 @@ router.post(
 
       // Create user if doesn't exist
       if (!user) {
-        executionSteps.push(`User does not exist - creating new user with email: ${email}`);
+        executionSteps.push(
+          `User does not exist - creating new user with email: ${email}`,
+        );
         logger.debug(
           `SCIM Create user - creating new user for email: ${email}`,
         );
@@ -3143,9 +3242,13 @@ router.post(
           props: { isRoot: true },
         });
         userWasCreated = true;
-        executionSteps.push(`New user created successfully with ID: ${user.id?.toString()}`);
+        executionSteps.push(
+          `New user created successfully with ID: ${user.id?.toString()}`,
+        );
       } else {
-        executionSteps.push(`User already exists with ID: ${user.id?.toString()} - will link to project`);
+        executionSteps.push(
+          `User already exists with ID: ${user.id?.toString()} - will link to project`,
+        );
         logger.debug(
           `SCIM Create user - user already exists with id: ${user.id}`,
         );
@@ -3157,17 +3260,25 @@ router.post(
         scimConfig.teams.length > 0 &&
         !scimConfig.enablePushGroups
       ) {
-        executionSteps.push(`Adding user to ${scimConfig.teams.length} configured default teams`);
+        executionSteps.push(
+          `Adding user to ${scimConfig.teams.length} configured default teams`,
+        );
         logger.debug(
           `SCIM Create user - adding user to ${scimConfig.teams.length} configured teams`,
         );
         await handleUserTeamOperations("add", projectId, user.id!, scimConfig);
-        teamsAdded = scimConfig.teams.map((t: Team) => t.name || t.id?.toString() || "unknown");
+        teamsAdded = scimConfig.teams.map((t: Team) => {
+          return t.name || t.id?.toString() || "unknown";
+        });
         executionSteps.push(`User added to teams: ${teamsAdded.join(", ")}`);
       } else if (scimConfig.enablePushGroups) {
-        executionSteps.push("Push groups enabled - skipping default team assignment");
+        executionSteps.push(
+          "Push groups enabled - skipping default team assignment",
+        );
       } else {
-        executionSteps.push("No default teams configured - skipping team assignment");
+        executionSteps.push(
+          "No default teams configured - skipping team assignment",
+        );
       }
 
       const createdUser: JSONObject = formatUserForSCIM(
@@ -3178,7 +3289,9 @@ router.post(
       );
 
       executionSteps.push("Formatted user response in SCIM format");
-      executionSteps.push(`Operation completed successfully - returning user with ID: ${user.id?.toString()}`);
+      executionSteps.push(
+        `Operation completed successfully - returning user with ID: ${user.id?.toString()}`,
+      );
 
       logger.debug(
         `SCIM Create user - returning created user with id: ${user.id}`,
@@ -3268,7 +3381,9 @@ router.delete(
       executionSteps.push(`Processing delete request for user ID: ${userId}`);
 
       if (!scimConfig.autoDeprovisionUsers) {
-        executionSteps.push("Auto-deprovisioning is disabled - rejecting request");
+        executionSteps.push(
+          "Auto-deprovisioning is disabled - rejecting request",
+        );
         logger.debug("SCIM Delete user - auto-deprovisioning is disabled");
         throw new BadRequestException(
           "Auto-deprovisioning is disabled for this project",
@@ -3289,22 +3404,32 @@ router.delete(
       // Remove user from teams the SCIM configured, but only if push groups is not enabled
       if (!scimConfig.enablePushGroups) {
         if (!scimConfig.teams || scimConfig.teams.length === 0) {
-          executionSteps.push("No teams configured for SCIM - cannot deprovision");
+          executionSteps.push(
+            "No teams configured for SCIM - cannot deprovision",
+          );
           logger.debug("SCIM Delete user - no teams configured for SCIM");
           throw new BadRequestException("No teams configured for SCIM");
         }
 
-        executionSteps.push(`Removing user from ${scimConfig.teams.length} configured teams`);
+        executionSteps.push(
+          `Removing user from ${scimConfig.teams.length} configured teams`,
+        );
         await handleUserTeamOperations(
           "remove",
           projectId,
           new ObjectID(userId),
           scimConfig,
         );
-        teamsRemoved = scimConfig.teams.map((t: Team) => t.name || t.id?.toString() || "unknown");
-        executionSteps.push(`User removed from teams: ${teamsRemoved.join(", ")}`);
+        teamsRemoved = scimConfig.teams.map((t: Team) => {
+          return t.name || t.id?.toString() || "unknown";
+        });
+        executionSteps.push(
+          `User removed from teams: ${teamsRemoved.join(", ")}`,
+        );
       } else {
-        executionSteps.push("Push groups enabled - skipping team removal (managed via groups)");
+        executionSteps.push(
+          "Push groups enabled - skipping team removal (managed via groups)",
+        );
       }
 
       executionSteps.push("User successfully deprovisioned from project");

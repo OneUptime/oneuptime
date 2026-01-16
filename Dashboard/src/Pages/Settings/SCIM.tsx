@@ -73,201 +73,202 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             name: "Configuration",
             children: (
               <ModelTable<ProjectSCIM>
-          key={refresher.toString()}
-          modelType={ProjectSCIM}
-          userPreferencesKey={"project-scim-table"}
-          query={{
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          }}
-          id="scim-table"
-          name="Settings > Project SCIM"
-          isDeleteable={true}
-          isEditable={true}
-          isCreateable={true}
-          cardProps={{
-            title: "SCIM (System for Cross-domain Identity Management)",
-            description:
-              "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users from your identity provider.",
-          }}
-          documentationLink={Route.fromString("/docs/identity/scim")}
-          formSteps={[
-            {
-              title: "Basic Info",
-              id: "basic",
-            },
-            {
-              title: "Configuration",
-              id: "configuration",
-            },
-            {
-              title: "Teams",
-              id: "teams",
-              showIf: (item: FormValues<ProjectSCIM>): boolean => {
-                return !item.enablePushGroups;
-              },
-            },
-          ]}
-          noItemsMessage={"No SCIM configuration found."}
-          viewPageRoute={Navigation.getCurrentRoute()}
-          formFields={[
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description:
-                "Friendly name to help you remember this SCIM configuration.",
-              placeholder: "Okta SCIM",
-              validation: {
-                minLength: 2,
-              },
-              stepId: "basic",
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FormFieldSchemaType.LongText,
-              required: false,
-              description: "Optional description for this SCIM configuration.",
-              placeholder:
-                "SCIM configuration for automatic user provisioning from Okta",
-              stepId: "basic",
-            },
-            {
-              field: {
-                autoProvisionUsers: true,
-              },
-              title: "Auto Provision Users",
-              fieldType: FormFieldSchemaType.Checkbox,
-              required: false,
-              description:
-                "Automatically create users when they are added in your identity provider.",
-              stepId: "configuration",
-            },
-            {
-              field: {
-                autoDeprovisionUsers: true,
-              },
-              title: "Auto Deprovision Users",
-              fieldType: FormFieldSchemaType.Checkbox,
-              required: false,
-              description:
-                "Automatically remove users from teams when they are removed from your identity provider.",
-              stepId: "configuration",
-            },
-            {
-              field: {
-                enablePushGroups: true,
-              },
-              title: "Enable Push Groups",
-              fieldType: FormFieldSchemaType.Checkbox,
-              required: false,
-              description:
-                "Enable push groups provisioning instead of default teams. When enabled, users will not be added to default teams and team membership will be managed via push groups.",
-              stepId: "configuration",
-            },
-            {
-              field: {
-                teams: true,
-              },
-              title: "Default Teams",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Team,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              description:
-                "New users will be automatically added to these teams.",
-              stepId: "teams",
-              showIf: (item: FormValues<ProjectSCIM>): boolean => {
-                return !item.enablePushGroups;
-              },
-            },
-          ]}
-          columns={[
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                autoProvisionUsers: true,
-              },
-              title: "Auto Provision",
-              type: FieldType.Boolean,
-            },
-            {
-              field: {
-                autoDeprovisionUsers: true,
-              },
-              title: "Auto Deprovision",
-              type: FieldType.Boolean,
-            },
-            {
-              field: {
-                enablePushGroups: true,
-              },
-              title: "Push Groups",
-              type: FieldType.Boolean,
-            },
-          ]}
-          selectMoreFields={{
-            bearerToken: true,
-            createdAt: true,
-            updatedAt: true,
-            enablePushGroups: true,
-            teams: {
-              name: true,
-              _id: true,
-            },
-          }}
-          filters={[
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              type: FieldType.Text,
-            },
-          ]}
-          actionButtons={[
-            {
-              title: "View SCIM URLs",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              onClick: async (
-                item: ProjectSCIM,
-                onCompleteAction: () => void,
-                _onError: (error: Error) => void,
-              ) => {
-                onCompleteAction();
-                setCurrentSCIMConfig(item);
-                setShowSCIMUrlId(item.id?.toString() || "");
-              },
-            },
-            {
-              title: "Reset Bearer Token",
-              buttonStyleType: ButtonStyleType.OUTLINE,
-              icon: IconProp.Refresh,
-              onClick: async (
-                item: ProjectSCIM,
-                onCompleteAction: () => void,
-                _onError: (error: Error) => void,
-              ) => {
-                onCompleteAction();
-                setResetSCIMId(item.id?.toString() || "");
-                setShowResetModal(true);
-              },
-            },
-          ]}
+                key={refresher.toString()}
+                modelType={ProjectSCIM}
+                userPreferencesKey={"project-scim-table"}
+                query={{
+                  projectId: ProjectUtil.getCurrentProjectId()!,
+                }}
+                id="scim-table"
+                name="Settings > Project SCIM"
+                isDeleteable={true}
+                isEditable={true}
+                isCreateable={true}
+                cardProps={{
+                  title: "SCIM (System for Cross-domain Identity Management)",
+                  description:
+                    "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users from your identity provider.",
+                }}
+                documentationLink={Route.fromString("/docs/identity/scim")}
+                formSteps={[
+                  {
+                    title: "Basic Info",
+                    id: "basic",
+                  },
+                  {
+                    title: "Configuration",
+                    id: "configuration",
+                  },
+                  {
+                    title: "Teams",
+                    id: "teams",
+                    showIf: (item: FormValues<ProjectSCIM>): boolean => {
+                      return !item.enablePushGroups;
+                    },
+                  },
+                ]}
+                noItemsMessage={"No SCIM configuration found."}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                formFields={[
+                  {
+                    field: {
+                      name: true,
+                    },
+                    title: "Name",
+                    fieldType: FormFieldSchemaType.Text,
+                    required: true,
+                    description:
+                      "Friendly name to help you remember this SCIM configuration.",
+                    placeholder: "Okta SCIM",
+                    validation: {
+                      minLength: 2,
+                    },
+                    stepId: "basic",
+                  },
+                  {
+                    field: {
+                      description: true,
+                    },
+                    title: "Description",
+                    fieldType: FormFieldSchemaType.LongText,
+                    required: false,
+                    description:
+                      "Optional description for this SCIM configuration.",
+                    placeholder:
+                      "SCIM configuration for automatic user provisioning from Okta",
+                    stepId: "basic",
+                  },
+                  {
+                    field: {
+                      autoProvisionUsers: true,
+                    },
+                    title: "Auto Provision Users",
+                    fieldType: FormFieldSchemaType.Checkbox,
+                    required: false,
+                    description:
+                      "Automatically create users when they are added in your identity provider.",
+                    stepId: "configuration",
+                  },
+                  {
+                    field: {
+                      autoDeprovisionUsers: true,
+                    },
+                    title: "Auto Deprovision Users",
+                    fieldType: FormFieldSchemaType.Checkbox,
+                    required: false,
+                    description:
+                      "Automatically remove users from teams when they are removed from your identity provider.",
+                    stepId: "configuration",
+                  },
+                  {
+                    field: {
+                      enablePushGroups: true,
+                    },
+                    title: "Enable Push Groups",
+                    fieldType: FormFieldSchemaType.Checkbox,
+                    required: false,
+                    description:
+                      "Enable push groups provisioning instead of default teams. When enabled, users will not be added to default teams and team membership will be managed via push groups.",
+                    stepId: "configuration",
+                  },
+                  {
+                    field: {
+                      teams: true,
+                    },
+                    title: "Default Teams",
+                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    dropdownModal: {
+                      type: Team,
+                      labelField: "name",
+                      valueField: "_id",
+                    },
+                    required: false,
+                    description:
+                      "New users will be automatically added to these teams.",
+                    stepId: "teams",
+                    showIf: (item: FormValues<ProjectSCIM>): boolean => {
+                      return !item.enablePushGroups;
+                    },
+                  },
+                ]}
+                columns={[
+                  {
+                    field: {
+                      name: true,
+                    },
+                    title: "Name",
+                    type: FieldType.Text,
+                  },
+                  {
+                    field: {
+                      autoProvisionUsers: true,
+                    },
+                    title: "Auto Provision",
+                    type: FieldType.Boolean,
+                  },
+                  {
+                    field: {
+                      autoDeprovisionUsers: true,
+                    },
+                    title: "Auto Deprovision",
+                    type: FieldType.Boolean,
+                  },
+                  {
+                    field: {
+                      enablePushGroups: true,
+                    },
+                    title: "Push Groups",
+                    type: FieldType.Boolean,
+                  },
+                ]}
+                selectMoreFields={{
+                  bearerToken: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  enablePushGroups: true,
+                  teams: {
+                    name: true,
+                    _id: true,
+                  },
+                }}
+                filters={[
+                  {
+                    field: {
+                      name: true,
+                    },
+                    title: "Name",
+                    type: FieldType.Text,
+                  },
+                ]}
+                actionButtons={[
+                  {
+                    title: "View SCIM URLs",
+                    buttonStyleType: ButtonStyleType.NORMAL,
+                    onClick: async (
+                      item: ProjectSCIM,
+                      onCompleteAction: () => void,
+                      _onError: (error: Error) => void,
+                    ) => {
+                      onCompleteAction();
+                      setCurrentSCIMConfig(item);
+                      setShowSCIMUrlId(item.id?.toString() || "");
+                    },
+                  },
+                  {
+                    title: "Reset Bearer Token",
+                    buttonStyleType: ButtonStyleType.OUTLINE,
+                    icon: IconProp.Refresh,
+                    onClick: async (
+                      item: ProjectSCIM,
+                      onCompleteAction: () => void,
+                      _onError: (error: Error) => void,
+                    ) => {
+                      onCompleteAction();
+                      setResetSCIMId(item.id?.toString() || "");
+                      setShowResetModal(true);
+                    },
+                  },
+                ]}
               />
             ),
           },
@@ -280,144 +281,141 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
       />
 
       {showSCIMUrlId && currentSCIMConfig && (
-          <ConfirmModal
-            title={`SCIM Configuration URLs`}
-            description={
-              <div>
-                <p className="text-gray-500 mb-4">
-                  Use these URLs to configure SCIM in your identity provider:
-                </p>
+        <ConfirmModal
+          title={`SCIM Configuration URLs`}
+          description={
+            <div>
+              <p className="text-gray-500 mb-4">
+                Use these URLs to configure SCIM in your identity provider:
+              </p>
 
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-medium text-gray-700 mb-1">
-                      SCIM Base URL:
-                    </p>
-                    <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
-                    </code>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Use this as the SCIM endpoint URL in your identity
-                      provider
-                    </p>
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    SCIM Base URL:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
+                  </code>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use this as the SCIM endpoint URL in your identity provider
+                  </p>
+                </div>
 
-                  <div>
-                    <p className="font-medium text-gray-700 mb-1">
-                      Service Provider Config URL:
-                    </p>
-                    <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
-                      /ServiceProviderConfig
-                    </code>
-                  </div>
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    Service Provider Config URL:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
+                    /ServiceProviderConfig
+                  </code>
+                </div>
 
-                  <div>
-                    <p className="font-medium text-gray-700 mb-1">
-                      Users Endpoint:
-                    </p>
-                    <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Users
-                    </code>
-                  </div>
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    Users Endpoint:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Users
+                  </code>
+                </div>
 
-                  <div>
-                    <p className="font-medium text-gray-700 mb-1">
-                      Unique identifier field for users:
-                    </p>
-                    <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      userName
-                    </code>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Use this field as the unique identifier for users in your
-                      identity provider SCIM configuration
-                    </p>
-                  </div>
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    Unique identifier field for users:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    userName
+                  </code>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use this field as the unique identifier for users in your
+                    identity provider SCIM configuration
+                  </p>
+                </div>
 
-                  <div className="border-t pt-4">
-                    <p className="font-medium text-gray-700 mb-1">
-                      Bearer Token:
-                    </p>
-                    <div className="mb-2">
-                      <HiddenText
-                        text={currentSCIMConfig.bearerToken || ""}
-                        isCopyable={true}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Use this bearer token for authentication in your identity
-                      provider SCIM configuration.
-                    </p>
+                <div className="border-t pt-4">
+                  <p className="font-medium text-gray-700 mb-1">
+                    Bearer Token:
+                  </p>
+                  <div className="mb-2">
+                    <HiddenText
+                      text={currentSCIMConfig.bearerToken || ""}
+                      isCopyable={true}
+                    />
                   </div>
+                  <p className="text-xs text-gray-500">
+                    Use this bearer token for authentication in your identity
+                    provider SCIM configuration.
+                  </p>
                 </div>
               </div>
-            }
-            submitButtonText={"Close"}
-            onSubmit={() => {
-              setShowSCIMUrlId("");
-              setCurrentSCIMConfig(null);
-            }}
-            submitButtonType={ButtonStyleType.NORMAL}
-          />
-        )}
+            </div>
+          }
+          submitButtonText={"Close"}
+          onSubmit={() => {
+            setShowSCIMUrlId("");
+            setCurrentSCIMConfig(null);
+          }}
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      )}
 
-        {/* Reset Bearer Token Modals */}
-        {showResetModal && (
-          <ConfirmModal
-            title="Reset Bearer Token"
-            description="Are you sure you want to reset the Bearer Token? You will need to update your identity provider with the new token."
-            onSubmit={async () => {
-              await resetBearerToken();
-            }}
-            isLoading={isResetLoading}
-            onClose={() => {
-              setShowResetModal(false);
-              setResetSCIMId("");
-            }}
-            submitButtonText="Reset"
-            submitButtonType={ButtonStyleType.DANGER}
-          />
-        )}
+      {/* Reset Bearer Token Modals */}
+      {showResetModal && (
+        <ConfirmModal
+          title="Reset Bearer Token"
+          description="Are you sure you want to reset the Bearer Token? You will need to update your identity provider with the new token."
+          onSubmit={async () => {
+            await resetBearerToken();
+          }}
+          isLoading={isResetLoading}
+          onClose={() => {
+            setShowResetModal(false);
+            setResetSCIMId("");
+          }}
+          submitButtonText="Reset"
+          submitButtonType={ButtonStyleType.DANGER}
+        />
+      )}
 
-        {showResetErrorModal && (
-          <ConfirmModal
-            title="Reset Error"
-            description={resetError}
-            onSubmit={() => {
-              setShowResetErrorModal(false);
-              setResetError("");
-              setResetSCIMId("");
-            }}
-            submitButtonText="Close"
-            submitButtonType={ButtonStyleType.NORMAL}
-          />
-        )}
+      {showResetErrorModal && (
+        <ConfirmModal
+          title="Reset Error"
+          description={resetError}
+          onSubmit={() => {
+            setShowResetErrorModal(false);
+            setResetError("");
+            setResetSCIMId("");
+          }}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      )}
 
-        {showResetSuccessModal && (
-          <ConfirmModal
-            title="New Bearer Token"
-            description={
-              <div>
-                <p className="mb-3">
-                  Your new Bearer Token has been generated:
-                </p>
-                <div className="mb-2">
-                  <HiddenText text={newBearerToken} isCopyable={true} />
-                </div>
-                <p className="text-sm text-gray-500">
-                  Please update your identity provider with this new token.
-                </p>
+      {showResetSuccessModal && (
+        <ConfirmModal
+          title="New Bearer Token"
+          description={
+            <div>
+              <p className="mb-3">Your new Bearer Token has been generated:</p>
+              <div className="mb-2">
+                <HiddenText text={newBearerToken} isCopyable={true} />
               </div>
-            }
-            onSubmit={() => {
-              setShowResetSuccessModal(false);
-              setNewBearerToken("");
-              setResetSCIMId("");
-            }}
-            submitButtonText="Close"
-            submitButtonType={ButtonStyleType.NORMAL}
-          />
-        )}
+              <p className="text-sm text-gray-500">
+                Please update your identity provider with this new token.
+              </p>
+            </div>
+          }
+          onSubmit={() => {
+            setShowResetSuccessModal(false);
+            setNewBearerToken("");
+            setResetSCIMId("");
+          }}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      )}
     </Fragment>
   );
 };

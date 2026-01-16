@@ -447,5 +447,5 @@ export default [
   AddOAuthProviderType1768217403078,
   AddIncomingEmailMonitor1768335589018,
   MigrationName1768422356713,
-  MigrationName1768583966447
+  MigrationName1768583966447,
 ];

@@ -124,7 +124,8 @@ const StatusPageSCIMLogsTable: FunctionComponent<
         }}
         cardProps={{
           title: "SCIM Logs",
-          description: "Logs of all SCIM provisioning operations for this status page.",
+          description:
+            "Logs of all SCIM provisioning operations for this status page.",
         }}
         noItemsMessage="No SCIM logs yet."
         showRefreshButton={true}
