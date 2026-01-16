@@ -12,14 +12,19 @@ export interface ProjectSCIMLogData {
   projectScimId: ObjectID;
   operationType: string;
   status: SCIMLogStatus;
-  statusMessage?: string;
-  httpMethod?: string;
-  requestPath?: string;
-  httpStatusCode?: number;
-  affectedUserEmail?: string;
-  affectedGroupName?: string;
-  requestBody?: JSONObject;
-  responseBody?: JSONObject;
+  statusMessage?: string | undefined;
+  httpMethod?: string | undefined;
+  requestPath?: string | undefined;
+  httpStatusCode?: number | undefined;
+  affectedUserEmail?: string | undefined;
+  affectedGroupName?: string | undefined;
+  requestBody?: JSONObject | undefined;
+  responseBody?: JSONObject | undefined;
+  queryParams?: JSONObject | undefined;
+  steps?: string[] | undefined;
+  userInfo?: JSONObject | undefined;
+  groupInfo?: JSONObject | undefined;
+  additionalContext?: JSONObject | undefined;
 }
 
 export interface StatusPageSCIMLogData {
@@ -28,13 +33,17 @@ export interface StatusPageSCIMLogData {
   statusPageScimId: ObjectID;
   operationType: string;
   status: SCIMLogStatus;
-  statusMessage?: string;
-  httpMethod?: string;
-  requestPath?: string;
-  httpStatusCode?: number;
-  affectedUserEmail?: string;
-  requestBody?: JSONObject;
-  responseBody?: JSONObject;
+  statusMessage?: string | undefined;
+  httpMethod?: string | undefined;
+  requestPath?: string | undefined;
+  httpStatusCode?: number | undefined;
+  affectedUserEmail?: string | undefined;
+  requestBody?: JSONObject | undefined;
+  responseBody?: JSONObject | undefined;
+  queryParams?: JSONObject | undefined;
+  steps?: string[] | undefined;
+  userInfo?: JSONObject | undefined;
+  additionalContext?: JSONObject | undefined;
 }
 
 const sanitizeSensitiveData = (data: JSONObject | undefined): JSONObject | undefined => {
@@ -82,17 +91,52 @@ const sanitizeSensitiveData = (data: JSONObject | undefined): JSONObject | undef
   return sanitizeRecursive(sanitized);
 };
 
-const buildLogBody = (data: {
-  requestBody?: JSONObject;
-  responseBody?: JSONObject;
+export interface LogBodyDetails {
+  requestBody?: JSONObject | undefined;
+  responseBody?: JSONObject | undefined;
   timestamp: Date;
-}): string => {
+  queryParams?: JSONObject | undefined;
+  steps?: string[] | undefined;
+  userInfo?: JSONObject | undefined;
+  groupInfo?: JSONObject | undefined;
+  additionalContext?: JSONObject | undefined;
+}
+
+const buildLogBody = (data: LogBodyDetails): string => {
   const logBody: JSONObject = {
     timestamp: data.timestamp.toISOString(),
-    request: sanitizeSensitiveData(data.requestBody),
-    response: sanitizeSensitiveData(data.responseBody),
+    executedAt: data.timestamp.toISOString(),
   };
-  return JSON.stringify(logBody);
+
+  if (data.queryParams && Object.keys(data.queryParams).length > 0) {
+    logBody["queryParameters"] = data.queryParams;
+  }
+
+  if (data.requestBody) {
+    logBody["request"] = sanitizeSensitiveData(data.requestBody);
+  }
+
+  if (data.responseBody) {
+    logBody["response"] = sanitizeSensitiveData(data.responseBody);
+  }
+
+  if (data.steps && data.steps.length > 0) {
+    logBody["executionSteps"] = data.steps;
+  }
+
+  if (data.userInfo) {
+    logBody["userDetails"] = sanitizeSensitiveData(data.userInfo);
+  }
+
+  if (data.groupInfo) {
+    logBody["groupDetails"] = sanitizeSensitiveData(data.groupInfo);
+  }
+
+  if (data.additionalContext) {
+    logBody["additionalContext"] = sanitizeSensitiveData(data.additionalContext);
+  }
+
+  return JSON.stringify(logBody, null, 2);
 };
 
 export const createProjectSCIMLog = async (data: ProjectSCIMLogData): Promise<void> => {
@@ -102,16 +146,33 @@ export const createProjectSCIMLog = async (data: ProjectSCIMLogData): Promise<vo
     log.projectScimId = data.projectScimId;
     log.operationType = data.operationType;
     log.status = data.status;
-    log.statusMessage = data.statusMessage;
-    log.httpMethod = data.httpMethod;
-    log.requestPath = data.requestPath;
-    log.httpStatusCode = data.httpStatusCode;
-    log.affectedUserEmail = data.affectedUserEmail;
-    log.affectedGroupName = data.affectedGroupName;
+    if (data.statusMessage !== undefined) {
+      log.statusMessage = data.statusMessage;
+    }
+    if (data.httpMethod !== undefined) {
+      log.httpMethod = data.httpMethod;
+    }
+    if (data.requestPath !== undefined) {
+      log.requestPath = data.requestPath;
+    }
+    if (data.httpStatusCode !== undefined) {
+      log.httpStatusCode = data.httpStatusCode;
+    }
+    if (data.affectedUserEmail !== undefined) {
+      log.affectedUserEmail = data.affectedUserEmail;
+    }
+    if (data.affectedGroupName !== undefined) {
+      log.affectedGroupName = data.affectedGroupName;
+    }
     log.logBody = buildLogBody({
       requestBody: data.requestBody,
       responseBody: data.responseBody,
       timestamp: new Date(),
+      queryParams: data.queryParams,
+      steps: data.steps,
+      userInfo: data.userInfo,
+      groupInfo: data.groupInfo,
+      additionalContext: data.additionalContext,
     });
 
     await ProjectSCIMLogService.create({
@@ -133,15 +194,29 @@ export const createStatusPageSCIMLog = async (data: StatusPageSCIMLogData): Prom
     log.statusPageScimId = data.statusPageScimId;
     log.operationType = data.operationType;
     log.status = data.status;
-    log.statusMessage = data.statusMessage;
-    log.httpMethod = data.httpMethod;
-    log.requestPath = data.requestPath;
-    log.httpStatusCode = data.httpStatusCode;
-    log.affectedUserEmail = data.affectedUserEmail;
+    if (data.statusMessage !== undefined) {
+      log.statusMessage = data.statusMessage;
+    }
+    if (data.httpMethod !== undefined) {
+      log.httpMethod = data.httpMethod;
+    }
+    if (data.requestPath !== undefined) {
+      log.requestPath = data.requestPath;
+    }
+    if (data.httpStatusCode !== undefined) {
+      log.httpStatusCode = data.httpStatusCode;
+    }
+    if (data.affectedUserEmail !== undefined) {
+      log.affectedUserEmail = data.affectedUserEmail;
+    }
     log.logBody = buildLogBody({
       requestBody: data.requestBody,
       responseBody: data.responseBody,
       timestamp: new Date(),
+      queryParams: data.queryParams,
+      steps: data.steps,
+      userInfo: data.userInfo,
+      additionalContext: data.additionalContext,
     });
 
     await StatusPageSCIMLogService.create({
