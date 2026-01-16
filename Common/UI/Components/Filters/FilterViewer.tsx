@@ -209,15 +209,19 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       ] as InBetween<Date>;
 
       const shouldOnlyShowDate: boolean = data.filter.type === FieldType.Date;
+      const shouldShowSeconds: boolean =
+        data.filter.type === FieldType.DateTime;
 
       if (
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           startAndEndDates.startValue as Date,
           shouldOnlyShowDate,
+          shouldShowSeconds,
         ) ===
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           startAndEndDates.endValue as Date,
           shouldOnlyShowDate,
+          shouldShowSeconds,
         )
       ) {
         return (
@@ -228,6 +232,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
               {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                 startAndEndDates.startValue as Date,
                 data.filter.type === FieldType.Date,
+                shouldShowSeconds,
               )}
             </span>{" "}
           </div>
@@ -241,6 +246,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
             {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
               startAndEndDates.startValue as Date,
               shouldOnlyShowDate,
+              shouldShowSeconds,
             )}
           </span>{" "}
           and{" "}
@@ -248,6 +254,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
             {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
               startAndEndDates.endValue as Date,
               shouldOnlyShowDate,
+              shouldShowSeconds,
             )}
           </span>{" "}
         </div>

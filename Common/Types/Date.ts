@@ -970,11 +970,13 @@ export default class OneUptimeDate {
   public static getDateAsUserFriendlyLocalFormattedString(
     date: string | Date,
     onlyShowDate?: boolean,
+    showSeconds?: boolean,
   ): string {
     return this.getDateAsLocalFormattedString(
       date,
       onlyShowDate,
       this.getUserPrefers12HourFormat(),
+      showSeconds,
     );
   }
 
@@ -1363,6 +1365,7 @@ export default class OneUptimeDate {
     date: string | Date,
     onlyShowDate?: boolean,
     use12HourFormat?: boolean,
+    showSeconds?: boolean,
   ): string {
     date = this.fromString(date);
 
@@ -1370,6 +1373,14 @@ export default class OneUptimeDate {
 
     if (use12HourFormat) {
       formatstring = "MMM DD YYYY, hh:mm A";
+    }
+
+    if (showSeconds) {
+      if (use12HourFormat) {
+        formatstring = "MMM DD YYYY, hh:mm:ss A";
+      } else {
+        formatstring = "MMM DD YYYY, HH:mm:ss";
+      }
     }
 
     if (onlyShowDate) {
