@@ -190,7 +190,8 @@ const Input: FunctionComponent<ComponentProps> = (
           readOnly={props.readOnly || props.disabled || false}
           type={props.type || "text"}
           step={
-            props.type === InputType.DATETIME_LOCAL && props.showSecondsForDateTime
+            props.type === InputType.DATETIME_LOCAL &&
+            props.showSecondsForDateTime
               ? "1"
               : undefined
           }

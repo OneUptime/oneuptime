@@ -213,9 +213,10 @@ const StartAndEndDate: DateFilterFunction = (
                 buttonSize={ButtonSize.Small}
                 onClick={() => {
                   // set it to past 1 hour
-                  const endDate: Date = OneUptimeDate.resetSecondsAndMilliseconds(
-                    OneUptimeDate.getCurrentDate(),
-                  );
+                  const endDate: Date =
+                    OneUptimeDate.resetSecondsAndMilliseconds(
+                      OneUptimeDate.getCurrentDate(),
+                    );
                   const startDate: Date = OneUptimeDate.addRemoveHours(
                     endDate,
                     -1,
@@ -237,9 +238,10 @@ const StartAndEndDate: DateFilterFunction = (
                 buttonSize={ButtonSize.Small}
                 onClick={() => {
                   // set it to past 3 hour
-                  const endDate: Date = OneUptimeDate.resetSecondsAndMilliseconds(
-                    OneUptimeDate.getCurrentDate(),
-                  );
+                  const endDate: Date =
+                    OneUptimeDate.resetSecondsAndMilliseconds(
+                      OneUptimeDate.getCurrentDate(),
+                    );
                   const startDate: Date = OneUptimeDate.addRemoveHours(
                     endDate,
                     -3,
