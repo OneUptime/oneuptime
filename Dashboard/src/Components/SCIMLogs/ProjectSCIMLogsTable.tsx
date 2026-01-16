@@ -9,7 +9,8 @@ import Color from "Common/Types/Color";
 import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -174,26 +175,23 @@ const ProjectSCIMLogsTable: FunctionComponent<ProjectSCIMLogsTableProps> = (
       />
 
       {showModal && (
-        <ConfirmModal
+        <Modal
           title={modalTitle}
-          description={
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                maxHeight: "400px",
-                overflow: "auto",
-              }}
-            >
-              {modalText}
-            </pre>
-          }
+          description="SCIM operation log details"
+          isLoading={false}
+          modalWidth={ModalWidth.Large}
           onSubmit={() => {
             setShowModal(false);
           }}
           submitButtonText="Close"
-          submitButtonType={ButtonStyleType.NORMAL}
-        />
+          submitButtonStyleType={ButtonStyleType.NORMAL}
+        >
+          <SimpleLogViewer>
+            {modalText.split("\n").map((line: string, i: number) => {
+              return <div key={i}>{line}</div>;
+            })}
+          </SimpleLogViewer>
+        </Modal>
       )}
     </>
   );
