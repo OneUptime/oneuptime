@@ -134,6 +134,144 @@ const handleUserTeamOperations: (
   }
 };
 
+// Constants for special teams
+const UNASSIGNED_TEAM_NAME: string = "Unassigned";
+const UNASSIGNED_TEAM_DESCRIPTION: string =
+  "Users provisioned via SCIM without a group assignment are placed in this team. This team has no permissions.";
+
+// Helper function to get or create the "Unassigned" team for SCIM provisioning
+const getOrCreateUnassignedTeam: (
+  projectId: ObjectID,
+) => Promise<Team> = async (projectId: ObjectID): Promise<Team> => {
+  // First, try to find existing "Unassigned" team
+  let unassignedTeam: Team | null = await TeamService.findOneBy({
+    query: {
+      projectId: projectId,
+      name: UNASSIGNED_TEAM_NAME,
+    },
+    select: {
+      _id: true,
+      name: true,
+      projectId: true,
+    },
+    props: { isRoot: true },
+  });
+
+  if (!unassignedTeam) {
+    // Create the "Unassigned" team
+    logger.debug(
+      `SCIM - Creating "Unassigned" team for project: ${projectId.toString()}`,
+    );
+
+    const newTeam: Team = new Team();
+    newTeam.projectId = projectId;
+    newTeam.name = UNASSIGNED_TEAM_NAME;
+    newTeam.description = UNASSIGNED_TEAM_DESCRIPTION;
+    newTeam.isPermissionsEditable = false;
+    newTeam.isTeamDeleteable = false;
+    newTeam.isTeamEditable = false;
+    newTeam.shouldHaveAtLeastOneMember = false;
+
+    unassignedTeam = await TeamService.create({
+      data: newTeam,
+      props: { isRoot: true },
+    });
+
+    logger.debug(
+      `SCIM - Created "Unassigned" team with ID: ${unassignedTeam.id?.toString()}`,
+    );
+  }
+
+  return unassignedTeam;
+};
+
+// Helper function to add user to the "Unassigned" team
+const addUserToUnassignedTeam: (
+  projectId: ObjectID,
+  userId: ObjectID,
+) => Promise<Team> = async (
+  projectId: ObjectID,
+  userId: ObjectID,
+): Promise<Team> => {
+  const unassignedTeam: Team = await getOrCreateUnassignedTeam(projectId);
+
+  // Check if user is already a member
+  const existingMember: TeamMember | null = await TeamMemberService.findOneBy({
+    query: {
+      projectId: projectId,
+      userId: userId,
+      teamId: unassignedTeam.id!,
+    },
+    select: { _id: true },
+    props: { isRoot: true },
+  });
+
+  if (!existingMember) {
+    logger.debug(
+      `SCIM - Adding user ${userId.toString()} to "Unassigned" team`,
+    );
+
+    const teamMember: TeamMember = new TeamMember();
+    teamMember.projectId = projectId;
+    teamMember.userId = userId;
+    teamMember.teamId = unassignedTeam.id!;
+    teamMember.hasAcceptedInvitation = true;
+    teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+
+    await TeamMemberService.create({
+      data: teamMember,
+      props: { isRoot: true },
+    });
+
+    logger.debug(
+      `SCIM - User added to "Unassigned" team: ${unassignedTeam.id?.toString()}`,
+    );
+  } else {
+    logger.debug(
+      `SCIM - User ${userId.toString()} already in "Unassigned" team`,
+    );
+  }
+
+  return unassignedTeam;
+};
+
+// Helper function to remove user from the "Unassigned" team (when they get assigned to a real group)
+const removeUserFromUnassignedTeam: (
+  projectId: ObjectID,
+  userId: ObjectID,
+) => Promise<void> = async (
+  projectId: ObjectID,
+  userId: ObjectID,
+): Promise<void> => {
+  // Find the "Unassigned" team
+  const unassignedTeam: Team | null = await TeamService.findOneBy({
+    query: {
+      projectId: projectId,
+      name: UNASSIGNED_TEAM_NAME,
+    },
+    select: { _id: true },
+    props: { isRoot: true },
+  });
+
+  if (unassignedTeam) {
+    // Remove user from "Unassigned" team
+    await TeamMemberService.deleteBy({
+      query: {
+        projectId: projectId,
+        userId: userId,
+        teamId: unassignedTeam.id!,
+      },
+      skip: 0,
+      limit: 1,
+      props: { isRoot: true },
+    });
+
+    logger.debug(
+      `SCIM - Removed user ${userId.toString()} from "Unassigned" team`,
+    );
+  }
+};
+
 // Helper function to format team as SCIM group
 const formatTeamForSCIM: (
   team: Team,
@@ -673,6 +811,12 @@ router.post(
                         data: newTeamMember,
                         props: { isRoot: true },
                       });
+
+                      // Remove user from Unassigned team since they now have a real group
+                      await removeUserFromUnassignedTeam(
+                        projectId,
+                        new ObjectID(userId),
+                      );
                     }
                   }
                 }
@@ -771,6 +915,12 @@ router.post(
                       data: newTeamMember,
                       props: { isRoot: true },
                     });
+
+                    // Remove user from Unassigned team since they now have a real group
+                    await removeUserFromUnassignedTeam(
+                      projectId,
+                      new ObjectID(userId),
+                    );
                   }
                 }
               }
@@ -881,6 +1031,12 @@ router.post(
                             data: newTeamMember,
                             props: { isRoot: true },
                           });
+
+                          // Remove user from Unassigned team since they now have a real group
+                          await removeUserFromUnassignedTeam(
+                            projectId,
+                            new ObjectID(userId),
+                          );
                         }
                       }
                     }
@@ -922,6 +1078,12 @@ router.post(
                               data: newTeamMember,
                               props: { isRoot: true },
                             });
+
+                            // Remove user from Unassigned team since they now have a real group
+                            await removeUserFromUnassignedTeam(
+                              projectId,
+                              new ObjectID(userId),
+                            );
                           }
                         }
                       }
@@ -2307,6 +2469,10 @@ router.post(
                     isRoot: true,
                   },
                 });
+
+                // Remove user from "Unassigned" team since they now have a real group
+                await removeUserFromUnassignedTeam(projectId, new ObjectID(userId));
+
                 membersAdded++;
                 logger.debug(
                   `SCIM Create group - added user ${userId} to team ${targetTeam.id}`,
@@ -2568,6 +2734,10 @@ router.put(
                   isRoot: true,
                 },
               });
+
+              // Remove user from "Unassigned" team since they now have a real group
+              await removeUserFromUnassignedTeam(projectId, new ObjectID(userId));
+
               membersAdded++;
               logger.debug(`SCIM Update group - added user ${userId} to team`);
             } else {
@@ -2958,6 +3128,13 @@ router.patch(
                         isRoot: true,
                       },
                     });
+
+                    // Remove user from "Unassigned" team since they now have a real group
+                    await removeUserFromUnassignedTeam(
+                      projectId,
+                      new ObjectID(userId),
+                    );
+
                     membersAdded++;
                     logger.debug(
                       `SCIM Patch group - added user ${userId} to team`,
@@ -3010,6 +3187,13 @@ router.patch(
                         isRoot: true,
                       },
                     });
+
+                    // Remove user from Unassigned team since they now have a real group
+                    await removeUserFromUnassignedTeam(
+                      projectId,
+                      new ObjectID(userId),
+                    );
+
                     membersAdded++;
                     logger.debug(
                       `SCIM Patch group - added user ${userId} to team`,
@@ -3273,11 +3457,29 @@ router.post(
         executionSteps.push(`User added to teams: ${teamsAdded.join(", ")}`);
       } else if (scimConfig.enablePushGroups) {
         executionSteps.push(
-          "Push groups enabled - skipping default team assignment",
+          "Push groups enabled - adding user to 'Unassigned' team until group assignment",
+        );
+        // Add user to "Unassigned" team until they get assigned to a real group
+        const unassignedTeam: Team = await addUserToUnassignedTeam(
+          projectId,
+          user.id!,
+        );
+        teamsAdded = [UNASSIGNED_TEAM_NAME];
+        executionSteps.push(
+          `User added to "Unassigned" team (ID: ${unassignedTeam.id?.toString()})`,
         );
       } else {
         executionSteps.push(
-          "No default teams configured - skipping team assignment",
+          "No default teams configured - adding user to 'Unassigned' team",
+        );
+        // Add user to "Unassigned" team when no default teams configured
+        const unassignedTeam: Team = await addUserToUnassignedTeam(
+          projectId,
+          user.id!,
+        );
+        teamsAdded = [UNASSIGNED_TEAM_NAME];
+        executionSteps.push(
+          `User added to "Unassigned" team (ID: ${unassignedTeam.id?.toString()})`,
         );
       }
 
