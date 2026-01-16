@@ -172,10 +172,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             submitButtonText={"Close"}
             submitButtonStyleType={ButtonStyleType.NORMAL}
           >
-            <SimpleLogViewer>
-              {logs.split("\n").map((log: string, i: number) => {
-                return <div key={i}>{log}</div>;
-              })}
+            <SimpleLogViewer title="Workflow Execution Log" height="500px">
+              {logs}
             </SimpleLogViewer>
           </Modal>
         )}

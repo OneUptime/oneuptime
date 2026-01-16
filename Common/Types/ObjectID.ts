@@ -120,10 +120,10 @@ export default class ObjectID extends DatabaseProperty {
    * Check if a string is a valid UUID format
    */
   public static isValidUUID(id: string): boolean {
-    if (!id || typeof id !== "string") {
+    if (!id) {
       return false;
     }
-    return UUID_REGEX.test(id);
+    return UUID_REGEX.test(id.toString());
   }
 
   /**

@@ -118,7 +118,7 @@ export class Statement implements BaseQueryParams {
         finalValue = v.value.values;
       }
     } else if (v.value instanceof Date) {
-      finalValue = OneUptimeDate.toDatabaseDate(v.value);
+      finalValue = OneUptimeDate.toClickhouseDateTime(v.value);
     } else {
       finalValue = v.value;
     }
@@ -127,7 +127,7 @@ export class Statement implements BaseQueryParams {
 
     if (typeof v !== "string" && v.type === TableColumnType.Date) {
       finalValue = OneUptimeDate.fromString(finalValue as string);
-      finalValue = OneUptimeDate.toDatabaseDate(finalValue);
+      finalValue = OneUptimeDate.toClickhouseDateTime(finalValue);
     }
 
     return finalValue;

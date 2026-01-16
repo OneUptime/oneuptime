@@ -970,11 +970,13 @@ export default class OneUptimeDate {
   public static getDateAsUserFriendlyLocalFormattedString(
     date: string | Date,
     onlyShowDate?: boolean,
+    showSeconds?: boolean,
   ): string {
     return this.getDateAsLocalFormattedString(
       date,
       onlyShowDate,
       this.getUserPrefers12HourFormat(),
+      showSeconds,
     );
   }
 
@@ -1363,6 +1365,7 @@ export default class OneUptimeDate {
     date: string | Date,
     onlyShowDate?: boolean,
     use12HourFormat?: boolean,
+    showSeconds?: boolean,
   ): string {
     date = this.fromString(date);
 
@@ -1370,6 +1373,14 @@ export default class OneUptimeDate {
 
     if (use12HourFormat) {
       formatstring = "MMM DD YYYY, hh:mm A";
+    }
+
+    if (showSeconds) {
+      if (use12HourFormat) {
+        formatstring = "MMM DD YYYY, hh:mm:ss A";
+      } else {
+        formatstring = "MMM DD YYYY, HH:mm:ss";
+      }
     }
 
     if (onlyShowDate) {
@@ -1500,6 +1511,13 @@ export default class OneUptimeDate {
   public static toDatabaseDate(date: Date): string {
     date = this.fromString(date);
     return moment(date).format("YYYY-MM-DD HH:mm:ss");
+  }
+
+  public static resetSecondsAndMilliseconds(date: Date): Date {
+    date = this.fromString(date);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
   }
 
   public static toClickhouseDateTime(date: Date | string): string {

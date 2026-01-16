@@ -20,7 +20,7 @@ export default class ProjectUtil {
       `current_project_id`,
     ) as string;
 
-    if (currentProjectId) {
+    if (currentProjectId && ObjectID.isValidUUID(currentProjectId)) {
       return new ObjectID(currentProjectId);
     }
 
@@ -30,7 +30,8 @@ export default class ProjectUtil {
       projectId = undefined;
     }
 
-    if (projectId) {
+    // Only return the projectId if it's a valid UUID
+    if (projectId && ObjectID.isValidUUID(projectId)) {
       return new ObjectID(projectId);
     }
 
