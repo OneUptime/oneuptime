@@ -4,6 +4,7 @@ export interface ComponentProps {
   children: ReactElement | string | Array<ReactElement>;
   showLineNumbers?: boolean | undefined;
   height?: string | undefined;
+  title?: string | undefined;
 }
 
 const SimpleLogViewer: FunctionComponent<ComponentProps> = (
@@ -11,6 +12,7 @@ const SimpleLogViewer: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const showLineNumbers: boolean = props.showLineNumbers !== false;
   const height: string = props.height || "400px";
+  const title: string | undefined = props.title;
 
   const renderContent: () => ReactElement = (): ReactElement => {
     if (typeof props.children === "string") {
@@ -79,6 +81,12 @@ const SimpleLogViewer: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="rounded-lg overflow-hidden border border-slate-700 bg-slate-900 shadow-lg">
+      {/* Title Header */}
+      {title && (
+        <div className="px-4 py-3 border-b border-slate-700 bg-slate-800">
+          <h3 className="text-sm font-medium text-slate-200">{title}</h3>
+        </div>
+      )}
       {/* Log Content */}
       <div
         className="overflow-auto font-mono text-sm leading-6 p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-500"
