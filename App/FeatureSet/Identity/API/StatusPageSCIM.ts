@@ -949,24 +949,29 @@ router.get(
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
-      // Log the error
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
       const bearerData: JSONObject =
         oneuptimeRequest.bearerTokenData as JSONObject;
+
+      // Not found is expected behavior for SCIM providers checking if user exists
+      const isNotFound: boolean = err instanceof NotFoundException;
+
       void createStatusPageSCIMLog({
         projectId: bearerData["projectId"] as ObjectID,
         statusPageId: bearerData["statusPageId"] as ObjectID,
         statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
         operationType: "GetUser",
-        status: SCIMLogStatus.Error,
+        status: isNotFound ? SCIMLogStatus.Success : SCIMLogStatus.Error,
         statusMessage: (err as Error).message,
         httpMethod: "GET",
         requestPath: req.path,
-        httpStatusCode: 404,
+        httpStatusCode: isNotFound ? 404 : 500,
         steps: executionSteps,
       });
 
-      logger.error(err);
+      if (!isNotFound) {
+        logger.error(err);
+      }
       return next(err);
     }
   },
@@ -1423,25 +1428,30 @@ const handleStatusPageUserUpdate: (
     return Response.sendJsonObjectResponse(req, res, user);
   } catch (err) {
     executionSteps.push(`Error occurred: ${(err as Error).message}`);
-    // Log the error
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const bearerData: JSONObject =
       oneuptimeRequest.bearerTokenData as JSONObject;
+
+    // Not found is expected behavior for SCIM providers
+    const isNotFound: boolean = err instanceof NotFoundException;
+
     void createStatusPageSCIMLog({
       projectId: bearerData["projectId"] as ObjectID,
       statusPageId: bearerData["statusPageId"] as ObjectID,
       statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
       operationType: "UpdateUser",
-      status: SCIMLogStatus.Error,
+      status: isNotFound ? SCIMLogStatus.Success : SCIMLogStatus.Error,
       statusMessage: (err as Error).message,
       httpMethod: req.method,
       requestPath: req.path,
-      httpStatusCode: 400,
+      httpStatusCode: isNotFound ? 404 : 400,
       requestBody: req.body,
       steps: executionSteps,
     });
 
-    logger.error(err);
+    if (!isNotFound) {
+      logger.error(err);
+    }
     return next(err);
   }
 };
@@ -1576,24 +1586,29 @@ router.delete(
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       executionSteps.push(`Error occurred: ${(err as Error).message}`);
-      // Log the error
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
       const bearerData: JSONObject =
         oneuptimeRequest.bearerTokenData as JSONObject;
+
+      // Not found is expected behavior for SCIM providers
+      const isNotFound: boolean = err instanceof NotFoundException;
+
       void createStatusPageSCIMLog({
         projectId: bearerData["projectId"] as ObjectID,
         statusPageId: bearerData["statusPageId"] as ObjectID,
         statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
         operationType: "DeleteUser",
-        status: SCIMLogStatus.Error,
+        status: isNotFound ? SCIMLogStatus.Success : SCIMLogStatus.Error,
         statusMessage: (err as Error).message,
         httpMethod: "DELETE",
         requestPath: req.path,
-        httpStatusCode: 400,
+        httpStatusCode: isNotFound ? 404 : 400,
         steps: executionSteps,
       });
 
-      logger.error(err);
+      if (!isNotFound) {
+        logger.error(err);
+      }
       return next(err);
     }
   },
