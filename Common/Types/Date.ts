@@ -1513,6 +1513,13 @@ export default class OneUptimeDate {
     return moment(date).format("YYYY-MM-DD HH:mm:ss");
   }
 
+  public static resetSecondsAndMilliseconds(date: Date): Date {
+    date = this.fromString(date);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
+  }
+
   public static toClickhouseDateTime(date: Date | string): string {
     const parsedDate: Date = this.fromString(date);
     return moment(parsedDate).utc().format("YYYY-MM-DD HH:mm:ss");
