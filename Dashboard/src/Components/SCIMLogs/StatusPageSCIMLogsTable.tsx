@@ -29,7 +29,9 @@ const StatusPageSCIMLogsTable: FunctionComponent<
   const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
 
-  const getStatusColor = (status: SCIMLogStatus): Color => {
+  const getStatusColor: (status: SCIMLogStatus) => Color = (
+    status: SCIMLogStatus,
+  ): Color => {
     switch (status) {
       case SCIMLogStatus.Success:
         return Green;
@@ -131,7 +133,9 @@ const StatusPageSCIMLogsTable: FunctionComponent<
               let logDetails: string = "";
               if (item["logBody"]) {
                 try {
-                  const parsed: object = JSON.parse(item["logBody"] as string);
+                  const parsed: Record<string, unknown> = JSON.parse(
+                    item["logBody"] as string,
+                  );
                   logDetails = JSON.stringify(parsed, null, 2);
                 } catch {
                   logDetails = item["logBody"] as string;

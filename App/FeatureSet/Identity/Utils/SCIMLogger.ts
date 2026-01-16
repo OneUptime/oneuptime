@@ -46,7 +46,9 @@ export interface StatusPageSCIMLogData {
   additionalContext?: JSONObject | undefined;
 }
 
-const sanitizeSensitiveData = (
+const sanitizeSensitiveData: (
+  data: JSONObject | undefined,
+) => JSONObject | undefined = (
   data: JSONObject | undefined,
 ): JSONObject | undefined => {
   if (!data) {
@@ -66,7 +68,9 @@ const sanitizeSensitiveData = (
     "api_key",
   ];
 
-  const sanitizeRecursive = (obj: JSONObject): JSONObject => {
+  const sanitizeRecursive: (obj: JSONObject) => JSONObject = (
+    obj: JSONObject,
+  ): JSONObject => {
     const result: JSONObject = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -116,7 +120,9 @@ export interface LogBodyDetails {
   additionalContext?: JSONObject | undefined;
 }
 
-const buildLogBody = (data: LogBodyDetails): string => {
+const buildLogBody: (data: LogBodyDetails) => string = (
+  data: LogBodyDetails,
+): string => {
   const logBody: JSONObject = {
     timestamp: data.timestamp.toISOString(),
     executedAt: data.timestamp.toISOString(),
@@ -155,9 +161,9 @@ const buildLogBody = (data: LogBodyDetails): string => {
   return JSON.stringify(logBody, null, 2);
 };
 
-export const createProjectSCIMLog = async (
+export const createProjectSCIMLog: (
   data: ProjectSCIMLogData,
-): Promise<void> => {
+) => Promise<void> = async (data: ProjectSCIMLogData): Promise<void> => {
   try {
     const log: ProjectSCIMLog = new ProjectSCIMLog();
     log.projectId = data.projectId;
@@ -204,9 +210,9 @@ export const createProjectSCIMLog = async (
   }
 };
 
-export const createStatusPageSCIMLog = async (
+export const createStatusPageSCIMLog: (
   data: StatusPageSCIMLogData,
-): Promise<void> => {
+) => Promise<void> = async (data: StatusPageSCIMLogData): Promise<void> => {
   try {
     const log: StatusPageSCIMLog = new StatusPageSCIMLog();
     log.projectId = data.projectId;
