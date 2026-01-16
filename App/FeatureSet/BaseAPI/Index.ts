@@ -62,6 +62,12 @@ import DomainService, {
 import EmailLogService, {
   Service as EmailLogServiceType,
 } from "Common/Server/Services/EmailLogService";
+import ProjectSCIMLogService, {
+  Service as ProjectSCIMLogServiceType,
+} from "Common/Server/Services/ProjectSCIMLogService";
+import StatusPageSCIMLogService, {
+  Service as StatusPageSCIMLogServiceType,
+} from "Common/Server/Services/StatusPageSCIMLogService";
 import TelemetryIngestionKeyService, {
   Service as TelemetryIngestionKeyServiceType,
 } from "Common/Server/Services/TelemetryIngestionKeyService";
@@ -388,6 +394,8 @@ import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLo
 import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
 import Domain from "Common/Models/DatabaseModels/Domain";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
+import ProjectSCIMLog from "Common/Models/DatabaseModels/ProjectSCIMLog";
+import StatusPageSCIMLog from "Common/Models/DatabaseModels/StatusPageSCIMLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 
@@ -1542,6 +1550,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<EmailLog, EmailLogServiceType>(
         EmailLog,
         EmailLogService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProjectSCIMLog, ProjectSCIMLogServiceType>(
+        ProjectSCIMLog,
+        ProjectSCIMLogService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StatusPageSCIMLog, StatusPageSCIMLogServiceType>(
+        StatusPageSCIMLog,
+        StatusPageSCIMLogService,
       ).getRouter(),
     );
 
