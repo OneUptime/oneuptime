@@ -701,11 +701,13 @@ router.get(
               );
               executionSteps.push(`Valid email, filtering by: ${email}`);
             } else {
+              // Non-email userName (e.g., GUID from Microsoft Entra ID) - return empty list
+              // This is expected behavior; the IdP will proceed to create the user with proper email
               logger.debug(
-                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, invalid email format in filter: ${email}`,
+                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, userName filter is not an email format: ${email}, returning empty list`,
               );
               executionSteps.push(
-                `Invalid email format: ${email}, returning empty list`,
+                `userName filter value "${email}" is not an email format, returning empty list (no matching users)`,
               );
               const emptyResponse: JSONObject = {
                 schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
@@ -719,14 +721,18 @@ router.get(
                 statusPageId: statusPageId,
                 statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
                 operationType: "ListUsers",
-                status: SCIMLogStatus.Warning,
-                statusMessage: `Invalid email format in filter: ${email}`,
+                status: SCIMLogStatus.Success,
                 httpMethod: "GET",
                 requestPath: req.path,
                 httpStatusCode: 200,
                 responseBody: emptyResponse,
                 queryParams: { filter, startIndex, count } as JSONObject,
                 steps: executionSteps,
+                additionalContext: {
+                  filterValue: email,
+                  filterType: "non-email-username",
+                  userFound: false,
+                },
               });
               return Response.sendJsonObjectResponse(req, res, emptyResponse);
             }
