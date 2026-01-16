@@ -186,9 +186,7 @@ const ProjectSCIMLogsTable: FunctionComponent<ProjectSCIMLogsTableProps> = (
           submitButtonText="Close"
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SimpleLogViewer height="500px">
-            {logModalText}
-          </SimpleLogViewer>
+          <SimpleLogViewer height="500px">{logModalText}</SimpleLogViewer>
         </Modal>
       )}
 

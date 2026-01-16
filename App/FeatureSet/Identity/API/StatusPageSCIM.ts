@@ -701,8 +701,10 @@ router.get(
               );
               executionSteps.push(`Valid email, filtering by: ${email}`);
             } else {
-              // Non-email userName (e.g., GUID from Microsoft Entra ID) - return empty list
-              // This is expected behavior; the IdP will proceed to create the user with proper email
+              /*
+               * Non-email userName (e.g., GUID from Microsoft Entra ID) - return empty list
+               * This is expected behavior; the IdP will proceed to create the user with proper email
+               */
               logger.debug(
                 `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, userName filter is not an email format: ${email}, returning empty list`,
               );

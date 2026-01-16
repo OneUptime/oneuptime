@@ -1476,8 +1476,10 @@ router.get(
                 );
               }
             } else {
-              // Non-email userName (e.g., GUID from Microsoft Entra ID) - return empty list
-              // This is expected behavior; the IdP will proceed to create the user with proper email
+              /*
+               * Non-email userName (e.g., GUID from Microsoft Entra ID) - return empty list
+               * This is expected behavior; the IdP will proceed to create the user with proper email
+               */
               logger.debug(
                 `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, userName filter is not an email format: ${email}, returning empty list`,
               );
@@ -2492,7 +2494,10 @@ router.post(
                 });
 
                 // Remove user from "Unassigned" team since they now have a real group
-                await removeUserFromUnassignedTeam(projectId, new ObjectID(userId));
+                await removeUserFromUnassignedTeam(
+                  projectId,
+                  new ObjectID(userId),
+                );
 
                 membersAdded++;
                 logger.debug(
@@ -2757,7 +2762,10 @@ router.put(
               });
 
               // Remove user from "Unassigned" team since they now have a real group
-              await removeUserFromUnassignedTeam(projectId, new ObjectID(userId));
+              await removeUserFromUnassignedTeam(
+                projectId,
+                new ObjectID(userId),
+              );
 
               membersAdded++;
               logger.debug(`SCIM Update group - added user ${userId} to team`);
