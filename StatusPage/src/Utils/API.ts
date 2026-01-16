@@ -24,7 +24,7 @@ export default class API extends BaseAPI {
 
     return {
       "status-page-id": statusPageId.toString(),
-      tenantid: ""
+      tenantid: "",
     };
   }
 
