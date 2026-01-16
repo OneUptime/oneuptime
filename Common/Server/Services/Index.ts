@@ -173,6 +173,8 @@ import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideS
 import MonitorLogService from "./MonitorLogService";
 
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import ProjectSCIMLogService from "./ProjectSCIMLogService";
+import StatusPageSCIMLogService from "./StatusPageSCIMLogService";
 
 const services: Array<BaseService> = [
   OnCallDutyPolicyTimeLogService,
@@ -355,6 +357,9 @@ const services: Array<BaseService> = [
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,
   WorkspaceNotificationLogService,
+
+  ProjectSCIMLogService,
+  StatusPageSCIMLogService,
 ];
 
 export const AnalyticsServices: Array<

@@ -2,14 +2,90 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   children: ReactElement | string | Array<ReactElement>;
+  showLineNumbers?: boolean | undefined;
+  height?: string | undefined;
 }
 
 const SimpleLogViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const showLineNumbers: boolean = props.showLineNumbers !== false;
+  const height: string = props.height || "400px";
+
+  const renderContent: () => ReactElement = (): ReactElement => {
+    if (typeof props.children === "string") {
+      const lines: Array<string> = props.children.split("\n");
+      return (
+        <>
+          {lines.map((line: string, index: number) => {
+            return (
+              <div
+                key={index}
+                className="flex hover:bg-slate-800/50 transition-colors"
+              >
+                {showLineNumbers && (
+                  <span className="select-none text-slate-600 text-right pr-4 w-12 flex-shrink-0 border-r border-slate-800 mr-4">
+                    {index + 1}
+                  </span>
+                )}
+                <span className="text-slate-300 whitespace-pre-wrap break-all flex-1">
+                  {line || " "}
+                </span>
+              </div>
+            );
+          })}
+        </>
+      );
+    }
+
+    if (Array.isArray(props.children)) {
+      return (
+        <>
+          {props.children.map(
+            (child: ReactElement, index: number): ReactElement => {
+              return (
+                <div
+                  key={index}
+                  className="flex hover:bg-slate-800/50 transition-colors"
+                >
+                  {showLineNumbers && (
+                    <span className="select-none text-slate-600 text-right pr-4 w-12 flex-shrink-0 border-r border-slate-800 mr-4">
+                      {index + 1}
+                    </span>
+                  )}
+                  <span className="text-slate-300 whitespace-pre-wrap break-all flex-1">
+                    {child}
+                  </span>
+                </div>
+              );
+            },
+          )}
+        </>
+      );
+    }
+
+    return (
+      <div className="text-slate-300 whitespace-pre-wrap break-all">
+        {props.children}
+      </div>
+    );
+  };
+
+  const scrollbarStyles: React.CSSProperties = {
+    maxHeight: height,
+    scrollbarWidth: "thin",
+    scrollbarColor: "#475569 #1e293b",
+  };
+
   return (
-    <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-      {props.children}
+    <div className="rounded-lg overflow-hidden border border-slate-700 bg-slate-900 shadow-lg">
+      {/* Log Content */}
+      <div
+        className="overflow-auto font-mono text-sm leading-6 p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-500"
+        style={scrollbarStyles}
+      >
+        {renderContent()}
+      </div>
     </div>
   );
 };
