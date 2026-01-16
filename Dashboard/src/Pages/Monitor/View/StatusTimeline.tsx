@@ -245,10 +245,8 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SimpleLogViewer>
-            {logs.split("\n").map((log: string, i: number) => {
-              return <div key={i}>{log}</div>;
-            })}
+          <SimpleLogViewer title="Status Change Log" height="500px">
+            {logs}
           </SimpleLogViewer>
         </Modal>
       ) : (

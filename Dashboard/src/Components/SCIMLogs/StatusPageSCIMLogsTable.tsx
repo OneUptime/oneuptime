@@ -10,6 +10,7 @@ import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -23,9 +24,10 @@ export interface StatusPageSCIMLogsTableProps {
 const StatusPageSCIMLogsTable: FunctionComponent<
   StatusPageSCIMLogsTableProps
 > = (props: StatusPageSCIMLogsTableProps): ReactElement => {
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [modalText, setModalText] = useState<string>("");
-  const [modalTitle, setModalTitle] = useState<string>("");
+  const [showLogModal, setShowLogModal] = useState<boolean>(false);
+  const [logModalText, setLogModalText] = useState<string>("");
+  const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
+  const [statusMessage, setStatusMessage] = useState<string>("");
 
   const getStatusColor = (status: SCIMLogStatus): Color => {
     switch (status) {
@@ -143,9 +145,8 @@ const StatusPageSCIMLogsTable: FunctionComponent<
                 logDetails =
                   `Request Path: ${item["requestPath"]}\n\n` + logDetails;
               }
-              setModalText(logDetails || "No details available");
-              setModalTitle("SCIM Operation Details");
-              setShowModal(true);
+              setLogModalText(logDetails || "No details available");
+              setShowLogModal(true);
               onCompleteAction();
             },
           },
@@ -157,35 +158,44 @@ const StatusPageSCIMLogsTable: FunctionComponent<
               item: StatusPageSCIMLog,
               onCompleteAction: VoidFunction,
             ) => {
-              setModalText(
+              setStatusMessage(
                 (item["statusMessage"] as string) || "No status message",
               );
-              setModalTitle("Status Message");
-              setShowModal(true);
+              setShowStatusModal(true);
               onCompleteAction();
             },
           },
         ]}
       />
 
-      {showModal && (
+      {showLogModal && (
         <Modal
-          title={modalTitle}
-          description="SCIM operation log details"
+          title="SCIM Operation Details"
+          description="Log details for this SCIM operation"
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {
-            setShowModal(false);
+            setShowLogModal(false);
           }}
           submitButtonText="Close"
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SimpleLogViewer>
-            {modalText.split("\n").map((line: string, i: number) => {
-              return <div key={i}>{line}</div>;
-            })}
+          <SimpleLogViewer title="Log Output" height="500px">
+            {logModalText}
           </SimpleLogViewer>
         </Modal>
+      )}
+
+      {showStatusModal && (
+        <ConfirmModal
+          title="Status Message"
+          description={statusMessage}
+          onSubmit={() => {
+            setShowStatusModal(false);
+          }}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
       )}
     </>
   );

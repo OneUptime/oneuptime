@@ -298,10 +298,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SimpleLogViewer>
-            {logs.split("\n").map((log: string, i: number) => {
-              return <div key={i}>{log}</div>;
-            })}
+          <SimpleLogViewer title="Incident State Log" height="500px">
+            {logs}
           </SimpleLogViewer>
         </Modal>
       ) : (
