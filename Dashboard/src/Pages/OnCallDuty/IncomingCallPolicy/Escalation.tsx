@@ -110,21 +110,24 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               notifyType: true,
             },
             overrideFieldKey: "notifyType",
+            showEvenIfPermissionDoesNotExist: true,
             title: "Notify",
             description: "Select who should be notified when a call comes in.",
-            fieldType: FormFieldSchemaType.RadioButton,
+            fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             defaultValue: NotifyType.OnCallSchedule,
-            radioButtonOptions: [
-              {
-                title: "On-Call Schedule",
-                value: NotifyType.OnCallSchedule,
-              },
-              {
-                title: "User",
-                value: NotifyType.User,
-              },
-            ],
+            fetchDropdownOptions: async () => {
+              return [
+                {
+                  label: "On-Call Schedule",
+                  value: NotifyType.OnCallSchedule,
+                },
+                {
+                  label: "User",
+                  value: NotifyType.User,
+                },
+              ];
+            },
           },
           {
             field: {
@@ -156,6 +159,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             field: {
               userId: true,
             },
+            showEvenIfPermissionDoesNotExist: true,
             title: "User",
             description: "Select a user to call directly.",
             fieldType: FormFieldSchemaType.Dropdown,
