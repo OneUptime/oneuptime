@@ -473,21 +473,6 @@ class User extends UserModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.CurrentUser],
-
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({ type: TableColumnType.Phone })
-  @Column({
-    type: ColumnType.Phone,
-    length: ColumnLength.Phone,
-    nullable: true,
-    unique: false,
-  })
-  public alertPhoneNumber?: Phone = undefined;
-
-  @ColumnAccessControl({
-    create: [],
     read: [],
 
     update: [],

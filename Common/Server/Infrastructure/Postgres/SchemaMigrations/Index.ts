@@ -222,6 +222,7 @@ import { AddOAuthProviderType1768217403078 } from "./1768217403078-AddOAuthProvi
 import { AddIncomingEmailMonitor1768335589018 } from "./1768335589018-AddIncomingEmailMonitor";
 import { MigrationName1768422356713 } from "./1768422356713-MigrationName";
 import { MigrationName1768583966447 } from "./1768583966447-MigrationName";
+import { RemoveAlertPhoneNumberFromUser1768647802022 } from "./1768647802022-RemoveAlertPhoneNumberFromUser";
 
 export default [
   InitialMigration,
@@ -448,4 +449,5 @@ export default [
   AddIncomingEmailMonitor1768335589018,
   MigrationName1768422356713,
   MigrationName1768583966447,
+  RemoveAlertPhoneNumberFromUser1768647802022,
 ];
