@@ -1,5 +1,8 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
-import { NotificationWebhookHost } from "../Config";
+import {
+  HttpProtocol,
+  Host,
+} from "Common/Server/EnvironmentConfig";
 import {
   AvailablePhoneNumber,
   ICallProvider,
@@ -371,7 +374,7 @@ router.post(
        * Construct webhook URL - single endpoint for all phone numbers
        * Twilio sends the "To" phone number in every webhook, so we look up the policy by phone number
        */
-      const webhookUrl: string = `${NotificationWebhookHost}/notification/incoming-call/voice`;
+      const webhookUrl: string = `${HttpProtocol}${Host}/notification/incoming-call/voice`;
 
       const assigned: PurchasedPhoneNumber = await provider.assignExistingNumber(
         phoneNumberId,
@@ -513,7 +516,7 @@ router.post(
        * Construct webhook URL - single endpoint for all phone numbers
        * Twilio sends the "To" phone number in every webhook, so we look up the policy by phone number
        */
-      const webhookUrl: string = `${NotificationWebhookHost}/notification/incoming-call/voice`;
+      const webhookUrl: string = `${HttpProtocol}${Host}/notification/incoming-call/voice`;
 
       const purchased: PurchasedPhoneNumber = await provider.purchaseNumber(
         phoneNumber,
