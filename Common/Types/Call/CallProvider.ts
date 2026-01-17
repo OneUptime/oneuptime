@@ -20,7 +20,7 @@ export interface OwnedPhoneNumber {
   phoneNumberId: string; // Provider's ID (e.g., Twilio SID)
   phoneNumber: string; // "+14155550123"
   friendlyName: string; // "(415) 555-0123"
-  voiceUrl?: string; // Current webhook URL configured
+  voiceUrl?: string | undefined; // Current webhook URL configured
 }
 
 // Search options for available numbers

@@ -2,10 +2,65 @@
 
 Incoming Call Policies allow external callers to reach your on-call engineers by dialing a dedicated phone number. When someone calls, OneUptime routes the call through your configured escalation rules until an engineer answers.
 
+## How It Works
+
+```mermaid
+flowchart TD
+    A[Caller dials<br/>Incoming Call Number] --> B[Twilio receives call]
+    B --> C[Twilio sends webhook<br/>to OneUptime]
+    C --> D[OneUptime plays<br/>greeting message]
+    D --> E[Load Escalation Rules]
+    E --> F{Rule 1:<br/>Try On-Call User}
+    F -->|No Answer| G{Rule 2:<br/>Try Backup Team}
+    F -->|Answered| H[Connect Caller<br/>to Engineer]
+    G -->|No Answer| I{Rule 3:<br/>Try Manager}
+    G -->|Answered| H
+    I -->|No Answer| J[Play No Answer<br/>Message & Hangup]
+    I -->|Answered| H
+    H --> K[Call Connected]
+    K --> L[Call Ends]
+    L --> M[Log Call Details]
+```
+
+## Call Routing Flow
+
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant Twilio
+    participant OneUptime
+    participant OnCallEngineer
+
+    Caller->>Twilio: Dials incoming call number
+    Twilio->>OneUptime: POST /incoming-call/voice
+    OneUptime->>Twilio: TwiML: Play greeting
+    Twilio->>Caller: "Please wait while we connect you..."
+
+    loop Escalation Rules
+        OneUptime->>OneUptime: Get next escalation rule
+        OneUptime->>Twilio: TwiML: Dial on-call user
+        Twilio->>OnCallEngineer: Ring phone
+        alt Engineer Answers
+            OnCallEngineer->>Twilio: Picks up
+            Twilio->>OneUptime: Dial status: completed
+            Twilio->>Caller: Connect to engineer
+            Note over Caller,OnCallEngineer: Call in progress
+        else No Answer (timeout)
+            Twilio->>OneUptime: Dial status: no-answer
+            OneUptime->>OneUptime: Try next rule
+        end
+    end
+
+    alt All Rules Exhausted
+        OneUptime->>Twilio: TwiML: Play no-answer message
+        Twilio->>Caller: "No one is available..."
+        Twilio->>Caller: Hangup
+    end
+```
+
 ## Prerequisites
 
 - A Twilio account - Create one at [https://www.twilio.com](https://www.twilio.com)
-- A phone number purchased in your Twilio account
 - Your Twilio Account SID and Auth Token
 - Access to your OneUptime self-hosted instance
 
@@ -27,14 +82,7 @@ Since you're self-hosting OneUptime, you'll need to configure your own Twilio ac
 2. Complete the verification process
 3. Note down your **Account SID** and **Auth Token** from the Twilio Console dashboard
 
-## Step 2: Purchase a Phone Number in Twilio
-
-1. In the Twilio Console, go to **Phone Numbers** > **Manage** > **Buy a number**
-2. Search for a number with **Voice** capability enabled
-3. Purchase the number
-4. Note down the phone number (e.g., `+15551234567`)
-
-## Step 3: Configure Call/SMS Config in OneUptime
+## Step 2: Configure Call/SMS Config in OneUptime
 
 1. Log in to your OneUptime Dashboard
 2. Go to **Project Settings** > **Call & SMS** > **Custom Call/SMS Config**
@@ -44,40 +92,72 @@ Since you're self-hosting OneUptime, you'll need to configure your own Twilio ac
    - **Description**: Optional description
    - **Twilio Account SID**: Your Twilio Account SID (starts with `AC`)
    - **Twilio Auth Token**: Your Twilio Auth Token
-   - **Twilio Primary Phone Number**: The phone number you purchased (e.g., `+15551234567`)
+   - **Twilio Primary Phone Number**: A phone number from your Twilio account for outbound calls
 5. Click **Save**
 
-## Step 4: Create an Incoming Call Policy
+## Step 3: Create an Incoming Call Policy
 
 1. Go to **On-Call Duty** > **Incoming Call Policies**
 2. Click **Create Incoming Call Policy**
 3. Fill in the following fields:
    - **Name**: A friendly name (e.g., "Support Hotline")
    - **Description**: Optional description
-   - **Project Call/SMS Config**: Select the config you created in Step 3
-   - **Greeting Message**: The message callers hear when they call (e.g., "Please wait while we connect you to the on-call engineer.")
-   - **No Answer Message**: Message played when escalation is exhausted
-   - **No One Available Message**: Message when no one is on-call
 4. Click **Save**
 
-## Step 5: Configure the Phone Number
+## Step 4: Link Twilio Configuration to Policy
 
-After creating the policy, you need to assign a phone number:
+1. Open your newly created Incoming Call Policy
+2. In the **Phone Number Routing** card, find **Step 2: Link Twilio Configuration**
+3. Click **Select Twilio Config** and choose the configuration you created in Step 2
+4. Save the selection
 
-1. Open your Incoming Call Policy
-2. Go to the **Phone Number** tab
-3. Select the country and optionally an area code
-4. Search for available numbers and select one
-5. Click **Purchase Number**
+## Step 5: Configure a Phone Number
 
-The phone number will be purchased from your Twilio account and configured to route calls to OneUptime.
+You have two options for setting up a phone number:
+
+### Option A: Use an Existing Twilio Phone Number
+
+If you already have phone numbers in your Twilio account:
+
+1. In the **Phone Number** card, click **Use Existing Number**
+2. OneUptime will fetch all phone numbers from your Twilio account
+3. Select the phone number you want to use
+4. Click **Use This** to assign it to the policy
+
+> **Note**: If the phone number already has a webhook configured, it will be updated to point to OneUptime.
+
+### Option B: Purchase a New Phone Number
+
+To buy a new phone number directly from OneUptime:
+
+1. In the **Phone Number** card, click **Buy New Number**
+2. Select a **Country** from the dropdown
+3. Optionally enter an **Area Code** (e.g., 415 for San Francisco)
+4. Optionally enter digits the number should **Contain** (e.g., 555)
+5. Click **Search** to find available numbers
+6. Select a phone number from the results
+7. Click **Purchase** to buy the number
+
+The phone number will be purchased from your Twilio account and the webhook will be **automatically configured** - no manual setup required!
+
+```mermaid
+flowchart LR
+    A[Create Policy] --> B[Link Twilio Config]
+    B --> C{Choose Phone<br/>Number Option}
+    C -->|Existing| D[Select from<br/>Twilio Account]
+    C -->|New| E[Search & Purchase<br/>New Number]
+    D --> F[Webhook Auto-Configured]
+    E --> F
+    F --> G[Add Escalation Rules]
+    G --> H[Policy Ready!]
+```
 
 ## Step 6: Configure Escalation Rules
 
 Escalation rules determine how calls are routed:
 
 1. Open your Incoming Call Policy
-2. Go to the **Escalation** tab
+2. Go to the **Escalation Rules** tab
 3. Click **Add Escalation Rule**
 4. Configure the rule:
    - **Order**: The priority order (lower numbers are tried first)
@@ -89,27 +169,31 @@ Escalation rules determine how calls are routed:
 
 ### Escalation Rule Example
 
+```mermaid
+flowchart TD
+    subgraph "Escalation Chain"
+        A[Rule 1: Primary On-Call<br/>Wait 30 seconds] --> B[Rule 2: Secondary On-Call<br/>Wait 30 seconds]
+        B --> C[Rule 3: Engineering Lead<br/>Wait 30 seconds]
+        C --> D[No Answer Message]
+    end
+```
+
 | Order | Escalate After | Target |
 |-------|----------------|--------|
 | 1 | 30 seconds | Primary On-Call Schedule |
 | 2 | 30 seconds | Secondary On-Call Schedule |
 | 3 | 30 seconds | Engineering Team Lead |
 
-## Step 7: Configure Twilio Webhook
+## Step 7: Configure Voice Messages (Optional)
 
-For incoming calls to work, you need to configure the webhook URL in Twilio:
+Customize the messages callers hear:
 
-1. Go to your Twilio Console
-2. Navigate to **Phone Numbers** > **Manage** > **Active Numbers**
-3. Click on your phone number
-4. Under **Voice Configuration**, set:
-   - **Configure with**: Webhooks
-   - **A call comes in**: Webhook
-   - **URL**: `https://your-oneuptime-domain.com/api/notification/call/incoming-call-webhook`
-   - **HTTP Method**: POST
-5. Click **Save**
-
-Replace `your-oneuptime-domain.com` with your actual OneUptime domain.
+1. Open your Incoming Call Policy
+2. Go to **Settings**
+3. Configure:
+   - **Greeting Message**: Played when the call is answered
+   - **No Answer Message**: Played when all escalation rules fail
+   - **No One Available Message**: Played when no one is on-call
 
 ## Configuration Options
 
@@ -139,7 +223,7 @@ To view incoming call history:
 
 1. Go to **On-Call Duty** > **Incoming Call Policies**
 2. Click on your policy
-3. Go to the **Logs** tab
+3. Go to the **Call Logs** tab
 
 The logs show:
 - Caller phone number
@@ -153,16 +237,26 @@ The logs show:
 For users to receive incoming calls, they must have a verified phone number:
 
 1. Users go to **User Settings** > **Notification Methods**
-2. Add a phone number
+2. Add a phone number under **Incoming Call Numbers**
 3. Verify the phone number via SMS code
 
 Only users with verified phone numbers can be called through escalation rules.
+
+## Releasing a Phone Number
+
+If you no longer need a phone number:
+
+1. Open your Incoming Call Policy
+2. In the **Phone Number** card, click **Release Number**
+3. Confirm the release
+
+> **Warning**: Released numbers are returned to Twilio and may not be available for re-purchase.
 
 ## Troubleshooting
 
 ### Calls not being received
 
-- Verify the webhook URL is correctly configured in Twilio
+- Verify the Twilio configuration is correctly linked to the policy
 - Check that your OneUptime instance is accessible from the internet
 - Verify the Twilio Account SID and Auth Token are correct
 - Check the Twilio Console for error logs
@@ -186,6 +280,39 @@ Only users with verified phone numbers can be called through escalation rules.
 - Use HTTPS for your OneUptime instance
 - OneUptime validates webhook signatures to ensure requests come from Twilio
 - Consider restricting which phone numbers can call your incoming call policies
+
+## Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "External"
+        A[Caller]
+        B[Twilio Cloud]
+    end
+
+    subgraph "OneUptime"
+        C[Incoming Call API]
+        D[Call Router]
+        E[Escalation Engine]
+        F[Database]
+    end
+
+    subgraph "On-Call Team"
+        G[Engineer 1]
+        H[Engineer 2]
+        I[Manager]
+    end
+
+    A -->|1. Dials number| B
+    B -->|2. Webhook| C
+    C -->|3. Load policy| F
+    C -->|4. Get rules| D
+    D -->|5. Process rules| E
+    E -->|6. TwiML response| B
+    B -->|7. Dial| G
+    B -->|8. Escalate| H
+    B -->|9. Escalate| I
+```
 
 ## Support
 

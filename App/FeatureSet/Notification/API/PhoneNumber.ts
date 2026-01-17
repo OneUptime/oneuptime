@@ -238,7 +238,7 @@ router.post(
         phoneNumberId: string;
         phoneNumber: string;
         friendlyName: string;
-        voiceUrl?: string;
+        voiceUrl?: string | undefined;
       };
 
       const responseNumbers: Array<ResponseNumber> = numbers.map(
