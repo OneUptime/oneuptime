@@ -128,7 +128,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   ]);
 
   // Close the configure modal and reset state
-  const closeConfigureModal = (): void => {
+  const closeConfigureModal: () => void = (): void => {
     setShowConfigureModal(false);
     setConfigureStep("choose");
     setAvailableNumbers([]);
@@ -137,7 +137,9 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Search for available phone numbers
-  const searchPhoneNumbers = async (values: JSONObject): Promise<void> => {
+  const searchPhoneNumbers: (values: JSONObject) => Promise<void> = async (
+    values: JSONObject,
+  ): Promise<void> => {
     try {
       setIsSearching(true);
       setError("");
@@ -178,7 +180,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Purchase a phone number
-  const purchasePhoneNumber = async (): Promise<void> => {
+  const purchasePhoneNumber: () => Promise<void> = async (): Promise<void> => {
     if (!selectedNumber) {
       return;
     }
@@ -225,7 +227,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Release a phone number
-  const releasePhoneNumber = async (): Promise<void> => {
+  const releasePhoneNumber: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError("");
@@ -260,7 +262,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Fetch owned phone numbers from Twilio
-  const fetchOwnedNumbers = async (): Promise<void> => {
+  const fetchOwnedNumbers: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsLoadingOwned(true);
       setError("");
@@ -296,7 +298,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Assign an existing phone number to this policy
-  const assignExistingNumber = async (): Promise<void> => {
+  const assignExistingNumber: () => Promise<void> = async (): Promise<void> => {
     if (!selectedOwnedNumber) {
       return;
     }
@@ -344,7 +346,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Render current phone number section
-  const renderCurrentPhoneNumber = (): ReactElement => {
+  const renderCurrentPhoneNumber: () => ReactElement = (): ReactElement => {
     if (props.currentPhoneNumber) {
       return (
         <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
@@ -414,7 +416,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   }
 
   // Open the configure modal
-  const openConfigureModal = (): void => {
+  const openConfigureModal: () => void = (): void => {
     setConfigureStep("choose");
     setShowConfigureModal(true);
     setAvailableNumbers([]);
@@ -423,7 +425,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Render the configure modal content based on current step
-  const renderConfigureModalContent = (): ReactElement => {
+  const renderConfigureModalContent: () => ReactElement = (): ReactElement => {
     if (configureStep === "choose") {
       return (
         <div className="space-y-4">
@@ -651,7 +653,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Render buttons inline when hideCard is true
-  const renderButtons = (): ReactElement => {
+  const renderButtons: () => ReactElement = (): ReactElement => {
     return (
       <div className="flex space-x-2">
         <Button
@@ -675,12 +677,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   };
 
   // Content without card wrapper
-  const renderContent = (): ReactElement => {
+  const renderContent: () => ReactElement = (): ReactElement => {
     return <>{!props.hideCard && renderCurrentPhoneNumber()}</>;
   };
 
   // Render all modals - shared between card and no-card modes
-  const renderModals = (): ReactElement => {
+  const renderModals: () => ReactElement = (): ReactElement => {
     return (
       <>
         {/* Configure Phone Number Modal */}

@@ -21,7 +21,7 @@ const ConceptCards: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const columns: number = props.columns || 2;
 
-  const getGridClasses = (): string => {
+  const getGridClasses: () => string = (): string => {
     switch (columns) {
       case 1:
         return "grid-cols-1";

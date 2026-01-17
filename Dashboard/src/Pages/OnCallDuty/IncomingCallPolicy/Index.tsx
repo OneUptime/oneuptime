@@ -92,7 +92,7 @@ const IncomingCallPolicyView: FunctionComponent<
     }
   }, [modelId.toString(), refreshToggle]);
 
-  const handlePhoneNumberChange = (): void => {
+  const handlePhoneNumberChange: () => void = (): void => {
     setRefreshToggle(!refreshToggle);
   };
 
@@ -109,7 +109,7 @@ const IncomingCallPolicyView: FunctionComponent<
         query: {},
       });
       setTwilioConfigCount(count);
-    } catch (err) {
+    } catch {
       setTwilioConfigCount(0);
     } finally {
       setIsLoadingTwilioConfigs(false);
