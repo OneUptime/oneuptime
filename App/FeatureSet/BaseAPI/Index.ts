@@ -204,6 +204,12 @@ import IncomingCallPolicyService, {
 import IncomingCallPolicyEscalationRuleService, {
   Service as IncomingCallPolicyEscalationRuleServiceType,
 } from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
+import IncomingCallLogService, {
+  Service as IncomingCallLogServiceType,
+} from "Common/Server/Services/IncomingCallLogService";
+import IncomingCallLogItemService, {
+  Service as IncomingCallLogItemServiceType,
+} from "Common/Server/Services/IncomingCallLogItemService";
 import OnCallDutyPolicyEscalationRuleService, {
   Service as OnCallDutyPolicyEscalationRuleServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
@@ -445,6 +451,8 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 // Incoming Call Policy Models
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
+import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
+import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
@@ -1644,6 +1652,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         IncomingCallPolicyEscalationRule,
         IncomingCallPolicyEscalationRuleService,
+      ).getRouter(),
+    );
+
+    // IncomingCallLog
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncomingCallLog, IncomingCallLogServiceType>(
+        IncomingCallLog,
+        IncomingCallLogService,
+      ).getRouter(),
+    );
+
+    // IncomingCallLogItem
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncomingCallLogItem, IncomingCallLogItemServiceType>(
+        IncomingCallLogItem,
+        IncomingCallLogItemService,
       ).getRouter(),
     );
 
