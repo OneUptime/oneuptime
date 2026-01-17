@@ -33,12 +33,23 @@ const IncomingCallPoliciesPage: FunctionComponent<
             "Configure incoming call routing policies for your on-call teams. Purchase phone numbers and set up escalation rules.",
         }}
         noItemsMessage={"No incoming call policy found."}
+        formSteps={[
+          {
+            title: "Basic Info",
+            id: "basic-info",
+          },
+          {
+            title: "Labels",
+            id: "labels",
+          },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "e.g., Production Support Hotline",
@@ -51,28 +62,19 @@ const IncomingCallPoliciesPage: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description of this incoming call policy",
           },
           {
             field: {
-              greetingMessage: true,
-            },
-            title: "Greeting Message",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Please wait while we connect you to the on-call engineer.",
-            description: "Text-to-speech message played to callers",
-          },
-          {
-            field: {
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
-              "Team members with access to these labels will only be able to access this resource.",
+              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Label,
