@@ -114,7 +114,6 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   const [isLoadingOwned, setIsLoadingOwned] = useState<boolean>(false);
   const [showAssignConfirmModal, setShowAssignConfirmModal] =
     useState<boolean>(false);
-  const [showOwnedNumbers, setShowOwnedNumbers] = useState<boolean>(false);
 
   useEffect(() => {
     setError("");
@@ -126,8 +125,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     setConfigureStep("choose");
     setAvailableNumbers([]);
     setOwnedNumbers([]);
-    setShowOwnedNumbers(false);
-    setError("");
+        setError("");
   };
 
   // Search for available phone numbers
@@ -159,7 +157,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
       const data: JSONObject = response.data as JSONObject;
       const numbers: Array<AvailablePhoneNumber> =
-        (data["availableNumbers"] as Array<AvailablePhoneNumber>) || [];
+        (data["availableNumbers"] as unknown as Array<AvailablePhoneNumber>) || [];
 
       setAvailableNumbers(numbers);
       setIsSearching(false);
@@ -278,12 +276,11 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
       const data: JSONObject = response.data as JSONObject;
       const numbers: Array<OwnedPhoneNumber> =
-        (data["ownedNumbers"] as Array<OwnedPhoneNumber>) || [];
+        (data["ownedNumbers"] as unknown as Array<OwnedPhoneNumber>) || [];
 
       setOwnedNumbers(numbers);
       setIsLoadingOwned(false);
-      setShowOwnedNumbers(true);
-    } catch (err) {
+          } catch (err) {
       setError(API.getFriendlyMessage(err));
       setIsLoadingOwned(false);
     }
@@ -322,8 +319,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setShowAssignConfirmModal(false);
       setOwnedNumbers([]);
       setSelectedOwnedNumber(null);
-      setShowOwnedNumbers(false);
-      closeConfigureModal();
+            closeConfigureModal();
       setSuccessMessage(
         `Phone number ${selectedOwnedNumber.phoneNumber} has been assigned and configured for this policy.`,
       );
@@ -390,128 +386,6 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     );
   };
 
-  // Render search results
-  const renderSearchResults = (): ReactElement => {
-    if (availableNumbers.length === 0) {
-      return <></>;
-    }
-
-    return (
-      <div className="mt-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">
-          Available Phone Numbers (New)
-        </h4>
-        <div className="space-y-2 max-h-80 overflow-y-auto">
-          {availableNumbers.map(
-            (number: AvailablePhoneNumber, index: number) => {
-              return (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-white border rounded-lg hover:bg-gray-50"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {number.friendlyName}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {number.locality && `${number.locality}, `}
-                      {number.region && `${number.region}, `}
-                      {number.country}
-                    </p>
-                  </div>
-                  <Button
-                    title="Reserve"
-                    buttonStyle={ButtonStyleType.SUCCESS}
-                    icon={IconProp.Add}
-                    onClick={() => {
-                      setSelectedNumber(number);
-                      setShowPurchaseConfirmModal(true);
-                    }}
-                  />
-                </div>
-              );
-            },
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Render owned numbers list
-  const renderOwnedNumbers = (): ReactElement => {
-    if (!showOwnedNumbers) {
-      return <></>;
-    }
-
-    if (isLoadingOwned) {
-      return (
-        <div className="mt-4">
-          <ComponentLoader />
-        </div>
-      );
-    }
-
-    if (ownedNumbers.length === 0) {
-      return (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">
-            No existing phone numbers found in your Twilio account. You can search and reserve a new number instead.
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-4">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-medium text-gray-700">
-            Existing Phone Numbers in Twilio
-          </h4>
-          <Button
-            title="Hide"
-            buttonStyle={ButtonStyleType.NORMAL}
-            onClick={() => {
-              setShowOwnedNumbers(false);
-              setOwnedNumbers([]);
-            }}
-          />
-        </div>
-        <div className="space-y-2 max-h-80 overflow-y-auto">
-          {ownedNumbers.map((number: OwnedPhoneNumber, index: number) => {
-            const isInUse: boolean = !!number.voiceUrl;
-            return (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 bg-white border rounded-lg hover:bg-gray-50"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {number.friendlyName}
-                  </p>
-                  <p className="text-xs text-gray-400">{number.phoneNumber}</p>
-                  {isInUse && (
-                    <p className="text-xs text-yellow-600 mt-1">
-                      Currently has a webhook configured
-                    </p>
-                  )}
-                </div>
-                <Button
-                  title="Use This"
-                  buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
-                  icon={IconProp.Check}
-                  onClick={() => {
-                    setSelectedOwnedNumber(number);
-                    setShowAssignConfirmModal(true);
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   // Check if Twilio config is set
   if (!props.projectCallSMSConfigId) {
     if (props.hideCard) {
@@ -540,8 +414,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     setShowConfigureModal(true);
     setAvailableNumbers([]);
     setOwnedNumbers([]);
-    setShowOwnedNumbers(false);
-    setError("");
+        setError("");
   };
 
   // Render the configure modal content based on current step
@@ -604,8 +477,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             onClick={() => {
               setConfigureStep("choose");
               setOwnedNumbers([]);
-              setShowOwnedNumbers(false);
-            }}
+                          }}
           >
             <Icon icon={IconProp.ChevronLeft} className="h-4 w-4 mr-1" />
             Back to options
@@ -814,12 +686,14 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             }
             onClose={closeConfigureModal}
           >
-            {error && (
-              <div className="mb-4">
-                <Alert type={AlertType.DANGER} title={error} />
-              </div>
-            )}
-            {renderConfigureModalContent()}
+            <>
+              {error && (
+                <div className="mb-4">
+                  <Alert type={AlertType.DANGER} title={error} />
+                </div>
+              )}
+              {renderConfigureModalContent()}
+            </>
           </Modal>
         )}
 
