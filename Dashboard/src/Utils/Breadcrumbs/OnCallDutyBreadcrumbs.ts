@@ -166,6 +166,16 @@ export function getIncomingCallPolicyBreadcrumbs(
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS,
+      [
+        "Project",
+        "On-Call Duty",
+        "Incoming Call Policies",
+        "View Policy",
+        "Settings",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE,
       [
         "Project",

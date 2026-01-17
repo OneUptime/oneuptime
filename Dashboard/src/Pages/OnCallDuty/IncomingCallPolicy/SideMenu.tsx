@@ -57,6 +57,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Danger Zone">
         <SideMenuItem
           link={{

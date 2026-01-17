@@ -30,14 +30,6 @@ const IncomingCallPolicyView: FunctionComponent<
             id: "basic-info",
           },
           {
-            title: "Messages",
-            id: "messages",
-          },
-          {
-            title: "Settings",
-            id: "settings",
-          },
-          {
             title: "Labels",
             id: "labels",
           },
@@ -66,73 +58,6 @@ const IncomingCallPolicyView: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
-          },
-          {
-            field: {
-              greetingMessage: true,
-            },
-            title: "Greeting Message",
-            stepId: "messages",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Please wait while we connect you to the on-call engineer.",
-            description:
-              "Text-to-speech message played to callers when they first connect",
-          },
-          {
-            field: {
-              noAnswerMessage: true,
-            },
-            title: "No Answer Message",
-            stepId: "messages",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "No one is available. Please try again later.",
-            description: "Message when all escalation rules are exhausted",
-          },
-          {
-            field: {
-              noOneAvailableMessage: true,
-            },
-            title: "No One Available Message",
-            stepId: "messages",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "We're sorry, but no on-call engineer is currently available.",
-            description: "Message when no one is on-call",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "settings",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this policy",
-          },
-          {
-            field: {
-              repeatPolicyIfNoOneAnswers: true,
-            },
-            title: "Repeat Policy If No One Answers",
-            stepId: "settings",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Restart from first rule if all escalations fail",
-          },
-          {
-            field: {
-              repeatPolicyIfNoOneAnswersTimes: true,
-            },
-            title: "Repeat Policy Times",
-            stepId: "settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "1",
-            description: "Maximum number of times to repeat the policy",
           },
           {
             field: {
@@ -193,12 +118,6 @@ const IncomingCallPolicyView: FunctionComponent<
                 description: true,
               },
               title: "Description",
-            },
-            {
-              field: {
-                greetingMessage: true,
-              },
-              title: "Greeting Message",
             },
             {
               field: {
