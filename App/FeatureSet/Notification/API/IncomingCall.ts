@@ -63,7 +63,9 @@ async function getProjectTwilioConfig(
     return null;
   }
 
-  return ProjectCallSMSConfigService.toTwilioConfig(projectConfig);
+  const twilioConfig: TwilioConfig | undefined =
+    ProjectCallSMSConfigService.toTwilioConfig(projectConfig);
+  return twilioConfig || null;
 }
 
 // Handle incoming voice call - single endpoint for all phone numbers
@@ -71,25 +73,34 @@ router.post(
   "/voice",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      // First, get a provider to validate the webhook signature
-      // We need to validate the signature before we can trust the request data
-      // Note: When using project config, the signature is validated against the project's Twilio auth token
-      // For initial validation, we use the global config since we don't know which policy it is yet
-      const globalProvider: ICallProvider = await CallProviderFactory.getProvider();
+      /*
+       * First, get a provider to validate the webhook signature
+       * We need to validate the signature before we can trust the request data
+       * Note: When using project config, the signature is validated against the project's Twilio auth token
+       * For initial validation, we use the global config since we don't know which policy it is yet
+       */
+      const globalProvider: ICallProvider =
+        await CallProviderFactory.getProvider();
 
       // Validate webhook signature to ensure request is from the call provider
       const signature: string =
         (req.headers["x-twilio-signature"] as string) || "";
-      if (!globalProvider.validateWebhookSignature(req as unknown as WebhookRequest, signature)) {
+      if (
+        !globalProvider.validateWebhookSignature(
+          req as unknown as WebhookRequest,
+          signature,
+        )
+      ) {
         logger.error("Invalid webhook signature for incoming call");
         res.status(403).send("Forbidden");
         return;
       }
 
       // Parse incoming call data
-      const callData: IncomingCallData = globalProvider.parseIncomingCallWebhook(
-        req as unknown as WebhookRequest,
-      );
+      const callData: IncomingCallData =
+        globalProvider.parseIncomingCallWebhook(
+          req as unknown as WebhookRequest,
+        );
 
       // Find the policy by the called phone number (To field from Twilio)
       const calledPhoneNumber: Phone = new Phone(callData.calledPhoneNumber);
@@ -116,7 +127,9 @@ router.post(
         });
 
       if (!policy) {
-        logger.error(`Incoming call policy not found for phone number: ${callData.calledPhoneNumber}`);
+        logger.error(
+          `Incoming call policy not found for phone number: ${callData.calledPhoneNumber}`,
+        );
         const twiml: string = globalProvider.generateHangupResponse(
           "Sorry, this phone number is not configured correctly.",
         );
@@ -126,18 +139,27 @@ router.post(
 
       const policyId: string = policy.id!.toString();
 
-      // Determine if using project-level config or global config
-      // When using project config, billing does not apply
+      /*
+       * Determine if using project-level config or global config
+       * When using project config, billing does not apply
+       */
       let provider: ICallProvider = globalProvider;
       let customTwilioConfig: TwilioConfig | undefined;
-      const isUsingProjectConfig: boolean = Boolean(policy.projectCallSMSConfigId);
+      const isUsingProjectConfig: boolean = Boolean(
+        policy.projectCallSMSConfigId,
+      );
 
       if (policy.projectCallSMSConfigId) {
-        customTwilioConfig = await getProjectTwilioConfig(policy.projectCallSMSConfigId) || undefined;
+        customTwilioConfig =
+          (await getProjectTwilioConfig(policy.projectCallSMSConfigId)) ||
+          undefined;
         if (customTwilioConfig) {
-          provider = CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+          provider =
+            CallProviderFactory.getProviderWithConfig(customTwilioConfig);
         } else {
-          logger.warn(`Project config not found for policy ${policyId}, falling back to global config`);
+          logger.warn(
+            `Project config not found for policy ${policyId}, falling back to global config`,
+          );
         }
       }
 
@@ -174,8 +196,10 @@ router.post(
         return res.send(twiml);
       }
 
-      // Check if project subscription is active (additional safety check)
-      // This catches cases where the scheduled job hasn't run yet
+      /*
+       * Check if project subscription is active (additional safety check)
+       * This catches cases where the scheduled job hasn't run yet
+       */
       if (IsBillingEnabled && policy.projectId && !isUsingProjectConfig) {
         const project: Project | null = await ProjectService.findOneById({
           id: policy.projectId,
@@ -188,12 +212,25 @@ router.post(
           },
         });
 
-        const cancelledStatuses = ["canceled", "unpaid", "expired", "incomplete_expired"];
-        const isCancelled =
-          (project?.paymentProviderSubscriptionStatus &&
-            cancelledStatuses.includes(project.paymentProviderSubscriptionStatus.toLowerCase())) ||
-          (project?.paymentProviderMeteredSubscriptionStatus &&
-            cancelledStatuses.includes(project.paymentProviderMeteredSubscriptionStatus.toLowerCase()));
+        const cancelledStatuses: Array<string> = [
+          "canceled",
+          "unpaid",
+          "expired",
+          "incomplete_expired",
+        ];
+        const isCancelled: boolean =
+          Boolean(
+            project?.paymentProviderSubscriptionStatus &&
+              cancelledStatuses.includes(
+                project.paymentProviderSubscriptionStatus.toLowerCase(),
+              ),
+          ) ||
+          Boolean(
+            project?.paymentProviderMeteredSubscriptionStatus &&
+              cancelledStatuses.includes(
+                project.paymentProviderMeteredSubscriptionStatus.toLowerCase(),
+              ),
+          );
 
         if (isCancelled) {
           callLog.status = IncomingCallStatus.Failed;
@@ -212,9 +249,12 @@ router.post(
         }
       }
 
-      // Check project balance if billing is enabled
-      // Skip billing check if using project-level config (they pay Twilio directly)
-      const shouldCheckBilling: boolean = IsBillingEnabled && !isUsingProjectConfig;
+      /*
+       * Check project balance if billing is enabled
+       * Skip billing check if using project-level config (they pay Twilio directly)
+       */
+      const shouldCheckBilling: boolean =
+        IsBillingEnabled && !isUsingProjectConfig;
       if (shouldCheckBilling && policy.projectId) {
         const project: Project | null = await ProjectService.findOneById({
           id: policy.projectId,
@@ -229,7 +269,8 @@ router.post(
         if (
           !project ||
           !project.smsOrCallCurrentBalanceInUSDCents ||
-          project.smsOrCallCurrentBalanceInUSDCents < IncomingCallMinimumBalanceRequiredInCents
+          project.smsOrCallCurrentBalanceInUSDCents <
+            IncomingCallMinimumBalanceRequiredInCents
         ) {
           // Try to auto-recharge
           try {
@@ -332,7 +373,8 @@ router.post(
           id: createdCallLog.id!,
           data: {
             status: IncomingCallStatus.Failed,
-            statusMessage: "No on-call user available or user has no phone number",
+            statusMessage:
+              "No on-call user available or user has no phone number",
             endedAt: new Date(),
           },
           props: { isRoot: true },
@@ -413,12 +455,18 @@ router.post(
       }
 
       // Get global provider for initial validation
-      const globalProvider: ICallProvider = await CallProviderFactory.getProvider();
+      const globalProvider: ICallProvider =
+        await CallProviderFactory.getProvider();
 
       // Validate webhook signature to ensure request is from the call provider
       const signature: string =
         (req.headers["x-twilio-signature"] as string) || "";
-      if (!globalProvider.validateWebhookSignature(req as unknown as WebhookRequest, signature)) {
+      if (
+        !globalProvider.validateWebhookSignature(
+          req as unknown as WebhookRequest,
+          signature,
+        )
+      ) {
         logger.error("Invalid webhook signature for dial status callback");
         res.status(403).send("Forbidden");
         return;
@@ -508,8 +556,10 @@ router.post(
         return res.send(twiml);
       }
 
-      // Call was not answered, try next escalation rule
-      // Get policy with projectCallSMSConfigId to determine which provider to use
+      /*
+       * Call was not answered, try next escalation rule
+       * Get policy with projectCallSMSConfigId to determine which provider to use
+       */
       const policy: IncomingCallPolicy | null =
         await IncomingCallPolicyService.findOneById({
           id: callLog.incomingCallPolicyId!,
@@ -537,9 +587,11 @@ router.post(
       // Get the appropriate provider based on project config
       let provider: ICallProvider = globalProvider;
       if (policy.projectCallSMSConfigId) {
-        const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(policy.projectCallSMSConfigId);
+        const customTwilioConfig: TwilioConfig | null =
+          await getProjectTwilioConfig(policy.projectCallSMSConfigId);
         if (customTwilioConfig) {
-          provider = CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+          provider =
+            CallProviderFactory.getProviderWithConfig(customTwilioConfig);
         }
       }
 
@@ -655,13 +707,16 @@ router.post(
       const userToCall: User | null = await getUserToCall(nextRule);
 
       if (!userToCall || !userToCall.alertPhoneNumber) {
-        // Skip this rule and try the next one (recursive approach via TwiML redirect would be complex)
-        // For simplicity, end the call if no user available
+        /*
+         * Skip this rule and try the next one (recursive approach via TwiML redirect would be complex)
+         * For simplicity, end the call if no user available
+         */
         await IncomingCallLogService.updateOneById({
           id: new ObjectID(callLogId),
           data: {
             status: IncomingCallStatus.Failed,
-            statusMessage: "No on-call user available or user has no phone number",
+            statusMessage:
+              "No on-call user available or user has no phone number",
             endedAt: new Date(),
           },
           props: { isRoot: true },

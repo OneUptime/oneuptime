@@ -22,8 +22,7 @@ const IncomingCallPolicyView: FunctionComponent<
         name="Incoming Call Policy > Details"
         cardProps={{
           title: "Incoming Call Policy Details",
-          description:
-            "Here are more details for this incoming call policy.",
+          description: "Here are more details for this incoming call policy.",
         }}
         formSteps={[
           {
@@ -78,7 +77,8 @@ const IncomingCallPolicyView: FunctionComponent<
             required: false,
             placeholder:
               "Please wait while we connect you to the on-call engineer.",
-            description: "Text-to-speech message played to callers when they first connect",
+            description:
+              "Text-to-speech message played to callers when they first connect",
           },
           {
             field: {
@@ -166,7 +166,8 @@ const IncomingCallPolicyView: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "300",
-            description: "Maximum duration for entire call including escalations",
+            description:
+              "Maximum duration for entire call including escalations",
           },
           {
             field: {

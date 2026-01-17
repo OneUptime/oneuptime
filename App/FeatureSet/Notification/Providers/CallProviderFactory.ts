@@ -39,8 +39,10 @@ export default class CallProviderFactory {
     return this.instance;
   }
 
-  // Get a provider with a custom configuration (not cached)
-  // Used when a project has its own Twilio configuration
+  /*
+   * Get a provider with a custom configuration (not cached)
+   * Used when a project has its own Twilio configuration
+   */
   public static getProviderWithConfig(
     customConfig: TwilioConfig,
   ): ICallProvider {
@@ -48,8 +50,10 @@ export default class CallProviderFactory {
 
     switch (providerType) {
       case CallProviderType.Twilio: {
-        // Create a new provider instance with the custom config
-        // This is not cached since it's project-specific
+        /*
+         * Create a new provider instance with the custom config
+         * This is not cached since it's project-specific
+         */
         return new TwilioCallProvider(customConfig);
       }
       default:

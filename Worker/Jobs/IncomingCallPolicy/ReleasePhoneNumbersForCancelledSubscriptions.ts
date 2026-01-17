@@ -7,20 +7,14 @@ import {
 } from "Common/Server/EnvironmentConfig";
 import ProjectService from "Common/Server/Services/ProjectService";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
-import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
-import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import User from "Common/Models/DatabaseModels/User";
 import MailService from "Common/Server/Services/MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import { In } from "typeorm";
 import { ICallProvider } from "Common/Types/Call/CallProvider";
-import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
-
-// Import dynamically to avoid circular dependencies
-let CallProviderFactory: typeof import("../../../App/FeatureSet/Notification/Providers/CallProviderFactory").default;
+import CallProviderFactory from "../../../App/FeatureSet/Notification/Providers/CallProviderFactory";
 
 /**
  * This job releases phone numbers and disables incoming call policies
@@ -44,26 +38,10 @@ RunCron(
       return;
     }
 
-    // Dynamically import CallProviderFactory to avoid circular dependencies
-    if (!CallProviderFactory) {
-      CallProviderFactory = (
-        await import(
-          "../../../App/FeatureSet/Notification/Providers/CallProviderFactory"
-        )
-      ).default;
-    }
-
-    // Find all projects with cancelled/unpaid/expired subscriptions
-    const cancelledStatuses = [
-      SubscriptionStatus.Canceled,
-      SubscriptionStatus.Unpaid,
-      SubscriptionStatus.Expired,
-      SubscriptionStatus.IncompleteExpired,
-    ];
-
+    // Find all projects with cancelled subscriptions
     const cancelledProjects: Array<Project> = await ProjectService.findAllBy({
       query: {
-        paymentProviderSubscriptionStatus: In(cancelledStatuses),
+        paymentProviderSubscriptionStatus: SubscriptionStatus.Canceled,
       },
       select: {
         _id: true,
@@ -76,11 +54,43 @@ RunCron(
       skip: 0,
     });
 
-    // Also check metered subscription status
+    // Find projects with unpaid subscriptions
+    const unpaidProjects: Array<Project> = await ProjectService.findAllBy({
+      query: {
+        paymentProviderSubscriptionStatus: SubscriptionStatus.Unpaid,
+      },
+      select: {
+        _id: true,
+        name: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+      skip: 0,
+    });
+
+    // Find projects with expired subscriptions
+    const expiredProjects: Array<Project> = await ProjectService.findAllBy({
+      query: {
+        paymentProviderSubscriptionStatus: SubscriptionStatus.Expired,
+      },
+      select: {
+        _id: true,
+        name: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+      skip: 0,
+    });
+
+    // Also check metered subscription status - cancelled
     const meteredCancelledProjects: Array<Project> =
       await ProjectService.findAllBy({
         query: {
-          paymentProviderMeteredSubscriptionStatus: In(cancelledStatuses),
+          paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Canceled,
         },
         select: {
           _id: true,
@@ -93,13 +103,51 @@ RunCron(
         skip: 0,
       });
 
-    // Combine and deduplicate
-    const projectIds = new Set<string>();
+    // Metered - unpaid
+    const meteredUnpaidProjects: Array<Project> =
+      await ProjectService.findAllBy({
+        query: {
+          paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Unpaid,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+        skip: 0,
+      });
+
+    // Metered - expired
+    const meteredExpiredProjects: Array<Project> =
+      await ProjectService.findAllBy({
+        query: {
+          paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Expired,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+        skip: 0,
+      });
+
+    // Combine and deduplicate all projects
+    const projectIds: Set<string> = new Set<string>();
     const allCancelledProjects: Array<Project> = [];
 
     for (const project of [
       ...cancelledProjects,
+      ...unpaidProjects,
+      ...expiredProjects,
       ...meteredCancelledProjects,
+      ...meteredUnpaidProjects,
+      ...meteredExpiredProjects,
     ]) {
       if (project.id && !projectIds.has(project.id.toString())) {
         projectIds.add(project.id.toString());
@@ -129,11 +177,11 @@ RunCron(
             skip: 0,
           });
 
-        // Filter to only policies with phone numbers that are still enabled
-        const policiesWithPhoneNumbers = policies.filter(
-          (p: IncomingCallPolicy) =>
-            p.routingPhoneNumber && p.callProviderPhoneNumberId,
-        );
+        // Filter to only policies with phone numbers
+        const policiesWithPhoneNumbers: Array<IncomingCallPolicy> =
+          policies.filter((p: IncomingCallPolicy) => {
+            return p.routingPhoneNumber && p.callProviderPhoneNumberId;
+          });
 
         if (policiesWithPhoneNumbers.length === 0) {
           continue;
@@ -146,8 +194,11 @@ RunCron(
 
         for (const policy of policiesWithPhoneNumbers) {
           try {
-            const isUsingProjectConfig = Boolean(policy.projectCallSMSConfigId);
-            const phoneNumber = policy.routingPhoneNumber?.toString() || "";
+            const isUsingProjectConfig: boolean = Boolean(
+              policy.projectCallSMSConfigId,
+            );
+            const phoneNumber: string =
+              policy.routingPhoneNumber?.toString() || "";
 
             // Only release phone number if using global config
             if (!isUsingProjectConfig && policy.callProviderPhoneNumberId) {
@@ -179,13 +230,13 @@ RunCron(
               id: policy.id!,
               data: {
                 isEnabled: false,
-                routingPhoneNumber: undefined as any,
-                callProviderPhoneNumberId: undefined as any,
-                phoneNumberCountryCode: undefined as any,
-                phoneNumberAreaCode: undefined as any,
-                callProviderCostPerMonthInUSDCents: undefined as any,
-                customerCostPerMonthInUSDCents: undefined as any,
-                phoneNumberPurchasedAt: undefined as any,
+                routingPhoneNumber: null as any,
+                callProviderPhoneNumberId: null as any,
+                phoneNumberCountryCode: null as any,
+                phoneNumberAreaCode: null as any,
+                callProviderCostPerMonthInUSDCents: null as any,
+                customerCostPerMonthInUSDCents: null as any,
+                phoneNumberPurchasedAt: null as any,
               },
               props: {
                 isRoot: true,
@@ -210,7 +261,8 @@ RunCron(
               MailService.sendMail(
                 {
                   toEmail: owner.email,
-                  templateType: EmailTemplateType.IncomingCallPhoneNumberReleased,
+                  templateType:
+                    EmailTemplateType.IncomingCallPhoneNumberReleased,
                   vars: {
                     projectName: project.name || "Project",
                     policyName: policy.name || "Incoming Call Policy",
@@ -221,8 +273,7 @@ RunCron(
                       )
                     ).toString(),
                   },
-                  subject:
-                    "Your incoming call phone number has been released",
+                  subject: "Your incoming call phone number has been released",
                 },
                 {
                   projectId: project.id!,

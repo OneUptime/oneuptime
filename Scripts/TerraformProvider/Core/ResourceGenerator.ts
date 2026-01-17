@@ -1276,9 +1276,11 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         // ${fieldName} value is already set from the existing state
     }`;
         } else if (isComplexObject) {
-          // For complex object strings, first check if it's a simple value wrapper type
-          // (like Version, ObjectID, etc. with _type and value fields), extract the value
-          // Otherwise, convert API object response to JSON string
+          /*
+           * For complex object strings, first check if it's a simple value wrapper type
+           * (like Version, ObjectID, etc. with _type and value fields), extract the value
+           * Otherwise, convert API object response to JSON string
+           */
           return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
         // Check if this is a value wrapper type (e.g., Version, ObjectID with _type and value fields)
         if _, hasType := val["_type"]; hasType {

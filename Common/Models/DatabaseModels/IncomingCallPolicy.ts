@@ -662,9 +662,11 @@ export default class IncomingCallPolicy extends BaseModel {
   })
   public labels?: Array<Label> = undefined;
 
-  // Project-level Twilio configuration (optional)
-  // If set, uses the project's own Twilio config instead of the global config
-  // When using project config, billing does not apply
+  /*
+   * Project-level Twilio configuration (optional)
+   * If set, uses the project's own Twilio config instead of the global config
+   * When using project config, billing does not apply
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

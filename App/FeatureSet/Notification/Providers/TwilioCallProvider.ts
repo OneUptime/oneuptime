@@ -101,8 +101,10 @@ export default class TwilioCallProvider implements ICallProvider {
       voiceMethod: "POST",
     });
 
-    // Get pricing for this phone number's country
-    // Extract country code from phone number (e.g., +1 for US/CA)
+    /*
+     * Get pricing for this phone number's country
+     * Extract country code from phone number (e.g., +1 for US/CA)
+     */
     const countryCode: string = this.getCountryCodeFromPhoneNumber(phoneNumber);
     const pricing: { basePricePerMonthInUSDCents: number } =
       await this.getPhoneNumberPricing(countryCode);
@@ -140,8 +142,10 @@ export default class TwilioCallProvider implements ICallProvider {
         .countries(countryCode)
         .fetch();
 
-      // Twilio returns prices - we need to convert to cents
-      // The pricing structure has phoneNumberPrices with basePrice
+      /*
+       * Twilio returns prices - we need to convert to cents
+       * The pricing structure has phoneNumberPrices with basePrice
+       */
       const phoneNumberPrices: Array<{
         basePrice: number | string;
         numberType: string;
@@ -308,8 +312,10 @@ export default class TwilioCallProvider implements ICallProvider {
   }
 
   private getCountryCodeFromPhoneNumber(phoneNumber: string): string {
-    // Map common country calling codes to ISO country codes
-    // This is a simplified mapping - in production you might use a library like libphonenumber
+    /*
+     * Map common country calling codes to ISO country codes
+     * This is a simplified mapping - in production you might use a library like libphonenumber
+     */
     const countryCodeMap: Record<string, string> = {
       "+1": "US", // US and Canada
       "+44": "GB", // United Kingdom

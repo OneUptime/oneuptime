@@ -62,8 +62,7 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
         sortOrder={SortOrder.Descending}
         cardProps={{
           title: "Call Logs",
-          description:
-            "View incoming call history for this policy.",
+          description: "View incoming call history for this policy.",
         }}
         noItemsMessage={"No call logs found."}
         showRefreshButton={true}

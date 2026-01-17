@@ -1590,7 +1590,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
-      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]
+      OnCallDutyRoutePath[
+        PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+      ]
     }`,
   ),
 

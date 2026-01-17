@@ -80,7 +80,10 @@ export interface ICallProvider {
   generateGreetingResponse(message: string): string;
   generateDialResponse(options: DialOptions): string;
   generateHangupResponse(message?: string): string;
-  generateEscalationResponse(message: string, nextDialOptions: DialOptions): string;
+  generateEscalationResponse(
+    message: string,
+    nextDialOptions: DialOptions,
+  ): string;
 
   // Webhook parsing
   parseIncomingCallWebhook(request: WebhookRequest): IncomingCallData;

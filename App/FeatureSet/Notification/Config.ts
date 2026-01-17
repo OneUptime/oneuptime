@@ -358,9 +358,7 @@ export const IncomingCallMinimumBalanceRequiredInCents: number =
   (IncomingCallCostPerMinuteInCents + IncomingCallForwardCostPerMinuteInCents);
 
 // Call provider type
-export const CallProvider: string =
-  process.env["CALL_PROVIDER"] || "twilio";
+export const CallProvider: string = process.env["CALL_PROVIDER"] || "twilio";
 
 // Host URL for webhook callbacks (required for incoming call features)
-export const NotificationWebhookHost: string =
-  process.env["HOST"] || "";
+export const NotificationWebhookHost: string = process.env["HOST"] || "";

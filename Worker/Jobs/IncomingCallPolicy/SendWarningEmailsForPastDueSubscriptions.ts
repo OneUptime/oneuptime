@@ -13,7 +13,6 @@ import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy"
 import User from "Common/Models/DatabaseModels/User";
 import MailService from "Common/Server/Services/MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import { In } from "typeorm";
 
 /**
  * This job sends warning emails to project owners when their subscription is past due
@@ -34,9 +33,7 @@ RunCron(
     // Find all projects with past due subscriptions
     const pastDueProjects: Array<Project> = await ProjectService.findAllBy({
       query: {
-        paymentProviderSubscriptionStatus: In([
-          SubscriptionStatus.PastDue,
-        ]),
+        paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
       },
       select: {
         _id: true,
@@ -53,9 +50,7 @@ RunCron(
     const meteredPastDueProjects: Array<Project> =
       await ProjectService.findAllBy({
         query: {
-          paymentProviderMeteredSubscriptionStatus: In([
-            SubscriptionStatus.PastDue,
-          ]),
+          paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.PastDue,
         },
         select: {
           _id: true,
@@ -69,7 +64,7 @@ RunCron(
       });
 
     // Combine and deduplicate
-    const projectIds = new Set<string>();
+    const projectIds: Set<string> = new Set<string>();
     const allPastDueProjects: Array<Project> = [];
 
     for (const project of [...pastDueProjects, ...meteredPastDueProjects]) {
@@ -81,9 +76,11 @@ RunCron(
 
     for (const project of allPastDueProjects) {
       try {
-        // Find all incoming call policies for this project that:
-        // 1. Have a phone number (routingPhoneNumber is set)
-        // 2. Use global config (projectCallSMSConfigId is null)
+        /*
+         * Find all incoming call policies for this project that:
+         * 1. Have a phone number (routingPhoneNumber is set)
+         * 2. Use global config (projectCallSMSConfigId is null)
+         */
         const policies: Array<IncomingCallPolicy> =
           await IncomingCallPolicyService.findAllBy({
             query: {
@@ -102,9 +99,10 @@ RunCron(
           });
 
         // Filter to only policies with phone numbers
-        const policiesWithPhoneNumbers = policies.filter(
-          (p: IncomingCallPolicy) => p.routingPhoneNumber,
-        );
+        const policiesWithPhoneNumbers: Array<IncomingCallPolicy> =
+          policies.filter((p: IncomingCallPolicy) => {
+            return p.routingPhoneNumber;
+          });
 
         if (policiesWithPhoneNumbers.length === 0) {
           continue;
