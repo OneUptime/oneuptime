@@ -19,6 +19,8 @@ import IncomingCallLogService from "Common/Server/Services/IncomingCallLogServic
 import IncomingCallLogItemService from "Common/Server/Services/IncomingCallLogItemService";
 import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
 import UserService from "Common/Server/Services/UserService";
+import UserIncomingCallNumberService from "Common/Server/Services/UserIncomingCallNumberService";
+import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import Express, {
@@ -355,9 +357,12 @@ router.post(
       }
 
       // Get the user to call
-      const userToCall: User | null = await getUserToCall(firstRule);
+      const userToCall: UserToCall | null = await getUserToCall(
+        firstRule,
+        policy.projectId!,
+      );
 
-      if (!userToCall || !userToCall.alertPhoneNumber) {
+      if (!userToCall) {
         await IncomingCallLogService.updateOneById({
           id: createdCallLog.id!,
           data: {
@@ -386,12 +391,8 @@ router.post(
       if (firstRule.id) {
         callLogItem.incomingCallPolicyEscalationRuleId = firstRule.id;
       }
-      if (userToCall.id) {
-        callLogItem.userId = userToCall.id;
-      }
-      if (userToCall.alertPhoneNumber) {
-        callLogItem.userPhoneNumber = userToCall.alertPhoneNumber;
-      }
+      callLogItem.userId = userToCall.userId;
+      callLogItem.userPhoneNumber = userToCall.phoneNumber;
       callLogItem.status = IncomingCallStatus.Ringing;
       callLogItem.startedAt = new Date();
       callLogItem.isAnswered = false;
@@ -416,7 +417,7 @@ router.post(
       const twiml: string = generateGreetingAndDialTwiml(
         provider,
         greetingMessage,
-        userToCall.alertPhoneNumber.toString(),
+        userToCall.phoneNumber.toString(),
         policy.routingPhoneNumber?.toString() || callData.calledPhoneNumber,
         firstRule.escalateAfterSeconds || 30,
         statusCallbackUrl,
@@ -643,9 +644,12 @@ router.post(
               },
             });
 
-          if (firstRule) {
-            const userToCall: User | null = await getUserToCall(firstRule);
-            if (userToCall && userToCall.alertPhoneNumber) {
+          if (firstRule && policy.projectId) {
+            const userToCall: UserToCall | null = await getUserToCall(
+              firstRule,
+              policy.projectId,
+            );
+            if (userToCall) {
               // Continue with the call
               return await dialNextUser(
                 res,
@@ -692,9 +696,12 @@ router.post(
       });
 
       // Get the user to call
-      const userToCall: User | null = await getUserToCall(nextRule);
+      const userToCall: UserToCall | null = await getUserToCall(
+        nextRule,
+        policy.projectId!,
+      );
 
-      if (!userToCall || !userToCall.alertPhoneNumber) {
+      if (!userToCall) {
         /*
          * Skip this rule and try the next one (recursive approach via TwiML redirect would be complex)
          * For simplicity, end the call if no user available
@@ -734,17 +741,57 @@ router.post(
   },
 );
 
+// Interface for user with phone number to call
+interface UserToCall {
+  userId: ObjectID;
+  phoneNumber: Phone;
+  name?: string | undefined;
+  email?: string | undefined;
+}
+
 // Helper function to get user to call from escalation rule
 async function getUserToCall(
   rule: IncomingCallPolicyEscalationRule,
-): Promise<User | null> {
+  projectId: ObjectID,
+): Promise<UserToCall | null> {
+  let userId: ObjectID | null = null;
+
   // If rule has a direct user, use that
   if (rule.userId) {
-    return await UserService.findOneById({
-      id: rule.userId,
+    userId = rule.userId;
+  } else if (rule.onCallDutyPolicyScheduleId) {
+    // If rule has an on-call schedule, get the current on-call user
+    userId = await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
+      rule.onCallDutyPolicyScheduleId,
+    );
+  }
+
+  if (!userId) {
+    return null;
+  }
+
+  // First, check if the user has a verified incoming call number for this project
+  const verifiedIncomingCallNumber: UserIncomingCallNumber | null =
+    await UserIncomingCallNumberService.findOneBy({
+      query: {
+        userId: userId,
+        projectId: projectId,
+        isVerified: true,
+      },
+      select: {
+        phone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (verifiedIncomingCallNumber && verifiedIncomingCallNumber.phone) {
+    // Get user details for logging
+    const user: User | null = await UserService.findOneById({
+      id: userId,
       select: {
         _id: true,
-        alertPhoneNumber: true,
         name: true,
         email: true,
       },
@@ -752,33 +799,39 @@ async function getUserToCall(
         isRoot: true,
       },
     });
+
+    return {
+      userId: userId,
+      phoneNumber: verifiedIncomingCallNumber.phone,
+      name: user?.name?.toString(),
+      email: user?.email?.toString(),
+    };
   }
 
-  // If rule has an on-call schedule, get the current on-call user
-  if (rule.onCallDutyPolicyScheduleId) {
-    const currentOnCallUserId: ObjectID | null =
-      await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
-        rule.onCallDutyPolicyScheduleId,
-      );
+  // Fall back to user's alert phone number
+  const user: User | null = await UserService.findOneById({
+    id: userId,
+    select: {
+      _id: true,
+      alertPhoneNumber: true,
+      name: true,
+      email: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
 
-    if (currentOnCallUserId) {
-      // Get the full user with phone number
-      return await UserService.findOneById({
-        id: currentOnCallUserId,
-        select: {
-          _id: true,
-          alertPhoneNumber: true,
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+  if (!user || !user.alertPhoneNumber) {
+    return null;
   }
 
-  return null;
+  return {
+    userId: userId,
+    phoneNumber: user.alertPhoneNumber,
+    name: user.name?.toString(),
+    email: user.email?.toString(),
+  };
 }
 
 // Helper function to generate greeting and dial TwiML
@@ -806,7 +859,7 @@ async function dialNextUser(
   policy: IncomingCallPolicy,
   callLog: IncomingCallLog,
   rule: IncomingCallPolicyEscalationRule,
-  userToCall: User,
+  userToCall: UserToCall,
 ): Promise<ExpressResponse> {
   // Create call log item
   const callLogItem: IncomingCallLogItem = new IncomingCallLogItem();
@@ -817,12 +870,8 @@ async function dialNextUser(
   if (rule.id) {
     callLogItem.incomingCallPolicyEscalationRuleId = rule.id;
   }
-  if (userToCall.id) {
-    callLogItem.userId = userToCall.id;
-  }
-  if (userToCall.alertPhoneNumber) {
-    callLogItem.userPhoneNumber = userToCall.alertPhoneNumber;
-  }
+  callLogItem.userId = userToCall.userId;
+  callLogItem.userPhoneNumber = userToCall.phoneNumber;
   callLogItem.status = IncomingCallStatus.Ringing;
   callLogItem.startedAt = new Date();
   callLogItem.isAnswered = false;
@@ -842,7 +891,7 @@ async function dialNextUser(
   const escalationMessage: string = `Connecting you to the next available engineer.`;
 
   const twiml: string = provider.generateEscalationResponse(escalationMessage, {
-    toPhoneNumber: userToCall.alertPhoneNumber!.toString(),
+    toPhoneNumber: userToCall.phoneNumber.toString(),
     fromPhoneNumber: policy.routingPhoneNumber?.toString() || "",
     timeoutSeconds: rule.escalateAfterSeconds || 30,
     statusCallbackUrl,

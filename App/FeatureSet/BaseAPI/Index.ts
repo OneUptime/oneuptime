@@ -44,6 +44,7 @@ import AlertAPI from "Common/Server/API/AlertAPI";
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
 import UserSMSAPI from "Common/Server/API/UserSmsAPI";
+import UserIncomingCallNumberAPI from "Common/Server/API/UserIncomingCallNumberAPI";
 import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
@@ -1672,6 +1673,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserIncomingCallNumberAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserWhatsAppAPI().getRouter(),

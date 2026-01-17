@@ -38,6 +38,10 @@ export function getUserSettingsBreadcrumbs(
       "User Settings",
       "On-Call Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS,
+      ["Project", "User Settings", "Incoming Phone Numbers"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

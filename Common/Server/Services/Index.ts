@@ -134,6 +134,7 @@ import UserSessionService from "./UserSessionService";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserWebAuthnService from "./UserWebAuthnService";
 import UserSmsService from "./UserSmsService";
+import UserIncomingCallNumberService from "./UserIncomingCallNumberService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WorkflowLogService from "./WorkflowLogService";
 // Workflows.
@@ -301,6 +302,7 @@ const services: Array<BaseService> = [
   UserOnCallLogService,
   UserOnCallLogTimelineService,
   UserSmsService,
+  UserIncomingCallNumberService,
   UserWhatsAppService,
   UserTotpAuthService,
   UserWebAuthnService,

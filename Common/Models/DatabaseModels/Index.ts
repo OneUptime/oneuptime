@@ -158,6 +158,7 @@ import UserNotificationSetting from "./UserNotificationSetting";
 import UserOnCallLog from "./UserOnCallLog";
 import UserOnCallLogTimeline from "./UserOnCallLogTimeline";
 import UserSms from "./UserSMS";
+import UserIncomingCallNumber from "./UserIncomingCallNumber";
 // Workflows.
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
@@ -338,6 +339,7 @@ const AllModelTypes: Array<{
   UserCall,
   UserPush,
   UserWhatsApp,
+  UserIncomingCallNumber,
 
   UserNotificationRule,
   UserOnCallLog,

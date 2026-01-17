@@ -59,6 +59,12 @@ const UserSettingsSlackIntegration: LazyExoticComponent<
   return import("../Pages/UserSettings/SlackIntegration");
 });
 
+const UserSettingsIncomingCallPhoneNumbers: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/UserSettings/IncomingCallPhoneNumbers");
+});
+
 const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -210,6 +216,26 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <UserSettingsIncomingCallPhoneNumbers
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS
+                  ] as Route
                 }
               />
             </Suspense>
