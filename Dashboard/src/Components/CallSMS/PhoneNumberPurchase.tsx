@@ -787,8 +787,6 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     return (
       <>
         {!props.hideCard && renderCurrentPhoneNumber()}
-        {renderOwnedNumbers()}
-        {renderSearchResults()}
       </>
     );
   };
