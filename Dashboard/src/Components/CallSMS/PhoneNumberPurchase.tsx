@@ -87,7 +87,9 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 ): ReactElement => {
   // Main configuration modal state
   const [showConfigureModal, setShowConfigureModal] = useState<boolean>(false);
-  const [configureStep, setConfigureStep] = useState<"choose" | "existing" | "buy">("choose");
+  const [configureStep, setConfigureStep] = useState<
+    "choose" | "existing" | "buy"
+  >("choose");
 
   const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
   const [showReleaseConfirmModal, setShowReleaseConfirmModal] =
@@ -117,7 +119,13 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
   useEffect(() => {
     setError("");
-  }, [showSearchModal, showReleaseConfirmModal, showPurchaseConfirmModal, showAssignConfirmModal, showConfigureModal]);
+  }, [
+    showSearchModal,
+    showReleaseConfirmModal,
+    showPurchaseConfirmModal,
+    showAssignConfirmModal,
+    showConfigureModal,
+  ]);
 
   // Close the configure modal and reset state
   const closeConfigureModal = (): void => {
@@ -125,7 +133,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     setConfigureStep("choose");
     setAvailableNumbers([]);
     setOwnedNumbers([]);
-        setError("");
+    setError("");
   };
 
   // Search for available phone numbers
@@ -157,7 +165,8 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
       const data: JSONObject = response.data as JSONObject;
       const numbers: Array<AvailablePhoneNumber> =
-        (data["availableNumbers"] as unknown as Array<AvailablePhoneNumber>) || [];
+        (data["availableNumbers"] as unknown as Array<AvailablePhoneNumber>) ||
+        [];
 
       setAvailableNumbers(numbers);
       setIsSearching(false);
@@ -280,7 +289,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
       setOwnedNumbers(numbers);
       setIsLoadingOwned(false);
-          } catch (err) {
+    } catch (err) {
       setError(API.getFriendlyMessage(err));
       setIsLoadingOwned(false);
     }
@@ -319,7 +328,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setShowAssignConfirmModal(false);
       setOwnedNumbers([]);
       setSelectedOwnedNumber(null);
-            closeConfigureModal();
+      closeConfigureModal();
       setSuccessMessage(
         `Phone number ${selectedOwnedNumber.phoneNumber} has been assigned and configured for this policy.`,
       );
@@ -377,8 +386,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               No Phone Number Configured
             </p>
             <p className="text-sm text-gray-600">
-              Search and reserve a phone number to enable incoming call
-              routing.
+              Search and reserve a phone number to enable incoming call routing.
             </p>
           </div>
         </div>
@@ -400,10 +408,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         title="Reserve Phone Number"
         description="Reserve a phone number from Twilio to receive incoming calls"
       >
-        <Alert
-          type={AlertType.WARNING}
-          title="Twilio Configuration Required"
-        />
+        <Alert type={AlertType.WARNING} title="Twilio Configuration Required" />
       </Card>
     );
   }
@@ -414,7 +419,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     setShowConfigureModal(true);
     setAvailableNumbers([]);
     setOwnedNumbers([]);
-        setError("");
+    setError("");
   };
 
   // Render the configure modal content based on current step
@@ -435,12 +440,17 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 <Icon icon={IconProp.List} className="h-6 w-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <h4 className="text-lg font-semibold text-gray-900">Use Existing Phone Number</h4>
+                <h4 className="text-lg font-semibold text-gray-900">
+                  Use Existing Phone Number
+                </h4>
                 <p className="text-sm text-gray-500 mt-1">
                   Select a phone number you already own in your Twilio account
                 </p>
               </div>
-              <Icon icon={IconProp.ChevronRight} className="h-5 w-5 text-gray-400" />
+              <Icon
+                icon={IconProp.ChevronRight}
+                className="h-5 w-5 text-gray-400"
+              />
             </div>
           </div>
 
@@ -456,12 +466,17 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 <Icon icon={IconProp.Add} className="h-6 w-6 text-green-600" />
               </div>
               <div className="flex-1">
-                <h4 className="text-lg font-semibold text-gray-900">Reserve New Phone Number</h4>
+                <h4 className="text-lg font-semibold text-gray-900">
+                  Reserve New Phone Number
+                </h4>
                 <p className="text-sm text-gray-500 mt-1">
                   Search and reserve a new phone number from Twilio
                 </p>
               </div>
-              <Icon icon={IconProp.ChevronRight} className="h-5 w-5 text-gray-400" />
+              <Icon
+                icon={IconProp.ChevronRight}
+                className="h-5 w-5 text-gray-400"
+              />
             </div>
           </div>
         </div>
@@ -477,7 +492,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             onClick={() => {
               setConfigureStep("choose");
               setOwnedNumbers([]);
-                          }}
+            }}
           >
             <Icon icon={IconProp.ChevronLeft} className="h-4 w-4 mr-1" />
             Back to options
@@ -492,7 +507,9 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Icon icon={IconProp.Call} className="h-8 w-8 text-gray-400" />
               </div>
-              <p className="text-gray-600 mb-2">No existing phone numbers found</p>
+              <p className="text-gray-600 mb-2">
+                No existing phone numbers found
+              </p>
               <p className="text-sm text-gray-500 mb-4">
                 Your Twilio account doesn&apos;t have any phone numbers yet.
               </p>
@@ -507,7 +524,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {ownedNumbers.map((number: OwnedPhoneNumber, index: number) => {
-                const isInUse: boolean = !!number.voiceUrl;
+                const isInUse: boolean = Boolean(number.voiceUrl);
                 return (
                   <div
                     key={index}
@@ -517,7 +534,9 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                       <p className="font-medium text-gray-900">
                         {number.friendlyName}
                       </p>
-                      <p className="text-sm text-gray-500">{number.phoneNumber}</p>
+                      <p className="text-sm text-gray-500">
+                        {number.phoneNumber}
+                      </p>
                       {isInUse && (
                         <p className="text-xs text-yellow-600 mt-1">
                           Currently has a webhook configured
@@ -561,7 +580,8 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           {availableNumbers.length === 0 && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600 mb-4">
-                Search for available phone numbers in your preferred country. The number will be reserved using your Twilio balance.
+                Search for available phone numbers in your preferred country.
+                The number will be reserved using your Twilio balance.
               </p>
               <Button
                 title="Search for Numbers"
@@ -656,11 +676,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
   // Content without card wrapper
   const renderContent = (): ReactElement => {
-    return (
-      <>
-        {!props.hideCard && renderCurrentPhoneNumber()}
-      </>
-    );
+    return <>{!props.hideCard && renderCurrentPhoneNumber()}</>;
   };
 
   // Render all modals - shared between card and no-card modes
@@ -829,7 +845,10 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         )}
 
         {/* Loading State */}
-        {isLoading && !showReleaseConfirmModal && !showPurchaseConfirmModal && !showAssignConfirmModal ? (
+        {isLoading &&
+        !showReleaseConfirmModal &&
+        !showPurchaseConfirmModal &&
+        !showAssignConfirmModal ? (
           <ComponentLoader />
         ) : (
           <></>
@@ -875,9 +894,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           },
         ]}
       >
-        <div className="p-6">
-          {renderCurrentPhoneNumber()}
-        </div>
+        <div className="p-6">{renderCurrentPhoneNumber()}</div>
       </Card>
       {renderModals()}
     </>

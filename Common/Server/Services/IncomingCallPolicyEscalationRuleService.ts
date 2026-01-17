@@ -220,24 +220,25 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
     incomingCallPolicyId: ObjectID,
     increaseOrder: boolean = true,
   ): Promise<void> {
-    const resources: Array<IncomingCallPolicyEscalationRule> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        incomingCallPolicyId: incomingCallPolicyId,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    });
+    const resources: Array<IncomingCallPolicyEscalationRule> =
+      await this.findBy({
+        query: {
+          order: QueryHelper.greaterThanEqualTo(currentOrder),
+          incomingCallPolicyId: incomingCallPolicyId,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+      });
 
     let newOrder: number = currentOrder;
 

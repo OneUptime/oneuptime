@@ -1,8 +1,5 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
-import {
-  HttpProtocol,
-  Host,
-} from "Common/Server/EnvironmentConfig";
+import { HttpProtocol, Host } from "Common/Server/EnvironmentConfig";
 import {
   AvailablePhoneNumber,
   ICallProvider,
@@ -376,10 +373,8 @@ router.post(
        */
       const webhookUrl: string = `${HttpProtocol}${Host}/notification/incoming-call/voice`;
 
-      const assigned: PurchasedPhoneNumber = await provider.assignExistingNumber(
-        phoneNumberId,
-        webhookUrl,
-      );
+      const assigned: PurchasedPhoneNumber =
+        await provider.assignExistingNumber(phoneNumberId, webhookUrl);
 
       // Get country code from phone number
       const countryCode: string =

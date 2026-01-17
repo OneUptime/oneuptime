@@ -141,7 +141,10 @@ const IncomingCallPoliciesPage: FunctionComponent<
               if (item.routingPhoneNumber) {
                 return (
                   <div className="flex items-center space-x-2">
-                    <Icon icon={IconProp.Call} className="h-4 w-4 text-green-500" />
+                    <Icon
+                      icon={IconProp.Call}
+                      className="h-4 w-4 text-green-500"
+                    />
                     <span className="font-mono">
                       {(item.routingPhoneNumber as Phone).toString()}
                     </span>
@@ -150,8 +153,13 @@ const IncomingCallPoliciesPage: FunctionComponent<
               }
               return (
                 <div className="flex items-center space-x-2">
-                  <Icon icon={IconProp.ExclaimationCircle} className="h-4 w-4 text-yellow-500" />
-                  <span className="text-yellow-600 font-medium">Setup Needed</span>
+                  <Icon
+                    icon={IconProp.ExclaimationCircle}
+                    className="h-4 w-4 text-yellow-500"
+                  />
+                  <span className="text-yellow-600 font-medium">
+                    Setup Needed
+                  </span>
                 </div>
               );
             },

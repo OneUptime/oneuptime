@@ -3,9 +3,7 @@ import Email from "Common/Types/Email";
 import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  AdminDashboardClientURL,
-} from "Common/Server/EnvironmentConfig";
+import { AdminDashboardClientURL } from "Common/Server/EnvironmentConfig";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import GlobalConfig, {
   EmailServerType,

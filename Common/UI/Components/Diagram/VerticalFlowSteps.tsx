@@ -46,9 +46,7 @@ const VerticalFlowSteps: FunctionComponent<ComponentProps> = (
 
             {/* Content */}
             <div className="ml-4 flex-1">
-              <p className="text-sm font-medium text-gray-900">
-                {step.title}
-              </p>
+              <p className="text-sm font-medium text-gray-900">{step.title}</p>
               <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
             </div>
           </div>

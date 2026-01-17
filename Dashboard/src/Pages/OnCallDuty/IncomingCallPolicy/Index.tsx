@@ -4,7 +4,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -41,9 +46,13 @@ const IncomingCallPolicyView: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
-  const [showTwilioConfigModal, setShowTwilioConfigModal] = useState<boolean>(false);
-  const [twilioConfigCount, setTwilioConfigCount] = useState<number | null>(null);
-  const [isLoadingTwilioConfigs, setIsLoadingTwilioConfigs] = useState<boolean>(false);
+  const [showTwilioConfigModal, setShowTwilioConfigModal] =
+    useState<boolean>(false);
+  const [twilioConfigCount, setTwilioConfigCount] = useState<number | null>(
+    null,
+  );
+  const [isLoadingTwilioConfigs, setIsLoadingTwilioConfigs] =
+    useState<boolean>(false);
   const [escalationRulesCount, setEscalationRulesCount] = useState<number>(0);
 
   // Fetch policy data and escalation rules count
@@ -116,10 +125,11 @@ const IncomingCallPolicyView: FunctionComponent<
   }
 
   // Determine step completion status
-  const hasTwilioConfig: boolean = !!policy?.projectCallSMSConfigId;
-  const hasPhoneNumber: boolean = !!policy?.routingPhoneNumber;
+  const hasTwilioConfig: boolean = Boolean(policy?.projectCallSMSConfigId);
+  const hasPhoneNumber: boolean = Boolean(policy?.routingPhoneNumber);
   const hasEscalationRules: boolean = escalationRulesCount > 0;
-  const isSetupComplete: boolean = hasTwilioConfig && hasPhoneNumber && hasEscalationRules;
+  const isSetupComplete: boolean =
+    hasTwilioConfig && hasPhoneNumber && hasEscalationRules;
 
   return (
     <Fragment>
@@ -252,26 +262,40 @@ const IncomingCallPolicyView: FunctionComponent<
                   {hasTwilioConfig ? (
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Icon icon={IconProp.CheckCircle} className="h-6 w-6 text-green-600" />
+                        <Icon
+                          icon={IconProp.CheckCircle}
+                          className="h-6 w-6 text-green-600"
+                        />
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
                           {policy?.projectCallSMSConfig?.name}
                         </p>
-                        <p className="text-sm text-green-600">Twilio configuration selected</p>
+                        <p className="text-sm text-green-600">
+                          Twilio configuration selected
+                        </p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Icon icon={IconProp.ExclaimationCircle} className="h-6 w-6 text-yellow-600" />
+                        <Icon
+                          icon={IconProp.ExclaimationCircle}
+                          className="h-6 w-6 text-yellow-600"
+                        />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">Select Twilio Configuration</p>
+                        <p className="font-medium text-gray-900">
+                          Select Twilio Configuration
+                        </p>
                         <p className="text-sm text-gray-500">
                           Choose which Twilio account to use or{" "}
                           <Link
-                            to={RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route}
+                            to={
+                              RouteMap[
+                                PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                              ] as Route
+                            }
                             className="text-blue-600 hover:underline"
                           >
                             create one in Project Settings
@@ -283,7 +307,11 @@ const IncomingCallPolicyView: FunctionComponent<
                 </div>
                 <Button
                   title={hasTwilioConfig ? "Change" : "Select"}
-                  buttonStyle={hasTwilioConfig ? ButtonStyleType.SECONDARY_LINK : ButtonStyleType.PRIMARY}
+                  buttonStyle={
+                    hasTwilioConfig
+                      ? ButtonStyleType.SECONDARY_LINK
+                      : ButtonStyleType.PRIMARY
+                  }
                   onClick={() => {
                     setShowTwilioConfigModal(true);
                   }}
@@ -296,7 +324,9 @@ const IncomingCallPolicyView: FunctionComponent<
               {/* Step 2: Phone Number */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasTwilioConfig ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}>
+                  <div
+                    className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasTwilioConfig ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
+                  >
                     2
                   </div>
                   {!hasTwilioConfig ? (
@@ -307,23 +337,35 @@ const IncomingCallPolicyView: FunctionComponent<
                   ) : hasPhoneNumber ? (
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Icon icon={IconProp.Call} className="h-6 w-6 text-green-600" />
+                        <Icon
+                          icon={IconProp.Call}
+                          className="h-6 w-6 text-green-600"
+                        />
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
                           {policy?.routingPhoneNumber?.toString()}
                         </p>
-                        <p className="text-sm text-green-600">Phone number configured</p>
+                        <p className="text-sm text-green-600">
+                          Phone number configured
+                        </p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Icon icon={IconProp.ExclaimationCircle} className="h-6 w-6 text-yellow-600" />
+                        <Icon
+                          icon={IconProp.ExclaimationCircle}
+                          className="h-6 w-6 text-yellow-600"
+                        />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">Configure Phone Number</p>
-                        <p className="text-sm text-gray-500">Select an existing number or reserve a new one</p>
+                        <p className="font-medium text-gray-900">
+                          Configure Phone Number
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Select an existing number or reserve a new one
+                        </p>
                       </div>
                     </div>
                   )}
@@ -347,7 +389,9 @@ const IncomingCallPolicyView: FunctionComponent<
               {/* Step 3: Escalation Rules */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasPhoneNumber ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}>
+                  <div
+                    className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasPhoneNumber ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
+                  >
                     3
                   </div>
                   {!hasPhoneNumber ? (
@@ -358,22 +402,36 @@ const IncomingCallPolicyView: FunctionComponent<
                   ) : hasEscalationRules ? (
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Icon icon={IconProp.CheckCircle} className="h-6 w-6 text-green-600" />
+                        <Icon
+                          icon={IconProp.CheckCircle}
+                          className="h-6 w-6 text-green-600"
+                        />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">Escalation Rules</p>
-                        <p className="text-sm text-green-600">{escalationRulesCount} rule{escalationRulesCount !== 1 ? "s" : ""} configured</p>
+                        <p className="font-medium text-gray-900">
+                          Escalation Rules
+                        </p>
+                        <p className="text-sm text-green-600">
+                          {escalationRulesCount} rule
+                          {escalationRulesCount !== 1 ? "s" : ""} configured
+                        </p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Icon icon={IconProp.ExclaimationCircle} className="h-6 w-6 text-yellow-600" />
+                        <Icon
+                          icon={IconProp.ExclaimationCircle}
+                          className="h-6 w-6 text-yellow-600"
+                        />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">Escalation Rules</p>
+                        <p className="font-medium text-gray-900">
+                          Escalation Rules
+                        </p>
                         <p className="text-sm text-gray-500">
-                          Add on-call schedules, teams, or users to handle incoming calls
+                          Add on-call schedules, teams, or users to handle
+                          incoming calls
                         </p>
                       </div>
                     </div>
@@ -382,14 +440,21 @@ const IncomingCallPolicyView: FunctionComponent<
                 {hasPhoneNumber && (
                   <Button
                     title="Manage Rules"
-                    buttonStyle={hasEscalationRules ? ButtonStyleType.SECONDARY_LINK : ButtonStyleType.PRIMARY}
+                    buttonStyle={
+                      hasEscalationRules
+                        ? ButtonStyleType.SECONDARY_LINK
+                        : ButtonStyleType.PRIMARY
+                    }
                     icon={IconProp.ArrowCircleRight}
                     onClick={() => {
                       Navigation.navigate(
                         RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION] as Route,
-                          { modelId: modelId }
-                        )
+                          RouteMap[
+                            PageMap
+                              .ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+                          ] as Route,
+                          { modelId: modelId },
+                        ),
                       );
                     }}
                   />
@@ -410,10 +475,15 @@ const IncomingCallPolicyView: FunctionComponent<
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.Settings} className="h-5 w-5 text-blue-600" />
+                    <Icon
+                      icon={IconProp.Settings}
+                      className="h-5 w-5 text-blue-600"
+                    />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Twilio Configuration</p>
+                    <p className="text-sm text-gray-500">
+                      Twilio Configuration
+                    </p>
                     <p className="font-medium text-gray-900">
                       {policy?.projectCallSMSConfig?.name}
                     </p>
@@ -431,7 +501,10 @@ const IncomingCallPolicyView: FunctionComponent<
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.Call} className="h-5 w-5 text-green-600" />
+                    <Icon
+                      icon={IconProp.Call}
+                      className="h-5 w-5 text-green-600"
+                    />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Phone Number</p>
@@ -458,12 +531,16 @@ const IncomingCallPolicyView: FunctionComponent<
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.BarsArrowDown} className="h-5 w-5 text-purple-600" />
+                    <Icon
+                      icon={IconProp.BarsArrowDown}
+                      className="h-5 w-5 text-purple-600"
+                    />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Escalation Rules</p>
                     <p className="font-medium text-gray-900">
-                      {escalationRulesCount} rule{escalationRulesCount !== 1 ? "s" : ""} configured
+                      {escalationRulesCount} rule
+                      {escalationRulesCount !== 1 ? "s" : ""} configured
                     </p>
                   </div>
                 </div>
@@ -474,9 +551,12 @@ const IncomingCallPolicyView: FunctionComponent<
                   onClick={() => {
                     Navigation.navigate(
                       RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION] as Route,
-                        { modelId: modelId }
-                      )
+                        RouteMap[
+                          PageMap
+                            .ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+                        ] as Route,
+                        { modelId: modelId },
+                      ),
                     );
                   }}
                 />
@@ -487,27 +567,29 @@ const IncomingCallPolicyView: FunctionComponent<
       )}
 
       {/* Twilio Configuration Modal - No Configs Warning */}
-      {showTwilioConfigModal && !isLoadingTwilioConfigs && twilioConfigCount === 0 && (
-        <Modal
-          title="No Twilio Configuration Found"
-          onClose={() => {
-            setShowTwilioConfigModal(false);
-          }}
-          submitButtonText="Go to Settings"
-          onSubmit={() => {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route
-              )
-            );
-          }}
-        >
-          <Alert
-            type={AlertType.WARNING}
-            title="You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Call & SMS to add your Twilio Account SID and Auth Token."
-          />
-        </Modal>
-      )}
+      {showTwilioConfigModal &&
+        !isLoadingTwilioConfigs &&
+        twilioConfigCount === 0 && (
+          <Modal
+            title="No Twilio Configuration Found"
+            onClose={() => {
+              setShowTwilioConfigModal(false);
+            }}
+            submitButtonText="Go to Settings"
+            onSubmit={() => {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+                ),
+              );
+            }}
+          >
+            <Alert
+              type={AlertType.WARNING}
+              title="You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Call & SMS to add your Twilio Account SID and Auth Token."
+            />
+          </Modal>
+        )}
 
       {/* Twilio Configuration Modal - Loading */}
       {showTwilioConfigModal && isLoadingTwilioConfigs && (
@@ -522,44 +604,48 @@ const IncomingCallPolicyView: FunctionComponent<
       )}
 
       {/* Twilio Configuration Modal - Form */}
-      {showTwilioConfigModal && !isLoadingTwilioConfigs && twilioConfigCount !== null && twilioConfigCount > 0 && (
-        <ModelFormModal<IncomingCallPolicy>
-          title="Select Twilio Configuration"
-          description="Choose which Twilio account to use for this incoming call policy"
-          modelType={IncomingCallPolicy}
-          modelIdToEdit={modelId}
-          name="Select Twilio Config"
-          onClose={() => {
-            setShowTwilioConfigModal(false);
-          }}
-          submitButtonText="Save"
-          onSuccess={() => {
-            setShowTwilioConfigModal(false);
-            setRefreshToggle(!refreshToggle);
-          }}
-          formProps={{
-            modelType: IncomingCallPolicy,
-            id: "twilio-config-form",
-            formType: FormType.Update,
-            fields: [
-              {
-                field: {
-                  projectCallSMSConfig: true,
+      {showTwilioConfigModal &&
+        !isLoadingTwilioConfigs &&
+        twilioConfigCount !== null &&
+        twilioConfigCount > 0 && (
+          <ModelFormModal<IncomingCallPolicy>
+            title="Select Twilio Configuration"
+            description="Choose which Twilio account to use for this incoming call policy"
+            modelType={IncomingCallPolicy}
+            modelIdToEdit={modelId}
+            name="Select Twilio Config"
+            onClose={() => {
+              setShowTwilioConfigModal(false);
+            }}
+            submitButtonText="Save"
+            onSuccess={() => {
+              setShowTwilioConfigModal(false);
+              setRefreshToggle(!refreshToggle);
+            }}
+            formProps={{
+              modelType: IncomingCallPolicy,
+              id: "twilio-config-form",
+              formType: FormType.Update,
+              fields: [
+                {
+                  field: {
+                    projectCallSMSConfig: true,
+                  },
+                  title: "Twilio Configuration",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: ProjectCallSMSConfig,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: true,
+                  description:
+                    "Select the Twilio configuration to use for incoming calls.",
                 },
-                title: "Twilio Configuration",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownModal: {
-                  type: ProjectCallSMSConfig,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: true,
-                description: "Select the Twilio configuration to use for incoming calls.",
-              },
-            ],
-          }}
-        />
-      )}
+              ],
+            }}
+          />
+        )}
     </Fragment>
   );
 };

@@ -129,7 +129,9 @@ export default class TwilioCallProvider implements ICallProvider {
   ): Promise<PurchasedPhoneNumber> {
     // Update the webhook URL for an existing phone number
     const updated: Twilio.Twilio["incomingPhoneNumbers"] extends {
-      (sid: string): { update: (opts: Record<string, unknown>) => Promise<infer R> };
+      (sid: string): {
+        update: (opts: Record<string, unknown>) => Promise<infer R>;
+      };
     }
       ? R
       : never = await this.client.incomingPhoneNumbers(phoneNumberId).update({
@@ -255,9 +257,11 @@ export default class TwilioCallProvider implements ICallProvider {
   ): boolean {
     const authToken: string = this.config.authToken;
 
-    // Build the full URL that Twilio used to generate the signature
-    // When behind a proxy, use X-Forwarded-Proto and X-Forwarded-Host headers
-    // These headers are set by reverse proxies (nginx, load balancers, etc.)
+    /*
+     * Build the full URL that Twilio used to generate the signature
+     * When behind a proxy, use X-Forwarded-Proto and X-Forwarded-Host headers
+     * These headers are set by reverse proxies (nginx, load balancers, etc.)
+     */
     const forwardedProto: string | undefined = request.get(
       "x-forwarded-proto",
     ) as string | undefined;
@@ -269,9 +273,11 @@ export default class TwilioCallProvider implements ICallProvider {
     const protocol: string = forwardedProto || request.protocol || "https";
     const host: string = forwardedHost || request.get("host") || "";
 
-    // Nginx rewrites /notification to /api/notification internally
-    // But Twilio signed with the original external URL path (/notification/...)
-    // So we need to remove the /api prefix for signature validation
+    /*
+     * Nginx rewrites /notification to /api/notification internally
+     * But Twilio signed with the original external URL path (/notification/...)
+     * So we need to remove the /api prefix for signature validation
+     */
     let originalUrl: string = request.originalUrl;
     if (originalUrl.startsWith("/api/notification")) {
       originalUrl = originalUrl.replace("/api/notification", "/notification");

@@ -453,5 +453,5 @@ export default [
   MigrationName1768583966447,
   RemoveAlertPhoneNumberFromUser1768647802022,
   MigrationName1768649699509,
-  MigrationName1768682071562
+  MigrationName1768682071562,
 ];

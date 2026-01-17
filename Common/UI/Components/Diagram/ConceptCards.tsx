@@ -56,8 +56,12 @@ const ConceptCards: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium text-gray-900">{card.title}</h4>
-                <p className="text-sm text-gray-500 mt-1 leading-relaxed">{card.description}</p>
+                <h4 className="text-sm font-medium text-gray-900">
+                  {card.title}
+                </h4>
+                <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                  {card.description}
+                </p>
               </div>
             </div>
           </div>

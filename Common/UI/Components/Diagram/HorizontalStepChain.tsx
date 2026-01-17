@@ -45,8 +45,13 @@ const HorizontalStepChain: FunctionComponent<ComponentProps> = (
                 {step.stepNumber}
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">{step.title}</p>
-                <p className="text-xs text-gray-500">{step.stepLabel || defaultLabel} {step.stepNumber} · {step.description}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {step.title}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {step.stepLabel || defaultLabel} {step.stepNumber} ·{" "}
+                  {step.description}
+                </p>
               </div>
             </div>
 
@@ -73,7 +78,9 @@ const HorizontalStepChain: FunctionComponent<ComponentProps> = (
             />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">{props.endStep.title}</p>
+            <p className="text-sm font-medium text-gray-900">
+              {props.endStep.title}
+            </p>
             <p className="text-xs text-gray-500">{props.endStep.description}</p>
           </div>
         </div>
