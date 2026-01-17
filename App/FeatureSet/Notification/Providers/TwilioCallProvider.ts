@@ -255,8 +255,18 @@ export default class TwilioCallProvider implements ICallProvider {
     const authToken: string = this.config.authToken;
 
     // Build the full URL that Twilio used to generate the signature
-    const protocol: string = request.protocol || "https";
-    const host: string = request.get("host") || "";
+    // When behind a proxy, use X-Forwarded-Proto and X-Forwarded-Host headers
+    // These headers are set by reverse proxies (nginx, load balancers, etc.)
+    const forwardedProto: string | undefined = request.get(
+      "x-forwarded-proto",
+    ) as string | undefined;
+    const forwardedHost: string | undefined = request.get(
+      "x-forwarded-host",
+    ) as string | undefined;
+
+    // Use forwarded headers if available, otherwise fall back to request properties
+    const protocol: string = forwardedProto || request.protocol || "https";
+    const host: string = forwardedHost || request.get("host") || "";
     const url: string = `${protocol}://${host}${request.originalUrl}`;
 
     const params: Record<string, string> = {};

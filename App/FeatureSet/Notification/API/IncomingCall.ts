@@ -1,5 +1,4 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
-import { NotificationWebhookHost } from "../Config";
 import {
   DialStatusData,
   ICallProvider,
@@ -33,6 +32,7 @@ import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogIte
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import User from "Common/Models/DatabaseModels/User";
 import Phone from "Common/Types/Phone";
+import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -289,7 +289,7 @@ router.post(
         "Please wait while we connect you to the on-call engineer.";
 
       // Construct status callback URL
-      const statusCallbackUrl: string = `${NotificationWebhookHost}/notification/incoming-call/dial-status/${createdCallLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
+      const statusCallbackUrl: string = `${HttpProtocol}${Host}/notification/incoming-call/dial-status/${createdCallLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
 
       // Generate greeting + dial TwiML
       const twiml: string = generateGreetingAndDialTwiml(
@@ -737,7 +737,7 @@ async function dialNextUser(
     });
 
   // Construct status callback URL
-  const statusCallbackUrl: string = `${NotificationWebhookHost}/notification/incoming-call/dial-status/${callLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
+  const statusCallbackUrl: string = `${HttpProtocol}${Host}/notification/incoming-call/dial-status/${callLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
 
   // Generate dial TwiML with escalation message
   const escalationMessage: string = `Connecting you to the next available engineer.`;
