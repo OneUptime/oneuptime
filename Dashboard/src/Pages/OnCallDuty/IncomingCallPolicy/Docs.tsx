@@ -26,36 +26,31 @@ const IncomingCallPolicyDocs: FunctionComponent<
       title: "Caller Dials Your Number",
       description: "External caller dials your dedicated incoming call number",
       icon: IconProp.User,
-      iconColor: new Color("#2563eb"), // blue-600
-      iconBackgroundColor: new Color("#dbeafe"), // blue-100
+      iconColor: new Color("#3b82f6"), // blue-500
     },
     {
       title: "Twilio Receives the Call",
       description: "Twilio routes the call to OneUptime via webhook",
       icon: IconProp.Call,
-      iconColor: new Color("#dc2626"), // red-600
-      iconBackgroundColor: new Color("#fee2e2"), // red-100
+      iconColor: new Color("#ef4444"), // red-500
     },
     {
       title: "OneUptime Processes the Call",
       description: "Plays greeting message and loads escalation rules",
       icon: IconProp.AltGlobe,
-      iconColor: new Color("#16a34a"), // green-600
-      iconBackgroundColor: new Color("#dcfce7"), // green-100
+      iconColor: new Color("#22c55e"), // green-500
     },
     {
       title: "Escalation Rules Execute",
       description: "Tries each rule in order until someone answers",
       icon: IconProp.BarsArrowDown,
-      iconColor: new Color("#ca8a04"), // yellow-600
-      iconBackgroundColor: new Color("#fef9c3"), // yellow-100
+      iconColor: new Color("#f59e0b"), // amber-500
     },
     {
       title: "Caller Connected to Engineer",
       description: "Call is connected when an on-call engineer answers",
       icon: IconProp.CheckCircle,
-      iconColor: new Color("#9333ea"), // purple-600
-      iconBackgroundColor: new Color("#f3e8ff"), // purple-100
+      iconColor: new Color("#8b5cf6"), // violet-500
     },
   ];
 
@@ -65,27 +60,27 @@ const IncomingCallPolicyDocs: FunctionComponent<
       stepNumber: 1,
       title: "Primary On-Call",
       description: "Wait 30 seconds",
-      backgroundColor: new Color("#3b82f6"), // blue-500
+      color: new Color("#3b82f6"), // blue-500
     },
     {
       stepNumber: 2,
       title: "Backup Team",
       description: "Wait 30 seconds",
-      backgroundColor: new Color("#eab308"), // yellow-500
+      color: new Color("#f59e0b"), // amber-500
     },
     {
       stepNumber: 3,
       title: "Manager",
       description: "Wait 30 seconds",
-      backgroundColor: new Color("#ef4444"), // red-500
+      color: new Color("#ef4444"), // red-500
     },
   ];
 
   const escalationEndStep: ChainEndStep = {
     title: "No Answer",
-    description: "Play message",
+    description: "Play voicemail message",
     icon: IconProp.Stop,
-    backgroundColor: new Color("#9ca3af"), // gray-400
+    color: new Color("#6b7280"), // gray-500
   };
 
   // Setup Steps
@@ -115,7 +110,7 @@ const IncomingCallPolicyDocs: FunctionComponent<
       description:
         "Your incoming call policy is now active. Share the phone number with your team and customers.",
       icon: IconProp.CheckCircle,
-      backgroundColor: new Color("#16a34a"), // green-600
+      color: new Color("#22c55e"), // green-500
     },
   ];
 
@@ -126,36 +121,28 @@ const IncomingCallPolicyDocs: FunctionComponent<
       description:
         "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.",
       icon: IconProp.BarsArrowDown,
-      iconColor: new Color("#ffffff"),
-      iconBackgroundColor: new Color("#3b82f6"), // blue-500
-      cardBackgroundColor: new Color("#eff6ff"), // blue-50
+      iconColor: new Color("#3b82f6"), // blue-500
     },
     {
       title: "On-Call Schedules",
       description:
         "Automatically route calls to whoever is currently on-call based on your rotation schedules.",
       icon: IconProp.Clock,
-      iconColor: new Color("#ffffff"),
-      iconBackgroundColor: new Color("#22c55e"), // green-500
-      cardBackgroundColor: new Color("#f0fdf4"), // green-50
+      iconColor: new Color("#22c55e"), // green-500
     },
     {
       title: "Voice Messages",
       description:
         "Customize the greeting message, no-answer message, and other voice prompts callers hear.",
       icon: IconProp.Microphone,
-      iconColor: new Color("#ffffff"),
-      iconBackgroundColor: new Color("#eab308"), // yellow-500
-      cardBackgroundColor: new Color("#fefce8"), // yellow-50
+      iconColor: new Color("#f59e0b"), // amber-500
     },
     {
       title: "Call Logs",
       description:
         "View detailed logs of all incoming calls including caller info, status, who answered, and call duration.",
       icon: IconProp.Logs,
-      iconColor: new Color("#ffffff"),
-      iconBackgroundColor: new Color("#a855f7"), // purple-500
-      cardBackgroundColor: new Color("#faf5ff"), // purple-50
+      iconColor: new Color("#8b5cf6"), // violet-500
     },
   ];
 
@@ -163,8 +150,8 @@ const IncomingCallPolicyDocs: FunctionComponent<
     <Fragment>
       {/* How It Works Overview */}
       <Card
-        title="How Incoming Call Policy Works"
-        description="Understand how callers reach your on-call engineers through this policy"
+        title="How It Works"
+        description="How callers reach your on-call engineers"
       >
         <div className="p-6">
           <VerticalFlowSteps steps={flowSteps} />
@@ -194,10 +181,7 @@ const IncomingCallPolicyDocs: FunctionComponent<
           description="Follow these steps to configure your incoming call policy"
         >
           <div className="p-6">
-            <NumberedSteps
-              steps={setupSteps}
-              defaultBackgroundColor={new Color("#2563eb")}
-            />
+            <NumberedSteps steps={setupSteps} />
           </div>
         </Card>
       </div>

@@ -8,7 +8,6 @@ export interface FlowStep {
   description: string;
   icon: IconProp;
   iconColor: Color;
-  iconBackgroundColor: Color;
 }
 
 export interface ComponentProps {
@@ -19,40 +18,40 @@ const VerticalFlowSteps: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="relative">
       {props.steps.map((step: FlowStep, index: number) => {
+        const isLast: boolean = index === props.steps.length - 1;
+
         return (
-          <React.Fragment key={index}>
-            {/* Step */}
-            <div className="flex items-center space-x-4">
+          <div key={index} className="relative flex items-start pb-6 last:pb-0">
+            {/* Vertical line connecting steps */}
+            {!isLast && (
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: step.iconBackgroundColor.toString() }}
-              >
-                <Icon
-                  icon={step.icon}
-                  className="h-8 w-8"
-                  style={{ color: step.iconColor.toString() }}
-                />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">
-                  {index + 1}. {step.title}
-                </p>
-                <p className="text-sm text-gray-500">{step.description}</p>
-              </div>
+                className="absolute left-4 top-10 w-px bg-gray-200"
+                style={{ height: "calc(100% - 1rem)" }}
+              />
+            )}
+
+            {/* Icon */}
+            <div
+              className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border border-gray-200 bg-white"
+              style={{ borderColor: `${step.iconColor.toString()}40` }}
+            >
+              <Icon
+                icon={step.icon}
+                className="h-4 w-4"
+                style={{ color: step.iconColor.toString() }}
+              />
             </div>
 
-            {/* Arrow (except for last step) */}
-            {index < props.steps.length - 1 && (
-              <div className="flex flex-col items-center">
-                <Icon
-                  icon={IconProp.ChevronDown}
-                  className="h-6 w-6 text-gray-400"
-                />
-              </div>
-            )}
-          </React.Fragment>
+            {/* Content */}
+            <div className="ml-4 flex-1">
+              <p className="text-sm font-medium text-gray-900">
+                {step.title}
+              </p>
+              <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
+            </div>
+          </div>
         );
       })}
     </div>

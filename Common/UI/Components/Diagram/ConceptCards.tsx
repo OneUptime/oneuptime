@@ -8,8 +8,6 @@ export interface ConceptCard {
   description: string;
   icon: IconProp;
   iconColor: Color;
-  iconBackgroundColor: Color;
-  cardBackgroundColor: Color;
 }
 
 export interface ComponentProps {
@@ -39,28 +37,29 @@ const ConceptCards: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className={`grid ${getGridClasses()} gap-6`}>
+    <div className={`grid ${getGridClasses()} gap-4`}>
       {props.cards.map((card: ConceptCard, index: number) => {
         return (
           <div
             key={index}
-            className="rounded-lg p-4"
-            style={{ backgroundColor: card.cardBackgroundColor.toString() }}
+            className="border border-gray-200 rounded-md p-4 bg-white hover:border-gray-300 transition-colors"
           >
-            <div className="flex items-center space-x-3 mb-3">
+            <div className="flex items-start space-x-3">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: card.iconBackgroundColor.toString() }}
+                className="flex-shrink-0 w-8 h-8 rounded flex items-center justify-center"
+                style={{ backgroundColor: `${card.iconColor.toString()}15` }}
               >
                 <Icon
                   icon={card.icon}
-                  className="h-5 w-5"
+                  className="h-4 w-4"
                   style={{ color: card.iconColor.toString() }}
                 />
               </div>
-              <h4 className="font-semibold text-gray-900">{card.title}</h4>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-medium text-gray-900">{card.title}</h4>
+                <p className="text-sm text-gray-500 mt-1 leading-relaxed">{card.description}</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600">{card.description}</p>
           </div>
         );
       })}
