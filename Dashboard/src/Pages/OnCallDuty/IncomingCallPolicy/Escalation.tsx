@@ -8,11 +8,17 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import UserElement from "../../../Components/User/User";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+
+enum NotifyType {
+  User = "User",
+  OnCallSchedule = "OnCallSchedule",
+}
 
 const IncomingCallPolicyEscalationPage: FunctionComponent<
   PageComponentProps
@@ -49,6 +55,11 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
           item.incomingCallPolicyId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
 
+          // Auto-generate order - new items go to the end, users can drag to reorder
+          if (!item.order) {
+            item.order = Date.now();
+          }
+
           // Validation: either userId or onCallDutyPolicyScheduleId must be set
           if (!item.userId && !item.onCallDutyPolicyScheduleId) {
             throw new BadDataException(
@@ -56,10 +67,13 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             );
           }
 
-          if (item.userId && item.onCallDutyPolicyScheduleId) {
-            throw new BadDataException(
-              "Please select only one: either a User or an On-Call Schedule, not both",
-            );
+          // Clear the opposite field to ensure only one is set
+          if (item.userId) {
+            delete (item as Partial<IncomingCallPolicyEscalationRule>)
+              .onCallDutyPolicyScheduleId;
+          }
+          if (item.onCallDutyPolicyScheduleId) {
+            delete (item as Partial<IncomingCallPolicyEscalationRule>).userId;
           }
 
           return Promise.resolve(item);
@@ -82,17 +96,6 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
           },
           {
             field: {
-              order: true,
-            },
-            title: "Escalation Order",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "1",
-            description:
-              "Rules are executed in ascending order (1 = first, 2 = second, etc.)",
-          },
-          {
-            field: {
               escalateAfterSeconds: true,
             },
             title: "Escalate After (Seconds)",
@@ -103,36 +106,73 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               "Time to wait before escalating to the next rule if no answer",
           },
           {
+            overrideField: {
+              notifyType: true,
+            },
+            overrideFieldKey: "notifyType",
+            title: "Notify",
+            description: "Select who should be notified when a call comes in.",
+            fieldType: FormFieldSchemaType.RadioButton,
+            required: true,
+            defaultValue: NotifyType.OnCallSchedule,
+            radioButtonOptions: [
+              {
+                title: "On-Call Schedule",
+                value: NotifyType.OnCallSchedule,
+              },
+              {
+                title: "User",
+                value: NotifyType.User,
+              },
+            ],
+          },
+          {
             field: {
               onCallDutyPolicyScheduleId: true,
             },
             title: "On-Call Schedule",
             description:
-              "Select an on-call schedule. The current on-call user will be called. Leave empty to specify a user directly.",
+              "Select an on-call schedule. The current on-call user will be called.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: OnCallDutyPolicySchedule,
               labelField: "name",
               valueField: "_id",
             },
-            required: false,
+            required: true,
             placeholder: "Select On-Call Schedule",
+            showIf: (
+              formValues: FormValues<IncomingCallPolicyEscalationRule> & {
+                notifyType?: NotifyType;
+              },
+            ): boolean => {
+              return (
+                !formValues.notifyType ||
+                formValues.notifyType === NotifyType.OnCallSchedule
+              );
+            },
           },
           {
             field: {
               userId: true,
             },
-            title: "Direct User",
-            description:
-              "Select a user to call directly. Leave empty if using an on-call schedule.",
+            title: "User",
+            description: "Select a user to call directly.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: User,
               labelField: "name",
               valueField: "_id",
             },
-            required: false,
+            required: true,
             placeholder: "Select User",
+            showIf: (
+              formValues: FormValues<IncomingCallPolicyEscalationRule> & {
+                notifyType?: NotifyType;
+              },
+            ): boolean => {
+              return formValues.notifyType === NotifyType.User;
+            },
           },
           {
             field: {
