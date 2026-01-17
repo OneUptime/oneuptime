@@ -196,6 +196,14 @@ import OnCallDutyPolicyCustomFieldService, {
 import OnCallDutyPolicyEscalationRuleScheduleService, {
   Service as OnCallDutyPolicyEscalationRuleScheduleServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
+
+// Incoming Call Policy
+import IncomingCallPolicyService, {
+  Service as IncomingCallPolicyServiceType,
+} from "Common/Server/Services/IncomingCallPolicyService";
+import IncomingCallPolicyEscalationRuleService, {
+  Service as IncomingCallPolicyEscalationRuleServiceType,
+} from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleService, {
   Service as OnCallDutyPolicyEscalationRuleServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
@@ -433,6 +441,10 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTimelineStatus from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+
+// Incoming Call Policy Models
+import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
@@ -1612,6 +1624,27 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new OnCallDutyPolicyAPI().getRouter(),
+    );
+
+    // IncomingCallPolicy
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncomingCallPolicy, IncomingCallPolicyServiceType>(
+        IncomingCallPolicy,
+        IncomingCallPolicyService,
+      ).getRouter(),
+    );
+
+    // IncomingCallPolicyEscalationRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyEscalationRule,
+        IncomingCallPolicyEscalationRuleServiceType
+      >(
+        IncomingCallPolicyEscalationRule,
+        IncomingCallPolicyEscalationRuleService,
+      ).getRouter(),
     );
 
     // TeamComplianceAPI
