@@ -268,7 +268,16 @@ export default class TwilioCallProvider implements ICallProvider {
     // Use forwarded headers if available, otherwise fall back to request properties
     const protocol: string = forwardedProto || request.protocol || "https";
     const host: string = forwardedHost || request.get("host") || "";
-    const url: string = `${protocol}://${host}${request.originalUrl}`;
+
+    // Nginx rewrites /notification to /api/notification internally
+    // But Twilio signed with the original external URL path (/notification/...)
+    // So we need to remove the /api prefix for signature validation
+    let originalUrl: string = request.originalUrl;
+    if (originalUrl.startsWith("/api/notification")) {
+      originalUrl = originalUrl.replace("/api/notification", "/notification");
+    }
+
+    const url: string = `${protocol}://${host}${originalUrl}`;
 
     const params: Record<string, string> = {};
     const body: Record<string, unknown> = request.body as Record<
@@ -288,7 +297,8 @@ export default class TwilioCallProvider implements ICallProvider {
       logger.debug(`  Signature received: ${signature}`);
       logger.debug(`  Protocol: ${protocol}`);
       logger.debug(`  Host: ${host}`);
-      logger.debug(`  Original URL: ${request.originalUrl}`);
+      logger.debug(`  Original URL (from request): ${request.originalUrl}`);
+      logger.debug(`  Corrected URL path: ${originalUrl}`);
       logger.debug(`  X-Forwarded-Proto: ${forwardedProto}`);
       logger.debug(`  X-Forwarded-Host: ${forwardedHost}`);
       logger.debug(`  Request protocol: ${request.protocol}`);
