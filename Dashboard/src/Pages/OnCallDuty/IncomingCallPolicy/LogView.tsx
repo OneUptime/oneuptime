@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
+import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -11,13 +11,11 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
 import { Green, Red, Yellow, Grey } from "Common/Types/BrandColors";
 import UserElement from "../../../Components/User/User";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import PageMap from "../../../Utils/PageMap";
 
-const IncomingCallPolicyLogsPage: FunctionComponent<
+const IncomingCallPolicyLogViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const incomingCallLogId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const getStatusPill: (status?: IncomingCallStatus) => ReactElement = (
     status?: IncomingCallStatus,
@@ -48,107 +46,91 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
 
   return (
     <Fragment>
-      <ModelTable<IncomingCallLog>
-        modelType={IncomingCallLog}
-        id="incoming-call-logs-table"
-        userPreferencesKey="incoming-call-logs-table"
+      <ModelTable<IncomingCallLogItem>
+        modelType={IncomingCallLogItem}
+        id="incoming-call-log-items-table"
+        userPreferencesKey="incoming-call-log-items-table"
         isDeleteable={false}
-        name="Incoming Call Policy > Call Logs"
+        name="Incoming Call Policy > Call Log > Timeline"
         isEditable={false}
         isCreateable={false}
-        isViewable={true}
+        isViewable={false}
         showViewIdButton={true}
-        onViewPage={async (item: IncomingCallLog) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW]!,
-            {
-              modelId: modelId.toString(),
-              subModelId: item._id!.toString(),
-            },
-          );
-        }}
-        viewButtonText="View Timeline"
         query={{
-          incomingCallPolicyId: modelId,
+          incomingCallLogId: incomingCallLogId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         sortBy="startedAt"
-        sortOrder={SortOrder.Descending}
+        sortOrder={SortOrder.Ascending}
         cardProps={{
-          title: "Call Logs",
-          description: "View incoming call history for this policy.",
+          title: "Call Timeline",
+          description:
+            "View the timeline of dial attempts for this incoming call.",
         }}
-        noItemsMessage={"No call logs found."}
+        noItemsMessage={"No dial attempts found for this call."}
         showRefreshButton={true}
-        filters={[
-          {
-            field: {
-              status: true,
-            },
-            title: "Status",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              callerPhoneNumber: true,
-            },
-            title: "Caller Phone",
-            type: FieldType.Phone,
-          },
-          {
-            field: {
-              startedAt: true,
-            },
-            title: "Started At",
-            type: FieldType.DateTime,
-          },
-        ]}
+        selectMoreFields={{
+          statusMessage: true,
+        }}
         columns={[
           {
             field: {
-              callerPhoneNumber: true,
-            },
-            title: "Caller",
-            type: FieldType.Phone,
-          },
-          {
-            field: {
-              status: true,
-            },
-            title: "Status",
-            type: FieldType.Text,
-            getElement: (item: IncomingCallLog): ReactElement => {
-              return getStatusPill(item.status);
-            },
-          },
-          {
-            field: {
-              answeredByUser: {
+              user: {
                 name: true,
                 email: true,
               },
             },
-            title: "Answered By",
+            title: "User Called",
             type: FieldType.Entity,
-            getElement: (item: IncomingCallLog): ReactElement => {
-              if (item.answeredByUser) {
-                return <UserElement user={item.answeredByUser} />;
+            getElement: (item: IncomingCallLogItem): ReactElement => {
+              if (item.user) {
+                return <UserElement user={item.user} />;
               }
               return <span className="text-gray-400">-</span>;
             },
           },
           {
             field: {
-              callDurationInSeconds: true,
+              userPhoneNumber: true,
+            },
+            title: "Phone Number",
+            type: FieldType.Phone,
+          },
+          {
+            field: {
+              status: true,
+            },
+            title: "Status",
+            type: FieldType.Text,
+            getElement: (item: IncomingCallLogItem): ReactElement => {
+              return getStatusPill(item.status);
+            },
+          },
+          {
+            field: {
+              isAnswered: true,
+            },
+            title: "Answered",
+            type: FieldType.Boolean,
+            getElement: (item: IncomingCallLogItem): ReactElement => {
+              if (item.isAnswered) {
+                return <Pill text="Yes" color={Green} />;
+              }
+              return <Pill text="No" color={Grey} />;
+            },
+          },
+          {
+            field: {
+              dialDurationInSeconds: true,
             },
             title: "Duration",
             type: FieldType.Number,
-            getElement: (item: IncomingCallLog): ReactElement => {
-              if (item.callDurationInSeconds !== undefined) {
+            getElement: (item: IncomingCallLogItem): ReactElement => {
+              if (item.dialDurationInSeconds !== undefined) {
                 const minutes: number = Math.floor(
-                  item.callDurationInSeconds / 60,
+                  item.dialDurationInSeconds / 60,
                 );
-                const seconds: number = item.callDurationInSeconds % 60;
+                const seconds: number = item.dialDurationInSeconds % 60;
                 return (
                   <span>
                     {minutes}m {seconds}s
@@ -165,10 +147,17 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
             title: "Started At",
             type: FieldType.DateTime,
           },
+          {
+            field: {
+              endedAt: true,
+            },
+            title: "Ended At",
+            type: FieldType.DateTime,
+          },
         ]}
       />
     </Fragment>
   );
 };
 
-export default IncomingCallPolicyLogsPage;
+export default IncomingCallPolicyLogViewPage;

@@ -178,6 +178,12 @@ const IncomingCallPolicyViewLogs: LazyExoticComponent<
   return import("../Pages/OnCallDuty/IncomingCallPolicy/Logs");
 });
 
+const IncomingCallPolicyViewLogView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/IncomingCallPolicy/LogView");
+});
+
 const IncomingCallPolicyViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -675,6 +681,25 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW,
+            2,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncomingCallPolicyViewLogView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW
                   ] as Route
                 }
               />
