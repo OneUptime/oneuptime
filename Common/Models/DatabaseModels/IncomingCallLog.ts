@@ -23,15 +23,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
-  create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  create: [],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectIncomingCallLog,
   ],
-  delete: [Permission.ProjectOwner, Permission.ProjectAdmin],
-  update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  delete: [],
+  update: [],
 })
 @CrudApiEndpoint(new Route("/incoming-call-log"))
 @Entity({
@@ -47,7 +47,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 export default class IncomingCallLog extends BaseModel {
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -78,7 +78,7 @@ export default class IncomingCallLog extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -103,7 +103,7 @@ export default class IncomingCallLog extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -134,7 +134,7 @@ export default class IncomingCallLog extends BaseModel {
   public incomingCallPolicy?: IncomingCallPolicy = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -159,7 +159,7 @@ export default class IncomingCallLog extends BaseModel {
   public incomingCallPolicyId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -184,7 +184,7 @@ export default class IncomingCallLog extends BaseModel {
   public callerPhoneNumber?: Phone = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -209,7 +209,7 @@ export default class IncomingCallLog extends BaseModel {
   public routingPhoneNumber?: Phone = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -233,14 +233,14 @@ export default class IncomingCallLog extends BaseModel {
   public callProviderCallId?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @Index()
   @TableColumn({
@@ -259,14 +259,14 @@ export default class IncomingCallLog extends BaseModel {
   public status?: IncomingCallStatus = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,
@@ -282,14 +282,14 @@ export default class IncomingCallLog extends BaseModel {
   public statusMessage?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,
@@ -306,14 +306,14 @@ export default class IncomingCallLog extends BaseModel {
   public callDurationInSeconds?: number = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,
@@ -329,14 +329,14 @@ export default class IncomingCallLog extends BaseModel {
   public callCostInUSDCents?: number = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,
@@ -352,14 +352,14 @@ export default class IncomingCallLog extends BaseModel {
   public incomingCallCostInUSDCents?: number = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,
@@ -375,14 +375,14 @@ export default class IncomingCallLog extends BaseModel {
   public outgoingCallCostInUSDCents?: number = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @Index()
   @TableColumn({
@@ -399,14 +399,14 @@ export default class IncomingCallLog extends BaseModel {
   public startedAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,
@@ -421,14 +421,14 @@ export default class IncomingCallLog extends BaseModel {
   public endedAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "answeredByUserId",
@@ -452,14 +452,14 @@ export default class IncomingCallLog extends BaseModel {
   public answeredByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
@@ -474,14 +474,14 @@ export default class IncomingCallLog extends BaseModel {
   public answeredByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,
@@ -497,14 +497,14 @@ export default class IncomingCallLog extends BaseModel {
   public currentEscalationRuleOrder?: number = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallLog,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,
