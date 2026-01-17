@@ -6,6 +6,7 @@ import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSCon
 import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormType from "Common/UI/Components/Forms/Types/FormType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -25,6 +26,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 
 const IncomingCallPolicyView: FunctionComponent<
   PageComponentProps
@@ -36,6 +38,7 @@ const IncomingCallPolicyView: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [showTwilioConfigModal, setShowTwilioConfigModal] = useState<boolean>(false);
 
   // Fetch policy data
   useAsyncEffect(async () => {
@@ -212,38 +215,11 @@ const IncomingCallPolicyView: FunctionComponent<
                     <p className="text-sm text-green-600">Configuration selected</p>
                   </div>
                 </div>
-                <CardModelDetail<IncomingCallPolicy>
-                  name="Change Twilio Config"
-                  editButtonText="Change"
-                  cardProps={{
-                    title: "",
-                    description: "",
-                  }}
-                  isEditable={true}
-                  onSaveSuccess={() => {
-                    setRefreshToggle(!refreshToggle);
-                  }}
-                  formFields={[
-                    {
-                      field: {
-                        projectCallSMSConfig: true,
-                      },
-                      title: "Twilio Configuration",
-                      fieldType: FormFieldSchemaType.Dropdown,
-                      dropdownModal: {
-                        type: ProjectCallSMSConfig,
-                        labelField: "name",
-                        valueField: "_id",
-                      },
-                      required: true,
-                      description: "Select the Twilio configuration to use.",
-                    },
-                  ]}
-                  modelDetailProps={{
-                    modelType: IncomingCallPolicy,
-                    id: "model-detail-twilio-config-change",
-                    fields: [],
-                    modelId: modelId,
+                <Button
+                  title="Change"
+                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                  onClick={() => {
+                    setShowTwilioConfigModal(true);
                   }}
                 />
               </div>
@@ -266,38 +242,11 @@ const IncomingCallPolicyView: FunctionComponent<
                     </p>
                   </div>
                 </div>
-                <CardModelDetail<IncomingCallPolicy>
-                  name="Select Twilio Config"
-                  editButtonText="Select Configuration"
-                  cardProps={{
-                    title: "",
-                    description: "",
-                  }}
-                  isEditable={true}
-                  onSaveSuccess={() => {
-                    setRefreshToggle(!refreshToggle);
-                  }}
-                  formFields={[
-                    {
-                      field: {
-                        projectCallSMSConfig: true,
-                      },
-                      title: "Twilio Configuration",
-                      fieldType: FormFieldSchemaType.Dropdown,
-                      dropdownModal: {
-                        type: ProjectCallSMSConfig,
-                        labelField: "name",
-                        valueField: "_id",
-                      },
-                      required: true,
-                      description: "Select the Twilio configuration to use.",
-                    },
-                  ]}
-                  modelDetailProps={{
-                    modelType: IncomingCallPolicy,
-                    id: "model-detail-twilio-config-select",
-                    fields: [],
-                    modelId: modelId,
+                <Button
+                  title="Select Configuration"
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  onClick={() => {
+                    setShowTwilioConfigModal(true);
                   }}
                 />
               </div>
@@ -305,6 +254,46 @@ const IncomingCallPolicyView: FunctionComponent<
           </div>
         </Card>
       </div>
+
+      {/* Twilio Configuration Modal */}
+      {showTwilioConfigModal && (
+        <ModelFormModal<IncomingCallPolicy>
+          title="Select Twilio Configuration"
+          description="Choose which Twilio account to use for this incoming call policy"
+          modelType={IncomingCallPolicy}
+          modelIdToEdit={modelId}
+          name="Select Twilio Config"
+          onClose={() => {
+            setShowTwilioConfigModal(false);
+          }}
+          submitButtonText="Save"
+          onSuccess={() => {
+            setShowTwilioConfigModal(false);
+            setRefreshToggle(!refreshToggle);
+          }}
+          formProps={{
+            modelType: IncomingCallPolicy,
+            id: "twilio-config-form",
+            formType: FormType.Update,
+            fields: [
+              {
+                field: {
+                  projectCallSMSConfig: true,
+                },
+                title: "Twilio Configuration",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownModal: {
+                  type: ProjectCallSMSConfig,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: true,
+                description: "Select the Twilio configuration to use for incoming calls.",
+              },
+            ],
+          }}
+        />
+      )}
 
       {/* Step 2: Phone Number */}
       <div className="mt-5">
