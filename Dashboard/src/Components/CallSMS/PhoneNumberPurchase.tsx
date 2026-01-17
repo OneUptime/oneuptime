@@ -85,6 +85,10 @@ const COUNTRY_OPTIONS: Array<DropdownOption> = [
 const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   props: PhoneNumberPurchaseProps,
 ): ReactElement => {
+  // Main configuration modal state
+  const [showConfigureModal, setShowConfigureModal] = useState<boolean>(false);
+  const [configureStep, setConfigureStep] = useState<"choose" | "existing" | "buy">("choose");
+
   const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
   const [showReleaseConfirmModal, setShowReleaseConfirmModal] =
     useState<boolean>(false);
@@ -114,7 +118,17 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
   useEffect(() => {
     setError("");
-  }, [showSearchModal, showReleaseConfirmModal, showPurchaseConfirmModal, showAssignConfirmModal]);
+  }, [showSearchModal, showReleaseConfirmModal, showPurchaseConfirmModal, showAssignConfirmModal, showConfigureModal]);
+
+  // Close the configure modal and reset state
+  const closeConfigureModal = (): void => {
+    setShowConfigureModal(false);
+    setConfigureStep("choose");
+    setAvailableNumbers([]);
+    setOwnedNumbers([]);
+    setShowOwnedNumbers(false);
+    setError("");
+  };
 
   // Search for available phone numbers
   const searchPhoneNumbers = async (values: JSONObject): Promise<void> => {
@@ -188,6 +202,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setShowPurchaseConfirmModal(false);
       setAvailableNumbers([]);
       setSelectedNumber(null);
+      closeConfigureModal();
       setSuccessMessage(
         `Phone number ${selectedNumber.phoneNumber} has been purchased and configured for this policy.`,
       );
@@ -308,6 +323,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setOwnedNumbers([]);
       setSelectedOwnedNumber(null);
       setShowOwnedNumbers(false);
+      closeConfigureModal();
       setSuccessMessage(
         `Phone number ${selectedOwnedNumber.phoneNumber} has been assigned and configured for this policy.`,
       );
@@ -518,26 +534,239 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     );
   }
 
+  // Open the configure modal
+  const openConfigureModal = (): void => {
+    setConfigureStep("choose");
+    setShowConfigureModal(true);
+    setAvailableNumbers([]);
+    setOwnedNumbers([]);
+    setShowOwnedNumbers(false);
+    setError("");
+  };
+
+  // Render the configure modal content based on current step
+  const renderConfigureModalContent = (): ReactElement => {
+    if (configureStep === "choose") {
+      return (
+        <div className="space-y-4">
+          {/* Use Existing Option */}
+          <div
+            className="border-2 border-gray-200 rounded-lg p-5 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
+            onClick={() => {
+              setConfigureStep("existing");
+              fetchOwnedNumbers();
+            }}
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Icon icon={IconProp.List} className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-semibold text-gray-900">Use Existing Number</h4>
+                <p className="text-sm text-gray-500 mt-1">
+                  Select a phone number you already own in your Twilio account
+                </p>
+              </div>
+              <Icon icon={IconProp.ChevronRight} className="h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+
+          {/* Buy New Option */}
+          <div
+            className="border-2 border-gray-200 rounded-lg p-5 cursor-pointer hover:border-green-500 hover:bg-green-50 transition-all"
+            onClick={() => {
+              setConfigureStep("buy");
+            }}
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Icon icon={IconProp.Add} className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-semibold text-gray-900">Buy New Number</h4>
+                <p className="text-sm text-gray-500 mt-1">
+                  Search and purchase a new phone number from Twilio
+                </p>
+              </div>
+              <Icon icon={IconProp.ChevronRight} className="h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (configureStep === "existing") {
+      return (
+        <div>
+          {/* Back button */}
+          <button
+            className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
+            onClick={() => {
+              setConfigureStep("choose");
+              setOwnedNumbers([]);
+              setShowOwnedNumbers(false);
+            }}
+          >
+            <Icon icon={IconProp.ChevronLeft} className="h-4 w-4 mr-1" />
+            Back to options
+          </button>
+
+          {isLoadingOwned ? (
+            <div className="py-8">
+              <ComponentLoader />
+            </div>
+          ) : ownedNumbers.length === 0 ? (
+            <div className="py-8 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Icon icon={IconProp.Call} className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="text-gray-600 mb-2">No existing phone numbers found</p>
+              <p className="text-sm text-gray-500 mb-4">
+                Your Twilio account doesn&apos;t have any phone numbers yet.
+              </p>
+              <Button
+                title="Buy a New Number Instead"
+                buttonStyle={ButtonStyleType.PRIMARY}
+                onClick={() => {
+                  setConfigureStep("buy");
+                }}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {ownedNumbers.map((number: OwnedPhoneNumber, index: number) => {
+                const isInUse: boolean = !!number.voiceUrl;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-white border rounded-lg hover:bg-gray-50"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {number.friendlyName}
+                      </p>
+                      <p className="text-sm text-gray-500">{number.phoneNumber}</p>
+                      {isInUse && (
+                        <p className="text-xs text-yellow-600 mt-1">
+                          Currently has a webhook configured
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      title="Select"
+                      buttonStyle={ButtonStyleType.SUCCESS}
+                      icon={IconProp.Check}
+                      onClick={() => {
+                        setSelectedOwnedNumber(number);
+                        setShowAssignConfirmModal(true);
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (configureStep === "buy") {
+      return (
+        <div>
+          {/* Back button */}
+          <button
+            className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
+            onClick={() => {
+              setConfigureStep("choose");
+              setAvailableNumbers([]);
+            }}
+          >
+            <Icon icon={IconProp.ChevronLeft} className="h-4 w-4 mr-1" />
+            Back to options
+          </button>
+
+          {/* Search Form */}
+          {availableNumbers.length === 0 && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Search for available phone numbers in your preferred country. The number will be purchased using your Twilio balance.
+              </p>
+              <Button
+                title="Search for Numbers"
+                buttonStyle={ButtonStyleType.PRIMARY}
+                icon={IconProp.Search}
+                onClick={() => {
+                  setShowSearchModal(true);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Search Results */}
+          {availableNumbers.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-700">
+                  {availableNumbers.length} Available Numbers
+                </h4>
+                <Button
+                  title="Search Again"
+                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                  onClick={() => {
+                    setShowSearchModal(true);
+                  }}
+                />
+              </div>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {availableNumbers.map(
+                  (number: AvailablePhoneNumber, index: number) => {
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-white border rounded-lg hover:bg-gray-50"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {number.friendlyName}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {number.locality && `${number.locality}, `}
+                            {number.region && `${number.region}, `}
+                            {number.country}
+                          </p>
+                        </div>
+                        <Button
+                          title="Purchase"
+                          buttonStyle={ButtonStyleType.SUCCESS}
+                          icon={IconProp.Add}
+                          onClick={() => {
+                            setSelectedNumber(number);
+                            setShowPurchaseConfirmModal(true);
+                          }}
+                        />
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return <></>;
+  };
+
   // Render buttons inline when hideCard is true
   const renderButtons = (): ReactElement => {
     return (
       <div className="flex space-x-2">
         <Button
-          title="Use Existing"
-          buttonStyle={ButtonStyleType.OUTLINE}
-          icon={IconProp.List}
-          onClick={() => {
-            fetchOwnedNumbers();
-          }}
-          disabled={isLoadingOwned}
-        />
-        <Button
-          title="Buy New"
+          title="Configure"
           buttonStyle={ButtonStyleType.PRIMARY}
-          icon={IconProp.Add}
-          onClick={() => {
-            setShowSearchModal(true);
-          }}
+          icon={IconProp.Settings}
+          onClick={openConfigureModal}
         />
         {props.currentPhoneNumber && (
           <Button
@@ -568,6 +797,34 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   const renderModals = (): ReactElement => {
     return (
       <>
+        {/* Configure Phone Number Modal */}
+        {showConfigureModal && (
+          <Modal
+            title={
+              configureStep === "choose"
+                ? "Configure Phone Number"
+                : configureStep === "existing"
+                  ? "Select Existing Number"
+                  : "Buy New Number"
+            }
+            description={
+              configureStep === "choose"
+                ? "Choose how you want to configure the phone number for incoming calls"
+                : configureStep === "existing"
+                  ? "Select a phone number from your Twilio account"
+                  : "Search and purchase a new phone number"
+            }
+            onClose={closeConfigureModal}
+          >
+            {error && (
+              <div className="mb-4">
+                <Alert type={AlertType.DANGER} title={error} />
+              </div>
+            )}
+            {renderConfigureModalContent()}
+          </Modal>
+        )}
+
         {/* Search Modal */}
         {showSearchModal ? (
           <BasicFormModal
@@ -739,28 +996,15 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         description="Use an existing Twilio phone number or purchase a new one"
         buttons={[
           {
-            title: "Use Existing Number",
-            buttonStyle: ButtonStyleType.OUTLINE,
-            icon: IconProp.List,
-            onClick: () => {
-              fetchOwnedNumbers();
-            },
-            disabled: isLoadingOwned,
-          },
-          {
-            title: "Buy New Number",
+            title: "Configure Number",
             buttonStyle: ButtonStyleType.PRIMARY,
-            icon: IconProp.Add,
-            onClick: () => {
-              setShowSearchModal(true);
-            },
+            icon: IconProp.Settings,
+            onClick: openConfigureModal,
           },
         ]}
       >
         <div className="p-6">
           {renderCurrentPhoneNumber()}
-          {renderOwnedNumbers()}
-          {renderSearchResults()}
         </div>
       </Card>
       {renderModals()}
