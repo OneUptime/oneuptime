@@ -109,6 +109,9 @@ import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
 
 import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 
+import "./Jobs/IncomingCallPolicy/SendWarningEmailsForPastDueSubscriptions";
+import "./Jobs/IncomingCallPolicy/ReleasePhoneNumbersForCancelledSubscriptions";
+
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import JobDictionary from "./Utils/JobDictionary";

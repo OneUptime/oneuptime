@@ -1016,6 +1016,108 @@ const policy = await IncomingCallPolicyService.findOneBy({
 
 ---
 
+## Subscription Cancellation Handling
+
+When a project's subscription is cancelled or payment fails, the incoming call policy must be handled appropriately to prevent ongoing costs for OneUptime and ensure callers receive a proper response.
+
+### Handling Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  Subscription Status Change                      │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │  Subscription becomes PastDue  │
+              └───────────────────────────────┘
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │  Daily Job: Send Warning Email │
+              │  to project owners about       │
+              │  phone numbers at risk         │
+              └───────────────────────────────┘
+                              │
+                      (14 day grace period)
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │  Subscription becomes Cancelled│
+              └───────────────────────────────┘
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │  Daily Job: Release & Disable  │
+              └───────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+              ▼                               ▼
+    ┌─────────────────────┐       ┌─────────────────────┐
+    │ Global Twilio Config │       │ Project Twilio Config│
+    │ (OneUptime's account)│       │ (Customer's account) │
+    └─────────────────────┘       └─────────────────────┘
+              │                               │
+              ▼                               ▼
+    ┌─────────────────────┐       ┌─────────────────────┐
+    │ 1. Release phone #   │       │ 1. DO NOT release #  │
+    │    from Twilio       │       │    (it's theirs)     │
+    │ 2. Disable policy    │       │ 2. Disable policy    │
+    │ 3. Send notification │       │ 3. Send notification │
+    └─────────────────────┘       └─────────────────────┘
+```
+
+### Scheduled Jobs
+
+**1. Warning Emails for Past Due Subscriptions**
+
+**File:** `Worker/Jobs/IncomingCallPolicy/SendWarningEmailsForPastDueSubscriptions.ts`
+
+- Runs daily
+- Finds all projects with `PastDue` subscription status
+- Sends warning email for each policy with a phone number (global config only)
+- Email template: `IncomingCallPhoneNumberAtRisk`
+
+**2. Release Phone Numbers for Cancelled Subscriptions**
+
+**File:** `Worker/Jobs/IncomingCallPolicy/ReleasePhoneNumbersForCancelledSubscriptions.ts`
+
+- Runs daily
+- Finds all projects with `Cancelled`, `Unpaid`, `Expired` subscription status
+- For policies using **global Twilio config**:
+  - Release phone number from Twilio (stops billing)
+  - Disable the policy
+  - Send notification email
+- For policies using **project's Twilio config**:
+  - DO NOT release phone number (it's in their account)
+  - Disable the policy (stops routing through OneUptime)
+  - Send notification email
+- Email template: `IncomingCallPhoneNumberReleased`
+
+### Real-Time Call Rejection
+
+The incoming call handler also checks subscription status in real-time as a safety measure:
+
+```typescript
+// In IncomingCall.ts webhook handler
+if (IsBillingEnabled && policy.projectId && !isUsingProjectConfig) {
+  const project = await ProjectService.findOneById(policy.projectId);
+
+  const cancelledStatuses = ["canceled", "unpaid", "expired", "incomplete_expired"];
+  const isCancelled = cancelledStatuses.includes(
+    project?.paymentProviderSubscriptionStatus?.toLowerCase()
+  );
+
+  if (isCancelled) {
+    // Log and reject the call
+    return provider.generateHangupResponse("Sorry, this service is currently unavailable.");
+  }
+}
+```
+
+---
+
 ## Edge Cases
 
 ### No One Currently On-Call

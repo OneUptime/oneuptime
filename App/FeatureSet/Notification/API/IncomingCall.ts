@@ -174,6 +174,44 @@ router.post(
         return res.send(twiml);
       }
 
+      // Check if project subscription is active (additional safety check)
+      // This catches cases where the scheduled job hasn't run yet
+      if (IsBillingEnabled && policy.projectId && !isUsingProjectConfig) {
+        const project: Project | null = await ProjectService.findOneById({
+          id: policy.projectId,
+          select: {
+            paymentProviderSubscriptionStatus: true,
+            paymentProviderMeteredSubscriptionStatus: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const cancelledStatuses = ["canceled", "unpaid", "expired", "incomplete_expired"];
+        const isCancelled =
+          (project?.paymentProviderSubscriptionStatus &&
+            cancelledStatuses.includes(project.paymentProviderSubscriptionStatus.toLowerCase())) ||
+          (project?.paymentProviderMeteredSubscriptionStatus &&
+            cancelledStatuses.includes(project.paymentProviderMeteredSubscriptionStatus.toLowerCase()));
+
+        if (isCancelled) {
+          callLog.status = IncomingCallStatus.Failed;
+          callLog.statusMessage = "Project subscription cancelled";
+          callLog.endedAt = new Date();
+          await IncomingCallLogService.create({
+            data: callLog,
+            props: { isRoot: true },
+          });
+
+          const twiml: string = provider.generateHangupResponse(
+            "Sorry, this service is currently unavailable.",
+          );
+          res.type("text/xml");
+          return res.send(twiml);
+        }
+      }
+
       // Check project balance if billing is enabled
       // Skip billing check if using project-level config (they pay Twilio directly)
       const shouldCheckBilling: boolean = IsBillingEnabled && !isUsingProjectConfig;
