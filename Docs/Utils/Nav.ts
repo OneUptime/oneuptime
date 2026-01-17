@@ -163,6 +163,10 @@ const DocsNav: NavGroup[] = [
     title: "On Call",
     links: [
       {
+        title: "Incoming Call Policy",
+        url: "/docs/on-call/incoming-call-policy",
+      },
+      {
         title: "Phone Number Whitelist",
         url: "/docs/on-call/phone-number-whitelist",
       },
