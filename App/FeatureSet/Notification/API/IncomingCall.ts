@@ -9,6 +9,7 @@ import {
   IncomingCallData,
   WebhookRequest,
 } from "Common/Types/Call/CallProvider";
+import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -19,6 +20,7 @@ import IncomingCallLogItemService from "Common/Server/Services/IncomingCallLogIt
 import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
 import UserService from "Common/Server/Services/UserService";
 import NotificationService from "Common/Server/Services/NotificationService";
+import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -30,6 +32,7 @@ import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy"
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
 import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import User from "Common/Models/DatabaseModels/User";
 import Phone from "Common/Types/Phone";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
@@ -38,24 +41,53 @@ import Project from "Common/Models/DatabaseModels/Project";
 
 const router: ExpressRouter = Express.getRouter();
 
+// Helper function to get TwilioConfig from project config
+async function getProjectTwilioConfig(
+  projectCallSMSConfigId: ObjectID,
+): Promise<TwilioConfig | null> {
+  const projectConfig: ProjectCallSMSConfig | null =
+    await ProjectCallSMSConfigService.findOneById({
+      id: projectCallSMSConfigId,
+      select: {
+        twilioAccountSID: true,
+        twilioAuthToken: true,
+        twilioPrimaryPhoneNumber: true,
+        twilioSecondaryPhoneNumbers: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (!projectConfig) {
+    return null;
+  }
+
+  return ProjectCallSMSConfigService.toTwilioConfig(projectConfig);
+}
+
 // Handle incoming voice call - single endpoint for all phone numbers
 router.post(
   "/voice",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      const provider: ICallProvider = await CallProviderFactory.getProvider();
+      // First, get a provider to validate the webhook signature
+      // We need to validate the signature before we can trust the request data
+      // Note: When using project config, the signature is validated against the project's Twilio auth token
+      // For initial validation, we use the global config since we don't know which policy it is yet
+      const globalProvider: ICallProvider = await CallProviderFactory.getProvider();
 
       // Validate webhook signature to ensure request is from the call provider
       const signature: string =
         (req.headers["x-twilio-signature"] as string) || "";
-      if (!provider.validateWebhookSignature(req as unknown as WebhookRequest, signature)) {
+      if (!globalProvider.validateWebhookSignature(req as unknown as WebhookRequest, signature)) {
         logger.error("Invalid webhook signature for incoming call");
         res.status(403).send("Forbidden");
         return;
       }
 
       // Parse incoming call data
-      const callData: IncomingCallData = provider.parseIncomingCallWebhook(
+      const callData: IncomingCallData = globalProvider.parseIncomingCallWebhook(
         req as unknown as WebhookRequest,
       );
 
@@ -69,6 +101,7 @@ router.post(
           select: {
             _id: true,
             projectId: true,
+            projectCallSMSConfigId: true,
             isEnabled: true,
             greetingMessage: true,
             noAnswerMessage: true,
@@ -84,7 +117,7 @@ router.post(
 
       if (!policy) {
         logger.error(`Incoming call policy not found for phone number: ${callData.calledPhoneNumber}`);
-        const twiml: string = provider.generateHangupResponse(
+        const twiml: string = globalProvider.generateHangupResponse(
           "Sorry, this phone number is not configured correctly.",
         );
         res.type("text/xml");
@@ -92,6 +125,21 @@ router.post(
       }
 
       const policyId: string = policy.id!.toString();
+
+      // Determine if using project-level config or global config
+      // When using project config, billing does not apply
+      let provider: ICallProvider = globalProvider;
+      let customTwilioConfig: TwilioConfig | undefined;
+      const isUsingProjectConfig: boolean = Boolean(policy.projectCallSMSConfigId);
+
+      if (policy.projectCallSMSConfigId) {
+        customTwilioConfig = await getProjectTwilioConfig(policy.projectCallSMSConfigId) || undefined;
+        if (customTwilioConfig) {
+          provider = CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+        } else {
+          logger.warn(`Project config not found for policy ${policyId}, falling back to global config`);
+        }
+      }
 
       // Create call log early so we can track all outcomes
       const callLog: IncomingCallLog = new IncomingCallLog();
@@ -127,7 +175,9 @@ router.post(
       }
 
       // Check project balance if billing is enabled
-      if (IsBillingEnabled && policy.projectId) {
+      // Skip billing check if using project-level config (they pay Twilio directly)
+      const shouldCheckBilling: boolean = IsBillingEnabled && !isUsingProjectConfig;
+      if (shouldCheckBilling && policy.projectId) {
         const project: Project | null = await ProjectService.findOneById({
           id: policy.projectId,
           select: {
@@ -324,19 +374,20 @@ router.post(
         throw new BadDataException("Invalid webhook URL");
       }
 
-      const provider: ICallProvider = await CallProviderFactory.getProvider();
+      // Get global provider for initial validation
+      const globalProvider: ICallProvider = await CallProviderFactory.getProvider();
 
       // Validate webhook signature to ensure request is from the call provider
       const signature: string =
         (req.headers["x-twilio-signature"] as string) || "";
-      if (!provider.validateWebhookSignature(req as unknown as WebhookRequest, signature)) {
+      if (!globalProvider.validateWebhookSignature(req as unknown as WebhookRequest, signature)) {
         logger.error("Invalid webhook signature for dial status callback");
         res.status(403).send("Forbidden");
         return;
       }
 
       // Parse dial status
-      const dialStatus: DialStatusData = provider.parseDialStatusWebhook(
+      const dialStatus: DialStatusData = globalProvider.parseDialStatusWebhook(
         req as unknown as WebhookRequest,
       );
 
@@ -355,7 +406,7 @@ router.post(
 
       if (!callLogItem) {
         logger.error(`Call log item not found: ${callLogItemId}`);
-        const twiml: string = provider.generateHangupResponse();
+        const twiml: string = globalProvider.generateHangupResponse();
         res.type("text/xml");
         return res.send(twiml);
       }
@@ -395,7 +446,7 @@ router.post(
 
       if (!callLog) {
         logger.error(`Call log not found: ${callLogId}`);
-        const twiml: string = provider.generateHangupResponse();
+        const twiml: string = globalProvider.generateHangupResponse();
         res.type("text/xml");
         return res.send(twiml);
       }
@@ -414,18 +465,20 @@ router.post(
         });
 
         // Hang up - the call is complete
-        const twiml: string = provider.generateHangupResponse();
+        const twiml: string = globalProvider.generateHangupResponse();
         res.type("text/xml");
         return res.send(twiml);
       }
 
       // Call was not answered, try next escalation rule
+      // Get policy with projectCallSMSConfigId to determine which provider to use
       const policy: IncomingCallPolicy | null =
         await IncomingCallPolicyService.findOneById({
           id: callLog.incomingCallPolicyId!,
           select: {
             _id: true,
             projectId: true,
+            projectCallSMSConfigId: true,
             noAnswerMessage: true,
             noOneAvailableMessage: true,
             repeatPolicyIfNoOneAnswers: true,
@@ -438,9 +491,18 @@ router.post(
         });
 
       if (!policy) {
-        const twiml: string = provider.generateHangupResponse();
+        const twiml: string = globalProvider.generateHangupResponse();
         res.type("text/xml");
         return res.send(twiml);
+      }
+
+      // Get the appropriate provider based on project config
+      let provider: ICallProvider = globalProvider;
+      if (policy.projectCallSMSConfigId) {
+        const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(policy.projectCallSMSConfigId);
+        if (customTwilioConfig) {
+          provider = CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+        }
       }
 
       const nextOrder: number = (callLog.currentEscalationRuleOrder || 1) + 1;

@@ -5,11 +5,13 @@ import {
   ICallProvider,
   PurchasedPhoneNumber,
 } from "Common/Types/Call/CallProvider";
+import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
+import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import Express, {
   ExpressRequest,
@@ -20,8 +22,34 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import logger from "Common/Server/Utils/Logger";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import Project from "Common/Models/DatabaseModels/Project";
 import Phone from "Common/Types/Phone";
+
+// Helper function to get TwilioConfig from project config
+async function getProjectTwilioConfig(
+  projectCallSMSConfigId: ObjectID,
+): Promise<TwilioConfig | null> {
+  const projectConfig: ProjectCallSMSConfig | null =
+    await ProjectCallSMSConfigService.findOneById({
+      id: projectCallSMSConfigId,
+      select: {
+        twilioAccountSID: true,
+        twilioAuthToken: true,
+        twilioPrimaryPhoneNumber: true,
+        twilioSecondaryPhoneNumbers: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (!projectConfig) {
+    return null;
+  }
+
+  return ProjectCallSMSConfigService.toTwilioConfig(projectConfig);
+}
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -34,6 +62,11 @@ router.post(
 
       const projectId: ObjectID | undefined = body["projectId"]
         ? new ObjectID(body["projectId"] as string)
+        : undefined;
+
+      // Optional: Use project's own Twilio config
+      const projectCallSMSConfigId: ObjectID | undefined = body["projectCallSMSConfigId"]
+        ? new ObjectID(body["projectCallSMSConfigId"] as string)
         : undefined;
 
       if (!projectId) {
@@ -70,7 +103,19 @@ router.post(
         throw new BadDataException("Project not found");
       }
 
-      const provider: ICallProvider = await CallProviderFactory.getProvider();
+      // Get the appropriate provider (project config or global)
+      let provider: ICallProvider;
+      const isUsingProjectConfig: boolean = Boolean(projectCallSMSConfigId);
+
+      if (projectCallSMSConfigId) {
+        const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(projectCallSMSConfigId);
+        if (!customTwilioConfig) {
+          throw new BadDataException("Project Call/SMS Config not found");
+        }
+        provider = CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+      } else {
+        provider = await CallProviderFactory.getProvider();
+      }
 
       const searchOptions: {
         countryCode: string;
@@ -93,20 +138,23 @@ router.post(
       const numbers: AvailablePhoneNumber[] =
         await provider.searchAvailableNumbers(searchOptions);
 
-      // Apply markup to customer price
+      // Apply markup to customer price (only when using global config)
       const numbersWithMarkup: AvailablePhoneNumber[] = numbers.map(
         (number: AvailablePhoneNumber) => {
           return {
             ...number,
-            customerCostPerMonthInUSDCents: Math.round(
-              number.providerCostPerMonthInUSDCents *
-                PhoneNumberPriceMultiplier,
-            ),
+            // When using project config, customer pays Twilio directly (no markup)
+            customerCostPerMonthInUSDCents: isUsingProjectConfig
+              ? number.providerCostPerMonthInUSDCents
+              : Math.round(
+                  number.providerCostPerMonthInUSDCents *
+                    PhoneNumberPriceMultiplier,
+                ),
           };
         },
       );
 
-      // If billing is not enabled, don't show cost
+      // If billing is not enabled or using project config, don't show cost
       type ResponseNumber = {
         phoneNumber: string;
         friendlyName: string;
@@ -119,7 +167,8 @@ router.post(
 
       const responseNumbers: Array<ResponseNumber> = numbersWithMarkup.map(
         (n: AvailablePhoneNumber): ResponseNumber => {
-          if (!IsBillingEnabled) {
+          // When using project config, customer pays Twilio directly - don't show our billing
+          if (!IsBillingEnabled || isUsingProjectConfig) {
             const result: ResponseNumber = {
               phoneNumber: n.phoneNumber,
               friendlyName: n.friendlyName,
@@ -196,13 +245,14 @@ router.post(
         throw new BadDataException("Project not found");
       }
 
-      // Check if incoming call policy exists
+      // Check if incoming call policy exists and get its project config
       const incomingCallPolicy: IncomingCallPolicy | null =
         await IncomingCallPolicyService.findOneById({
           id: incomingCallPolicyId,
           select: {
             _id: true,
             projectId: true,
+            projectCallSMSConfigId: true,
             routingPhoneNumber: true,
           },
           props: {
@@ -230,7 +280,21 @@ router.post(
       // Twilio sends the "To" phone number in every webhook, so we look up the policy by phone number
       const webhookUrl: string = `${NotificationWebhookHost}/notification/incoming-call/voice`;
 
-      const provider: ICallProvider = await CallProviderFactory.getProvider();
+      // Get the appropriate provider (project config or global)
+      let provider: ICallProvider;
+      const isUsingProjectConfig: boolean = Boolean(incomingCallPolicy.projectCallSMSConfigId);
+
+      if (incomingCallPolicy.projectCallSMSConfigId) {
+        const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(
+          incomingCallPolicy.projectCallSMSConfigId,
+        );
+        if (!customTwilioConfig) {
+          throw new BadDataException("Project Call/SMS Config not found");
+        }
+        provider = CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+      } else {
+        provider = await CallProviderFactory.getProvider();
+      }
 
       const purchased: PurchasedPhoneNumber = await provider.purchaseNumber(
         phoneNumber,
@@ -242,6 +306,7 @@ router.post(
       const areaCode: string = getAreaCodeFromPhoneNumber(phoneNumber);
 
       // Update the incoming call policy with the purchased number
+      // When using project config, customer pays Twilio directly (no markup, no billing cost stored)
       await IncomingCallPolicyService.updateOneById({
         id: incomingCallPolicyId,
         data: {
@@ -249,12 +314,16 @@ router.post(
           callProviderPhoneNumberId: purchased.phoneNumberId,
           phoneNumberCountryCode: countryCode,
           phoneNumberAreaCode: areaCode,
-          callProviderCostPerMonthInUSDCents:
-            purchased.providerCostPerMonthInUSDCents,
-          customerCostPerMonthInUSDCents: Math.round(
-            purchased.providerCostPerMonthInUSDCents *
-              PhoneNumberPriceMultiplier,
-          ),
+          // Only store costs if using global config (for billing purposes)
+          callProviderCostPerMonthInUSDCents: isUsingProjectConfig
+            ? undefined
+            : purchased.providerCostPerMonthInUSDCents,
+          customerCostPerMonthInUSDCents: isUsingProjectConfig
+            ? undefined
+            : Math.round(
+                purchased.providerCostPerMonthInUSDCents *
+                  PhoneNumberPriceMultiplier,
+              ),
           phoneNumberPurchasedAt: new Date(),
         },
         props: {
@@ -289,13 +358,14 @@ router.delete(
         throw new BadDataException("incomingCallPolicyId is required");
       }
 
-      // Get the incoming call policy
+      // Get the incoming call policy with its project config
       const incomingCallPolicy: IncomingCallPolicy | null =
         await IncomingCallPolicyService.findOneById({
           id: incomingCallPolicyId,
           select: {
             _id: true,
             callProviderPhoneNumberId: true,
+            projectCallSMSConfigId: true,
             routingPhoneNumber: true,
           },
           props: {
@@ -311,7 +381,20 @@ router.delete(
         throw new BadDataException("This policy does not have a phone number");
       }
 
-      const provider: ICallProvider = await CallProviderFactory.getProvider();
+      // Get the appropriate provider (project config or global)
+      let provider: ICallProvider;
+
+      if (incomingCallPolicy.projectCallSMSConfigId) {
+        const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(
+          incomingCallPolicy.projectCallSMSConfigId,
+        );
+        if (!customTwilioConfig) {
+          throw new BadDataException("Project Call/SMS Config not found");
+        }
+        provider = CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+      } else {
+        provider = await CallProviderFactory.getProvider();
+      }
 
       await provider.releaseNumber(
         incomingCallPolicy.callProviderPhoneNumberId,

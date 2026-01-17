@@ -1,5 +1,6 @@
 import Label from "./Label";
 import Project from "./Project";
+import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -660,6 +661,84 @@ export default class IncomingCallPolicy extends BaseModel {
     },
   })
   public labels?: Array<Label> = undefined;
+
+  // Project-level Twilio configuration (optional)
+  // If set, uses the project's own Twilio config instead of the global config
+  // When using project config, billing does not apply
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncomingCallPolicy,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncomingCallPolicy,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncomingCallPolicy,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "projectCallSMSConfigId",
+    type: TableColumnType.Entity,
+    modelType: ProjectCallSMSConfig,
+    title: "Project Call/SMS Config",
+    description:
+      "Optional project-level Twilio configuration. If set, uses this config instead of global config and billing does not apply.",
+  })
+  @ManyToOne(
+    () => {
+      return ProjectCallSMSConfig;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "projectCallSMSConfigId" })
+  public projectCallSMSConfig?: ProjectCallSMSConfig = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncomingCallPolicy,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncomingCallPolicy,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncomingCallPolicy,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Project Call/SMS Config ID",
+    description:
+      "ID of the project-level Twilio configuration. If set, uses this config instead of global config and billing does not apply.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public projectCallSMSConfigId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -278,12 +278,13 @@ The main policy model that stores configuration for a routing phone number.
 | `description` | LongText | Optional description |
 | `slug` | Slug | URL-friendly identifier |
 | `projectId` | ObjectID | Reference to project |
+| `projectCallSMSConfigId` | ObjectID | **Optional:** Reference to project-level Twilio config. If set, uses project's own Twilio account and billing does not apply. |
 | `routingPhoneNumber` | Phone | Phone number for incoming calls |
 | `callProviderPhoneNumberId` | ShortText | Provider's ID for the number (e.g., Twilio SID) |
 | `phoneNumberCountryCode` | ShortText | Country code (US, GB, etc.) |
 | `phoneNumberAreaCode` | ShortText | Area code if applicable |
-| `callProviderCostPerMonthInUSDCents` | Number | Call provider's base cost (for accounting) |
-| `customerCostPerMonthInUSDCents` | Number | Customer price (with markup) |
+| `callProviderCostPerMonthInUSDCents` | Number | Call provider's base cost (for accounting). Null when using project config. |
+| `customerCostPerMonthInUSDCents` | Number | Customer price (with markup). Null when using project config. |
 | `phoneNumberPurchasedAt` | Date | When number was purchased |
 | `greetingMessage` | LongText | Custom TTS greeting (default: "Please wait while we connect you to the on-call engineer.") |
 | `noAnswerMessage` | LongText | Message when escalation exhausted (default: "No one is available. Please try again later.") |
@@ -857,6 +858,82 @@ Incoming Call Received
 │ Adjust balance          │
 │ (refund or charge diff) │
 └─────────────────────────┘
+```
+
+---
+
+## Project-Level Twilio Configuration
+
+Projects can optionally use their own Twilio account instead of the global OneUptime Twilio account. When using a project-level config:
+
+1. **No Billing** - OneUptime does not charge for calls; the project pays Twilio directly
+2. **Own Phone Numbers** - Phone numbers are purchased in the project's Twilio account
+3. **Full Control** - Project has direct access to their Twilio dashboard for monitoring and configuration
+
+### How It Works
+
+When creating or editing an Incoming Call Policy, users can choose:
+
+| Option | Description |
+|--------|-------------|
+| **Use OneUptime's Twilio** (default) | Uses global Twilio config, billing applies |
+| **Use My Own Twilio Config** | Uses project's `ProjectCallSMSConfig`, no billing |
+
+### ProjectCallSMSConfig Model
+
+Projects can configure their own Twilio credentials in **Settings → Call & SMS Config**:
+
+**File:** `/Common/Models/DatabaseModels/ProjectCallSMSConfig.ts`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `twilioAccountSID` | ShortText | Project's Twilio Account SID |
+| `twilioAuthToken` | ShortText | Project's Twilio Auth Token |
+| `twilioPrimaryPhoneNumber` | Phone | Primary phone number for outbound calls |
+| `twilioSecondaryPhoneNumbers` | LongText | Comma-separated secondary numbers |
+
+### Implementation
+
+**IncomingCallPolicy Model:**
+```typescript
+// Optional reference to project's Twilio config
+projectCallSMSConfigId?: ObjectID;
+```
+
+**Call Handling Logic:**
+```typescript
+// In IncomingCall.ts webhook handler
+const isUsingProjectConfig = Boolean(policy.projectCallSMSConfigId);
+
+let provider: ICallProvider;
+if (policy.projectCallSMSConfigId) {
+  const customConfig = await getProjectTwilioConfig(policy.projectCallSMSConfigId);
+  provider = CallProviderFactory.getProviderWithConfig(customConfig);
+} else {
+  provider = await CallProviderFactory.getProvider(); // Global config
+}
+
+// Skip billing when using project config
+const shouldCheckBilling = IsBillingEnabled && !isUsingProjectConfig;
+```
+
+### UI Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Incoming Call Policy Settings                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Twilio Configuration:                                      │
+│                                                             │
+│  ○ Use OneUptime's Twilio (Recommended)                     │
+│    Billing applies. $X.XX/month for phone number.           │
+│                                                             │
+│  ○ Use My Own Twilio Config                                 │
+│    Select: [My Twilio Account ▼]                            │
+│    You pay Twilio directly. No billing from OneUptime.      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
