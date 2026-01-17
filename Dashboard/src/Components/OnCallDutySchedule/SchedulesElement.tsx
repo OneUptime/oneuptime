@@ -4,7 +4,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   schedules: Array<OnCallDutySchedule>;
-  onNavigateComplete?: (() => void) | undefined;
 }
 
 const OnCallDutySchedulesElement: FunctionComponent<ComponentProps> = (
@@ -19,10 +18,7 @@ const OnCallDutySchedulesElement: FunctionComponent<ComponentProps> = (
       {props.schedules.map((schedule: OnCallDutySchedule, i: number) => {
         return (
           <span key={i}>
-            <OnCallDutyScheduleElement
-              schedule={schedule}
-              onNavigateComplete={props.onNavigateComplete}
-            />
+            <OnCallDutyScheduleElement schedule={schedule} />
             {i !== props.schedules.length - 1 && <span>,&nbsp;</span>}
           </span>
         );

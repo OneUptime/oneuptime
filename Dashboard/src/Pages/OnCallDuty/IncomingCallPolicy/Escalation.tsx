@@ -11,6 +11,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import UserElement from "../../../Components/User/User";
+import OnCallDutyScheduleElement from "../../../Components/OnCallDutySchedule/ScheduleElement";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -250,7 +251,9 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
           {
             field: {
               onCallDutyPolicySchedule: {
+                _id: true,
                 name: true,
+                projectId: true,
               },
             },
             title: "On-Call Schedule",
@@ -260,8 +263,12 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             getElement: (
               item: IncomingCallPolicyEscalationRule,
             ): ReactElement => {
-              if (item.onCallDutyPolicySchedule?.name) {
-                return <span>{item.onCallDutyPolicySchedule.name}</span>;
+              if (item.onCallDutyPolicySchedule) {
+                return (
+                  <OnCallDutyScheduleElement
+                    schedule={item.onCallDutyPolicySchedule}
+                  />
+                );
               }
               return <></>;
             },
