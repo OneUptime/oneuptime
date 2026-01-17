@@ -17,7 +17,9 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const getStatusPill = (status?: IncomingCallStatus): ReactElement => {
+  const getStatusPill: (status?: IncomingCallStatus) => ReactElement = (
+    status?: IncomingCallStatus,
+  ): ReactElement => {
     switch (status) {
       case IncomingCallStatus.Completed:
         return <Pill text="Completed" color={Green} />;

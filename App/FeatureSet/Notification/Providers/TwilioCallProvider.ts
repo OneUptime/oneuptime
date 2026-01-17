@@ -10,8 +10,7 @@ import {
 } from "Common/Types/Call/CallProvider";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Twilio from "twilio";
-import { validateRequest } from "twilio";
+import Twilio, { validateRequest } from "twilio";
 
 export default class TwilioCallProvider implements ICallProvider {
   private client: Twilio.Twilio;
@@ -80,7 +79,7 @@ export default class TwilioCallProvider implements ICallProvider {
     webhookUrl: string,
   ): Promise<PurchasedPhoneNumber> {
     const purchased: Twilio.Twilio["incomingPhoneNumbers"] extends {
-      create: (opts: object) => Promise<infer R>;
+      create: (opts: Record<string, unknown>) => Promise<infer R>;
     }
       ? R
       : never = await this.client.incomingPhoneNumbers.create({
