@@ -5,6 +5,7 @@ import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/Incom
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -36,6 +37,12 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
+        showAs={ShowAs.List}
+        listDetailOptions={{
+          showDetailsInNumberOfColumns: 2,
+        }}
         onBeforeCreate={(
           item: IncomingCallPolicyEscalationRule,
         ): Promise<IncomingCallPolicyEscalationRule> => {
@@ -159,7 +166,8 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             field: {
               order: true,
             },
-            title: "Order",
+            title: "Escalation Rule Order",
+            description: "The order in which this rule is executed.",
             type: FieldType.Number,
           },
           {
@@ -167,6 +175,16 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               name: true,
             },
             title: "Name",
+            description: "The name of the escalation rule.",
+            type: FieldType.Text,
+            noValueMessage: "-",
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            description: "The description of the escalation rule.",
             type: FieldType.Text,
             noValueMessage: "-",
           },
@@ -177,6 +195,8 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               },
             },
             title: "On-Call Schedule",
+            description:
+              "On-call schedule which will be called when a call comes in.",
             type: FieldType.Entity,
             getElement: (
               item: IncomingCallPolicyEscalationRule,
@@ -195,6 +215,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               },
             },
             title: "User",
+            description: "User who will be called when a call comes in.",
             type: FieldType.Entity,
             getElement: (
               item: IncomingCallPolicyEscalationRule,
@@ -209,7 +230,9 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             field: {
               escalateAfterSeconds: true,
             },
-            title: "Escalate After",
+            title: "Escalate After (seconds)",
+            description:
+              "Time to wait before escalating to the next rule if no answer.",
             type: FieldType.Number,
             getElement: (
               item: IncomingCallPolicyEscalationRule,
