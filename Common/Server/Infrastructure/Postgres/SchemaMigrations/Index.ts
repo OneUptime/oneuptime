@@ -223,6 +223,7 @@ import { AddIncomingEmailMonitor1768335589018 } from "./1768335589018-AddIncomin
 import { MigrationName1768422356713 } from "./1768422356713-MigrationName";
 import { MigrationName1768583966447 } from "./1768583966447-MigrationName";
 import { RemoveAlertPhoneNumberFromUser1768647802022 } from "./1768647802022-RemoveAlertPhoneNumberFromUser";
+import { MigrationName1768649699509 } from "./1768649699509-MigrationName";
 
 export default [
   InitialMigration,
@@ -450,4 +451,5 @@ export default [
   MigrationName1768422356713,
   MigrationName1768583966447,
   RemoveAlertPhoneNumberFromUser1768647802022,
+  MigrationName1768649699509
 ];
