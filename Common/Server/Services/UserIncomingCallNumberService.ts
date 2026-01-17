@@ -1,3 +1,4 @@
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
@@ -33,6 +34,7 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         enableSmsNotifications: true,
+        smsOrCallCurrentBalanceInUSDCents: true,
       },
     });
 
@@ -43,6 +45,15 @@ export class Service extends DatabaseService<Model> {
     if (!project.enableSmsNotifications) {
       throw new BadDataException(
         "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+      );
+    }
+
+    if (
+      (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
+      IsBillingEnabled
+    ) {
+      throw new BadDataException(
+        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
       );
     }
 
@@ -116,6 +127,7 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         enableSmsNotifications: true,
+        smsOrCallCurrentBalanceInUSDCents: true,
       },
     });
 
@@ -126,6 +138,15 @@ export class Service extends DatabaseService<Model> {
     if (!project.enableSmsNotifications) {
       throw new BadDataException(
         "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+      );
+    }
+
+    if (
+      (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
+      IsBillingEnabled
+    ) {
+      throw new BadDataException(
+        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
       );
     }
 
