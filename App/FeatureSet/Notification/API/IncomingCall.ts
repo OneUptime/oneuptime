@@ -38,17 +38,11 @@ import Project from "Common/Models/DatabaseModels/Project";
 
 const router: ExpressRouter = Express.getRouter();
 
-// Handle incoming voice call
+// Handle incoming voice call - single endpoint for all phone numbers
 router.post(
-  "/:policyId/voice",
+  "/voice",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      const policyId: string = req.params["policyId"] as string;
-
-      if (!policyId) {
-        throw new BadDataException("Invalid webhook URL");
-      }
-
       const provider: ICallProvider = await CallProviderFactory.getProvider();
 
       // Validate webhook signature to ensure request is from the call provider
@@ -65,10 +59,13 @@ router.post(
         req as unknown as WebhookRequest,
       );
 
-      // Find the policy
+      // Find the policy by the called phone number (To field from Twilio)
+      const calledPhoneNumber: Phone = new Phone(callData.calledPhoneNumber);
       const policy: IncomingCallPolicy | null =
-        await IncomingCallPolicyService.findOneById({
-          id: new ObjectID(policyId),
+        await IncomingCallPolicyService.findOneBy({
+          query: {
+            routingPhoneNumber: calledPhoneNumber,
+          },
           select: {
             _id: true,
             projectId: true,
@@ -86,13 +83,15 @@ router.post(
         });
 
       if (!policy) {
-        logger.error(`Incoming call policy not found: ${policyId}`);
+        logger.error(`Incoming call policy not found for phone number: ${callData.calledPhoneNumber}`);
         const twiml: string = provider.generateHangupResponse(
           "Sorry, this phone number is not configured correctly.",
         );
         res.type("text/xml");
         return res.send(twiml);
       }
+
+      const policyId: string = policy.id!.toString();
 
       // Create call log early so we can track all outcomes
       const callLog: IncomingCallLog = new IncomingCallLog();
@@ -292,7 +291,7 @@ router.post(
         "Please wait while we connect you to the on-call engineer.";
 
       // Construct status callback URL
-      const statusCallbackUrl: string = `${NotificationWebhookHost}/notification/incoming-call/${policyId}/dial-status/${createdCallLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
+      const statusCallbackUrl: string = `${NotificationWebhookHost}/notification/incoming-call/dial-status/${createdCallLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
 
       // Generate greeting + dial TwiML
       const twiml: string = generateGreetingAndDialTwiml(
@@ -315,14 +314,13 @@ router.post(
 
 // Handle dial status callback
 router.post(
-  "/:policyId/dial-status/:callLogId/:callLogItemId",
+  "/dial-status/:callLogId/:callLogItemId",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      const policyId: string = req.params["policyId"] as string;
       const callLogId: string = req.params["callLogId"] as string;
       const callLogItemId: string = req.params["callLogItemId"] as string;
 
-      if (!policyId || !callLogId || !callLogItemId) {
+      if (!callLogId || !callLogItemId) {
         throw new BadDataException("Invalid webhook URL");
       }
 
@@ -516,7 +514,6 @@ router.post(
                 callLog,
                 firstRule,
                 userToCall,
-                policyId,
               );
             }
           }
@@ -587,7 +584,6 @@ router.post(
         callLog,
         nextRule,
         userToCall,
-        policyId,
       );
     } catch (err) {
       logger.error(err);
@@ -670,7 +666,6 @@ async function dialNextUser(
   callLog: IncomingCallLog,
   rule: IncomingCallPolicyEscalationRule,
   userToCall: User,
-  policyId: string,
 ): Promise<ExpressResponse> {
   // Create call log item
   const callLogItem: IncomingCallLogItem = new IncomingCallLogItem();
@@ -700,7 +695,7 @@ async function dialNextUser(
     });
 
   // Construct status callback URL
-  const statusCallbackUrl: string = `${NotificationWebhookHost}/notification/incoming-call/${policyId}/dial-status/${callLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
+  const statusCallbackUrl: string = `${NotificationWebhookHost}/notification/incoming-call/dial-status/${callLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
 
   // Generate dial TwiML with escalation message
   const escalationMessage: string = `Connecting you to the next available engineer.`;

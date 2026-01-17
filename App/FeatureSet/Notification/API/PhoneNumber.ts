@@ -226,8 +226,9 @@ router.post(
         );
       }
 
-      // Construct webhook URL
-      const webhookUrl: string = `${NotificationWebhookHost}/notification/incoming-call/${incomingCallPolicyId.toString()}/voice`;
+      // Construct webhook URL - single endpoint for all phone numbers
+      // Twilio sends the "To" phone number in every webhook, so we look up the policy by phone number
+      const webhookUrl: string = `${NotificationWebhookHost}/notification/incoming-call/voice`;
 
       const provider: ICallProvider = await CallProviderFactory.getProvider();
 

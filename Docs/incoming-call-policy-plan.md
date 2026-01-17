@@ -643,7 +643,8 @@ router.post('/search', async (req, res) => {
 
 router.post('/purchase', async (req, res) => {
   const provider = CallProviderFactory.getProvider();
-  const webhookUrl = getIncomingCallWebhookUrl(req.body.incomingCallPolicyId);
+  // Single webhook URL for all phone numbers - Twilio sends "To" field to identify which number was called
+  const webhookUrl = `${NotificationWebhookHost}/notification/incoming-call/voice`;
   const result = await provider.purchaseNumber(req.body.phoneNumber, webhookUrl);
   res.json({ success: true, ...result });
 });
@@ -866,18 +867,23 @@ All incoming webhooks must be validated to ensure they originate from the config
 
 ### Webhook URL Structure
 
-Webhook URLs include a **path secret** for additional security (similar to SendGrid webhooks):
+A **single webhook endpoint** is used for all phone numbers. When Twilio sends a webhook, it includes the `To` field containing the called phone number, which we use to look up the corresponding policy.
 
 ```
-https://api.oneuptime.com/incoming-call/{policyId}/{pathSecret}/voice
-https://api.oneuptime.com/incoming-call/{policyId}/{pathSecret}/dial-status/{logItemId}
+https://api.oneuptime.com/incoming-call/voice
+https://api.oneuptime.com/incoming-call/dial-status/{callLogId}/{logItemId}
 ```
 
-**Fields to add to `IncomingCallPolicy`:**
+**Benefits of single endpoint:**
+- Simpler configuration - one webhook URL for all numbers
+- No need to update webhook URLs when policies change
+- Easier to manage in Twilio dashboard
+- The `routingPhoneNumber` field in `IncomingCallPolicy` is unique, so lookups are fast
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `webhookPathSecret` | ShortText | Random secret included in webhook URL (generated on creation) |
+**How it works:**
+1. Twilio sends webhook with `To` field containing the called phone number
+2. We look up `IncomingCallPolicy` by `routingPhoneNumber = To`
+3. Continue with normal call flow
 
 ### Signature Validation
 
@@ -906,30 +912,29 @@ class TwilioCallProvider implements ICallProvider {
 }
 ```
 
-**Webhook Middleware:**
+**Webhook Validation (in route handler):**
 
 ```typescript
-// In /App/FeatureSet/Notification/Middleware/IncomingCallWebhookAuth.ts
+// In /App/FeatureSet/Notification/API/IncomingCall.ts
 
-async function validateIncomingCallWebhook(req, res, next) {
-  const { policyId, pathSecret } = req.params;
+// Validate provider signature (Twilio signature validation is sufficient for security)
+const provider = await CallProviderFactory.getProvider();
+const signature = req.headers['x-twilio-signature'] as string;
 
-  // 1. Validate path secret
-  const policy = await IncomingCallPolicyService.findOneById(policyId);
-  if (!policy || policy.webhookPathSecret !== pathSecret) {
-    return res.status(403).send('Invalid webhook path');
-  }
-
-  // 2. Validate provider signature
-  const provider = CallProviderFactory.getProvider();
-  const signature = req.headers['x-twilio-signature']; // or provider-specific header
-
-  if (!provider.validateWebhookSignature(req, signature)) {
-    return res.status(403).send('Invalid signature');
-  }
-
-  next();
+if (!provider.validateWebhookSignature(req, signature)) {
+  logger.error("Invalid webhook signature for incoming call");
+  res.status(403).send("Forbidden");
+  return;
 }
+
+// Parse incoming call data to get the called phone number
+const callData = provider.parseIncomingCallWebhook(req);
+
+// Look up policy by the called phone number (To field)
+const policy = await IncomingCallPolicyService.findOneBy({
+  query: { routingPhoneNumber: new Phone(callData.calledPhoneNumber) },
+  // ...
+});
 ```
 
 ---
