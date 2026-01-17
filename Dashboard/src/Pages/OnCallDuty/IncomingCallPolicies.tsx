@@ -11,6 +11,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import Phone from "Common/Types/Phone";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
@@ -138,13 +140,19 @@ const IncomingCallPoliciesPage: FunctionComponent<
             getElement: (item: IncomingCallPolicy): ReactElement => {
               if (item.routingPhoneNumber) {
                 return (
-                  <span className="font-mono">
-                    {(item.routingPhoneNumber as Phone).toString()}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <Icon icon={IconProp.Call} className="h-4 w-4 text-green-500" />
+                    <span className="font-mono">
+                      {(item.routingPhoneNumber as Phone).toString()}
+                    </span>
+                  </div>
                 );
               }
               return (
-                <span className="text-gray-400">No phone number assigned</span>
+                <div className="flex items-center space-x-2">
+                  <Icon icon={IconProp.ExclaimationCircle} className="h-4 w-4 text-yellow-500" />
+                  <span className="text-yellow-600 font-medium">Setup Needed</span>
+                </div>
               );
             },
           },

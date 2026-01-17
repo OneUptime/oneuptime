@@ -47,6 +47,7 @@ export interface PhoneNumberPurchaseProps {
   currentPhoneNumber?: string | undefined;
   onPhoneNumberPurchased?: () => void;
   onPhoneNumberReleased?: () => void;
+  hideCard?: boolean; // If true, renders content without Card wrapper
 }
 
 // Country codes supported by Twilio for voice
@@ -496,6 +497,13 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
   // Check if Twilio config is set
   if (!props.projectCallSMSConfigId) {
+    if (props.hideCard) {
+      return (
+        <div className="text-gray-500 text-sm">
+          Please link a Twilio configuration first.
+        </div>
+      );
+    }
     return (
       <Card
         title="Purchase Phone Number"
@@ -504,15 +512,225 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         <Alert
           type={AlertType.WARNING}
           title="Twilio Configuration Required"
-          strongTitle={true}
-        >
-          Please link a Twilio configuration to this policy before purchasing a
-          phone number.
-        </Alert>
+        />
       </Card>
     );
   }
 
+  // Render buttons inline when hideCard is true
+  const renderButtons = (): ReactElement => {
+    return (
+      <div className="flex space-x-2">
+        <Button
+          title="Use Existing"
+          buttonStyle={ButtonStyleType.OUTLINE}
+          icon={IconProp.List}
+          onClick={() => {
+            fetchOwnedNumbers();
+          }}
+          disabled={isLoadingOwned}
+        />
+        <Button
+          title="Buy New"
+          buttonStyle={ButtonStyleType.PRIMARY}
+          icon={IconProp.Add}
+          onClick={() => {
+            setShowSearchModal(true);
+          }}
+        />
+        {props.currentPhoneNumber && (
+          <Button
+            title="Release"
+            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+            icon={IconProp.Trash}
+            onClick={() => {
+              setShowReleaseConfirmModal(true);
+            }}
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Content without card wrapper
+  const renderContent = (): ReactElement => {
+    return (
+      <>
+        {!props.hideCard && renderCurrentPhoneNumber()}
+        {renderOwnedNumbers()}
+        {renderSearchResults()}
+      </>
+    );
+  };
+
+  // Render all modals - shared between card and no-card modes
+  const renderModals = (): ReactElement => {
+    return (
+      <>
+        {/* Search Modal */}
+        {showSearchModal ? (
+          <BasicFormModal
+            title="Search Available Phone Numbers"
+            description="Search for phone numbers available in your Twilio account. The number will be purchased using your Twilio balance."
+            formProps={{
+              name: "Search Phone Numbers",
+              error: error,
+              fields: [
+                {
+                  title: "Country",
+                  description: "Select the country for the phone number",
+                  field: {
+                    countryCode: true,
+                  },
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownOptions: COUNTRY_OPTIONS,
+                  required: true,
+                  placeholder: "Select a country",
+                },
+                {
+                  title: "Area Code (Optional)",
+                  description:
+                    "Specify an area code to narrow down the search (e.g., 415 for San Francisco)",
+                  field: {
+                    areaCode: true,
+                  },
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  placeholder: "415",
+                },
+                {
+                  title: "Contains (Optional)",
+                  description:
+                    "Search for numbers containing specific digits (e.g., 555)",
+                  field: {
+                    contains: true,
+                  },
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  placeholder: "555",
+                },
+              ],
+            }}
+            submitButtonText="Search"
+            onClose={() => {
+              setShowSearchModal(false);
+              setError("");
+            }}
+            isLoading={isSearching}
+            onSubmit={searchPhoneNumbers}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/* Release Confirmation Modal */}
+        {showReleaseConfirmModal ? (
+          <ConfirmModal
+            title="Release Phone Number"
+            description={`Are you sure you want to release the phone number ${props.currentPhoneNumber}? This action will return the number to Twilio and it may not be available for re-purchase.`}
+            error={error}
+            submitButtonText="Release Number"
+            submitButtonType={ButtonStyleType.DANGER}
+            onClose={() => {
+              setShowReleaseConfirmModal(false);
+              setError("");
+            }}
+            isLoading={isLoading}
+            onSubmit={releasePhoneNumber}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/* Purchase Confirmation Modal */}
+        {showPurchaseConfirmModal && selectedNumber ? (
+          <ConfirmModal
+            title="Confirm Purchase"
+            description={`Are you sure you want to purchase ${selectedNumber.friendlyName}? This will be charged to your Twilio account.`}
+            error={error}
+            submitButtonText="Purchase"
+            submitButtonType={ButtonStyleType.SUCCESS}
+            onClose={() => {
+              setShowPurchaseConfirmModal(false);
+              setSelectedNumber(null);
+              setError("");
+            }}
+            isLoading={isLoading}
+            onSubmit={purchasePhoneNumber}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/* Assign Existing Number Confirmation Modal */}
+        {showAssignConfirmModal && selectedOwnedNumber ? (
+          <ConfirmModal
+            title="Assign Phone Number"
+            description={`Are you sure you want to use ${selectedOwnedNumber.friendlyName} for this policy? ${selectedOwnedNumber.voiceUrl ? "This number currently has a webhook configured which will be updated to point to OneUptime." : "The webhook will be configured automatically."}`}
+            error={error}
+            submitButtonText="Assign Number"
+            submitButtonType={ButtonStyleType.SUCCESS}
+            onClose={() => {
+              setShowAssignConfirmModal(false);
+              setSelectedOwnedNumber(null);
+              setError("");
+            }}
+            isLoading={isLoading}
+            onSubmit={assignExistingNumber}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal ? (
+          <ConfirmModal
+            title="Success"
+            description={successMessage}
+            submitButtonText="Close"
+            submitButtonType={ButtonStyleType.NORMAL}
+            onSubmit={() => {
+              setShowSuccessModal(false);
+              setSuccessMessage("");
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/* Loading State */}
+        {isLoading && !showReleaseConfirmModal && !showPurchaseConfirmModal && !showAssignConfirmModal ? (
+          <ComponentLoader />
+        ) : (
+          <></>
+        )}
+
+        {/* Error State */}
+        {error &&
+        !showSearchModal &&
+        !showReleaseConfirmModal &&
+        !showPurchaseConfirmModal &&
+        !showAssignConfirmModal ? (
+          <ErrorMessage message={error} />
+        ) : (
+          <></>
+        )}
+      </>
+    );
+  };
+
+  // Inline mode (no card wrapper)
+  if (props.hideCard) {
+    return (
+      <>
+        {renderButtons()}
+        {renderContent()}
+        {renderModals()}
+      </>
+    );
+  }
+
+  // Card mode (with card wrapper)
   return (
     <>
       <Card
@@ -544,155 +762,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           {renderSearchResults()}
         </div>
       </Card>
-
-      {/* Search Modal */}
-      {showSearchModal ? (
-        <BasicFormModal
-          title="Search Available Phone Numbers"
-          description="Search for phone numbers available in your Twilio account. The number will be purchased using your Twilio balance."
-          formProps={{
-            name: "Search Phone Numbers",
-            error: error,
-            fields: [
-              {
-                title: "Country",
-                description: "Select the country for the phone number",
-                field: {
-                  countryCode: true,
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: COUNTRY_OPTIONS,
-                required: true,
-                placeholder: "Select a country",
-              },
-              {
-                title: "Area Code (Optional)",
-                description:
-                  "Specify an area code to narrow down the search (e.g., 415 for San Francisco)",
-                field: {
-                  areaCode: true,
-                },
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                placeholder: "415",
-              },
-              {
-                title: "Contains (Optional)",
-                description:
-                  "Search for numbers containing specific digits (e.g., 555)",
-                field: {
-                  contains: true,
-                },
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                placeholder: "555",
-              },
-            ],
-          }}
-          submitButtonText="Search"
-          onClose={() => {
-            setShowSearchModal(false);
-            setError("");
-          }}
-          isLoading={isSearching}
-          onSubmit={searchPhoneNumbers}
-        />
-      ) : (
-        <></>
-      )}
-
-      {/* Release Confirmation Modal */}
-      {showReleaseConfirmModal ? (
-        <ConfirmModal
-          title="Release Phone Number"
-          description={`Are you sure you want to release the phone number ${props.currentPhoneNumber}? This action will return the number to Twilio and it may not be available for re-purchase.`}
-          error={error}
-          submitButtonText="Release Number"
-          submitButtonType={ButtonStyleType.DANGER}
-          onClose={() => {
-            setShowReleaseConfirmModal(false);
-            setError("");
-          }}
-          isLoading={isLoading}
-          onSubmit={releasePhoneNumber}
-        />
-      ) : (
-        <></>
-      )}
-
-      {/* Purchase Confirmation Modal */}
-      {showPurchaseConfirmModal && selectedNumber ? (
-        <ConfirmModal
-          title="Confirm Purchase"
-          description={`Are you sure you want to purchase ${selectedNumber.friendlyName}? This will be charged to your Twilio account.`}
-          error={error}
-          submitButtonText="Purchase"
-          submitButtonType={ButtonStyleType.SUCCESS}
-          onClose={() => {
-            setShowPurchaseConfirmModal(false);
-            setSelectedNumber(null);
-            setError("");
-          }}
-          isLoading={isLoading}
-          onSubmit={purchasePhoneNumber}
-        />
-      ) : (
-        <></>
-      )}
-
-      {/* Assign Existing Number Confirmation Modal */}
-      {showAssignConfirmModal && selectedOwnedNumber ? (
-        <ConfirmModal
-          title="Assign Phone Number"
-          description={`Are you sure you want to use ${selectedOwnedNumber.friendlyName} for this policy? ${selectedOwnedNumber.voiceUrl ? "This number currently has a webhook configured which will be updated to point to OneUptime." : "The webhook will be configured automatically."}`}
-          error={error}
-          submitButtonText="Assign Number"
-          submitButtonType={ButtonStyleType.SUCCESS}
-          onClose={() => {
-            setShowAssignConfirmModal(false);
-            setSelectedOwnedNumber(null);
-            setError("");
-          }}
-          isLoading={isLoading}
-          onSubmit={assignExistingNumber}
-        />
-      ) : (
-        <></>
-      )}
-
-      {/* Success Modal */}
-      {showSuccessModal ? (
-        <ConfirmModal
-          title="Success"
-          description={successMessage}
-          submitButtonText="Close"
-          submitButtonType={ButtonStyleType.NORMAL}
-          onSubmit={() => {
-            setShowSuccessModal(false);
-            setSuccessMessage("");
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {/* Loading State */}
-      {isLoading && !showReleaseConfirmModal && !showPurchaseConfirmModal && !showAssignConfirmModal ? (
-        <ComponentLoader />
-      ) : (
-        <></>
-      )}
-
-      {/* Error State */}
-      {error &&
-      !showSearchModal &&
-      !showReleaseConfirmModal &&
-      !showPurchaseConfirmModal &&
-      !showAssignConfirmModal ? (
-        <ErrorMessage message={error} />
-      ) : (
-        <></>
-      )}
+      {renderModals()}
     </>
   );
 };
