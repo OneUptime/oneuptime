@@ -69,6 +69,12 @@ import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "./OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 
+// Incoming Call Policy
+import IncomingCallPolicy from "./IncomingCallPolicy";
+import IncomingCallPolicyEscalationRule from "./IncomingCallPolicyEscalationRule";
+import IncomingCallLog from "./IncomingCallLog";
+import IncomingCallLogItem from "./IncomingCallLogItem";
+
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
 import ProbeOwnerUser from "./ProbeOwnerUser";
@@ -152,6 +158,7 @@ import UserNotificationSetting from "./UserNotificationSetting";
 import UserOnCallLog from "./UserOnCallLog";
 import UserOnCallLogTimeline from "./UserOnCallLogTimeline";
 import UserSms from "./UserSMS";
+import UserIncomingCallNumber from "./UserIncomingCallNumber";
 // Workflows.
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
@@ -227,6 +234,12 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyExecutionLog,
   OnCallDutyPolicyExecutionLogTimeline,
   OnCallDutyPolicyUserOverride,
+
+  // Incoming Call Policy
+  IncomingCallPolicy,
+  IncomingCallPolicyEscalationRule,
+  IncomingCallLog,
+  IncomingCallLogItem,
 
   Monitor,
   MonitorSecret,
@@ -326,6 +339,7 @@ const AllModelTypes: Array<{
   UserCall,
   UserPush,
   UserWhatsApp,
+  UserIncomingCallNumber,
 
   UserNotificationRule,
   UserOnCallLog,

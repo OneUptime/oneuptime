@@ -45,6 +45,11 @@ const app: ExpressApplication = Express.getExpressApp();
 app.disable("x-powered-by");
 app.set("port", process.env["PORT"]);
 app.set("view engine", "ejs");
+/*
+ * Enable trust proxy to correctly interpret X-Forwarded-* headers from reverse proxies
+ * This is needed for req.protocol, req.ip to be correct when behind nginx/load balancers
+ */
+app.set("trust proxy", true);
 app.use(CookieParser());
 
 const jsonBodyParserMiddleware: RequestHandler = ExpressJson({

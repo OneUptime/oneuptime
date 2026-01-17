@@ -137,6 +137,37 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Phone Number already verified");
     }
 
+    // Check if Call notifications are enabled for this project
+    const project: Project | null = await ProjectService.findOneById({
+      id: item.projectId!,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        enableCallNotifications: true,
+        smsOrCallCurrentBalanceInUSDCents: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    if (!project.enableCallNotifications) {
+      throw new BadDataException(
+        "Call notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+      );
+    }
+
+    if (
+      (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
+      IsBillingEnabled
+    ) {
+      throw new BadDataException(
+        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
+      );
+    }
+
     // generate new verification code
     item.verificationCode = Text.generateRandomNumber(6);
 

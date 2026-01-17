@@ -545,12 +545,19 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /notification {
-        # This is for nginx not to crash when service is not available. 
+        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        # Use upstream X-Forwarded-Proto if available (for webhook signature validation behind proxies like ngrok)
+        # Falls back to $scheme if not set
+        set $forwarded_proto $http_x_forwarded_proto;
+        if ($forwarded_proto = '') {
+            set $forwarded_proto $scheme;
+        }
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header X-Forwarded-Host $host;
 
         # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
         proxy_http_version 1.1;

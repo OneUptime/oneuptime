@@ -312,3 +312,6 @@ export const CallDefaultCostInCentsPerMinute: number = process.env[
 ]
   ? parseInt(process.env["CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE"])
   : 0;
+
+// Call provider type
+export const CallProvider: string = process.env["CALL_PROVIDER"] || "twilio";

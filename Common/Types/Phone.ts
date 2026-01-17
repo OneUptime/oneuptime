@@ -13,7 +13,7 @@ export default class Phone extends DatabaseProperty {
   public static pickPhoneNumberToSendSMSOrCallFrom(data: {
     to: Phone | string;
     primaryPhoneNumberToPickFrom: Phone | string;
-    seocndaryPhoneNumbersToPickFrom: Phone[] | string[];
+    secondaryPhoneNumbersToPickFrom: Phone[] | string[];
   }): Phone {
     /*
      * convert all to string, so that we can compare them
@@ -28,8 +28,8 @@ export default class Phone extends DatabaseProperty {
         ? data.primaryPhoneNumberToPickFrom
         : data.primaryPhoneNumberToPickFrom.toString();
 
-    const seocndaryPhoneNumbersToPickFrom: string[] =
-      data.seocndaryPhoneNumbersToPickFrom.map((phone: Phone | string) => {
+    const secondaryPhoneNumbersToPickFrom: string[] =
+      data.secondaryPhoneNumbersToPickFrom.map((phone: Phone | string) => {
         return typeof phone === "string" ? phone : phone.toString();
       });
 
@@ -51,7 +51,7 @@ export default class Phone extends DatabaseProperty {
       return new Phone(primaryPhoneNumberToPickFrom);
     }
 
-    for (const secondaryPhoneNumber of seocndaryPhoneNumbersToPickFrom) {
+    for (const secondaryPhoneNumber of secondaryPhoneNumbersToPickFrom) {
       const secondaryPhoneNumberCountryCode: string = normalizePhoneNumber(
         secondaryPhoneNumber,
       ).substring(0, 2);
@@ -147,5 +147,54 @@ export default class Phone extends DatabaseProperty {
       description: "Phone object",
       example: { _type: ObjectType.Phone, value: "+1-555-123-4567" },
     });
+  }
+
+  // Map of calling code prefixes to ISO country codes
+  private static readonly CALLING_CODE_TO_COUNTRY_MAP: Record<string, string> =
+    {
+      "+1": "US", // US and Canada
+      "+44": "GB", // United Kingdom
+      "+61": "AU", // Australia
+      "+49": "DE", // Germany
+      "+33": "FR", // France
+      "+91": "IN", // India
+      "+81": "JP", // Japan
+      "+86": "CN", // China
+      "+55": "BR", // Brazil
+      "+52": "MX", // Mexico
+    };
+
+  /**
+   * Extract ISO country code from a phone number
+   * @param phoneNumber - The phone number (e.g., "+15551234567")
+   * @returns ISO country code (e.g., "US") or "US" as default
+   */
+  public static getCountryCodeFromPhoneNumber(phoneNumber: string): string {
+    for (const [prefix, countryCode] of Object.entries(
+      Phone.CALLING_CODE_TO_COUNTRY_MAP,
+    )) {
+      if (phoneNumber.startsWith(prefix)) {
+        return countryCode;
+      }
+    }
+    return "US"; // Default to US if unknown
+  }
+
+  /**
+   * Extract area code from a phone number
+   * Currently only supports US/Canada (+1) numbers
+   * @param phoneNumber - The phone number (e.g., "+15551234567")
+   * @returns Area code (e.g., "555") or empty string for non-US/CA numbers
+   */
+  public static getAreaCodeFromPhoneNumber(phoneNumber: string): string {
+    // For US/Canada numbers (+1), extract the next 3 digits
+    if (phoneNumber.startsWith("+1")) {
+      const number: string = phoneNumber.substring(2);
+      if (number.length >= 3) {
+        return number.substring(0, 3);
+      }
+    }
+    // For other countries, area code extraction is more complex
+    return "";
   }
 }

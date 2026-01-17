@@ -44,6 +44,7 @@ import AlertAPI from "Common/Server/API/AlertAPI";
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
 import UserSMSAPI from "Common/Server/API/UserSmsAPI";
+import UserIncomingCallNumberAPI from "Common/Server/API/UserIncomingCallNumberAPI";
 import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
@@ -195,6 +196,20 @@ import OnCallDutyPolicyCustomFieldService, {
 import OnCallDutyPolicyEscalationRuleScheduleService, {
   Service as OnCallDutyPolicyEscalationRuleScheduleServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
+
+// Incoming Call Policy
+import IncomingCallPolicyService, {
+  Service as IncomingCallPolicyServiceType,
+} from "Common/Server/Services/IncomingCallPolicyService";
+import IncomingCallPolicyEscalationRuleService, {
+  Service as IncomingCallPolicyEscalationRuleServiceType,
+} from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
+import IncomingCallLogService, {
+  Service as IncomingCallLogServiceType,
+} from "Common/Server/Services/IncomingCallLogService";
+import IncomingCallLogItemService, {
+  Service as IncomingCallLogItemServiceType,
+} from "Common/Server/Services/IncomingCallLogItemService";
 import OnCallDutyPolicyEscalationRuleService, {
   Service as OnCallDutyPolicyEscalationRuleServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
@@ -432,6 +447,12 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTimelineStatus from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+
+// Incoming Call Policy Models
+import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
+import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
+import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
@@ -1613,6 +1634,45 @@ const BaseAPIFeatureSet: FeatureSet = {
       new OnCallDutyPolicyAPI().getRouter(),
     );
 
+    // IncomingCallPolicy
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncomingCallPolicy, IncomingCallPolicyServiceType>(
+        IncomingCallPolicy,
+        IncomingCallPolicyService,
+      ).getRouter(),
+    );
+
+    // IncomingCallPolicyEscalationRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyEscalationRule,
+        IncomingCallPolicyEscalationRuleServiceType
+      >(
+        IncomingCallPolicyEscalationRule,
+        IncomingCallPolicyEscalationRuleService,
+      ).getRouter(),
+    );
+
+    // IncomingCallLog
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncomingCallLog, IncomingCallLogServiceType>(
+        IncomingCallLog,
+        IncomingCallLogService,
+      ).getRouter(),
+    );
+
+    // IncomingCallLogItem
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncomingCallLogItem, IncomingCallLogItemServiceType>(
+        IncomingCallLogItem,
+        IncomingCallLogItemService,
+      ).getRouter(),
+    );
+
     // TeamComplianceAPI
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -1672,6 +1732,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserIncomingCallNumberAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserWhatsAppAPI().getRouter(),

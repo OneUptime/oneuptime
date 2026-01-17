@@ -601,6 +601,24 @@ enum Permission {
   DeleteProjectOnCallDutyPolicyEscalationRuleTeam = "DeleteProjectOnCallDutyPolicyEscalationRuleTeam",
   ReadProjectOnCallDutyPolicyEscalationRuleTeam = "ReadProjectOnCallDutyPolicyEscalationRuleTeam",
 
+  // Incoming Call Policy Permissions
+  CreateProjectIncomingCallPolicy = "CreateProjectIncomingCallPolicy",
+  EditProjectIncomingCallPolicy = "EditProjectIncomingCallPolicy",
+  DeleteProjectIncomingCallPolicy = "DeleteProjectIncomingCallPolicy",
+  ReadProjectIncomingCallPolicy = "ReadProjectIncomingCallPolicy",
+
+  // Incoming Call Policy Escalation Rule Permissions
+  CreateProjectIncomingCallPolicyEscalationRule = "CreateProjectIncomingCallPolicyEscalationRule",
+  EditProjectIncomingCallPolicyEscalationRule = "EditProjectIncomingCallPolicyEscalationRule",
+  DeleteProjectIncomingCallPolicyEscalationRule = "DeleteProjectIncomingCallPolicyEscalationRule",
+  ReadProjectIncomingCallPolicyEscalationRule = "ReadProjectIncomingCallPolicyEscalationRule",
+
+  // Incoming Call Log Permissions
+  ReadProjectIncomingCallLog = "ReadProjectIncomingCallLog",
+
+  // Incoming Call Log Item Permissions
+  ReadProjectIncomingCallLogItem = "ReadProjectIncomingCallLogItem",
+
   // Project SMTP Config (Team Permission)
   CreateProjectSMTPConfig = "CreateProjectSMTPConfig",
   EditProjectSMTPConfig = "EditProjectSMTPConfig",
@@ -2491,6 +2509,94 @@ export class PermissionHelper {
         title: "Read On-Call Duty Policy Escalation Rule Team",
         description:
           "This permission can read teams in on-call duty escalation rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incoming Call Policy Permissions
+      {
+        permission: Permission.CreateProjectIncomingCallPolicy,
+        title: "Create Incoming Call Policy",
+        description:
+          "This permission can create incoming call policies for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteProjectIncomingCallPolicy,
+        title: "Delete Incoming Call Policy",
+        description:
+          "This permission can delete incoming call policies of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditProjectIncomingCallPolicy,
+        title: "Edit Incoming Call Policy",
+        description:
+          "This permission can edit incoming call policies of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadProjectIncomingCallPolicy,
+        title: "Read Incoming Call Policy",
+        description:
+          "This permission can read incoming call policies of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incoming Call Policy Escalation Rule Permissions
+      {
+        permission: Permission.CreateProjectIncomingCallPolicyEscalationRule,
+        title: "Create Incoming Call Policy Escalation Rule",
+        description:
+          "This permission can create incoming call policy escalation rules for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteProjectIncomingCallPolicyEscalationRule,
+        title: "Delete Incoming Call Policy Escalation Rule",
+        description:
+          "This permission can delete incoming call policy escalation rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditProjectIncomingCallPolicyEscalationRule,
+        title: "Edit Incoming Call Policy Escalation Rule",
+        description:
+          "This permission can edit incoming call policy escalation rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadProjectIncomingCallPolicyEscalationRule,
+        title: "Read Incoming Call Policy Escalation Rule",
+        description:
+          "This permission can read incoming call policy escalation rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incoming Call Log Permissions
+      {
+        permission: Permission.ReadProjectIncomingCallLog,
+        title: "Read Incoming Call Log",
+        description:
+          "This permission can read incoming call logs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incoming Call Log Item Permissions
+      {
+        permission: Permission.ReadProjectIncomingCallLogItem,
+        title: "Read Incoming Call Log Item",
+        description:
+          "This permission can read incoming call log items of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

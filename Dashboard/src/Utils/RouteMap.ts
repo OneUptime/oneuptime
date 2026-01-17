@@ -314,6 +314,16 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+
+  // Incoming Call Policy
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]: "incoming-call-policies",
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW]: `incoming-call-policies/${RouteParams.ModelID}`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]: `incoming-call-policies/${RouteParams.ModelID}/escalation`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS]: `incoming-call-policies/${RouteParams.ModelID}/logs`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW]: `incoming-call-policies/${RouteParams.ModelID}/logs/${RouteParams.SubModelID}`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS]: `incoming-call-policies/${RouteParams.ModelID}/settings`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]: `incoming-call-policies/${RouteParams.ModelID}/delete`,
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]: `incoming-call-policies/${RouteParams.ModelID}/docs`,
 };
 
 export const MonitorGroupRoutePath: Dictionary<string> = {
@@ -336,6 +346,8 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: "alert-on-call-rules",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: "on-call-logs",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
+  [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
+    "incoming-call-phone-numbers",
 };
 
 const RouteMap: Dictionary<Route> = {
@@ -1568,6 +1580,61 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Incoming Call Policy Routes
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[
+        PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION
+      ]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[
+        PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_LOG_VIEW
+      ]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[
+        PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS
+      ]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]
+    }`,
+  ),
+
   [PageMap.REPORTS]: new Route(`/dashboard/${RouteParams.ProjectID}/reports/`),
 
   [PageMap.ERROR_TRACKER]: new Route(
@@ -1661,6 +1728,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]
     }`,
   ),
 

@@ -62,6 +62,7 @@ enum IconProp {
   Activity = "Activity",
   Alert = "Alert",
   Call = "Call",
+  IncomingCall = "IncomingCall",
   List = "List",
   CheckCircle = "CheckCircle",
   Search = "Search",

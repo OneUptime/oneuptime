@@ -120,7 +120,7 @@ export default class CallService {
       const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
         to: callRequest.to,
         primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
-        seocndaryPhoneNumbersToPickFrom:
+        secondaryPhoneNumbersToPickFrom:
           twilioConfig.secondaryPhoneNumbers || [],
       });
       callLog.fromNumber = fromNumber;

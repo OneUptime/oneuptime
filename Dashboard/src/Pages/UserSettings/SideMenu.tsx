@@ -82,6 +82,22 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
     {
+      title: "Incoming Call Policy",
+      items: [
+        {
+          link: {
+            title: "Incoming Phone Numbers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Call,
+        },
+      ],
+    },
+    {
       title: "Workspace Connections",
       items: [
         {

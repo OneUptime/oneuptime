@@ -53,6 +53,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
+      title: "Incoming Calls",
+      items: [
+        {
+          link: {
+            title: "Incoming Call Policies",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES] as Route,
+            ),
+          },
+          icon: IconProp.IncomingCall,
+        },
+      ],
+    },
+    {
       title: "Advanced",
       items: [
         {
