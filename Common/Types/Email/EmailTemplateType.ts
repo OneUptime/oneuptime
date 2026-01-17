@@ -61,8 +61,6 @@ enum EmailTemplateType {
   UserNoLongerActiveOnOnCallRoster = "UserNoLongerActiveOnOnCallRoster.hbs",
 
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
-  IncomingCallPhoneNumberAtRisk = "IncomingCallPhoneNumberAtRisk.hbs",
-  IncomingCallPhoneNumberReleased = "IncomingCallPhoneNumberReleased.hbs",
 }
 
 export default EmailTemplateType;
