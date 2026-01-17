@@ -288,16 +288,14 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
   })
   @Index()
   @TableColumn({
-    required: true,
+    isDefaultValueColumn: false,
     type: TableColumnType.Number,
     title: "Order",
     description: "Execution order (1, 2, 3...)",
     canReadOnRelationQuery: true,
   })
   @Column({
-    nullable: false,
     type: ColumnType.Number,
-    default: 1,
   })
   public order?: number = undefined;
 

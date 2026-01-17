@@ -49,7 +49,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
         listDetailOptions={{
           showDetailsInNumberOfColumns: 2,
         }}
-        onBeforeCreate={(
+        onBeforeCreate={async (
           item: IncomingCallPolicyEscalationRule,
         ): Promise<IncomingCallPolicyEscalationRule> => {
           item.incomingCallPolicyId = modelId;
@@ -71,7 +71,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             delete (item as Partial<IncomingCallPolicyEscalationRule>).userId;
           }
 
-          return Promise.resolve(item);
+          return item;
         }}
         cardProps={{
           title: "Escalation Rules",
