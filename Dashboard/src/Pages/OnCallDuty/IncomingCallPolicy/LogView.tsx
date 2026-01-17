@@ -72,6 +72,7 @@ const IncomingCallPolicyLogViewPage: FunctionComponent<
         selectMoreFields={{
           statusMessage: true,
         }}
+        filters={[]}
         columns={[
           {
             field: {
