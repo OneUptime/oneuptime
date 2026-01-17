@@ -61,7 +61,7 @@ const IncomingCallPolicyView: FunctionComponent<
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     }
-  }, [modelId, refreshToggle]);
+  }, [modelId.toString(), refreshToggle]);
 
   const handlePhoneNumberChange = (): void => {
     setRefreshToggle(!refreshToggle);
