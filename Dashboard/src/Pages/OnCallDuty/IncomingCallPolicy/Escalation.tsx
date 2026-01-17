@@ -55,11 +55,6 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
           item.incomingCallPolicyId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
 
-          // Auto-generate order - new items go to the end, users can drag to reorder
-          if (!item.order) {
-            item.order = Date.now();
-          }
-
           // Validation: either userId or onCallDutyPolicyScheduleId must be set
           if (!item.userId && !item.onCallDutyPolicyScheduleId) {
             throw new BadDataException(
