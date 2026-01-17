@@ -219,62 +219,155 @@ const IncomingCallPolicyView: FunctionComponent<
         }}
       />
 
-      {/* Step 1: Twilio Configuration */}
+      {/* Setup Steps Card */}
       <div className="mt-5">
         <Card
-          title="Step 1: Select Twilio Configuration"
-          description="Choose which Twilio account to use for this incoming call policy"
+          title="Setup"
+          description="Complete these steps to configure your incoming call policy"
         >
-          <div className="p-6">
-            {hasTwilioConfig ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.CheckCircle} className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {policy?.projectCallSMSConfig?.name}
-                    </p>
-                    <p className="text-sm text-green-600">Configuration selected</p>
-                  </div>
+          <div className="p-6 space-y-6">
+            {/* Step 1: Twilio Configuration */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-700 font-semibold text-sm">
+                  1
                 </div>
-                <Button
-                  title="Change"
-                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                  onClick={() => {
-                    setShowTwilioConfigModal(true);
-                  }}
-                />
+                {hasTwilioConfig ? (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Icon icon={IconProp.CheckCircle} className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {policy?.projectCallSMSConfig?.name}
+                      </p>
+                      <p className="text-sm text-green-600">Twilio configuration selected</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <Icon icon={IconProp.ExclaimationCircle} className="h-6 w-6 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Select Twilio Configuration</p>
+                      <p className="text-sm text-gray-500">
+                        Choose which Twilio account to use or{" "}
+                        <Link
+                          to={RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route}
+                          className="text-blue-600 hover:underline"
+                        >
+                          create one in Project Settings
+                        </Link>
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.ExclaimationCircle} className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">No configuration selected</p>
-                    <p className="text-sm text-gray-500">
-                      Select a Twilio configuration or{" "}
-                      <Link
-                        to={RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route}
-                        className="text-blue-600 hover:underline"
-                      >
-                        create one in Project Settings
-                      </Link>
-                    </p>
-                  </div>
+              <Button
+                title={hasTwilioConfig ? "Change" : "Select"}
+                buttonStyle={hasTwilioConfig ? ButtonStyleType.SECONDARY_LINK : ButtonStyleType.PRIMARY}
+                onClick={() => {
+                  setShowTwilioConfigModal(true);
+                }}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200" />
+
+            {/* Step 2: Phone Number */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasTwilioConfig ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}>
+                  2
                 </div>
+                {!hasTwilioConfig ? (
+                  <div className="flex items-center space-x-3 text-gray-400">
+                    <Icon icon={IconProp.Lock} className="h-5 w-5" />
+                    <p>Complete Step 1 to configure a phone number</p>
+                  </div>
+                ) : hasPhoneNumber ? (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Icon icon={IconProp.Call} className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {policy?.routingPhoneNumber?.toString()}
+                      </p>
+                      <p className="text-sm text-green-600">Phone number configured</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <Icon icon={IconProp.ExclaimationCircle} className="h-6 w-6 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Configure Phone Number</p>
+                      <p className="text-sm text-gray-500">Select an existing number or reserve a new one</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {hasTwilioConfig && (
+                <PhoneNumberPurchase
+                  projectId={projectId}
+                  incomingCallPolicyId={modelId}
+                  projectCallSMSConfigId={policy?.projectCallSMSConfigId}
+                  currentPhoneNumber={policy?.routingPhoneNumber?.toString()}
+                  onPhoneNumberPurchased={handlePhoneNumberChange}
+                  onPhoneNumberReleased={handlePhoneNumberChange}
+                  hideCard={true}
+                />
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200" />
+
+            {/* Step 3: Escalation Rules */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm ${!hasPhoneNumber ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}>
+                  3
+                </div>
+                {!hasPhoneNumber ? (
+                  <div className="flex items-center space-x-3 text-gray-400">
+                    <Icon icon={IconProp.Lock} className="h-5 w-5" />
+                    <p>Complete Step 2 to add escalation rules</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Icon icon={IconProp.BarsArrowDown} className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Escalation Rules</p>
+                      <p className="text-sm text-gray-500">
+                        Add on-call schedules, teams, or users to handle incoming calls
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {hasPhoneNumber && (
                 <Button
-                  title="Select Configuration"
+                  title="Manage Rules"
                   buttonStyle={ButtonStyleType.PRIMARY}
+                  icon={IconProp.ArrowCircleRight}
                   onClick={() => {
-                    setShowTwilioConfigModal(true);
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION] as Route,
+                        { modelId: modelId }
+                      )
+                    );
                   }}
                 />
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </Card>
       </div>
@@ -353,111 +446,6 @@ const IncomingCallPolicyView: FunctionComponent<
           }}
         />
       )}
-
-      {/* Step 2: Phone Number */}
-      <div className="mt-5">
-        <Card
-          title="Step 2: Configure Phone Number"
-          description="Use an existing Twilio phone number or purchase a new one"
-        >
-          <div className="p-6">
-            {!hasTwilioConfig ? (
-              <div className="flex items-center space-x-3 text-gray-400">
-                <Icon icon={IconProp.Lock} className="h-5 w-5" />
-                <p>Complete Step 1 to configure a phone number</p>
-              </div>
-            ) : hasPhoneNumber ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.Call} className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {policy?.routingPhoneNumber?.toString()}
-                    </p>
-                    <p className="text-sm text-green-600">Phone number configured</p>
-                  </div>
-                </div>
-                <PhoneNumberPurchase
-                  projectId={projectId}
-                  incomingCallPolicyId={modelId}
-                  projectCallSMSConfigId={policy?.projectCallSMSConfigId}
-                  currentPhoneNumber={policy?.routingPhoneNumber?.toString()}
-                  onPhoneNumberPurchased={handlePhoneNumberChange}
-                  onPhoneNumberReleased={handlePhoneNumberChange}
-                  hideCard={true}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.ExclaimationCircle} className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">No phone number configured</p>
-                    <p className="text-sm text-gray-500">Select an existing number or purchase a new one</p>
-                  </div>
-                </div>
-                <PhoneNumberPurchase
-                  projectId={projectId}
-                  incomingCallPolicyId={modelId}
-                  projectCallSMSConfigId={policy?.projectCallSMSConfigId}
-                  currentPhoneNumber={policy?.routingPhoneNumber?.toString()}
-                  onPhoneNumberPurchased={handlePhoneNumberChange}
-                  onPhoneNumberReleased={handlePhoneNumberChange}
-                  hideCard={true}
-                />
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Step 3: Escalation Rules */}
-      <div className="mt-5">
-        <Card
-          title="Step 3: Add Escalation Rules"
-          description="Define how incoming calls should be routed to your on-call team"
-        >
-          <div className="p-6">
-            {!hasPhoneNumber ? (
-              <div className="flex items-center space-x-3 text-gray-400">
-                <Icon icon={IconProp.Lock} className="h-5 w-5" />
-                <p>Complete Step 2 to add escalation rules</p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.Call} className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">Configure call routing</p>
-                    <p className="text-sm text-gray-500">
-                      Add on-call schedules, teams, or users to handle incoming calls
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  title="Manage Escalation Rules"
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  icon={IconProp.ArrowCircleRight}
-                  onClick={() => {
-                    Navigation.navigate(
-                      RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_ESCALATION] as Route,
-                        { modelId: modelId }
-                      )
-                    );
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
     </Fragment>
   );
 };
