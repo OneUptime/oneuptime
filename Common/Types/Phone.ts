@@ -150,18 +150,19 @@ export default class Phone extends DatabaseProperty {
   }
 
   // Map of calling code prefixes to ISO country codes
-  private static readonly CALLING_CODE_TO_COUNTRY_MAP: Record<string, string> = {
-    "+1": "US", // US and Canada
-    "+44": "GB", // United Kingdom
-    "+61": "AU", // Australia
-    "+49": "DE", // Germany
-    "+33": "FR", // France
-    "+91": "IN", // India
-    "+81": "JP", // Japan
-    "+86": "CN", // China
-    "+55": "BR", // Brazil
-    "+52": "MX", // Mexico
-  };
+  private static readonly CALLING_CODE_TO_COUNTRY_MAP: Record<string, string> =
+    {
+      "+1": "US", // US and Canada
+      "+44": "GB", // United Kingdom
+      "+61": "AU", // Australia
+      "+49": "DE", // Germany
+      "+33": "FR", // France
+      "+91": "IN", // India
+      "+81": "JP", // Japan
+      "+86": "CN", // China
+      "+55": "BR", // Brazil
+      "+52": "MX", // Mexico
+    };
 
   /**
    * Extract ISO country code from a phone number

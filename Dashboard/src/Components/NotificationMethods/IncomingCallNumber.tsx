@@ -26,8 +26,9 @@ const IncomingCallNumber: () => JSX.Element = (): ReactElement => {
     useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
-  const [currentItem, setCurrentItem] =
-    useState<UserIncomingCallNumber | null>(null);
+  const [currentItem, setCurrentItem] = useState<UserIncomingCallNumber | null>(
+    null,
+  );
   const [refreshToggle, setRefreshToggle] = useState<string>(
     OneUptimeDate.getCurrentDate().toString(),
   );

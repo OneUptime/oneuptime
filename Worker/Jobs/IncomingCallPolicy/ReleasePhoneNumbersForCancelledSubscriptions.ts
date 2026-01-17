@@ -189,8 +189,10 @@ RunCron(
             const phoneNumber: string =
               policy.routingPhoneNumber?.toString() || "";
 
-            // Disable the policy and clear phone number fields
-            // Note: We do NOT release the phone number from Twilio since users manage their own accounts
+            /*
+             * Disable the policy and clear phone number fields
+             * Note: We do NOT release the phone number from Twilio since users manage their own accounts
+             */
             await IncomingCallPolicyService.updateOneById({
               id: policy.id!,
               data: {

@@ -266,9 +266,8 @@ router.post(
       }
 
       // Get project Twilio config
-      const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(
-        incomingCallPolicy.projectCallSMSConfigId,
-      );
+      const customTwilioConfig: TwilioConfig | null =
+        await getProjectTwilioConfig(incomingCallPolicy.projectCallSMSConfigId);
       if (!customTwilioConfig) {
         throw new BadDataException("Project Call/SMS Config not found");
       }
@@ -288,11 +287,14 @@ router.post(
       );
 
       // Get country code from phone number
-      const countryCode: string = Phone.getCountryCodeFromPhoneNumber(phoneNumber);
+      const countryCode: string =
+        Phone.getCountryCodeFromPhoneNumber(phoneNumber);
       const areaCode: string = Phone.getAreaCodeFromPhoneNumber(phoneNumber);
 
-      // Update the incoming call policy with the purchased number
-      // Customer pays Twilio directly - no billing cost stored
+      /*
+       * Update the incoming call policy with the purchased number
+       * Customer pays Twilio directly - no billing cost stored
+       */
       await IncomingCallPolicyService.updateOneById({
         id: incomingCallPolicyId,
         data: {
@@ -365,9 +367,8 @@ router.delete(
       }
 
       // Get project Twilio config
-      const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(
-        incomingCallPolicy.projectCallSMSConfigId,
-      );
+      const customTwilioConfig: TwilioConfig | null =
+        await getProjectTwilioConfig(incomingCallPolicy.projectCallSMSConfigId);
       if (!customTwilioConfig) {
         throw new BadDataException("Project Call/SMS Config not found");
       }

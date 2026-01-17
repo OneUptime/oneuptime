@@ -118,9 +118,8 @@ router.post(
       }
 
       // Get project Twilio config
-      const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(
-        policy.projectCallSMSConfigId,
-      );
+      const customTwilioConfig: TwilioConfig | null =
+        await getProjectTwilioConfig(policy.projectCallSMSConfigId);
 
       if (!customTwilioConfig) {
         logger.error(
@@ -370,9 +369,8 @@ router.post(
       }
 
       // Get project Twilio config
-      const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(
-        policy.projectCallSMSConfigId,
-      );
+      const customTwilioConfig: TwilioConfig | null =
+        await getProjectTwilioConfig(policy.projectCallSMSConfigId);
 
       if (!customTwilioConfig) {
         logger.error("Twilio config not found for policy");
