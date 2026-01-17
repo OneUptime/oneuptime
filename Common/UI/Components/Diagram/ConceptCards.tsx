@@ -37,12 +37,12 @@ const ConceptCards: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className={`grid ${getGridClasses()} gap-4`}>
+    <div className={`grid ${getGridClasses()} gap-3`}>
       {props.cards.map((card: ConceptCard, index: number) => {
         return (
           <div
             key={index}
-            className="border border-gray-200 rounded-md p-4 bg-white hover:border-gray-300 transition-colors"
+            className="border border-gray-200 rounded-md p-3 bg-white hover:border-gray-300 transition-colors"
           >
             <div className="flex items-start space-x-3">
               <div
