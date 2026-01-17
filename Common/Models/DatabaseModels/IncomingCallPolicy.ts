@@ -462,7 +462,7 @@ export default class IncomingCallPolicy extends BaseModel {
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
     default:
-      "We're sorry, but no on-call engineer is currently available. Please try again later or contact support.",
+      "We are sorry, but no on-call engineer is currently available. Please try again later or contact support.",
   })
   public noOneAvailableMessage?: string = undefined;
 

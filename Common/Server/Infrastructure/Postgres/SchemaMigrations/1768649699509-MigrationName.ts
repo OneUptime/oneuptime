@@ -177,7 +177,7 @@ export class MigrationName1768649699509 implements MigrationInterface {
       `ALTER TABLE "IncomingCallPolicy" ADD "phoneNumberPurchasedAt" TIMESTAMP WITH TIME ZONE`,
     );
     await queryRunner.query(
-      `ALTER TABLE "IncomingCallPolicy" ALTER COLUMN "noOneAvailableMessage" SET DEFAULT 'We're sorry, but no on-call engineer is currently available. Please try again later or contact support.'`,
+      `ALTER TABLE "IncomingCallPolicy" ALTER COLUMN "noOneAvailableMessage" SET DEFAULT 'We are sorry, but no on-call engineer is currently available. Please try again later or contact support.'`,
     );
     await queryRunner.query(
       `ALTER TABLE "IncomingCallPolicyEscalationRule" DROP COLUMN "createdAt"`,
@@ -609,7 +609,7 @@ export class MigrationName1768649699509 implements MigrationInterface {
       `ALTER TABLE "IncomingCallPolicyEscalationRule" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`,
     );
     await queryRunner.query(
-      `ALTER TABLE "IncomingCallPolicy" ALTER COLUMN "noOneAvailableMessage" SET DEFAULT 'We''re sorry, but no on-call engineer is currently available. Please try again later or contact support.'`,
+      `ALTER TABLE "IncomingCallPolicy" ALTER COLUMN "noOneAvailableMessage" SET DEFAULT 'We are sorry, but no on-call engineer is currently available. Please try again later or contact support.'`,
     );
     await queryRunner.query(
       `ALTER TABLE "IncomingCallPolicy" DROP COLUMN "phoneNumberPurchasedAt"`,
