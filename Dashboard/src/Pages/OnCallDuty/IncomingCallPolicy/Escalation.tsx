@@ -244,7 +244,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               if (item.onCallDutyPolicySchedule?.name) {
                 return <span>{item.onCallDutyPolicySchedule.name}</span>;
               }
-              return <span className="text-gray-400">-</span>;
+              return <></>;
             },
           },
           {
@@ -263,7 +263,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               if (item.user) {
                 return <UserElement user={item.user} />;
               }
-              return <span className="text-gray-400">-</span>;
+              return <></>;
             },
           },
           {
