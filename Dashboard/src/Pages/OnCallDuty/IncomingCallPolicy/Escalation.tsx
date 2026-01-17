@@ -84,26 +84,40 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             "Define the order in which users or schedules are called when an incoming call is received.",
         }}
         noItemsMessage={"No escalation rules found."}
+        formSteps={[
+          {
+            title: "Overview",
+            id: "overview",
+          },
+          {
+            title: "Notification",
+            id: "notification",
+          },
+          {
+            title: "Escalation",
+            id: "escalation",
+          },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Rule Name",
+            stepId: "overview",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "e.g., Primary On-Call",
           },
           {
             field: {
-              escalateAfterSeconds: true,
+              description: true,
             },
-            title: "Escalate After (Seconds)",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "30",
-            description:
-              "Time to wait before escalating to the next rule if no answer",
+            title: "Description",
+            stepId: "overview",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Optional description for this rule",
           },
           {
             overrideField: {
@@ -112,6 +126,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             overrideFieldKey: "notifyType",
             showEvenIfPermissionDoesNotExist: true,
             title: "Notify",
+            stepId: "notification",
             description: "Select who should be notified when a call comes in.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
@@ -134,6 +149,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               onCallDutyPolicyScheduleId: true,
             },
             title: "On-Call Schedule",
+            stepId: "notification",
             description:
               "Select an on-call schedule. The current on-call user will be called.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -161,6 +177,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
             },
             showEvenIfPermissionDoesNotExist: true,
             title: "User",
+            stepId: "notification",
             description: "Select a user to call directly.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
@@ -180,12 +197,15 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
           },
           {
             field: {
-              description: true,
+              escalateAfterSeconds: true,
             },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Optional description for this rule",
+            title: "Escalate After (Seconds)",
+            stepId: "escalation",
+            fieldType: FormFieldSchemaType.Number,
+            required: true,
+            placeholder: "30",
+            description:
+              "Time to wait before escalating to the next rule if no answer",
           },
         ]}
         showRefreshButton={true}
