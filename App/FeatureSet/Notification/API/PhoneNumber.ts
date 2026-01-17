@@ -1,4 +1,5 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
+import { getProjectTwilioConfig } from "../Utils/TwilioConfigHelper";
 import { HttpProtocol, Host } from "Common/Server/EnvironmentConfig";
 import {
   AvailablePhoneNumber,
@@ -11,7 +12,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
-import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import Express, {
   ExpressRequest,
@@ -22,36 +22,8 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import logger from "Common/Server/Utils/Logger";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
-import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import Project from "Common/Models/DatabaseModels/Project";
 import Phone from "Common/Types/Phone";
-
-// Helper function to get TwilioConfig from project config
-async function getProjectTwilioConfig(
-  projectCallSMSConfigId: ObjectID,
-): Promise<TwilioConfig | null> {
-  const projectConfig: ProjectCallSMSConfig | null =
-    await ProjectCallSMSConfigService.findOneById({
-      id: projectCallSMSConfigId,
-      select: {
-        twilioAccountSID: true,
-        twilioAuthToken: true,
-        twilioPrimaryPhoneNumber: true,
-        twilioSecondaryPhoneNumbers: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-  if (!projectConfig) {
-    return null;
-  }
-
-  const twilioConfig: TwilioConfig | undefined =
-    ProjectCallSMSConfigService.toTwilioConfig(projectConfig);
-  return twilioConfig || null;
-}
 
 const router: ExpressRouter = Express.getRouter();
 

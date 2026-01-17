@@ -140,7 +140,7 @@ export default class SmsService {
       const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
         to: to,
         primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
-        seocndaryPhoneNumbersToPickFrom:
+        secondaryPhoneNumbersToPickFrom:
           twilioConfig.secondaryPhoneNumbers || [],
       });
 

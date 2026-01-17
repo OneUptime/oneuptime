@@ -1,4 +1,5 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
+import { getProjectTwilioConfig } from "../Utils/TwilioConfigHelper";
 import {
   DialStatusData,
   ICallProvider,
@@ -17,7 +18,6 @@ import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPo
 import UserService from "Common/Server/Services/UserService";
 import UserIncomingCallNumberService from "Common/Server/Services/UserIncomingCallNumberService";
 import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
-import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -29,39 +29,11 @@ import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy"
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
 import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
-import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import User from "Common/Models/DatabaseModels/User";
 import Phone from "Common/Types/Phone";
 import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 
 const router: ExpressRouter = Express.getRouter();
-
-// Helper function to get TwilioConfig from project config
-async function getProjectTwilioConfig(
-  projectCallSMSConfigId: ObjectID,
-): Promise<TwilioConfig | null> {
-  const projectConfig: ProjectCallSMSConfig | null =
-    await ProjectCallSMSConfigService.findOneById({
-      id: projectCallSMSConfigId,
-      select: {
-        twilioAccountSID: true,
-        twilioAuthToken: true,
-        twilioPrimaryPhoneNumber: true,
-        twilioSecondaryPhoneNumbers: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-  if (!projectConfig) {
-    return null;
-  }
-
-  const twilioConfig: TwilioConfig | undefined =
-    ProjectCallSMSConfigService.toTwilioConfig(projectConfig);
-  return twilioConfig || null;
-}
 
 // Handle incoming voice call - single endpoint for all phone numbers
 router.post(

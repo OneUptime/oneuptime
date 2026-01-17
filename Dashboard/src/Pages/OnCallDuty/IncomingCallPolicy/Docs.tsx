@@ -134,7 +134,7 @@ const IncomingCallPolicyDocs: FunctionComponent<
       title: "Voice Messages",
       description:
         "Customize the greeting message, no-answer message, and other voice prompts callers hear.",
-      icon: IconProp.Microphone,
+      icon: IconProp.Chat,
       iconColor: new Color("#f59e0b"), // amber-500
     },
     {

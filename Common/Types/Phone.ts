@@ -13,7 +13,7 @@ export default class Phone extends DatabaseProperty {
   public static pickPhoneNumberToSendSMSOrCallFrom(data: {
     to: Phone | string;
     primaryPhoneNumberToPickFrom: Phone | string;
-    seocndaryPhoneNumbersToPickFrom: Phone[] | string[];
+    secondaryPhoneNumbersToPickFrom: Phone[] | string[];
   }): Phone {
     /*
      * convert all to string, so that we can compare them
@@ -28,8 +28,8 @@ export default class Phone extends DatabaseProperty {
         ? data.primaryPhoneNumberToPickFrom
         : data.primaryPhoneNumberToPickFrom.toString();
 
-    const seocndaryPhoneNumbersToPickFrom: string[] =
-      data.seocndaryPhoneNumbersToPickFrom.map((phone: Phone | string) => {
+    const secondaryPhoneNumbersToPickFrom: string[] =
+      data.secondaryPhoneNumbersToPickFrom.map((phone: Phone | string) => {
         return typeof phone === "string" ? phone : phone.toString();
       });
 
@@ -51,7 +51,7 @@ export default class Phone extends DatabaseProperty {
       return new Phone(primaryPhoneNumberToPickFrom);
     }
 
-    for (const secondaryPhoneNumber of seocndaryPhoneNumbersToPickFrom) {
+    for (const secondaryPhoneNumber of secondaryPhoneNumbersToPickFrom) {
       const secondaryPhoneNumberCountryCode: string = normalizePhoneNumber(
         secondaryPhoneNumber,
       ).substring(0, 2);
