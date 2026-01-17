@@ -204,7 +204,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setSelectedNumber(null);
       closeConfigureModal();
       setSuccessMessage(
-        `Phone number ${selectedNumber.phoneNumber} has been purchased and configured for this policy.`,
+        `Phone number ${selectedNumber.phoneNumber} has been reserved and configured for this policy.`,
       );
       setShowSuccessModal(true);
 
@@ -239,7 +239,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setIsLoading(false);
       setShowReleaseConfirmModal(false);
       setSuccessMessage(
-        "Phone number has been released back to Twilio. You can purchase a new number.",
+        "Phone number has been released back to Twilio. You can reserve a new number.",
       );
       setShowSuccessModal(true);
 
@@ -381,7 +381,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               No Phone Number Configured
             </p>
             <p className="text-sm text-gray-600">
-              Search and purchase a phone number to enable incoming call
+              Search and reserve a phone number to enable incoming call
               routing.
             </p>
           </div>
@@ -420,7 +420,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                     </p>
                   </div>
                   <Button
-                    title="Purchase"
+                    title="Reserve"
                     buttonStyle={ButtonStyleType.SUCCESS}
                     icon={IconProp.Add}
                     onClick={() => {
@@ -455,7 +455,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       return (
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-600">
-            No existing phone numbers found in your Twilio account. You can search and purchase a new number instead.
+            No existing phone numbers found in your Twilio account. You can search and reserve a new number instead.
           </p>
         </div>
       );
@@ -523,8 +523,8 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     }
     return (
       <Card
-        title="Purchase Phone Number"
-        description="Buy a phone number from Twilio to receive incoming calls"
+        title="Reserve Phone Number"
+        description="Reserve a phone number from Twilio to receive incoming calls"
       >
         <Alert
           type={AlertType.WARNING}
@@ -562,7 +562,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 <Icon icon={IconProp.List} className="h-6 w-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <h4 className="text-lg font-semibold text-gray-900">Use Existing Number</h4>
+                <h4 className="text-lg font-semibold text-gray-900">Use Existing Phone Number</h4>
                 <p className="text-sm text-gray-500 mt-1">
                   Select a phone number you already own in your Twilio account
                 </p>
@@ -583,9 +583,9 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 <Icon icon={IconProp.Add} className="h-6 w-6 text-green-600" />
               </div>
               <div className="flex-1">
-                <h4 className="text-lg font-semibold text-gray-900">Buy New Number</h4>
+                <h4 className="text-lg font-semibold text-gray-900">Reserve New Phone Number</h4>
                 <p className="text-sm text-gray-500 mt-1">
-                  Search and purchase a new phone number from Twilio
+                  Search and reserve a new phone number from Twilio
                 </p>
               </div>
               <Icon icon={IconProp.ChevronRight} className="h-5 w-5 text-gray-400" />
@@ -625,7 +625,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 Your Twilio account doesn&apos;t have any phone numbers yet.
               </p>
               <Button
-                title="Buy a New Number Instead"
+                title="Reserve a New Number Instead"
                 buttonStyle={ButtonStyleType.PRIMARY}
                 onClick={() => {
                   setConfigureStep("buy");
@@ -689,7 +689,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           {availableNumbers.length === 0 && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600 mb-4">
-                Search for available phone numbers in your preferred country. The number will be purchased using your Twilio balance.
+                Search for available phone numbers in your preferred country. The number will be reserved using your Twilio balance.
               </p>
               <Button
                 title="Search for Numbers"
@@ -736,7 +736,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                           </p>
                         </div>
                         <Button
-                          title="Purchase"
+                          title="Reserve"
                           buttonStyle={ButtonStyleType.SUCCESS}
                           icon={IconProp.Add}
                           onClick={() => {
@@ -804,15 +804,15 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               configureStep === "choose"
                 ? "Configure Phone Number"
                 : configureStep === "existing"
-                  ? "Select Existing Number"
-                  : "Buy New Number"
+                  ? "Select Existing Phone Number"
+                  : "Reserve New Phone Number"
             }
             description={
               configureStep === "choose"
                 ? "Choose how you want to configure the phone number for incoming calls"
                 : configureStep === "existing"
                   ? "Select a phone number from your Twilio account"
-                  : "Search and purchase a new phone number"
+                  : "Search and reserve a new phone number"
             }
             onClose={closeConfigureModal}
           >
@@ -829,7 +829,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         {showSearchModal ? (
           <BasicFormModal
             title="Search Available Phone Numbers"
-            description="Search for phone numbers available in your Twilio account. The number will be purchased using your Twilio balance."
+            description="Search for phone numbers available in your Twilio account. The number will be reserved using your Twilio balance."
             formProps={{
               name: "Search Phone Numbers",
               error: error,
@@ -885,7 +885,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         {showReleaseConfirmModal ? (
           <ConfirmModal
             title="Release Phone Number"
-            description={`Are you sure you want to release the phone number ${props.currentPhoneNumber}? This action will return the number to Twilio and it may not be available for re-purchase.`}
+            description={`Are you sure you want to release the phone number ${props.currentPhoneNumber}? This action will return the number to Twilio and it may not be available to reserve again.`}
             error={error}
             submitButtonText="Release Number"
             submitButtonType={ButtonStyleType.DANGER}
@@ -900,13 +900,13 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           <></>
         )}
 
-        {/* Purchase Confirmation Modal */}
+        {/* Reserve Confirmation Modal */}
         {showPurchaseConfirmModal && selectedNumber ? (
           <ConfirmModal
-            title="Confirm Purchase"
-            description={`Are you sure you want to purchase ${selectedNumber.friendlyName}? This will be charged to your Twilio account.`}
+            title="Confirm Reservation"
+            description={`Are you sure you want to reserve ${selectedNumber.friendlyName}? This will be charged to your Twilio account.`}
             error={error}
-            submitButtonText="Purchase"
+            submitButtonText="Reserve"
             submitButtonType={ButtonStyleType.SUCCESS}
             onClose={() => {
               setShowPurchaseConfirmModal(false);
@@ -993,7 +993,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     <>
       <Card
         title="Phone Number"
-        description="Use an existing Twilio phone number or purchase a new one"
+        description="Use an existing Twilio phone number or reserve a new one"
         buttons={[
           {
             title: "Configure Number",
