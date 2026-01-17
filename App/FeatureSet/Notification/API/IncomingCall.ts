@@ -770,7 +770,7 @@ async function getUserToCall(
     return null;
   }
 
-  // First, check if the user has a verified incoming call number for this project
+  // Check if the user has a verified incoming call number for this project
   const verifiedIncomingCallNumber: UserIncomingCallNumber | null =
     await UserIncomingCallNumberService.findOneBy({
       query: {
@@ -786,34 +786,16 @@ async function getUserToCall(
       },
     });
 
-  if (verifiedIncomingCallNumber && verifiedIncomingCallNumber.phone) {
-    // Get user details for logging
-    const user: User | null = await UserService.findOneById({
-      id: userId,
-      select: {
-        _id: true,
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return {
-      userId: userId,
-      phoneNumber: verifiedIncomingCallNumber.phone,
-      name: user?.name?.toString(),
-      email: user?.email?.toString(),
-    };
+  if (!verifiedIncomingCallNumber || !verifiedIncomingCallNumber.phone) {
+    // No verified incoming call number for this user in this project
+    return null;
   }
 
-  // Fall back to user's alert phone number
+  // Get user details for logging
   const user: User | null = await UserService.findOneById({
     id: userId,
     select: {
       _id: true,
-      alertPhoneNumber: true,
       name: true,
       email: true,
     },
@@ -822,15 +804,11 @@ async function getUserToCall(
     },
   });
 
-  if (!user || !user.alertPhoneNumber) {
-    return null;
-  }
-
   return {
     userId: userId,
-    phoneNumber: user.alertPhoneNumber,
-    name: user.name?.toString(),
-    email: user.email?.toString(),
+    phoneNumber: verifiedIncomingCallNumber.phone,
+    name: user?.name?.toString(),
+    email: user?.email?.toString(),
   };
 }
 
