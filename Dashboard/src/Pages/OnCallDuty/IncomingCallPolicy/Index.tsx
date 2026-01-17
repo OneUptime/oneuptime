@@ -6,7 +6,7 @@ import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSCon
 import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormType from "Common/UI/Components/Forms/Types/FormType";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";

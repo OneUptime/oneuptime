@@ -40,6 +40,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.BarsArrowDown}
         />
+        <SideMenuItem
+          link={{
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Book}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Logs">
