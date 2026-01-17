@@ -10,6 +10,7 @@ import {
 } from "Common/Types/Call/CallProvider";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import Phone from "Common/Types/Phone";
 import Twilio from "twilio";
 import { validateRequest } from "twilio";
 import { IncomingCallPhoneNumberMarkupPercentage } from "../Config";
@@ -105,7 +106,7 @@ export default class TwilioCallProvider implements ICallProvider {
      * Get pricing for this phone number's country
      * Extract country code from phone number (e.g., +1 for US/CA)
      */
-    const countryCode: string = this.getCountryCodeFromPhoneNumber(phoneNumber);
+    const countryCode: string = Phone.getCountryCodeFromPhoneNumber(phoneNumber);
     const pricing: { basePricePerMonthInUSDCents: number } =
       await this.getPhoneNumberPricing(countryCode);
 
@@ -309,33 +310,5 @@ export default class TwilioCallProvider implements ICallProvider {
 
   private applyMarkup(basePriceInCents: number): number {
     return Math.round(basePriceInCents * PHONE_NUMBER_PRICE_MULTIPLIER);
-  }
-
-  private getCountryCodeFromPhoneNumber(phoneNumber: string): string {
-    /*
-     * Map common country calling codes to ISO country codes
-     * This is a simplified mapping - in production you might use a library like libphonenumber
-     */
-    const countryCodeMap: Record<string, string> = {
-      "+1": "US", // US and Canada
-      "+44": "GB", // United Kingdom
-      "+61": "AU", // Australia
-      "+49": "DE", // Germany
-      "+33": "FR", // France
-      "+91": "IN", // India
-      "+81": "JP", // Japan
-      "+86": "CN", // China
-      "+55": "BR", // Brazil
-      "+52": "MX", // Mexico
-    };
-
-    for (const [prefix, countryCode] of Object.entries(countryCodeMap)) {
-      if (phoneNumber.startsWith(prefix)) {
-        return countryCode;
-      }
-    }
-
-    // Default to US if unknown
-    return "US";
   }
 }

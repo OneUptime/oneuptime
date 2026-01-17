@@ -314,8 +314,8 @@ router.post(
       );
 
       // Get country code from phone number
-      const countryCode: string = getCountryCodeFromPhoneNumber(phoneNumber);
-      const areaCode: string = getAreaCodeFromPhoneNumber(phoneNumber);
+      const countryCode: string = Phone.getCountryCodeFromPhoneNumber(phoneNumber);
+      const areaCode: string = Phone.getAreaCodeFromPhoneNumber(phoneNumber);
 
       /*
        * Update the incoming call policy with the purchased number
@@ -420,14 +420,14 @@ router.delete(
       await IncomingCallPolicyService.updateOneById({
         id: incomingCallPolicyId,
         data: {
-          routingPhoneNumber: undefined as any,
-          callProviderPhoneNumberId: undefined as any,
-          phoneNumberCountryCode: undefined as any,
-          phoneNumberAreaCode: undefined as any,
-          callProviderCostPerMonthInUSDCents: undefined as any,
-          customerCostPerMonthInUSDCents: undefined as any,
-          phoneNumberPurchasedAt: undefined as any,
-        },
+          routingPhoneNumber: null,
+          callProviderPhoneNumberId: null,
+          phoneNumberCountryCode: null,
+          phoneNumberAreaCode: null,
+          callProviderCostPerMonthInUSDCents: null,
+          customerCostPerMonthInUSDCents: null,
+          phoneNumberPurchasedAt: null,
+        } as any, // TypeORM allows null for nullable columns
         props: {
           isRoot: true,
         },
@@ -442,47 +442,5 @@ router.delete(
     }
   },
 );
-
-// Helper function to extract country code from phone number
-function getCountryCodeFromPhoneNumber(phoneNumber: string): string {
-  // Map common country calling codes to ISO country codes
-  const countryCodeMap: Record<string, string> = {
-    "+1": "US", // US and Canada
-    "+44": "GB", // United Kingdom
-    "+61": "AU", // Australia
-    "+49": "DE", // Germany
-    "+33": "FR", // France
-    "+91": "IN", // India
-    "+81": "JP", // Japan
-    "+86": "CN", // China
-    "+55": "BR", // Brazil
-    "+52": "MX", // Mexico
-  };
-
-  for (const [prefix, countryCode] of Object.entries(countryCodeMap)) {
-    if (phoneNumber.startsWith(prefix)) {
-      return countryCode;
-    }
-  }
-
-  return "US"; // Default to US if unknown
-}
-
-// Helper function to extract area code from phone number
-function getAreaCodeFromPhoneNumber(phoneNumber: string): string {
-  // Remove the country code prefix
-  let number: string = phoneNumber;
-
-  // For US/Canada numbers (+1), extract the next 3 digits
-  if (phoneNumber.startsWith("+1")) {
-    number = phoneNumber.substring(2);
-    if (number.length >= 3) {
-      return number.substring(0, 3);
-    }
-  }
-
-  // For other countries, this is more complex - return empty for now
-  return "";
-}
 
 export default router;

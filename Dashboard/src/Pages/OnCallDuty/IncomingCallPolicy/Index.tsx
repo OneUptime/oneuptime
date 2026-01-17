@@ -105,18 +105,6 @@ const IncomingCallPolicyView: FunctionComponent<
           },
           {
             field: {
-              busyMessage: true,
-            },
-            title: "Busy Message",
-            stepId: "messages",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "All lines are currently busy. Please try again in a few minutes.",
-            description: "Message when max concurrent calls is reached",
-          },
-          {
-            field: {
               isEnabled: true,
             },
             title: "Enabled",
@@ -145,29 +133,6 @@ const IncomingCallPolicyView: FunctionComponent<
             required: false,
             placeholder: "1",
             description: "Maximum number of times to repeat the policy",
-          },
-          {
-            field: {
-              maxConcurrentCalls: true,
-            },
-            title: "Max Concurrent Calls",
-            stepId: "settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "1",
-            description: "Maximum number of simultaneous calls to route",
-          },
-          {
-            field: {
-              maxTotalCallDurationSeconds: true,
-            },
-            title: "Max Total Call Duration (Seconds)",
-            stepId: "settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "300",
-            description:
-              "Maximum duration for entire call including escalations",
           },
           {
             field: {

@@ -38,6 +38,7 @@ import Phone from "Common/Types/Phone";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import ProjectService from "Common/Server/Services/ProjectService";
 import Project from "Common/Models/DatabaseModels/Project";
+import { SubscriptionStatusUtil } from "Common/Types/Billing/SubscriptionStatus";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -212,24 +213,12 @@ router.post(
           },
         });
 
-        const cancelledStatuses: Array<string> = [
-          "canceled",
-          "unpaid",
-          "expired",
-          "incomplete_expired",
-        ];
         const isCancelled: boolean =
-          Boolean(
-            project?.paymentProviderSubscriptionStatus &&
-              cancelledStatuses.includes(
-                project.paymentProviderSubscriptionStatus.toLowerCase(),
-              ),
+          SubscriptionStatusUtil.isSubscriptionCancelled(
+            project?.paymentProviderSubscriptionStatus,
           ) ||
-          Boolean(
-            project?.paymentProviderMeteredSubscriptionStatus &&
-              cancelledStatuses.includes(
-                project.paymentProviderMeteredSubscriptionStatus.toLowerCase(),
-              ),
+          SubscriptionStatusUtil.isSubscriptionCancelled(
+            project?.paymentProviderMeteredSubscriptionStatus,
           );
 
         if (isCancelled) {
@@ -659,7 +648,6 @@ router.post(
             if (userToCall && userToCall.alertPhoneNumber) {
               // Continue with the call
               return await dialNextUser(
-                req,
                 res,
                 provider,
                 policy,
@@ -732,7 +720,6 @@ router.post(
 
       // Dial the next user
       return await dialNextUser(
-        req,
         res,
         provider,
         policy,
@@ -814,7 +801,6 @@ function generateGreetingAndDialTwiml(
 
 // Helper function to dial the next user
 async function dialNextUser(
-  _req: ExpressRequest,
   res: ExpressResponse,
   provider: ICallProvider,
   policy: IncomingCallPolicy,
