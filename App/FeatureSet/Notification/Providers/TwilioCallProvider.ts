@@ -10,14 +10,8 @@ import {
 } from "Common/Types/Call/CallProvider";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Phone from "Common/Types/Phone";
 import Twilio from "twilio";
 import { validateRequest } from "twilio";
-import { IncomingCallPhoneNumberMarkupPercentage } from "../Config";
-
-// Calculate multiplier from percentage (20% markup = 1.20 multiplier)
-const PHONE_NUMBER_PRICE_MULTIPLIER: number =
-  1 + IncomingCallPhoneNumberMarkupPercentage / 100;
 
 export default class TwilioCallProvider implements ICallProvider {
   private client: Twilio.Twilio;
@@ -31,9 +25,6 @@ export default class TwilioCallProvider implements ICallProvider {
   public async searchAvailableNumbers(
     options: SearchNumberOptions,
   ): Promise<AvailablePhoneNumber[]> {
-    const pricing: { basePricePerMonthInUSDCents: number } =
-      await this.getPhoneNumberPricing(options.countryCode);
-
     const searchOptions: {
       voiceEnabled: boolean;
       limit: number;
@@ -72,10 +63,6 @@ export default class TwilioCallProvider implements ICallProvider {
           phoneNumber: n.phoneNumber,
           friendlyName: n.friendlyName,
           country: options.countryCode,
-          providerCostPerMonthInUSDCents: pricing.basePricePerMonthInUSDCents,
-          customerCostPerMonthInUSDCents: this.applyMarkup(
-            pricing.basePricePerMonthInUSDCents,
-          ),
         };
         if (n.locality) {
           result.locality = n.locality;
@@ -102,18 +89,9 @@ export default class TwilioCallProvider implements ICallProvider {
       voiceMethod: "POST",
     });
 
-    /*
-     * Get pricing for this phone number's country
-     * Extract country code from phone number (e.g., +1 for US/CA)
-     */
-    const countryCode: string = Phone.getCountryCodeFromPhoneNumber(phoneNumber);
-    const pricing: { basePricePerMonthInUSDCents: number } =
-      await this.getPhoneNumberPricing(countryCode);
-
     return {
       phoneNumberId: purchased.sid,
       phoneNumber: purchased.phoneNumber,
-      providerCostPerMonthInUSDCents: pricing.basePricePerMonthInUSDCents,
     };
   }
 
@@ -129,57 +107,6 @@ export default class TwilioCallProvider implements ICallProvider {
       voiceUrl: webhookUrl,
       voiceMethod: "POST",
     });
-  }
-
-  public async getPhoneNumberPricing(
-    countryCode: string,
-  ): Promise<{ basePricePerMonthInUSDCents: number }> {
-    try {
-      const pricing: Twilio.Twilio["pricing"]["v1"]["phoneNumbers"]["countries"] extends (
-        countryCode: string,
-      ) => { fetch: () => Promise<infer R> }
-        ? R
-        : never = await this.client.pricing.v1.phoneNumbers
-        .countries(countryCode)
-        .fetch();
-
-      /*
-       * Twilio returns prices - we need to convert to cents
-       * The pricing structure has phoneNumberPrices with basePrice
-       */
-      const phoneNumberPrices: Array<{
-        basePrice: number | string;
-        numberType: string;
-      }> = (pricing.phoneNumberPrices || []) as Array<{
-        basePrice: number | string;
-        numberType: string;
-      }>;
-
-      // Find local number pricing
-      const localPricing:
-        | { basePrice: number | string; numberType: string }
-        | undefined = phoneNumberPrices.find(
-        (p: { basePrice: number | string; numberType: string }) => {
-          return p.numberType === "local";
-        },
-      );
-
-      if (localPricing) {
-        const basePriceInDollars: number =
-          typeof localPricing.basePrice === "string"
-            ? parseFloat(localPricing.basePrice)
-            : localPricing.basePrice;
-        return {
-          basePricePerMonthInUSDCents: Math.round(basePriceInDollars * 100),
-        };
-      }
-
-      // Default price if local pricing not found
-      return { basePricePerMonthInUSDCents: 100 }; // $1.00 default
-    } catch (error) {
-      // Default price if pricing API fails
-      return { basePricePerMonthInUSDCents: 100 }; // $1.00 default
-    }
   }
 
   public generateGreetingResponse(message: string): string {
@@ -306,9 +233,5 @@ export default class TwilioCallProvider implements ICallProvider {
       canceled: "canceled",
     };
     return map[status] || "failed";
-  }
-
-  private applyMarkup(basePriceInCents: number): number {
-    return Math.round(basePriceInCents * PHONE_NUMBER_PRICE_MULTIPLIER);
   }
 }

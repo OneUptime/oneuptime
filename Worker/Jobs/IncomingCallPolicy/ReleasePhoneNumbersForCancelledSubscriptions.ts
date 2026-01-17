@@ -13,22 +13,14 @@ import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy"
 import User from "Common/Models/DatabaseModels/User";
 import MailService from "Common/Server/Services/MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import { ICallProvider } from "Common/Types/Call/CallProvider";
-import CallProviderFactory from "../../../App/FeatureSet/Notification/Providers/CallProviderFactory";
 
 /**
- * This job releases phone numbers and disables incoming call policies
- * for projects with cancelled subscriptions.
+ * This job disables incoming call policies for projects with cancelled subscriptions.
  *
- * For policies using global Twilio config:
- * - Release the phone number from Twilio (to stop incurring costs)
- * - Disable the policy
- * - Send notification email
- *
- * For policies using project's own Twilio config:
- * - Do NOT release the phone number (it's in their account)
- * - Disable the policy (so OneUptime stops routing)
- * - Send notification email
+ * Since users manage their own Twilio accounts and phone numbers:
+ * - Do NOT release the phone number (it's in their Twilio account)
+ * - Disable the policy (so OneUptime stops routing calls)
+ * - Send notification email to project owners
  */
 RunCron(
   "IncomingCallPolicy:ReleasePhoneNumbersForCancelledSubscriptions",
@@ -194,38 +186,11 @@ RunCron(
 
         for (const policy of policiesWithPhoneNumbers) {
           try {
-            const isUsingProjectConfig: boolean = Boolean(
-              policy.projectCallSMSConfigId,
-            );
             const phoneNumber: string =
               policy.routingPhoneNumber?.toString() || "";
 
-            // Only release phone number if using global config
-            if (!isUsingProjectConfig && policy.callProviderPhoneNumberId) {
-              try {
-                const provider: ICallProvider =
-                  await CallProviderFactory.getProvider();
-                await provider.releaseNumber(policy.callProviderPhoneNumberId);
-
-                logger.info({
-                  message: "Released phone number for cancelled subscription",
-                  projectId: project.id?.toString(),
-                  policyId: policy.id?.toString(),
-                  phoneNumber: phoneNumber,
-                });
-              } catch (releaseError) {
-                logger.error({
-                  message: "Failed to release phone number from Twilio",
-                  error: releaseError,
-                  projectId: project.id?.toString(),
-                  policyId: policy.id?.toString(),
-                  phoneNumber: phoneNumber,
-                });
-                // Continue to disable the policy even if release fails
-              }
-            }
-
             // Disable the policy and clear phone number fields
+            // Note: We do NOT release the phone number from Twilio since users manage their own accounts
             await IncomingCallPolicyService.updateOneById({
               id: policy.id!,
               data: {
@@ -234,8 +199,6 @@ RunCron(
                 callProviderPhoneNumberId: null as any,
                 phoneNumberCountryCode: null as any,
                 phoneNumberAreaCode: null as any,
-                callProviderCostPerMonthInUSDCents: null as any,
-                customerCostPerMonthInUSDCents: null as any,
                 phoneNumberPurchasedAt: null as any,
               },
               props: {
@@ -249,7 +212,6 @@ RunCron(
               projectId: project.id?.toString(),
               policyId: policy.id?.toString(),
               phoneNumber: phoneNumber,
-              usedProjectConfig: isUsingProjectConfig,
             });
 
             // Send notification to project owners

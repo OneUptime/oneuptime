@@ -1,14 +1,11 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
-import ProjectService from "./ProjectService";
 import SmsService from "./SmsService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
-import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserIncomingCallNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -24,37 +21,6 @@ export class Service extends DatabaseService<Model> {
     // Check if user is trying to set isVerified to true
     if (!createBy.props.isRoot && createBy.data.isVerified) {
       throw new BadDataException("isVerified cannot be set to true");
-    }
-
-    // Check if this project has SMS and Call enabled
-    const project: Project | null = await ProjectService.findOneById({
-      id: createBy.data.projectId!,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        enableSmsNotifications: true,
-        smsOrCallCurrentBalanceInUSDCents: true,
-      },
-    });
-
-    if (!project) {
-      throw new BadDataException("Project not found");
-    }
-
-    if (!project.enableSmsNotifications) {
-      throw new BadDataException(
-        "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
-      );
-    }
-
-    if (
-      (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
-      IsBillingEnabled
-    ) {
-      throw new BadDataException(
-        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
-      );
     }
 
     // Check if user already has a verified phone number for this project

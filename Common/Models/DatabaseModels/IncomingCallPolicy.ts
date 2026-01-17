@@ -353,50 +353,6 @@ export default class IncomingCallPolicy extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.Number,
-    title: "Provider Cost Per Month (USD Cents)",
-    description: "The call provider's base cost per month in USD cents",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Number,
-  })
-  public callProviderCostPerMonthInUSDCents?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncomingCallPolicy,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Number,
-    title: "Customer Cost Per Month (USD Cents)",
-    description: "The customer price per month in USD cents (with markup)",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Number,
-  })
-  public customerCostPerMonthInUSDCents?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncomingCallPolicy,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: false,
     type: TableColumnType.Date,
     title: "Phone Number Purchased At",
     description: "When the phone number was purchased",

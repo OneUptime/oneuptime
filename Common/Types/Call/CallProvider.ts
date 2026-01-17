@@ -7,15 +7,12 @@ export interface AvailablePhoneNumber {
   locality?: string; // "San Francisco"
   region?: string; // "CA"
   country: string; // "US"
-  providerCostPerMonthInUSDCents: number;
-  customerCostPerMonthInUSDCents: number;
 }
 
 // Purchased phone number details
 export interface PurchasedPhoneNumber {
   phoneNumberId: string; // Provider's ID (e.g., Twilio SID)
   phoneNumber: string;
-  providerCostPerMonthInUSDCents: number;
 }
 
 // Search options for available numbers
@@ -70,11 +67,6 @@ export interface ICallProvider {
   ): Promise<PurchasedPhoneNumber>;
   releaseNumber(phoneNumberId: string): Promise<void>;
   updateWebhookUrl(phoneNumberId: string, webhookUrl: string): Promise<void>;
-
-  // Pricing
-  getPhoneNumberPricing(
-    countryCode: string,
-  ): Promise<{ basePricePerMonthInUSDCents: number }>;
 
   // Voice response generation (provider-specific markup)
   generateGreetingResponse(message: string): string;

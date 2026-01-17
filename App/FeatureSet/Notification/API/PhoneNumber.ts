@@ -1,5 +1,5 @@
 import CallProviderFactory from "../Providers/CallProviderFactory";
-import { PhoneNumberPriceMultiplier, NotificationWebhookHost } from "../Config";
+import { NotificationWebhookHost } from "../Config";
 import {
   AvailablePhoneNumber,
   ICallProvider,
@@ -9,7 +9,6 @@ import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -66,7 +65,6 @@ router.post(
         ? new ObjectID(body["projectId"] as string)
         : undefined;
 
-      // Optional: Use project's own Twilio config
       const projectCallSMSConfigId: ObjectID | undefined = body[
         "projectCallSMSConfigId"
       ]
@@ -75,6 +73,12 @@ router.post(
 
       if (!projectId) {
         throw new BadDataException("projectId is required");
+      }
+
+      if (!projectCallSMSConfigId) {
+        throw new BadDataException(
+          "projectCallSMSConfigId is required. Please configure a project-level Twilio configuration.",
+        );
       }
 
       const countryCode: string | undefined = body["countryCode"] as
@@ -107,21 +111,15 @@ router.post(
         throw new BadDataException("Project not found");
       }
 
-      // Get the appropriate provider (project config or global)
-      let provider: ICallProvider;
-      const isUsingProjectConfig: boolean = Boolean(projectCallSMSConfigId);
-
-      if (projectCallSMSConfigId) {
-        const customTwilioConfig: TwilioConfig | null =
-          await getProjectTwilioConfig(projectCallSMSConfigId);
-        if (!customTwilioConfig) {
-          throw new BadDataException("Project Call/SMS Config not found");
-        }
-        provider =
-          CallProviderFactory.getProviderWithConfig(customTwilioConfig);
-      } else {
-        provider = await CallProviderFactory.getProvider();
+      // Get project Twilio config
+      const customTwilioConfig: TwilioConfig | null =
+        await getProjectTwilioConfig(projectCallSMSConfigId);
+      if (!customTwilioConfig) {
+        throw new BadDataException("Project Call/SMS Config not found");
       }
+
+      const provider: ICallProvider =
+        CallProviderFactory.getProviderWithConfig(customTwilioConfig);
 
       const searchOptions: {
         countryCode: string;
@@ -144,51 +142,29 @@ router.post(
       const numbers: AvailablePhoneNumber[] =
         await provider.searchAvailableNumbers(searchOptions);
 
-      // Apply markup to customer price (only when using global config)
-      const numbersWithMarkup: AvailablePhoneNumber[] = numbers.map(
-        (number: AvailablePhoneNumber) => {
-          return {
-            ...number,
-            // When using project config, customer pays Twilio directly (no markup)
-            customerCostPerMonthInUSDCents: isUsingProjectConfig
-              ? number.providerCostPerMonthInUSDCents
-              : Math.round(
-                  number.providerCostPerMonthInUSDCents *
-                    PhoneNumberPriceMultiplier,
-                ),
-          };
-        },
-      );
-
-      // If billing is not enabled or using project config, don't show cost
+      // Customer pays Twilio directly - just return the phone numbers
       type ResponseNumber = {
         phoneNumber: string;
         friendlyName: string;
         locality?: string;
         region?: string;
         country: string;
-        providerCostPerMonthInUSDCents?: number;
-        customerCostPerMonthInUSDCents?: number;
       };
 
-      const responseNumbers: Array<ResponseNumber> = numbersWithMarkup.map(
+      const responseNumbers: Array<ResponseNumber> = numbers.map(
         (n: AvailablePhoneNumber): ResponseNumber => {
-          // When using project config, customer pays Twilio directly - don't show our billing
-          if (!IsBillingEnabled || isUsingProjectConfig) {
-            const result: ResponseNumber = {
-              phoneNumber: n.phoneNumber,
-              friendlyName: n.friendlyName,
-              country: n.country,
-            };
-            if (n.locality) {
-              result.locality = n.locality;
-            }
-            if (n.region) {
-              result.region = n.region;
-            }
-            return result;
+          const result: ResponseNumber = {
+            phoneNumber: n.phoneNumber,
+            friendlyName: n.friendlyName,
+            country: n.country,
+          };
+          if (n.locality) {
+            result.locality = n.locality;
           }
-          return n;
+          if (n.region) {
+            result.region = n.region;
+          }
+          return result;
         },
       );
 
@@ -282,31 +258,29 @@ router.post(
         );
       }
 
+      // Require project-level Twilio config
+      if (!incomingCallPolicy.projectCallSMSConfigId) {
+        throw new BadDataException(
+          "This policy does not have a project Twilio configuration. Please configure one first.",
+        );
+      }
+
+      // Get project Twilio config
+      const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(
+        incomingCallPolicy.projectCallSMSConfigId,
+      );
+      if (!customTwilioConfig) {
+        throw new BadDataException("Project Call/SMS Config not found");
+      }
+
+      const provider: ICallProvider =
+        CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+
       /*
        * Construct webhook URL - single endpoint for all phone numbers
        * Twilio sends the "To" phone number in every webhook, so we look up the policy by phone number
        */
       const webhookUrl: string = `${NotificationWebhookHost}/notification/incoming-call/voice`;
-
-      // Get the appropriate provider (project config or global)
-      let provider: ICallProvider;
-      const isUsingProjectConfig: boolean = Boolean(
-        incomingCallPolicy.projectCallSMSConfigId,
-      );
-
-      if (incomingCallPolicy.projectCallSMSConfigId) {
-        const customTwilioConfig: TwilioConfig | null =
-          await getProjectTwilioConfig(
-            incomingCallPolicy.projectCallSMSConfigId,
-          );
-        if (!customTwilioConfig) {
-          throw new BadDataException("Project Call/SMS Config not found");
-        }
-        provider =
-          CallProviderFactory.getProviderWithConfig(customTwilioConfig);
-      } else {
-        provider = await CallProviderFactory.getProvider();
-      }
 
       const purchased: PurchasedPhoneNumber = await provider.purchaseNumber(
         phoneNumber,
@@ -317,10 +291,8 @@ router.post(
       const countryCode: string = Phone.getCountryCodeFromPhoneNumber(phoneNumber);
       const areaCode: string = Phone.getAreaCodeFromPhoneNumber(phoneNumber);
 
-      /*
-       * Update the incoming call policy with the purchased number
-       * When using project config, customer pays Twilio directly (no markup, no billing cost stored)
-       */
+      // Update the incoming call policy with the purchased number
+      // Customer pays Twilio directly - no billing cost stored
       await IncomingCallPolicyService.updateOneById({
         id: incomingCallPolicyId,
         data: {
@@ -328,16 +300,6 @@ router.post(
           callProviderPhoneNumberId: purchased.phoneNumberId,
           phoneNumberCountryCode: countryCode,
           phoneNumberAreaCode: areaCode,
-          // Only store costs if using global config (for billing purposes)
-          callProviderCostPerMonthInUSDCents: isUsingProjectConfig
-            ? null
-            : purchased.providerCostPerMonthInUSDCents,
-          customerCostPerMonthInUSDCents: isUsingProjectConfig
-            ? null
-            : Math.round(
-                purchased.providerCostPerMonthInUSDCents *
-                  PhoneNumberPriceMultiplier,
-              ),
           phoneNumberPurchasedAt: new Date(),
         },
         props: {
@@ -395,22 +357,23 @@ router.delete(
         throw new BadDataException("This policy does not have a phone number");
       }
 
-      // Get the appropriate provider (project config or global)
-      let provider: ICallProvider;
-
-      if (incomingCallPolicy.projectCallSMSConfigId) {
-        const customTwilioConfig: TwilioConfig | null =
-          await getProjectTwilioConfig(
-            incomingCallPolicy.projectCallSMSConfigId,
-          );
-        if (!customTwilioConfig) {
-          throw new BadDataException("Project Call/SMS Config not found");
-        }
-        provider =
-          CallProviderFactory.getProviderWithConfig(customTwilioConfig);
-      } else {
-        provider = await CallProviderFactory.getProvider();
+      // Require project-level Twilio config
+      if (!incomingCallPolicy.projectCallSMSConfigId) {
+        throw new BadDataException(
+          "This policy does not have a project Twilio configuration.",
+        );
       }
+
+      // Get project Twilio config
+      const customTwilioConfig: TwilioConfig | null = await getProjectTwilioConfig(
+        incomingCallPolicy.projectCallSMSConfigId,
+      );
+      if (!customTwilioConfig) {
+        throw new BadDataException("Project Call/SMS Config not found");
+      }
+
+      const provider: ICallProvider =
+        CallProviderFactory.getProviderWithConfig(customTwilioConfig);
 
       await provider.releaseNumber(
         incomingCallPolicy.callProviderPhoneNumberId,
@@ -424,8 +387,6 @@ router.delete(
           callProviderPhoneNumberId: null,
           phoneNumberCountryCode: null,
           phoneNumberAreaCode: null,
-          callProviderCostPerMonthInUSDCents: null,
-          customerCostPerMonthInUSDCents: null,
           phoneNumberPurchasedAt: null,
         } as any, // TypeORM allows null for nullable columns
         props: {

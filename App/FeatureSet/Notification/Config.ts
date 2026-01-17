@@ -313,50 +313,6 @@ export const CallDefaultCostInCentsPerMinute: number = process.env[
   ? parseInt(process.env["CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE"])
   : 0;
 
-// Incoming Call Policy Configuration
-export const IncomingCallPhoneNumberMarkupPercentage: number = process.env[
-  "INCOMING_CALL_PHONE_NUMBER_MARKUP_PERCENTAGE"
-]
-  ? parseInt(process.env["INCOMING_CALL_PHONE_NUMBER_MARKUP_PERCENTAGE"])
-  : 20; // 20% markup on phone number costs
-
-export const IncomingCallInboundCostPerMinuteInCents: number = process.env[
-  "INCOMING_CALL_INBOUND_COST_PER_MINUTE_IN_CENTS"
-]
-  ? parseInt(process.env["INCOMING_CALL_INBOUND_COST_PER_MINUTE_IN_CENTS"])
-  : 2; // $0.02 per minute for incoming calls
-
-export const IncomingCallOutboundCostPerMinuteInCents: number = process.env[
-  "INCOMING_CALL_OUTBOUND_COST_PER_MINUTE_IN_CENTS"
-]
-  ? parseInt(process.env["INCOMING_CALL_OUTBOUND_COST_PER_MINUTE_IN_CENTS"])
-  : 4; // $0.04 per minute for outbound calls to on-call engineers
-
-export const IncomingCallEnabled: boolean =
-  process.env["INCOMING_CALL_ENABLED"] !== "false"; // Enabled by default
-
-// Phone number price multiplier (derived from markup percentage)
-export const PhoneNumberPriceMultiplier: number =
-  1 + IncomingCallPhoneNumberMarkupPercentage / 100;
-
-// Call costs for incoming calls
-export const IncomingCallCostPerMinuteInCents: number = process.env[
-  "INCOMING_CALL_COST_IN_CENTS_PER_MINUTE"
-]
-  ? parseInt(process.env["INCOMING_CALL_COST_IN_CENTS_PER_MINUTE"])
-  : 2; // $0.02 per minute
-
-export const IncomingCallForwardCostPerMinuteInCents: number = process.env[
-  "INCOMING_CALL_FORWARD_COST_IN_CENTS_PER_MINUTE"
-]
-  ? parseInt(process.env["INCOMING_CALL_FORWARD_COST_IN_CENTS_PER_MINUTE"])
-  : 2; // $0.02 per minute for forwarding
-
-// Minimum balance required to process a call (estimate for 10 minutes)
-export const IncomingCallMinimumBalanceRequiredInCents: number =
-  10 *
-  (IncomingCallCostPerMinuteInCents + IncomingCallForwardCostPerMinuteInCents);
-
 // Call provider type
 export const CallProvider: string = process.env["CALL_PROVIDER"] || "twilio";
 
