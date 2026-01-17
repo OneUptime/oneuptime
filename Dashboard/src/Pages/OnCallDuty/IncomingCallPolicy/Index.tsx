@@ -27,6 +27,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import Modal from "Common/UI/Components/Modal/Modal";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 
 const IncomingCallPolicyView: FunctionComponent<
   PageComponentProps
@@ -39,6 +41,8 @@ const IncomingCallPolicyView: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
   const [showTwilioConfigModal, setShowTwilioConfigModal] = useState<boolean>(false);
+  const [twilioConfigCount, setTwilioConfigCount] = useState<number | null>(null);
+  const [isLoadingTwilioConfigs, setIsLoadingTwilioConfigs] = useState<boolean>(false);
 
   // Fetch policy data
   useAsyncEffect(async () => {
@@ -69,6 +73,26 @@ const IncomingCallPolicyView: FunctionComponent<
   const handlePhoneNumberChange = (): void => {
     setRefreshToggle(!refreshToggle);
   };
+
+  // Fetch Twilio config count when modal opens
+  useAsyncEffect(async () => {
+    if (!showTwilioConfigModal) {
+      return;
+    }
+
+    try {
+      setIsLoadingTwilioConfigs(true);
+      const count: number = await ModelAPI.count({
+        modelType: ProjectCallSMSConfig,
+        query: {},
+      });
+      setTwilioConfigCount(count);
+    } catch (err) {
+      setTwilioConfigCount(0);
+    } finally {
+      setIsLoadingTwilioConfigs(false);
+    }
+  }, [showTwilioConfigModal]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -255,8 +279,43 @@ const IncomingCallPolicyView: FunctionComponent<
         </Card>
       </div>
 
-      {/* Twilio Configuration Modal */}
-      {showTwilioConfigModal && (
+      {/* Twilio Configuration Modal - No Configs Warning */}
+      {showTwilioConfigModal && !isLoadingTwilioConfigs && twilioConfigCount === 0 && (
+        <Modal
+          title="No Twilio Configuration Found"
+          onClose={() => {
+            setShowTwilioConfigModal(false);
+          }}
+          submitButtonText="Go to Settings"
+          onSubmit={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route
+              )
+            );
+          }}
+        >
+          <Alert
+            type={AlertType.WARNING}
+            title="You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Call & SMS to add your Twilio Account SID and Auth Token."
+          />
+        </Modal>
+      )}
+
+      {/* Twilio Configuration Modal - Loading */}
+      {showTwilioConfigModal && isLoadingTwilioConfigs && (
+        <Modal
+          title="Select Twilio Configuration"
+          onClose={() => {
+            setShowTwilioConfigModal(false);
+          }}
+        >
+          <PageLoader isVisible={true} />
+        </Modal>
+      )}
+
+      {/* Twilio Configuration Modal - Form */}
+      {showTwilioConfigModal && !isLoadingTwilioConfigs && twilioConfigCount !== null && twilioConfigCount > 0 && (
         <ModelFormModal<IncomingCallPolicy>
           title="Select Twilio Configuration"
           description="Choose which Twilio account to use for this incoming call policy"
