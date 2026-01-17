@@ -136,6 +136,21 @@ router.post(
       // Validate webhook signature to ensure request is from the call provider
       const signature: string =
         (req.headers["x-twilio-signature"] as string) || "";
+
+      // Debug logging
+      logger.debug("=== Incoming Call Webhook Debug ===");
+      logger.debug(`Original URL: ${req.originalUrl}`);
+      logger.debug(`Base URL: ${req.baseUrl}`);
+      logger.debug(`Path: ${req.path}`);
+      logger.debug(`Protocol: ${req.protocol}`);
+      logger.debug(`Host header: ${req.get("host")}`);
+      logger.debug(`X-Forwarded-Proto: ${req.get("x-forwarded-proto")}`);
+      logger.debug(`X-Forwarded-Host: ${req.get("x-forwarded-host")}`);
+      logger.debug(`Twilio Signature: ${signature}`);
+      logger.debug(`Environment HOST: ${Host}`);
+      logger.debug(`Environment HttpProtocol: ${HttpProtocol}`);
+      logger.debug("=== End Debug ===");
+
       if (
         !provider.validateWebhookSignature(
           req as unknown as WebhookRequest,

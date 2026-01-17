@@ -12,6 +12,7 @@ import {
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Twilio, { validateRequest } from "twilio";
+import logger from "Common/Server/Utils/Logger";
 
 export default class TwilioCallProvider implements ICallProvider {
   private client: Twilio.Twilio;
@@ -278,7 +279,23 @@ export default class TwilioCallProvider implements ICallProvider {
       params[key] = String(body[key]);
     }
 
-    return validateRequest(authToken, signature, url, params);
+    const isValid: boolean = validateRequest(authToken, signature, url, params);
+
+    // Debug logging for signature validation
+    if (!isValid) {
+      logger.debug("Twilio Webhook Signature Validation Debug:");
+      logger.debug(`  URL used for validation: ${url}`);
+      logger.debug(`  Signature received: ${signature}`);
+      logger.debug(`  Protocol: ${protocol}`);
+      logger.debug(`  Host: ${host}`);
+      logger.debug(`  Original URL: ${request.originalUrl}`);
+      logger.debug(`  X-Forwarded-Proto: ${forwardedProto}`);
+      logger.debug(`  X-Forwarded-Host: ${forwardedHost}`);
+      logger.debug(`  Request protocol: ${request.protocol}`);
+      logger.debug(`  Request host header: ${request.get("host")}`);
+    }
+
+    return isValid;
   }
 
   private mapTwilioStatus(status: string): DialStatusData["dialStatus"] {
