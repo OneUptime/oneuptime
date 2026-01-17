@@ -3,7 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -18,11 +18,62 @@ import PageMap from "../../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import PhoneNumberPurchase from "../../../Components/CallSMS/PhoneNumberPurchase";
+import ProjectUtil from "Common/UI/Utils/Project";
+import useAsyncEffect from "use-async-effect";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import API from "Common/UI/Utils/API/API";
 
 const IncomingCallPolicyView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+
+  const [policy, setPolicy] = useState<IncomingCallPolicy | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  // Fetch policy data
+  useAsyncEffect(async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const fetchedPolicy: IncomingCallPolicy | null = await ModelAPI.getItem({
+        modelType: IncomingCallPolicy,
+        id: modelId,
+        select: {
+          routingPhoneNumber: true,
+          projectCallSMSConfigId: true,
+          projectCallSMSConfig: {
+            name: true,
+          },
+        },
+      });
+
+      setPolicy(fetchedPolicy);
+      setIsLoading(false);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
+    }
+  }, [modelId, refreshToggle]);
+
+  const handlePhoneNumberChange = (): void => {
+    setRefreshToggle(!refreshToggle);
+  };
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
 
   return (
     <Fragment>
@@ -302,7 +353,7 @@ const IncomingCallPolicyView: FunctionComponent<
                 </div>
               </div>
 
-              {/* Step 3 */}
+              {/* Step 3 - Purchase Phone Number */}
               <div className="flex space-x-4">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
@@ -310,44 +361,27 @@ const IncomingCallPolicyView: FunctionComponent<
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h5 className="font-medium text-gray-900">Purchase a Phone Number from Twilio</h5>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Visit the{" "}
-                    <Link
-                      to={new Route("https://console.twilio.com/us1/develop/phone-numbers/manage/incoming")}
-                      openInNewTab={true}
-                      className="text-blue-600 hover:underline font-medium"
-                    >
-                      Twilio Console → Phone Numbers
-                    </Link>{" "}
-                    to purchase a phone number. Choose a number with voice capabilities.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div className="flex space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
-                    4
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h5 className="font-medium text-gray-900">Configure Webhook URL in Twilio</h5>
-                  <p className="text-sm text-gray-600 mt-1">
-                    In the Twilio Console, configure your phone number&apos;s voice webhook URL to point to your OneUptime instance:
-                  </p>
-                  <div className="mt-2 p-3 bg-gray-100 rounded font-mono text-sm break-all">
-                    https://your-oneuptime-domain/notification/incoming-call/voice
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Replace &quot;your-oneuptime-domain&quot; with your actual OneUptime instance domain.
+                  <h5 className="font-medium text-gray-900">Purchase a Phone Number</h5>
+                  <p className="text-sm text-gray-600 mt-1 mb-3">
+                    Search and purchase a phone number from Twilio. The webhook will be configured automatically.
                   </p>
                 </div>
               </div>
             </div>
           </div>
         </Card>
+      </div>
+
+      {/* Phone Number Purchase Card */}
+      <div className="mt-5">
+        <PhoneNumberPurchase
+          projectId={projectId}
+          incomingCallPolicyId={modelId}
+          projectCallSMSConfigId={policy?.projectCallSMSConfigId}
+          currentPhoneNumber={policy?.routingPhoneNumber?.toString()}
+          onPhoneNumberPurchased={handlePhoneNumberChange}
+          onPhoneNumberReleased={handlePhoneNumberChange}
+        />
       </div>
     </Fragment>
   );

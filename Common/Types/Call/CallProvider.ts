@@ -15,6 +15,14 @@ export interface PurchasedPhoneNumber {
   phoneNumber: string;
 }
 
+// Owned phone number (already purchased in Twilio account)
+export interface OwnedPhoneNumber {
+  phoneNumberId: string; // Provider's ID (e.g., Twilio SID)
+  phoneNumber: string; // "+14155550123"
+  friendlyName: string; // "(415) 555-0123"
+  voiceUrl?: string; // Current webhook URL configured
+}
+
 // Search options for available numbers
 export interface SearchNumberOptions {
   countryCode: string;
@@ -61,8 +69,13 @@ export interface ICallProvider {
   searchAvailableNumbers(
     options: SearchNumberOptions,
   ): Promise<AvailablePhoneNumber[]>;
+  listOwnedNumbers(): Promise<OwnedPhoneNumber[]>;
   purchaseNumber(
     phoneNumber: string,
+    webhookUrl: string,
+  ): Promise<PurchasedPhoneNumber>;
+  assignExistingNumber(
+    phoneNumberId: string,
     webhookUrl: string,
   ): Promise<PurchasedPhoneNumber>;
   releaseNumber(phoneNumberId: string): Promise<void>;

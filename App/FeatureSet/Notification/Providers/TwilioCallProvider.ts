@@ -4,6 +4,7 @@ import {
   DialStatusData,
   ICallProvider,
   IncomingCallData,
+  OwnedPhoneNumber,
   PurchasedPhoneNumber,
   SearchNumberOptions,
   WebhookRequest,
@@ -74,6 +75,33 @@ export default class TwilioCallProvider implements ICallProvider {
     );
   }
 
+  public async listOwnedNumbers(): Promise<OwnedPhoneNumber[]> {
+    const numbers: Array<{
+      sid: string;
+      phoneNumber: string;
+      friendlyName: string;
+      voiceUrl?: string;
+    }> = await this.client.incomingPhoneNumbers.list({
+      limit: 100,
+    });
+
+    return numbers.map(
+      (n: {
+        sid: string;
+        phoneNumber: string;
+        friendlyName: string;
+        voiceUrl?: string;
+      }): OwnedPhoneNumber => {
+        return {
+          phoneNumberId: n.sid,
+          phoneNumber: n.phoneNumber,
+          friendlyName: n.friendlyName,
+          voiceUrl: n.voiceUrl,
+        };
+      },
+    );
+  }
+
   public async purchaseNumber(
     phoneNumber: string,
     webhookUrl: string,
@@ -91,6 +119,26 @@ export default class TwilioCallProvider implements ICallProvider {
     return {
       phoneNumberId: purchased.sid,
       phoneNumber: purchased.phoneNumber,
+    };
+  }
+
+  public async assignExistingNumber(
+    phoneNumberId: string,
+    webhookUrl: string,
+  ): Promise<PurchasedPhoneNumber> {
+    // Update the webhook URL for an existing phone number
+    const updated: Twilio.Twilio["incomingPhoneNumbers"] extends {
+      (sid: string): { update: (opts: Record<string, unknown>) => Promise<infer R> };
+    }
+      ? R
+      : never = await this.client.incomingPhoneNumbers(phoneNumberId).update({
+      voiceUrl: webhookUrl,
+      voiceMethod: "POST",
+    });
+
+    return {
+      phoneNumberId: updated.sid,
+      phoneNumber: updated.phoneNumber,
     };
   }
 

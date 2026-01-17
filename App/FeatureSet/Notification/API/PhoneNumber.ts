@@ -3,6 +3,7 @@ import { NotificationWebhookHost } from "../Config";
 import {
   AvailablePhoneNumber,
   ICallProvider,
+  OwnedPhoneNumber,
   PurchasedPhoneNumber,
 } from "Common/Types/Call/CallProvider";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
@@ -170,6 +171,239 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         availableNumbers: responseNumbers,
+      });
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+// List owned phone numbers (already purchased in Twilio account)
+router.post(
+  "/list-owned",
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const body: JSONObject = req.body as JSONObject;
+
+      const projectId: ObjectID | undefined = body["projectId"]
+        ? new ObjectID(body["projectId"] as string)
+        : undefined;
+
+      const projectCallSMSConfigId: ObjectID | undefined = body[
+        "projectCallSMSConfigId"
+      ]
+        ? new ObjectID(body["projectCallSMSConfigId"] as string)
+        : undefined;
+
+      if (!projectId) {
+        throw new BadDataException("projectId is required");
+      }
+
+      if (!projectCallSMSConfigId) {
+        throw new BadDataException(
+          "projectCallSMSConfigId is required. Please configure a project-level Twilio configuration.",
+        );
+      }
+
+      // Check if project exists
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project) {
+        throw new BadDataException("Project not found");
+      }
+
+      // Get project Twilio config
+      const customTwilioConfig: TwilioConfig | null =
+        await getProjectTwilioConfig(projectCallSMSConfigId);
+      if (!customTwilioConfig) {
+        throw new BadDataException("Project Call/SMS Config not found");
+      }
+
+      const provider: ICallProvider =
+        CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+
+      const numbers: OwnedPhoneNumber[] = await provider.listOwnedNumbers();
+
+      type ResponseNumber = {
+        phoneNumberId: string;
+        phoneNumber: string;
+        friendlyName: string;
+        voiceUrl?: string;
+      };
+
+      const responseNumbers: Array<ResponseNumber> = numbers.map(
+        (n: OwnedPhoneNumber): ResponseNumber => {
+          return {
+            phoneNumberId: n.phoneNumberId,
+            phoneNumber: n.phoneNumber,
+            friendlyName: n.friendlyName,
+            voiceUrl: n.voiceUrl,
+          };
+        },
+      );
+
+      return Response.sendJsonObjectResponse(req, res, {
+        ownedNumbers: responseNumbers,
+      });
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+// Assign an existing phone number to a policy
+router.post(
+  "/assign-existing",
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const body: JSONObject = req.body as JSONObject;
+
+      const projectId: ObjectID | undefined = body["projectId"]
+        ? new ObjectID(body["projectId"] as string)
+        : undefined;
+
+      const phoneNumberId: string | undefined = body["phoneNumberId"] as
+        | string
+        | undefined;
+
+      const phoneNumber: string | undefined = body["phoneNumber"] as
+        | string
+        | undefined;
+
+      const incomingCallPolicyId: ObjectID | undefined = body[
+        "incomingCallPolicyId"
+      ]
+        ? new ObjectID(body["incomingCallPolicyId"] as string)
+        : undefined;
+
+      if (!projectId) {
+        throw new BadDataException("projectId is required");
+      }
+
+      if (!phoneNumberId) {
+        throw new BadDataException("phoneNumberId is required");
+      }
+
+      if (!phoneNumber) {
+        throw new BadDataException("phoneNumber is required");
+      }
+
+      if (!incomingCallPolicyId) {
+        throw new BadDataException("incomingCallPolicyId is required");
+      }
+
+      // Check if project exists
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project) {
+        throw new BadDataException("Project not found");
+      }
+
+      // Check if incoming call policy exists and get its project config
+      const incomingCallPolicy: IncomingCallPolicy | null =
+        await IncomingCallPolicyService.findOneById({
+          id: incomingCallPolicyId,
+          select: {
+            _id: true,
+            projectId: true,
+            projectCallSMSConfigId: true,
+            routingPhoneNumber: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!incomingCallPolicy) {
+        throw new BadDataException("Incoming Call Policy not found");
+      }
+
+      if (incomingCallPolicy.projectId?.toString() !== projectId.toString()) {
+        throw new BadDataException(
+          "Incoming Call Policy does not belong to this project",
+        );
+      }
+
+      if (incomingCallPolicy.routingPhoneNumber) {
+        throw new BadDataException(
+          "This policy already has a phone number. Please release it first.",
+        );
+      }
+
+      // Require project-level Twilio config
+      if (!incomingCallPolicy.projectCallSMSConfigId) {
+        throw new BadDataException(
+          "This policy does not have a project Twilio configuration. Please configure one first.",
+        );
+      }
+
+      // Get project Twilio config
+      const customTwilioConfig: TwilioConfig | null =
+        await getProjectTwilioConfig(incomingCallPolicy.projectCallSMSConfigId);
+      if (!customTwilioConfig) {
+        throw new BadDataException("Project Call/SMS Config not found");
+      }
+
+      const provider: ICallProvider =
+        CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+
+      /*
+       * Construct webhook URL - single endpoint for all phone numbers
+       * Twilio sends the "To" phone number in every webhook, so we look up the policy by phone number
+       */
+      const webhookUrl: string = `${NotificationWebhookHost}/notification/incoming-call/voice`;
+
+      const assigned: PurchasedPhoneNumber = await provider.assignExistingNumber(
+        phoneNumberId,
+        webhookUrl,
+      );
+
+      // Get country code from phone number
+      const countryCode: string =
+        Phone.getCountryCodeFromPhoneNumber(phoneNumber);
+      const areaCode: string = Phone.getAreaCodeFromPhoneNumber(phoneNumber);
+
+      /*
+       * Update the incoming call policy with the assigned number
+       */
+      await IncomingCallPolicyService.updateOneById({
+        id: incomingCallPolicyId,
+        data: {
+          routingPhoneNumber: new Phone(assigned.phoneNumber),
+          callProviderPhoneNumberId: assigned.phoneNumberId,
+          phoneNumberCountryCode: countryCode,
+          phoneNumberAreaCode: areaCode,
+          phoneNumberPurchasedAt: new Date(),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        success: true,
+        phoneNumberId: assigned.phoneNumberId,
+        phoneNumber: assigned.phoneNumber,
       });
     } catch (err) {
       logger.error(err);
