@@ -1,12 +1,164 @@
 import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Color from "Common/Types/Color";
+import VerticalFlowSteps, {
+  FlowStep,
+} from "Common/UI/Components/Diagram/VerticalFlowSteps";
+import HorizontalStepChain, {
+  ChainStep,
+  ChainEndStep,
+} from "Common/UI/Components/Diagram/HorizontalStepChain";
+import NumberedSteps, {
+  NumberedStep,
+} from "Common/UI/Components/Diagram/NumberedSteps";
+import ConceptCards, {
+  ConceptCard,
+} from "Common/UI/Components/Diagram/ConceptCards";
 
 const IncomingCallPolicyDocs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // How It Works Flow Steps
+  const flowSteps: Array<FlowStep> = [
+    {
+      title: "Caller Dials Your Number",
+      description: "External caller dials your dedicated incoming call number",
+      icon: IconProp.User,
+      iconColor: new Color("#2563eb"), // blue-600
+      iconBackgroundColor: new Color("#dbeafe"), // blue-100
+    },
+    {
+      title: "Twilio Receives the Call",
+      description: "Twilio routes the call to OneUptime via webhook",
+      icon: IconProp.Call,
+      iconColor: new Color("#dc2626"), // red-600
+      iconBackgroundColor: new Color("#fee2e2"), // red-100
+    },
+    {
+      title: "OneUptime Processes the Call",
+      description: "Plays greeting message and loads escalation rules",
+      icon: IconProp.AltGlobe,
+      iconColor: new Color("#16a34a"), // green-600
+      iconBackgroundColor: new Color("#dcfce7"), // green-100
+    },
+    {
+      title: "Escalation Rules Execute",
+      description: "Tries each rule in order until someone answers",
+      icon: IconProp.BarsArrowDown,
+      iconColor: new Color("#ca8a04"), // yellow-600
+      iconBackgroundColor: new Color("#fef9c3"), // yellow-100
+    },
+    {
+      title: "Caller Connected to Engineer",
+      description: "Call is connected when an on-call engineer answers",
+      icon: IconProp.CheckCircle,
+      iconColor: new Color("#9333ea"), // purple-600
+      iconBackgroundColor: new Color("#f3e8ff"), // purple-100
+    },
+  ];
+
+  // Escalation Chain Steps
+  const escalationSteps: Array<ChainStep> = [
+    {
+      stepNumber: 1,
+      title: "Primary On-Call",
+      description: "Wait 30 seconds",
+      backgroundColor: new Color("#3b82f6"), // blue-500
+    },
+    {
+      stepNumber: 2,
+      title: "Backup Team",
+      description: "Wait 30 seconds",
+      backgroundColor: new Color("#eab308"), // yellow-500
+    },
+    {
+      stepNumber: 3,
+      title: "Manager",
+      description: "Wait 30 seconds",
+      backgroundColor: new Color("#ef4444"), // red-500
+    },
+  ];
+
+  const escalationEndStep: ChainEndStep = {
+    title: "No Answer",
+    description: "Play message",
+    icon: IconProp.Stop,
+    backgroundColor: new Color("#9ca3af"), // gray-400
+  };
+
+  // Setup Steps
+  const setupSteps: Array<NumberedStep> = [
+    {
+      title: "Configure Twilio Account",
+      description:
+        "Go to Project Settings > Call & SMS > Custom Call/SMS Config and add your Twilio credentials (Account SID and Auth Token).",
+    },
+    {
+      title: "Select Twilio Configuration",
+      description:
+        "On the Overview page, select which Twilio configuration to use for this incoming call policy.",
+    },
+    {
+      title: "Configure Phone Number",
+      description:
+        "Purchase a new phone number from Twilio or use an existing one. The webhook will be automatically configured.",
+    },
+    {
+      title: "Add Escalation Rules",
+      description:
+        "Define how calls should be routed. Add on-call schedules, teams, or specific users to handle incoming calls.",
+    },
+    {
+      title: "Ready to Receive Calls",
+      description:
+        "Your incoming call policy is now active. Share the phone number with your team and customers.",
+      icon: IconProp.CheckCircle,
+      backgroundColor: new Color("#16a34a"), // green-600
+    },
+  ];
+
+  // Concept Cards
+  const conceptCards: Array<ConceptCard> = [
+    {
+      title: "Escalation Rules",
+      description:
+        "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.",
+      icon: IconProp.BarsArrowDown,
+      iconColor: new Color("#ffffff"),
+      iconBackgroundColor: new Color("#3b82f6"), // blue-500
+      cardBackgroundColor: new Color("#eff6ff"), // blue-50
+    },
+    {
+      title: "On-Call Schedules",
+      description:
+        "Automatically route calls to whoever is currently on-call based on your rotation schedules.",
+      icon: IconProp.Clock,
+      iconColor: new Color("#ffffff"),
+      iconBackgroundColor: new Color("#22c55e"), // green-500
+      cardBackgroundColor: new Color("#f0fdf4"), // green-50
+    },
+    {
+      title: "Voice Messages",
+      description:
+        "Customize the greeting message, no-answer message, and other voice prompts callers hear.",
+      icon: IconProp.Microphone,
+      iconColor: new Color("#ffffff"),
+      iconBackgroundColor: new Color("#eab308"), // yellow-500
+      cardBackgroundColor: new Color("#fefce8"), // yellow-50
+    },
+    {
+      title: "Call Logs",
+      description:
+        "View detailed logs of all incoming calls including caller info, status, who answered, and call duration.",
+      icon: IconProp.Logs,
+      iconColor: new Color("#ffffff"),
+      iconBackgroundColor: new Color("#a855f7"), // purple-500
+      cardBackgroundColor: new Color("#faf5ff"), // purple-50
+    },
+  ];
+
   return (
     <Fragment>
       {/* How It Works Overview */}
@@ -15,83 +167,7 @@ const IncomingCallPolicyDocs: FunctionComponent<
         description="Understand how callers reach your on-call engineers through this policy"
       >
         <div className="p-6">
-          {/* Main Flow Diagram */}
-          <div className="flex flex-col items-center space-y-4">
-            {/* Step 1: Caller */}
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <Icon icon={IconProp.User} className="h-8 w-8 text-blue-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">1. Caller Dials Your Number</p>
-                <p className="text-sm text-gray-500">External caller dials your dedicated incoming call number</p>
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex flex-col items-center">
-              <Icon icon={IconProp.ChevronDown} className="h-6 w-6 text-gray-400" />
-            </div>
-
-            {/* Step 2: Twilio */}
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <Icon icon={IconProp.Call} className="h-8 w-8 text-red-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">2. Twilio Receives the Call</p>
-                <p className="text-sm text-gray-500">Twilio routes the call to OneUptime via webhook</p>
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex flex-col items-center">
-              <Icon icon={IconProp.ChevronDown} className="h-6 w-6 text-gray-400" />
-            </div>
-
-            {/* Step 3: OneUptime */}
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <Icon icon={IconProp.AltGlobe} className="h-8 w-8 text-green-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">3. OneUptime Processes the Call</p>
-                <p className="text-sm text-gray-500">Plays greeting message and loads escalation rules</p>
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex flex-col items-center">
-              <Icon icon={IconProp.ChevronDown} className="h-6 w-6 text-gray-400" />
-            </div>
-
-            {/* Step 4: Escalation */}
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Icon icon={IconProp.BarsArrowDown} className="h-8 w-8 text-yellow-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">4. Escalation Rules Execute</p>
-                <p className="text-sm text-gray-500">Tries each rule in order until someone answers</p>
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex flex-col items-center">
-              <Icon icon={IconProp.ChevronDown} className="h-6 w-6 text-gray-400" />
-            </div>
-
-            {/* Step 5: Connected */}
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
-                <Icon icon={IconProp.CheckCircle} className="h-8 w-8 text-purple-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">5. Caller Connected to Engineer</p>
-                <p className="text-sm text-gray-500">Call is connected when an on-call engineer answers</p>
-              </div>
-            </div>
-          </div>
+          <VerticalFlowSteps steps={flowSteps} />
         </div>
       </Card>
 
@@ -102,73 +178,11 @@ const IncomingCallPolicyDocs: FunctionComponent<
           description="How calls are routed through your escalation rules"
         >
           <div className="p-6">
-            <div className="bg-gray-50 rounded-lg p-6">
-              {/* Escalation Chain Visualization */}
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                {/* Rule 1 */}
-                <div className="flex flex-col items-center">
-                  <div className="w-20 h-20 bg-blue-500 rounded-lg flex items-center justify-center shadow-lg">
-                    <div className="text-center text-white">
-                      <p className="text-2xl font-bold">1</p>
-                      <p className="text-xs">Rule</p>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm font-medium text-gray-700">Primary On-Call</p>
-                  <p className="text-xs text-gray-500">Wait 30 seconds</p>
-                </div>
-
-                {/* Arrow */}
-                <div className="hidden sm:flex items-center">
-                  <div className="w-8 h-0.5 bg-gray-300"></div>
-                  <Icon icon={IconProp.ChevronRight} className="h-5 w-5 text-gray-400" />
-                </div>
-
-                {/* Rule 2 */}
-                <div className="flex flex-col items-center">
-                  <div className="w-20 h-20 bg-yellow-500 rounded-lg flex items-center justify-center shadow-lg">
-                    <div className="text-center text-white">
-                      <p className="text-2xl font-bold">2</p>
-                      <p className="text-xs">Rule</p>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm font-medium text-gray-700">Backup Team</p>
-                  <p className="text-xs text-gray-500">Wait 30 seconds</p>
-                </div>
-
-                {/* Arrow */}
-                <div className="hidden sm:flex items-center">
-                  <div className="w-8 h-0.5 bg-gray-300"></div>
-                  <Icon icon={IconProp.ChevronRight} className="h-5 w-5 text-gray-400" />
-                </div>
-
-                {/* Rule 3 */}
-                <div className="flex flex-col items-center">
-                  <div className="w-20 h-20 bg-red-500 rounded-lg flex items-center justify-center shadow-lg">
-                    <div className="text-center text-white">
-                      <p className="text-2xl font-bold">3</p>
-                      <p className="text-xs">Rule</p>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm font-medium text-gray-700">Manager</p>
-                  <p className="text-xs text-gray-500">Wait 30 seconds</p>
-                </div>
-
-                {/* Arrow */}
-                <div className="hidden sm:flex items-center">
-                  <div className="w-8 h-0.5 bg-gray-300"></div>
-                  <Icon icon={IconProp.ChevronRight} className="h-5 w-5 text-gray-400" />
-                </div>
-
-                {/* End */}
-                <div className="flex flex-col items-center">
-                  <div className="w-20 h-20 bg-gray-400 rounded-lg flex items-center justify-center shadow-lg">
-                    <Icon icon={IconProp.Stop} className="h-8 w-8 text-white" />
-                  </div>
-                  <p className="mt-2 text-sm font-medium text-gray-700">No Answer</p>
-                  <p className="text-xs text-gray-500">Play message</p>
-                </div>
-              </div>
-            </div>
+            <HorizontalStepChain
+              steps={escalationSteps}
+              endStep={escalationEndStep}
+              defaultStepLabel="Rule"
+            />
           </div>
         </Card>
       </div>
@@ -180,72 +194,10 @@ const IncomingCallPolicyDocs: FunctionComponent<
           description="Follow these steps to configure your incoming call policy"
         >
           <div className="p-6">
-            <div className="space-y-6">
-              {/* Step 1 */}
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">1</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">Configure Twilio Account</h4>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Go to Project Settings &gt; Call &amp; SMS &gt; Custom Call/SMS Config and add your Twilio credentials (Account SID and Auth Token).
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">2</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">Select Twilio Configuration</h4>
-                  <p className="text-sm text-gray-600 mt-1">
-                    On the Overview page, select which Twilio configuration to use for this incoming call policy.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">3</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">Configure Phone Number</h4>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Purchase a new phone number from Twilio or use an existing one. The webhook will be automatically configured.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">4</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">Add Escalation Rules</h4>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Define how calls should be routed. Add on-call schedules, teams, or specific users to handle incoming calls.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 5 */}
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                  <Icon icon={IconProp.CheckCircle} className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">Ready to Receive Calls</h4>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Your incoming call policy is now active. Share the phone number with your team and customers.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <NumberedSteps
+              steps={setupSteps}
+              defaultBackgroundColor={new Color("#2563eb")}
+            />
           </div>
         </Card>
       </div>
@@ -257,59 +209,7 @@ const IncomingCallPolicyDocs: FunctionComponent<
           description="Understanding the components of an incoming call policy"
         >
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Escalation Rules */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.BarsArrowDown} className="h-5 w-5 text-white" />
-                  </div>
-                  <h4 className="font-semibold text-gray-900">Escalation Rules</h4>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.
-                </p>
-              </div>
-
-              {/* On-Call Schedules */}
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.Clock} className="h-5 w-5 text-white" />
-                  </div>
-                  <h4 className="font-semibold text-gray-900">On-Call Schedules</h4>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Automatically route calls to whoever is currently on-call based on your rotation schedules.
-                </p>
-              </div>
-
-              {/* Voice Messages */}
-              <div className="bg-yellow-50 rounded-lg p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.Microphone} className="h-5 w-5 text-white" />
-                  </div>
-                  <h4 className="font-semibold text-gray-900">Voice Messages</h4>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Customize the greeting message, no-answer message, and other voice prompts callers hear.
-                </p>
-              </div>
-
-              {/* Call Logs */}
-              <div className="bg-purple-50 rounded-lg p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-                    <Icon icon={IconProp.Logs} className="h-5 w-5 text-white" />
-                  </div>
-                  <h4 className="font-semibold text-gray-900">Call Logs</h4>
-                </div>
-                <p className="text-sm text-gray-600">
-                  View detailed logs of all incoming calls including caller info, status, who answered, and call duration.
-                </p>
-              </div>
-            </div>
+            <ConceptCards cards={conceptCards} columns={2} />
           </div>
         </Card>
       </div>
