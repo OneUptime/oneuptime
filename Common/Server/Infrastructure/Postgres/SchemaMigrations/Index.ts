@@ -224,6 +224,7 @@ import { MigrationName1768422356713 } from "./1768422356713-MigrationName";
 import { MigrationName1768583966447 } from "./1768583966447-MigrationName";
 import { RemoveAlertPhoneNumberFromUser1768647802022 } from "./1768647802022-RemoveAlertPhoneNumberFromUser";
 import { MigrationName1768649699509 } from "./1768649699509-MigrationName";
+import { MigrationName1768682071562 } from "./1768682071562-MigrationName";
 
 export default [
   InitialMigration,
@@ -452,4 +453,5 @@ export default [
   MigrationName1768583966447,
   RemoveAlertPhoneNumberFromUser1768647802022,
   MigrationName1768649699509,
+  MigrationName1768682071562
 ];
