@@ -318,6 +318,7 @@ export default class StatusPageDomain extends BaseModel {
   })
   @TableColumn({
     required: true,
+    computed: true,
     type: TableColumnType.ShortText,
     title: "Full Domain",
     description:
@@ -448,6 +449,7 @@ export default class StatusPageDomain extends BaseModel {
   })
   @TableColumn({
     required: true,
+    computed: true,
     type: TableColumnType.ShortText,
     title: "CNAME Verification Token",
     description: "CNAME Verification Token",
