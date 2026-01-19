@@ -36,17 +36,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Prevent setting isVerified during creation, EXCEPT for test domains
-    // Test domains (.example.com, .example.org, .example.net, .test) can be auto-verified
-    // since they are reserved TLDs that can't have real DNS records
+    // Test domains can be auto-verified since they are reserved TLDs that can't have real DNS records
     if (!createBy.props.isRoot && createBy.data.isVerified) {
       const domainStr: string = createBy.data.domain?.toString() || "";
-      const isTestDomain: boolean =
-        domainStr.endsWith(".example.com") ||
-        domainStr.endsWith(".example.org") ||
-        domainStr.endsWith(".example.net") ||
-        domainStr.endsWith(".test");
 
-      if (!isTestDomain) {
+      if (!Domain.isTestDomain(domainStr)) {
         throw new BadDataException(
           "Domain cannot be verified during creation. Please verify the domain after creation. Please set isVerified to false.",
         );
@@ -109,15 +103,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         // Skip DNS verification for test domains (reserved TLDs for testing)
-        // .example.com, .example.org, .example.net are reserved by IANA for documentation
-        // .test is reserved for testing purposes
-        const isTestDomain: boolean =
-          domain.endsWith(".example.com") ||
-          domain.endsWith(".example.org") ||
-          domain.endsWith(".example.net") ||
-          domain.endsWith(".test");
-
-        if (!isTestDomain) {
+        if (!Domain.isTestDomain(domain)) {
           const isVerified: boolean = await Domain.verifyTxtRecord(
             domain,
             verificationText,
