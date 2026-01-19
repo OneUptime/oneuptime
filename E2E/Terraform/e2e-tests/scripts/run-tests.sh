@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DIR="$(dirname "$SCRIPT_DIR")"
-PROVIDER_DIR="$TEST_DIR/../terraform-provider-oneuptime"
+PROVIDER_DIR="$TEST_DIR/../../../Terraform/terraform-provider-oneuptime"
 
 # Load test environment
 source "$TEST_DIR/test-env.sh"
