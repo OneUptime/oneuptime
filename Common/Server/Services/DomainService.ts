@@ -35,8 +35,10 @@ export class Service extends DatabaseService<Model> {
       createBy.data.domain = new Domain(domain.trim().toLowerCase());
     }
 
-    // Prevent setting isVerified during creation, EXCEPT for test domains
-    // Test domains can be auto-verified since they are reserved TLDs that can't have real DNS records
+    /*
+     * Prevent setting isVerified during creation, EXCEPT for test domains
+     * Test domains can be auto-verified since they are reserved TLDs that can't have real DNS records
+     */
     if (!createBy.props.isRoot && createBy.data.isVerified) {
       const domainStr: string = createBy.data.domain?.toString() || "";
 

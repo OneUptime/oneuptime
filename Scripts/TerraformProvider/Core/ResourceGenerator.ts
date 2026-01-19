@@ -570,8 +570,10 @@ func (r *${resourceTypeName}Resource) bigFloatToFloat64(bf *big.Float) interface
                     stringplanmodifier.UseStateForUnknown(),
                 }`;
     } else if (attr.optional && attr.computed) {
-      // Add UseStateForUnknown() for Optional+Computed fields
-      // This prevents "inconsistent result after apply" errors when server provides defaults
+      /*
+       * Add UseStateForUnknown() for Optional+Computed fields
+       * This prevents "inconsistent result after apply" errors when server provides defaults
+       */
       if (attr.type === "string") {
         planModifiers = `,
                 PlanModifiers: []planmodifier.String{

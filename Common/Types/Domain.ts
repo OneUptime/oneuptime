@@ -5,8 +5,10 @@ import { FindOperator } from "typeorm/find-options/FindOperator";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export default class Domain extends DatabaseProperty {
-  // Reserved TLDs for testing and documentation (per IANA)
-  // These domains can never have real DNS records, so they're safe for testing
+  /*
+   * Reserved TLDs for testing and documentation (per IANA)
+   * These domains can never have real DNS records, so they're safe for testing
+   */
   public static readonly TEST_DOMAIN_SUFFIXES: string[] = [
     ".example.com",
     ".example.org",
