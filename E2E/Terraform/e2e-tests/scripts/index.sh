@@ -15,7 +15,7 @@ cleanup() {
     echo ""
     echo "=== Running cleanup ==="
     "$SCRIPT_DIR/cleanup.sh" || true
-    docker compose -f "$ROOT_DIR/docker-compose.yml" down -v || true
+    npm run down
 }
 
 # Trap to ensure cleanup runs on exit
