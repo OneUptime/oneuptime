@@ -78,7 +78,7 @@ req.Header.Set("APIKey", c.ApiKey)
 
 ### Directory Structure
 ```
-Terraform/
+E2E/Terraform/
 ├── e2e-tests/
 │   ├── scripts/
 │   │   ├── wait-for-services.sh      # Wait for OneUptime to be ready
@@ -175,8 +175,8 @@ jobs:
       - name: Start OneUptime Services
         run: |
           docker compose -f docker-compose.yml up -d postgres redis clickhouse app accounts ingress worker
-          chmod +x ./Terraform/e2e-tests/scripts/*.sh
-          ./Terraform/e2e-tests/scripts/wait-for-services.sh
+          chmod +x ./E2E/Terraform/e2e-tests/scripts/*.sh
+          ./E2E/Terraform/e2e-tests/scripts/wait-for-services.sh
 
       - name: Install Dependencies
         run: |
@@ -189,18 +189,18 @@ jobs:
 
       - name: Setup Test Environment
         run: |
-          cd Terraform/e2e-tests
+          cd E2E/Terraform/e2e-tests
           ./scripts/setup-test-account.sh
 
       - name: Run Terraform E2E Tests
         run: |
-          cd Terraform/e2e-tests
+          cd E2E/Terraform/e2e-tests
           ./scripts/run-tests.sh
 
       - name: Cleanup
         if: always()
         run: |
-          cd Terraform/e2e-tests
+          cd E2E/Terraform/e2e-tests
           ./scripts/cleanup.sh || true
           docker compose down -v || true
 ```
@@ -210,7 +210,7 @@ jobs:
 ## Test Setup Scripts
 
 ### 1. Wait for Services Script
-**File: `Terraform/e2e-tests/scripts/wait-for-services.sh`**
+**File: `E2E/Terraform/e2e-tests/scripts/wait-for-services.sh`**
 
 ```bash
 #!/bin/bash
@@ -236,7 +236,7 @@ exit 1
 ```
 
 ### 2. Setup Test Account Script
-**File: `Terraform/e2e-tests/scripts/setup-test-account.sh`**
+**File: `E2E/Terraform/e2e-tests/scripts/setup-test-account.sh`**
 
 ```bash
 #!/bin/bash
@@ -382,7 +382,7 @@ echo "API_KEY: $API_KEY"
 ```
 
 ### 3. Run Tests Script
-**File: `Terraform/e2e-tests/scripts/run-tests.sh`**
+**File: `E2E/Terraform/e2e-tests/scripts/run-tests.sh`**
 
 ```bash
 #!/bin/bash
@@ -517,7 +517,7 @@ echo "All tests passed!"
 ```
 
 ### 4. Cleanup Script
-**File: `Terraform/e2e-tests/scripts/cleanup.sh`**
+**File: `E2E/Terraform/e2e-tests/scripts/cleanup.sh`**
 
 ```bash
 #!/bin/bash
@@ -551,7 +551,7 @@ echo "Cleanup complete"
 ## Terraform Test Configurations
 
 ### Common Variables File
-**File: `Terraform/e2e-tests/tests/*/variables.tf`** (same for all tests)
+**File: `E2E/Terraform/e2e-tests/tests/*/variables.tf`** (same for all tests)
 
 ```hcl
 variable "oneuptime_url" {
@@ -572,7 +572,7 @@ variable "project_id" {
 ```
 
 ### Test 1: Label
-**File: `Terraform/e2e-tests/tests/01-label/main.tf`**
+**File: `E2E/Terraform/e2e-tests/tests/01-label/main.tf`**
 
 ```hcl
 terraform {
@@ -606,7 +606,7 @@ output "label_name" {
 ```
 
 ### Test 2: Monitor Status
-**File: `Terraform/e2e-tests/tests/02-monitor-status/main.tf`**
+**File: `E2E/Terraform/e2e-tests/tests/02-monitor-status/main.tf`**
 
 ```hcl
 terraform {
@@ -638,7 +638,7 @@ output "monitor_status_id" {
 ```
 
 ### Test 3: Incident Severity
-**File: `Terraform/e2e-tests/tests/03-incident-severity/main.tf`**
+**File: `E2E/Terraform/e2e-tests/tests/03-incident-severity/main.tf`**
 
 ```hcl
 terraform {
@@ -669,7 +669,7 @@ output "incident_severity_id" {
 ```
 
 ### Test 4: Incident State
-**File: `Terraform/e2e-tests/tests/04-incident-state/main.tf`**
+**File: `E2E/Terraform/e2e-tests/tests/04-incident-state/main.tf`**
 
 ```hcl
 terraform {
@@ -700,7 +700,7 @@ output "incident_state_id" {
 ```
 
 ### Test 5: Status Page
-**File: `Terraform/e2e-tests/tests/05-status-page/main.tf`**
+**File: `E2E/Terraform/e2e-tests/tests/05-status-page/main.tf`**
 
 ```hcl
 terraform {
@@ -734,7 +734,7 @@ output "status_page_id" {
 ```
 
 ### Test 6: Alert Severity
-**File: `Terraform/e2e-tests/tests/06-alert-severity/main.tf`**
+**File: `E2E/Terraform/e2e-tests/tests/06-alert-severity/main.tf`**
 
 ```hcl
 terraform {
@@ -765,7 +765,7 @@ output "alert_severity_id" {
 ```
 
 ### Test 7: Alert State
-**File: `Terraform/e2e-tests/tests/07-alert-state/main.tf`**
+**File: `E2E/Terraform/e2e-tests/tests/07-alert-state/main.tf`**
 
 ```hcl
 terraform {
@@ -841,19 +841,19 @@ cp config.example.env config.env
 docker compose up -d postgres redis clickhouse app accounts ingress worker
 
 # 2. Wait for services
-./Terraform/e2e-tests/scripts/wait-for-services.sh
+./E2E/Terraform/e2e-tests/scripts/wait-for-services.sh
 
 # 3. Setup test account
-./Terraform/e2e-tests/scripts/setup-test-account.sh
+./E2E/Terraform/e2e-tests/scripts/setup-test-account.sh
 
 # 4. Generate provider
 npm run generate-terraform-provider
 
 # 5. Run tests
-./Terraform/e2e-tests/scripts/run-tests.sh
+./E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
 # 6. Cleanup
-./Terraform/e2e-tests/scripts/cleanup.sh
+./E2E/Terraform/e2e-tests/scripts/cleanup.sh
 docker compose down -v
 ```
 
