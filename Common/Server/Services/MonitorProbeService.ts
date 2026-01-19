@@ -11,7 +11,7 @@ import MonitorService from "./MonitorService";
 import CronTab from "../Utils/CronTab";
 import logger from "../Utils/Logger";
 import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
-import { DataSource } from "typeorm";
+import { DataSource, EntityManager } from "typeorm";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
@@ -91,14 +91,18 @@ export class Service extends DatabaseService<MonitorProbe> {
 
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 
-    // Use a transaction with FOR UPDATE SKIP LOCKED to atomically claim monitors
-    // This prevents multiple probe instances from picking up the same monitors
+    /*
+     * Use a transaction with FOR UPDATE SKIP LOCKED to atomically claim monitors
+     * This prevents multiple probe instances from picking up the same monitors
+     */
     const claimedIds: Array<ObjectID> = await dataSource.transaction(
-      async (transactionalEntityManager) => {
-        // First, select and lock the monitor probes that need to be processed
-        // FOR UPDATE SKIP LOCKED ensures that:
-        // 1. Rows are locked for this transaction
-        // 2. Rows already locked by other transactions are skipped
+      async (transactionalEntityManager: EntityManager) => {
+        /*
+         * First, select and lock the monitor probes that need to be processed
+         * FOR UPDATE SKIP LOCKED ensures that:
+         * 1. Rows are locked for this transaction
+         * 2. Rows already locked by other transactions are skipped
+         */
         const selectQuery: string = `
         SELECT mp."_id"
         FROM "MonitorProbe" mp
@@ -133,13 +137,15 @@ export class Service extends DatabaseService<MonitorProbe> {
           return [];
         }
 
-        const ids: Array<string> = selectedRows.map((row) => {
+        const ids: Array<string> = selectedRows.map((row: { _id: string }) => {
           return row._id;
         });
 
-        // Update the claimed monitors to set nextPingAt to 1 minute from now
-        // This is a temporary value; the actual nextPingAt will be calculated
-        // based on the monitor's interval after the probe fetches the full details
+        /*
+         * Update the claimed monitors to set nextPingAt to 1 minute from now
+         * This is a temporary value; the actual nextPingAt will be calculated
+         * based on the monitor's interval after the probe fetches the full details
+         */
         const tempNextPingAt: Date = OneUptimeDate.addRemoveMinutes(
           currentDate,
           1,

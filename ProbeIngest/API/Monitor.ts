@@ -382,8 +382,10 @@ router.post(
 
       logger.debug("Fetching monitor list for probes");
 
-      // Atomically claim monitors for this probe instance using FOR UPDATE SKIP LOCKED
-      // This prevents multiple instances of the same probe from picking up the same monitors
+      /*
+       * Atomically claim monitors for this probe instance using FOR UPDATE SKIP LOCKED
+       * This prevents multiple instances of the same probe from picking up the same monitors
+       */
       const claimedMonitorProbeIds: Array<ObjectID> =
         await MonitorProbeService.claimMonitorProbesForProbing({
           probeId: probeId,
