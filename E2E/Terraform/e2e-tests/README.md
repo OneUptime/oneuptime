@@ -8,7 +8,6 @@ End-to-end tests for the OneUptime Terraform Provider. These tests validate that
 e2e-tests/
 ├── scripts/
 │   ├── index.sh              # Main entry point - orchestrates the full test flow
-│   ├── wait-for-services.sh  # Waits for OneUptime services to be ready
 │   ├── setup-test-account.sh # Creates test user, project, and API key
 │   ├── run-tests.sh          # Builds provider and runs all test cases
 │   └── cleanup.sh            # Cleans up test artifacts and state files

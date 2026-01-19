@@ -29,7 +29,8 @@ npm run dev
 # Step 3: Wait for services
 echo ""
 echo "=== Step 3: Waiting for services to be ready ==="
-"$SCRIPT_DIR/wait-for-services.sh"
+cd "$ROOT_DIR"
+npm run status-check
 
 # Step 4: Install dependencies
 echo ""
