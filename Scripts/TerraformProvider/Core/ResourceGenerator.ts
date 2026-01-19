@@ -1276,32 +1276,12 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         // ${fieldName} value is already set from the existing state
     }`;
         } else if (isComplexObject) {
-          /*
-           * For complex object strings, first check if it's a simple value wrapper type
-           * (like Version, ObjectID, etc. with _type and value fields), extract the value
-           * Otherwise, convert API object response to JSON string
-           */
+          // For complex object strings, convert API object response to JSON string
           return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
-        // Check if this is a value wrapper type (e.g., Version, ObjectID with _type and value fields)
-        if _, hasType := val["_type"]; hasType {
-            if strVal, ok := val["value"].(string); ok && strVal != "" {
-                ${fieldName} = types.StringValue(strVal)
-            } else {
-                ${fieldName} = types.StringNull()
-            }
-        } else if strVal, ok := val["_id"].(string); ok && strVal != "" {
-            // Handle ObjectID type responses
-            ${fieldName} = types.StringValue(strVal)
-        } else if strVal, ok := val["value"].(string); ok && strVal != "" {
-            // Handle other value wrapper types
-            ${fieldName} = types.StringValue(strVal)
+        if jsonBytes, err := json.Marshal(val); err == nil {
+            ${fieldName} = types.StringValue(string(jsonBytes))
         } else {
-            // Fall back to JSON marshalling for truly complex objects
-            if jsonBytes, err := json.Marshal(val); err == nil {
-                ${fieldName} = types.StringValue(string(jsonBytes))
-            } else {
-                ${fieldName} = types.StringNull()
-            }
+            ${fieldName} = types.StringNull()
         }
     } else if val, ok := ${responseValue}.(string); ok && val != "" {
         ${fieldName} = types.StringValue(val)
@@ -1310,7 +1290,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }`;
         }
         return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
-        // Handle ObjectID and value wrapper type responses (e.g., Version with _type and value fields)
+        // Handle ObjectID type responses
         if val, ok := obj["_id"].(string); ok && val != "" {
             ${fieldName} = types.StringValue(val)
         } else if val, ok := obj["value"].(string); ok && val != "" {
