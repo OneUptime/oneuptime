@@ -111,6 +111,10 @@ export class Service extends DatabaseService<MonitorProbe> {
           AND m."disableActiveMonitoring" = false
           AND m."deletedAt" IS NULL
           AND p."deletedAt" IS NULL
+          AND (p."paymentProviderSubscriptionStatus" IS NULL
+               OR p."paymentProviderSubscriptionStatus" IN ('active', 'trialing'))
+          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
+               OR p."paymentProviderMeteredSubscriptionStatus" IN ('active', 'trialing'))
         ORDER BY mp."nextPingAt" ASC NULLS FIRST
         LIMIT $3
         FOR UPDATE OF mp SKIP LOCKED
