@@ -59,7 +59,12 @@ import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
 import API from "../../Utils/API";
 import Slug from "../../Utils/Slug";
-import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
+import {
+  DataSource,
+  EntityManager,
+  Repository,
+  SelectQueryBuilder,
+} from "typeorm";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
@@ -127,6 +132,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     throw new DatabaseNotConnectedException();
+  }
+
+  public async executeTransaction<TResult>(
+    runInTransaction: (entityManager: EntityManager) => Promise<TResult>,
+  ): Promise<TResult> {
+    if (!PostgresAppInstance.isConnected()) {
+      throw new DatabaseNotConnectedException();
+    }
+
+    const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      throw new DatabaseNotConnectedException();
+    }
+
+    return await dataSource.transaction(runInTransaction);
   }
 
   protected isValid(data: TBaseModel): boolean {
@@ -1691,3 +1712,4 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 }
 
 export default DatabaseService;
+export { EntityManager };

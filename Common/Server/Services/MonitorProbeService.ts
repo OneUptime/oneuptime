@@ -1,7 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import DatabaseService, { EntityManager } from "./DatabaseService";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
@@ -10,8 +10,6 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
 import CronTab from "../Utils/CronTab";
 import logger from "../Utils/Logger";
-import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
-import { DataSource, EntityManager } from "typeorm";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
@@ -83,19 +81,13 @@ export class Service extends DatabaseService<MonitorProbe> {
     probeId: ObjectID;
     limit: number;
   }): Promise<Array<ObjectID>> {
-    const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
-
-    if (!dataSource) {
-      throw new BadDataException("Database connection not available");
-    }
-
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 
     /*
      * Use a transaction with FOR UPDATE SKIP LOCKED to atomically claim monitors
      * This prevents multiple probe instances from picking up the same monitors
      */
-    const claimedIds: Array<ObjectID> = await dataSource.transaction(
+    const claimedIds: Array<ObjectID> = await this.executeTransaction(
       async (transactionalEntityManager: EntityManager) => {
         /*
          * First, select and lock the monitor probes that need to be processed
