@@ -19,7 +19,6 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-  OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
@@ -30,7 +29,6 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
-import NumberUtil from "Common/Utils/Number";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -385,45 +383,36 @@ router.post(
       logger.debug("Fetching monitor list for probes");
 
       /*
-       * we do this to distribute the load among the probes.
-       * so every request will get a different set of monitors to monitor
-       * const moduloBy: number = 10;
-       * const reminder: number = NumberUtil.getRandomNumber(0, 100) % moduloBy;
+       * Atomically claim monitors for this probe instance using FOR UPDATE SKIP LOCKED
+       * This prevents multiple instances of the same probe from picking up the same monitors
        */
+      const claimedMonitorProbeIds: Array<ObjectID> =
+        await MonitorProbeService.claimMonitorProbesForProbing({
+          probeId: probeId,
+          limit: limit,
+        });
 
-      const count: PositiveNumber = await MonitorProbeService.countBy({
-        query: {
-          ...getMonitorFetchQuery((req as OneUptimeRequest).probe!.id!),
-          // version: QueryHelper.modulo(moduloBy, reminder), // distribute the load among the probes
-        },
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      logger.debug(
+        `Claimed ${claimedMonitorProbeIds.length} monitor probes for probing`,
+      );
 
-      /*
-       * we do this to distribute the load among the probes.
-       * so every request will get a different set of monitors to monitor
-       */
-      const countNumber: number = count.toNumber();
-      let skip: number = 0;
-
-      if (countNumber > limit) {
-        skip = NumberUtil.getRandomNumber(0, countNumber - limit);
+      if (claimedMonitorProbeIds.length === 0) {
+        logger.debug("No monitors to probe");
+        return Response.sendEntityArrayResponse(
+          req,
+          res,
+          [],
+          new PositiveNumber(0),
+          Monitor,
+        );
       }
 
+      // Fetch the full monitor details for the claimed monitors
       const monitorProbes: Array<MonitorProbe> =
         await MonitorProbeService.findBy({
           query: {
-            ...getMonitorFetchQuery((req as OneUptimeRequest).probe!.id!),
-            // version: QueryHelper.modulo(moduloBy, reminder), // distribute the load among the probes
+            _id: QueryHelper.any(claimedMonitorProbeIds),
           },
-          sort: {
-            nextPingAt: SortOrder.Ascending,
-          },
-          skip: skip,
-          limit: limit,
           select: {
             nextPingAt: true,
             probeId: true,
@@ -435,6 +424,8 @@ router.post(
               projectId: true,
             },
           },
+          limit: limit,
+          skip: 0,
           props: {
             isRoot: true,
           },
@@ -443,8 +434,7 @@ router.post(
       logger.debug("Fetched monitor list");
       logger.debug(monitorProbes);
 
-      // update the lastMonitoredAt field of the monitors
-
+      // Update the nextPingAt based on the actual monitoring interval
       const updatePromises: Array<Promise<void>> = [];
 
       for (const monitorProbe of monitorProbes) {
@@ -469,7 +459,6 @@ router.post(
           MonitorProbeService.updateOneById({
             id: monitorProbe.id!,
             data: {
-              lastPingAt: OneUptimeDate.getCurrentDate(),
               nextPingAt: nextPing,
             },
             props: {
@@ -479,6 +468,7 @@ router.post(
         );
       }
 
+      // Update nextPingAt in parallel - this refines the temporary value set during claiming
       await Promise.all(updatePromises);
 
       const monitors: Array<Monitor> = monitorProbes

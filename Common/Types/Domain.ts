@@ -5,6 +5,29 @@ import { FindOperator } from "typeorm/find-options/FindOperator";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export default class Domain extends DatabaseProperty {
+  /*
+   * Reserved TLDs for testing and documentation (per IANA)
+   * These domains can never have real DNS records, so they're safe for testing
+   */
+  public static readonly TEST_DOMAIN_SUFFIXES: string[] = [
+    ".example.com",
+    ".example.org",
+    ".example.net",
+    ".test",
+  ];
+
+  /**
+   * Checks if a domain is a test/reserved domain that can skip DNS verification.
+   * Test domains include .example.com, .example.org, .example.net, and .test TLDs.
+   * These are reserved by IANA for documentation and testing purposes.
+   */
+  public static isTestDomain(domain: string): boolean {
+    const domainLower: string = domain.toLowerCase().trim();
+    return Domain.TEST_DOMAIN_SUFFIXES.some((suffix: string) => {
+      return domainLower.endsWith(suffix);
+    });
+  }
+
   private _domain: string = "";
   public get domain(): string {
     return this._domain;

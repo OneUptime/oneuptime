@@ -59,11 +59,6 @@ export class ResourceGenerator {
     ];
 
     // Add conditional imports only if they're actually used
-    const hasNumberFields: boolean = Object.values(resource.schema).some(
-      (attr: any) => {
-        return attr.type === "number";
-      },
-    );
     const hasReadOperation: boolean = Boolean(resource.operations.read);
     const hasDefaultValues: boolean = Object.values(resource.schema).some(
       (attr: any) => {
@@ -71,9 +66,8 @@ export class ResourceGenerator {
       },
     );
 
-    if (hasNumberFields) {
-      imports.push("math/big");
-    }
+    // Always add math/big since the bigFloatToFloat64 helper method uses it
+    imports.push("math/big");
 
     if (hasReadOperation) {
       imports.push("net/http");
@@ -218,12 +212,47 @@ export class ResourceGenerator {
     }
 
     if (resource.operations.create || resource.operations.update) {
+      // Check which plan modifier imports are needed based on Optional+Computed fields
+      const hasOptionalComputedBools: boolean = Object.values(
+        resource.schema,
+      ).some((attr: any) => {
+        return attr.optional && attr.computed && attr.type === "bool";
+      });
+      const hasOptionalComputedNumbers: boolean = Object.values(
+        resource.schema,
+      ).some((attr: any) => {
+        return attr.optional && attr.computed && attr.type === "number";
+      });
+      const hasOptionalComputedLists: boolean = Object.values(
+        resource.schema,
+      ).some((attr: any) => {
+        return attr.optional && attr.computed && attr.type === "list";
+      });
+
+      // Always need planmodifier and stringplanmodifier for the id field and Optional+Computed strings
       imports.push(
         "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier",
       );
       imports.push(
         "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier",
       );
+
+      // Only add other plan modifier imports if needed
+      if (hasOptionalComputedBools) {
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier",
+        );
+      }
+      if (hasOptionalComputedNumbers) {
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/numberplanmodifier",
+        );
+      }
+      if (hasOptionalComputedLists) {
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier",
+        );
+      }
     }
 
     const importStatements: string = imports
@@ -340,14 +369,23 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     if terraformString.IsNull() || terraformString.IsUnknown() || terraformString.ValueString() == "" {
         return nil
     }
-    
+
     var result interface{}
     if err := json.Unmarshal([]byte(terraformString.ValueString()), &result); err != nil {
         // If JSON parsing fails, return the raw string
         return terraformString.ValueString()
     }
-    
+
     return result
+}
+
+// Helper method to convert *big.Float to float64 for JSON serialization
+func (r *${resourceTypeName}Resource) bigFloatToFloat64(bf *big.Float) interface{} {
+    if bf == nil {
+        return nil
+    }
+    f, _ := bf.Float64()
+    return f
 }
 `;
   }
@@ -531,6 +569,32 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
                 PlanModifiers: []planmodifier.String{
                     stringplanmodifier.UseStateForUnknown(),
                 }`;
+    } else if (attr.optional && attr.computed) {
+      /*
+       * Add UseStateForUnknown() for Optional+Computed fields
+       * This prevents "inconsistent result after apply" errors when server provides defaults
+       */
+      if (attr.type === "string") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.String{
+                    stringplanmodifier.UseStateForUnknown(),
+                }`;
+      } else if (attr.type === "bool") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.Bool{
+                    boolplanmodifier.UseStateForUnknown(),
+                }`;
+      } else if (attr.type === "number") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.Number{
+                    numberplanmodifier.UseStateForUnknown(),
+                }`;
+      } else if (attr.type === "list") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.List{
+                    listplanmodifier.UseStateForUnknown(),
+                }`;
+      }
     }
 
     return `schema.${attrType}Attribute{
@@ -1070,9 +1134,15 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       terraformAttr.type === "string" &&
       terraformAttr.isComplexObject
     ) {
+      /*
+       * Try to parse as JSON first, but if it fails (e.g., for simple strings like "#FF0000"),
+       * fall back to sending the raw string value
+       */
       return `var ${fieldName.toLowerCase()}Data interface{}
         if err := json.Unmarshal([]byte(data.${fieldName}.ValueString()), &${fieldName.toLowerCase()}Data); err == nil {
             requestDataMap["${apiFieldName}"] = ${fieldName.toLowerCase()}Data
+        } else {
+            requestDataMap["${apiFieldName}"] = data.${fieldName}.ValueString()
         }`;
     }
     return `requestDataMap["${apiFieldName}"] = ${value}`;
@@ -1276,9 +1346,16 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         // ${fieldName} value is already set from the existing state
     }`;
         } else if (isComplexObject) {
-          // For complex object strings, convert API object response to JSON string
+          /*
+           * For complex object strings, check if it's a wrapper object with _type and value fields
+           * (e.g., {"_type":"Version","value":"1.0.0"} or {"_type":"DateTime","value":"..."})
+           * If so, extract the value; otherwise convert the entire object to JSON string
+           */
           return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
-        if jsonBytes, err := json.Marshal(val); err == nil {
+        // Check if it's a wrapper object with value field (e.g., Version, DateTime types)
+        if innerVal, ok := val["value"].(string); ok {
+            ${fieldName} = types.StringValue(innerVal)
+        } else if jsonBytes, err := json.Marshal(val); err == nil {
             ${fieldName} = types.StringValue(string(jsonBytes))
         } else {
             ${fieldName} = types.StringNull()
@@ -1417,7 +1494,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       case "string":
         return `${fieldRef}.ValueString()`;
       case "number":
-        return `${fieldRef}.ValueBigFloat()`;
+        // Use helper to convert *big.Float to float64 for proper JSON serialization
+        return `r.bigFloatToFloat64(${fieldRef}.ValueBigFloat())`;
       case "bool":
         return `${fieldRef}.ValueBool()`;
       case "map":

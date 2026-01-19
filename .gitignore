@@ -116,8 +116,8 @@ InfrastructureAgent/oneuptime-infrastructure-agent
 # Terraform generated files
 openapi.json
 
-Terraform/**
-
+Terraform/terraform-provider-oneuptime/**
+Terraform/openapi.json
 TerraformTest/**
 
 terraform-provider-example/**
@@ -129,3 +129,12 @@ MCP/node_modules
 Dashboard/public/sw.js
 .claude/settings.local.json
 Common/.claude/settings.local.json
+E2E/Terraform/e2e-tests/test-env.sh
+
+# Terraform state and plan files
+*.tfplan
+tfplan
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+.terraform.lock.hcl

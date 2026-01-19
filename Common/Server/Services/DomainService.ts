@@ -35,10 +35,18 @@ export class Service extends DatabaseService<Model> {
       createBy.data.domain = new Domain(domain.trim().toLowerCase());
     }
 
+    /*
+     * Prevent setting isVerified during creation, EXCEPT for test domains
+     * Test domains can be auto-verified since they are reserved TLDs that can't have real DNS records
+     */
     if (!createBy.props.isRoot && createBy.data.isVerified) {
-      throw new BadDataException(
-        "Domain cannot be verified during creation. Please verify the domain after creation. Please set isVerified to false.",
-      );
+      const domainStr: string = createBy.data.domain?.toString() || "";
+
+      if (!Domain.isTestDomain(domainStr)) {
+        throw new BadDataException(
+          "Domain cannot be verified during creation. Please verify the domain after creation. Please set isVerified to false.",
+        );
+      }
     }
 
     createBy.data.domainVerificationText =
@@ -96,19 +104,22 @@ export class Service extends DatabaseService<Model> {
           );
         }
 
-        const isVerified: boolean = await Domain.verifyTxtRecord(
-          domain,
-          verificationText,
-        );
-
-        if (!isVerified) {
-          throw new BadDataException(
-            "Verification TXT record " +
-              verificationText +
-              " not found in domain " +
-              domain +
-              ". Please add a TXT record to verify the domain. If you have already added the TXT record, please wait for few hours to let DNS to propagate.",
+        // Skip DNS verification for test domains (reserved TLDs for testing)
+        if (!Domain.isTestDomain(domain)) {
+          const isVerified: boolean = await Domain.verifyTxtRecord(
+            domain,
+            verificationText,
           );
+
+          if (!isVerified) {
+            throw new BadDataException(
+              "Verification TXT record " +
+                verificationText +
+                " not found in domain " +
+                domain +
+                ". Please add a TXT record to verify the domain. If you have already added the TXT record, please wait for few hours to let DNS to propagate.",
+            );
+          }
         }
       }
     }
