@@ -21,5 +21,26 @@ resource "oneuptime_alert_state" "test" {
 }
 
 output "alert_state_id" {
-  value = oneuptime_alert_state.test.id
+  value       = oneuptime_alert_state.test.id
+  description = "ID of the created alert state"
+}
+
+output "alert_state_name" {
+  value       = oneuptime_alert_state.test.name
+  description = "Name of the created alert state"
+}
+
+output "alert_state_description" {
+  value       = oneuptime_alert_state.test.description
+  description = "Description of the created alert state"
+}
+
+output "alert_state_color" {
+  value       = oneuptime_alert_state.test.color
+  description = "Color of the created alert state"
+}
+
+output "alert_state_order" {
+  value       = oneuptime_alert_state.test.order
+  description = "Order of the created alert state"
 }

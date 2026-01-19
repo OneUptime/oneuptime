@@ -21,5 +21,26 @@ resource "oneuptime_incident_state" "test" {
 }
 
 output "incident_state_id" {
-  value = oneuptime_incident_state.test.id
+  value       = oneuptime_incident_state.test.id
+  description = "ID of the created incident state"
+}
+
+output "incident_state_name" {
+  value       = oneuptime_incident_state.test.name
+  description = "Name of the created incident state"
+}
+
+output "incident_state_description" {
+  value       = oneuptime_incident_state.test.description
+  description = "Description of the created incident state"
+}
+
+output "incident_state_color" {
+  value       = oneuptime_incident_state.test.color
+  description = "Color of the created incident state"
+}
+
+output "incident_state_order" {
+  value       = oneuptime_incident_state.test.order
+  description = "Order of the created incident state"
 }

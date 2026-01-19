@@ -22,9 +22,21 @@ resource "oneuptime_probe" "test" {
 }
 
 output "probe_id" {
-  value = oneuptime_probe.test.id
+  value       = oneuptime_probe.test.id
+  description = "ID of the created probe"
+}
+
+output "probe_key" {
+  value       = oneuptime_probe.test.key
+  description = "Key of the created probe"
+}
+
+output "probe_name" {
+  value       = oneuptime_probe.test.name
+  description = "Name of the created probe"
 }
 
 output "probe_version" {
-  value = oneuptime_probe.test.probe_version
+  value       = oneuptime_probe.test.probe_version
+  description = "Version of the created probe"
 }

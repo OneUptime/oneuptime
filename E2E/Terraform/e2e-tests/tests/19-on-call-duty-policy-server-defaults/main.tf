@@ -37,9 +37,15 @@ resource "oneuptime_on_call_policy" "test_server_defaults" {
 }
 
 # Output to verify creation succeeded
-output "on_call_policy_id" {
+output "on_call_duty_policy_id" {
   value       = oneuptime_on_call_policy.test_server_defaults.id
   description = "ID of the created on-call policy"
+}
+
+# On-call policy name for API validation
+output "on_call_duty_policy_name" {
+  value       = oneuptime_on_call_policy.test_server_defaults.name
+  description = "Name of the on-call policy"
 }
 
 # List field - server may provide empty list or defaults

@@ -20,9 +20,21 @@ resource "oneuptime_label" "test" {
 }
 
 output "label_id" {
-  value = oneuptime_label.test.id
+  value       = oneuptime_label.test.id
+  description = "ID of the created label"
 }
 
 output "label_name" {
-  value = oneuptime_label.test.name
+  value       = oneuptime_label.test.name
+  description = "Name of the created label"
+}
+
+output "label_description" {
+  value       = oneuptime_label.test.description
+  description = "Description of the created label"
+}
+
+output "label_color" {
+  value       = oneuptime_label.test.color
+  description = "Color of the created label"
 }

@@ -24,5 +24,41 @@ resource "oneuptime_status_page" "test" {
 }
 
 output "status_page_id" {
-  value = oneuptime_status_page.test.id
+  value       = oneuptime_status_page.test.id
+  description = "ID of the created status page"
+}
+
+output "status_page_name" {
+  value       = oneuptime_status_page.test.name
+  description = "Name of the created status page"
+}
+
+output "status_page_description" {
+  value       = oneuptime_status_page.test.description
+  description = "Description of the created status page"
+}
+
+output "status_page_page_title" {
+  value       = oneuptime_status_page.test.page_title
+  description = "Page title of the created status page"
+}
+
+output "status_page_page_description" {
+  value       = oneuptime_status_page.test.page_description
+  description = "Page description of the created status page"
+}
+
+output "status_page_is_public_status_page" {
+  value       = oneuptime_status_page.test.is_public_status_page
+  description = "Whether the status page is public"
+}
+
+output "status_page_enable_email_subscribers" {
+  value       = oneuptime_status_page.test.enable_email_subscribers
+  description = "Whether email subscribers are enabled"
+}
+
+output "status_page_enable_sms_subscribers" {
+  value       = oneuptime_status_page.test.enable_sms_subscribers
+  description = "Whether SMS subscribers are enabled"
 }

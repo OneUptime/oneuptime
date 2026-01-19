@@ -44,9 +44,26 @@ resource "oneuptime_scheduled_maintenance_event" "test_server_defaults" {
 }
 
 # Output to verify creation succeeded
-output "scheduled_maintenance_id" {
+output "scheduled_maintenance_event_id" {
   value       = oneuptime_scheduled_maintenance_event.test_server_defaults.id
   description = "ID of the created scheduled maintenance event"
+}
+
+# Scheduled maintenance title for API validation
+output "scheduled_maintenance_event_title" {
+  value       = oneuptime_scheduled_maintenance_event.test_server_defaults.title
+  description = "Title of the scheduled maintenance event"
+}
+
+# DateTime fields for API validation
+output "scheduled_maintenance_event_starts_at" {
+  value       = oneuptime_scheduled_maintenance_event.test_server_defaults.starts_at
+  description = "Start time of the scheduled maintenance"
+}
+
+output "scheduled_maintenance_event_ends_at" {
+  value       = oneuptime_scheduled_maintenance_event.test_server_defaults.ends_at
+  description = "End time of the scheduled maintenance"
 }
 
 # String field - server provides default state

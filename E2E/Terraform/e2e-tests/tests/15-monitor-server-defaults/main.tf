@@ -45,6 +45,22 @@ output "monitor_id" {
   description = "ID of the created monitor"
 }
 
+# Monitor fields for API validation
+output "monitor_name" {
+  value       = oneuptime_monitor.test_server_defaults.name
+  description = "Name of the created monitor"
+}
+
+output "monitor_description" {
+  value       = oneuptime_monitor.test_server_defaults.description
+  description = "Description of the created monitor"
+}
+
+output "monitor_monitor_type" {
+  value       = oneuptime_monitor.test_server_defaults.monitor_type
+  description = "Type of the created monitor"
+}
+
 # Output the server-modified monitor_steps
 # This should contain the server-injected exceptionMonitor defaults
 output "monitor_steps" {

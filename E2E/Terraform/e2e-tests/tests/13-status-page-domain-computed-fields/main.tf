@@ -82,3 +82,25 @@ output "subdomain" {
   value       = oneuptime_status_page_domain.test.subdomain
   description = "Subdomain used"
 }
+
+# Domain resource outputs for API validation
+output "domain_name" {
+  value       = oneuptime_domain.test.domain
+  description = "Domain name"
+}
+
+output "domain_is_verified" {
+  value       = oneuptime_domain.test.is_verified
+  description = "Whether the domain is verified"
+}
+
+# Status page outputs for API validation
+output "status_page_name" {
+  value       = oneuptime_status_page.test.name
+  description = "Name of the status page"
+}
+
+output "status_page_description" {
+  value       = oneuptime_status_page.test.description
+  description = "Description of the status page"
+}

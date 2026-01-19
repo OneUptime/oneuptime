@@ -48,6 +48,42 @@ output "status_page_id" {
   description = "ID of the created status page"
 }
 
+# Status page fields for API validation
+output "status_page_name" {
+  value       = oneuptime_status_page.test_server_defaults.name
+  description = "Name of the created status page"
+}
+
+output "status_page_description" {
+  value       = oneuptime_status_page.test_server_defaults.description
+  description = "Description of the created status page"
+}
+
+output "status_page_page_title" {
+  value       = oneuptime_status_page.test_server_defaults.page_title
+  description = "Page title of the created status page"
+}
+
+output "status_page_page_description" {
+  value       = oneuptime_status_page.test_server_defaults.page_description
+  description = "Page description of the created status page"
+}
+
+output "status_page_is_public_status_page" {
+  value       = oneuptime_status_page.test_server_defaults.is_public_status_page
+  description = "Whether the status page is public"
+}
+
+output "status_page_enable_email_subscribers" {
+  value       = oneuptime_status_page.test_server_defaults.enable_email_subscribers
+  description = "Whether email subscribers are enabled"
+}
+
+output "status_page_enable_sms_subscribers" {
+  value       = oneuptime_status_page.test_server_defaults.enable_sms_subscribers
+  description = "Whether SMS subscribers are enabled"
+}
+
 # Output the server-provided downtime_monitor_statuses
 # This should contain the default non-operational monitor statuses
 output "downtime_monitor_statuses" {

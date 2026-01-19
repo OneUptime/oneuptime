@@ -21,5 +21,26 @@ resource "oneuptime_alert_severity" "test" {
 }
 
 output "alert_severity_id" {
-  value = oneuptime_alert_severity.test.id
+  value       = oneuptime_alert_severity.test.id
+  description = "ID of the created alert severity"
+}
+
+output "alert_severity_name" {
+  value       = oneuptime_alert_severity.test.name
+  description = "Name of the created alert severity"
+}
+
+output "alert_severity_description" {
+  value       = oneuptime_alert_severity.test.description
+  description = "Description of the created alert severity"
+}
+
+output "alert_severity_color" {
+  value       = oneuptime_alert_severity.test.color
+  description = "Color of the created alert severity"
+}
+
+output "alert_severity_order" {
+  value       = oneuptime_alert_severity.test.order
+  description = "Order of the created alert severity"
 }

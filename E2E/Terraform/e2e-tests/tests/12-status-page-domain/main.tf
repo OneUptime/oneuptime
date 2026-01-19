@@ -48,15 +48,18 @@ resource "oneuptime_status_page_domain" "test" {
 }
 
 output "status_page_domain_id" {
-  value = oneuptime_status_page_domain.test.id
+  value       = oneuptime_status_page_domain.test.id
+  description = "ID of the created status page domain"
 }
 
 output "domain_id" {
-  value = oneuptime_domain.test.id
+  value       = oneuptime_domain.test.id
+  description = "ID of the created domain"
 }
 
 output "status_page_id" {
-  value = oneuptime_status_page.test.id
+  value       = oneuptime_status_page.test.id
+  description = "ID of the created status page"
 }
 
 # Output the computed full_domain to verify it's returned by the API
@@ -66,5 +69,28 @@ output "full_domain" {
 }
 
 output "subdomain" {
-  value = oneuptime_status_page_domain.test.subdomain
+  value       = oneuptime_status_page_domain.test.subdomain
+  description = "Subdomain of the status page domain"
+}
+
+# Domain resource outputs for API validation
+output "domain_name" {
+  value       = oneuptime_domain.test.domain
+  description = "Domain name"
+}
+
+output "domain_is_verified" {
+  value       = oneuptime_domain.test.is_verified
+  description = "Whether the domain is verified"
+}
+
+# Status page outputs for API validation
+output "status_page_name" {
+  value       = oneuptime_status_page.test.name
+  description = "Name of the status page"
+}
+
+output "status_page_description" {
+  value       = oneuptime_status_page.test.description
+  description = "Description of the status page"
 }

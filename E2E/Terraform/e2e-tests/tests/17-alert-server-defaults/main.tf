@@ -51,6 +51,28 @@ output "alert_id" {
   description = "ID of the created alert"
 }
 
+# Alert severity outputs for API validation
+output "alert_severity_id" {
+  value       = oneuptime_alert_severity.test.id
+  description = "ID of the created alert severity"
+}
+
+output "alert_severity_name" {
+  value       = oneuptime_alert_severity.test.name
+  description = "Name of the alert severity"
+}
+
+output "alert_severity_color" {
+  value       = oneuptime_alert_severity.test.color
+  description = "Color of the alert severity"
+}
+
+# Alert title for API validation
+output "alert_title" {
+  value       = oneuptime_alert.test_server_defaults.title
+  description = "Title of the created alert"
+}
+
 # String field - server provides default alert state
 output "current_alert_state_id" {
   value       = oneuptime_alert.test_server_defaults.current_alert_state_id

@@ -54,6 +54,28 @@ output "incident_id" {
   description = "ID of the created incident"
 }
 
+# Incident severity outputs for API validation
+output "incident_severity_id" {
+  value       = oneuptime_incident_severity.test.id
+  description = "ID of the created incident severity"
+}
+
+output "incident_severity_name" {
+  value       = oneuptime_incident_severity.test.name
+  description = "Name of the incident severity"
+}
+
+output "incident_severity_color" {
+  value       = oneuptime_incident_severity.test.color
+  description = "Color of the incident severity"
+}
+
+# Incident title for API validation
+output "incident_title" {
+  value       = oneuptime_incident.test_server_defaults.title
+  description = "Title of the created incident"
+}
+
 # String field - server provides default incident state
 output "current_incident_state_id" {
   value       = oneuptime_incident.test_server_defaults.current_incident_state_id
