@@ -94,7 +94,8 @@ API_KEY_RESPONSE=$(curl -sf -X POST "${ONEUPTIME_URL}/api/api-key" \
     }")
 
 API_KEY_ID=$(echo "$API_KEY_RESPONSE" | jq -r '.data._id // ._id')
-API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '.data.apiKey // .apiKey')
+# Extract the value from the ObjectID object (apiKey is returned as {_type: "ObjectID", value: "..."})
+API_KEY=$(echo "$API_KEY_RESPONSE" | jq -r '(.data.apiKey.value // .apiKey.value) // (.data.apiKey // .apiKey)')
 
 echo "API Key ID: $API_KEY_ID"
 echo "API Key: $API_KEY"
