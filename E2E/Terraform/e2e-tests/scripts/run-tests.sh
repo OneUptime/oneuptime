@@ -47,6 +47,7 @@ TEST_DIRS=(
     "05-status-page"
     "06-alert-severity"
     "07-alert-state"
+    "08-probe"
 )
 
 PASSED=()

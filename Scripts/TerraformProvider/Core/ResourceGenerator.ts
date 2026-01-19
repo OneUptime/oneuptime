@@ -1073,9 +1073,13 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       terraformAttr.type === "string" &&
       terraformAttr.isComplexObject
     ) {
+      // Try to parse as JSON first, but if it fails (e.g., for simple strings like "#FF0000"),
+      // fall back to sending the raw string value
       return `var ${fieldName.toLowerCase()}Data interface{}
         if err := json.Unmarshal([]byte(data.${fieldName}.ValueString()), &${fieldName.toLowerCase()}Data); err == nil {
             requestDataMap["${apiFieldName}"] = ${fieldName.toLowerCase()}Data
+        } else {
+            requestDataMap["${apiFieldName}"] = data.${fieldName}.ValueString()
         }`;
     }
     return `requestDataMap["${apiFieldName}"] = ${value}`;
@@ -1279,9 +1283,14 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         // ${fieldName} value is already set from the existing state
     }`;
         } else if (isComplexObject) {
-          // For complex object strings, convert API object response to JSON string
+          // For complex object strings, check if it's a wrapper object with _type and value fields
+          // (e.g., {"_type":"Version","value":"1.0.0"} or {"_type":"DateTime","value":"..."})
+          // If so, extract the value; otherwise convert the entire object to JSON string
           return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
-        if jsonBytes, err := json.Marshal(val); err == nil {
+        // Check if it's a wrapper object with value field (e.g., Version, DateTime types)
+        if innerVal, ok := val["value"].(string); ok {
+            ${fieldName} = types.StringValue(innerVal)
+        } else if jsonBytes, err := json.Marshal(val); err == nil {
             ${fieldName} = types.StringValue(string(jsonBytes))
         } else {
             ${fieldName} = types.StringNull()
