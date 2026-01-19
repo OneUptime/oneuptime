@@ -8,7 +8,6 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
-import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
@@ -18,7 +17,6 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { Green } from "../../Types/BrandColors";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
@@ -139,38 +137,6 @@ export class Service extends DatabaseService<StatusPage> {
           );
         }
       }
-    }
-
-    if (
-      !createBy.data.downtimeMonitorStatuses ||
-      createBy.data.downtimeMonitorStatuses.length === 0
-    ) {
-      const monitorStatuses: Array<MonitorStatus> =
-        await MonitorStatusService.findBy({
-          query: {
-            projectId: createBy.data.projectId,
-          },
-          select: {
-            _id: true,
-            isOperationalState: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-        });
-
-      const getNonOperationStatuses: Array<MonitorStatus> =
-        monitorStatuses.filter((monitorStatus: MonitorStatus) => {
-          return !monitorStatus.isOperationalState;
-        });
-
-      createBy.data.downtimeMonitorStatuses = getNonOperationStatuses;
-    }
-
-    if (!createBy.data.defaultBarColor) {
-      createBy.data.defaultBarColor = Green;
     }
 
     /*
