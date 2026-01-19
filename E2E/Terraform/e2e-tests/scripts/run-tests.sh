@@ -38,17 +38,13 @@ EOF
 
 echo "Provider installed to: $INSTALL_DIR"
 
-# Test directories in order
-TEST_DIRS=(
-    "01-label"
-    "02-monitor-status"
-    "03-incident-severity"
-    "04-incident-state"
-    "05-status-page"
-    "06-alert-severity"
-    "07-alert-state"
-    "08-probe"
-)
+# Discover all test directories dynamically (sorted by name)
+TEST_DIRS=()
+while IFS= read -r dir; do
+    TEST_DIRS+=("$(basename "$dir")")
+done < <(find "$TEST_DIR/tests" -mindepth 1 -maxdepth 1 -type d | sort)
+
+echo "Discovered ${#TEST_DIRS[@]} test directories"
 
 PASSED=()
 FAILED=()
