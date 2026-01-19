@@ -41,15 +41,10 @@ echo "=== Step 6: Setting up test account ==="
 cd "$TEST_DIR"
 "$SCRIPT_DIR/setup-test-account.sh"
 
-# Step 7: Run basic tests
+# Step 7: Run E2E tests (includes standard tests and CRUD tests with API validation)
 echo ""
 echo "=== Step 7: Running Terraform E2E Tests ==="
 "$SCRIPT_DIR/run-tests.sh"
-
-# Step 8: Run CRUD tests (create, update, API validation, destroy)
-echo ""
-echo "=== Step 8: Running Terraform CRUD Tests ==="
-"$SCRIPT_DIR/run-crud-tests.sh"
 
 echo ""
 echo "=========================================="
