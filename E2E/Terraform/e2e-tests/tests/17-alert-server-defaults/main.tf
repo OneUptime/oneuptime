@@ -1,0 +1,75 @@
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = "1.0.0"
+    }
+  }
+}
+
+provider "oneuptime" {
+  oneuptime_url = var.oneuptime_url
+  api_key       = var.api_key
+}
+
+# Test: Alert with Server-Provided Defaults
+#
+# This test verifies UseStateForUnknown() works for alert resource:
+# - String fields: current_alert_state_id, description
+# - Bool fields: is_owner_notified_of_alert_creation
+# - List fields: labels, on_call_duty_policies
+#
+# Similar to incident but for the alert resource type.
+
+# First create an alert severity (required dependency)
+resource "oneuptime_alert_severity" "test" {
+  project_id  = var.project_id
+  name        = "Alert Test Severity"
+  description = "Severity for alert server defaults test"
+  color       = "#FFA500"
+  order       = 98
+}
+
+# Create alert with minimal fields - let server provide defaults
+resource "oneuptime_alert" "test_server_defaults" {
+  project_id        = var.project_id
+  title             = "Alert Server Defaults Test"
+  alert_severity_id = oneuptime_alert_severity.test.id
+
+  # IMPORTANT: We intentionally DO NOT specify these Optional+Computed fields:
+  # - description (string)
+  # - labels (list)
+  # - on_call_duty_policies (list)
+  # - current_alert_state_id (string - server sets to default state)
+  #
+  # The server will provide default values for these fields.
+}
+
+# Output to verify creation succeeded
+output "alert_id" {
+  value       = oneuptime_alert.test_server_defaults.id
+  description = "ID of the created alert"
+}
+
+# String field - server provides default alert state
+output "current_alert_state_id" {
+  value       = oneuptime_alert.test_server_defaults.current_alert_state_id
+  description = "Server-assigned default alert state"
+}
+
+# List fields - server may provide empty list or defaults
+output "labels" {
+  value       = oneuptime_alert.test_server_defaults.labels
+  description = "Server-provided labels list"
+}
+
+output "on_call_duty_policies" {
+  value       = oneuptime_alert.test_server_defaults.on_call_duty_policies
+  description = "Server-provided on-call duty policies list"
+}
+
+# Other server-computed fields
+output "created_at" {
+  value       = oneuptime_alert.test_server_defaults.created_at
+  description = "Server-generated creation timestamp"
+}
