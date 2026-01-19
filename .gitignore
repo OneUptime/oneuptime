@@ -116,8 +116,8 @@ InfrastructureAgent/oneuptime-infrastructure-agent
 # Terraform generated files
 openapi.json
 
-Terraform/**
-
+Terraform/terraform-provider-oneuptime/**
+Terraform/openapi.json
 TerraformTest/**
 
 terraform-provider-example/**
