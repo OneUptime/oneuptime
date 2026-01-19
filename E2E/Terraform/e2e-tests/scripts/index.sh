@@ -10,16 +10,6 @@ echo "Terraform Provider E2E Tests"
 echo "=========================================="
 echo ""
 
-# Cleanup function
-cleanup() {
-    echo ""
-    echo "=== Running cleanup ==="
-    "$SCRIPT_DIR/cleanup.sh" || true
-    npm run down
-}
-
-# Trap to ensure cleanup runs on exit
-trap cleanup EXIT
 
 # Step 2: Start OneUptime services
 echo ""
