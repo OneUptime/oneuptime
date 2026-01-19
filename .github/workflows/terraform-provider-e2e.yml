@@ -1,5 +1,8 @@
 name: Terraform Provider E2E Tests
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:
