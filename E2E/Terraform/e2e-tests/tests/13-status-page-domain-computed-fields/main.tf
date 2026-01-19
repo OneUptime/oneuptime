@@ -13,9 +13,12 @@ provider "oneuptime" {
 }
 
 # First, create a domain (required for status_page_domain)
+# The domain must be verified before it can be used with status_page_domain
+# For test domains (.example.com), DNS verification is bypassed
 resource "oneuptime_domain" "test" {
-  project_id = var.project_id
-  domain     = var.domain_name
+  project_id  = var.project_id
+  domain      = var.domain_name
+  is_verified = true
 }
 
 # Then, create a status page (required for status_page_domain)

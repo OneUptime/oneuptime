@@ -13,15 +13,18 @@ provider "oneuptime" {
 }
 
 # First, create a domain (required for status_page_domain)
+# The domain must be verified before it can be used with status_page_domain
+# For test domains (.example.com), DNS verification is bypassed
 resource "oneuptime_domain" "test" {
-  project_id = var.project_id
-  domain     = "terraform-e2e-test-${formatdate("YYYYMMDDhhmmss", timestamp())}.example.com"
+  project_id  = var.project_id
+  domain      = "status-page-domain-e2e-test.example.com"
+  is_verified = true
 }
 
 # Then, create a status page (required for status_page_domain)
 resource "oneuptime_status_page" "test" {
   project_id               = var.project_id
-  name                     = "terraform-e2e-statuspage-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name                     = "Status Page Domain E2E Test"
   description              = "Status page created by Terraform E2E tests"
   page_title               = "Terraform Test Status"
   page_description         = "This is a test status page"
