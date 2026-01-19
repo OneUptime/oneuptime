@@ -67,16 +67,11 @@ for test_name in "${TEST_DIRS[@]}"; do
 
     cd "$test_path"
 
-    # Init
-    echo "  [1/4] Initializing..."
-    if ! terraform init -upgrade 2>&1; then
-        echo "  FAILED: Init failed"
-        FAILED+=("$test_name")
-        continue
-    fi
+    # Skip terraform init when using dev_overrides (it will fail trying to query registry)
+    # The provider is loaded directly from the dev_overrides path
 
     # Plan
-    echo "  [2/4] Planning..."
+    echo "  [1/3] Planning..."
     if ! terraform plan -out=tfplan 2>&1; then
         echo "  FAILED: Plan failed"
         FAILED+=("$test_name")
@@ -84,7 +79,7 @@ for test_name in "${TEST_DIRS[@]}"; do
     fi
 
     # Apply
-    echo "  [3/4] Applying..."
+    echo "  [2/3] Applying..."
     if ! terraform apply -auto-approve tfplan 2>&1; then
         echo "  FAILED: Apply failed"
         FAILED+=("$test_name")
@@ -98,7 +93,7 @@ for test_name in "${TEST_DIRS[@]}"; do
     terraform output 2>&1 || true
 
     # Destroy
-    echo "  [4/4] Destroying..."
+    echo "  [3/3] Destroying..."
     if ! terraform destroy -auto-approve 2>&1; then
         echo "  WARNING: Destroy failed"
         FAILED+=("$test_name (destroy)")
