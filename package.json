@@ -78,7 +78,8 @@
         "generate-terraform-provider": "export $(grep -v '^#' config.env | xargs) && node --require ts-node/register ./Scripts/TerraformProvider/GenerateProvider.ts",
         "install-terraform-provider-locally": "bash ./Scripts/TerraformProvider/install-terraform-provider-locally.sh --force",
         "generate-and-install-terraform-provider-locally": "npm run install-terraform-provider-locally",
-        "publish-terraform-provider": "bash ./Scripts/TerraformProvider/publish-terraform-provider.sh"
+        "publish-terraform-provider": "bash ./Scripts/TerraformProvider/publish-terraform-provider.sh",
+        "run-terraform-tests": "bash ./E2E/Terraform/e2e-tests/scripts/index.sh"
     },
     "repository": {
         "type": "git",
