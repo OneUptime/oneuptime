@@ -115,6 +115,7 @@ export interface TerraformAttribute {
   example?: any; // Example value from OpenAPI spec
   isComplexObject?: boolean; // Flag to indicate this string field is actually a complex object
   format?: string; // OpenAPI format information (e.g., "binary", "date-time", etc.)
+  isDefaultValueColumn?: boolean; // Field has server-side default injection, needs UseStateForUnknown() plan modifier
 }
 
 export interface GoType {

@@ -212,12 +212,47 @@ export class ResourceGenerator {
     }
 
     if (resource.operations.create || resource.operations.update) {
+      // Check which plan modifier imports are needed based on Optional+Computed fields
+      const hasOptionalComputedBools: boolean = Object.values(
+        resource.schema,
+      ).some((attr: any) => {
+        return attr.optional && attr.computed && attr.type === "bool";
+      });
+      const hasOptionalComputedNumbers: boolean = Object.values(
+        resource.schema,
+      ).some((attr: any) => {
+        return attr.optional && attr.computed && attr.type === "number";
+      });
+      const hasOptionalComputedLists: boolean = Object.values(
+        resource.schema,
+      ).some((attr: any) => {
+        return attr.optional && attr.computed && attr.type === "list";
+      });
+
+      // Always need planmodifier and stringplanmodifier for the id field and Optional+Computed strings
       imports.push(
         "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier",
       );
       imports.push(
         "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier",
       );
+
+      // Only add other plan modifier imports if needed
+      if (hasOptionalComputedBools) {
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier",
+        );
+      }
+      if (hasOptionalComputedNumbers) {
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/numberplanmodifier",
+        );
+      }
+      if (hasOptionalComputedLists) {
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier",
+        );
+      }
     }
 
     const importStatements: string = imports
@@ -534,6 +569,30 @@ func (r *${resourceTypeName}Resource) bigFloatToFloat64(bf *big.Float) interface
                 PlanModifiers: []planmodifier.String{
                     stringplanmodifier.UseStateForUnknown(),
                 }`;
+    } else if (attr.optional && attr.computed) {
+      // Add UseStateForUnknown() for Optional+Computed fields
+      // This prevents "inconsistent result after apply" errors when server provides defaults
+      if (attr.type === "string") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.String{
+                    stringplanmodifier.UseStateForUnknown(),
+                }`;
+      } else if (attr.type === "bool") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.Bool{
+                    boolplanmodifier.UseStateForUnknown(),
+                }`;
+      } else if (attr.type === "number") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.Number{
+                    numberplanmodifier.UseStateForUnknown(),
+                }`;
+      } else if (attr.type === "list") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.List{
+                    listplanmodifier.UseStateForUnknown(),
+                }`;
+      }
     }
 
     return `schema.${attrType}Attribute{
