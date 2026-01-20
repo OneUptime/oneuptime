@@ -5,6 +5,7 @@ import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/AlertEpisodeMember";
+import Alert from "../../Models/DatabaseModels/Alert";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
@@ -12,6 +13,10 @@ import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { Yellow500, Green500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
+
+// Type aliases for dynamically imported services
+type AlertServiceType = typeof import("./AlertService").default;
+type AlertEpisodeServiceType = typeof import("./AlertEpisodeService").default;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -77,9 +82,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Update alert's episode reference
-    const AlertService: typeof import("./AlertService").default = (
-      await import("./AlertService")
-    ).default;
+    const AlertService: AlertServiceType = (await import("./AlertService"))
+      .default;
 
     await AlertService.updateOneById({
       id: createdItem.alertId,
@@ -92,8 +96,9 @@ export class Service extends DatabaseService<Model> {
     });
 
     // Update episode's alertCount and lastAlertAddedAt
-    const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
-      (await import("./AlertEpisodeService")).default;
+    const AlertEpisodeService: AlertEpisodeServiceType = (
+      await import("./AlertEpisodeService")
+    ).default;
 
     Promise.resolve()
       .then(async () => {
@@ -117,17 +122,16 @@ export class Service extends DatabaseService<Model> {
       });
 
     // Get alert details for feed
-    const alert: import("../../Models/DatabaseModels/Alert").default | null =
-      await AlertService.findOneById({
-        id: createdItem.alertId,
-        select: {
-          alertNumber: true,
-          title: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const alert: Alert | null = await AlertService.findOneById({
+      id: createdItem.alertId,
+      select: {
+        alertNumber: true,
+        title: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     // Create feed item
     await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
@@ -175,11 +179,11 @@ export class Service extends DatabaseService<Model> {
     const membersDeleted: Model[] = onDelete.carryForward as Model[];
 
     if (membersDeleted && membersDeleted.length > 0) {
-      const AlertService: typeof import("./AlertService").default = (
-        await import("./AlertService")
+      const AlertService: AlertServiceType = (await import("./AlertService"))
+        .default;
+      const AlertEpisodeService: AlertEpisodeServiceType = (
+        await import("./AlertEpisodeService")
       ).default;
-      const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
-        (await import("./AlertEpisodeService")).default;
 
       for (const member of membersDeleted) {
         if (member.alertId) {
@@ -195,9 +199,7 @@ export class Service extends DatabaseService<Model> {
           });
 
           // Get alert details for feed
-          const alert:
-            | import("../../Models/DatabaseModels/Alert").default
-            | null = await AlertService.findOneById({
+          const alert: Alert | null = await AlertService.findOneById({
             id: member.alertId,
             select: {
               alertNumber: true,

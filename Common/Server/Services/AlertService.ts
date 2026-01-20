@@ -55,6 +55,10 @@ import MetricType from "../../Models/DatabaseModels/MetricType";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 
+// Type alias for dynamically imported service
+type AlertGroupingEngineServiceType =
+  typeof import("./AlertGroupingEngineService").default;
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -354,8 +358,9 @@ export class Service extends DatabaseService<Model> {
       .then(async () => {
         // Process alert for grouping into episodes
         try {
-          const AlertGroupingEngineService: typeof import("./AlertGroupingEngineService").default =
-            (await import("./AlertGroupingEngineService")).default;
+          const AlertGroupingEngineService: AlertGroupingEngineServiceType = (
+            await import("./AlertGroupingEngineService")
+          ).default;
 
           await AlertGroupingEngineService.processAlert(createdItem);
         } catch (error) {

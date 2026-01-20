@@ -9,6 +9,7 @@ import AlertService from "Common/Server/Services/AlertService";
 import logger from "Common/Server/Utils/Logger";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -105,9 +106,7 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     }
 
     // Check if all alerts are resolved
-    const resolvedState:
-      | import("Common/Models/DatabaseModels/AlertState").default
-      | null = await AlertStateService.findOneBy({
+    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
       query: {
         projectId: episode.projectId,
         isResolvedState: true,

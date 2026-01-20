@@ -11,6 +11,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeStateTimeline from "../../Models/DatabaseModels/AlertEpisodeStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -18,6 +19,9 @@ import logger from "../Utils/Logger";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+
+// Type alias for dynamically imported service
+type AlertEpisodeServiceType = typeof import("./AlertEpisodeService").default;
 
 export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
   public constructor() {
@@ -254,8 +258,9 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
 
     // Update episode's current state if this is the latest timeline entry
     if (!createdItem.endsAt) {
-      const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
-        (await import("./AlertEpisodeService")).default;
+      const AlertEpisodeService: AlertEpisodeServiceType = (
+        await import("./AlertEpisodeService")
+      ).default;
 
       await AlertEpisodeService.updateOneBy({
         query: {
@@ -304,12 +309,11 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       stateEmoji = "🔴";
     }
 
-    const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
-      (await import("./AlertEpisodeService")).default;
+    const AlertEpisodeService: AlertEpisodeServiceType = (
+      await import("./AlertEpisodeService")
+    ).default;
 
-    const episode:
-      | import("../../Models/DatabaseModels/AlertEpisode").default
-      | null = await AlertEpisodeService.findOneById({
+    const episode: AlertEpisode | null = await AlertEpisodeService.findOneById({
       id: createdItem.alertEpisodeId,
       select: {
         episodeNumber: true,
@@ -499,8 +503,9 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         });
 
       if (episodeStateTimeline && episodeStateTimeline.alertStateId) {
-        const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
-          (await import("./AlertEpisodeService")).default;
+        const AlertEpisodeService: AlertEpisodeServiceType = (
+          await import("./AlertEpisodeService")
+        ).default;
 
         await AlertEpisodeService.updateOneBy({
           query: {

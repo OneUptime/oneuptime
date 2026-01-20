@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/AlertEpisode";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
@@ -20,6 +21,11 @@ import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpis
 import { Red500, Green500 } from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
+
+// Type aliases for dynamically imported services
+type AlertSeverityServiceType = typeof import("./AlertSeverityService").default;
+type AlertEpisodeMemberServiceType =
+  typeof import("./AlertEpisodeMemberService").default;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -418,19 +424,19 @@ export class Service extends DatabaseService<Model> {
 
     if (onlyIfHigher && episode.alertSeverity?.order !== undefined) {
       // Get the new severity to check its order
-      const AlertSeverityService: typeof import("./AlertSeverityService").default =
-        (await import("./AlertSeverityService")).default;
-      const newSeverity:
-        | import("../../Models/DatabaseModels/AlertSeverity").default
-        | null = await AlertSeverityService.findOneById({
-        id: severityId,
-        select: {
-          order: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const AlertSeverityService: AlertSeverityServiceType = (
+        await import("./AlertSeverityService")
+      ).default;
+      const newSeverity: AlertSeverity | null =
+        await AlertSeverityService.findOneById({
+          id: severityId,
+          select: {
+            order: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (newSeverity && newSeverity.order !== undefined) {
         // Lower order = higher severity
@@ -453,8 +459,9 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async updateAlertCount(episodeId: ObjectID): Promise<void> {
-    const AlertEpisodeMemberService: typeof import("./AlertEpisodeMemberService").default =
-      (await import("./AlertEpisodeMemberService")).default;
+    const AlertEpisodeMemberService: AlertEpisodeMemberServiceType = (
+      await import("./AlertEpisodeMemberService")
+    ).default;
 
     const count: PositiveNumber = await AlertEpisodeMemberService.countBy({
       query: {
