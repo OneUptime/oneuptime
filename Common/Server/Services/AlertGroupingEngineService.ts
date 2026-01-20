@@ -8,6 +8,7 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember, {
   AlertEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/AlertEpisodeMember";
+import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -36,39 +37,39 @@ class AlertGroupingEngineServiceClass {
       }
 
       // Get enabled rules sorted by priority
-      const AlertGroupingRuleService = (
-        await import("./AlertGroupingRuleService")
-      ).default;
+      const AlertGroupingRuleService: typeof import("./AlertGroupingRuleService").default =
+        (await import("./AlertGroupingRuleService")).default;
 
-      const rules: AlertGroupingRule[] = await AlertGroupingRuleService.findBy({
-        query: {
-          projectId: alert.projectId,
-          isEnabled: true,
-        },
-        sort: {
-          priority: SortOrder.Ascending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          name: true,
-          matchCriteria: true,
-          timeWindowMinutes: true,
-          groupByFields: true,
-          episodeTitleTemplate: true,
-          reopenWindowMinutes: true,
-          inactivityTimeoutMinutes: true,
-          defaultAssignToUserId: true,
-          defaultAssignToTeamId: true,
-          onCallDutyPolicies: {
-            _id: true,
+      const rules: Array<AlertGroupingRule> =
+        await AlertGroupingRuleService.findBy({
+          query: {
+            projectId: alert.projectId,
+            isEnabled: true,
           },
-        },
-        limit: 100,
-        skip: 0,
-      });
+          sort: {
+            priority: SortOrder.Ascending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            _id: true,
+            name: true,
+            matchCriteria: true,
+            timeWindowMinutes: true,
+            groupByFields: true,
+            episodeTitleTemplate: true,
+            reopenWindowMinutes: true,
+            inactivityTimeoutMinutes: true,
+            defaultAssignToUserId: true,
+            defaultAssignToTeamId: true,
+            onCallDutyPolicies: {
+              _id: true,
+            },
+          },
+          limit: 100,
+          skip: 0,
+        });
 
       if (rules.length === 0) {
         logger.debug("No enabled grouping rules found for project");
@@ -77,7 +78,7 @@ class AlertGroupingEngineServiceClass {
 
       // Find first matching rule
       for (const rule of rules) {
-        const matches = await this.doesAlertMatchRule(alert, rule);
+        const matches: boolean = await this.doesAlertMatchRule(alert, rule);
 
         if (matches) {
           logger.debug(
@@ -85,7 +86,10 @@ class AlertGroupingEngineServiceClass {
           );
 
           // Try to find existing episode or create new one
-          const result = await this.groupAlertWithRule(alert, rule);
+          const result: GroupingResult = await this.groupAlertWithRule(
+            alert,
+            rule,
+          );
           return result;
         }
       }
@@ -116,7 +120,7 @@ class AlertGroupingEngineServiceClass {
       if (!alert.monitorId) {
         return false;
       }
-      const monitorIdStr = alert.monitorId.toString();
+      const monitorIdStr: string = alert.monitorId.toString();
       if (!criteria.monitorIds.includes(monitorIdStr)) {
         return false;
       }
@@ -127,7 +131,7 @@ class AlertGroupingEngineServiceClass {
       if (!alert.alertSeverityId) {
         return false;
       }
-      const severityIdStr = alert.alertSeverityId.toString();
+      const severityIdStr: string = alert.alertSeverityId.toString();
       if (!criteria.alertSeverityIds.includes(severityIdStr)) {
         return false;
       }
@@ -138,12 +142,14 @@ class AlertGroupingEngineServiceClass {
       if (!alert.labels || alert.labels.length === 0) {
         return false;
       }
-      const alertLabelIds = alert.labels.map((l) => {
+      const alertLabelIds: Array<string> = alert.labels.map((l: Label) => {
         return l.id?.toString() || "";
       });
-      const hasMatchingLabel = criteria.labelIds.some((labelId) => {
-        return alertLabelIds.includes(labelId);
-      });
+      const hasMatchingLabel: boolean = criteria.labelIds.some(
+        (labelId: string) => {
+          return alertLabelIds.includes(labelId);
+        },
+      );
       if (!hasMatchingLabel) {
         return false;
       }
@@ -155,11 +161,11 @@ class AlertGroupingEngineServiceClass {
         return false;
       }
       try {
-        const regex = new RegExp(criteria.alertTitlePattern, "i");
+        const regex: RegExp = new RegExp(criteria.alertTitlePattern, "i");
         if (!regex.test(alert.title)) {
           return false;
         }
-      } catch (e) {
+      } catch {
         logger.warn(
           `Invalid regex pattern in rule ${rule.id}: ${criteria.alertTitlePattern}`,
         );
@@ -173,11 +179,11 @@ class AlertGroupingEngineServiceClass {
         return false;
       }
       try {
-        const regex = new RegExp(criteria.alertDescriptionPattern, "i");
+        const regex: RegExp = new RegExp(criteria.alertDescriptionPattern, "i");
         if (!regex.test(alert.description)) {
           return false;
         }
-      } catch (e) {
+      } catch {
         logger.warn(
           `Invalid regex pattern in rule ${rule.id}: ${criteria.alertDescriptionPattern}`,
         );
@@ -201,8 +207,11 @@ class AlertGroupingEngineServiceClass {
         return false;
       }
 
-      for (const [key, value] of Object.entries(criteria.monitorCustomFields)) {
-        const alertCustomFields = alert.customFields as Record<string, unknown>;
+      for (const [key, value] of Object.entries(
+        criteria.monitorCustomFields,
+      ) as Array<[string, unknown]>) {
+        const alertCustomFields: Record<string, unknown> =
+          alert.customFields as Record<string, unknown>;
         if (alertCustomFields[key] !== value) {
           return false;
         }
@@ -217,25 +226,28 @@ class AlertGroupingEngineServiceClass {
     alert: Alert,
     rule: AlertGroupingRule,
   ): Promise<GroupingResult> {
-    const AlertEpisodeService = (await import("./AlertEpisodeService")).default;
-    const AlertEpisodeMemberService = (
-      await import("./AlertEpisodeMemberService")
-    ).default;
+    const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
+      (await import("./AlertEpisodeService")).default;
 
     // Build the grouping key based on groupByFields
-    const groupingKey = this.buildGroupingKey(alert, rule.groupByFields);
+    const groupingKey: string = this.buildGroupingKey(
+      alert,
+      rule.groupByFields,
+    );
 
     // Calculate time window cutoff
-    const timeWindowMinutes = rule.timeWindowMinutes || 60;
-    const timeWindowCutoff = OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
+    const timeWindowMinutes: number = rule.timeWindowMinutes || 60;
+    const timeWindowCutoff: Date =
+      OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
 
     // Find existing active episode that matches
-    const existingEpisode = await this.findMatchingActiveEpisode(
-      alert.projectId!,
-      rule.id!,
-      groupingKey,
-      timeWindowCutoff,
-    );
+    const existingEpisode: AlertEpisode | null =
+      await this.findMatchingActiveEpisode(
+        alert.projectId!,
+        rule.id!,
+        groupingKey,
+        timeWindowCutoff,
+      );
 
     if (existingEpisode && existingEpisode.id) {
       // Add alert to existing episode
@@ -263,15 +275,17 @@ class AlertGroupingEngineServiceClass {
     }
 
     // Check if we can reopen a recently resolved episode
-    const reopenWindowMinutes = rule.reopenWindowMinutes || 0;
+    const reopenWindowMinutes: number = rule.reopenWindowMinutes || 0;
     if (reopenWindowMinutes > 0) {
-      const reopenCutoff = OneUptimeDate.getSomeMinutesAgo(reopenWindowMinutes);
-      const recentlyResolvedEpisode = await this.findRecentlyResolvedEpisode(
-        alert.projectId!,
-        rule.id!,
-        groupingKey,
-        reopenCutoff,
-      );
+      const reopenCutoff: Date =
+        OneUptimeDate.getSomeMinutesAgo(reopenWindowMinutes);
+      const recentlyResolvedEpisode: AlertEpisode | null =
+        await this.findRecentlyResolvedEpisode(
+          alert.projectId!,
+          rule.id!,
+          groupingKey,
+          reopenCutoff,
+        );
 
       if (recentlyResolvedEpisode && recentlyResolvedEpisode.id) {
         // Reopen the episode
@@ -304,7 +318,11 @@ class AlertGroupingEngineServiceClass {
     }
 
     // Create new episode
-    const newEpisode = await this.createNewEpisode(alert, rule, groupingKey);
+    const newEpisode: AlertEpisode | null = await this.createNewEpisode(
+      alert,
+      rule,
+      groupingKey,
+    );
 
     if (newEpisode && newEpisode.id) {
       // Add alert to new episode
@@ -325,7 +343,7 @@ class AlertGroupingEngineServiceClass {
     alert: Alert,
     groupByFields: AlertGroupingRuleGroupByFields | undefined,
   ): string {
-    const parts: string[] = [];
+    const parts: Array<string> = [];
 
     if (!groupByFields) {
       // Default grouping by monitorId
@@ -345,13 +363,15 @@ class AlertGroupingEngineServiceClass {
 
     if (groupByFields.alertTitle && alert.title) {
       // Normalize title for grouping (remove numbers, etc.)
-      const normalizedTitle = alert.title.toLowerCase().replace(/\d+/g, "X");
+      const normalizedTitle: string = alert.title
+        .toLowerCase()
+        .replace(/\d+/g, "X");
       parts.push(`title:${normalizedTitle}`);
     }
 
     if (groupByFields.telemetryQuery && alert.telemetryQuery) {
       // Hash the telemetry query for grouping
-      const queryStr = JSON.stringify(alert.telemetryQuery);
+      const queryStr: string = JSON.stringify(alert.telemetryQuery);
       parts.push(`query:${this.simpleHash(queryStr)}`);
     }
 
@@ -359,7 +379,8 @@ class AlertGroupingEngineServiceClass {
       groupByFields.customFieldValues &&
       groupByFields.customFieldValues.length > 0
     ) {
-      const customFields = alert.customFields as Record<string, unknown>;
+      const customFields: Record<string, unknown> =
+        alert.customFields as Record<string, unknown>;
       if (customFields) {
         for (const fieldName of groupByFields.customFieldValues) {
           if (customFields[fieldName] !== undefined) {
@@ -373,9 +394,9 @@ class AlertGroupingEngineServiceClass {
   }
 
   private simpleHash(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
+    let hash: number = 0;
+    for (let i: number = 0; i < str.length; i++) {
+      const char: number = str.charCodeAt(i);
       hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
@@ -389,11 +410,16 @@ class AlertGroupingEngineServiceClass {
     groupingKey: string,
     timeWindowCutoff: Date,
   ): Promise<AlertEpisode | null> {
-    const AlertEpisodeService = (await import("./AlertEpisodeService")).default;
-    const AlertStateService = (await import("./AlertStateService")).default;
+    const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
+      (await import("./AlertEpisodeService")).default;
+    const AlertStateService: typeof import("./AlertStateService").default = (
+      await import("./AlertStateService")
+    ).default;
 
     // Get resolved state to exclude resolved episodes
-    const resolvedState = await AlertStateService.findOneBy({
+    const resolvedState:
+      | import("../../Models/DatabaseModels/AlertState").default
+      | null = await AlertStateService.findOneBy({
       query: {
         projectId: projectId,
         isResolvedState: true,
@@ -410,7 +436,7 @@ class AlertGroupingEngineServiceClass {
      * Find active episode with matching rule and grouping key
      * that has been updated recently (within time window)
      */
-    const episodes = await AlertEpisodeService.findBy({
+    const episodes: Array<AlertEpisode> = await AlertEpisodeService.findBy({
       query: {
         projectId: projectId,
         alertGroupingRuleId: ruleId,
@@ -435,8 +461,8 @@ class AlertGroupingEngineServiceClass {
 
     // Filter to only active (non-resolved) episodes
     for (const episode of episodes) {
-      const episodeOrder = episode.currentAlertState?.order || 0;
-      const resolvedOrder = resolvedState?.order || 999;
+      const episodeOrder: number = episode.currentAlertState?.order || 0;
+      const resolvedOrder: number = resolvedState?.order || 999;
 
       if (episodeOrder < resolvedOrder) {
         return episode;
@@ -453,10 +479,11 @@ class AlertGroupingEngineServiceClass {
     groupingKey: string,
     reopenCutoff: Date,
   ): Promise<AlertEpisode | null> {
-    const AlertEpisodeService = (await import("./AlertEpisodeService")).default;
+    const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
+      (await import("./AlertEpisodeService")).default;
 
     // Find recently resolved episode with matching rule and grouping key
-    const episode = await AlertEpisodeService.findOneBy({
+    const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
       query: {
         projectId: projectId,
         alertGroupingRuleId: ruleId,
@@ -483,12 +510,16 @@ class AlertGroupingEngineServiceClass {
     rule: AlertGroupingRule,
     groupingKey: string,
   ): Promise<AlertEpisode | null> {
-    const AlertEpisodeService = (await import("./AlertEpisodeService")).default;
+    const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
+      (await import("./AlertEpisodeService")).default;
 
     // Generate episode title from template
-    const title = this.generateEpisodeTitle(alert, rule.episodeTitleTemplate);
+    const title: string = this.generateEpisodeTitle(
+      alert,
+      rule.episodeTitleTemplate,
+    );
 
-    const newEpisode = new AlertEpisode();
+    const newEpisode: AlertEpisode = new AlertEpisode();
     newEpisode.projectId = alert.projectId;
     newEpisode.title = title;
     newEpisode.alertGroupingRuleId = rule.id;
@@ -515,7 +546,7 @@ class AlertGroupingEngineServiceClass {
     }
 
     try {
-      const createdEpisode = await AlertEpisodeService.create({
+      const createdEpisode: AlertEpisode = await AlertEpisodeService.create({
         data: newEpisode,
         props: {
           isRoot: true,
@@ -545,7 +576,7 @@ class AlertGroupingEngineServiceClass {
     }
 
     // Replace placeholders in template
-    let title = template;
+    let title: string = template;
 
     // {alertTitle}
     if (alert.title) {
@@ -575,11 +606,10 @@ class AlertGroupingEngineServiceClass {
     addedBy: AlertEpisodeMemberAddedBy,
     ruleId?: ObjectID,
   ): Promise<void> {
-    const AlertEpisodeMemberService = (
-      await import("./AlertEpisodeMemberService")
-    ).default;
+    const AlertEpisodeMemberService: typeof import("./AlertEpisodeMemberService").default =
+      (await import("./AlertEpisodeMemberService")).default;
 
-    const member = new AlertEpisodeMember();
+    const member: AlertEpisodeMember = new AlertEpisodeMember();
     member.projectId = alert.projectId;
     member.alertEpisodeId = episodeId;
     member.alertId = alert.id;
@@ -615,12 +645,12 @@ class AlertGroupingEngineServiceClass {
     episodeId: ObjectID,
     addedByUserId?: ObjectID,
   ): Promise<void> {
-    const AlertEpisodeMemberService = (
-      await import("./AlertEpisodeMemberService")
-    ).default;
-    const AlertEpisodeService = (await import("./AlertEpisodeService")).default;
+    const AlertEpisodeMemberService: typeof import("./AlertEpisodeMemberService").default =
+      (await import("./AlertEpisodeMemberService")).default;
+    const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
+      (await import("./AlertEpisodeService")).default;
 
-    const member = new AlertEpisodeMember();
+    const member: AlertEpisodeMember = new AlertEpisodeMember();
     member.projectId = alert.projectId;
     member.alertEpisodeId = episodeId;
     member.alertId = alert.id;

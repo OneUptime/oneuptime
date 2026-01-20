@@ -4,6 +4,7 @@ import DatabaseService from "./DatabaseService";
 import AlertStateService from "./AlertStateService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/AlertEpisode";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -417,9 +418,11 @@ export class Service extends DatabaseService<Model> {
 
     if (onlyIfHigher && episode.alertSeverity?.order !== undefined) {
       // Get the new severity to check its order
-      const AlertSeverityService = (await import("./AlertSeverityService"))
-        .default;
-      const newSeverity = await AlertSeverityService.findOneById({
+      const AlertSeverityService: typeof import("./AlertSeverityService").default =
+        (await import("./AlertSeverityService")).default;
+      const newSeverity:
+        | import("../../Models/DatabaseModels/AlertSeverity").default
+        | null = await AlertSeverityService.findOneById({
         id: severityId,
         select: {
           order: true,
@@ -450,11 +453,10 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async updateAlertCount(episodeId: ObjectID): Promise<void> {
-    const AlertEpisodeMemberService = (
-      await import("./AlertEpisodeMemberService")
-    ).default;
+    const AlertEpisodeMemberService: typeof import("./AlertEpisodeMemberService").default =
+      (await import("./AlertEpisodeMemberService")).default;
 
-    const count = await AlertEpisodeMemberService.countBy({
+    const count: PositiveNumber = await AlertEpisodeMemberService.countBy({
       query: {
         alertEpisodeId: episodeId,
       },
@@ -514,8 +516,8 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    const currentOrder = episode.currentAlertState?.order || 0;
-    const resolvedOrder = resolvedState.order || 0;
+    const currentOrder: number = episode.currentAlertState?.order || 0;
+    const resolvedOrder: number = resolvedState.order || 0;
 
     return currentOrder >= resolvedOrder;
   }

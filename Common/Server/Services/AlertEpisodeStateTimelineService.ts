@@ -254,8 +254,8 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
 
     // Update episode's current state if this is the latest timeline entry
     if (!createdItem.endsAt) {
-      const AlertEpisodeService = (await import("./AlertEpisodeService"))
-        .default;
+      const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
+        (await import("./AlertEpisodeService")).default;
 
       await AlertEpisodeService.updateOneBy({
         query: {
@@ -304,9 +304,12 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       stateEmoji = "🔴";
     }
 
-    const AlertEpisodeService = (await import("./AlertEpisodeService")).default;
+    const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
+      (await import("./AlertEpisodeService")).default;
 
-    const episode = await AlertEpisodeService.findOneById({
+    const episode:
+      | import("../../Models/DatabaseModels/AlertEpisode").default
+      | null = await AlertEpisodeService.findOneById({
       id: createdItem.alertEpisodeId,
       select: {
         episodeNumber: true,
@@ -496,8 +499,8 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         });
 
       if (episodeStateTimeline && episodeStateTimeline.alertStateId) {
-        const AlertEpisodeService = (await import("./AlertEpisodeService"))
-          .default;
+        const AlertEpisodeService: typeof import("./AlertEpisodeService").default =
+          (await import("./AlertEpisodeService")).default;
 
         await AlertEpisodeService.updateOneBy({
           query: {

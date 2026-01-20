@@ -73,7 +73,7 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     }
 
     // Get resolve delay from the grouping rule if exists
-    let resolveDelayMinutes = 0;
+    let resolveDelayMinutes: number = 0;
 
     if (episode.alertGroupingRuleId) {
       const rule: AlertGroupingRule | null =
@@ -105,7 +105,9 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     }
 
     // Check if all alerts are resolved
-    const resolvedState = await AlertStateService.findOneBy({
+    const resolvedState:
+      | import("Common/Models/DatabaseModels/AlertState").default
+      | null = await AlertStateService.findOneBy({
       query: {
         projectId: episode.projectId,
         isResolvedState: true,
@@ -127,7 +129,7 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     }
 
     // Check if all alerts are in resolved state or higher
-    let allResolved = true;
+    let allResolved: boolean = true;
     let lastResolvedAt: Date | null = null;
 
     for (const alertId of alertIds) {
@@ -148,7 +150,7 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
         continue;
       }
 
-      const alertOrder = alert.currentAlertState?.order || 0;
+      const alertOrder: number = alert.currentAlertState?.order || 0;
 
       if (alertOrder < resolvedState.order) {
         allResolved = false;
@@ -172,10 +174,11 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
 
     // All alerts are resolved. Check if resolve delay has passed
     if (resolveDelayMinutes > 0 && lastResolvedAt) {
-      const timeSinceLastResolved = OneUptimeDate.getDifferenceInMinutes(
-        lastResolvedAt,
-        OneUptimeDate.getCurrentDate(),
-      );
+      const timeSinceLastResolved: number =
+        OneUptimeDate.getDifferenceInMinutes(
+          lastResolvedAt,
+          OneUptimeDate.getCurrentDate(),
+        );
 
       if (timeSinceLastResolved < resolveDelayMinutes) {
         logger.debug(

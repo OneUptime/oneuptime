@@ -2,7 +2,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisodeElement from "./AlertEpisode";
 import { Black } from "Common/Types/BrandColors";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import {
   ModalTableBulkDefaultActions,
@@ -26,7 +25,6 @@ export interface ComponentProps {
   noItemsMessage?: string | undefined;
   title?: string | undefined;
   description?: string | undefined;
-  createInitialValues?: FormValues<AlertEpisode> | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
 }
 

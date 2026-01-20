@@ -69,7 +69,7 @@ const checkAndBreakInactiveEpisode: CheckAndBreakInactiveEpisodeFunction =
       }
 
       // Get inactivity timeout from the grouping rule
-      let inactivityTimeoutMinutes = 60; // Default: 1 hour
+      let inactivityTimeoutMinutes: number = 60; // Default: 1 hour
 
       if (episode.alertGroupingRuleId) {
         const rule: AlertGroupingRule | null =
@@ -94,12 +94,13 @@ const checkAndBreakInactiveEpisode: CheckAndBreakInactiveEpisodeFunction =
       }
 
       // Check if episode has been inactive for too long
-      const lastAlertAddedAt =
+      const lastAlertAddedAt: Date =
         episode.lastAlertAddedAt || episode.createdAt || new Date();
-      const minutesSinceLastAlert = OneUptimeDate.getDifferenceInMinutes(
-        lastAlertAddedAt,
-        OneUptimeDate.getCurrentDate(),
-      );
+      const minutesSinceLastAlert: number =
+        OneUptimeDate.getDifferenceInMinutes(
+          lastAlertAddedAt,
+          OneUptimeDate.getCurrentDate(),
+        );
 
       if (minutesSinceLastAlert < inactivityTimeoutMinutes) {
         logger.debug(

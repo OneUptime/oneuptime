@@ -354,9 +354,8 @@ export class Service extends DatabaseService<Model> {
       .then(async () => {
         // Process alert for grouping into episodes
         try {
-          const AlertGroupingEngineService = (
-            await import("./AlertGroupingEngineService")
-          ).default;
+          const AlertGroupingEngineService: typeof import("./AlertGroupingEngineService").default =
+            (await import("./AlertGroupingEngineService")).default;
 
           await AlertGroupingEngineService.processAlert(createdItem);
         } catch (error) {
