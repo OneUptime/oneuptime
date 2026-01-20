@@ -510,6 +510,45 @@ export default class AlertEpisode extends BaseModel {
         inverseJoinColumn: { name: 'labelId' },
     })
     public labels?: Array<Label> = undefined;
+
+    // ─────────────────────────────────────────────────────────────
+    // ON-CALL POLICY OVERRIDE
+    // ─────────────────────────────────────────────────────────────
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    })
+    @TableColumn({
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicy,
+        title: 'On-Call Policy Override',
+        description: 'Override on-call policy for this specific episode (takes precedence over rule policy)',
+    })
+    @ManyToOne(() => OnCallDutyPolicy, {
+        onDelete: 'SET NULL',
+        nullable: true,
+    })
+    @JoinColumn({ name: 'onCallDutyPolicyId' })
+    public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'On-Call Policy Override ID',
+        description: 'ID of the override on-call policy for this episode',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+    })
+    @Index()
+    public onCallDutyPolicyId?: ObjectID = undefined;
 }
 ```
 
@@ -939,6 +978,45 @@ export default class AlertGroupingRule extends BaseModel {
         default: 100,
     })
     public priority?: number = undefined;
+
+    // ─────────────────────────────────────────────────────────────
+    // ON-CALL POLICY
+    // ─────────────────────────────────────────────────────────────
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    })
+    @TableColumn({
+        type: TableColumnType.Entity,
+        modelType: OnCallDutyPolicy,
+        title: 'On-Call Policy',
+        description: 'On-call policy to execute when an episode is created by this rule',
+    })
+    @ManyToOne(() => OnCallDutyPolicy, {
+        onDelete: 'SET NULL',
+        nullable: true,
+    })
+    @JoinColumn({ name: 'onCallDutyPolicyId' })
+    public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        title: 'On-Call Policy ID',
+        description: 'ID of the on-call policy for episodes created by this rule',
+    })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+    })
+    @Index()
+    public onCallDutyPolicyId?: ObjectID = undefined;
 }
 ```
 
@@ -1098,6 +1176,8 @@ ON "Alert" ("projectId", "fingerprint") WHERE "fingerprint" IS NOT NULL;
 - [ ] Add scheduledResolveAt column to AlertEpisode table
 - [ ] Add reopenCount column to AlertEpisode table
 - [ ] Add lastReopenedAt column to AlertEpisode table
+- [ ] Add onCallDutyPolicyId column to AlertGroupingRule table
+- [ ] Add onCallDutyPolicyId column to AlertEpisode table (override)
 - [ ] Create all required indexes
 - [ ] Register models in model registry
 - [ ] Update API permissions
@@ -1127,14 +1207,196 @@ Timeline with resolveDelayMinutes=5:
 When an episode is resolved and a new matching alert arrives within the reopen window:
 1. Check if `resolvedAt + reopenWindowMinutes > now`
 2. If yes, reopen the episode instead of creating a new one
-3. Set `resolvedAt = null`, increment `reopenCount`, set `lastReopenedAt = now`
+3. Reset episode state:
+   - `currentAlertState` → Reset to "Created" state (always starts fresh)
+   - `resolvedAt` → Set to `null`
+   - `acknowledgedAt` → Set to `null` (clear previous acknowledgment)
+   - `reopenCount` → Increment by 1
+   - `lastReopenedAt` → Set to current time
+   - `lastActivityAt` → Set to current time
 
 ```
 Timeline with reopenWindowMinutes=30:
 ─────────────────────────────────────────────────────────────────
-10:00 - Episode resolved    → resolvedAt = 10:00
+10:00 - Episode resolved    → resolvedAt = 10:00, state = Resolved
 10:20 - New alert arrives   → Episode reopened (within 30 min window)
-                              resolvedAt = null, reopenCount = 1
-11:00 - Episode resolved    → resolvedAt = 11:00
+                              state = Created (reset)
+                              resolvedAt = null
+                              acknowledgedAt = null
+                              reopenCount = 1
+11:00 - Episode resolved    → resolvedAt = 11:00, state = Resolved
 11:45 - New alert arrives   → New episode created (outside 30 min window)
+```
+
+### State Transition Diagram with Reopen
+
+```
+                    ┌─────────────────────────────────┐
+                    │         (reopen)                │
+                    │    new alert arrives within     │
+                    │       reopenWindowMinutes       │
+                    ▼                                 │
+              ┌──────────┐                            │
+              │ Created  │                            │
+              └────┬─────┘                            │
+                   │ acknowledge()                    │
+                   ▼                                  │
+            ┌──────────────┐                          │
+            │ Acknowledged │                          │
+            └──────┬───────┘                          │
+                   │ resolve()                        │
+                   ▼                                  │
+              ┌──────────┐                            │
+              │ Resolved │────────────────────────────┘
+              └──────────┘
+                   │
+                   │ reopenWindowMinutes expires
+                   ▼
+              ┌──────────┐
+              │  Closed  │  (no longer eligible for reopen)
+              └──────────┘
+```
+
+**Note:** When an episode is reopened, it always resets to "Created" state regardless of its previous state before resolution. This ensures the episode gets proper attention and goes through the full acknowledgment workflow again.
+
+---
+
+## On-Call Policy & Notifications
+
+### Policy Resolution
+
+On-call policy is resolved using a **priority chain**. The episode can have its own override, or inherit from the grouping rule, or fall back to the first alert's policy.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              On-Call Policy Resolution (Priority Order)         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. AlertEpisode.onCallDutyPolicyId (manual override)           │
+│         │                                                       │
+│         ▼ if null                                               │
+│  2. AlertGroupingRule.onCallDutyPolicyId (rule default)         │
+│         │                                                       │
+│         ▼ if null                                               │
+│  3. First Alert's onCallDutyPolicyId (fallback)                 │
+│         │                                                       │
+│         ▼                                                       │
+│  Execute On-Call Policy ──► Notify Level 1 On-Call              │
+│                                    │                            │
+│                             (escalation as configured)          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+This provides:
+- **Flexibility** - Override at episode level for special cases
+- **Predictability** - Rule defines default behavior
+- **Backwards compatibility** - Falls back to alert's policy if nothing configured
+
+### When Notifications Are Sent
+
+| Event | Notification Behavior |
+|-------|----------------------|
+| **Episode Created** | Execute on-call policy, notify Level 1 |
+| **Alert Added to Episode** | Silent (no notification) |
+| **Episode Acknowledged** | Stop escalation |
+| **Episode Resolved** | Optional resolution notification |
+| **Episode Reopened** | Execute on-call policy again (full cycle) |
+| **Severity Escalation** | Optional: notify if episode severity increases |
+
+### Notification Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Episode Notification Flow                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Alert 1 ──► Matches Rule ──► Create Episode ──► NOTIFY         │
+│                                     │                           │
+│  Alert 2 ──► Matches Rule ──► Add to Episode ──► (silent)       │
+│                                     │                           │
+│  Alert 3 ──► Matches Rule ──► Add to Episode ──► (silent)       │
+│                                     │                           │
+│                              Episode Acknowledged ──► STOP      │
+│                                     │               ESCALATION  │
+│                                     │                           │
+│                              Episode Resolved                   │
+│                                     │                           │
+│  Alert 4 ──► Matches Rule ──► Reopen Episode ──► NOTIFY         │
+│              (within reopen window)              (new cycle)    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Individual Alert Notifications
+
+When an alert is grouped into an episode:
+- The **alert's own on-call policy is NOT executed**
+- Only the **episode's on-call policy** (from the grouping rule) is used
+- This prevents duplicate/redundant notifications
+
+```
+Without Episodes:                    With Episodes:
+─────────────────────               ─────────────────────
+Alert 1 → Notify Team A             Alert 1 → Episode → Notify Team X
+Alert 2 → Notify Team B             Alert 2 → Episode → (silent)
+Alert 3 → Notify Team A             Alert 3 → Episode → (silent)
+(3 notifications, 2 teams)          (1 notification, 1 team)
+```
+
+### Policy Resolution Logic
+
+```typescript
+function getEpisodeOnCallPolicy(
+    episode: AlertEpisode,
+    rule: AlertGroupingRule | null,
+    firstAlert: Alert
+): ObjectID | null {
+    // 1. Episode-level override (highest priority)
+    if (episode.onCallDutyPolicyId) {
+        return episode.onCallDutyPolicyId;
+    }
+
+    // 2. Rule's default policy
+    if (rule?.onCallDutyPolicyId) {
+        return rule.onCallDutyPolicyId;
+    }
+
+    // 3. Fall back to first alert's policy (backwards compatibility)
+    return firstAlert.onCallDutyPolicyId || null;
+}
+```
+
+### Use Cases for Episode Override
+
+| Scenario | Solution |
+|----------|----------|
+| VIP customer issue | Override to executive escalation policy |
+| Cross-team incident | Override to incident commander policy |
+| After-hours maintenance | Override to maintenance team policy |
+| Escalated by manager | Override to senior engineer policy |
+
+### Configuration Example
+
+```typescript
+// Example: Group all database alerts and notify the DBA team
+const rule: AlertGroupingRule = {
+    name: 'Database Alerts',
+    matchCriteria: {
+        labelIds: ['database-label-id'],
+    },
+    groupingConfig: {
+        type: AlertGroupingType.TimeWindow,
+        timeWindowMinutes: 60,
+    },
+    episodeConfig: {
+        titleTemplate: 'Database Issues: {{title}}',
+        autoResolveWhenEmpty: true,
+        breakAfterMinutesInactive: 480,
+        reopenWindowMinutes: 30,
+        resolveDelayMinutes: 5,
+    },
+    onCallDutyPolicyId: 'dba-team-oncall-policy-id',  // DBA team's on-call policy
+    priority: 10,
+};
 ```
