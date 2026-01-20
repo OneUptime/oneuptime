@@ -62,7 +62,8 @@ export class Service extends DatabaseService<Model> {
 
       alertEpisodeFeed.alertEpisodeId = data.alertEpisodeId;
       alertEpisodeFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
-      alertEpisodeFeed.alertEpisodeFeedEventType = data.alertEpisodeFeedEventType;
+      alertEpisodeFeed.alertEpisodeFeedEventType =
+        data.alertEpisodeFeedEventType;
       alertEpisodeFeed.projectId = data.projectId;
 
       if (!data.postedAt) {

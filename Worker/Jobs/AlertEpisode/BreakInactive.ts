@@ -15,8 +15,10 @@ RunCron(
     runOnStartup: false,
   },
   async () => {
-    // Find active episodes that have been inactive for too long
-    // and resolve them due to inactivity
+    /*
+     * Find active episodes that have been inactive for too long
+     * and resolve them due to inactivity
+     */
 
     try {
       // Get all active episodes

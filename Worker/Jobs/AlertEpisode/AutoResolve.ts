@@ -20,8 +20,10 @@ RunCron(
     runOnStartup: false,
   },
   async () => {
-    // Find active episodes that might be eligible for auto-resolve
-    // Active = not in resolved state
+    /*
+     * Find active episodes that might be eligible for auto-resolve
+     * Active = not in resolved state
+     */
 
     try {
       // Get all active episodes

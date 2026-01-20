@@ -11,7 +11,6 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
-import User from "Common/Models/DatabaseModels/User";
 import ProjectUser from "../../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 
@@ -261,7 +260,8 @@ const AlertGroupingRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            description: "Default team to assign episodes created by this rule.",
+            description:
+              "Default team to assign episodes created by this rule.",
             placeholder: "Select Team",
           },
           {
@@ -277,7 +277,8 @@ const AlertGroupingRulesPage: FunctionComponent<
               );
             },
             required: false,
-            description: "Default user to assign episodes created by this rule.",
+            description:
+              "Default user to assign episodes created by this rule.",
             placeholder: "Select User",
           },
         ]}

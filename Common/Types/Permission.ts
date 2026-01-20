@@ -5085,16 +5085,14 @@ export class PermissionHelper {
       {
         permission: Permission.EditAlertEpisode,
         title: "Edit Alert Episode",
-        description:
-          "This permission can edit Alert Episodes of this project.",
+        description: "This permission can edit Alert Episodes of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },
       {
         permission: Permission.ReadAlertEpisode,
         title: "Read Alert Episode",
-        description:
-          "This permission can read Alert Episodes of this project.",
+        description: "This permission can read Alert Episodes of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },

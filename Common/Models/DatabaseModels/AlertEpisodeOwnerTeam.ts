@@ -219,7 +219,8 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
     type: TableColumnType.Entity,
     modelType: AlertEpisode,
     title: "Alert Episode",
-    description: "Relation to Alert Episode Resource in which this object belongs",
+    description:
+      "Relation to Alert Episode Resource in which this object belongs",
   })
   @ManyToOne(
     () => {
@@ -256,7 +257,8 @@ export default class AlertEpisodeOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Alert Episode ID",
-    description: "ID of your OneUptime Alert Episode in which this object belongs",
+    description:
+      "ID of your OneUptime Alert Episode in which this object belongs",
   })
   @Column({
     type: ColumnType.ObjectID,

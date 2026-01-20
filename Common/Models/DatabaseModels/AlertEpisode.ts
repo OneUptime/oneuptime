@@ -791,7 +791,8 @@ export default class AlertEpisode extends BaseModel {
     required: true,
     isDefaultValueColumn: true,
     title: "Is On-Call Policy Executed?",
-    description: "Whether the on-call policy has been executed for this episode",
+    description:
+      "Whether the on-call policy has been executed for this episode",
     defaultValue: false,
   })
   @Column({
@@ -848,7 +849,8 @@ export default class AlertEpisode extends BaseModel {
     required: true,
     isDefaultValueColumn: true,
     title: "Is Manually Created?",
-    description: "Whether this episode was manually created vs auto-created by a rule",
+    description:
+      "Whether this episode was manually created vs auto-created by a rule",
     defaultValue: false,
   })
   @Column({

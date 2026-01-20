@@ -474,9 +474,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Element,
               getElement: (item: Alert): ReactElement => {
                 if (item.alertEpisode) {
-                  return <AlertEpisodeElement alertEpisode={item.alertEpisode} />;
+                  return (
+                    <AlertEpisodeElement alertEpisode={item.alertEpisode} />
+                  );
                 }
-                return <span className="text-gray-400">Not part of an episode</span>;
+                return (
+                  <span className="text-gray-400">Not part of an episode</span>
+                );
               },
             },
             {

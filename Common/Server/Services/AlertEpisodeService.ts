@@ -198,8 +198,14 @@ export class Service extends DatabaseService<Model> {
     props: DatabaseCommonInteractionProps;
     cascadeToAlerts?: boolean;
   }): Promise<void> {
-    const { projectId, episodeId, alertStateId, notifyOwners, rootCause, props } =
-      data;
+    const {
+      projectId,
+      episodeId,
+      alertStateId,
+      notifyOwners,
+      rootCause,
+      props,
+    } = data;
 
     // Get last episode state timeline
     const lastEpisodeStateTimeline: AlertEpisodeStateTimeline | null =
@@ -411,9 +417,8 @@ export class Service extends DatabaseService<Model> {
 
     if (onlyIfHigher && episode.alertSeverity?.order !== undefined) {
       // Get the new severity to check its order
-      const AlertSeverityService = (
-        await import("./AlertSeverityService")
-      ).default;
+      const AlertSeverityService = (await import("./AlertSeverityService"))
+        .default;
       const newSeverity = await AlertSeverityService.findOneById({
         id: severityId,
         select: {

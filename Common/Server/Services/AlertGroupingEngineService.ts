@@ -8,7 +8,6 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember, {
   AlertEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/AlertEpisodeMember";
-import DatabaseService from "./DatabaseService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -139,10 +138,12 @@ class AlertGroupingEngineServiceClass {
       if (!alert.labels || alert.labels.length === 0) {
         return false;
       }
-      const alertLabelIds = alert.labels.map((l) => l.id?.toString() || "");
-      const hasMatchingLabel = criteria.labelIds.some((labelId) =>
-        alertLabelIds.includes(labelId),
-      );
+      const alertLabelIds = alert.labels.map((l) => {
+        return l.id?.toString() || "";
+      });
+      const hasMatchingLabel = criteria.labelIds.some((labelId) => {
+        return alertLabelIds.includes(labelId);
+      });
       if (!hasMatchingLabel) {
         return false;
       }
@@ -254,7 +255,11 @@ class AlertGroupingEngineServiceClass {
         });
       }
 
-      return { grouped: true, episodeId: existingEpisode.id, isNewEpisode: false };
+      return {
+        grouped: true,
+        episodeId: existingEpisode.id,
+        isNewEpisode: false,
+      };
     }
 
     // Check if we can reopen a recently resolved episode
@@ -401,8 +406,10 @@ class AlertGroupingEngineServiceClass {
       },
     });
 
-    // Find active episode with matching rule and grouping key
-    // that has been updated recently (within time window)
+    /*
+     * Find active episode with matching rule and grouping key
+     * that has been updated recently (within time window)
+     */
     const episodes = await AlertEpisodeService.findBy({
       query: {
         projectId: projectId,

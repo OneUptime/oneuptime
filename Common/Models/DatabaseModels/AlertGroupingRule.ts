@@ -540,7 +540,8 @@ export default class AlertGroupingRule extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
     title: "On-Call Duty Policies",
-    description: "List of on-call duty policies to execute for episodes created by this rule.",
+    description:
+      "List of on-call duty policies to execute for episodes created by this rule.",
   })
   @ManyToMany(
     () => {

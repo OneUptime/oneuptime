@@ -95,7 +95,9 @@ export class Service extends DatabaseService<Model> {
     Promise.resolve()
       .then(async () => {
         try {
-          await AlertEpisodeService.updateAlertCount(createdItem.alertEpisodeId!);
+          await AlertEpisodeService.updateAlertCount(
+            createdItem.alertEpisodeId!,
+          );
           await AlertEpisodeService.updateLastAlertAddedAt(
             createdItem.alertEpisodeId!,
           );
@@ -237,8 +239,12 @@ export class Service extends DatabaseService<Model> {
     });
 
     return members
-      .filter((m: Model) => m.alertId)
-      .map((m: Model) => m.alertId!);
+      .filter((m: Model) => {
+        return m.alertId;
+      })
+      .map((m: Model) => {
+        return m.alertId!;
+      });
   }
 
   @CaptureSpan()

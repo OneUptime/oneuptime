@@ -304,8 +304,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
                   privateNote: true,
                 } as any,
                 fieldType: FormFieldSchemaType.Markdown,
-                description:
-                  "Post a private note about this state change.",
+                description: "Post a private note about this state change.",
                 title: "Private Note",
                 required: false,
                 overrideFieldKey: "privateNote",

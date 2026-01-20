@@ -960,10 +960,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertEpisodeInternalNote, AlertEpisodeInternalNoteServiceType>(
+      new BaseAPI<
         AlertEpisodeInternalNote,
-        AlertEpisodeInternalNoteService,
-      ).getRouter(),
+        AlertEpisodeInternalNoteServiceType
+      >(AlertEpisodeInternalNote, AlertEpisodeInternalNoteService).getRouter(),
     );
 
     app.use(
@@ -992,7 +992,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertEpisodeStateTimeline, AlertEpisodeStateTimelineServiceType>(
+      new BaseAPI<
+        AlertEpisodeStateTimeline,
+        AlertEpisodeStateTimelineServiceType
+      >(
         AlertEpisodeStateTimeline,
         AlertEpisodeStateTimelineService,
       ).getRouter(),
