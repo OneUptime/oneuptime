@@ -11,7 +11,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -138,14 +137,15 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 );
 
                 let statusText: string = "Partial";
-                let statusClassName: string = "text-yellow-500";
+                let statusClassName: string =
+                  "text-yellow-700 bg-yellow-100";
 
                 if (allMet) {
                   statusText = "Met";
-                  statusClassName = "text-green-600";
+                  statusClassName = "text-green-700 bg-green-100";
                 } else if (noneMet) {
                   statusText = "Not Met";
-                  statusClassName = "text-gray-500";
+                  statusClassName = "text-gray-600 bg-gray-200";
                 }
 
                 const uniqueCheckOnLabels: Array<string> = Array.from(
@@ -240,7 +240,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                     className="flex items-center space-x-2 rounded-md border border-gray-100 bg-gray-50 p-3"
                   >
                     <span
-                      className={`text-xs font-semibold flex-shrink-0 ${statusClassName}`}
+                      className={`text-xs font-semibold flex-shrink-0 px-2 py-1 rounded ${statusClassName}`}
                     >
                       {statusText}
                     </span>
@@ -259,14 +259,6 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
               },
             )}
           </ul>
-        )}
-
-        {criteria.message && (
-          <Alert
-            className="mt-3"
-            type={AlertType.INFO}
-            title={criteria.message}
-          />
         )}
 
         {criteria.met && (
