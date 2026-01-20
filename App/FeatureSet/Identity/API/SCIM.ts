@@ -986,7 +986,7 @@ router.post(
                 (data!["Operations"] as JSONObject[]) || [];
 
               for (const patchOp of patchOperations) {
-                const op: string = patchOp["op"] as string;
+                const op: string = (patchOp["op"] as string)?.toLowerCase();
                 const patchPath: string = patchOp["path"] as string;
                 const value: SCIMMember[] | string = patchOp["value"] as
                   | SCIMMember[]
@@ -3097,7 +3097,7 @@ router.patch(
       executionSteps.push(`Processing ${operations.length} PATCH operations`);
 
       for (const operation of operations) {
-        const op: string = operation["op"] as string;
+        const op: string = (operation["op"] as string)?.toLowerCase();
         const path: string = operation["path"] as string;
         const value: any = operation["value"];
 
