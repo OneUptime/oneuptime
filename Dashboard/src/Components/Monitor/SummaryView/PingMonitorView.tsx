@@ -5,6 +5,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
+  probeName?: string | undefined;
 }
 
 const PingMonitorView: FunctionComponent<ComponentProps> = (
@@ -38,18 +39,23 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
       </div>
       <div className="flex space-x-3">
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100 "
+          className="w-1/4 shadow-none border-2 border-gray-100 "
+          title="Probe"
+          value={props.probeName || "-"}
+        />
+        <InfoCard
+          className="w-1/4 shadow-none border-2 border-gray-100 "
           title="Status"
           value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
         />
 
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100 "
+          className="w-1/4 shadow-none border-2 border-gray-100 "
           title="Response Time (in ms)"
           value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
         />
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100 "
+          className="w-1/4 shadow-none border-2 border-gray-100 "
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt

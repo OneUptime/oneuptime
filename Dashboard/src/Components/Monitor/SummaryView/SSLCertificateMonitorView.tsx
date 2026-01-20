@@ -8,6 +8,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
+  probeName?: string | undefined;
 }
 
 const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
@@ -38,13 +39,18 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
         </div>
         <div className="flex space-x-3 w-full">
           <InfoCard
-            className="w-1/3 shadow-none border-2 border-gray-100 "
+            className="w-1/4 shadow-none border-2 border-gray-100 "
+            title="Probe"
+            value={props.probeName || "-"}
+          />
+          <InfoCard
+            className="w-1/4 shadow-none border-2 border-gray-100 "
             title="SSL Status"
             value={sslResponse.isSelfSigned ? "Self Signed" : "Signed by a CA"}
           />
 
           <InfoCard
-            className="w-1/3 shadow-none border-2 border-gray-100 "
+            className="w-1/4 shadow-none border-2 border-gray-100 "
             title="Issued At"
             value={
               sslResponse.createdAt
@@ -56,7 +62,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
           />
 
           <InfoCard
-            className="w-1/3 shadow-none border-2 border-gray-100 "
+            className="w-1/4 shadow-none border-2 border-gray-100 "
             title="Expires At"
             value={
               sslResponse.expiresAt

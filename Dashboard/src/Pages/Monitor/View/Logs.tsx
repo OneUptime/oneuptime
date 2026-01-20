@@ -1,9 +1,11 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -41,6 +43,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<JSONObject>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [probes, setProbes] = useState<Array<Probe>>([]);
 
   const [error, setError] = useState<string>("");
 
@@ -65,6 +68,15 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       }
 
       setMonitorType(item.monitorType);
+
+      // Fetch probes if this is a probeable monitor
+      if (
+        item.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(item.monitorType)
+      ) {
+        const fetchedProbes: Array<Probe> = await ProbeUtil.getAllProbes();
+        setProbes(fetchedProbes);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -79,6 +91,20 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     // fetch the model
     await fetchItem();
   }, []);
+
+  const getProbeNameById = (probeId: string | undefined): string => {
+    if (!probeId) {
+      return "Unknown";
+    }
+    const probe: Probe | undefined = probes.find((p: Probe) => {
+      return p._id?.toString() === probeId.toString();
+    });
+    return probe?.name?.toString() || "Unknown";
+  };
+
+  const isProbableMonitor: boolean = monitorType
+    ? MonitorTypeHelper.isProbableMonitor(monitorType)
+    : false;
 
   const getPageContent: GetReactElementFunction = (): ReactElement => {
     if (!monitorType || isLoading) {
@@ -165,6 +191,31 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Monitored At",
             type: FieldType.DateTime,
           },
+          // Conditionally add Probe column for probeable monitors
+          ...(isProbableMonitor
+            ? [
+                {
+                  field: {
+                    logBody: true,
+                  },
+                  title: "Probe",
+                  type: FieldType.Text,
+                  getElement: (item: MonitorLog): ReactElement => {
+                    const probeId: string | undefined = (
+                      item.logBody as unknown as {
+                        probeId?: string | undefined;
+                      }
+                    )?.probeId;
+
+                    const probeName: string = getProbeNameById(probeId);
+
+                    return (
+                      <span className="text-sm text-gray-700">{probeName}</span>
+                    );
+                  },
+                },
+              ]
+            : []),
           {
             field: {
               logBody: true,
@@ -239,6 +290,14 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             probeMonitorResponses={[logs as unknown as ProbeMonitorResponse]}
             incomingMonitorRequest={logs as unknown as IncomingMonitorRequest}
             serverMonitorResponse={logs as unknown as ServerMonitorResponse}
+            probeName={
+              isProbableMonitor
+                ? getProbeNameById(
+                    (logs as unknown as { probeId?: string | undefined })
+                      ?.probeId,
+                  )
+                : undefined
+            }
             evaluationSummary={
               (
                 logs as unknown as {

@@ -87,6 +87,7 @@ const Summary: FunctionComponent<ComponentProps> = (
         <SummaryInfo
           monitorType={props.monitorType}
           probeMonitorResponses={probeResponses}
+          probeName={selectedProbe?.name?.toString()}
           incomingMonitorRequest={props.incomingMonitorRequest}
           serverMonitorResponse={props.serverMonitorResponse}
           telemetryMonitorSummary={props.telemetryMonitorSummary}

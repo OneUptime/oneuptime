@@ -7,6 +7,7 @@ import CustomMonitorSummaryView from "./CustomMonitorSummaryView";
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
   moreDetailElement?: ReactElement | undefined;
+  probeName?: string | undefined;
 }
 
 const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
@@ -26,6 +27,7 @@ const CustomCodeMonitorSummaryView: FunctionComponent<ComponentProps> = (
       customCodeMonitorResponse={customCodeMonitorResponse}
       moreDetailElement={props.moreDetailElement}
       monitoredAt={props.probeMonitorResponse.monitoredAt}
+      probeName={props.probeName}
     />
   );
 };

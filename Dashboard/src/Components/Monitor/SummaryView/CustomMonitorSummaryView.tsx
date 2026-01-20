@@ -12,6 +12,7 @@ export interface ComponentProps {
   customCodeMonitorResponse: CustomCodeMonitorResponse;
   moreDetailElement?: ReactElement | undefined;
   monitoredAt: Date;
+  probeName?: string | undefined;
 }
 
 const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
@@ -71,20 +72,27 @@ const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
     <div className="space-y-5">
       <div className="space-y-5">
         <div className="flex space-x-3 w-full">
+          {props.probeName && (
+            <InfoCard
+              className="w-1/4 shadow-none border-2 border-gray-100 "
+              title="Probe"
+              value={props.probeName || "-"}
+            />
+          )}
           <InfoCard
-            className="w-1/3 shadow-none border-2 border-gray-100 "
+            className={`${props.probeName ? "w-1/4" : "w-1/3"} shadow-none border-2 border-gray-100 `}
             title="Execution Time (in ms)"
             value={executionTimeInMS ? executionTimeInMS + " ms" : "-"}
           />
 
           <InfoCard
-            className="w-1/3 shadow-none border-2 border-gray-100 "
+            className={`${props.probeName ? "w-1/4" : "w-1/3"} shadow-none border-2 border-gray-100 `}
             title="Error"
             value={customCodeMonitorResponse.scriptError ? "Yes" : "No"}
           />
 
           <InfoCard
-            className="w-1/3 shadow-none border-2 border-gray-100 "
+            className={`${props.probeName ? "w-1/4" : "w-1/3"} shadow-none border-2 border-gray-100 `}
             title="Monitored At"
             value={
               props.monitoredAt

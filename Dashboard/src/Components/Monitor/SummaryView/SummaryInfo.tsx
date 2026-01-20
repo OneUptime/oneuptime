@@ -30,6 +30,7 @@ export interface ComponentProps {
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
+  probeName?: string | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
@@ -65,6 +66,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       summaryComponent = (
         <WebsiteMonitorSummaryView
           probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
         />
       );
     }
@@ -75,7 +77,10 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       props.monitorType === MonitorType.Port
     ) {
       summaryComponent = (
-        <PingMonitorView probeMonitorResponse={probeMonitorResponse} />
+        <PingMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
       );
     }
 
@@ -83,13 +88,17 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       summaryComponent = (
         <SSLCertificateMonitorView
           probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
         />
       );
     }
 
     if (props.monitorType === MonitorType.SyntheticMonitor) {
       summaryComponent = (
-        <SyntheticMonitorView probeMonitorResponse={probeMonitorResponse} />
+        <SyntheticMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
       );
     }
 
@@ -97,6 +106,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       summaryComponent = (
         <CustomCodeMonitorSummaryView
           probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
         />
       );
     }
