@@ -339,6 +339,55 @@ export default class AlertEpisode extends BaseModel {
     })
     public resolvedAt?: Date = undefined;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    })
+    @TableColumn({
+        type: TableColumnType.Date,
+        title: 'Scheduled Resolve At',
+        description: 'When the episode is scheduled to auto-resolve (grace period)',
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+    })
+    public scheduledResolveAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    })
+    @TableColumn({
+        type: TableColumnType.Number,
+        title: 'Reopen Count',
+        description: 'Number of times this episode has been reopened',
+    })
+    @Column({
+        type: ColumnType.Number,
+        nullable: false,
+        default: 0,
+    })
+    public reopenCount?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ProjectMember],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    })
+    @TableColumn({
+        type: TableColumnType.Date,
+        title: 'Last Reopened At',
+        description: 'When the episode was last reopened',
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+    })
+    public lastReopenedAt?: Date = undefined;
+
     // ─────────────────────────────────────────────────────────────
     // METRICS
     // ─────────────────────────────────────────────────────────────
@@ -701,6 +750,10 @@ export interface AlertEpisodeConfig {
     titleTemplate?: string;
     autoResolveWhenEmpty: boolean;
     breakAfterMinutesInactive: number;
+
+    // Flapping prevention settings
+    reopenWindowMinutes?: number;    // Time after resolution where episode can be reopened (default: 30)
+    resolveDelayMinutes?: number;    // Grace period before auto-resolving to prevent flapping (default: 5)
 }
 
 @TableMetadata({
@@ -1042,6 +1095,46 @@ ON "Alert" ("projectId", "fingerprint") WHERE "fingerprint" IS NOT NULL;
 - [ ] Add fingerprint column to Alert table
 - [ ] Add duplicateCount column to Alert table
 - [ ] Add lastDuplicateAt column to Alert table
+- [ ] Add scheduledResolveAt column to AlertEpisode table
+- [ ] Add reopenCount column to AlertEpisode table
+- [ ] Add lastReopenedAt column to AlertEpisode table
 - [ ] Create all required indexes
 - [ ] Register models in model registry
 - [ ] Update API permissions
+
+---
+
+## Flapping Prevention Behavior
+
+### How `resolveDelayMinutes` Works
+
+When all alerts in an episode are resolved:
+1. Instead of immediately resolving the episode, set `scheduledResolveAt = now + resolveDelayMinutes`
+2. A worker job checks for episodes where `scheduledResolveAt < now` and resolves them
+3. If a new matching alert arrives before `scheduledResolveAt`, cancel the scheduled resolution
+
+```
+Timeline with resolveDelayMinutes=5:
+─────────────────────────────────────────────────────────────────
+10:00 - All alerts resolved → scheduledResolveAt = 10:05
+10:03 - New alert arrives   → scheduledResolveAt = null, episode stays active
+10:10 - All alerts resolved → scheduledResolveAt = 10:15
+10:15 - No new alerts       → Episode auto-resolved
+```
+
+### How `reopenWindowMinutes` Works
+
+When an episode is resolved and a new matching alert arrives within the reopen window:
+1. Check if `resolvedAt + reopenWindowMinutes > now`
+2. If yes, reopen the episode instead of creating a new one
+3. Set `resolvedAt = null`, increment `reopenCount`, set `lastReopenedAt = now`
+
+```
+Timeline with reopenWindowMinutes=30:
+─────────────────────────────────────────────────────────────────
+10:00 - Episode resolved    → resolvedAt = 10:00
+10:20 - New alert arrives   → Episode reopened (within 30 min window)
+                              resolvedAt = null, reopenCount = 1
+11:00 - Episode resolved    → resolvedAt = 11:00
+11:45 - New alert arrives   → New episode created (outside 30 min window)
+```
