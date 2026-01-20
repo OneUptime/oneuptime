@@ -115,7 +115,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             </div>
           </div>
           <span
-            className={`text-xs font-semibold ${criteria.met ? "text-green-600" : "text-red-500"}`}
+            className={`text-xs font-semibold ${criteria.met ? "text-green-600" : "text-gray-500"}`}
           >
             {criteria.met ? "Met" : "Not Met"}
           </span>
@@ -137,15 +137,15 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                   },
                 );
 
-                let statusIcon: IconProp = IconProp.Alert;
+                let statusText: string = "Partial";
                 let statusClassName: string = "text-yellow-500";
 
                 if (allMet) {
-                  statusIcon = IconProp.CheckCircle;
+                  statusText = "Met";
                   statusClassName = "text-green-600";
                 } else if (noneMet) {
-                  statusIcon = IconProp.CircleClose;
-                  statusClassName = "text-red-500";
+                  statusText = "Not Met";
+                  statusClassName = "text-gray-500";
                 }
 
                 const uniqueCheckOnLabels: Array<string> = Array.from(
@@ -237,12 +237,13 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 return (
                   <li
                     key={`criteria-${index}-filter-group-${filterGroup.firstIndex}-${filterGroupIndex}`}
-                    className="flex items-start space-x-2 rounded-md border border-gray-100 bg-gray-50 p-3"
+                    className="flex items-center space-x-2 rounded-md border border-gray-100 bg-gray-50 p-3"
                   >
-                    <Icon
-                      icon={statusIcon}
-                      className={`h-4 w-4 flex-shrink-0 ${statusClassName}`}
-                    />
+                    <span
+                      className={`text-xs font-semibold flex-shrink-0 ${statusClassName}`}
+                    >
+                      {statusText}
+                    </span>
                     <div className="space-y-1">
                       <div className="text-sm text-gray-700">
                         {filterGroup.message}
