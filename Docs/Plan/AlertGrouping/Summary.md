@@ -26,9 +26,7 @@ Alert Grouping is a feature that automatically combines related alerts into logi
 
 ### Alert Model Enhancements
 
-- `episodeId` - Link to parent episode
-- `fingerprint` - Hash for deduplication
-- `duplicateCount` - Number of duplicates suppressed
+- `episodeId` - Link to parent episode (nullable)
 
 ## Grouping Types
 
@@ -56,6 +54,109 @@ When an alert joins an episode, the alert policy (if any) is executed as normal.
 - **EpisodeAutoResolve** - Resolves episodes when all alerts resolved
 - **EpisodeBreakInactive** - Resolves episodes after inactivity period
 
-## Database Migrations 
+## Database Migrations
 
 Please do not write Database migrations. I will do that manually.
+
+---
+
+## Implementation Q&A (Industry Best Practices)
+
+### Episode State Management
+
+**Q1: How should episode states link to alert states?**
+
+The episode state should reflect the "worst" or most urgent state among its member alerts:
+- **Active**: At least one alert in the episode is in an active/firing state
+- **Acknowledged**: All active alerts have been acknowledged, but not yet resolved
+- **Resolved**: All alerts in the episode are resolved
+
+This follows the pattern used by PagerDuty, Opsgenie, and other incident management platforms. The episode acts as an aggregate - it's only fully resolved when all underlying alerts are resolved.
+
+If I Acknowledge an episode for exmaple, all active alerts in that episode should also be acknowledged. This ensures consistency between episode and alert states.
+
+**Q2: If a new alert joins an already-acknowledged episode, should the episode state change back to Active?**
+
+**No** - the acknowledgment applies to the episode as a container, not to individual alerts. When a new alert joins an acknowledged episode:
+- The episode remains in "Acknowledged" state
+- The new alert is marked as part of an acknowledged episode
+- No new notification is sent for the episode (since it's already acknowledged)
+- The alert's own on-call policy still executes normally
+
+This prevents notification fatigue while ensuring the operator knows the episode is still being worked on.
+
+---
+
+### Grouping Logic
+
+**Q3: For Time Window grouping - if an alert comes in after the initial window, should it create a new episode or join the existing one?**
+
+Use a **rolling/sliding window** approach:
+- The time window refers to the **gap between consecutive alerts**, not from the first alert
+- If an episode is still **Active** and a matching alert arrives, it joins the episode regardless of when the first alert occurred
+- The time window is used to determine when an episode becomes "inactive" (no new alerts for N minutes)
+- Example: With a 10-minute window, alerts at T+0, T+8, T+15, T+22 would all be in the same episode (each gap < 10 min)
+
+This is the standard approach in tools like PagerDuty's Intelligent Grouping and Opsgenie's Alert Deduplication.
+
+**Q4: What fields can be matched in Field-Based grouping?**
+
+Standard matchable fields should include:
+| Field | Description |
+|-------|-------------|
+| `monitorId` | Same monitor/service |
+| `monitorCustomFields` | User-defined monitor metadata |
+| `alertSeverity` | Critical, Warning, Info, etc. |
+| `labels` | Key-value tags on alerts |
+| `alertTitle` | Exact or pattern match on title |
+| `alertDescription` | Pattern match on description |
+| `telemetryQuery` | The query that triggered the alert |
+
+Rules should support both exact matching and regex patterns for string fields.
+
+**Q5: If multiple AlertGroupingRules match a single alert, which rule takes priority?**
+
+Use explicit **priority ordering**:
+- Each rule has a `priority` field (lower number = higher priority)
+- The **first matching rule** (highest priority) wins
+- Only one rule processes each alert
+- If no rules match, the alert remains ungrouped (standalone)
+
+This gives operators explicit control over rule precedence, similar to firewall rules or routing tables.
+
+---
+
+### Scope & Implementation
+
+**Q8: Should we implement backend only or both backend and frontend?**
+
+Backend and Frontend. Please do not implement any database migrations. I will do that manually.
+
+**Q9: What existing patterns in the codebase should we follow?**
+
+Look at these existing features for patterns:
+- **Alert model and workflows** - Base patterns for state management
+- **Incident management** (if exists) - Similar grouping/aggregation concepts
+- **On-Call Policy execution** - Notification routing patterns
+- **Scheduled Jobs/Workers** - Pattern for background job implementation
+- **CRUD APIs** - Standard API patterns for the new models
+
+---
+
+### Worker Jobs
+
+**Q10: What should the inactivity period be for EpisodeBreakInactive?**
+
+Make it **configurable per rule** with sensible defaults:
+- **Default**: 60 minutes of inactivity
+- **Configurable range**: 5 minutes to 24 hours
+- **Per-rule setting**: `inactivityTimeoutMinutes` on `AlertGroupingRule`
+
+The worker job should run every 1-5 minutes, checking for episodes that have exceeded their inactivity threshold.
+
+| Scenario | Recommended Timeout |
+|----------|---------------------|
+| High-frequency alerts (metrics) | 5-15 minutes |
+| Standard monitoring | 30-60 minutes |
+| Low-frequency events | 2-4 hours |
+| Maintenance windows | 12-24 hours |
