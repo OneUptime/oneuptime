@@ -9,7 +9,7 @@ Alert Grouping is a feature that automatically combines related alerts into logi
 1. **Automatic Grouping** - Rules-based grouping of alerts into episodes
 2. **Time-Window Grouping** - Group alerts occurring within N minutes
 3. **Field-Based Grouping** - Group by monitor, monitor custom fields, severity, labels, etc.
-4. **Manual Management** - Merge, split, add/remove alerts from episodes
+4. **Manual Management** - Add/remove alerts from episodes (merge/split deferred to future)
 5. **Episode Lifecycle** - Active → Acknowledged → Resolved states. These should be linked to alert states.
 6. **Root Cause Tracking** - Document root cause analysis per episode. This is a placeholder field for user to fill out. We can even use Generate with AI to help summarize the episode based on Root Cause of all the alerts in the episode.
 7. **Flapping Prevention** - Grace periods before resolution and reopen windows
@@ -21,7 +21,7 @@ Alert Grouping is a feature that automatically combines related alerts into logi
 | Model | Purpose |
 |-------|---------|
 | **AlertEpisode** | Container for grouped alerts (title, state, severity, timing, ownership) |
-| **AlertEpisodeMember** | Links alerts to episodes with metadata (addedBy, addedAt, similarityScore) |
+| **AlertEpisodeMember** | Links alerts to episodes with metadata (addedBy, addedAt) |
 | **AlertGroupingRule** | Configures automatic grouping behavior (match criteria, grouping config, priority) |
 
 ### Alert Model Enhancements
@@ -160,3 +160,68 @@ The worker job should run every 1-5 minutes, checking for episodes that have exc
 | Standard monitoring | 30-60 minutes |
 | Low-frequency events | 2-4 hours |
 | Maintenance windows | 12-24 hours |
+
+---
+
+### Episode Title Generation
+
+**Q11: When an episode is auto-created by a rule, how should the title be generated?**
+
+**Recommendation**: Use a two-tier approach:
+1. **Default**: Use the first alert's title as the episode title
+2. **Optional override**: Allow a template on the `AlertGroupingRule` for custom naming
+
+Template variables could include:
+- `{alertTitle}` - First alert's title
+- `{monitorName}` - Monitor/service name
+- `{alertSeverity}` - Severity level
+- `{alertCount}` - Number of alerts (updated dynamically)
+
+Example templates:
+- `"{alertSeverity} issues on {monitorName}"` → "Critical issues on API Server"
+- `"{monitorName} - {alertTitle}"` → "Database - Connection timeout"
+
+If no template is specified on the rule, default to the first alert's title.
+
+---
+
+### Manual Management
+
+**Q12: If an alert is removed from an episode, what happens to it?**
+
+The alert becomes **standalone** (ungrouped). The user can then optionally move it to a different episode manually. The alert's `episodeId` is set to null.
+
+---
+
+### State Synchronization
+
+**Q13: If I manually resolve an episode, should all member alerts also be resolved?**
+
+**Yes** - resolving an episode resolves all member alerts. This mirrors the acknowledge behavior: episode state changes cascade down to all member alerts for consistency.
+
+State cascade rules:
+- **Acknowledge episode** → Acknowledge all member alerts
+- **Resolve episode** → Resolve all member alerts
+
+---
+
+### Grouping Combinations
+
+**Q14: Can a single rule use BOTH Time Window AND Field-Based grouping together?**
+
+**Yes** - rules can combine both grouping types. For example:
+- "Group alerts from the **same monitor** that occur **within 10 minutes** of each other"
+- "Group alerts with the **same severity and labels** within a **30-minute window**"
+
+Both conditions must be satisfied for alerts to be grouped together.
+
+---
+
+### Alert Eligibility
+
+**Q15: Can only Active alerts be grouped into episodes, or can alerts in any state be grouped?**
+
+Alerts in **any state** can be grouped into episodes. This allows:
+- Grouping historical alerts for post-incident analysis
+- Manual organization of already-resolved alerts
+- Flexibility in episode management regardless of alert lifecycle stage
