@@ -4,6 +4,17 @@
 
 set -e
 
+# Helper function to unwrap API values that might be in wrapper format
+# e.g., {"_type": "Color", "value": "#FF5733"} -> "#FF5733"
+unwrap_value() {
+    local raw_value="$1"
+    if echo "$raw_value" | jq -e '.value' > /dev/null 2>&1; then
+        echo "$raw_value" | jq -r '.value'
+    else
+        echo "$raw_value" | jq -r '.'
+    fi
+}
+
 # Get terraform outputs
 RESOURCE_ID=$(terraform output -raw incident_severity_id)
 EXPECTED_NAME=$(terraform output -raw incident_severity_name)
@@ -30,24 +41,27 @@ if [ -z "$API_ID" ] || [ "$API_ID" = "null" ]; then
 fi
 echo "    ✓ Incident severity exists in API"
 
-# Validate name
-API_NAME=$(echo "$RESPONSE" | jq -r '.name // empty')
+# Validate name - handle wrapper object format
+API_NAME_RAW=$(echo "$RESPONSE" | jq '.name')
+API_NAME=$(unwrap_value "$API_NAME_RAW")
 if [ "$API_NAME" != "$EXPECTED_NAME" ]; then
     echo "    ✗ FAILED: Name mismatch - Expected: '$EXPECTED_NAME', Got: '$API_NAME'"
     exit 1
 fi
 echo "    ✓ Name matches: $API_NAME"
 
-# Validate description
-API_DESCRIPTION=$(echo "$RESPONSE" | jq -r '.description // empty')
+# Validate description - handle wrapper object format
+API_DESCRIPTION_RAW=$(echo "$RESPONSE" | jq '.description')
+API_DESCRIPTION=$(unwrap_value "$API_DESCRIPTION_RAW")
 if [ "$API_DESCRIPTION" != "$EXPECTED_DESCRIPTION" ]; then
     echo "    ✗ FAILED: Description mismatch - Expected: '$EXPECTED_DESCRIPTION', Got: '$API_DESCRIPTION'"
     exit 1
 fi
 echo "    ✓ Description matches: $API_DESCRIPTION"
 
-# Validate color
-API_COLOR=$(echo "$RESPONSE" | jq -r '.color // empty')
+# Validate color - handle wrapper object format
+API_COLOR_RAW=$(echo "$RESPONSE" | jq '.color')
+API_COLOR=$(unwrap_value "$API_COLOR_RAW")
 if [ "$API_COLOR" != "$EXPECTED_COLOR" ]; then
     echo "    ✗ FAILED: Color mismatch - Expected: '$EXPECTED_COLOR', Got: '$API_COLOR'"
     exit 1

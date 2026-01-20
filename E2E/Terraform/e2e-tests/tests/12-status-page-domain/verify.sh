@@ -4,6 +4,16 @@
 
 set -e
 
+# Helper function to unwrap API values that might be in wrapper format
+unwrap_value() {
+    local raw_value="$1"
+    if echo "$raw_value" | jq -e '.value' > /dev/null 2>&1; then
+        echo "$raw_value" | jq -r '.value'
+    else
+        echo "$raw_value" | jq -r '.'
+    fi
+}
+
 # Get terraform outputs
 DOMAIN_ID=$(terraform output -raw domain_id)
 STATUS_PAGE_ID=$(terraform output -raw status_page_id)
@@ -33,7 +43,8 @@ if [ -z "$API_ID" ] || [ "$API_ID" = "null" ]; then
 fi
 echo "    ✓ Domain exists in API"
 
-API_DOMAIN=$(echo "$RESPONSE" | jq -r '.domain // empty')
+API_DOMAIN_RAW=$(echo "$RESPONSE" | jq '.domain')
+API_DOMAIN=$(unwrap_value "$API_DOMAIN_RAW")
 if [ "$API_DOMAIN" != "$EXPECTED_DOMAIN_NAME" ]; then
     echo "    ✗ FAILED: Domain name mismatch - Expected: '$EXPECTED_DOMAIN_NAME', Got: '$API_DOMAIN'"
     exit 1
@@ -66,7 +77,8 @@ if [ -z "$API_ID" ] || [ "$API_ID" = "null" ]; then
 fi
 echo "    ✓ Status page exists in API"
 
-API_NAME=$(echo "$RESPONSE" | jq -r '.name // empty')
+API_NAME_RAW=$(echo "$RESPONSE" | jq '.name')
+API_NAME=$(unwrap_value "$API_NAME_RAW")
 if [ "$API_NAME" != "$EXPECTED_SP_NAME" ]; then
     echo "    ✗ FAILED: Name mismatch - Expected: '$EXPECTED_SP_NAME', Got: '$API_NAME'"
     exit 1
@@ -92,14 +104,16 @@ if [ -z "$API_ID" ] || [ "$API_ID" = "null" ]; then
 fi
 echo "    ✓ Status page domain exists in API"
 
-API_SUBDOMAIN=$(echo "$RESPONSE" | jq -r '.subdomain // empty')
+API_SUBDOMAIN_RAW=$(echo "$RESPONSE" | jq '.subdomain')
+API_SUBDOMAIN=$(unwrap_value "$API_SUBDOMAIN_RAW")
 if [ "$API_SUBDOMAIN" != "$EXPECTED_SUBDOMAIN" ]; then
     echo "    ✗ FAILED: Subdomain mismatch - Expected: '$EXPECTED_SUBDOMAIN', Got: '$API_SUBDOMAIN'"
     exit 1
 fi
 echo "    ✓ Subdomain matches: $API_SUBDOMAIN"
 
-API_FULL_DOMAIN=$(echo "$RESPONSE" | jq -r '.fullDomain // empty')
+API_FULL_DOMAIN_RAW=$(echo "$RESPONSE" | jq '.fullDomain')
+API_FULL_DOMAIN=$(unwrap_value "$API_FULL_DOMAIN_RAW")
 if [ "$API_FULL_DOMAIN" != "$EXPECTED_FULL_DOMAIN" ]; then
     echo "    ✗ FAILED: Full domain mismatch - Expected: '$EXPECTED_FULL_DOMAIN', Got: '$API_FULL_DOMAIN'"
     exit 1
