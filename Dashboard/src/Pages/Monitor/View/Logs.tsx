@@ -3,7 +3,9 @@ import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -92,7 +94,11 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     await fetchItem();
   }, []);
 
-  const getProbeNameById = (probeId: string | undefined): string => {
+  type GetProbeNameByIdFunction = (probeId: string | undefined) => string;
+
+  const getProbeNameById: GetProbeNameByIdFunction = (
+    probeId: string | undefined,
+  ): string => {
     if (!probeId) {
       return "Unknown";
     }

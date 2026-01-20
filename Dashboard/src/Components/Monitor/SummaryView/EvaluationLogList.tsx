@@ -137,8 +137,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 );
 
                 let statusText: string = "Partial";
-                let statusClassName: string =
-                  "text-yellow-700 bg-yellow-100";
+                let statusClassName: string = "text-yellow-700 bg-yellow-100";
 
                 if (allMet) {
                   statusText = "Met";
