@@ -107,6 +107,79 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Custom Fields",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_GROUPING_RULES, [
+      "Project",
+      "Alerts",
+      "Settings",
+      "Grouping Rules",
+    ]),
+
+    // Episodes
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODES, [
+      "Project",
+      "Alerts",
+      "Episodes",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.UNRESOLVED_ALERT_EPISODES, [
+      "Project",
+      "Alerts",
+      "Active Episodes",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_DESCRIPTION, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "Description",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "Root Cause",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_OWNERS, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "State Timeline",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_ALERTS, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "Alerts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "Private Notes",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_VIEW_DELETE, [
+      "Project",
+      "Alerts",
+      "Episodes",
+      "View Episode",
+      "Delete Episode",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

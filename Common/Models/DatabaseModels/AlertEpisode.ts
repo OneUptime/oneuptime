@@ -1,12 +1,9 @@
-import AlertEpisode from "./AlertEpisode";
 import AlertSeverity from "./AlertSeverity";
 import AlertState from "./AlertState";
 import Label from "./Label";
-import Monitor from "./Monitor";
-import MonitorStatus from "./MonitorStatus";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
-import Probe from "./Probe";
 import Project from "./Project";
+import Team from "./Team";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -17,7 +14,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -25,7 +21,6 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import {
@@ -37,11 +32,11 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
-import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
-import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+
+export type AlertGroupingRuleType = typeof AlertGroupingRule;
+import AlertGroupingRule from "./AlertGroupingRule";
 
 @EnableDocumentation()
-@EnableMCP()
 @AccessControlColumn("labels")
 @MultiTenentQueryAllowed(true)
 @TenantColumn("projectId")
@@ -50,30 +45,30 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateAlert,
+    Permission.CreateAlertEpisode,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadAlert,
+    Permission.ReadAlertEpisode,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.DeleteAlert,
+    Permission.DeleteAlertEpisode,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.EditAlert,
+    Permission.EditAlertEpisode,
   ],
 })
-@CrudApiEndpoint(new Route("/alert"))
+@CrudApiEndpoint(new Route("/alert-episode"))
 @Entity({
-  name: "Alert",
+  name: "AlertEpisode",
 })
 @EnableWorkflow({
   create: true,
@@ -82,30 +77,31 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   read: true,
 })
 @TableMetadata({
-  tableName: "Alert",
-  singularName: "Alert",
-  pluralName: "Alerts",
-  icon: IconProp.Alert,
-  tableDescription: "Manage alerts for your project",
+  tableName: "AlertEpisode",
+  singularName: "Alert Episode",
+  pluralName: "Alert Episodes",
+  icon: IconProp.Layers,
+  tableDescription:
+    "Manage alert episodes (groups of related alerts) for your project",
   enableRealtimeEventsOn: {
     create: true,
     update: true,
     delete: true,
   },
 })
-export default class Alert extends BaseModel {
+export default class AlertEpisode extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlert,
+      Permission.CreateAlertEpisode,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlert,
+      Permission.ReadAlertEpisode,
     ],
     update: [],
   })
@@ -135,13 +131,13 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlert,
+      Permission.CreateAlertEpisode,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlert,
+      Permission.ReadAlertEpisode,
     ],
     update: [],
   })
@@ -152,7 +148,6 @@ export default class Alert extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
-    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -166,19 +161,19 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlert,
+      Permission.CreateAlertEpisode,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlert,
+      Permission.ReadAlertEpisode,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditAlert,
+      Permission.EditAlertEpisode,
     ],
   })
   @Index()
@@ -187,8 +182,7 @@ export default class Alert extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Title",
-    description: "Title of this alert",
-    example: "High CPU usage detected on production server",
+    description: "Title of this alert episode",
   })
   @Column({
     nullable: false,
@@ -202,19 +196,19 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlert,
+      Permission.CreateAlertEpisode,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlert,
+      Permission.ReadAlertEpisode,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditAlert,
+      Permission.EditAlertEpisode,
     ],
   })
   @TableColumn({
@@ -222,9 +216,7 @@ export default class Alert extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Description",
     description:
-      "Short description of this alert. This will be visible on the status page. This is in markdown.",
-    example:
-      "CPU usage has exceeded 90% threshold for the past 5 minutes. Immediate investigation required.",
+      "Description of this alert episode. This is in markdown format.",
   })
   @Column({
     nullable: true,
@@ -237,13 +229,694 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlert,
+      Permission.CreateAlertEpisode,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlert,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Number,
+    title: "Episode Number",
+    description: "Auto-incrementing episode number per project",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public episodeNumber?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "currentAlertStateId",
+    type: TableColumnType.Entity,
+    modelType: AlertState,
+    title: "Current Alert State",
+    description:
+      "Current state of this episode. Is the episode acknowledged? or resolved?",
+  })
+  @ManyToOne(
+    () => {
+      return AlertState;
+    },
+    {
+      eager: false,
+      nullable: true,
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "currentAlertStateId" })
+  public currentAlertState?: AlertState = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Current Alert State ID",
+    description: "Current Alert State ID",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public currentAlertStateId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "alertSeverityId",
+    type: TableColumnType.Entity,
+    modelType: AlertSeverity,
+    title: "Alert Severity",
+    description:
+      "High-water mark severity of this episode. Represents the highest severity among all member alerts.",
+  })
+  @ManyToOne(
+    () => {
+      return AlertSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "alertSeverityId" })
+  public alertSeverity?: AlertSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Alert Severity ID",
+    description: "Alert Severity ID",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public alertSeverityId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Markdown,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Root Cause",
+    description: "User-documented root cause of this episode",
+  })
+  @Column({
+    type: ColumnType.Markdown,
+    nullable: true,
+  })
+  public rootCause?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Last Alert Added At",
+    description: "When the last alert was added to this episode",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public lastAlertAddedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Resolved At",
+    description: "When this episode was resolved",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public resolvedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "assignedToUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Assigned To User",
+    description: "User who is assigned to this episode",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "assignedToUserId" })
+  public assignedToUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Assigned To User ID",
+    description: "User ID who is assigned to this episode",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public assignedToUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "assignedToTeamId",
+    type: TableColumnType.Entity,
+    modelType: Team,
+    title: "Assigned To Team",
+    description: "Team that is assigned to this episode",
+  })
+  @ManyToOne(
+    () => {
+      return Team;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "assignedToTeamId" })
+  public assignedToTeam?: Team = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Assigned To Team ID",
+    description: "Team ID that is assigned to this episode",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public assignedToTeamId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "alertGroupingRuleId",
+    type: TableColumnType.Entity,
+    modelType: AlertGroupingRule,
+    title: "Alert Grouping Rule",
+    description:
+      "The grouping rule that created this episode (null for manually created episodes)",
+  })
+  @ManyToOne(
+    () => {
+      return AlertGroupingRule;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "alertGroupingRuleId" })
+  public alertGroupingRule?: AlertGroupingRule = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Alert Grouping Rule ID",
+    description: "Alert Grouping Rule ID that created this episode",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public alertGroupingRuleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: OnCallDutyPolicy,
+    title: "On-Call Duty Policies",
+    description: "List of on-call duty policies to execute for this episode.",
+  })
+  @ManyToMany(
+    () => {
+      return OnCallDutyPolicy;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertEpisodeOnCallDutyPolicy",
+    inverseJoinColumn: {
+      name: "onCallDutyPolicyId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertEpisodeId",
+      referencedColumnName: "_id",
+    },
+  })
+  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Is On-Call Policy Executed?",
+    description: "Whether the on-call policy has been executed for this episode",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isOnCallPolicyExecuted?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Alert Count",
+    description: "Denormalized count of alerts in this episode",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public alertCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Is Manually Created?",
+    description: "Whether this episode was manually created vs auto-created by a rule",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isManuallyCreated?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description:
+      "Relation to Labels Array where this object is categorized in.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertEpisodeLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertEpisodeId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
     ],
     update: [],
   })
@@ -274,13 +947,13 @@ export default class Alert extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlert,
+      Permission.CreateAlertEpisode,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlert,
+      Permission.ReadAlertEpisode,
     ],
     update: [],
   })
@@ -343,451 +1016,23 @@ export default class Alert extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
-  // monitor this alert was created for.
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "monitorId",
-    type: TableColumnType.Entity,
-    modelType: Monitor,
-    title: "Monitor",
-    description: "Relation to monitor this alert belongs to",
-  })
-  @ManyToOne(
-    () => {
-      return Monitor;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "monitorId" })
-  public monitor?: Monitor = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public monitorId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.EntityArray,
-    modelType: Monitor,
-    title: "On-Call Duty Policies",
-    description: "List of on-call duty policy affected by this alert.",
-  })
-  @ManyToMany(
-    () => {
-      return OnCallDutyPolicy;
-    },
-    { eager: false },
-  )
-  @JoinTable({
-    name: "AlertOnCallDutyPolicy",
-    inverseJoinColumn: {
-      name: "monitorId",
-      referencedColumnName: "_id",
-    },
-    joinColumn: {
-      name: "onCallDutyPolicyId",
-      referencedColumnName: "_id",
-    },
-  })
-  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // monitors affected by this alert.
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.EntityArray,
-    modelType: Label,
-    title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
-  })
-  @ManyToMany(
-    () => {
-      return Label;
-    },
-    { eager: false },
-  )
-  @JoinTable({
-    name: "AlertLabel",
-    inverseJoinColumn: {
-      name: "labelId",
-      referencedColumnName: "_id",
-    },
-    joinColumn: {
-      name: "alertId",
-      referencedColumnName: "_id",
-    },
-  })
-  public labels?: Array<Label> = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "currentAlertStateId",
-    type: TableColumnType.Entity,
-    modelType: AlertState,
-    title: "Current Alert State",
-    description:
-      "Current state of this alert. Is the alert acknowledged? or resolved?. This is related to Alert State",
-  })
-  @ManyToOne(
-    () => {
-      return AlertState;
-    },
-    {
-      eager: false,
-      nullable: true,
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "currentAlertStateId" })
-  public currentAlertState?: AlertState = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: true,
-    isDefaultValueColumn: true,
-    title: "Current Alert State ID",
-    description: "Current Alert State ID",
-    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-
-    nullable: false,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public currentAlertStateId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "alertSeverityId",
-    type: TableColumnType.Entity,
-    modelType: AlertSeverity,
-    title: "Alert Severity",
-    description:
-      "How severe is this alert. Is it critical? or a minor alert?. This is related to Alert Severity.",
-  })
-  @ManyToOne(
-    () => {
-      return AlertSeverity;
-    },
-    {
-      eager: false,
-      nullable: true,
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "alertSeverityId" })
-  public alertSeverity?: AlertSeverity = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: true,
-    title: "Alert Severity ID",
-    description: "Alert Severity ID",
-    example: "b2c3d4e5-f6a7-8901-bcde-f23456789012",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: false,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public alertSeverityId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "monitorStatusWhenThisAlertWasCreatedId",
-    type: TableColumnType.Entity,
-    modelType: AlertState,
-    title: "Monitor status when this alert was created",
-    description: "Monitor status when this alert was created",
-  })
-  @ManyToOne(
-    () => {
-      return MonitorStatus;
-    },
-    {
-      eager: false,
-      nullable: true,
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "monitorStatusWhenThisAlertWasCreatedId" })
-  public monitorStatusWhenThisAlertWasCreated?: MonitorStatus = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    title: "Monitor Status ID when this alert was created",
-    description: "Monitor Status ID when this alert was created",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public monitorStatusWhenThisAlertWasCreatedId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Custom Fields",
-    description: "Custom Fields on this resource.",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public customFields?: JSONObject = undefined;
-
   @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlert,
+      Permission.ReadAlertEpisode,
     ],
     update: [],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
-    computed: true,
-    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
-    title: "Are Owners Notified Of Alert Creation?",
-    description: "Are owners notified of when this alert is created?",
+    title: "Are Owners Notified Of Episode Creation?",
+    description: "Are owners notified when this episode is created?",
     defaultValue: false,
   })
   @Column({
@@ -795,67 +1040,20 @@ export default class Alert extends BaseModel {
     nullable: false,
     default: false,
   })
-  public isOwnerNotifiedOfAlertCreation?: boolean = undefined;
+  public isOwnerNotifiedOfEpisodeCreation?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateAlert,
+      Permission.CreateAlertEpisode,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.Markdown,
-    required: false,
-    isDefaultValueColumn: false,
-    title: "Root Cause",
-    description: "What is the root cause of this alert?",
-    example:
-      "Memory leak in the application caused by improper resource cleanup in the connection pool.",
-  })
-  @Column({
-    type: ColumnType.Markdown,
-    nullable: true,
-  })
-  public rootCause?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    required: false,
-    type: TableColumnType.JSON,
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-    unique: false,
-  })
-  public createdStateLog?: JSONObject = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
+      Permission.ReadAlertEpisode,
     ],
     update: [],
   })
@@ -863,288 +1061,14 @@ export default class Alert extends BaseModel {
   @TableColumn({
     type: TableColumnType.LongText,
     required: false,
-    isDefaultValueColumn: false,
-    title: "Created Criteria ID",
+    title: "Grouping Key",
     description:
-      "If this alert was created by a Probe, this is the ID of the criteria that created it.",
+      "Key used for grouping alerts into this episode. Generated from groupByFields of the matching rule.",
   })
   @Column({
     type: ColumnType.LongText,
     nullable: true,
+    length: ColumnLength.LongText,
   })
-  public createdCriteriaId?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "createdByProbeId",
-    type: TableColumnType.Entity,
-    modelType: Probe,
-    title: "Created By Probe",
-    description:
-      "If this alert was created by a Probe, this is the probe that created it.",
-  })
-  @ManyToOne(
-    () => {
-      return Probe;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "createdByProbeId" })
-  public createdByProbe?: Probe = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    canReadOnRelationQuery: true,
-    title: "Created By Probe ID",
-    description:
-      "If this alert was created by a Probe, this is the ID of the probe that created it.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public createdByProbeId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Is created automatically?",
-    description:
-      "Is this alert created by OneUptime Probe or Workers automatically (and not created manually by a user)?",
-    defaultValue: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public isCreatedAutomatically?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Markdown,
-    title: "Remediation Notes",
-    description: "Notes on how to remediate this alert. This is in markdown.",
-    example:
-      "1. Restart the affected service\\n2. Clear the connection pool\\n3. Monitor memory usage for the next 30 minutes",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Markdown,
-  })
-  public remediationNotes?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Telemetry Query",
-    description: "Telemetry query for this alert",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public telemetryQuery?: TelemetryQuery = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [],
-  })
-  @Index()
-  @TableColumn({
-    isDefaultValueColumn: false,
-    required: false,
-    type: TableColumnType.Number,
-    computed: true,
-    title: "Alert Number",
-    description: "Alert Number",
-    example: 42,
-  })
-  @Column({
-    type: ColumnType.Number,
-    nullable: true,
-  })
-  public alertNumber?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Post Updates To Workspace Channel Name",
-    description: "Post Updates To Workspace Channel Name",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
-    undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "alertEpisodeId",
-    type: TableColumnType.Entity,
-    modelType: AlertEpisode,
-    title: "Alert Episode",
-    description: "The episode this alert belongs to (if grouped)",
-  })
-  @ManyToOne(
-    () => {
-      return AlertEpisode;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "alertEpisodeId" })
-  public alertEpisode?: AlertEpisode = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadAlert,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditAlert,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    title: "Alert Episode ID",
-    description: "The ID of the episode this alert belongs to (if grouped)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public alertEpisodeId?: ObjectID = undefined;
+  public groupingKey?: string = undefined;
 }

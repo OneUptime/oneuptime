@@ -1,4 +1,3 @@
-import ChangeAlertState from "../../../Components/Alert/ChangeState";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import PageComponentProps from "../../PageComponentProps";
@@ -8,7 +7,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -16,15 +14,14 @@ import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Pill from "Common/UI/Components/Pill/Pill";
-import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
-import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import Label from "Common/Models/DatabaseModels/Label";
 import React, {
   Fragment,
@@ -34,52 +31,30 @@ import React, {
   useState,
 } from "react";
 import UserElement from "../../../Components/User/User";
-import Card from "Common/UI/Components/Card/Card";
-import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
-import TelemetryType from "Common/Types/Telemetry/TelemetryType";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import TraceTable from "../../../Components/Traces/TraceTable";
-import MonitorElement from "../../../Components/Monitor/Monitor";
-import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
-import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import HeaderAlert, {
-  HeaderAlertType,
-} from "Common/UI/Components/HeaderAlert/HeaderAlert";
-import IconProp from "Common/Types/Icon/IconProp";
-import ColorSwatch from "Common/Types/ColorSwatch";
-import AlertFeedElement from "../../../Components/Alert/AlertFeed";
-import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
-import Query from "Common/Types/BaseDatabase/Query";
-import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import Span from "Common/Models/AnalyticsModels/Span";
-import Log from "Common/Models/AnalyticsModels/Log";
+import ChangeEpisodeState from "../../../Components/AlertEpisode/ChangeState";
 
-const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AlertEpisodeView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
-  const [alertStateTimeline, setAlertStateTimeline] = useState<
-    AlertStateTimeline[]
+  const [episodeStateTimeline, setEpisodeStateTimeline] = useState<
+    AlertEpisodeStateTimeline[]
   >([]);
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
 
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
-    null,
-  );
-
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
 
-      const alertTimelines: ListResult<AlertStateTimeline> =
+      const episodeTimelines: ListResult<AlertEpisodeStateTimeline> =
         await ModelAPI.getList({
-          modelType: AlertStateTimeline,
+          modelType: AlertEpisodeStateTimeline,
           query: {
-            alertId: modelId,
+            alertEpisodeId: modelId,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -112,25 +87,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         sort: {},
       });
 
-      const alert: Alert | null = await ModelAPI.getItem({
-        id: modelId,
-        modelType: Alert,
-        select: {
-          telemetryQuery: true,
-        },
-      });
-
-      let telemetryQuery: TelemetryQuery | null = null;
-
-      if (alert?.telemetryQuery) {
-        telemetryQuery = JSONFunctions.deserialize(
-          alert?.telemetryQuery as any,
-        ) as any;
-      }
-
-      setTelemetryQuery(telemetryQuery);
       setAlertStates(alertStates.data as AlertState[]);
-      setAlertStateTimeline(alertTimelines.data as AlertStateTimeline[]);
+      setEpisodeStateTimeline(
+        episodeTimelines.data as AlertEpisodeStateTimeline[],
+      );
       setError("");
     } catch (err) {
       setError(BaseAPI.getFriendlyMessage(err));
@@ -174,10 +134,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   type getTimeFunction = () => string;
 
   const getTimeToAcknowledge: getTimeFunction = (): string => {
-    const alertStartTime: Date = alertStateTimeline[0]?.startsAt || new Date();
+    const episodeStartTime: Date =
+      episodeStateTimeline[0]?.startsAt || new Date();
 
-    const acknowledgeTime: Date | undefined = alertStateTimeline.find(
-      (timeline: AlertStateTimeline) => {
+    const acknowledgeTime: Date | undefined = episodeStateTimeline.find(
+      (timeline: AlertEpisodeStateTimeline) => {
         return (
           timeline.alertStateId?.toString() ===
           getAcknowledgeState()?._id?.toString()
@@ -185,8 +146,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
     )?.startsAt;
 
-    const resolveTime: Date | undefined = alertStateTimeline.find(
-      (timeline: AlertStateTimeline) => {
+    const resolveTime: Date | undefined = episodeStateTimeline.find(
+      (timeline: AlertEpisodeStateTimeline) => {
         return (
           timeline.alertStateId?.toString() ===
           getResolvedState()?._id?.toString()
@@ -203,20 +164,21 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     if (!acknowledgeTime && resolveTime) {
       return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-        OneUptimeDate.getDifferenceInMinutes(resolveTime, alertStartTime),
+        OneUptimeDate.getDifferenceInMinutes(resolveTime, episodeStartTime),
       );
     }
 
     return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-      OneUptimeDate.getDifferenceInMinutes(acknowledgeTime!, alertStartTime),
+      OneUptimeDate.getDifferenceInMinutes(acknowledgeTime!, episodeStartTime),
     );
   };
 
   const getTimeToResolve: getTimeFunction = (): string => {
-    const alertStartTime: Date = alertStateTimeline[0]?.startsAt || new Date();
+    const episodeStartTime: Date =
+      episodeStateTimeline[0]?.startsAt || new Date();
 
-    const resolveTime: Date | undefined = alertStateTimeline.find(
-      (timeline: AlertStateTimeline) => {
+    const resolveTime: Date | undefined = episodeStateTimeline.find(
+      (timeline: AlertEpisodeStateTimeline) => {
         return (
           timeline.alertStateId?.toString() ===
           getResolvedState()?._id?.toString()
@@ -231,7 +193,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
 
     return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-      OneUptimeDate.getDifferenceInMinutes(resolveTime, alertStartTime),
+      OneUptimeDate.getDifferenceInMinutes(resolveTime, episodeStartTime),
     );
   };
 
@@ -245,18 +207,17 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
-      {/* Alert View  */}
-      <CardModelDetail<Alert>
-        name="Alert Details"
+      <CardModelDetail<AlertEpisode>
+        name="Episode Details"
         cardProps={{
-          title: "Alert Details",
-          description: "Here are more details for this alert.",
+          title: "Episode Details",
+          description: "Here are more details for this episode.",
         }}
         isEditable={true}
         formSteps={[
           {
-            title: "Alert Details",
-            id: "alert-details",
+            title: "Episode Details",
+            id: "episode-details",
           },
           {
             title: "Labels",
@@ -268,31 +229,30 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               title: true,
             },
-            title: "Alert Title",
-            stepId: "alert-details",
+            title: "Episode Title",
+            stepId: "episode-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Alert Title",
+            placeholder: "Episode Title",
             validation: {
               minLength: 2,
             },
           },
-
           {
             field: {
               alertSeverity: true,
             },
-            title: "Alert Severity",
-            description: "What type of alert is this?",
+            title: "Episode Severity",
+            description: "What is the severity of this episode?",
             fieldType: FormFieldSchemaType.Dropdown,
-            stepId: "alert-details",
+            stepId: "episode-details",
             dropdownModal: {
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
             },
             required: true,
-            placeholder: "Alert Severity",
+            placeholder: "Episode Severity",
           },
           {
             field: {
@@ -321,49 +281,18 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               profilePictureId: true,
             },
           },
-          onBeforeFetch: async (): Promise<JSONObject> => {
-            // get ack alert.
-
-            const alertTimelines: ListResult<AlertStateTimeline> =
-              await ModelAPI.getList({
-                modelType: AlertStateTimeline,
-                query: {
-                  alertId: modelId,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: {
-                  _id: true,
-
-                  createdAt: true,
-                  createdByUser: {
-                    name: true,
-                    email: true,
-                    profilePictureId: true,
-                  },
-                  alertState: {
-                    name: true,
-                    isResolvedState: true,
-                    isAcknowledgedState: true,
-                  },
-                },
-                sort: {},
-              });
-
-            return alertTimelines;
-          },
           showDetailsInNumberOfColumns: 2,
-          modelType: Alert,
-          id: "model-detail-alerts",
+          modelType: AlertEpisode,
+          id: "model-detail-episodes",
           fields: [
             {
               field: {
-                alertNumber: true,
+                episodeNumber: true,
               },
-              title: "Alert Number",
+              title: "Episode Number",
               fieldType: FieldType.Element,
-              getElement: (item: Alert): ReactElement => {
-                if (!item.alertNumber) {
+              getElement: (item: AlertEpisode): ReactElement => {
+                if (!item.episodeNumber) {
                   return <>-</>;
                 }
 
@@ -380,12 +309,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                         />
                       </svg>
                     </div>
                     <span className="text-lg font-semibold text-gray-700">
-                      #{item.alertNumber}
+                      #{item.episodeNumber}
                     </span>
                   </div>
                 );
@@ -395,17 +324,16 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 _id: true,
               },
-              title: "Alert ID",
+              title: "Episode ID",
               fieldType: FieldType.ObjectID,
             },
             {
               field: {
                 title: true,
               },
-              title: "Alert Title",
+              title: "Episode Title",
               fieldType: FieldType.Text,
             },
-
             {
               field: {
                 currentAlertState: {
@@ -415,9 +343,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Current State",
               fieldType: FieldType.Entity,
-              getElement: (item: Alert): ReactElement => {
+              getElement: (item: AlertEpisode): ReactElement => {
                 if (!item["currentAlertState"]) {
-                  throw new BadDataException("Alert Status not found");
+                  throw new BadDataException("Episode State not found");
                 }
 
                 return (
@@ -435,11 +363,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   name: true,
                 },
               },
-              title: "Alert Severity",
+              title: "Episode Severity",
               fieldType: FieldType.Entity,
-              getElement: (item: Alert): ReactElement => {
+              getElement: (item: AlertEpisode): ReactElement => {
                 if (!item["alertSeverity"]) {
-                  throw new BadDataException("Alert Severity not found");
+                  throw new BadDataException("Episode Severity not found");
                 }
 
                 return (
@@ -452,31 +380,25 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                monitor: {
+                alertCount: true,
+              },
+              title: "Alert Count",
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                alertGroupingRule: {
                   name: true,
                   _id: true,
                 },
               },
-              title: "Monitors Affected",
+              title: "Grouping Rule",
               fieldType: FieldType.Element,
-              getElement: (item: Alert): ReactElement => {
-                return <MonitorElement monitor={item["monitor"]!} />;
-              },
-            },
-            {
-              field: {
-                alertEpisode: {
-                  title: true,
-                  _id: true,
-                },
-              },
-              title: "Episode",
-              fieldType: FieldType.Element,
-              getElement: (item: Alert): ReactElement => {
-                if (item.alertEpisode) {
-                  return <AlertEpisodeElement alertEpisode={item.alertEpisode} />;
+              getElement: (item: AlertEpisode): ReactElement => {
+                if (item.alertGroupingRule?.name) {
+                  return <span>{item.alertGroupingRule.name}</span>;
                 }
-                return <span className="text-gray-400">Not part of an episode</span>;
+                return <span>Manual Episode</span>;
               },
             },
             {
@@ -488,7 +410,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "On-Call Duty Policies",
               fieldType: FieldType.Element,
-              getElement: (item: Alert): ReactElement => {
+              getElement: (item: AlertEpisode): ReactElement => {
                 return (
                   <OnCallDutyPoliciesView
                     onCallPolicies={item.onCallDutyPolicies || []}
@@ -500,28 +422,32 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 createdAt: true,
               },
-              title: "Declared At",
+              title: "Created At",
               fieldType: FieldType.DateTime,
             },
             {
               field: {
-                createdByProbe: {
+                lastAlertAddedAt: true,
+              },
+              title: "Last Alert Added At",
+              fieldType: FieldType.DateTime,
+            },
+            {
+              field: {
+                createdByUser: {
                   name: true,
-                  iconFileId: true,
+                  email: true,
+                  profilePictureId: true,
                 },
               },
-              title: "Declared By",
+              title: "Created By",
               fieldType: FieldType.Element,
-              getElement: (item: Alert): ReactElement => {
-                if (item.createdByProbe) {
-                  return <ProbeElement probe={item.createdByProbe} />;
-                }
-
+              getElement: (item: AlertEpisode): ReactElement => {
                 if (item.createdByUser) {
                   return <UserElement user={item.createdByUser} />;
                 }
 
-                return <p>Unknown</p>;
+                return <p>System</p>;
               },
             },
             {
@@ -533,7 +459,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Labels",
               fieldType: FieldType.Element,
-              getElement: (item: Alert): ReactElement => {
+              getElement: (item: AlertEpisode): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },
@@ -542,8 +468,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
-      <ChangeAlertState
-        alertId={modelId}
+      <ChangeEpisodeState
+        episodeId={modelId}
         onActionComplete={async () => {
           await fetchData();
         }}
@@ -561,81 +487,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           className="w-1/2"
         />
       </div>
-
-      {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Log &&
-        telemetryQuery.telemetryQuery && (
-          <div>
-            <Card title={"Logs"} description={"Logs for this alert."}>
-              <DashboardLogsViewer
-                id="logs-preview"
-                logQuery={telemetryQuery.telemetryQuery as Query<Log>}
-                limit={10}
-                noLogsMessage="No logs found"
-              />
-            </Card>
-          </div>
-        )}
-
-      {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Trace &&
-        telemetryQuery.telemetryQuery && (
-          <div>
-            <TraceTable
-              spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
-            />
-          </div>
-        )}
-
-      {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Metric &&
-        telemetryQuery.metricViewData && (
-          <Card
-            title={"Metrics"}
-            description={"Metrics for this alert."}
-            rightElement={
-              telemetryQuery.metricViewData.startAndEndDate ? (
-                <HeaderAlert
-                  icon={IconProp.Clock}
-                  onClick={() => {
-                    // do nothing!
-                  }}
-                  title={OneUptimeDate.getInBetweenDatesAsFormattedString(
-                    telemetryQuery.metricViewData.startAndEndDate,
-                  )}
-                  alertType={HeaderAlertType.INFO}
-                  colorSwatch={ColorSwatch.Blue}
-                />
-              ) : (
-                <></>
-              )
-            }
-          >
-            <MetricView
-              data={telemetryQuery.metricViewData}
-              hideQueryElements={true}
-              chartCssClass="rounded-md border border-gray-200 mt-2 shadow-none"
-              hideStartAndEndDate={true}
-              onChange={(_data: MetricViewData) => {
-                // do nothing!
-              }}
-            />
-          </Card>
-        )}
-
-      {telemetryQuery &&
-        telemetryQuery.telemetryType === TelemetryType.Exception &&
-        telemetryQuery.telemetryQuery && (
-          <ExceptionInstanceTable
-            title="Exceptions"
-            description="Exceptions for this alert."
-            query={telemetryQuery.telemetryQuery as Query<ExceptionInstance>}
-          />
-        )}
-
-      <AlertFeedElement alertId={modelId} />
     </Fragment>
   );
 };
 
-export default AlertView;
+export default AlertEpisodeView;

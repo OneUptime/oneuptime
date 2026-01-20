@@ -132,6 +132,79 @@ const AlertSettingsCustomFields: LazyExoticComponent<
   return import("../Pages/Alerts/Settings/AlertCustomFields");
 });
 
+const AlertSettingsGroupingRules: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/Settings/AlertGroupingRules");
+});
+
+// Episode Pages
+const Episodes: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
+  () => {
+    return import("../Pages/Alerts/Episodes");
+  },
+);
+
+const UnresolvedEpisodes: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/UnresolvedEpisodes");
+});
+
+// Episode View Pages
+const EpisodeViewLayout: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/Layout");
+});
+
+const EpisodeView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/EpisodeView/Index");
+  });
+
+const EpisodeViewDescription: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/Description");
+});
+
+const EpisodeViewRootCause: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/RootCause");
+});
+
+const EpisodeViewOwners: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/Owners");
+});
+
+const EpisodeViewStateTimeline: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/StateTimeline");
+});
+
+const EpisodeViewAlerts: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/Alerts");
+});
+
+const EpisodeViewInternalNote: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/InternalNote");
+});
+
+const EpisodeViewDelete: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/Delete");
+});
+
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
@@ -262,6 +335,45 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_GROUPING_RULES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertSettingsGroupingRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERTS_SETTINGS_GROUPING_RULES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Episode Routes */}
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERT_EPISODES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <Episodes
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_EPISODES] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.UNRESOLVED_ALERT_EPISODES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <UnresolvedEpisodes
+                {...props}
+                pageRoute={RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route}
               />
             </Suspense>
           }
@@ -413,6 +525,117 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               <AlertViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_DELETE] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+
+      {/* Episode View Routes */}
+      <PageRoute
+        path={AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW] || ""}
+        element={<EpisodeViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeView
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ALERT_EPISODE_VIEW_DESCRIPTION,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeViewDescription
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERT_EPISODE_VIEW_DESCRIPTION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeViewRootCause
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_OWNERS)}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeViewOwners
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeViewStateTimeline
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_ALERTS)}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeViewAlerts
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_ALERTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeViewInternalNote
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_DELETE)}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeViewDelete
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_DELETE] as Route}
               />
             </Suspense>
           }

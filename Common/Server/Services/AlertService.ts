@@ -351,6 +351,21 @@ export class Service extends DatabaseService<Model> {
         }
         return Promise.resolve();
       })
+      .then(async () => {
+        // Process alert for grouping into episodes
+        try {
+          const AlertGroupingEngineService = (
+            await import("./AlertGroupingEngineService")
+          ).default;
+
+          await AlertGroupingEngineService.processAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Alert grouping failed in AlertService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
       .catch((error: Error) => {
         logger.error(
           `Critical error in AlertService sequential operations: ${error}`,

@@ -23,6 +23,10 @@ import "./Jobs/AlertOwners/SendOwnerAddedNotification";
 import "./Jobs/AlertOwners/SendStateChangeNotification";
 import "./Jobs/Alert/KeepCurrentStateConsistent";
 
+// Alert Episodes
+import "./Jobs/AlertEpisode/AutoResolve";
+import "./Jobs/AlertEpisode/BreakInactive";
+
 // Incident Notes
 import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";

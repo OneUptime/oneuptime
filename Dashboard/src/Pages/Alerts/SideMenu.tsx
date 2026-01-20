@@ -7,6 +7,7 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -45,6 +46,30 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             currentAlertState: {
               isResolvedState: false,
             },
+          } as any,
+        },
+        {
+          link: {
+            title: "All Episodes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_EPISODES] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack,
+        },
+        {
+          link: {
+            title: "Active Episodes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack,
+          badgeType: BadgeType.WARNING,
+          modelType: AlertEpisode,
+          countQuery: {
+            projectId: props.project?._id,
+            resolvedAt: null,
           } as any,
         },
       ],
@@ -113,6 +138,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.TableCells,
+        },
+        {
+          link: {
+            title: "Grouping Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_GROUPING_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Filter,
         },
       ],
     },
