@@ -225,3 +225,95 @@ Alerts in **any state** can be grouped into episodes. This allows:
 - Grouping historical alerts for post-incident analysis
 - Manual organization of already-resolved alerts
 - Flexibility in episode management regardless of alert lifecycle stage
+
+---
+
+### Episode Ownership
+
+**Q16: What ownership fields should AlertEpisode have?**
+
+- **Assigned User** - Individual user responsible for the episode
+- **Assigned Team** - Team responsible for the episode
+
+Both are optional and can be set manually or inherited from the grouping rule configuration.
+
+---
+
+### Episode Severity
+
+**Q17: How should episode severity be determined?**
+
+Use a **high-water mark with manual override** approach:
+
+1. **Initial**: Set to first alert's severity
+2. **Auto-escalate**: When a new alert joins, if its severity > current episode severity → update episode to higher severity
+3. **Never auto-downgrade**: If lower severity alert joins → keep current episode severity
+4. **Manual override allowed**: User can edit severity at any time
+5. **Override respected until escalation**: If user sets to "Warning" but a "Critical" alert joins → escalate to "Critical"
+
+This ensures users are always alerted to the worst-case scenario while respecting manual judgment when appropriate.
+
+---
+
+### Root Cause Field
+
+**Q18: What is the structure of the root cause field?**
+
+Simple **text field** on AlertEpisode. Users can document their root cause analysis as free-form text. Future enhancement: AI-assisted summarization based on alert data.
+
+---
+
+### Flapping Prevention Configuration
+
+**Q19: Where are flapping prevention settings configured?**
+
+**Per-rule** on AlertGroupingRule:
+- `resolveDelayMinutes` - Grace period before auto-resolving
+- `reopenWindowMinutes` - Window after resolution where episode can be reopened
+
+Each rule can have different flapping prevention settings based on the type of alerts it handles.
+
+---
+
+### Manual Episode Creation
+
+**Q20: Can users create episodes manually without a grouping rule?**
+
+**Yes** - users can manually create episodes and add alerts to them. This allows:
+- Ad-hoc grouping for incidents that don't match existing rules
+- Post-incident organization of related alerts
+- Flexibility for edge cases not covered by automated rules
+
+---
+
+### Episode Deletion
+
+**Q21: Can episodes be deleted? What happens to member alerts?**
+
+**Yes** - episodes can be deleted, but alerts must be **removed first** to make them standalone. This is a safety measure to prevent accidental data loss. The deletion flow:
+1. User removes all alerts from episode (alerts become standalone)
+2. User can then delete the empty episode
+
+Alternatively, if alerts are still in the episode when deleted, they become standalone automatically.
+
+---
+
+### UI Location
+
+**Q22: Where should Episodes appear in the navigation?**
+
+New **sidemenu item** in the Alerts section. Episodes should have their own dedicated list page accessible from the main navigation, similar to how Alerts have their own page.
+
+---
+
+### Alert-to-Episode Relationship
+
+**Q23: Can an alert belong to multiple episodes?**
+
+**No** - an alert can only belong to **one episode at a time** (single ownership). This provides:
+- Simpler mental model for users
+- Clear state cascade without conflicts
+- Industry-standard approach (PagerDuty, Opsgenie)
+- Cleaner queries and data management
+
+The `episodeId` field on Alert is singular and nullable.
