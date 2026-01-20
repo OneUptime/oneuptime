@@ -26,6 +26,10 @@ npm run status-check
 echo ""
 echo "=== Step 4: Installing dependencies ==="
 cd "$ROOT_DIR"
+
+# Clean node_modules to avoid permission issues with npm cache in CI
+rm -rf Common/node_modules Scripts/node_modules || true
+
 npm install
 cd Common && npm install && cd ..
 cd Scripts && npm install && cd ..
