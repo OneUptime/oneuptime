@@ -4,6 +4,16 @@
 
 set -e
 
+# Helper function to unwrap API values that might be in wrapper format
+unwrap_value() {
+    local raw_value="$1"
+    if echo "$raw_value" | jq -e '.value' > /dev/null 2>&1; then
+        echo "$raw_value" | jq -r '.value'
+    else
+        echo "$raw_value" | jq -r '.'
+    fi
+}
+
 # Get terraform outputs
 INCIDENT_ID=$(terraform output -raw incident_id)
 INCIDENT_SEVERITY_ID=$(terraform output -raw incident_severity_id)
@@ -30,7 +40,8 @@ if [ -z "$API_ID" ] || [ "$API_ID" = "null" ]; then
 fi
 echo "    ✓ Incident severity exists in API"
 
-API_NAME=$(echo "$RESPONSE" | jq -r '.name // empty')
+API_NAME_RAW=$(echo "$RESPONSE" | jq '.name')
+API_NAME=$(unwrap_value "$API_NAME_RAW")
 if [ "$API_NAME" != "$EXPECTED_SEVERITY_NAME" ]; then
     echo "    ✗ FAILED: Severity name mismatch - Expected: '$EXPECTED_SEVERITY_NAME', Got: '$API_NAME'"
     exit 1
@@ -56,24 +67,27 @@ if [ -z "$API_ID" ] || [ "$API_ID" = "null" ]; then
 fi
 echo "    ✓ Incident exists in API"
 
-# Validate title
-API_TITLE=$(echo "$RESPONSE" | jq -r '.title // empty')
+# Validate title - handle wrapper object format
+API_TITLE_RAW=$(echo "$RESPONSE" | jq '.title')
+API_TITLE=$(unwrap_value "$API_TITLE_RAW")
 if [ "$API_TITLE" != "$EXPECTED_TITLE" ]; then
     echo "    ✗ FAILED: Title mismatch - Expected: '$EXPECTED_TITLE', Got: '$API_TITLE'"
     exit 1
 fi
 echo "    ✓ Title matches: $API_TITLE"
 
-# Validate incident severity relationship
-API_SEVERITY_ID=$(echo "$RESPONSE" | jq -r '.incidentSeverityId // empty')
+# Validate incident severity relationship - handle wrapper object format (ObjectID)
+API_SEVERITY_ID_RAW=$(echo "$RESPONSE" | jq '.incidentSeverityId')
+API_SEVERITY_ID=$(unwrap_value "$API_SEVERITY_ID_RAW")
 if [ "$API_SEVERITY_ID" != "$INCIDENT_SEVERITY_ID" ]; then
     echo "    ✗ FAILED: Incident severity ID mismatch - Expected: '$INCIDENT_SEVERITY_ID', Got: '$API_SEVERITY_ID'"
     exit 1
 fi
 echo "    ✓ Incident severity ID matches"
 
-# Validate server-provided currentIncidentStateId
-CURRENT_STATE_ID=$(echo "$RESPONSE" | jq -r '.currentIncidentStateId // empty')
+# Validate server-provided currentIncidentStateId - handle wrapper object format (ObjectID)
+CURRENT_STATE_ID_RAW=$(echo "$RESPONSE" | jq '.currentIncidentStateId')
+CURRENT_STATE_ID=$(unwrap_value "$CURRENT_STATE_ID_RAW")
 if [ -n "$CURRENT_STATE_ID" ] && [ "$CURRENT_STATE_ID" != "null" ]; then
     echo "    ✓ Server-assigned currentIncidentStateId: $CURRENT_STATE_ID"
 fi

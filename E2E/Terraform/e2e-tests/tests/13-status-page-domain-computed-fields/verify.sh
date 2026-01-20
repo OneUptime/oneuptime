@@ -4,6 +4,16 @@
 
 set -e
 
+# Helper function to unwrap API values that might be in wrapper format
+unwrap_value() {
+    local raw_value="$1"
+    if echo "$raw_value" | jq -e '.value' > /dev/null 2>&1; then
+        echo "$raw_value" | jq -r '.value'
+    else
+        echo "$raw_value" | jq -r '.'
+    fi
+}
+
 # Get terraform outputs
 DOMAIN_ID=$(terraform output -raw domain_id)
 STATUS_PAGE_ID=$(terraform output -raw status_page_id)
@@ -34,7 +44,8 @@ if [ -z "$API_ID" ] || [ "$API_ID" = "null" ]; then
 fi
 echo "    ✓ Domain exists in API"
 
-API_DOMAIN=$(echo "$RESPONSE" | jq -r '.domain // empty')
+API_DOMAIN_RAW=$(echo "$RESPONSE" | jq '.domain')
+API_DOMAIN=$(unwrap_value "$API_DOMAIN_RAW")
 if [ "$API_DOMAIN" != "$EXPECTED_DOMAIN_NAME" ]; then
     echo "    ✗ FAILED: Domain name mismatch - Expected: '$EXPECTED_DOMAIN_NAME', Got: '$API_DOMAIN'"
     exit 1
@@ -64,11 +75,12 @@ echo ""
 echo "  Verifying status page domain computed fields (Issue #2236)..."
 echo "    Status Page Domain ID: $STATUS_PAGE_DOMAIN_ID"
 
+# Note: cnameVerificationToken has no read permission, so we don't include it in the select
 RESPONSE=$(curl -s -X POST "${ONEUPTIME_URL}/api/status-page-domain/${STATUS_PAGE_DOMAIN_ID}/get-item" \
     -H "Content-Type: application/json" \
     -H "Apikey: $TF_VAR_api_key" \
     -H "projectid: $TF_VAR_project_id" \
-    -d '{"select": {"_id": true, "subdomain": true, "fullDomain": true, "cnameVerificationToken": true}}')
+    -d '{"select": {"_id": true, "subdomain": true, "fullDomain": true}}')
 
 API_ID=$(echo "$RESPONSE" | jq -r '._id // empty')
 if [ -z "$API_ID" ] || [ "$API_ID" = "null" ]; then
@@ -79,7 +91,8 @@ fi
 echo "    ✓ Status page domain exists in API"
 
 # Validate subdomain
-API_SUBDOMAIN=$(echo "$RESPONSE" | jq -r '.subdomain // empty')
+API_SUBDOMAIN_RAW=$(echo "$RESPONSE" | jq '.subdomain')
+API_SUBDOMAIN=$(unwrap_value "$API_SUBDOMAIN_RAW")
 if [ "$API_SUBDOMAIN" != "$EXPECTED_SUBDOMAIN" ]; then
     echo "    ✗ FAILED: Subdomain mismatch - Expected: '$EXPECTED_SUBDOMAIN', Got: '$API_SUBDOMAIN'"
     exit 1
@@ -87,7 +100,8 @@ fi
 echo "    ✓ Subdomain matches: $API_SUBDOMAIN"
 
 # Validate computed full_domain (Issue #2236 key validation)
-API_FULL_DOMAIN=$(echo "$RESPONSE" | jq -r '.fullDomain // empty')
+API_FULL_DOMAIN_RAW=$(echo "$RESPONSE" | jq '.fullDomain')
+API_FULL_DOMAIN=$(unwrap_value "$API_FULL_DOMAIN_RAW")
 if [ -z "$API_FULL_DOMAIN" ] || [ "$API_FULL_DOMAIN" = "null" ]; then
     echo "    ✗ FAILED: fullDomain is empty - server should compute this value"
     exit 1
