@@ -1,0 +1,103 @@
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = "1.0.0"
+    }
+  }
+}
+
+provider "oneuptime" {
+  oneuptime_url = var.oneuptime_url
+  api_key       = var.api_key
+}
+
+# Test: On-Call Policy CRUD Operations
+#
+# This test validates:
+# 1. Creating on-call policies
+# 2. Different configurations
+# 3. Server defaults handling
+# 4. Idempotency
+
+locals {
+  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
+}
+
+# Test Case 1: Basic On-Call Policy
+resource "oneuptime_on_call_policy" "basic" {
+  project_id  = var.project_id
+  name        = "TF Basic OnCall Policy ${local.timestamp}"
+  description = "Basic on-call policy for testing"
+
+  lifecycle {
+    ignore_changes = [name]
+  }
+}
+
+# Test Case 2: On-Call Policy with repeat settings
+resource "oneuptime_on_call_policy" "repeat" {
+  project_id                           = var.project_id
+  name                                 = "TF Repeat OnCall Policy ${local.timestamp}"
+  description                          = "On-call policy with repeat settings"
+  repeat_policy_if_no_one_acknowledges = true
+
+  lifecycle {
+    ignore_changes = [name]
+  }
+}
+
+# Test Case 3: On-Call Policy with labels
+resource "oneuptime_label" "oncall_label" {
+  project_id  = var.project_id
+  name        = "TF OnCall Label ${local.timestamp}"
+  description = "Label for on-call testing"
+  color       = "#16a085"
+
+  lifecycle {
+    ignore_changes = [name]
+  }
+}
+
+resource "oneuptime_on_call_policy" "with_labels" {
+  project_id  = var.project_id
+  name        = "TF Labeled OnCall Policy ${local.timestamp}"
+  description = "On-call policy with labels"
+  labels      = [oneuptime_label.oncall_label.id]
+
+  lifecycle {
+    ignore_changes = [name]
+  }
+}
+
+# Outputs
+output "basic_policy_id" {
+  value       = oneuptime_on_call_policy.basic.id
+  description = "Basic policy ID"
+}
+
+output "basic_policy_name" {
+  value       = oneuptime_on_call_policy.basic.name
+  description = "Basic policy name"
+}
+
+output "repeat_policy_id" {
+  value       = oneuptime_on_call_policy.repeat.id
+  description = "Repeat policy ID"
+}
+
+output "labeled_policy_id" {
+  value       = oneuptime_on_call_policy.with_labels.id
+  description = "Labeled policy ID"
+}
+
+output "label_id" {
+  value       = oneuptime_label.oncall_label.id
+  description = "OnCall label ID"
+}
+
+# Server-computed fields
+output "basic_policy_slug" {
+  value       = oneuptime_on_call_policy.basic.slug
+  description = "Server-generated slug"
+}
