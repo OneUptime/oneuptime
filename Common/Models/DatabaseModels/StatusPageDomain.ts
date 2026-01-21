@@ -448,7 +448,7 @@ export default class StatusPageDomain extends BaseModel {
     update: [],
   })
   @TableColumn({
-    required: true,
+    required: false, // becasue it is generated at creation so user doesnt have to provide it
     computed: true,
     type: TableColumnType.ShortText,
     title: "CNAME Verification Token",
