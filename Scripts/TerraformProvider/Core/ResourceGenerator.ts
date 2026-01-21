@@ -1350,15 +1350,24 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
            * For complex object strings, check if it's a wrapper object with _type and value fields
            * (e.g., {"_type":"Version","value":"1.0.0"} or {"_type":"DateTime","value":"..."})
            * If so, extract the value; otherwise convert the entire object to JSON string
+           * This path uses the same robust unwrapping logic as the default string handler
+           * to ensure consistent behavior between CREATE and READ operations
            */
-          return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
-        // Check if it's a wrapper object with value field (e.g., Version, DateTime types)
-        if innerVal, ok := val["value"].(string); ok {
-            ${fieldName} = types.StringValue(innerVal)
-        } else if innerVal, ok := val["value"].(float64); ok {
+          return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
+        // Handle ObjectID type responses and wrapper objects (e.g., Version, DateTime, Name types)
+        if val, ok := obj["_id"].(string); ok && val != "" {
+            ${fieldName} = types.StringValue(val)
+        } else if val, ok := obj["value"].(string); ok {
+            // Unwrap wrapper objects - extract the inner value regardless of whether it's empty
+            ${fieldName} = types.StringValue(val)
+        } else if val, ok := obj["value"].(float64); ok {
             // Handle numeric values that might be returned as float64
-            ${fieldName} = types.StringValue(fmt.Sprintf("%v", innerVal))
-        } else if jsonBytes, err := json.Marshal(val); err == nil {
+            ${fieldName} = types.StringValue(fmt.Sprintf("%v", val))
+        } else if obj["value"] != nil {
+            // Handle any other value type by converting to string
+            ${fieldName} = types.StringValue(fmt.Sprintf("%v", obj["value"]))
+        } else if jsonBytes, err := json.Marshal(obj); err == nil {
+            // Fallback to JSON marshaling for other complex objects
             ${fieldName} = types.StringValue(string(jsonBytes))
         } else {
             ${fieldName} = types.StringNull()
@@ -1385,6 +1394,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         } else if val, ok := obj["value"].(float64); ok {
             // Handle numeric values that might be returned as float64
             ${fieldName} = types.StringValue(fmt.Sprintf("%v", val))
+        } else if obj["value"] != nil {
+            // Handle any other value type by converting to string
+            ${fieldName} = types.StringValue(fmt.Sprintf("%v", obj["value"]))
         } else if jsonBytes, err := json.Marshal(obj); err == nil {
             // Fallback to JSON marshaling for other complex objects
             ${fieldName} = types.StringValue(string(jsonBytes))
