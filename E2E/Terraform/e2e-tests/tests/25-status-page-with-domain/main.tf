@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Complete StatusPage with Domain Integration
@@ -25,36 +33,24 @@ provider "oneuptime" {
 # - Issue #2236: StatusPageDomain computed fields (fullDomain, cnameVerificationToken)
 # - Issue #2232: StatusPage server defaults (downtimeMonitorStatuses)
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # Step 1: Create the base domain
 resource "oneuptime_domain" "primary" {
   project_id  = var.project_id
-  domain      = "primary-${local.timestamp}.example.com"
+  domain      = "primary-${random_id.suffix.hex}.example.com"
   is_verified = true
-
-  lifecycle {
-    ignore_changes = [domain]
-  }
 }
 
 # Step 2: Create a secondary domain for multiple domain testing
 resource "oneuptime_domain" "secondary" {
   project_id  = var.project_id
-  domain      = "secondary-${local.timestamp}.example.com"
+  domain      = "secondary-${random_id.suffix.hex}.example.com"
   is_verified = true
-
-  lifecycle {
-    ignore_changes = [domain]
-  }
 }
 
 # Step 3: Create the main status page
 resource "oneuptime_status_page" "main" {
   project_id               = var.project_id
-  name                     = "TF E2E Main Status Page ${local.timestamp}"
+  name                     = "TF E2E Main Status Page ${random_id.suffix.hex}"
   description              = "Main status page with custom domains"
   page_title               = "System Status"
   page_description         = "Check our system status and incident history"
@@ -64,26 +60,18 @@ resource "oneuptime_status_page" "main" {
 
   # Note: downtimeMonitorStatuses will be server-injected
   # The fix for Issue #2232 ensures this doesn't cause drift
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Step 4: Create a secondary status page
 resource "oneuptime_status_page" "secondary" {
   project_id               = var.project_id
-  name                     = "TF E2E Secondary Status Page ${local.timestamp}"
+  name                     = "TF E2E Secondary Status Page ${random_id.suffix.hex}"
   description              = "Secondary status page for testing"
   page_title               = "Secondary Status"
   page_description         = "Secondary status page"
   is_public_status_page    = false
   enable_email_subscribers = false
   enable_sms_subscribers   = false
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Step 5: Link primary domain to main status page

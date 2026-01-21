@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Scheduled Maintenance CRUD Operations
@@ -21,7 +29,6 @@ provider "oneuptime" {
 # 4. Idempotency
 
 locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
   # Schedule maintenance for next month to avoid conflicts
   starts_at = timeadd(timestamp(), "720h")
   ends_at   = timeadd(timestamp(), "721h")
@@ -30,20 +37,20 @@ locals {
 # Test Case 1: Basic Scheduled Maintenance
 resource "oneuptime_scheduled_maintenance_event" "basic" {
   project_id  = var.project_id
-  title       = "TF Basic Maintenance ${local.timestamp}"
+  title       = "TF Basic Maintenance ${random_id.suffix.hex}"
   description = "Basic scheduled maintenance for testing"
   starts_at   = local.starts_at
   ends_at     = local.ends_at
 
   lifecycle {
-    ignore_changes = [title, starts_at, ends_at]
+    ignore_changes = [starts_at, ends_at]
   }
 }
 
 # Test Case 2: Scheduled Maintenance with visibility
 resource "oneuptime_scheduled_maintenance_event" "visibility" {
   project_id                                                 = var.project_id
-  title                                                      = "TF Visibility Maintenance ${local.timestamp}"
+  title                                                      = "TF Visibility Maintenance ${random_id.suffix.hex}"
   description                                                = "Maintenance with visibility settings"
   starts_at                                                  = local.starts_at
   ends_at                                                    = local.ends_at
@@ -51,32 +58,28 @@ resource "oneuptime_scheduled_maintenance_event" "visibility" {
   should_status_page_subscribers_be_notified_on_event_created = false
 
   lifecycle {
-    ignore_changes = [title, starts_at, ends_at]
+    ignore_changes = [starts_at, ends_at]
   }
 }
 
 # Test Case 3: Scheduled Maintenance with labels
 resource "oneuptime_label" "maintenance_label" {
   project_id  = var.project_id
-  name        = "TF Maintenance Label ${local.timestamp}"
+  name        = "TF Maintenance Label ${random_id.suffix.hex}"
   description = "Label for maintenance testing"
   color       = "#8e44ad"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_scheduled_maintenance_event" "with_labels" {
   project_id  = var.project_id
-  title       = "TF Labeled Maintenance ${local.timestamp}"
+  title       = "TF Labeled Maintenance ${random_id.suffix.hex}"
   description = "Maintenance with labels"
   starts_at   = local.starts_at
   ends_at     = local.ends_at
   labels      = [oneuptime_label.maintenance_label.id]
 
   lifecycle {
-    ignore_changes = [title, starts_at, ends_at]
+    ignore_changes = [starts_at, ends_at]
   }
 }
 

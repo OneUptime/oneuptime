@@ -4,6 +4,10 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -12,11 +16,14 @@ provider "oneuptime" {
   api_key       = var.api_key
 }
 
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
 # Comprehensive CRUD test for label resource
-# This test creates a label, then updates can be applied via variable changes
 resource "oneuptime_label" "test" {
   project_id  = var.project_id
-  name        = var.label_name
+  name        = "TF CRUD Label ${random_id.suffix.hex}"
   description = var.label_description
   color       = var.label_color
 }

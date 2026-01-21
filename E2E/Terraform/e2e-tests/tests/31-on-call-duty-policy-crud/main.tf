@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: On-Call Policy CRUD Operations
@@ -20,54 +28,34 @@ provider "oneuptime" {
 # 3. Server defaults handling
 # 4. Idempotency
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # Test Case 1: Basic On-Call Policy
 resource "oneuptime_on_call_policy" "basic" {
   project_id  = var.project_id
-  name        = "TF Basic OnCall Policy ${local.timestamp}"
+  name        = "TF Basic OnCall Policy ${random_id.suffix.hex}"
   description = "Basic on-call policy for testing"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 2: On-Call Policy with repeat settings
 resource "oneuptime_on_call_policy" "repeat" {
   project_id                           = var.project_id
-  name                                 = "TF Repeat OnCall Policy ${local.timestamp}"
+  name                                 = "TF Repeat OnCall Policy ${random_id.suffix.hex}"
   description                          = "On-call policy with repeat settings"
   repeat_policy_if_no_one_acknowledges = true
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 3: On-Call Policy with labels
 resource "oneuptime_label" "oncall_label" {
   project_id  = var.project_id
-  name        = "TF OnCall Label ${local.timestamp}"
+  name        = "TF OnCall Label ${random_id.suffix.hex}"
   description = "Label for on-call testing"
   color       = "#16a085"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_on_call_policy" "with_labels" {
   project_id  = var.project_id
-  name        = "TF Labeled OnCall Policy ${local.timestamp}"
+  name        = "TF Labeled OnCall Policy ${random_id.suffix.hex}"
   description = "On-call policy with labels"
   labels      = [oneuptime_label.oncall_label.id]
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Outputs

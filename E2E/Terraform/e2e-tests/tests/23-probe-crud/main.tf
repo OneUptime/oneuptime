@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Probe CRUD Operations
@@ -23,73 +31,49 @@ provider "oneuptime" {
 # {"_type":"Version","value":"9.3.19"} instead of string "9.3.19"
 # The fix should unwrap the Version object and store just the version string
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # Test Case 1: Basic Probe
 resource "oneuptime_probe" "basic" {
   project_id    = var.project_id
-  key           = "tf-e2e-probe-basic-${local.timestamp}"
-  name          = "TF E2E Basic Probe ${local.timestamp}"
+  key           = "tf-e2e-probe-basic-${random_id.suffix.hex}"
+  name          = "TF E2E Basic Probe ${random_id.suffix.hex}"
   description   = "Basic probe created by Terraform E2E tests"
   probe_version = "1.0.0"
-
-  lifecycle {
-    ignore_changes = [key, name]
-  }
 }
 
 # Test Case 2: Probe with Different Version
 resource "oneuptime_probe" "versioned" {
   project_id    = var.project_id
-  key           = "tf-e2e-probe-v2-${local.timestamp}"
-  name          = "TF E2E Versioned Probe ${local.timestamp}"
+  key           = "tf-e2e-probe-v2-${random_id.suffix.hex}"
+  name          = "TF E2E Versioned Probe ${random_id.suffix.hex}"
   description   = "Probe with specific version"
   probe_version = "2.1.0"
-
-  lifecycle {
-    ignore_changes = [key, name]
-  }
 }
 
 # Test Case 3: Probe with Auto-Enable Setting
 resource "oneuptime_probe" "auto_enable" {
   project_id                             = var.project_id
-  key                                    = "tf-e2e-probe-auto-${local.timestamp}"
-  name                                   = "TF E2E Auto-Enable Probe ${local.timestamp}"
+  key                                    = "tf-e2e-probe-auto-${random_id.suffix.hex}"
+  name                                   = "TF E2E Auto-Enable Probe ${random_id.suffix.hex}"
   description                            = "Probe with auto-enable on new monitors"
   probe_version                          = "1.5.0"
   should_auto_enable_probe_on_new_monitors = true
-
-  lifecycle {
-    ignore_changes = [key, name]
-  }
 }
 
 # Test Case 4: Probe with Labels
 resource "oneuptime_label" "probe_label" {
   project_id  = var.project_id
-  name        = "TF E2E Probe Label ${local.timestamp}"
+  name        = "TF E2E Probe Label ${random_id.suffix.hex}"
   description = "Label for probe testing"
   color       = "#9b59b6"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_probe" "with_labels" {
   project_id    = var.project_id
-  key           = "tf-e2e-probe-labeled-${local.timestamp}"
-  name          = "TF E2E Labeled Probe ${local.timestamp}"
+  key           = "tf-e2e-probe-labeled-${random_id.suffix.hex}"
+  name          = "TF E2E Labeled Probe ${random_id.suffix.hex}"
   description   = "Probe with attached labels"
   probe_version = "1.0.0"
   labels        = [oneuptime_label.probe_label.id]
-
-  lifecycle {
-    ignore_changes = [key, name]
-  }
 }
 
 # Outputs for verification

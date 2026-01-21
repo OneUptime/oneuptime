@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Alert CRUD Operations
@@ -20,99 +28,66 @@ provider "oneuptime" {
 # 3. Complex fields handling
 # 4. Idempotency
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # Create prerequisites
 resource "oneuptime_alert_severity" "test_severity" {
   project_id  = var.project_id
-  name        = "TF Alert Severity ${local.timestamp}"
+  name        = "TF Alert Severity ${random_id.suffix.hex}"
   description = "Test severity for alert CRUD"
   color       = "#f39c12"
   order       = 100
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_alert_state" "test_state" {
   project_id  = var.project_id
-  name        = "TF Alert State ${local.timestamp}"
+  name        = "TF Alert State ${random_id.suffix.hex}"
   description = "Test state for alert CRUD"
   color       = "#2ecc71"
   order       = 100
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_monitor" "for_alert" {
   project_id   = var.project_id
-  name         = "TF Monitor For Alert ${local.timestamp}"
+  name         = "TF Monitor For Alert ${random_id.suffix.hex}"
   description  = "Monitor associated with alerts"
   monitor_type = "Manual"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 1: Basic Alert
+# Note: We do NOT specify current_alert_state_id because the server
+# will set it to the default "Created" state and override any value we provide
 resource "oneuptime_alert" "basic" {
-  project_id              = var.project_id
-  title                   = "TF Basic Alert ${local.timestamp}"
-  description             = "Basic alert created by Terraform E2E tests"
-  current_alert_state_id  = oneuptime_alert_state.test_state.id
-  alert_severity_id       = oneuptime_alert_severity.test_severity.id
-  monitor_id              = oneuptime_monitor.for_alert.id
-
-  lifecycle {
-    ignore_changes = [title]
-  }
+  project_id        = var.project_id
+  title             = "TF Basic Alert ${random_id.suffix.hex}"
+  description       = "Basic alert created by Terraform E2E tests"
+  alert_severity_id = oneuptime_alert_severity.test_severity.id
+  monitor_id        = oneuptime_monitor.for_alert.id
 }
 
 # Test Case 2: Alert with root cause
 resource "oneuptime_alert" "with_root_cause" {
-  project_id             = var.project_id
-  title                  = "TF Root Cause Alert ${local.timestamp}"
-  description            = "Alert with root cause analysis"
-  current_alert_state_id = oneuptime_alert_state.test_state.id
-  alert_severity_id      = oneuptime_alert_severity.test_severity.id
-  monitor_id             = oneuptime_monitor.for_alert.id
-  root_cause             = "Service degradation due to high memory usage"
-
-  lifecycle {
-    ignore_changes = [title]
-  }
+  project_id        = var.project_id
+  title             = "TF Root Cause Alert ${random_id.suffix.hex}"
+  description       = "Alert with root cause analysis"
+  alert_severity_id = oneuptime_alert_severity.test_severity.id
+  monitor_id        = oneuptime_monitor.for_alert.id
+  root_cause        = "Service degradation due to high memory usage"
 }
 
 # Test Case 3: Alert with labels
 resource "oneuptime_label" "alert_label" {
   project_id  = var.project_id
-  name        = "TF Alert Label ${local.timestamp}"
+  name        = "TF Alert Label ${random_id.suffix.hex}"
   description = "Label for alert testing"
   color       = "#1abc9c"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_alert" "with_labels" {
-  project_id              = var.project_id
-  title                   = "TF Labeled Alert ${local.timestamp}"
-  description             = "Alert with labels attached"
-  current_alert_state_id  = oneuptime_alert_state.test_state.id
-  alert_severity_id       = oneuptime_alert_severity.test_severity.id
-  monitor_id              = oneuptime_monitor.for_alert.id
-  labels                  = [oneuptime_label.alert_label.id]
-
-  lifecycle {
-    ignore_changes = [title]
-  }
+  project_id        = var.project_id
+  title             = "TF Labeled Alert ${random_id.suffix.hex}"
+  description       = "Alert with labels attached"
+  alert_severity_id = oneuptime_alert_severity.test_severity.id
+  monitor_id        = oneuptime_monitor.for_alert.id
+  labels            = [oneuptime_label.alert_label.id]
 }
 
 # Outputs

@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: StatusPageDomain Idempotency (Issue #2236 Fix Validation)
@@ -34,28 +42,20 @@ provider "oneuptime" {
 # First, create a domain
 resource "oneuptime_domain" "test" {
   project_id  = var.project_id
-  domain      = "idempotency-test-${formatdate("YYYYMMDDhhmmss", timestamp())}.example.com"
+  domain      = "idempotency-test-${random_id.suffix.hex}.example.com"
   is_verified = true
-
-  lifecycle {
-    ignore_changes = [domain]
-  }
 }
 
 # Then, create a status page
 resource "oneuptime_status_page" "test" {
   project_id               = var.project_id
-  name                     = "Idempotency Test Status Page ${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name                     = "Idempotency Test Status Page ${random_id.suffix.hex}"
   description              = "Status page for idempotency testing"
   page_title               = "Idempotency Test"
   page_description         = "Testing computed field idempotency"
   is_public_status_page    = false
   enable_email_subscribers = false
   enable_sms_subscribers   = false
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Create status_page_domain WITHOUT specifying computed fields

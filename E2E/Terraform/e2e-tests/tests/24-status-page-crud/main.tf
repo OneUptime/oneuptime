@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: StatusPage CRUD Operations
@@ -19,62 +27,46 @@ provider "oneuptime" {
 # 2. Verify server defaults are handled correctly (Issue #2232 fix)
 # 3. Test idempotency (re-apply should show no changes)
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # Test Case 1: Public Status Page
 resource "oneuptime_status_page" "public" {
   project_id               = var.project_id
-  name                     = "TF E2E Public Status Page ${local.timestamp}"
+  name                     = "TF E2E Public Status Page ${random_id.suffix.hex}"
   description              = "Public status page created by Terraform E2E tests"
   page_title               = "Public Status"
   page_description         = "This is a public status page for testing"
   is_public_status_page    = true
   enable_email_subscribers = false
   enable_sms_subscribers   = false
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 2: Private Status Page
 resource "oneuptime_status_page" "private" {
   project_id               = var.project_id
-  name                     = "TF E2E Private Status Page ${local.timestamp}"
+  name                     = "TF E2E Private Status Page ${random_id.suffix.hex}"
   description              = "Private status page for internal use"
   page_title               = "Private Status"
   page_description         = "Internal status monitoring"
   is_public_status_page    = false
   enable_email_subscribers = false
   enable_sms_subscribers   = false
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 3: Status Page with Email Subscribers
 resource "oneuptime_status_page" "with_email" {
   project_id               = var.project_id
-  name                     = "TF E2E Email Subscribers Page ${local.timestamp}"
+  name                     = "TF E2E Email Subscribers Page ${random_id.suffix.hex}"
   description              = "Status page with email subscriber notifications"
   page_title               = "Email Status"
   page_description         = "Subscribe to receive email updates"
   is_public_status_page    = true
   enable_email_subscribers = true
   enable_sms_subscribers   = false
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 4: Status Page with Custom Branding Settings
 resource "oneuptime_status_page" "branded" {
   project_id                          = var.project_id
-  name                                = "TF E2E Branded Status Page ${local.timestamp}"
+  name                                = "TF E2E Branded Status Page ${random_id.suffix.hex}"
   description                         = "Status page with custom branding"
   page_title                          = "Branded Status"
   page_description                    = "Custom branded status page"
@@ -82,27 +74,19 @@ resource "oneuptime_status_page" "branded" {
   enable_email_subscribers            = false
   enable_sms_subscribers              = false
   hide_powered_by_one_uptime_branding = true
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 5: Status Page with Labels
 resource "oneuptime_label" "status_page_label" {
   project_id  = var.project_id
-  name        = "TF E2E Status Page Label ${local.timestamp}"
+  name        = "TF E2E Status Page Label ${random_id.suffix.hex}"
   description = "Label for status page testing"
   color       = "#e74c3c"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_status_page" "with_labels" {
   project_id               = var.project_id
-  name                     = "TF E2E Labeled Status Page ${local.timestamp}"
+  name                     = "TF E2E Labeled Status Page ${random_id.suffix.hex}"
   description              = "Status page with attached labels"
   page_title               = "Labeled Status"
   page_description         = "Status page with labels attached"
@@ -110,10 +94,6 @@ resource "oneuptime_status_page" "with_labels" {
   enable_email_subscribers = false
   enable_sms_subscribers   = false
   labels                   = [oneuptime_label.status_page_label.id]
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Outputs for verification

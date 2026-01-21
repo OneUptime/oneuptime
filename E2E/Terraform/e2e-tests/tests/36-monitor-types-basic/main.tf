@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Basic Monitor Types (without explicit monitor_steps)
@@ -22,22 +30,14 @@ provider "oneuptime" {
 # - SSL Certificate Monitor
 # - IP Monitor
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # =============================================================================
 # Test Case 1: Website Monitor
 # =============================================================================
 resource "oneuptime_monitor" "website" {
   project_id   = var.project_id
-  name         = "TF Website Basic ${local.timestamp}"
+  name         = "TF Website Basic ${random_id.suffix.hex}"
   description  = "Basic website monitor"
   monitor_type = "Website"
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 }
 
 # =============================================================================
@@ -45,13 +45,9 @@ resource "oneuptime_monitor" "website" {
 # =============================================================================
 resource "oneuptime_monitor" "api" {
   project_id   = var.project_id
-  name         = "TF API Basic ${local.timestamp}"
+  name         = "TF API Basic ${random_id.suffix.hex}"
   description  = "Basic API monitor"
   monitor_type = "API"
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 }
 
 # =============================================================================
@@ -59,13 +55,9 @@ resource "oneuptime_monitor" "api" {
 # =============================================================================
 resource "oneuptime_monitor" "ping" {
   project_id   = var.project_id
-  name         = "TF Ping Basic ${local.timestamp}"
+  name         = "TF Ping Basic ${random_id.suffix.hex}"
   description  = "Basic ping monitor"
   monitor_type = "Ping"
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 }
 
 # =============================================================================
@@ -73,13 +65,9 @@ resource "oneuptime_monitor" "ping" {
 # =============================================================================
 resource "oneuptime_monitor" "port" {
   project_id   = var.project_id
-  name         = "TF Port Basic ${local.timestamp}"
+  name         = "TF Port Basic ${random_id.suffix.hex}"
   description  = "Basic port monitor"
   monitor_type = "Port"
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 }
 
 # =============================================================================
@@ -87,13 +75,9 @@ resource "oneuptime_monitor" "port" {
 # =============================================================================
 resource "oneuptime_monitor" "ssl" {
   project_id   = var.project_id
-  name         = "TF SSL Basic ${local.timestamp}"
+  name         = "TF SSL Basic ${random_id.suffix.hex}"
   description  = "Basic SSL certificate monitor"
   monitor_type = "SSL Certificate"
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 }
 
 # =============================================================================
@@ -101,13 +85,9 @@ resource "oneuptime_monitor" "ssl" {
 # =============================================================================
 resource "oneuptime_monitor" "ip" {
   project_id   = var.project_id
-  name         = "TF IP Basic ${local.timestamp}"
+  name         = "TF IP Basic ${random_id.suffix.hex}"
   description  = "Basic IP monitor"
   monitor_type = "IP"
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 }
 
 # =============================================================================
@@ -115,13 +95,9 @@ resource "oneuptime_monitor" "ip" {
 # =============================================================================
 resource "oneuptime_monitor" "incoming_request" {
   project_id   = var.project_id
-  name         = "TF Incoming Request Basic ${local.timestamp}"
+  name         = "TF Incoming Request Basic ${random_id.suffix.hex}"
   description  = "Basic incoming request (heartbeat) monitor"
   monitor_type = "Incoming Request"
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 }
 
 # =============================================================================
@@ -129,13 +105,9 @@ resource "oneuptime_monitor" "incoming_request" {
 # =============================================================================
 resource "oneuptime_monitor" "server" {
   project_id   = var.project_id
-  name         = "TF Server Basic ${local.timestamp}"
+  name         = "TF Server Basic ${random_id.suffix.hex}"
   description  = "Basic server monitor"
   monitor_type = "Server"
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 }
 
 # =============================================================================

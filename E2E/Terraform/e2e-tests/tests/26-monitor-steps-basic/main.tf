@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Monitor Steps - Basic Configuration
@@ -23,59 +31,38 @@ provider "oneuptime" {
 # Issue being validated: Server injects exceptionMonitor, logMonitor, etc.
 # into monitor_steps which can cause "inconsistent result after apply" errors
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # Test Case 1: Manual Monitor - No monitor_steps (server provides defaults)
 resource "oneuptime_monitor" "manual_no_steps" {
   project_id   = var.project_id
-  name         = "TF Manual No Steps ${local.timestamp}"
+  name         = "TF Manual No Steps ${random_id.suffix.hex}"
   description  = "Manual monitor without explicit monitor_steps"
   monitor_type = "Manual"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
-# Test Case 2: Manual Monitor - With empty monitor_steps
-resource "oneuptime_monitor" "manual_empty_steps" {
-  project_id    = var.project_id
-  name          = "TF Manual Empty Steps ${local.timestamp}"
-  description   = "Manual monitor with empty monitor_steps"
-  monitor_type  = "Manual"
-  monitor_steps = "{}"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
+# Test Case 2: Manual Monitor - With description only (server provides monitor_steps)
+resource "oneuptime_monitor" "manual_with_description" {
+  project_id   = var.project_id
+  name         = "TF Manual With Description ${random_id.suffix.hex}"
+  description  = "Manual monitor with custom description"
+  monitor_type = "Manual"
 }
 
 # Test Case 3: Monitor with monitoring interval
 resource "oneuptime_monitor" "with_interval" {
   project_id          = var.project_id
-  name                = "TF Monitor With Interval ${local.timestamp}"
+  name                = "TF Monitor With Interval ${random_id.suffix.hex}"
   description         = "Monitor with custom monitoring interval"
   monitor_type        = "Manual"
   monitoring_interval = "Every 5 minutes"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 4: Monitor with disable flag
 resource "oneuptime_monitor" "disabled" {
   project_id              = var.project_id
-  name                    = "TF Disabled Monitor ${local.timestamp}"
+  name                    = "TF Disabled Monitor ${random_id.suffix.hex}"
   description             = "Monitor that is disabled"
   monitor_type            = "Manual"
   disable_active_monitoring = true
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Outputs for verification
@@ -89,9 +76,9 @@ output "manual_no_steps_monitor_steps" {
   description = "Server-provided monitor_steps for manual monitor"
 }
 
-output "manual_empty_steps_id" {
-  value       = oneuptime_monitor.manual_empty_steps.id
-  description = "ID of manual monitor with empty steps"
+output "manual_with_description_id" {
+  value       = oneuptime_monitor.manual_with_description.id
+  description = "ID of manual monitor with description"
 }
 
 output "with_interval_id" {

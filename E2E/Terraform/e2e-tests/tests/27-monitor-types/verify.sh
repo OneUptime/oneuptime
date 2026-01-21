@@ -14,7 +14,7 @@ MANUAL_2_ID=$(terraform output -raw manual_2_id 2>/dev/null || echo "")
 MANUAL_3_ID=$(terraform output -raw manual_3_id 2>/dev/null || echo "")
 
 echo "Manual Monitor ID: $MANUAL_ID (type: $MANUAL_TYPE)"
-echo "IncomingRequest Monitor ID: $INCOMING_ID (type: $INCOMING_TYPE)"
+echo "Incoming Request Monitor ID: $INCOMING_ID (type: $INCOMING_TYPE)"
 echo "Server Monitor ID: $SERVER_ID (type: $SERVER_TYPE)"
 echo "Manual 2 ID: $MANUAL_2_ID"
 echo "Manual 3 ID: $MANUAL_3_ID"
@@ -26,7 +26,7 @@ if [ -z "$MANUAL_ID" ]; then
 fi
 
 if [ -z "$INCOMING_ID" ]; then
-    echo "ERROR: IncomingRequest monitor not created"
+    echo "ERROR: Incoming Request monitor not created"
     exit 1
 fi
 
@@ -41,8 +41,8 @@ if [ "$MANUAL_TYPE" != "Manual" ]; then
     exit 1
 fi
 
-if [ "$INCOMING_TYPE" != "IncomingRequest" ]; then
-    echo "ERROR: IncomingRequest monitor type mismatch. Expected 'IncomingRequest', got '$INCOMING_TYPE'"
+if [ "$INCOMING_TYPE" != "Incoming Request" ]; then
+    echo "ERROR: Incoming Request monitor type mismatch. Expected 'Incoming Request', got '$INCOMING_TYPE'"
     exit 1
 fi
 

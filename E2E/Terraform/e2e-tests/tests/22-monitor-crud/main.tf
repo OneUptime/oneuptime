@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Monitor CRUD Operations
@@ -26,49 +34,33 @@ provider "oneuptime" {
 # Test Case 1: Manual Monitor (Basic)
 resource "oneuptime_monitor" "manual_basic" {
   project_id   = var.project_id
-  name         = "TF E2E Manual Monitor ${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name         = "TF E2E Manual Monitor ${random_id.suffix.hex}"
   description  = "Manual monitor created by Terraform E2E tests"
   monitor_type = "Manual"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 2: Manual Monitor with Custom Settings
 resource "oneuptime_monitor" "manual_custom" {
   project_id   = var.project_id
-  name         = "TF E2E Custom Monitor ${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name         = "TF E2E Custom Monitor ${random_id.suffix.hex}"
   description  = "Custom manual monitor with additional settings"
   monitor_type = "Manual"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 3: Monitor with Labels (if labels exist)
 resource "oneuptime_label" "test_label" {
   project_id  = var.project_id
-  name        = "TF E2E Monitor Label ${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name        = "TF E2E Monitor Label ${random_id.suffix.hex}"
   description = "Label for monitor testing"
   color       = "#3498db"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_monitor" "with_labels" {
   project_id   = var.project_id
-  name         = "TF E2E Labeled Monitor ${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name         = "TF E2E Labeled Monitor ${random_id.suffix.hex}"
   description  = "Monitor with attached labels"
   monitor_type = "Manual"
   labels       = [oneuptime_label.test_label.id]
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Outputs for verification

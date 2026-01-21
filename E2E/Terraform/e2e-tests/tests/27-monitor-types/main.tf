@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Different Monitor Types
@@ -21,67 +29,43 @@ provider "oneuptime" {
 #
 # Each type may have different server defaults injected
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # Test Case 1: Manual Monitor
 resource "oneuptime_monitor" "manual" {
   project_id   = var.project_id
-  name         = "TF Manual Type ${local.timestamp}"
+  name         = "TF Manual Type ${random_id.suffix.hex}"
   description  = "Manual type monitor for testing"
   monitor_type = "Manual"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
-# Test Case 2: IncomingRequest Monitor
+# Test Case 2: Incoming Request Monitor
 resource "oneuptime_monitor" "incoming_request" {
   project_id   = var.project_id
-  name         = "TF IncomingRequest Type ${local.timestamp}"
-  description  = "IncomingRequest type monitor for testing"
-  monitor_type = "IncomingRequest"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
+  name         = "TF Incoming Request Type ${random_id.suffix.hex}"
+  description  = "Incoming Request type monitor for testing"
+  monitor_type = "Incoming Request"
 }
 
 # Test Case 3: Server Monitor
 resource "oneuptime_monitor" "server" {
   project_id   = var.project_id
-  name         = "TF Server Type ${local.timestamp}"
+  name         = "TF Server Type ${random_id.suffix.hex}"
   description  = "Server type monitor for agent-based monitoring"
   monitor_type = "Server"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Test Case 4: Multiple monitors of same type (uniqueness test)
 resource "oneuptime_monitor" "manual_2" {
   project_id   = var.project_id
-  name         = "TF Manual Type 2 ${local.timestamp}"
+  name         = "TF Manual Type 2 ${random_id.suffix.hex}"
   description  = "Second manual monitor"
   monitor_type = "Manual"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_monitor" "manual_3" {
   project_id   = var.project_id
-  name         = "TF Manual Type 3 ${local.timestamp}"
+  name         = "TF Manual Type 3 ${random_id.suffix.hex}"
   description  = "Third manual monitor"
   monitor_type = "Manual"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # Outputs

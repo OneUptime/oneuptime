@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Status Page with Server-Provided Defaults (Issue #2232)
@@ -28,7 +36,7 @@ provider "oneuptime" {
 
 resource "oneuptime_status_page" "test_server_defaults" {
   project_id               = var.project_id
-  name                     = "Server Defaults Test Status Page"
+  name                     = "TF Server Defaults SP ${random_id.suffix.hex}"
   description              = "Tests that server-provided defaults work correctly (Issue #2232)"
   page_title               = "Server Defaults Test"
   page_description         = "This status page tests UseStateForUnknown plan modifier"

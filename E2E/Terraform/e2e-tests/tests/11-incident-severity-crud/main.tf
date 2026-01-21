@@ -4,6 +4,10 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -12,10 +16,14 @@ provider "oneuptime" {
   api_key       = var.api_key
 }
 
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
 # Comprehensive CRUD test for incident_severity resource
 resource "oneuptime_incident_severity" "test" {
   project_id  = var.project_id
-  name        = var.severity_name
+  name        = "TF CRUD Severity ${random_id.suffix.hex}"
   description = var.severity_description
   color       = var.severity_color
   order       = var.severity_order
