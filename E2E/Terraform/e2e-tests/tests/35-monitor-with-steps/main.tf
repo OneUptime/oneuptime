@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Monitor Types with Monitor Steps
@@ -22,48 +30,32 @@ provider "oneuptime" {
 # - SSL Certificate Monitor
 # - IP Monitor
 
-locals {
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-}
-
 # Create monitor statuses for criteria
 resource "oneuptime_monitor_status" "operational" {
-  project_id          = var.project_id
-  name                = "TF Operational ${local.timestamp}"
-  description         = "Monitor is operational"
-  color               = "#2ecc71"
-  priority            = 1
+  project_id           = var.project_id
+  name                 = "TF Operational ${random_id.suffix.hex}"
+  description          = "Monitor is operational"
+  color                = "#2ecc71"
+  priority             = 1
   is_operational_state = true
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_monitor_status" "degraded" {
-  project_id          = var.project_id
-  name                = "TF Degraded ${local.timestamp}"
-  description         = "Monitor is degraded"
-  color               = "#f39c12"
-  priority            = 2
+  project_id           = var.project_id
+  name                 = "TF Degraded ${random_id.suffix.hex}"
+  description          = "Monitor is degraded"
+  color                = "#f39c12"
+  priority             = 2
   is_operational_state = false
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_monitor_status" "offline" {
-  project_id          = var.project_id
-  name                = "TF Offline ${local.timestamp}"
-  description         = "Monitor is offline"
-  color               = "#e74c3c"
-  priority            = 3
+  project_id           = var.project_id
+  name                 = "TF Offline ${random_id.suffix.hex}"
+  description          = "Monitor is offline"
+  color                = "#e74c3c"
+  priority             = 3
   is_operational_state = false
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # =============================================================================
@@ -71,7 +63,7 @@ resource "oneuptime_monitor_status" "offline" {
 # =============================================================================
 resource "oneuptime_monitor" "website" {
   project_id   = var.project_id
-  name         = "TF Website Monitor ${local.timestamp}"
+  name         = "TF Website Monitor ${random_id.suffix.hex}"
   description  = "Website monitor with URL destination and response criteria"
   monitor_type = "Website"
 
@@ -157,10 +149,6 @@ resource "oneuptime_monitor" "website" {
     }
   })
 
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
-
   depends_on = [oneuptime_monitor_status.operational, oneuptime_monitor_status.offline]
 }
 
@@ -169,7 +157,7 @@ resource "oneuptime_monitor" "website" {
 # =============================================================================
 resource "oneuptime_monitor" "api" {
   project_id   = var.project_id
-  name         = "TF API Monitor ${local.timestamp}"
+  name         = "TF API Monitor ${random_id.suffix.hex}"
   description  = "API monitor with POST request, headers, and body"
   monitor_type = "API"
 
@@ -237,10 +225,6 @@ resource "oneuptime_monitor" "api" {
     }
   })
 
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
-
   depends_on = [oneuptime_monitor_status.operational]
 }
 
@@ -249,7 +233,7 @@ resource "oneuptime_monitor" "api" {
 # =============================================================================
 resource "oneuptime_monitor" "ping" {
   project_id   = var.project_id
-  name         = "TF Ping Monitor ${local.timestamp}"
+  name         = "TF Ping Monitor ${random_id.suffix.hex}"
   description  = "Ping monitor with hostname destination"
   monitor_type = "Ping"
 
@@ -327,10 +311,6 @@ resource "oneuptime_monitor" "ping" {
     }
   })
 
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
-
   depends_on = [oneuptime_monitor_status.operational, oneuptime_monitor_status.offline]
 }
 
@@ -339,7 +319,7 @@ resource "oneuptime_monitor" "ping" {
 # =============================================================================
 resource "oneuptime_monitor" "port" {
   project_id   = var.project_id
-  name         = "TF Port Monitor ${local.timestamp}"
+  name         = "TF Port Monitor ${random_id.suffix.hex}"
   description  = "Port monitor checking HTTPS port"
   monitor_type = "Port"
 
@@ -397,10 +377,6 @@ resource "oneuptime_monitor" "port" {
     }
   })
 
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
-
   depends_on = [oneuptime_monitor_status.operational]
 }
 
@@ -409,7 +385,7 @@ resource "oneuptime_monitor" "port" {
 # =============================================================================
 resource "oneuptime_monitor" "ssl" {
   project_id   = var.project_id
-  name         = "TF SSL Certificate Monitor ${local.timestamp}"
+  name         = "TF SSL Certificate Monitor ${random_id.suffix.hex}"
   description  = "SSL certificate monitor checking certificate validity"
   monitor_type = "SSL Certificate"
 
@@ -488,10 +464,6 @@ resource "oneuptime_monitor" "ssl" {
     }
   })
 
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
-
   depends_on = [oneuptime_monitor_status.operational, oneuptime_monitor_status.degraded]
 }
 
@@ -500,7 +472,7 @@ resource "oneuptime_monitor" "ssl" {
 # =============================================================================
 resource "oneuptime_monitor" "ip" {
   project_id   = var.project_id
-  name         = "TF IP Monitor ${local.timestamp}"
+  name         = "TF IP Monitor ${random_id.suffix.hex}"
   description  = "IP monitor checking connectivity"
   monitor_type = "IP"
 
@@ -553,10 +525,6 @@ resource "oneuptime_monitor" "ip" {
       ]
     }
   })
-
-  lifecycle {
-    ignore_changes = [name, monitor_steps]
-  }
 
   depends_on = [oneuptime_monitor_status.operational]
 }
