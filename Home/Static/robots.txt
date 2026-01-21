@@ -1,3 +1,24 @@
 # https://www.robotstxt.org/robotstxt.html
+
+# Allow AI agents to access everything
+User-agent: GPTBot
+Disallow:
+
+User-agent: ChatGPT-User
+Disallow:
+
+User-agent: Claude-Web
+Disallow:
+
+User-agent: Anthropic-AI
+Disallow:
+
+User-agent: PerplexityBot
+Disallow:
+
+User-agent: Cohere-ai
+Disallow:
+
+# Block search engines from indexing /api
 User-agent: *
-Disallow: /api/*
+Disallow: /api/
