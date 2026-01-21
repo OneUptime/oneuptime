@@ -163,6 +163,7 @@ const MonitorCriteria: FunctionComponent<
                 <MonitorStepsForm
                   {...props}
                   monitorType={monitorType || MonitorType.Manual}
+                  monitorId={modelId}
                 />
               );
             },
