@@ -71,7 +71,6 @@ export enum ObjectType {
   NotNull = "NotNull",
   IsNull = "IsNull",
   Includes = "Includes",
-
   DashboardComponent = "DashboardComponent",
   DashboardViewConfig = "DashboardViewConfig",
 }
