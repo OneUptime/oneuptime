@@ -96,18 +96,27 @@ async function main(): Promise<void> {
     Logger.info("🔨 Step 9: Generating build and installation scripts...");
     await generator.generateBuildScripts();
 
-    // Step 11: Run go mod tidy
-    Logger.info("📦 Step 10: Running go mod tidy...");
+    // Step 11: Run go mod tidy and update dependencies to latest
+    Logger.info("📦 Step 10: Running go mod tidy and fetching latest dependencies...");
 
     try {
       const originalCwd: string = process.cwd();
       process.chdir(providerDir);
       await execAsync("go mod tidy");
-      process.chdir(originalCwd);
       Logger.info("✅ go mod tidy completed successfully");
+
+      // Update all dependencies to their latest versions
+      Logger.info("📦 Updating dependencies to latest versions...");
+      await execAsync("go get -u ./...");
+      Logger.info("✅ Dependencies updated to latest versions");
+
+      // Run go mod tidy again to clean up after updates
+      await execAsync("go mod tidy");
+      process.chdir(originalCwd);
+      Logger.info("✅ Final go mod tidy completed successfully");
     } catch (error) {
       Logger.warn(
-        `⚠️  go mod tidy failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `⚠️  go mod tidy or dependency update failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
 
