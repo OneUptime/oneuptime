@@ -1,77 +1,53 @@
 #!/bin/bash
+# Verify script for 28-incident-crud test
+# Validates that incident CRUD operations work correctly
+
 set -e
 
-echo "=== Incident CRUD Test Verification ==="
+# Source common library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../scripts/lib.sh"
+
+print_header "Incident CRUD Verification"
 
 # Get outputs
-BASIC_ID=$(terraform output -raw basic_incident_id 2>/dev/null || echo "")
-ROOT_CAUSE_ID=$(terraform output -raw with_root_cause_id 2>/dev/null || echo "")
-VISIBILITY_ID=$(terraform output -raw visibility_settings_id 2>/dev/null || echo "")
-LABELED_ID=$(terraform output -raw with_labels_id 2>/dev/null || echo "")
-SEVERITY_ID=$(terraform output -raw severity_id 2>/dev/null || echo "")
-STATE_ID=$(terraform output -raw state_id 2>/dev/null || echo "")
-ROOT_CAUSE=$(terraform output -raw with_root_cause_root_cause 2>/dev/null || echo "")
+BASIC_ID=$(get_output basic_incident_id)
+ROOT_CAUSE_ID=$(get_output with_root_cause_id)
+VISIBILITY_ID=$(get_output visibility_settings_id)
+LABELED_ID=$(get_output with_labels_id)
+SEVERITY_ID=$(get_output severity_id)
+STATE_ID=$(get_output state_id)
+ROOT_CAUSE=$(get_output with_root_cause_root_cause)
 
-echo "Basic Incident ID: $BASIC_ID"
-echo "Root Cause Incident ID: $ROOT_CAUSE_ID"
-echo "Visibility Incident ID: $VISIBILITY_ID"
-echo "Labeled Incident ID: $LABELED_ID"
-echo "Severity ID: $SEVERITY_ID"
-echo "State ID: $STATE_ID"
-echo "Root Cause: $ROOT_CAUSE"
+echo "  Incident IDs:"
+echo "    Basic: $BASIC_ID"
+echo "    Root Cause: $ROOT_CAUSE_ID"
+echo "    Visibility: $VISIBILITY_ID"
+echo "    Labeled: $LABELED_ID"
+echo "    Severity ID: $SEVERITY_ID"
+echo "    State ID: $STATE_ID"
+echo "    Root Cause Value: $ROOT_CAUSE"
 
 # Verify all resources created
-if [ -z "$BASIC_ID" ]; then
-    echo "ERROR: Basic incident not created"
-    exit 1
-fi
+validation_failed=0
 
-if [ -z "$ROOT_CAUSE_ID" ]; then
-    echo "ERROR: Root cause incident not created"
-    exit 1
-fi
+assert_not_empty "$BASIC_ID" "Basic Incident" || validation_failed=1
+assert_not_empty "$ROOT_CAUSE_ID" "Root Cause Incident" || validation_failed=1
+assert_not_empty "$VISIBILITY_ID" "Visibility Incident" || validation_failed=1
+assert_not_empty "$LABELED_ID" "Labeled Incident" || validation_failed=1
+assert_not_empty "$SEVERITY_ID" "Severity" || validation_failed=1
+assert_not_empty "$STATE_ID" "State" || validation_failed=1
 
-if [ -z "$VISIBILITY_ID" ]; then
-    echo "ERROR: Visibility incident not created"
-    exit 1
-fi
-
-if [ -z "$LABELED_ID" ]; then
-    echo "ERROR: Labeled incident not created"
-    exit 1
-fi
-
-if [ -z "$SEVERITY_ID" ]; then
-    echo "ERROR: Severity not created"
-    exit 1
-fi
-
-if [ -z "$STATE_ID" ]; then
-    echo "ERROR: State not created"
-    exit 1
-fi
-
-# Verify root cause is set correctly
+# Root cause (warning only)
 if [ -z "$ROOT_CAUSE" ]; then
-    echo "WARNING: Root cause is empty"
+    echo "    ⚠ WARNING: Root cause is empty"
 fi
 
-echo ""
-echo "=== Verifying idempotency ==="
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-PLAN_EXIT_CODE=${PLAN_EXIT_CODE:-0}
-
-if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-    echo "SUCCESS: No changes detected - idempotency test PASSED"
-elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-    echo "ERROR: Changes detected after apply"
-    echo "Plan output:"
-    echo "$PLAN_OUTPUT"
-    exit 1
-else
-    echo "ERROR: terraform plan failed"
-    exit 1
+if [ $validation_failed -eq 1 ]; then
+    print_failed "Incident CRUD Verification"
 fi
 
-echo ""
-echo "=== Incident CRUD Test PASSED ==="
+# Check idempotency (strict mode - incident should be fully idempotent)
+check_idempotency true
+
+print_passed "Incident CRUD Verification"
