@@ -141,9 +141,7 @@ export class Service extends DatabaseService<StatusPage> {
       }
     }
 
-    if (
-      !createBy.data.downtimeMonitorStatuses
-    ) {
+    if (!createBy.data.downtimeMonitorStatuses) {
       const monitorStatuses: Array<MonitorStatus> =
         await MonitorStatusService.findBy({
           query: {
