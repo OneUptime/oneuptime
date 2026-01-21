@@ -8,6 +8,7 @@ import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
+import { ObjectType } from "Common/Types/JSON";
 
 export class ResourceGenerator {
   private spec: OpenAPISpec;
@@ -390,48 +391,10 @@ func (r *${resourceTypeName}Resource) bigFloatToFloat64(bf *big.Float) interface
 
 // Helper method to check if a type string is a valid OneUptime ObjectType
 // Only these types should be marshalled/unmarshalled as typed wrapper objects
+// This list is dynamically generated from Common/Types/JSON.ts ObjectType enum
 func (r *${resourceTypeName}Resource) isValidOneUptimeObjectType(typeStr string) bool {
     validTypes := map[string]bool{
-        "ObjectID": true,
-        "Decimal": true,
-        "Name": true,
-        "EqualTo": true,
-        "EqualToOrNull": true,
-        "MonitorSteps": true,
-        "MonitorStep": true,
-        "Recurring": true,
-        "RestrictionTimes": true,
-        "MonitorCriteria": true,
-        "PositiveNumber": true,
-        "MonitorCriteriaInstance": true,
-        "NotEqual": true,
-        "Email": true,
-        "Phone": true,
-        "Color": true,
-        "Domain": true,
-        "Version": true,
-        "IP": true,
-        "Route": true,
-        "URL": true,
-        "Permission": true,
-        "Search": true,
-        "GreaterThan": true,
-        "GreaterThanOrEqual": true,
-        "GreaterThanOrNull": true,
-        "LessThanOrNull": true,
-        "LessThan": true,
-        "LessThanOrEqual": true,
-        "Port": true,
-        "Hostname": true,
-        "HashedString": true,
-        "DateTime": true,
-        "Buffer": true,
-        "InBetween": true,
-        "NotNull": true,
-        "IsNull": true,
-        "Includes": true,
-        "DashboardComponent": true,
-        "DashboardViewConfig": true,
+${this.generateValidObjectTypesMap()}
     }
     return validTypes[typeStr]
 }
@@ -1667,5 +1630,19 @@ ${resourceFunctions}
     }
 
     return storage.join("\n");
+  }
+
+  /**
+   * Generates Go code for the valid OneUptime ObjectType map entries.
+   * This dynamically generates the map from the ObjectType enum to ensure
+   * it stays in sync with Common/Types/JSON.ts
+   */
+  private generateValidObjectTypesMap(): string {
+    const entries: string[] = Object.values(ObjectType).map(
+      (typeValue: string) => {
+        return `        "${typeValue}": true,`;
+      },
+    );
+    return entries.join("\n");
   }
 }
