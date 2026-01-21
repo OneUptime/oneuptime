@@ -387,6 +387,54 @@ func (r *${resourceTypeName}Resource) bigFloatToFloat64(bf *big.Float) interface
     f, _ := bf.Float64()
     return f
 }
+
+// Helper method to check if a type string is a valid OneUptime ObjectType
+// Only these types should be marshalled/unmarshalled as typed wrapper objects
+func (r *${resourceTypeName}Resource) isValidOneUptimeObjectType(typeStr string) bool {
+    validTypes := map[string]bool{
+        "ObjectID": true,
+        "Decimal": true,
+        "Name": true,
+        "EqualTo": true,
+        "EqualToOrNull": true,
+        "MonitorSteps": true,
+        "MonitorStep": true,
+        "Recurring": true,
+        "RestrictionTimes": true,
+        "MonitorCriteria": true,
+        "PositiveNumber": true,
+        "MonitorCriteriaInstance": true,
+        "NotEqual": true,
+        "Email": true,
+        "Phone": true,
+        "Color": true,
+        "Domain": true,
+        "Version": true,
+        "IP": true,
+        "Route": true,
+        "URL": true,
+        "Permission": true,
+        "Search": true,
+        "GreaterThan": true,
+        "GreaterThanOrEqual": true,
+        "GreaterThanOrNull": true,
+        "LessThanOrNull": true,
+        "LessThan": true,
+        "LessThanOrEqual": true,
+        "Port": true,
+        "Hostname": true,
+        "HashedString": true,
+        "DateTime": true,
+        "Buffer": true,
+        "InBetween": true,
+        "NotNull": true,
+        "IsNull": true,
+        "Includes": true,
+        "DashboardComponent": true,
+        "DashboardViewConfig": true,
+    }
+    return validTypes[typeStr]
+}
 `;
   }
 
@@ -1363,8 +1411,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         } else if val, ok := obj["value"].(float64); ok {
             // Handle numeric values that might be returned as float64
             ${fieldName} = types.StringValue(fmt.Sprintf("%v", val))
-        } else if obj["_type"] != nil && obj["value"] != nil {
-            // For typed wrapper objects like MonitorSteps, preserve the full structure including _type
+        } else if typeStr, typeOk := obj["_type"].(string); typeOk && r.isValidOneUptimeObjectType(typeStr) && obj["value"] != nil {
+            // For typed wrapper objects (only valid OneUptime ObjectTypes), preserve the full structure including _type
             if jsonBytes, err := json.Marshal(obj); err == nil {
                 ${fieldName} = types.StringValue(string(jsonBytes))
             } else {
@@ -1405,8 +1453,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         } else if val, ok := obj["value"].(float64); ok {
             // Handle numeric values that might be returned as float64
             ${fieldName} = types.StringValue(fmt.Sprintf("%v", val))
-        } else if obj["_type"] != nil && obj["value"] != nil {
-            // For typed wrapper objects like MonitorSteps, preserve the full structure including _type
+        } else if typeStr, typeOk := obj["_type"].(string); typeOk && r.isValidOneUptimeObjectType(typeStr) && obj["value"] != nil {
+            // For typed wrapper objects (only valid OneUptime ObjectTypes), preserve the full structure including _type
             if jsonBytes, err := json.Marshal(obj); err == nil {
                 ${fieldName} = types.StringValue(string(jsonBytes))
             } else {
