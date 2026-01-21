@@ -15,12 +15,11 @@
         "react-router-dom": "^6.30.2"
     },
     "scripts": {
-        "dev-build": "NODE_ENV=development node esbuild.config.js",
+        "dev-build": "NODE_ENV=development npx vite build",
         "dev": "npx nodemon",
-        "build": "NODE_ENV=production node esbuild.config.js",
-        "analyze": "analyze=true NODE_ENV=production node esbuild.config.js",
+        "build": "NODE_ENV=production npx vite build",
+        "analyze": "analyze=true NODE_ENV=production npx vite build",
         "test": "react-app-rewired test",
-        "eject": "echo 'esbuild does not require eject'",
         "compile": "tsc",
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "start": "node --require ts-node/register Serve.ts",
