@@ -176,6 +176,72 @@ const AlertEpisodeDocs: FunctionComponent<
     },
   ];
 
+  // On-Call Policy Flow Steps
+  const onCallFlowSteps: Array<FlowStep> = [
+    {
+      title: "Alert Created",
+      description: "A new alert is triggered and may have its own on-call policy configured",
+      icon: IconProp.Alert,
+      iconColor: new Color("#ef4444"), // red-500
+    },
+    {
+      title: "Alert Policy Executes",
+      description: "If the alert has an on-call policy, it executes immediately to notify responders",
+      icon: IconProp.Bell,
+      iconColor: new Color("#f59e0b"), // amber-500
+    },
+    {
+      title: "Alert Joins Episode",
+      description: "The alert is grouped into an existing or new episode based on grouping rules",
+      icon: IconProp.SquareStack,
+      iconColor: new Color("#3b82f6"), // blue-500
+    },
+    {
+      title: "Episode Policy Executes",
+      description: "If this creates a NEW episode, the grouping rule's on-call policy executes",
+      icon: IconProp.Bell,
+      iconColor: new Color("#22c55e"), // green-500
+    },
+    {
+      title: "Responders Notified",
+      description: "On-call engineers receive notifications from both alert and episode policies",
+      icon: IconProp.Team,
+      iconColor: new Color("#8b5cf6"), // violet-500
+    },
+  ];
+
+  // On-Call Notification Scenarios
+  const onCallScenarioCards: Array<ConceptCard> = [
+    {
+      title: "New Episode Created",
+      description:
+        "When an alert creates a NEW episode, both the alert's on-call policy AND the grouping rule's on-call policy are executed.",
+      icon: IconProp.Plus,
+      iconColor: new Color("#22c55e"), // green-500
+    },
+    {
+      title: "Alert Joins Existing Episode",
+      description:
+        "When an alert joins an EXISTING episode, only the alert's on-call policy executes. The episode policy does NOT re-execute.",
+      icon: IconProp.Link,
+      iconColor: new Color("#3b82f6"), // blue-500
+    },
+    {
+      title: "No On-Call Policy",
+      description:
+        "If neither the alert nor the grouping rule has an on-call policy configured, no notifications are sent automatically.",
+      icon: IconProp.Mute,
+      iconColor: new Color("#6b7280"), // gray-500
+    },
+    {
+      title: "Dual Notifications",
+      description:
+        "Be aware that if both alert and episode have policies, responders may receive two notifications - one for each policy execution.",
+      icon: IconProp.Notification,
+      iconColor: new Color("#f59e0b"), // amber-500
+    },
+  ];
+
   return (
     <Fragment>
       {/* Overview */}
@@ -264,6 +330,86 @@ const AlertEpisodeDocs: FunctionComponent<
         >
           <div className="p-6">
             <ConceptCards cards={flappingCards} columns={3} />
+          </div>
+        </Card>
+      </div>
+
+      {/* On-Call Policies Overview */}
+      <div className="mt-5">
+        <Card
+          title="On-Call Policies & Notifications"
+          description="How on-call policies work with alerts and episodes"
+        >
+          <div className="p-6">
+            <p className="text-gray-600 mb-4">
+              On-call policies can be configured at two levels: on individual{" "}
+              <strong>alerts</strong> (via monitors or manual configuration) and
+              on <strong>grouping rules</strong> (for episodes). Understanding
+              how these interact is important for managing notification volume.
+            </p>
+            <VerticalFlowSteps steps={onCallFlowSteps} />
+          </div>
+        </Card>
+      </div>
+
+      {/* On-Call Notification Scenarios */}
+      <div className="mt-5">
+        <Card
+          title="Notification Scenarios"
+          description="When and how on-call policies are triggered"
+        >
+          <div className="p-6">
+            <ConceptCards cards={onCallScenarioCards} columns={2} />
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-semibold text-blue-800 mb-2">
+                Recommendation
+              </h4>
+              <p className="text-blue-700 text-sm">
+                To avoid duplicate notifications, consider using{" "}
+                <strong>only episode-level on-call policies</strong> for grouped
+                alerts. Configure on-call policies on your grouping rules and
+                leave individual alert on-call policies empty. This way,
+                responders are notified once per episode rather than for every
+                individual alert.
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* On-Call Policy Configuration */}
+      <div className="mt-5">
+        <Card
+          title="Configuring On-Call for Episodes"
+          description="How to set up on-call policies for alert grouping"
+        >
+          <div className="p-6">
+            <ul className="list-disc list-inside space-y-3 text-gray-600">
+              <li>
+                <strong>Grouping Rule On-Call Policy:</strong> When creating or
+                editing a grouping rule, you can assign one or more on-call duty
+                policies. These policies execute when a NEW episode is created
+                by the rule.
+              </li>
+              <li>
+                <strong>Default Team/User Assignment:</strong> Grouping rules
+                can also specify default team or user ownership for episodes.
+                This determines who is responsible for the episode even if
+                on-call policies aren&apos;t configured.
+              </li>
+              <li>
+                <strong>Alert-Level Policies:</strong> Individual alerts can
+                still have their own on-call policies (configured on monitors).
+                These execute regardless of whether the alert is grouped into an
+                episode.
+              </li>
+              <li>
+                <strong>State Change Notifications:</strong> When an episode
+                state changes (e.g., acknowledged or resolved), owners are
+                notified based on the episode&apos;s configured notification
+                settings.
+              </li>
+            </ul>
           </div>
         </Card>
       </div>
