@@ -118,7 +118,9 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
         StatusPageUtil.getSafeRedirectUrl();
 
       if (safeRedirectUrl) {
-        Navigation.navigate(new Route(safeRedirectUrl), { forceNavigate: true });
+        Navigation.navigate(new Route(safeRedirectUrl), {
+          forceNavigate: true,
+        });
       } else {
         redirectToOverview();
       }

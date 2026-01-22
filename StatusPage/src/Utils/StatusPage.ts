@@ -179,14 +179,17 @@ export default class StatusPageUtil {
     }
 
     const currentPath: string = Navigation.getCurrentPath().toString();
-    const shouldIncludeRedirect: boolean = !StatusPageUtil.isAuthPath(currentPath);
+    const shouldIncludeRedirect: boolean =
+      !StatusPageUtil.isAuthPath(currentPath);
 
     const basePath: string = StatusPageUtil.isPreviewPage()
       ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login`
       : "/login";
 
     const route: Route = new Route(
-      shouldIncludeRedirect ? `${basePath}?redirectUrl=${currentPath}` : basePath,
+      shouldIncludeRedirect
+        ? `${basePath}?redirectUrl=${currentPath}`
+        : basePath,
     );
 
     Navigation.navigate(route, { forceNavigate: true });
@@ -198,7 +201,8 @@ export default class StatusPageUtil {
     }
 
     const currentPath: string = Navigation.getCurrentPath().toString();
-    const shouldIncludeRedirect: boolean = !StatusPageUtil.isAuthPath(currentPath);
+    const shouldIncludeRedirect: boolean =
+      !StatusPageUtil.isAuthPath(currentPath);
 
     const basePath: string = StatusPageUtil.isPreviewPage()
       ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`

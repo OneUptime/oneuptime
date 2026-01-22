@@ -41,7 +41,8 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     }
 
     if (props.forceSSO) {
-      const safeRedirectUrl: string | null = StatusPageUtil.getSafeRedirectUrl();
+      const safeRedirectUrl: string | null =
+        StatusPageUtil.getSafeRedirectUrl();
       const ssoBasePath: string = (
         !StatusPageUtil.isPreviewPage()
           ? RouteUtil.populateRouteParams(RouteMap[PageMap.SSO]!, statusPageId)
