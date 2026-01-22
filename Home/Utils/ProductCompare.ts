@@ -1190,7 +1190,8 @@ const products: Dictionary<Product> = {
       },
       {
         title: "Unified Platform",
-        description: "One dashboard for monitoring, alerting, status, and incidents",
+        description:
+          "One dashboard for monitoring, alerting, status, and incidents",
         icon: "unified",
       },
     ],
