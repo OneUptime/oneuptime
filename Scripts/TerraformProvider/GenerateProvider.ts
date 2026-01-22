@@ -97,7 +97,9 @@ async function main(): Promise<void> {
     await generator.generateBuildScripts();
 
     // Step 11: Run go mod tidy and update dependencies to latest
-    Logger.info("📦 Step 10: Running go mod tidy and fetching latest dependencies...");
+    Logger.info(
+      "📦 Step 10: Running go mod tidy and fetching latest dependencies...",
+    );
 
     try {
       const originalCwd: string = process.cwd();

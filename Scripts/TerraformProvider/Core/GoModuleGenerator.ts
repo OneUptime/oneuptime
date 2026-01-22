@@ -18,8 +18,10 @@ export class GoModuleGenerator {
   }
 
   private async generateGoMod(): Promise<void> {
-    // Generate minimal go.mod - dependencies will be fetched at latest versions
-    // by running 'go get -u' after 'go mod tidy' in GenerateProvider.ts
+    /*
+     * Generate minimal go.mod - dependencies will be fetched at latest versions
+     * by running 'go get -u' after 'go mod tidy' in GenerateProvider.ts
+     */
     const goModContent: string = `module ${this.config.goModuleName}
 
 go 1.23
@@ -29,9 +31,11 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 )
 `;
-    // Note: The version numbers above are placeholder minimum versions.
-    // The actual latest versions will be fetched by running 'go get -u ./...'
-    // after 'go mod tidy' in the generation process.
+    /*
+     * Note: The version numbers above are placeholder minimum versions.
+     * The actual latest versions will be fetched by running 'go get -u ./...'
+     * after 'go mod tidy' in the generation process.
+     */
 
     await this.fileGenerator.writeFile("go.mod", goModContent);
   }
