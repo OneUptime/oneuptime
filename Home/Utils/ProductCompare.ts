@@ -72,39 +72,30 @@ const products: Dictionary<Product> = {
   pagerduty: {
     productName: "PagerDuty",
     iconUrl: "/img/pagerduty.jpeg",
-    price: "$21-$49",
-    oneuptimePrice: "$0",
-    tagline: "Complete observability platform vs expensive alerting-only tool",
+    price: "",
+    oneuptimePrice: "",
+    tagline: "One complete platform vs multiple disconnected tools",
     competitorFocus:
-      "On-call alerting and incident response only - monitoring, status pages sold separately",
+      "Specialized in on-call alerting and incident response - requires integrating external monitoring and status page tools",
     oneuptimeFocus:
-      "Complete platform: Monitoring + Status Pages + On-Call + Incident Management - all included",
-    annualSavings: "$10,000+",
-    lastUpdated: "December 2024",
+      "Complete observability platform with monitoring, status pages, on-call, and incident management unified in one solution",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     productDescription:
-      "Per user/month (billed annually). Professional plan starts at $21/user, Business at $41/user. For a team of 10 engineers, that's $210-$490/month just for on-call. Add-ons like AIOps ($699/mo), Status Pages ($89/mo per 1000 subscribers), and AI features ($415/mo) cost extra.",
+      "PagerDuty excels at on-call scheduling and alerting but operates as part of a larger toolchain. Teams typically integrate it with separate monitoring solutions and status page providers to build a complete incident response system.",
     oneUptimeDescription:
-      "Complete observability platform with monitoring, on-call scheduling, incident management, and unlimited status pages - all included. Free tier available with generous limits. Paid plans include everything with no hidden costs.",
+      "OneUptime brings together monitoring, status pages, on-call scheduling, incident management, logs, metrics, and traces in a single platform. Everything works together seamlessly, reducing context switching and tool fatigue.",
     description:
-      "PagerDuty is the market leader in incident management and on-call scheduling, trusted by many enterprises. However, it's primarily an alerting tool that requires separate integrations for monitoring and additional purchases for status pages. OneUptime provides a complete, unified observability platform at a fraction of the cost.",
+      "PagerDuty is the market leader in incident management and on-call scheduling, trusted by many enterprises. However, it's primarily an alerting tool that requires separate integrations for monitoring and additional tools for status pages. OneUptime provides a complete, unified observability platform where all components work together natively.",
     descriptionLine2:
-      "Stop paying $500-1000/month for a fragmented stack. Get monitoring, status pages, on-call, and incident management in one platform.",
-    hiddenCosts: [
-      "AIOps add-on starts at $699/month for noise reduction and intelligent alerting",
-      "Status Pages add-on costs $89/month per 1,000 subscribers",
-      "Premium Status Pages start at $599/month per 1,000 subscribers",
-      "PagerDuty Advance (AI features) starts at $415/month",
-      "Stakeholder licenses cost $150/month per 50 users for read-only access",
-      "SMS/phone notifications limited to 100/month on Free plan",
-      "No built-in monitoring - requires Datadog, New Relic, or similar ($50-500+/month)",
-    ],
+      "Simplify your observability stack. Get monitoring, status pages, on-call, and incident management working together in one platform.",
     migrationBenefits: [
-      "Import existing on-call schedules and escalation policies",
-      "700+ integrations work with OneUptime via webhooks and API",
-      "Run both platforms in parallel during migration",
-      "No per-user pricing means adding team members is free",
-      "Built-in monitoring eliminates need for separate tools",
-      "Unlimited status page subscribers included",
+      "Import existing on-call schedules and escalation policies seamlessly",
+      "Webhooks and API enable gradual migration without disruption",
+      "Run both platforms in parallel while your team adapts",
+      "Consolidate your monitoring, alerting, and status page tools into one",
+      "Reduce context switching between multiple dashboards",
+      "Gain unified visibility across your entire infrastructure",
     ],
     competitorPricingTiers: [
       {
@@ -211,74 +202,74 @@ const products: Dictionary<Product> = {
       {
         question: "How does OneUptime compare to PagerDuty?",
         answer:
-          "PagerDuty is an excellent on-call and incident management tool, but it's primarily focused on alerting. You need to purchase separate tools for monitoring (like Datadog or New Relic at $50-500+/month) and pay extra for status pages ($89-599/month per 1000 subscribers). OneUptime provides a complete platform with built-in monitoring, unlimited status pages with unlimited subscribers, on-call scheduling, and incident management - all in one unified solution. For a typical 10-person team, you could save $3,000-5,000+ annually by switching to OneUptime.",
+          "PagerDuty excels at on-call scheduling and incident response, but it's primarily an alerting hub that requires external tools for monitoring and status pages. OneUptime is a complete observability platform with native monitoring, status pages, on-call scheduling, incident management, logs, metrics, and traces - all working together in one unified interface. This means less context switching, simpler workflows, and a single source of truth for your team.",
       },
       {
         question: "What about PagerDuty's 700+ integrations?",
         answer:
-          "PagerDuty integrates with monitoring tools because it doesn't have built-in monitoring - you need those integrations to receive alerts. OneUptime has built-in monitoring for websites, APIs, servers, and containers, so many integrations become unnecessary. We still offer 2000+ integrations via Zapier, native Slack/Teams integration, and a comprehensive API and webhook system. The difference is our integrations enhance your workflow rather than fill gaps in core functionality.",
+          "PagerDuty's integrations primarily connect external monitoring tools to their alerting system. OneUptime has built-in monitoring for websites, APIs, servers, and containers, which means many integrations become unnecessary. We still offer extensive integrations via native Slack/Teams support, webhooks, REST API, and 2000+ connections through Zapier. The key difference is our integrations enhance workflows rather than fill functionality gaps.",
       },
       {
-        question: "How much can I realistically save switching from PagerDuty?",
+        question: "What are the benefits of a unified platform?",
         answer:
-          "Let's break it down for a typical 10-person team: PagerDuty Professional ($210/mo) + Datadog/monitoring ($150/mo) + StatusPage.io ($99/mo) = $459/month or $5,508/year. With OneUptime, you get all of this functionality starting from $0 on the free tier. Even our Growth plan at $99/month saves you over $4,300 annually. Larger teams see even bigger savings since OneUptime doesn't charge per-user for most features.",
+          "With a unified platform like OneUptime, your team gets a single dashboard for all observability needs. Alerts automatically link to relevant logs and metrics. Status pages update based on real incident data. On-call engineers have full context without jumping between tools. This reduces mean time to resolution (MTTR) and eliminates the complexity of maintaining multiple tool integrations.",
       },
       {
         question: "Does OneUptime match PagerDuty's on-call features?",
         answer:
-          "Yes. OneUptime provides all essential on-call features: multiple rotation schedules (daily, weekly, custom), multi-level escalation policies, vacation/sick leave overrides, follow-the-sun scheduling for global teams, and alerts via SMS, phone call, email, push notifications, Slack, and Microsoft Teams. We also include features that PagerDuty charges extra for, like unlimited status pages and built-in monitoring.",
+          "Yes. OneUptime provides comprehensive on-call capabilities: multiple rotation schedules (daily, weekly, custom), multi-level escalation policies, vacation and override management, follow-the-sun scheduling for global teams, and alerts via SMS, phone, email, push notifications, Slack, and Microsoft Teams. Plus, you get native monitoring and status pages that work seamlessly with your on-call workflows.",
       },
       {
-        question: "What about PagerDuty's AIOps features?",
+        question: "How does OneUptime handle alert noise reduction?",
         answer:
-          "PagerDuty's AIOps (alert noise reduction, intelligent grouping) is a paid add-on starting at $699/month. OneUptime includes intelligent alert deduplication and grouping in all plans. We focus on providing practical noise reduction without requiring expensive AI add-ons. For teams that need advanced ML-based operations, OneUptime's approach is often sufficient and saves significant costs.",
+          "OneUptime includes intelligent alert deduplication and grouping to reduce noise. Similar alerts are automatically grouped, and you can configure thresholds and conditions to prevent alert fatigue. Our approach focuses on practical, effective noise reduction that works out of the box without requiring complex configuration or separate modules.",
       },
       {
         question: "Can I migrate from PagerDuty to OneUptime?",
         answer:
-          "Yes. You can import your existing on-call schedules and escalation policies. OneUptime can receive webhooks from any system PagerDuty integrates with, so you can migrate gradually. Many teams run both platforms in parallel during migration, redirecting monitors and integrations to OneUptime one by one. Our support team provides migration assistance for complex setups.",
+          "Yes. You can import existing on-call schedules and escalation policies. OneUptime receives webhooks from any system, enabling gradual migration. Many teams run both platforms in parallel during transition, moving monitors and integrations to OneUptime incrementally. Our support team provides migration assistance for complex setups.",
       },
       {
-        question: "Is OneUptime reliable enough for enterprise use?",
+        question: "Is OneUptime enterprise-ready?",
         answer:
-          "Absolutely. OneUptime is built on a distributed, high-availability infrastructure deployed across multiple cloud providers. We're SOC 2 compliant, offer SSO/SAML, provide role-based access control, and maintain audit logs. We also offer self-hosting options for organizations that need complete control over their data and infrastructure.",
+          "Absolutely. OneUptime is built on distributed, high-availability infrastructure across multiple cloud regions. We're SOC 2 Type II certified, ISO 27001 compliant, and GDPR compliant. Enterprise features include SSO/SAML, role-based access control, audit logs, and data residency options. Self-hosting is available for organizations requiring complete infrastructure control.",
       },
     ],
     keyDifferences: [
       {
-        title: "Built-in Monitoring",
+        title: "Native Monitoring",
         description:
-          "Monitor websites, APIs, servers, and containers without purchasing Datadog, New Relic, or Pingdom",
+          "Monitor websites, APIs, servers, and containers directly - no need to integrate external monitoring tools",
         icon: "monitoring",
       },
       {
-        title: "Unlimited Status Pages",
+        title: "Integrated Status Pages",
         description:
-          "Public and private status pages with unlimited subscribers included - PagerDuty charges $89-599/mo extra",
+          "Public and private status pages that automatically update based on your monitors and incidents",
         icon: "status-page",
       },
       {
-        title: "No Per-User Pricing Trap",
+        title: "Scale Your Team Freely",
         description:
-          "Add team members without watching costs climb - PagerDuty charges $21-49 per additional user",
-        icon: "savings",
+          "Add team members as your organization grows without worrying about per-seat limitations",
+        icon: "subscribers",
       },
       {
         title: "Unified Platform",
         description:
-          "One dashboard, one vendor, one bill - no integration complexity between 4-5 separate tools",
+          "One dashboard for monitoring, alerting, incidents, and communication - no more tool sprawl",
         icon: "unified",
       },
       {
         title: "Open Source & Self-Hostable",
         description:
-          "Apache 2.0 licensed - audit the code, self-host on your infrastructure, no vendor lock-in",
+          "Apache 2.0 licensed - full transparency, self-host on your infrastructure, zero vendor lock-in",
         icon: "open-source",
       },
       {
-        title: "No Hidden Add-on Costs",
+        title: "Complete Out of the Box",
         description:
-          "No surprise charges for AIOps ($699/mo), AI features ($415/mo), or stakeholder licenses ($150/mo)",
+          "Every feature included in the platform - no add-ons or modules to purchase separately",
         icon: "transparent",
       },
     ],
@@ -554,41 +545,30 @@ const products: Dictionary<Product> = {
   "statuspage.io": {
     productName: "Atlassian Statuspage",
     iconUrl: "/img/statuspagelogo.png",
-    price: "$0-$1,499",
-    oneuptimePrice: "$0",
-    tagline: "Complete reliability platform vs status-pages-only tool",
+    price: "",
+    oneuptimePrice: "",
+    tagline: "Complete reliability platform vs dedicated status page tool",
     competitorFocus:
-      "Status pages only - no monitoring, no on-call, no incident management",
+      "Specialized status page solution - requires separate monitoring, alerting, and incident management tools",
     oneuptimeFocus:
-      "Complete platform: Status Pages + Monitoring + On-Call + Incident Management",
-    annualSavings: "$5,000+",
-    lastUpdated: "December 2024",
+      "Unified platform where status pages automatically reflect your actual system health from integrated monitoring",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     productDescription:
-      "Per month. Free plan limited to 100 subscribers and 2 team members. Hobby ($29) allows 250 subscribers. Startup ($99) allows 1,000 subscribers. Business ($399) allows 5,000 subscribers. Enterprise ($1,499) allows 25,000 subscribers. Private pages are separate starting at $79/month.",
+      "Statuspage provides beautiful, customizable status pages for communicating with customers during incidents. It excels at status communication but relies on external tools to detect issues and manage incident response.",
     oneUptimeDescription:
-      "Unlimited status pages with unlimited subscribers on all plans including free. Plus get built-in monitoring, on-call scheduling, and incident management - features Statuspage doesn't offer at all.",
+      "OneUptime combines status pages with monitoring, on-call scheduling, and incident management. Your status pages automatically update based on real system health, and incidents flow seamlessly from detection to resolution to communication.",
     description:
-      "Atlassian Statuspage is a dedicated status page product that does one thing well - hosted status pages. However, it charges per subscriber, has no built-in monitoring (so you won't know when to update your status), and offers no incident management or on-call scheduling. You'll need to purchase 3-4 additional tools to get a complete solution.",
+      "Atlassian Statuspage is a dedicated status page product that excels at customer communication during incidents. However, it operates in isolation - you need separate monitoring tools to detect issues, separate alerting to notify your team, and separate incident management for coordination. OneUptime provides a unified platform where everything works together natively.",
     descriptionLine2:
-      "Why pay per subscriber and still need separate monitoring, on-call, and incident management tools? OneUptime includes everything.",
-    hiddenCosts: [
-      "Subscriber limits: 100 (Free), 250 (Hobby), 1,000 (Startup), 5,000 (Business), 25,000 (Enterprise)",
-      "Private pages start at $79/month with only 50 authenticated subscribers",
-      "Audience-specific pages start at $300/month",
-      "Team member limits: 2 (Free), 5 (Hobby), 10 (Startup), 25 (Business), 50 (Enterprise)",
-      "No monitoring included - requires Pingdom, Datadog, etc. ($50-200+/month)",
-      "No on-call scheduling - requires PagerDuty, OpsGenie, etc. ($100-500+/month)",
-      "No incident management - requires Incident.io, FireHydrant, etc. ($100-300+/month)",
-      "Custom CSS/JS only on Business+ plans ($399+/month)",
-      "SMS notifications require Startup+ plan ($99+/month)",
-    ],
+      "Get status pages that automatically reflect your actual system health, connected to monitoring, alerting, and incident management in one platform.",
     migrationBenefits: [
-      "No subscriber limits - add unlimited subscribers immediately",
-      "Built-in monitoring automatically updates your status page",
-      "On-call scheduling ensures the right person is notified",
-      "Incident management provides complete workflow",
-      "Import existing components and subscriber lists",
-      "Same notification channels: email, SMS, webhook, RSS",
+      "Automatic status updates from integrated monitoring - no manual updates needed",
+      "On-call scheduling ensures the right person responds to incidents",
+      "Complete incident workflow from detection to postmortem",
+      "Import existing components and subscriber lists easily",
+      "Same notification channels: email, SMS, webhook, RSS, Slack, Teams",
+      "Scale your subscriber base without artificial limits",
     ],
     competitorPricingTiers: [
       {
@@ -709,74 +689,74 @@ const products: Dictionary<Product> = {
       {
         question: "How does OneUptime compare to Atlassian Statuspage?",
         answer:
-          "Statuspage is a dedicated status page product - it only does status pages. You need separate tools for monitoring (to know when services are down), on-call scheduling (to notify the right person), and incident management (to coordinate response). That means 4 different vendors and 4 different bills. OneUptime provides status pages with unlimited subscribers PLUS built-in monitoring, on-call scheduling, and incident management in one platform. Your status pages can automatically update based on monitor status - something Statuspage can't do without external integrations.",
+          "Statuspage excels at creating beautiful status pages for customer communication. However, it operates in isolation - you need separate monitoring to detect issues, separate alerting to notify your team, and separate tools for incident management. OneUptime provides status pages as part of a complete platform where monitoring, alerting, incident management, and status communication work together seamlessly.",
       },
       {
-        question: "What about Statuspage's subscriber limits?",
+        question: "Can OneUptime automatically update status pages?",
         answer:
-          "Statuspage charges based on subscriber count: Free (100), Hobby $29 (250), Startup $99 (1,000), Business $399 (5,000), Enterprise $1,499 (25,000). If you have 30,000 subscribers, you need custom pricing. OneUptime has NO subscriber limits on any plan. Your status page can have 100 or 1,000,000 subscribers at no additional cost. This alone can save you thousands annually.",
+          "Yes, this is a key advantage. OneUptime's integrated monitoring continuously checks your services. When issues are detected, status pages can automatically update to reflect degraded or down status. When issues resolve, the status page updates automatically. This ensures your customers always see accurate information without manual intervention during stressful incident situations.",
       },
       {
         question: "How does automatic status page updating work?",
         answer:
-          "OneUptime's built-in monitoring continuously checks your services. When a monitor detects an issue, it can automatically update your status page to show degraded or down status. When the issue resolves, the status page updates automatically. With Statuspage, you need to integrate external monitoring tools and set up automation - or manually update status, which delays communication to your users.",
+          "OneUptime connects your monitors directly to status page components. When a monitor detects an issue, it automatically updates the corresponding component status. You can configure automatic updates for different severity levels, or require manual approval for public status changes. This eliminates the delay between detecting an issue and communicating it to customers.",
       },
       {
         question: "Can I customize my OneUptime status page like Statuspage?",
         answer:
-          "Yes, and often with more flexibility. OneUptime status pages support custom domains (with free SSL), custom branding (logos, colors, favicon), and custom HTML/CSS/JavaScript on all paid plans - Statuspage restricts custom code to Business ($399/month) and above. You can also create component groups, show historical uptime, and display real-time metrics.",
+          "Yes. OneUptime status pages support custom domains with automatic SSL, custom branding (logos, colors, favicon), and custom HTML/CSS/JavaScript. You can create component groups, show historical uptime percentages, display real-time metrics, and configure exactly how much detail to share with your audience.",
       },
       {
         question: "Does OneUptime support private status pages?",
         answer:
-          "Yes. OneUptime supports password-protected private status pages on all plans. Statuspage charges separately for private pages starting at $79/month with only 50 authenticated subscribers, scaling up to $1,499/month for 5,000 subscribers. With OneUptime, you get unlimited private status pages with unlimited authenticated subscribers.",
+          "Yes. OneUptime supports password-protected private status pages for internal teams and enterprise customers. You can create multiple status pages with different access levels - public pages for customers and private pages for internal teams or specific enterprise clients.",
       },
       {
         question: "What notification channels does OneUptime support?",
         answer:
-          "OneUptime supports all the same channels as Statuspage: email, SMS, webhooks, and RSS feeds. We also support Slack, Microsoft Teams, and push notifications. Unlike Statuspage, SMS is included on our free plan - Statuspage requires the $99/month Startup plan for SMS.",
+          "OneUptime supports comprehensive notification channels: email, SMS, webhooks, RSS feeds, Slack, Microsoft Teams, and push notifications. Subscribers can choose their preferred channels, and you can configure different notification types for different incident severities.",
       },
       {
-        question: "Why would I choose OneUptime over Statuspage?",
+        question: "What's the benefit of a unified platform for status pages?",
         answer:
-          "Choose OneUptime if you want a complete solution. With Statuspage alone, you still need monitoring ($50-200/mo), on-call scheduling ($100-500/mo), and incident management ($100-300/mo). That's $250-1,000/month in additional tools. OneUptime includes all of this, plus unlimited subscribers, for $0-299/month depending on your needs. You also get the benefit of everything being integrated - no webhook gymnastics to connect 4 different tools.",
+          "With a unified platform, everything works together. Incidents detected by monitoring automatically trigger alerts to on-call engineers and can update status pages. Engineers can collaborate on incident response while keeping customers informed. Postmortems include complete timelines from detection through resolution. This reduces mean time to resolution and improves customer communication during incidents.",
       },
     ],
     keyDifferences: [
       {
         title: "Unlimited Subscribers",
         description:
-          "No per-subscriber pricing - Statuspage charges $29-1,499/mo based on subscriber count",
+          "Scale your status page audience freely without subscriber caps or tiers",
         icon: "subscribers",
       },
       {
-        title: "Built-in Monitoring",
+        title: "Automatic Status Updates",
         description:
-          "Automatic status updates when issues are detected - Statuspage requires external tools",
+          "Integrated monitoring automatically reflects system health on your status page",
         icon: "monitoring",
       },
       {
         title: "On-Call Scheduling",
         description:
-          "Alert the right people when incidents occur - Statuspage offers no alerting",
+          "Alert the right team members when incidents occur - built into the same platform",
         icon: "on-call",
       },
       {
         title: "Incident Management",
         description:
-          "Full incident workflow with timelines and postmortems - not just status updates",
+          "Full incident workflow with timelines, collaboration, and postmortems",
         icon: "incident",
       },
       {
-        title: "Complete Platform",
+        title: "Unified Platform",
         description:
-          "Replace 4 tools with 1 - monitoring, status pages, on-call, and incident management",
+          "One platform for monitoring, status pages, alerting, and incident response",
         icon: "unified",
       },
       {
-        title: "SMS on Free Plan",
+        title: "All Notification Channels",
         description:
-          "SMS notifications included free - Statuspage requires $99/month Startup plan",
+          "Email, SMS, Slack, Teams, webhooks, and push notifications included on all plans",
         icon: "sms",
       },
     ],
@@ -1039,39 +1019,30 @@ const products: Dictionary<Product> = {
   pingdom: {
     productName: "SolarWinds Pingdom",
     iconUrl: "/img/pingdom.svg",
-    price: "$10-$100+",
+    price: "",
     productDescription:
-      "Per month. Synthetic Monitoring starts at $10/month. Real User Monitoring (RUM) is separate at $10/month. Pricing scales based on number of uptime checks, page views, and advanced features. Enterprise pricing requires contact.",
+      "Pingdom is a veteran in the monitoring space with reliable uptime monitoring and 100+ probe locations worldwide. It focuses on synthetic monitoring and real user monitoring but requires additional tools for incident response and status communication.",
     oneUptimeDescription:
-      "Unlimited monitors from 7+ global locations. Plus get status pages with unlimited subscribers, on-call scheduling, and incident management - all included. No per-monitor pricing.",
-    oneuptimePrice: "$0",
-    tagline: "Complete observability without per-monitor pricing",
+      "OneUptime provides unlimited monitoring from global locations, plus integrated status pages, on-call scheduling, and incident management. Monitor everything your infrastructure needs without worrying about check limits.",
+    oneuptimePrice: "",
+    tagline: "Complete observability platform vs monitoring-only tool",
     competitorFocus:
-      "Uptime monitoring only - status pages, on-call, incident management are separate products or don't exist",
+      "Specialized in uptime and performance monitoring - requires separate tools for alerting, status pages, and incident management",
     oneuptimeFocus:
-      "Complete platform: Unlimited Monitoring + Status Pages + On-Call + Incident Management",
-    annualSavings: "$3,000+",
-    lastUpdated: "December 2024",
+      "Unified platform where monitoring connects directly to alerting, status pages, and incident workflows",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     description:
-      "Pingdom (now owned by SolarWinds) is one of the oldest monitoring tools, known for reliable uptime monitoring with 100+ probe locations. However, it uses per-check pricing that gets expensive as you scale, offers no incident management or on-call scheduling, and status pages are a limited separate feature. You'll need additional tools to build a complete observability stack.",
+      "Pingdom (now owned by SolarWinds) is one of the oldest and most reliable monitoring tools, offering uptime monitoring from 100+ probe locations. It excels at detecting outages but operates in isolation - you need additional tools for on-call scheduling, incident management, and customer-facing status pages.",
     descriptionLine2:
-      "Stop paying per monitor and per page view. Get unlimited monitoring plus status pages, on-call, and incident management in one platform.",
-    hiddenCosts: [
-      "Pricing based on number of uptime checks - scales up as you add monitors",
-      "Real User Monitoring (RUM) charged separately based on page views",
-      "Transaction checks (synthetic monitoring) cost more than basic uptime",
-      "No on-call scheduling - requires PagerDuty, OpsGenie, etc. ($100-500+/month)",
-      "No incident management - requires separate tool ($100-300+/month)",
-      "Status page features are basic and limited",
-      "No integrations with incident management - alerts only via email/SMS/webhook",
-    ],
+      "Get unlimited monitoring plus status pages, on-call scheduling, and incident management working together in one platform.",
     migrationBenefits: [
-      "Remove per-monitor pricing - add unlimited monitors",
-      "Keep same monitoring locations with global probe network",
+      "Monitor unlimited endpoints without per-check limitations",
+      "Global probe network for comprehensive coverage",
       "Add on-call scheduling you didn't have before",
-      "Get status pages with unlimited subscribers",
-      "Full incident management workflow included",
-      "API-compatible for easy migration",
+      "Get status pages that auto-update from monitoring",
+      "Complete incident workflow from detection to postmortem",
+      "API-compatible for easy migration of existing monitors",
     ],
     competitorPricingTiers: [
       {
@@ -1189,37 +1160,37 @@ const products: Dictionary<Product> = {
     ],
     keyDifferences: [
       {
-        title: "Unlimited Monitors",
+        title: "Unlimited Monitoring",
         description:
-          "No per-monitor pricing - monitor every endpoint without cost concerns",
+          "Monitor every endpoint, service, and region without artificial limits",
         icon: "unlimited",
       },
       {
-        title: "Included Status Pages",
+        title: "Integrated Status Pages",
         description:
-          "Full-featured status pages with unlimited subscribers - not a limited add-on",
+          "Status pages that automatically update based on your actual system health",
         icon: "status-page",
       },
       {
         title: "On-Call Scheduling",
         description:
-          "Full on-call with rotations and escalations - Pingdom has no scheduling",
+          "Complete on-call management with rotations, escalations, and overrides",
         icon: "on-call",
       },
       {
         title: "Incident Management",
-        description: "Complete incident workflow from detection to postmortem",
+        description: "Full incident workflow from detection through postmortem",
         icon: "incident",
       },
       {
-        title: "Server Monitoring Included",
+        title: "Infrastructure Monitoring",
         description:
-          "CPU, memory, disk metrics included - no separate agent purchase",
+          "CPU, memory, disk, and custom metrics all in the same platform",
         icon: "monitoring",
       },
       {
-        title: "Single Unified Platform",
-        description: "Replace Pingdom + PagerDuty + StatusPage with one tool",
+        title: "Unified Platform",
+        description: "One dashboard for monitoring, alerting, status, and incidents",
         icon: "unified",
       },
     ],
@@ -1511,43 +1482,30 @@ const products: Dictionary<Product> = {
   datadog: {
     productName: "Datadog",
     iconUrl: "/img/datadog.svg",
-    price: "$15-$40+",
-    oneuptimePrice: "$0",
-    tagline: "Complete observability without per-host pricing complexity",
+    price: "",
+    oneuptimePrice: "",
+    tagline: "Complete observability platform vs monitoring-focused tool",
     competitorFocus:
-      "Enterprise APM and monitoring with complex per-host and per-GB pricing",
+      "Comprehensive cloud monitoring and APM with 600+ integrations - status pages, on-call, and incident management require separate tools",
     oneuptimeFocus:
-      "Simple, predictable pricing for monitoring + status pages + on-call + incidents",
-    annualSavings: "$15,000+",
-    lastUpdated: "December 2024",
+      "Unified platform with monitoring, logs, metrics, traces, status pages, on-call, and incident management all working together",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     productDescription:
-      "Per host/month. Infrastructure Pro $15/host, APM $31-40/host, Logs $0.10/GB ingested + $1.70/million events. A typical 10-server setup with APM and logs can easily cost $500-2,000+/month. Status pages, on-call scheduling, and incident management are not included.",
+      "Datadog is the industry leader in cloud monitoring and APM, offering comprehensive observability with 600+ integrations. It excels at infrastructure monitoring, APM, and log management but focuses purely on monitoring - status pages, on-call scheduling, and incident management require separate tools.",
     oneUptimeDescription:
-      "Straightforward pricing for complete observability. Monitoring, status pages, on-call scheduling, and incident management included. No per-host fees, no data ingestion charges, no surprise bills.",
+      "OneUptime provides complete observability with predictable pricing. Get monitoring, logs, metrics, traces, status pages, on-call scheduling, and incident management in one unified platform.",
     description:
-      "Datadog is the industry leader in cloud monitoring and APM, offering comprehensive observability with 600+ integrations. However, its complex pricing model (per-host, per-GB, per-container) makes costs unpredictable and often shockingly high. You also need separate tools for status pages and incident management.",
+      "Datadog is the industry leader in cloud monitoring and APM, offering comprehensive observability with 600+ integrations. It excels at deep infrastructure insights but requires separate tools for status pages, on-call scheduling, and incident management - meaning you need to integrate multiple platforms for a complete solution.",
     descriptionLine2:
-      "Great monitoring, but at what cost? Datadog bills by hosts, containers, logs, APM traces, and more. OneUptime offers predictable pricing.",
-    hiddenCosts: [
-      "Infrastructure monitoring: $15-23/host/month for Pro/Enterprise",
-      "APM: Additional $31-40/host/month on top of infrastructure",
-      "Log Management: $0.10/GB ingested + $1.70/million events indexed",
-      "Container monitoring: $2/container/hour for >5 containers",
-      "Serverless functions: $2/million invocations",
-      "Synthetic monitoring: $5/1000 tests",
-      "Network monitoring: Additional $5-9/host",
-      "Database monitoring: $70/host/month",
-      "No on-call scheduling - requires PagerDuty ($200-500/mo)",
-      "No status pages - requires StatusPage ($29-1,499/mo)",
-      "No incident management workflow - requires Incident.io ($150-450/mo)",
-    ],
+      "Get monitoring, status pages, on-call scheduling, and incident management in one unified platform with predictable pricing.",
     migrationBenefits: [
-      "Eliminate per-host and per-GB billing surprises",
-      "Get status pages included (save $100-1,500/month)",
-      "Get on-call scheduling included (save $200-500/month)",
-      "Get incident management included",
-      "Simple, predictable monthly costs",
-      "Self-host option for complete cost control",
+      "Predictable pricing without complex usage calculations",
+      "Status pages included with automatic updates from monitoring",
+      "On-call scheduling with escalations built in",
+      "Complete incident management workflow",
+      "Self-hosting option for complete control",
+      "OpenTelemetry-compatible for easy data migration",
     ],
     competitorPricingTiers: [
       {
@@ -1681,39 +1639,39 @@ const products: Dictionary<Product> = {
     ],
     keyDifferences: [
       {
-        title: "Predictable Pricing",
+        title: "Predictable Costs",
         description:
-          "No per-host, per-GB, per-container surprises - Datadog bills get complex fast",
-        icon: "savings",
+          "Straightforward pricing you can plan around without complex usage calculations",
+        icon: "pricing",
       },
       {
-        title: "Status Pages Included",
+        title: "Integrated Status Pages",
         description:
-          "Unlimited status pages with unlimited subscribers - Datadog has none",
+          "Customer communication tools built into the same platform as your monitoring",
         icon: "status-page",
       },
       {
-        title: "On-Call Included",
+        title: "On-Call Management",
         description:
-          "Full on-call scheduling built-in - requires PagerDuty with Datadog ($200+/mo)",
+          "Complete on-call scheduling with rotations and escalations in the same platform",
         icon: "on-call",
       },
       {
         title: "Incident Management",
         description:
-          "Complete incident workflow included - requires Incident.io with Datadog ($250+/mo)",
+          "Full incident workflow from detection through postmortem, all connected",
         icon: "incident",
       },
       {
-        title: "Self-Hosting Option",
+        title: "Self-Hosting Available",
         description:
-          "Run on your infrastructure with zero per-unit fees - Datadog is SaaS-only",
+          "Deploy on your infrastructure for complete control and data sovereignty",
         icon: "open-source",
       },
       {
-        title: "Single Vendor",
+        title: "Unified Platform",
         description:
-          "One platform, one bill - Datadog needs 3-4 additional tools for complete coverage",
+          "One integrated platform for monitoring, alerting, status, and incident response",
         icon: "unified",
       },
     ],
@@ -1934,41 +1892,30 @@ const products: Dictionary<Product> = {
   newrelic: {
     productName: "New Relic",
     iconUrl: "/img/newrelic.svg",
-    price: "$99-$349",
-    oneuptimePrice: "$0",
-    tagline: "Complete observability without per-user pricing complexity",
+    price: "",
+    oneuptimePrice: "",
+    tagline: "Complete observability platform vs APM-focused monitoring",
     competitorFocus:
-      "Full-stack observability with per-user and per-GB pricing",
+      "Powerful full-stack observability with comprehensive APM, logs, and infrastructure monitoring - status pages and on-call require separate tools",
     oneuptimeFocus:
-      "Straightforward monitoring + status pages + on-call + incidents - all included",
-    annualSavings: "$10,000+",
-    lastUpdated: "December 2024",
+      "Unified platform with monitoring, logs, metrics, traces, status pages, on-call, and incident management all working together",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     productDescription:
-      "Per full platform user/month. Standard $99/user (max 5 users). Pro $349/user. Plus data costs: 100GB free, then $0.30-0.50/GB. A 10-person team on Pro: $3,490/month plus data overages. Status pages and on-call scheduling not included.",
+      "New Relic is a powerful full-stack observability platform with comprehensive APM, logs, and infrastructure monitoring. It offers deep insights into application performance but requires separate tools for status pages, on-call scheduling, and incident management.",
     oneUptimeDescription:
-      "Predictable pricing without per-user or per-GB fees. Monitoring, status pages, on-call scheduling, and incident management included. No surprise data bills.",
+      "OneUptime provides complete observability with monitoring, status pages, on-call scheduling, and incident management in one unified platform. Everything works together without requiring additional tools.",
     description:
-      "New Relic is a powerful full-stack observability platform with comprehensive APM, logs, and infrastructure monitoring. They've simplified pricing compared to competitors but still use per-user and per-GB models that scale quickly. Status pages and on-call scheduling require additional tools.",
+      "New Relic is a powerful full-stack observability platform with comprehensive APM, logs, and infrastructure monitoring. It excels at deep application insights but focuses purely on monitoring - status pages and on-call scheduling require additional tools.",
     descriptionLine2:
-      "Usage-based pricing sounds friendly until your data grows. With OneUptime, costs stay predictable as you scale.",
-    hiddenCosts: [
-      "Full Platform users: $99-349/user/month depending on plan",
-      "Core users: $49/user/month",
-      "Data ingest: 100GB free, then $0.30-0.50/GB",
-      "EU data center: Additional $0.05/GB",
-      "Synthetic checks: $0.005 per check beyond included",
-      "No status pages - requires StatusPage ($29-1,499/mo)",
-      "No on-call - requires PagerDuty/OpsGenie ($100-500/mo)",
-      "No incident management workflow built-in",
-      "Pro plan required for advanced features",
-    ],
+      "Get monitoring, status pages, on-call scheduling, and incident management all working together in one platform.",
     migrationBenefits: [
-      "Eliminate per-user pricing - add team members freely",
-      "No data ingestion fees - predictable monthly cost",
-      "Get status pages included",
-      "Get on-call scheduling included",
-      "Get incident management included",
-      "Simple pricing that doesn't scale with usage",
+      "Add team members as you grow without limitations",
+      "Predictable costs you can plan around",
+      "Status pages included with automatic updates",
+      "On-call scheduling with escalations built in",
+      "Complete incident management workflow",
+      "OpenTelemetry-compatible for easy data migration",
     ],
     competitorPricingTiers: [
       {
@@ -2259,38 +2206,30 @@ const products: Dictionary<Product> = {
   "better-uptime": {
     productName: "Better Stack (Better Uptime)",
     iconUrl: "/img/betterstack.svg",
-    price: "$0-$29+",
-    oneuptimePrice: "$0",
-    tagline: "Complete platform without per-monitor or per-responder pricing",
+    price: "",
+    oneuptimePrice: "",
+    tagline: "Complete observability platform with unlimited scale",
     competitorFocus:
-      "Uptime monitoring with separate charges for extra monitors and on-call responders",
+      "Unified monitoring platform with uptime monitoring, status pages, and on-call features in one place",
     oneuptimeFocus:
-      "All-inclusive: Unlimited Monitoring + Status Pages + On-Call + Incidents",
-    annualSavings: "$3,000+",
-    lastUpdated: "December 2024",
+      "Open-source observability with unlimited monitoring, status pages, on-call, and incident management",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     productDescription:
-      "Free tier includes 10 monitors. Additional monitors $21-25/month per 50 monitors. Responder licenses $29-34/month for on-call features. Telemetry (logs/metrics) bundles from $25-420/month. Costs add up as you scale.",
+      "Better Stack (formerly Better Uptime) offers monitoring, status pages, and on-call features in one modern platform. It provides a similar unified approach with a focus on developer experience and modern design.",
     oneUptimeDescription:
-      "Unlimited monitors, status pages with unlimited subscribers, and full on-call scheduling included. No per-monitor fees, no responder licenses, predictable pricing.",
+      "OneUptime provides unlimited monitoring, status pages with unlimited subscribers, and full on-call scheduling. Open source and self-hostable for complete control.",
     description:
-      "Better Stack (formerly Better Uptime) offers monitoring, status pages, and on-call in one platform - similar to OneUptime. However, they use per-monitor pricing ($21/50 monitors) and separate responder licenses ($29/month) that add up. OneUptime provides truly unlimited monitoring without per-unit fees.",
+      "Better Stack (formerly Better Uptime) offers monitoring, status pages, and on-call in one platform - a similar unified approach to OneUptime. Both platforms aim to consolidate observability tools, with OneUptime offering open-source transparency and self-hosting options.",
     descriptionLine2:
-      "Similar approach, different pricing model. Better Stack charges per monitor and per responder. OneUptime includes everything.",
-    hiddenCosts: [
-      "Free tier limited to 10 monitors only",
-      "Additional monitors: $21-25/month per 50 monitors",
-      "Responder license: $29-34/month for on-call features",
-      "Telemetry (logs, traces, metrics): $25-420/month additional",
-      "Check frequency: 30 seconds minimum (vs 1 second in OneUptime)",
-      "Costs scale as monitoring needs grow",
-    ],
+      "Both platforms share the vision of unified observability. OneUptime adds open-source transparency and self-hosting flexibility.",
     migrationBenefits: [
-      "Remove per-monitor pricing - add unlimited monitors",
-      "No separate responder licenses needed",
-      "Faster check frequency (1 second vs 30 seconds)",
-      "Similar features with simpler pricing",
-      "Self-hosting option for complete control",
-      "Open source for transparency",
+      "Scale monitoring without worrying about limits",
+      "Self-hosting option for complete infrastructure control",
+      "Open source codebase you can audit and extend",
+      "Faster check frequency options available",
+      "Similar features with full transparency",
+      "Apache 2.0 license with no vendor lock-in",
     ],
     competitorPricingTiers: [
       {
@@ -2541,39 +2480,30 @@ const products: Dictionary<Product> = {
   "uptime-robot": {
     productName: "Uptime Robot",
     iconUrl: "/img/uptimerobot.svg",
-    price: "$0-$54",
-    oneuptimePrice: "$0",
-    tagline: "All-in-one platform vs monitoring-only tool",
+    price: "",
+    oneuptimePrice: "",
+    tagline: "Complete observability platform vs simple monitoring tool",
     competitorFocus:
-      "Simple uptime monitoring - no on-call, limited incident management",
+      "Simple, popular uptime monitoring tool - excels at basic monitoring but requires additional tools for incident response",
     oneuptimeFocus:
-      "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
-    annualSavings: "$2,000+",
-    lastUpdated: "December 2024",
+      "Complete platform with monitoring, status pages, on-call scheduling, and incident management all integrated",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     productDescription:
-      "Free for 50 monitors with 5-minute intervals. Solo $7/month for 10-50 monitors with 1-minute intervals. Team $29/month for 100 monitors. Enterprise $54/month for 200 monitors. No on-call scheduling, limited alerting.",
+      "Uptime Robot is one of the most popular simple monitoring tools with an excellent free tier. It excels at straightforward uptime monitoring with a clean interface but focuses solely on monitoring without on-call or incident management features.",
     oneUptimeDescription:
-      "Unlimited monitors plus complete incident lifecycle - status pages, on-call scheduling, and incident management. All included without per-monitor limits.",
+      "OneUptime provides unlimited monitoring plus complete incident lifecycle management - status pages, on-call scheduling, and incident management all working together.",
     description:
-      "Uptime Robot is one of the most popular simple monitoring tools with an excellent free tier. It's great for basic uptime monitoring but lacks on-call scheduling, advanced incident management, and has basic status pages. As needs grow beyond simple monitoring, you'll need additional tools.",
+      "Uptime Robot is one of the most popular simple monitoring tools with an excellent free tier. It's great for straightforward uptime monitoring but lacks on-call scheduling, advanced incident management, and has basic status pages. As needs grow beyond simple monitoring, teams often need additional tools.",
     descriptionLine2:
-      "Great for simple monitoring. But when you need on-call and incident management, you'll need more tools. OneUptime includes everything.",
-    hiddenCosts: [
-      "Free tier: 5-minute intervals only, 50 monitors max",
-      "1-minute monitoring requires paid plan ($7+/month)",
-      "30-second monitoring requires Enterprise ($54/month)",
-      "No on-call scheduling - need PagerDuty/OpsGenie ($100-500/mo)",
-      "No incident management workflow",
-      "Status pages limited - need StatusPage for advanced features",
-      "Limited integrations (5-12 depending on plan)",
-    ],
+      "Great for simple monitoring. When you need on-call scheduling and incident management, OneUptime provides a complete platform.",
     migrationBenefits: [
       "Keep simple monitoring, add on-call scheduling",
-      "Add full incident management workflow",
-      "Add status pages with unlimited subscribers",
-      "1-second check intervals available",
-      "Unlimited monitors on all plans",
-      "All integrations included",
+      "Complete incident management workflow",
+      "Status pages with unlimited subscribers",
+      "Faster check intervals available (1 second)",
+      "Unlimited monitors without caps",
+      "All integrations included: Slack, Teams, webhooks, and more",
     ],
     competitorPricingTiers: [
       {
@@ -2904,38 +2834,28 @@ const products: Dictionary<Product> = {
   checkly: {
     productName: "Checkly",
     iconUrl: "/img/checkly.svg",
-    price: "$0-$64",
-    oneuptimePrice: "$0",
-    tagline: "Complete observability platform vs synthetic testing specialist",
+    price: "",
+    oneuptimePrice: "",
+    tagline: "Complete observability vs developer-focused synthetic monitoring",
     competitorFocus:
-      "Synthetic monitoring and API testing for developers - no on-call or incidents",
+      "Developer-focused synthetic monitoring with excellent Playwright and Terraform integration - designed for CI/CD pipelines",
     oneuptimeFocus:
-      "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
-    annualSavings: "$4,000+",
-    lastUpdated: "December 2024",
+      "Complete platform with monitoring, status pages, on-call, and incident management all working together",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     productDescription:
-      "Hobby free for 10 monitors. Starter $24/month for 50 monitors. Team $64/month for 75 monitors. Pricing based on browser check runs (1K-12K/month) and API checks (10K-100K/month). No on-call, no incident management.",
+      "Checkly is a developer-focused synthetic monitoring tool with excellent Playwright and Terraform integration. It excels at API and browser testing in CI/CD pipelines with a modern developer experience.",
     oneUptimeDescription:
-      "Unlimited synthetic monitoring plus complete incident lifecycle. Status pages, on-call scheduling, and incident management all included. No check run limits.",
+      "OneUptime provides unlimited synthetic monitoring plus complete incident lifecycle management. Status pages, on-call scheduling, and incident management all integrated.",
     description:
-      "Checkly is a developer-focused synthetic monitoring tool with excellent Playwright and Terraform integration. It's great for API and browser testing in CI/CD pipelines. However, it's monitoring-only - you'll need separate tools for on-call scheduling, incident management, and customer-facing status pages.",
+      "Checkly is a developer-focused synthetic monitoring tool with excellent Playwright and Terraform integration. It's designed for API and browser testing in CI/CD pipelines. However, it focuses on monitoring - on-call scheduling, incident management, and status pages require separate tools.",
     descriptionLine2:
-      "Excellent for synthetic testing. But modern reliability requires more than monitoring. OneUptime provides the complete stack.",
-    hiddenCosts: [
-      "Browser check runs limited: 1K (Hobby) to 12K (Team) per month",
-      "API check runs limited: 10K (Hobby) to 100K (Team) per month",
-      "Global locations limited: 4 (Starter) to 22 (Team+)",
-      "30-second minimum on Starter, Team gets 30-second",
-      "No on-call scheduling - requires PagerDuty ($200-500/mo)",
-      "No incident management - requires Incident.io ($150-450/mo)",
-      "Basic status pages only via integrations",
-      "Visual regression testing only on Team+ ($64/mo)",
-    ],
+      "Excellent for synthetic testing. For a complete reliability platform, OneUptime adds on-call, incidents, and status pages.",
     migrationBenefits: [
-      "Remove check run limits - unlimited synthetic tests",
-      "Add on-call scheduling you didn't have",
-      "Add incident management workflow",
-      "Add status pages with unlimited subscribers",
+      "Unlimited synthetic tests without run limits",
+      "On-call scheduling with rotations and escalations",
+      "Complete incident management workflow",
+      "Status pages with unlimited subscribers",
       "Faster check frequencies (1 second minimum)",
       "Self-hosting option available",
     ],
@@ -3221,41 +3141,31 @@ const products: Dictionary<Product> = {
   "incident.io": {
     productName: "Incident.io",
     iconUrl: "/img/incident-io.svg",
-    price: "$0-$25",
+    price: "",
     productDescription:
-      "Per user/month. Basic is free (limited features, Slack only). Team is $15-19/user (with on-call add-on +$10/user). Pro is $25/user (with on-call add-on +$20/user). For a team of 10 on Pro with on-call: $450/month. Enterprise requires custom pricing.",
+      "Incident.io is a modern, beautifully designed incident management tool that excels at Slack-native incident response. It provides excellent coordination features for teams during incidents with a polished user experience.",
     oneUptimeDescription:
-      "Complete incident management plus monitoring, status pages, and on-call scheduling. No per-user pricing trap. All features included, not sold as add-ons.",
-    oneuptimePrice: "$0",
+      "OneUptime provides complete incident management plus integrated monitoring, status pages, and on-call scheduling. The full incident lifecycle from detection to resolution in one platform.",
+    oneuptimePrice: "",
     tagline:
-      "Complete incident lifecycle platform vs Slack-only incident response",
+      "Complete incident lifecycle platform vs incident response specialist",
     competitorFocus:
-      "Incident management focused on Slack - monitoring and status pages require separate tools",
+      "Modern, beautifully designed incident response with excellent Slack integration - monitoring and status pages require separate tools",
     oneuptimeFocus:
-      "Full lifecycle: Detection (Monitoring) + Response (Incidents) + Communication (Status Pages) + On-Call",
-    annualSavings: "$6,000+",
-    lastUpdated: "December 2024",
+      "Full incident lifecycle: Detection (Monitoring) + Response (On-Call + Incidents) + Communication (Status Pages)",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     description:
-      "Incident.io is a modern, beautifully designed incident management tool that excels at Slack-native incident response. It's great for coordinating teams during incidents. However, it lacks monitoring (to detect incidents) and status pages (to communicate with customers). On-call scheduling is a paid add-on. You'll need to integrate 2-3 other tools for a complete solution.",
+      "Incident.io is a modern, beautifully designed incident management tool that excels at Slack-native incident response. It's excellent for coordinating teams during incidents. However, it focuses on incident response - monitoring (to detect incidents) and status pages (to communicate with customers) require separate tools.",
     descriptionLine2:
-      "Great incident response is just one part. You also need detection (monitoring) and communication (status pages). OneUptime provides the complete incident lifecycle.",
-    hiddenCosts: [
-      "On-call scheduling is an add-on: +$10/user/mo (Team) or +$20/user/mo (Pro)",
-      "Team plan limits: 3 workflows, 3 custom fields, Slack only",
-      "Pro required for Microsoft Teams support ($25/user)",
-      "No monitoring included - requires Datadog, PagerDuty, etc.",
-      "No status pages - requires StatusPage, Better Uptime, etc.",
-      "Per-user pricing scales quickly with team growth",
-      "Private incidents only on Pro plan ($25/user)",
-      "Basic plan limited to Slack integration only",
-    ],
+      "Excellent incident response is part of the equation. Complete reliability also needs detection (monitoring) and customer communication (status pages).",
     migrationBenefits: [
-      "Add monitoring you didn't have before",
-      "Add status pages with unlimited subscribers",
-      "On-call included, not a paid add-on",
-      "No per-user pricing - add team members freely",
+      "Add integrated monitoring for incident detection",
+      "Add status pages for customer communication",
+      "On-call scheduling built into the same platform",
+      "Scale your team without per-user concerns",
       "Slack and Microsoft Teams included on all plans",
-      "Complete incident lifecycle in one platform",
+      "Complete incident lifecycle in one unified platform",
     ],
     competitorPricingTiers: [
       {
@@ -3706,40 +3616,30 @@ const products: Dictionary<Product> = {
   signoz: {
     productName: "SigNoz",
     iconUrl: "/img/signoz.svg",
-    price: "$49+",
-    oneuptimePrice: "$0",
-    tagline: "Complete observability platform vs usage-based APM tool",
+    price: "",
+    oneuptimePrice: "",
+    tagline: "Complete observability vs open-source APM platform",
     competitorFocus:
-      "Logs, metrics, and traces with usage-based pricing - no on-call or status pages",
+      "Excellent open-source APM platform with logs, metrics, and traces built on ClickHouse - focuses on observability data",
     oneuptimeFocus:
-      "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
-    annualSavings: "$5,000+",
-    lastUpdated: "December 2024",
+      "Complete platform with monitoring, status pages, on-call, incident management, plus logs, metrics, and traces",
+    annualSavings: "",
+    lastUpdated: "January 2025",
     productDescription:
-      "Teams plan starts at $49/month which includes 163GB logs/traces or 490M metrics. Usage-based pricing: $0.30/GB for logs and traces, $0.10/million metric samples. Self-hosted community edition is free. No on-call scheduling, no incident management, no customer-facing status pages.",
+      "SigNoz is an excellent open-source observability platform focused on logs, metrics, and traces. Built on ClickHouse for high performance with a self-hosted community edition available. It's a strong alternative to proprietary APM tools with transparent, open-source development.",
     oneUptimeDescription:
-      "Complete observability with monitoring, on-call scheduling, incident management, and unlimited status pages. Predictable pricing without usage-based surprises. Free tier and self-hosting options available.",
+      "OneUptime provides complete observability with monitoring, on-call scheduling, incident management, and unlimited status pages, plus logs, metrics, and traces. Both self-hosting and cloud options available.",
     description:
-      "SigNoz is an excellent open-source observability platform focused on logs, metrics, and traces. It's a great Datadog/New Relic alternative with transparent pricing. Built on ClickHouse for high performance. However, SigNoz focuses on APM and observability data - it doesn't include on-call scheduling, incident management workflows, or customer-facing status pages.",
+      "SigNoz is an excellent open-source observability platform focused on logs, metrics, and traces. Built on ClickHouse for high performance, it's a great alternative to proprietary APM tools. However, SigNoz focuses on observability data - on-call scheduling, incident management, and customer-facing status pages require additional tools.",
     descriptionLine2:
-      "Great for APM and observability data. But modern reliability requires on-call, incidents, and status pages too. OneUptime provides the complete stack.",
-    hiddenCosts: [
-      "Usage-based pricing can be unpredictable: $0.30/GB for logs and traces",
-      "Metrics charged per million samples: $0.10/million",
-      "Data retention affects storage costs significantly",
-      "No on-call scheduling - requires PagerDuty or similar ($200-500/mo)",
-      "No incident management - requires Incident.io or similar ($150-450/mo)",
-      "No customer-facing status pages - requires StatusPage ($99-1,499/mo)",
-      "Cloud Teams plan minimum $49/month before usage",
-      "High-volume logging can quickly exceed base plan",
-    ],
+      "Excellent for APM and observability data. OneUptime adds on-call, incidents, and status pages for complete incident lifecycle management.",
     migrationBenefits: [
-      "Predictable pricing without usage-based surprises",
-      "Add on-call scheduling you didn't have",
+      "Add on-call scheduling with rotations and escalations",
       "Add incident management workflow",
-      "Add status pages with unlimited subscribers",
-      "Both self-hosted and cloud options available",
-      "No per-GB or per-sample pricing",
+      "Add customer-facing status pages",
+      "Predictable pricing you can plan around",
+      "Both platforms offer self-hosting options",
+      "Both platforms are open source with transparent development",
     ],
     competitorPricingTiers: [
       {

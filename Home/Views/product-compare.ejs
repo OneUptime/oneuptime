@@ -4,26 +4,29 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime vs <%= productConfig.productName %> | Complete Comparison </title>
+    <title>OneUptime vs <%= productConfig.productName %> | Complete Comparison</title>
     <meta name="description"
         content="Compare OneUptime with <%= productConfig.productName %>. See how OneUptime provides a complete observability platform with monitoring, status pages, incident management, and on-call scheduling.">
-        <%- include('head', {
+    <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
     <style>
-      .hover-lift {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      /* Card Glow Styles - Matching Home page */
+      .compare-card {
+          position: relative;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      .hover-lift:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      .compare-card:hover {
+          transform: translateY(-2px);
       }
-      .feature-card {
-        transition: border-color 0.2s ease;
-      }
-      .feature-card:hover {
-        border-color: #18181b;
-      }
+
+      /* Glow colors */
+      .glow-emerald:hover { box-shadow: 0 0 0 1px rgb(16 185 129 / 0.2), 0 4px 16px -4px rgb(16 185 129 / 0.15), 0 0 24px -8px rgb(16 185 129 / 0.1); }
+      .glow-blue:hover { box-shadow: 0 0 0 1px rgb(59 130 246 / 0.2), 0 4px 16px -4px rgb(59 130 246 / 0.15), 0 0 24px -8px rgb(59 130 246 / 0.1); }
+      .glow-rose:hover { box-shadow: 0 0 0 1px rgb(244 63 94 / 0.2), 0 4px 16px -4px rgb(244 63 94 / 0.15), 0 0 24px -8px rgb(244 63 94 / 0.1); }
+      .glow-stone:hover { box-shadow: 0 0 0 1px rgb(120 113 108 / 0.2), 0 4px 16px -4px rgb(120 113 108 / 0.15), 0 0 24px -8px rgb(120 113 108 / 0.1); }
+      .glow-amber:hover { box-shadow: 0 0 0 1px rgb(245 158 11 / 0.2), 0 4px 16px -4px rgb(245 158 11 / 0.15), 0 0 24px -8px rgb(245 158 11 / 0.1); }
+      .glow-purple:hover { box-shadow: 0 0 0 1px rgb(168 85 247 / 0.2), 0 4px 16px -4px rgb(168 85 247 / 0.15), 0 0 24px -8px rgb(168 85 247 / 0.1); }
     </style>
 </head>
 
@@ -33,541 +36,300 @@
   <main id="main-content">
 
   <!-- Hero Section -->
-  <div class="relative bg-zinc-950">
-    <div class="mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8">
-      <div class="mx-auto max-w-3xl text-center">
-        <!-- Last Updated Badge -->
-        <% if(productConfig.lastUpdated) { %>
-        <div class="mb-6 flex justify-center">
-          <span class="inline-flex items-center rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-400 ring-1 ring-zinc-800">
-            Updated <%= productConfig.lastUpdated %>
-          </span>
-        </div>
-        <% } %>
+  <div class="relative isolate bg-white overflow-hidden" id="compare-hero">
+    <!-- Grid background -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
-        <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-          OneUptime <span class="text-zinc-500">vs</span> <%= productConfig.productName %>
-        </h1>
+    <!-- Cursor glow -->
+    <div id="hero-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
-        <p class="mt-6 text-lg leading-8 text-zinc-400">
-          <%= productConfig.tagline %>
-        </p>
+    <div class="py-24 sm:py-32 lg:py-40">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Badge -->
+          <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            </svg>
+            <span>Comparison</span>
+          </div>
 
-        <!-- Feature Pills -->
-        <div class="mt-8 flex justify-center gap-2 flex-wrap">
-          <span class="inline-flex items-center rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-300 ring-1 ring-zinc-800">
-            Complete Platform
-          </span>
-          <span class="inline-flex items-center rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-300 ring-1 ring-zinc-800">
-            Open Source
-          </span>
-          <span class="inline-flex items-center rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-300 ring-1 ring-zinc-800">
-            Self-Hostable
-          </span>
-        </div>
+          <!-- Headline -->
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl lg:leading-[1.1]">
+            <%= productConfig.productName %> <span class="text-gray-400">vs</span> OneUptime
+          </h1>
 
-        <div class="mt-10 flex items-center justify-center gap-x-4">
-          <a href="/accounts/register" class="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 transition-colors">
-            Start Free Trial
-          </a>
-          <a href="/enterprise/demo" class="rounded-lg px-5 py-2.5 text-sm font-semibold text-zinc-300 ring-1 ring-zinc-700 hover:ring-zinc-600 hover:text-white transition-all">
-            Request Demo
-          </a>
+          <!-- Subheadline -->
+          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+            <%= productConfig.tagline %>
+          </p>
+
+          <!-- CTAs -->
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-800">
+              Try OneUptime free
+              <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+            </a>
+            <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+              Request a demo
+            </a>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Key Advantages Section -->
-  <div class="bg-zinc-50 py-20 sm:py-24">
+  <!-- Overview Section -->
+  <section class="py-24 sm:py-32 bg-gray-50">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl text-center mb-16">
-        <h2 class="text-3xl font-semibold tracking-tight text-zinc-900">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+        <!-- Competitor -->
+        <div class="rounded-2xl bg-white p-8 ring-1 ring-gray-200">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+              <img src="<%= productConfig.iconUrl %>" alt="<%= productConfig.productName %>" class="h-8 w-8 object-contain">
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-gray-900"><%= productConfig.productName %></h3>
+            </div>
+          </div>
+          <p class="text-gray-600 leading-relaxed"><%= productConfig.productDescription %></p>
+          <div class="mt-6 pt-6 border-t border-gray-100">
+            <p class="text-sm text-gray-500"><%= productConfig.competitorFocus %></p>
+          </div>
+        </div>
+
+        <!-- OneUptime -->
+        <div class="rounded-2xl bg-gray-900 p-8 text-white">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
+              <img src="/img/3-transparent.svg" alt="OneUptime" class="h-8 w-8">
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">OneUptime</h3>
+            </div>
+          </div>
+          <p class="text-gray-300 leading-relaxed"><%= productConfig.oneUptimeDescription %></p>
+          <div class="mt-6 pt-6 border-t border-white/10">
+            <p class="text-sm text-gray-400"><%= productConfig.oneuptimeFocus %></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platform Section - Dark -->
+  <section class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
+    <!-- Mouse glow -->
+    <div id="platform-mouse-glow" class="pointer-events-none absolute w-[600px] h-[600px] rounded-full opacity-0 transition-opacity duration-300" style="background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 30%, transparent 60%); transform: translate(-50%, -50%);"></div>
+
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+      <!-- Header -->
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
+          <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+          </svg>
+          <span class="text-sm text-gray-400">Complete Platform</span>
+        </div>
+
+        <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.1]">
+          <span class="text-gray-400 block">Everything you need.</span>
+          <span class="text-white block">One unified platform.</span>
+        </h2>
+        <p class="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+          While <%= productConfig.productName %> focuses on specific capabilities, OneUptime provides a complete observability solution.
+        </p>
+      </div>
+
+      <!-- Feature Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Monitoring -->
+        <a href="/product/uptime-monitoring" class="group p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.12]">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20 mb-4">
+            <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Monitoring</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">HTTP, TCP, UDP, DNS. Global probe network. 1-second checks.</p>
+        </a>
+
+        <!-- Status Pages -->
+        <a href="/product/status-page" class="group p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.12]">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 mb-4">
+            <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Status Pages</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">Public & private. Unlimited subscribers. Custom domains.</p>
+        </a>
+
+        <!-- On-Call -->
+        <a href="/product/on-call" class="group p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.12]">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20 mb-4">
+            <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">On-Call</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">Rotations, escalations. SMS, call, email, Slack, Teams.</p>
+        </a>
+
+        <!-- Incidents -->
+        <a href="/product/incident-management" class="group p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.12]">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/20 mb-4">
+            <svg class="h-5 w-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Incidents</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">Full workflow. Timelines. Postmortems. Collaboration.</p>
+        </a>
+      </div>
+
+      <!-- Additional capabilities row -->
+      <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <a href="/product/logs-management" class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center transition-all hover:bg-white/[0.04]">
+          <span class="text-sm text-gray-400">Logs</span>
+        </a>
+        <a href="/product/metrics" class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center transition-all hover:bg-white/[0.04]">
+          <span class="text-sm text-gray-400">Metrics</span>
+        </a>
+        <a href="/product/traces" class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center transition-all hover:bg-white/[0.04]">
+          <span class="text-sm text-gray-400">Traces</span>
+        </a>
+        <a href="/product/workflows" class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center transition-all hover:bg-white/[0.04]">
+          <span class="text-sm text-gray-400">Workflows</span>
+        </a>
+        <a href="/product/dashboards" class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center transition-all hover:bg-white/[0.04]">
+          <span class="text-sm text-gray-400">Dashboards</span>
+        </a>
+        <a href="/product/copilot" class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center transition-all hover:bg-white/[0.04]">
+          <span class="text-sm text-gray-400">AI Copilot</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Differences -->
+  <section class="py-24 sm:py-32 bg-white">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-1.5 text-sm text-white mb-6">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+          </svg>
+          <span>Key Advantages</span>
+        </div>
+        <h2 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
           Why teams choose OneUptime
         </h2>
-        <p class="mt-4 text-base text-zinc-600">
-          See how OneUptime compares to <%= productConfig.productName %>
-        </p>
       </div>
 
-      <div class="mx-auto max-w-5xl grid md:grid-cols-2 gap-6">
-        <!-- Advantage 1: Unified Platform -->
-        <div class="feature-card rounded-xl bg-white p-6 border border-zinc-200">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
-              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-              </svg>
-            </div>
-            <h3 class="text-base font-semibold text-zinc-900">Unified Platform</h3>
-          </div>
-          <p class="text-sm text-zinc-600 leading-relaxed">
-            <%= productConfig.productName %> requires 3-4 separate tools. OneUptime includes monitoring, status pages, on-call, and incidents in one platform.
-          </p>
-        </div>
-
-        <!-- Advantage 2: Unlimited Team Members -->
-        <div class="feature-card rounded-xl bg-white p-6 border border-zinc-200">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
-              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-              </svg>
-            </div>
-            <h3 class="text-base font-semibold text-zinc-900">Unlimited Team Members</h3>
-          </div>
-          <p class="text-sm text-zinc-600 leading-relaxed">
-            Add your entire team without restrictions. <%= productConfig.productName %> limits users or charges per-seat. OneUptime grows with your team.
-          </p>
-        </div>
-
-        <!-- Advantage 3: Open Source -->
-        <div class="feature-card rounded-xl bg-white p-6 border border-zinc-200">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
-              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
-              </svg>
-            </div>
-            <h3 class="text-base font-semibold text-zinc-900">Open Source & Self-Hostable</h3>
-          </div>
-          <p class="text-sm text-zinc-600 leading-relaxed">
-            OneUptime is Apache 2.0 licensed. Self-host on your infrastructure with full control. <%= productConfig.productName %> is proprietary SaaS only.
-          </p>
-        </div>
-
-        <!-- Advantage 4: Unlimited Subscribers -->
-        <div class="feature-card rounded-xl bg-white p-6 border border-zinc-200">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
-              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-              </svg>
-            </div>
-            <h3 class="text-base font-semibold text-zinc-900">Unlimited Status Page Subscribers</h3>
-          </div>
-          <p class="text-sm text-zinc-600 leading-relaxed">
-            Notify all your customers during incidents. Other platforms cap subscribers or limit notifications. OneUptime has no subscriber limits.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hidden Costs Warning Section -->
-  <% if(productConfig.hiddenCosts && productConfig.hiddenCosts.length > 0) { %>
-  <div class="bg-zinc-100 py-16 sm:py-20">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-4xl">
-        <div class="text-center mb-12">
-          <span class="inline-flex items-center rounded-full bg-zinc-200 px-4 py-1.5 text-sm font-medium text-zinc-700 ring-1 ring-inset ring-zinc-300 mb-4">
-            <svg class="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <% for(var k=0; k<productConfig.keyDifferences.length; k++) { %>
+        <div class="compare-card rounded-2xl bg-white p-6 ring-1 ring-gray-200 <%= k % 6 === 0 ? 'glow-blue' : k % 6 === 1 ? 'glow-emerald' : k % 6 === 2 ? 'glow-amber' : k % 6 === 3 ? 'glow-rose' : k % 6 === 4 ? 'glow-purple' : 'glow-stone' %>">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg <%= k % 6 === 0 ? 'bg-blue-100' : k % 6 === 1 ? 'bg-emerald-100' : k % 6 === 2 ? 'bg-amber-100' : k % 6 === 3 ? 'bg-rose-100' : k % 6 === 4 ? 'bg-purple-100' : 'bg-stone-100' %> mb-4">
+            <% if(productConfig.keyDifferences[k].icon === "monitoring" || productConfig.keyDifferences[k].icon === "unlimited") { %>
+            <svg class="h-5 w-5 <%= k % 6 === 0 ? 'text-blue-600' : k % 6 === 1 ? 'text-emerald-600' : k % 6 === 2 ? 'text-amber-600' : k % 6 === 3 ? 'text-rose-600' : k % 6 === 4 ? 'text-purple-600' : 'text-stone-600' %>" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
             </svg>
-            Hidden Costs Alert
-          </span>
-          <h2 class="text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-            The hidden costs of <%= productConfig.productName %>
-          </h2>
-          <p class="mt-4 text-base text-zinc-600">
-            The advertised price is just the beginning. Here's what you might not see coming.
-          </p>
-        </div>
-
-        <div class="rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200 overflow-hidden">
-          <div class="bg-zinc-900 px-6 py-4">
-            <div class="flex items-center gap-3">
-              <svg class="h-6 w-6 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 class="text-lg font-semibold text-white">Additional costs you should know about</h3>
-            </div>
-          </div>
-          <div class="divide-y divide-zinc-100">
-            <% for(var hc=0; hc < productConfig.hiddenCosts.length; hc++) { %>
-            <div class="flex items-start gap-4 px-6 py-4 hover:bg-zinc-50 transition-colors">
-              <div class="flex-shrink-0 mt-1">
-                <svg class="h-5 w-5 text-zinc-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <p class="text-zinc-700"><%= productConfig.hiddenCosts[hc] %></p>
-            </div>
+            <% } else if(productConfig.keyDifferences[k].icon === "status-page") { %>
+            <svg class="h-5 w-5 <%= k % 6 === 0 ? 'text-blue-600' : k % 6 === 1 ? 'text-emerald-600' : k % 6 === 2 ? 'text-amber-600' : k % 6 === 3 ? 'text-rose-600' : k % 6 === 4 ? 'text-purple-600' : 'text-stone-600' %>" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <% } else if(productConfig.keyDifferences[k].icon === "on-call") { %>
+            <svg class="h-5 w-5 <%= k % 6 === 0 ? 'text-blue-600' : k % 6 === 1 ? 'text-emerald-600' : k % 6 === 2 ? 'text-amber-600' : k % 6 === 3 ? 'text-rose-600' : k % 6 === 4 ? 'text-purple-600' : 'text-stone-600' %>" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            <% } else if(productConfig.keyDifferences[k].icon === "incident") { %>
+            <svg class="h-5 w-5 <%= k % 6 === 0 ? 'text-blue-600' : k % 6 === 1 ? 'text-emerald-600' : k % 6 === 2 ? 'text-amber-600' : k % 6 === 3 ? 'text-rose-600' : k % 6 === 4 ? 'text-purple-600' : 'text-stone-600' %>" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <% } else if(productConfig.keyDifferences[k].icon === "unified") { %>
+            <svg class="h-5 w-5 <%= k % 6 === 0 ? 'text-blue-600' : k % 6 === 1 ? 'text-emerald-600' : k % 6 === 2 ? 'text-amber-600' : k % 6 === 3 ? 'text-rose-600' : k % 6 === 4 ? 'text-purple-600' : 'text-stone-600' %>" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+            </svg>
+            <% } else if(productConfig.keyDifferences[k].icon === "open-source") { %>
+            <svg class="h-5 w-5 <%= k % 6 === 0 ? 'text-blue-600' : k % 6 === 1 ? 'text-emerald-600' : k % 6 === 2 ? 'text-amber-600' : k % 6 === 3 ? 'text-rose-600' : k % 6 === 4 ? 'text-purple-600' : 'text-stone-600' %>" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            <% } else { %>
+            <svg class="h-5 w-5 <%= k % 6 === 0 ? 'text-blue-600' : k % 6 === 1 ? 'text-emerald-600' : k % 6 === 2 ? 'text-amber-600' : k % 6 === 3 ? 'text-rose-600' : k % 6 === 4 ? 'text-purple-600' : 'text-stone-600' %>" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
             <% } %>
           </div>
-          <div class="bg-zinc-50 px-6 py-4 border-t border-zinc-100">
-            <div class="flex items-center gap-3">
-              <svg class="h-6 w-6 text-zinc-700" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-              </svg>
-              <p class="text-zinc-900 font-medium">
-                OneUptime: Transparent pricing with no hidden costs. All features included.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <% } %>
-
-  <!-- Competitor Pricing Tiers -->
-  <% if(productConfig.competitorPricingTiers && productConfig.competitorPricingTiers.length > 0) { %>
-  <div class="bg-white py-20 sm:py-24">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl text-center mb-16">
-        <h2 class="text-sm font-semibold leading-7 text-zinc-500 uppercase tracking-wide"><%= productConfig.productName %> pricing breakdown</h2>
-        <p class="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-          Understanding <%= productConfig.productName %>'s pricing tiers
-        </p>
-        <p class="mt-4 text-base text-zinc-600">
-          See exactly what you get (and don't get) at each pricing level.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-<%= Math.min(productConfig.competitorPricingTiers.length, 4) %>">
-        <% for(var pt=0; pt < productConfig.competitorPricingTiers.length; pt++) { %>
-        <div class="relative rounded-xl border border-zinc-200 bg-white p-6 hover:border-zinc-300 transition-colors hover-lift">
-          <div class="mb-4">
-            <h3 class="text-base font-semibold text-zinc-900"><%= productConfig.competitorPricingTiers[pt].name %></h3>
-            <div class="mt-2 flex items-baseline gap-1">
-              <span class="text-2xl font-bold text-zinc-900"><%= productConfig.competitorPricingTiers[pt].price %></span>
-              <span class="text-sm text-zinc-500"><%= productConfig.competitorPricingTiers[pt].period %></span>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div>
-              <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Includes</p>
-              <ul class="space-y-2">
-                <% for(var f=0; f < productConfig.competitorPricingTiers[pt].features.length; f++) { %>
-                <li class="flex items-start gap-2 text-sm text-zinc-600">
-                  <svg class="h-4 w-4 mt-0.5 text-zinc-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                  </svg>
-                  <span><%= productConfig.competitorPricingTiers[pt].features[f] %></span>
-                </li>
-                <% } %>
-              </ul>
-            </div>
-
-            <div class="pt-4 border-t border-zinc-100">
-              <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Limitations</p>
-              <ul class="space-y-2">
-                <% for(var l=0; l < productConfig.competitorPricingTiers[pt].limitations.length; l++) { %>
-                <li class="flex items-start gap-2 text-sm text-zinc-500">
-                  <svg class="h-4 w-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                  </svg>
-                  <span><%= productConfig.competitorPricingTiers[pt].limitations[l] %></span>
-                </li>
-                <% } %>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <% } %>
-      </div>
-
-      <!-- OneUptime Alternative -->
-      <div class="mt-12">
-        <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-8">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div class="flex items-center gap-3 mb-3">
-                <img src="/img/3-transparent.svg" alt="OneUptime" class="h-10 w-10">
-                <h3 class="text-xl font-semibold text-white">OneUptime Alternative</h3>
-              </div>
-              <p class="text-zinc-400 max-w-2xl">
-                Skip the complexity. Get monitoring, status pages, on-call scheduling, and incident management - all included from day one with no subscriber limits or per-user fees.
-              </p>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-4">
-              <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-base font-semibold text-zinc-900 hover:bg-zinc-100 transition-all whitespace-nowrap">
-                Start Free
-              </a>
-              <a href="/pricing" class="inline-flex items-center justify-center rounded-lg border border-zinc-700 px-6 py-3 text-base font-semibold text-zinc-300 hover:border-zinc-600 hover:text-white transition-all whitespace-nowrap">
-                View Pricing
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <% } %>
-
-  <!-- Real-World Use Cases Comparison -->
-  <% if(productConfig.useCases && productConfig.useCases.length > 0) { %>
-  <div class="bg-zinc-950 py-20 sm:py-24">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl text-center mb-16">
-        <h2 class="text-sm font-semibold leading-7 text-zinc-400 uppercase tracking-wide">Real-world scenarios</h2>
-        <p class="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          See the actual savings
-        </p>
-        <p class="mt-4 text-base text-zinc-400">
-          Compare total cost of ownership for common team setups.
-        </p>
-      </div>
-
-      <div class="space-y-6">
-        <% for(var uc=0; uc < productConfig.useCases.length; uc++) { %>
-        <div class="rounded-xl bg-zinc-900 ring-1 ring-zinc-800 overflow-hidden hover-lift">
-          <div class="bg-zinc-900 px-6 py-4 border-b border-zinc-800">
-            <h3 class="text-base font-semibold text-white flex items-center gap-3">
-              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800 text-sm font-bold text-zinc-400"><%= uc + 1 %></span>
-              <%= productConfig.useCases[uc].scenario %>
-            </h3>
-          </div>
-          <div class="grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-zinc-800">
-            <!-- Competitor Solution -->
-            <div class="p-6">
-              <div class="flex items-center gap-2 mb-4">
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800">
-                  <span class="text-sm font-bold text-zinc-500"><%= productConfig.productName.charAt(0) %></span>
-                </div>
-                <span class="text-sm font-medium text-zinc-500">With <%= productConfig.productName %></span>
-              </div>
-              <p class="text-zinc-400 text-sm mb-4"><%= productConfig.useCases[uc].competitorSolution %></p>
-              <div class="flex items-baseline gap-2">
-                <span class="text-2xl font-bold text-zinc-300"><%= productConfig.useCases[uc].competitorCost %></span>
-              </div>
-            </div>
-            <!-- OneUptime Solution -->
-            <div class="p-6 bg-white/5">
-              <div class="flex items-center gap-2 mb-4">
-                <img src="/img/3-transparent.svg" alt="OneUptime" class="h-8 w-8">
-                <span class="text-sm font-medium text-white">With OneUptime</span>
-              </div>
-              <p class="text-zinc-400 text-sm mb-4"><%= productConfig.useCases[uc].oneuptimeSolution %></p>
-              <div class="flex items-baseline gap-2">
-                <span class="text-2xl font-bold text-white"><%= productConfig.useCases[uc].oneuptimeCost %></span>
-              </div>
-            </div>
-          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2"><%= productConfig.keyDifferences[k].title %></h3>
+          <p class="text-sm text-gray-600 leading-relaxed"><%= productConfig.keyDifferences[k].description %></p>
         </div>
         <% } %>
       </div>
     </div>
-  </div>
-  <% } %>
+  </section>
 
-  <!-- Key Differences Section -->
-  <% if(productConfig.keyDifferences && productConfig.keyDifferences.length > 0) { %>
-  <div class="bg-zinc-100 py-20 sm:py-24">
+  <!-- Feature Comparison Table -->
+  <section class="py-24 sm:py-32 bg-gray-50">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl text-center mb-16">
-        <h2 class="text-sm font-semibold leading-7 text-zinc-500 uppercase tracking-wide">Why choose OneUptime</h2>
-        <p class="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-          Key advantages over <%= productConfig.productName %>
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+          Feature comparison
+        </h2>
+        <p class="mt-4 text-lg text-gray-600">
+          A detailed look at capabilities
         </p>
       </div>
 
-      <div class="mx-auto max-w-5xl">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <% for(var k=0; k < productConfig.keyDifferences.length; k++) { %>
-          <div class="relative rounded-xl bg-white p-6 border border-zinc-200 hover:border-zinc-300 transition-colors">
-            <div class="flex items-start gap-4">
-              <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-100">
-                <% if(productConfig.keyDifferences[k].icon === "monitoring") { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
-                </svg>
-                <% } else if(productConfig.keyDifferences[k].icon === "status-page") { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <% } else if(productConfig.keyDifferences[k].icon === "unified") { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-                </svg>
-                <% } else if(productConfig.keyDifferences[k].icon === "savings") { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                </svg>
-                <% } else if(productConfig.keyDifferences[k].icon === "subscribers") { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                </svg>
-                <% } else if(productConfig.keyDifferences[k].icon === "incident") { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-                <% } else if(productConfig.keyDifferences[k].icon === "on-call") { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                </svg>
-                <% } else if(productConfig.keyDifferences[k].icon === "unlimited") { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-                <% } else { %>
-                <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                </svg>
-                <% } %>
-              </div>
-              <div>
-                <h3 class="text-base font-semibold text-zinc-900"><%= productConfig.keyDifferences[k].title %></h3>
-                <p class="mt-2 text-sm text-zinc-600 leading-relaxed"><%= productConfig.keyDifferences[k].description %></p>
-              </div>
-            </div>
-          </div>
-          <% } %>
-        </div>
-      </div>
-    </div>
-  </div>
-  <% } %>
-
-  <!-- Detailed Feature Comparison -->
-  <div class="bg-white py-20 sm:py-24">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl text-center mb-16">
-        <h2 class="text-sm font-semibold leading-7 text-zinc-500 uppercase tracking-wide">Feature comparison</h2>
-        <p class="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-          Side-by-side comparison
-        </p>
-        <p class="mt-4 text-base text-zinc-600">
-          See exactly what you get with each platform
-        </p>
-      </div>
-
-      <!-- Mobile Comparison -->
-      <div class="lg:hidden">
-        <div class="space-y-8">
-          <% for(var i=0; i<productConfig.items.length; i++) {%>
-          <div class="rounded-xl border border-zinc-200 overflow-hidden">
-            <div class="bg-zinc-900 px-6 py-4">
-              <h3 class="text-base font-semibold text-white"><%= productConfig.items[i].name %></h3>
-            </div>
-            <div class="divide-y divide-zinc-200">
-              <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
-              <div class="p-5">
-                <h4 class="font-medium text-zinc-900 mb-2"><%= productConfig.items[i].data[j].title %></h4>
-                <p class="text-sm text-zinc-500 mb-4"><%= productConfig.items[i].data[j].description %></p>
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="rounded-lg bg-zinc-50 p-3">
-                    <p class="text-xs font-medium text-zinc-500 mb-1"><%= productConfig.productName %></p>
-                    <% if(productConfig.items[i].data[j].productColumn === "tick"){ %>
-                    <div class="flex items-center gap-1">
-                      <svg class="h-4 w-4 text-zinc-700" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                      </svg>
-                      <span class="text-sm text-zinc-900">Yes</span>
-                    </div>
-                    <% } else if(productConfig.items[i].data[j].productColumn === ""){ %>
-                    <div class="flex items-center gap-1">
-                      <svg class="h-4 w-4 text-zinc-300" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                      </svg>
-                      <span class="text-sm text-zinc-400">No</span>
-                    </div>
-                    <% } else { %>
-                    <span class="text-sm text-zinc-900"><%= productConfig.items[i].data[j].productColumn %></span>
-                    <% } %>
-                  </div>
-                  <div class="rounded-lg bg-zinc-900 p-3">
-                    <p class="text-xs font-medium text-zinc-400 mb-1">OneUptime</p>
-                    <% if(productConfig.items[i].data[j].oneuptimeColumn === "tick"){ %>
-                    <div class="flex items-center gap-1">
-                      <svg class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                      </svg>
-                      <span class="text-sm font-medium text-white">Yes</span>
-                    </div>
-                    <% } else if(productConfig.items[i].data[j].oneuptimeColumn === ""){ %>
-                    <div class="flex items-center gap-1">
-                      <svg class="h-4 w-4 text-zinc-600" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                      </svg>
-                      <span class="text-sm text-zinc-500">No</span>
-                    </div>
-                    <% } else { %>
-                    <span class="text-sm font-medium text-white"><%= productConfig.items[i].data[j].oneuptimeColumn %></span>
-                    <% } %>
-                  </div>
-                </div>
-              </div>
-              <% } %>
-            </div>
-          </div>
-          <% } %>
-        </div>
-      </div>
-
-      <!-- Desktop Comparison Table -->
+      <!-- Desktop Table -->
       <div class="hidden lg:block">
-        <div class="rounded-xl border border-zinc-200 overflow-hidden">
+        <div class="rounded-2xl bg-white ring-1 ring-gray-200 overflow-hidden">
           <table class="w-full">
             <thead>
-              <tr class="bg-zinc-50">
-                <th scope="col" class="w-1/2 px-8 py-5 text-left text-sm font-semibold text-zinc-900">Feature</th>
-                <th scope="col" class="w-1/4 px-8 py-5 text-center text-sm font-semibold text-zinc-900">
-                  <div class="flex items-center justify-center gap-2">
-                    <span><%= productConfig.productName %></span>
-                  </div>
-                </th>
-                <th scope="col" class="w-1/4 px-8 py-5 text-center text-sm font-semibold text-white bg-zinc-900">
-                  <div class="flex items-center justify-center gap-2">
-                    <img src="/img/3-transparent.svg" alt="OneUptime" class="h-5 w-5">
-                    <span>OneUptime</span>
-                  </div>
-                </th>
+              <tr class="border-b border-gray-200">
+                <th scope="col" class="w-1/2 px-8 py-5 text-left text-sm font-semibold text-gray-900 bg-gray-50">Feature</th>
+                <th scope="col" class="w-1/4 px-8 py-5 text-center text-sm font-semibold text-gray-900 bg-gray-50"><%= productConfig.productName %></th>
+                <th scope="col" class="w-1/4 px-8 py-5 text-center text-sm font-semibold text-white bg-gray-900">OneUptime</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-200">
+            <tbody class="divide-y divide-gray-100">
               <% for(var i=0; i<productConfig.items.length; i++) {%>
-              <tr class="bg-zinc-100">
+              <tr class="bg-gray-50/50">
                 <td colspan="3" class="px-8 py-4">
-                  <h3 class="text-sm font-semibold text-zinc-900"><%= productConfig.items[i].name %></h3>
+                  <span class="text-sm font-semibold text-gray-900"><%= productConfig.items[i].name %></span>
                 </td>
               </tr>
               <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
-              <tr class="hover:bg-zinc-50 transition-colors">
-                <td class="px-8 py-5">
-                  <div>
-                    <p class="font-medium text-zinc-900"><%= productConfig.items[i].data[j].title %></p>
-                    <p class="mt-1 text-sm text-zinc-500"><%= productConfig.items[i].data[j].description %></p>
-                  </div>
+              <tr class="hover:bg-gray-50/50 transition-colors">
+                <td class="px-8 py-4">
+                  <p class="font-medium text-gray-900 text-sm"><%= productConfig.items[i].data[j].title %></p>
+                  <p class="text-sm text-gray-500"><%= productConfig.items[i].data[j].description %></p>
                 </td>
-                <td class="px-8 py-5 text-center">
+                <td class="px-8 py-4 text-center">
                   <% if(productConfig.items[i].data[j].productColumn === "tick"){ %>
-                  <div class="flex justify-center">
-                    <svg class="h-5 w-5 text-zinc-700" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                  </div>
+                  <svg class="h-5 w-5 text-gray-600 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                  </svg>
                   <% } else if(productConfig.items[i].data[j].productColumn === ""){ %>
-                  <div class="flex justify-center">
-                    <svg class="h-5 w-5 text-zinc-300" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                    </svg>
-                  </div>
+                  <svg class="h-5 w-5 text-gray-300 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
                   <% } else { %>
-                  <span class="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-sm text-zinc-700">
-                    <%= productConfig.items[i].data[j].productColumn %>
-                  </span>
+                  <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700"><%= productConfig.items[i].data[j].productColumn %></span>
                   <% } %>
                 </td>
-                <td class="px-8 py-5 text-center bg-zinc-950/5">
+                <td class="px-8 py-4 text-center bg-gray-900/[0.02]">
                   <% if(productConfig.items[i].data[j].oneuptimeColumn === "tick"){ %>
-                  <div class="flex justify-center">
-                    <svg class="h-5 w-5 text-zinc-900" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                    </svg>
-                  </div>
+                  <svg class="h-5 w-5 text-emerald-600 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                  </svg>
                   <% } else if(productConfig.items[i].data[j].oneuptimeColumn === ""){ %>
-                  <div class="flex justify-center">
-                    <svg class="h-5 w-5 text-zinc-300" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                    </svg>
-                  </div>
+                  <svg class="h-5 w-5 text-gray-300 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
                   <% } else { %>
-                  <span class="inline-flex items-center rounded-full bg-zinc-200 px-3 py-1 text-sm font-medium text-zinc-900">
-                    <%= productConfig.items[i].data[j].oneuptimeColumn %>
-                  </span>
+                  <span class="inline-flex items-center rounded-full bg-gray-900 px-2.5 py-0.5 text-xs font-medium text-white"><%= productConfig.items[i].data[j].oneuptimeColumn %></span>
                   <% } %>
                 </td>
               </tr>
@@ -577,202 +339,216 @@
           </table>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Migration Benefits Section -->
-  <% if(productConfig.migrationBenefits && productConfig.migrationBenefits.length > 0) { %>
-  <div class="bg-white py-20 sm:py-24">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <div>
-          <span class="inline-flex items-center rounded-full bg-zinc-100 px-4 py-1.5 text-sm font-medium text-zinc-700 ring-1 ring-inset ring-zinc-200 mb-4">
-            <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-            </svg>
-            Easy Migration
-          </span>
-          <h2 class="text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-            Switching is easier than you think
-          </h2>
-          <p class="mt-4 text-base text-zinc-600">
-            Most teams complete their migration in days, not weeks. Here's what makes it painless.
-          </p>
-
-          <ul class="mt-8 space-y-4">
-            <% for(var mb=0; mb < productConfig.migrationBenefits.length; mb++) { %>
-            <li class="flex items-start gap-4">
-              <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-100">
-                <svg class="h-4 w-4 text-zinc-700" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <span class="text-sm text-zinc-700"><%= productConfig.migrationBenefits[mb] %></span>
-            </li>
-            <% } %>
-          </ul>
-
-          <div class="mt-10">
-            <a href="/enterprise/demo" class="inline-flex items-center rounded-lg bg-zinc-900 px-6 py-3 text-base font-semibold text-white hover:bg-zinc-800 transition-all">
-              <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-              </svg>
-              Talk to Migration Support
-            </a>
+      <!-- Mobile View -->
+      <div class="lg:hidden space-y-6">
+        <% for(var i=0; i<productConfig.items.length; i++) {%>
+        <div class="rounded-2xl bg-white ring-1 ring-gray-200 overflow-hidden">
+          <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-900"><%= productConfig.items[i].name %></h3>
           </div>
-        </div>
-
-        <div class="relative">
-          <div class="rounded-xl bg-zinc-50 p-8 border border-zinc-200">
-            <div class="space-y-6">
-              <div class="flex items-center gap-4">
-                <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white border border-zinc-200">
-                  <svg class="h-6 w-6 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div class="divide-y divide-gray-100">
+            <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
+            <div class="p-4">
+              <p class="font-medium text-gray-900 text-sm mb-3"><%= productConfig.items[i].data[j].title %></p>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="text-center p-3 rounded-lg bg-gray-50">
+                  <p class="text-xs text-gray-500 mb-1"><%= productConfig.productName %></p>
+                  <% if(productConfig.items[i].data[j].productColumn === "tick"){ %>
+                  <svg class="h-5 w-5 text-gray-600 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                   </svg>
-                </div>
-                <div>
-                  <p class="text-2xl font-bold text-zinc-900">< 1 week</p>
-                  <p class="text-sm text-zinc-500">Average migration time</p>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-4">
-                <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white border border-zinc-200">
-                  <svg class="h-6 w-6 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  <% } else if(productConfig.items[i].data[j].productColumn === ""){ %>
+                  <svg class="h-5 w-5 text-gray-300 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
                   </svg>
+                  <% } else { %>
+                  <span class="text-xs text-gray-700"><%= productConfig.items[i].data[j].productColumn %></span>
+                  <% } %>
                 </div>
-                <div>
-                  <p class="text-2xl font-bold text-zinc-900">Zero downtime</p>
-                  <p class="text-sm text-zinc-500">Run both platforms in parallel</p>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-4">
-                <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-white border border-zinc-200">
-                  <svg class="h-6 w-6 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                <div class="text-center p-3 rounded-lg bg-gray-900">
+                  <p class="text-xs text-gray-400 mb-1">OneUptime</p>
+                  <% if(productConfig.items[i].data[j].oneuptimeColumn === "tick"){ %>
+                  <svg class="h-5 w-5 text-emerald-400 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                   </svg>
-                </div>
-                <div>
-                  <p class="text-2xl font-bold text-zinc-900">Free support</p>
-                  <p class="text-sm text-zinc-500">Migration assistance included</p>
+                  <% } else if(productConfig.items[i].data[j].oneuptimeColumn === ""){ %>
+                  <svg class="h-5 w-5 text-gray-500 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  <% } else { %>
+                  <span class="text-xs text-white"><%= productConfig.items[i].data[j].oneuptimeColumn %></span>
+                  <% } %>
                 </div>
               </div>
             </div>
+            <% } %>
           </div>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <!-- Open Source Section -->
+  <section class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
+          <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+          <span class="text-sm text-gray-400">Open Source</span>
+        </div>
+
+        <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.1]">
+          <span class="text-gray-400 block">Proudly</span>
+          <span class="text-white block">open-source</span>
+        </h2>
+        <p class="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+          Full transparency, complete control. Audit the code, self-host on your infrastructure, zero vendor lock-in.
+        </p>
+
+        <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+          <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="text-3xl font-semibold text-white mb-1">Apache 2.0</div>
+            <div class="text-sm text-gray-400">License</div>
+          </div>
+          <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="text-3xl font-semibold text-white mb-1">Self-Host</div>
+            <div class="text-sm text-gray-400">Your infrastructure</div>
+          </div>
+          <div class="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="text-3xl font-semibold text-white mb-1">No Lock-in</div>
+            <div class="text-sm text-gray-400">Full control</div>
+          </div>
+        </div>
+
+        <div class="mt-10">
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-medium text-sm transition-all duration-300 bg-white/[0.08] border border-white/[0.1] text-white hover:bg-white/[0.15]">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            <span>Star on GitHub</span>
+            <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
         </div>
       </div>
     </div>
-  </div>
-  <% } %>
+  </section>
 
   <!-- FAQ Section -->
-  <div class="bg-zinc-100 py-20 sm:py-24">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-4xl">
-        <div class="text-center mb-16">
-          <h2 class="text-base font-semibold leading-7 text-zinc-500">FAQ</h2>
-          <p class="mt-2 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-            Frequently asked questions
-          </p>
-          <p class="mt-4 text-lg text-zinc-600">
-            Everything you need to know about switching from <%= productConfig.productName %> to OneUptime
-          </p>
-        </div>
+  <section class="py-24 sm:py-32 bg-white">
+    <div class="mx-auto max-w-3xl px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+          Frequently asked questions
+        </h2>
+      </div>
 
-        <div class="space-y-4">
-          <% for(var i=0; i < productConfig.faq.length; i++) { %>
-          <div class="rounded-xl bg-white shadow-sm ring-1 ring-zinc-200 overflow-hidden">
-            <details class="group">
-              <summary class="flex cursor-pointer items-center justify-between px-6 py-5 hover:bg-zinc-50 transition-colors">
-                <h3 class="text-base font-semibold text-zinc-900 pr-4"><%= productConfig.faq[i].question %></h3>
-                <svg class="h-5 w-5 flex-shrink-0 text-zinc-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                </svg>
-              </summary>
-              <div class="px-6 pb-6">
-                <p class="text-zinc-600 leading-relaxed"><%= productConfig.faq[i].answer %></p>
-              </div>
-            </details>
+      <div class="space-y-4">
+        <% for(var i=0; i < productConfig.faq.length; i++) { %>
+        <details class="group rounded-2xl bg-gray-50 ring-1 ring-gray-200">
+          <summary class="flex cursor-pointer items-center justify-between px-6 py-5 hover:bg-gray-100 transition-colors rounded-2xl">
+            <h3 class="text-base font-medium text-gray-900 pr-4"><%= productConfig.faq[i].question %></h3>
+            <svg class="h-5 w-5 flex-shrink-0 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </summary>
+          <div class="px-6 pb-6">
+            <p class="text-gray-600 leading-relaxed"><%= productConfig.faq[i].answer %></p>
           </div>
-          <% } %>
-        </div>
+        </details>
+        <% } %>
       </div>
     </div>
-  </div>
+  </section>
 
   <!-- CTA Section -->
-  <div class="relative isolate overflow-hidden bg-zinc-950">
-    <div class="absolute inset-0 -z-10 overflow-hidden">
-      <svg class="absolute left-[max(50%,25rem)] top-0 h-[64rem] w-[128rem] -trangray-x-1/2 stroke-zinc-800 [mask-image:radial-gradient(64rem_64rem_at_top,white,transparent)]" aria-hidden="true">
-        <defs>
-          <pattern id="cta-pattern" width="200" height="200" x="50%" y="-1" patternUnits="userSpaceOnUse">
-            <path d="M100 200V.5M.5 .5H200" fill="none" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" stroke-width="0" fill="url(#cta-pattern)" />
-      </svg>
-    </div>
-
-    <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
-      <div class="mx-auto max-w-2xl text-center">
-        <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          Ready to switch from <%= productConfig.productName %>?
-        </h2>
-        <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-zinc-400">
-          Join thousands of teams who have consolidated their observability stack with OneUptime. Start free, no credit card required.
-        </p>
-        <div class="mt-10 flex items-center justify-center gap-x-6">
-          <a href="/accounts/register" class="rounded-lg bg-white px-6 py-3 text-base font-semibold text-zinc-900 shadow-sm hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-all">
-            Get Started Free
-          </a>
-          <a href="/enterprise/demo" class="text-base font-semibold leading-6 text-white hover:text-zinc-300 transition-colors">
-            Book a Demo <span aria-hidden="true">→</span>
-          </a>
-        </div>
-        <p class="mt-6 text-sm text-zinc-500">
-          Free forever plan available. No credit card required.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Trust Banner -->
-  <div class="bg-white py-12 border-t border-zinc-200">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
-        <div class="flex items-center gap-2 text-zinc-600">
-          <svg class="h-5 w-5 text-zinc-700" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-          </svg>
-          <span class="text-sm">Open Source (Apache 2.0)</span>
-        </div>
-        <div class="flex items-center gap-2 text-zinc-600">
-          <svg class="h-5 w-5 text-zinc-700" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-          </svg>
-          <span class="text-sm">Self-Hosting Available</span>
-        </div>
-        <div class="flex items-center gap-2 text-zinc-600">
-          <svg class="h-5 w-5 text-zinc-700" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-          </svg>
-          <span class="text-sm">SOC 2 Compliant</span>
-        </div>
-        <div class="flex items-center gap-2 text-zinc-600">
-          <svg class="h-5 w-5 text-zinc-700" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-          </svg>
-          <span class="text-sm">No Vendor Lock-in</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  <%- include('cta') -%>
 
   </main>
   <%- include('footer') -%>
+
+  <script>
+  // Hero grid glow
+  (function() {
+      const heroSection = document.getElementById('compare-hero');
+      const gridGlowEffect = document.getElementById('hero-grid-glow');
+      if (!heroSection || !gridGlowEffect) return;
+
+      let isHovering = false;
+      let animationFrame = null;
+      let currentX = 0, currentY = 0, targetX = 0, targetY = 0;
+
+      function lerp(start, end, factor) { return start + (end - start) * factor; }
+
+      function animate() {
+          if (!isHovering) return;
+          currentX = lerp(currentX, targetX, 0.12);
+          currentY = lerp(currentY, targetY, 0.12);
+          gridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
+          gridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
+          animationFrame = requestAnimationFrame(animate);
+      }
+
+      heroSection.addEventListener('mouseenter', function() {
+          isHovering = true;
+          gridGlowEffect.style.opacity = '1';
+          animate();
+      });
+
+      heroSection.addEventListener('mousemove', function(e) {
+          const rect = heroSection.getBoundingClientRect();
+          targetX = e.clientX - rect.left;
+          targetY = e.clientY - rect.top;
+          if (!isHovering) { currentX = targetX; currentY = targetY; }
+      });
+
+      heroSection.addEventListener('mouseleave', function() {
+          isHovering = false;
+          gridGlowEffect.style.opacity = '0';
+          if (animationFrame) { cancelAnimationFrame(animationFrame); animationFrame = null; }
+      });
+  })();
+
+  // Platform section mouse glow
+  (function() {
+      const section = document.querySelector('section.bg-gray-900');
+      const glow = document.getElementById('platform-mouse-glow');
+      if (!section || !glow) return;
+
+      let rafId = null;
+      let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+
+      function lerp(start, end, factor) { return start + (end - start) * factor; }
+
+      function animate() {
+          currentX = lerp(currentX, targetX, 0.15);
+          currentY = lerp(currentY, targetY, 0.15);
+          glow.style.left = currentX + 'px';
+          glow.style.top = currentY + 'px';
+          if (Math.abs(targetX - currentX) > 0.1 || Math.abs(targetY - currentY) > 0.1) {
+              rafId = requestAnimationFrame(animate);
+          } else { rafId = null; }
+      }
+
+      section.addEventListener('mousemove', function(e) {
+          const rect = section.getBoundingClientRect();
+          targetX = e.clientX - rect.left;
+          targetY = e.clientY - rect.top;
+          if (!rafId) { rafId = requestAnimationFrame(animate); }
+      });
+
+      section.addEventListener('mouseenter', function() { glow.style.opacity = '1'; });
+      section.addEventListener('mouseleave', function() {
+          glow.style.opacity = '0';
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      });
+  })();
+  </script>
 
 </body>
 
