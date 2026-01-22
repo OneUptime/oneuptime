@@ -21,6 +21,85 @@
   .payg-tab:focus {
     outline: none;
   }
+
+  /* Bitcoin Easter Egg Styles - Monochrome */
+  .bitcoin-easter-egg {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    cursor: pointer;
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+    padding: 2rem;
+  }
+
+  .bitcoin-easter-egg.active {
+    display: flex;
+  }
+
+  .bitcoin-ascii {
+    color: #fff;
+    font-size: 6px;
+    line-height: 1.1;
+    white-space: pre;
+    letter-spacing: 1px;
+  }
+
+  @media (min-width: 480px) {
+    .bitcoin-ascii {
+      font-size: 8px;
+    }
+  }
+
+  @media (min-width: 640px) {
+    .bitcoin-ascii {
+      font-size: 12px;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .bitcoin-ascii {
+      font-size: 16px;
+    }
+  }
+
+  .genesis-text {
+    color: #fff;
+    font-size: 0.875rem;
+    margin-top: 3rem;
+    text-align: left;
+    max-width: 600px;
+    line-height: 1.6;
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  }
+
+  .genesis-text::before {
+    content: '> ';
+    opacity: 0.5;
+  }
+
+  @media (min-width: 640px) {
+    .genesis-text {
+      font-size: 1.1rem;
+    }
+  }
+
+  .bitcoin-hint {
+    color: #fff;
+    opacity: 0.3;
+    font-size: 0.75rem;
+    position: absolute;
+    bottom: 2rem;
+    letter-spacing: 1px;
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  }
 </style>
 
 <body>
@@ -1783,6 +1862,68 @@
               switchToYearlyBilling();
               checkCookies();
             };
+          </script>
+
+          <!-- Bitcoin Easter Egg -->
+          <div class="bitcoin-easter-egg" id="bitcoin-easter-egg" onclick="closeBitcoinEasterEgg()">
+            <pre class="bitcoin-ascii">
+██████╗ ██╗████████╗ ██████╗ ██████╗ ██╗███╗   ██╗
+██╔══██╗██║╚══██╔══╝██╔════╝██╔═══██╗██║████╗  ██║
+██████╔╝██║   ██║   ██║     ██║   ██║██║██╔██╗ ██║
+██╔══██╗██║   ██║   ██║     ██║   ██║██║██║╚██╗██║
+██████╔╝██║   ██║   ╚██████╗╚██████╔╝██║██║ ╚████║
+╚═════╝ ╚═╝   ╚═╝    ╚═════╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝</pre>
+
+            <div class="genesis-text">
+              "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
+            </div>
+
+            <div class="bitcoin-hint">built by bitcoiners, for bitcoiners. click anywhere to close.</div>
+          </div>
+
+          <script>
+            // Bitcoin Easter Egg - Type "bitcoin" to activate
+            (function() {
+              const secretWord = 'bitcoin';
+              let typedKeys = '';
+
+              function showBitcoinEasterEgg() {
+                const easterEgg = document.getElementById('bitcoin-easter-egg');
+                easterEgg.classList.add('active');
+              }
+
+              window.closeBitcoinEasterEgg = function() {
+                const easterEgg = document.getElementById('bitcoin-easter-egg');
+                easterEgg.classList.remove('active');
+                typedKeys = '';
+              };
+
+              document.addEventListener('keydown', function(e) {
+                const easterEgg = document.getElementById('bitcoin-easter-egg');
+
+                // If easter egg is active, close it on any key press
+                if (easterEgg.classList.contains('active')) {
+                  closeBitcoinEasterEgg();
+                  return;
+                }
+
+                // Ignore if user is typing in an input/textarea
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                typedKeys += e.key.toLowerCase();
+
+                // Keep only the last N characters where N is the length of secret word
+                if (typedKeys.length > secretWord.length) {
+                  typedKeys = typedKeys.slice(-secretWord.length);
+                }
+
+                // Check if the secret word was typed
+                if (typedKeys === secretWord) {
+                  showBitcoinEasterEgg();
+                  typedKeys = '';
+                }
+              });
+            })();
           </script>
 
 </body>
