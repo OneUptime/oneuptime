@@ -13,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
 import MailService from "Common/Server/Services/MailService";
+import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import StatusPagePrivateUserSessionService, {
@@ -468,6 +469,16 @@ router.post(
             logoFileId: true,
             requireSsoForLogin: true,
             projectId: true,
+            smtpConfig: {
+              _id: true,
+              hostname: true,
+              port: true,
+              username: true,
+              password: true,
+              fromEmail: true,
+              fromName: true,
+              secure: true,
+            },
           },
         },
       );
@@ -547,6 +558,9 @@ router.post(
           },
           {
             projectId: statusPage.projectId!,
+            mailServer: ProjectSMTPConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
             statusPageId: statusPage.id!,
           },
         ).catch((err: Error) => {
@@ -632,6 +646,16 @@ router.post(
             logoFileId: true,
             requireSsoForLogin: true,
             projectId: true,
+            smtpConfig: {
+              _id: true,
+              hostname: true,
+              port: true,
+              username: true,
+              password: true,
+              fromEmail: true,
+              fromName: true,
+              secure: true,
+            },
           },
         },
       );
@@ -689,6 +713,9 @@ router.post(
         },
         {
           projectId: statusPage.projectId!,
+          mailServer: ProjectSMTPConfigService.toEmailServer(
+            statusPage.smtpConfig,
+          ),
           statusPageId: statusPage.id!,
         },
       ).catch((err: Error) => {

@@ -3480,6 +3480,26 @@ router.post(
         logger.debug(
           `SCIM Create user - user already exists with id: ${user.id}`,
         );
+
+        // Update user's name if provided in SCIM request and user's name is missing or different
+        if (name) {
+          const currentName: string = user.name?.toString() || "";
+          if (!currentName || currentName !== name) {
+            executionSteps.push(
+              `Updating user name from "${currentName || "(empty)"}" to "${name}"`,
+            );
+            await UserService.updateOneById({
+              id: user.id!,
+              data: {
+                name: new Name(name),
+              },
+              props: { isRoot: true },
+            });
+            // Update local user object so response reflects the new name
+            user.name = new Name(name);
+            executionSteps.push(`User name updated successfully`);
+          }
+        }
       }
 
       // Add user to default teams if configured and push groups is not enabled

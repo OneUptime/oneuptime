@@ -4,6 +4,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
+import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageService from "./StatusPageService";
 import { StatusPageApiRoute } from "../../ServiceRoute";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -89,6 +90,16 @@ export class Service extends DatabaseService<Model> {
         pageTitle: true,
         logoFileId: true,
         projectId: true,
+        smtpConfig: {
+          _id: true,
+          hostname: true,
+          port: true,
+          username: true,
+          password: true,
+          fromEmail: true,
+          fromName: true,
+          secure: true,
+        },
       },
     });
 
@@ -132,6 +143,9 @@ export class Service extends DatabaseService<Model> {
       },
       {
         projectId: statusPage.projectId,
+        mailServer: ProjectSMTPConfigService.toEmailServer(
+          statusPage.smtpConfig,
+        ),
         statusPageId: statusPage.id!,
       },
     ).catch((err: Error) => {
