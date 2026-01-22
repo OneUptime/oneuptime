@@ -35,30 +35,87 @@ echo "  Server: ID=$SERVER_ID, Type=$SERVER_TYPE"
 # Verify all monitors created
 ERRORS=0
 
-declare -A MONITORS=(
-    ["Website"]="$WEBSITE_ID:$WEBSITE_TYPE:Website"
-    ["API"]="$API_ID:$API_TYPE:API"
-    ["Ping"]="$PING_ID:$PING_TYPE:Ping"
-    ["Port"]="$PORT_ID:$PORT_TYPE:Port"
-    ["SSL Certificate"]="$SSL_ID:$SSL_TYPE:SSL Certificate"
-    ["IP"]="$IP_ID:$IP_TYPE:IP"
-    ["Incoming Request"]="$INCOMING_REQUEST_ID:$INCOMING_REQUEST_TYPE:Incoming Request"
-    ["Server"]="$SERVER_ID:$SERVER_TYPE:Server"
-)
+# Verify each monitor individually to avoid associative array issues with spaces in keys
 
-for NAME in "${!MONITORS[@]}"; do
-    IFS=':' read -r ID TYPE EXPECTED <<< "${MONITORS[$NAME]}"
+# Website
+if [ -z "$WEBSITE_ID" ]; then
+    echo "ERROR: Website monitor not created"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$WEBSITE_TYPE" != "Website" ]; then
+    echo "ERROR: Website monitor type mismatch. Expected 'Website', got '$WEBSITE_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
 
-    if [ -z "$ID" ]; then
-        echo "ERROR: $NAME monitor not created"
-        ERRORS=$((ERRORS + 1))
-    fi
+# API
+if [ -z "$API_ID" ]; then
+    echo "ERROR: API monitor not created"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$API_TYPE" != "API" ]; then
+    echo "ERROR: API monitor type mismatch. Expected 'API', got '$API_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
 
-    if [ "$TYPE" != "$EXPECTED" ]; then
-        echo "ERROR: $NAME monitor type mismatch. Expected '$EXPECTED', got '$TYPE'"
-        ERRORS=$((ERRORS + 1))
-    fi
-done
+# Ping
+if [ -z "$PING_ID" ]; then
+    echo "ERROR: Ping monitor not created"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$PING_TYPE" != "Ping" ]; then
+    echo "ERROR: Ping monitor type mismatch. Expected 'Ping', got '$PING_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Port
+if [ -z "$PORT_ID" ]; then
+    echo "ERROR: Port monitor not created"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$PORT_TYPE" != "Port" ]; then
+    echo "ERROR: Port monitor type mismatch. Expected 'Port', got '$PORT_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# SSL Certificate
+if [ -z "$SSL_ID" ]; then
+    echo "ERROR: SSL Certificate monitor not created"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$SSL_TYPE" != "SSL Certificate" ]; then
+    echo "ERROR: SSL Certificate monitor type mismatch. Expected 'SSL Certificate', got '$SSL_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# IP
+if [ -z "$IP_ID" ]; then
+    echo "ERROR: IP monitor not created"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$IP_TYPE" != "IP" ]; then
+    echo "ERROR: IP monitor type mismatch. Expected 'IP', got '$IP_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Incoming Request
+if [ -z "$INCOMING_REQUEST_ID" ]; then
+    echo "ERROR: Incoming Request monitor not created"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$INCOMING_REQUEST_TYPE" != "Incoming Request" ]; then
+    echo "ERROR: Incoming Request monitor type mismatch. Expected 'Incoming Request', got '$INCOMING_REQUEST_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Server
+if [ -z "$SERVER_ID" ]; then
+    echo "ERROR: Server monitor not created"
+    ERRORS=$((ERRORS + 1))
+fi
+if [ "$SERVER_TYPE" != "Server" ]; then
+    echo "ERROR: Server monitor type mismatch. Expected 'Server', got '$SERVER_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
 
 if [ $ERRORS -gt 0 ]; then
     echo ""
