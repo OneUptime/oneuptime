@@ -204,6 +204,8 @@ export class ResourceGenerator {
 
     if (hasListTypes) {
       imports.push("github.com/hashicorp/terraform-plugin-framework/attr");
+      // Add sort import for consistent list ordering (fixes idempotency issues)
+      imports.push("sort");
     }
 
     if (hasListDefaults) {
@@ -1495,6 +1497,13 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
                 listItems = append(listItems, types.StringValue(str))
             }
         }
+        // Sort list items by their string value to ensure consistent ordering
+        // This fixes idempotency issues where server returns items in different order
+        sort.Slice(listItems, func(i, j int) bool {
+            iStr := listItems[i].(types.String).ValueString()
+            jStr := listItems[j].(types.String).ValueString()
+            return iStr < jStr
+        })
         ${fieldName} = types.ListValueMust(types.StringType, listItems)
     } else {
         // For lists, always use empty list instead of null to match default values
