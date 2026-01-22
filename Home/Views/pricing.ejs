@@ -98,6 +98,17 @@
     letter-spacing: 1px;
     font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
   }
+
+  .bitcoin-trigger {
+    cursor: pointer;
+    color: #f7931a;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .bitcoin-trigger:hover {
+    text-decoration: underline;
+  }
 </style>
 
 <body>
@@ -1612,7 +1623,7 @@
                 </dt>
                 <dd class="mt-2 pr-12" id="faq-0">
                   <p class="text-base leading-7 text-gray-600">Visa / Mastercard / AmEx. Invoice payment available for
-                    Enterprise customers. We also support payments in Bitcoin. If you choose to do so, please send us an
+                    Enterprise customers. We also support payments in <span class="bitcoin-trigger" onclick="showBitcoinEasterEgg(); event.stopPropagation();">Bitcoin</span>. If you choose to do so, please send us an
                     email to billing@oneuptime.com and we will send a lightning invoice.</p>
                 </dd>
               </div>
@@ -1888,15 +1899,15 @@ Coinbase:      "The Times 03/Jan/2009 Chancellor on brink of second bailout for 
           </div>
 
           <script>
-            // Bitcoin Easter Egg - Type "bitcoin" to activate
+            // Bitcoin Easter Egg - Type "bitcoin" or click on Bitcoin text to activate
             (function() {
               const secretWord = 'bitcoin';
               let typedKeys = '';
 
-              function showBitcoinEasterEgg() {
+              window.showBitcoinEasterEgg = function() {
                 const easterEgg = document.getElementById('bitcoin-easter-egg');
                 easterEgg.classList.add('active');
-              }
+              };
 
               window.closeBitcoinEasterEgg = function() {
                 const easterEgg = document.getElementById('bitcoin-easter-egg');
