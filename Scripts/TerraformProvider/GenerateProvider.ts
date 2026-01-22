@@ -96,7 +96,9 @@ async function main(): Promise<void> {
     Logger.info("📝 Step 9: Writing VERSION file...");
     const rootVersionPath: string = path.resolve(__dirname, "../../VERSION");
     const providerVersionPath: string = path.resolve(providerDir, "VERSION");
-    const versionContent: string = fs.readFileSync(rootVersionPath, "utf-8").trim();
+    const versionContent: string = fs
+      .readFileSync(rootVersionPath, "utf-8")
+      .trim();
     const versionFileContent: string = `${versionContent}
 # This file is auto-generated from the root VERSION file.
 # It ensures the Terraform provider is regenerated for each OneUptime release.
