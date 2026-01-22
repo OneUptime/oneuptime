@@ -208,6 +208,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE]: `episodes/${RouteParams.ModelID}/state-timeline`,
   [PageMap.ALERT_EPISODE_VIEW_ALERTS]: `episodes/${RouteParams.ModelID}/alerts`,
   [PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE]: `episodes/${RouteParams.ModelID}/internal-notes`,
+  [PageMap.ALERT_EPISODE_DOCS]: "episodes/documentation",
 
   // Alert Settings
   [PageMap.ALERTS_SETTINGS_STATE]: "settings/state",
@@ -727,6 +728,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_DOCS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS]
     }`,
   ),
 

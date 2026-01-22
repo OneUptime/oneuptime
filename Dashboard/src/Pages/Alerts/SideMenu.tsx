@@ -20,7 +20,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Overview",
+      title: "Alerts",
       items: [
         {
           link: {
@@ -48,6 +48,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             },
           } as any,
         },
+      ],
+    },
+    {
+      title: "Episodes",
+      items: [
         {
           link: {
             title: "All Episodes",
@@ -64,13 +69,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route,
             ),
           },
-          icon: IconProp.SquareStack,
+          icon: IconProp.ExclaimationCircle,
           badgeType: BadgeType.WARNING,
           modelType: AlertEpisode,
           countQuery: {
             projectId: props.project?._id,
             resolvedAt: null,
           } as any,
+        },
+        {
+          link: {
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_EPISODE_DOCS] as Route,
+            ),
+          },
+          icon: IconProp.Book,
         },
       ],
     },

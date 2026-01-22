@@ -205,6 +205,11 @@ const EpisodeViewDelete: LazyExoticComponent<
   return import("../Pages/Alerts/EpisodeView/Delete");
 });
 
+const AlertEpisodeDocs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/EpisodeDocs");
+  });
+
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
@@ -374,6 +379,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               <UnresolvedEpisodes
                 {...props}
                 pageRoute={RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertEpisodeDocs
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_EPISODE_DOCS] as Route}
               />
             </Suspense>
           }

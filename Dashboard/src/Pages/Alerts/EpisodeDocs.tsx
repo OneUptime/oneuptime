@@ -1,0 +1,316 @@
+import PageComponentProps from "../PageComponentProps";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import Card from "Common/UI/Components/Card/Card";
+import IconProp from "Common/Types/Icon/IconProp";
+import Color from "Common/Types/Color";
+import VerticalFlowSteps, {
+  FlowStep,
+} from "Common/UI/Components/Diagram/VerticalFlowSteps";
+import HorizontalStepChain, {
+  ChainStep,
+  ChainEndStep,
+} from "Common/UI/Components/Diagram/HorizontalStepChain";
+import NumberedSteps, {
+  NumberedStep,
+} from "Common/UI/Components/Diagram/NumberedSteps";
+import ConceptCards, {
+  ConceptCard,
+} from "Common/UI/Components/Diagram/ConceptCards";
+
+const AlertEpisodeDocs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  // How Alert Grouping Works Flow Steps
+  const flowSteps: Array<FlowStep> = [
+    {
+      title: "Alert is Created",
+      description:
+        "A new alert is triggered from monitoring, telemetry, or manual creation",
+      icon: IconProp.Alert,
+      iconColor: new Color("#ef4444"), // red-500
+    },
+    {
+      title: "Grouping Rules Evaluated",
+      description:
+        "Alert is matched against enabled grouping rules in priority order",
+      icon: IconProp.Filter,
+      iconColor: new Color("#3b82f6"), // blue-500
+    },
+    {
+      title: "Find Matching Episode",
+      description:
+        "System looks for an active episode with matching criteria within the time window",
+      icon: IconProp.Search,
+      iconColor: new Color("#f59e0b"), // amber-500
+    },
+    {
+      title: "Join or Create Episode",
+      description:
+        "Alert joins existing episode or creates a new one if no match found",
+      icon: IconProp.SquareStack,
+      iconColor: new Color("#22c55e"), // green-500
+    },
+    {
+      title: "Notifications Sent",
+      description:
+        "On-call policies are executed for the episode and/or individual alert",
+      icon: IconProp.Bell,
+      iconColor: new Color("#8b5cf6"), // violet-500
+    },
+  ];
+
+  // Episode Lifecycle Steps
+  const lifecycleSteps: Array<ChainStep> = [
+    {
+      stepNumber: 1,
+      title: "Active",
+      description: "New alerts arriving",
+      color: new Color("#ef4444"), // red-500
+    },
+    {
+      stepNumber: 2,
+      title: "Acknowledged",
+      description: "Being investigated",
+      color: new Color("#f59e0b"), // amber-500
+    },
+    {
+      stepNumber: 3,
+      title: "Resolved",
+      description: "All alerts resolved",
+      color: new Color("#22c55e"), // green-500
+    },
+  ];
+
+  const lifecycleEndStep: ChainEndStep = {
+    title: "Closed",
+    description: "Episode complete",
+    icon: IconProp.CheckCircle,
+    color: new Color("#6b7280"), // gray-500
+  };
+
+  // Setup Steps
+  const setupSteps: Array<NumberedStep> = [
+    {
+      title: "Navigate to Grouping Rules",
+      description:
+        "Go to Alerts > Settings > Grouping Rules to configure how alerts are automatically grouped.",
+    },
+    {
+      title: "Create a Grouping Rule",
+      description:
+        "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.",
+    },
+    {
+      title: "Configure Time Window",
+      description:
+        "Set the rolling time window (e.g., 60 minutes). Alerts within this gap of the last alert will be grouped together.",
+    },
+    {
+      title: "Set Episode Template",
+      description:
+        "Optionally configure an episode title template using placeholders like {alertTitle}, {monitorName}, {alertSeverity}.",
+    },
+    {
+      title: "Assign On-Call Policies",
+      description:
+        "Link on-call duty policies to be notified when new episodes are created by this rule.",
+      icon: IconProp.CheckCircle,
+      color: new Color("#22c55e"), // green-500
+    },
+  ];
+
+  // Concept Cards
+  const conceptCards: Array<ConceptCard> = [
+    {
+      title: "Episodes",
+      description:
+        "Logical containers that group related alerts together. Instead of seeing 50 individual alerts, you see one episode with 50 alerts.",
+      icon: IconProp.SquareStack,
+      iconColor: new Color("#3b82f6"), // blue-500
+    },
+    {
+      title: "Grouping Rules",
+      description:
+        "Configurable rules that define how alerts are automatically matched and grouped into episodes based on criteria like monitor, severity, or labels.",
+      icon: IconProp.Filter,
+      iconColor: new Color("#22c55e"), // green-500
+    },
+    {
+      title: "Time Window",
+      description:
+        "A rolling window that determines how long an episode stays open for new alerts. Alerts within this gap of each other are grouped together.",
+      icon: IconProp.Clock,
+      iconColor: new Color("#f59e0b"), // amber-500
+    },
+    {
+      title: "Priority Order",
+      description:
+        "Rules are evaluated in priority order (lower number = higher priority). The first matching rule wins and groups the alert.",
+      icon: IconProp.BarsArrowDown,
+      iconColor: new Color("#8b5cf6"), // violet-500
+    },
+  ];
+
+  // Flapping Prevention Cards
+  const flappingCards: Array<ConceptCard> = [
+    {
+      title: "Resolve Delay",
+      description:
+        "Grace period before auto-resolving an episode. Prevents rapid state changes when alerts are flapping.",
+      icon: IconProp.Clock,
+      iconColor: new Color("#f59e0b"), // amber-500
+    },
+    {
+      title: "Reopen Window",
+      description:
+        "Time window after resolution where a matching alert will reopen the episode instead of creating a new one.",
+      icon: IconProp.Refresh,
+      iconColor: new Color("#3b82f6"), // blue-500
+    },
+    {
+      title: "Inactivity Timeout",
+      description:
+        "Automatically resolve episodes after a period of no new alerts being added.",
+      icon: IconProp.Stop,
+      iconColor: new Color("#6b7280"), // gray-500
+    },
+  ];
+
+  return (
+    <Fragment>
+      {/* Overview */}
+      <Card
+        title="What is Alert Grouping?"
+        description="Automatically combine related alerts into logical containers called Episodes"
+      >
+        <div className="p-6">
+          <p className="text-gray-600 mb-4">
+            Alert Grouping helps reduce alert fatigue by automatically combining
+            related alerts into <strong>Episodes</strong>. Instead of seeing 50
+            individual &quot;connection timeout&quot; alerts, operators see one
+            episode: &quot;Database Connectivity Issues (50 alerts)&quot;.
+          </p>
+          <p className="text-gray-600">
+            Episodes follow the same state lifecycle as alerts (Active,
+            Acknowledged, Resolved) and can have their own on-call policies,
+            owners, and root cause documentation.
+          </p>
+        </div>
+      </Card>
+
+      {/* How It Works */}
+      <div className="mt-5">
+        <Card
+          title="How It Works"
+          description="The journey of an alert through the grouping engine"
+        >
+          <div className="p-6">
+            <VerticalFlowSteps steps={flowSteps} />
+          </div>
+        </Card>
+      </div>
+
+      {/* Episode Lifecycle */}
+      <div className="mt-5">
+        <Card
+          title="Episode Lifecycle"
+          description="Episodes follow the same state progression as alerts"
+        >
+          <div className="p-6">
+            <HorizontalStepChain
+              steps={lifecycleSteps}
+              endStep={lifecycleEndStep}
+              defaultStepLabel="State"
+            />
+            <div className="mt-4 text-sm text-gray-500">
+              <p>
+                <strong>State Cascade:</strong> Acknowledging or resolving an
+                episode will acknowledge or resolve all member alerts.
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Key Concepts */}
+      <div className="mt-5">
+        <Card
+          title="Key Concepts"
+          description="Understanding the components of alert grouping"
+        >
+          <div className="p-6">
+            <ConceptCards cards={conceptCards} columns={2} />
+          </div>
+        </Card>
+      </div>
+
+      {/* Setup Steps */}
+      <div className="mt-5">
+        <Card
+          title="Setup Guide"
+          description="Follow these steps to configure alert grouping"
+        >
+          <div className="p-6">
+            <NumberedSteps steps={setupSteps} />
+          </div>
+        </Card>
+      </div>
+
+      {/* Flapping Prevention */}
+      <div className="mt-5">
+        <Card
+          title="Flapping Prevention"
+          description="Settings to prevent rapid state changes and alert noise"
+        >
+          <div className="p-6">
+            <ConceptCards cards={flappingCards} columns={3} />
+          </div>
+        </Card>
+      </div>
+
+      {/* Best Practices */}
+      <div className="mt-5">
+        <Card
+          title="Best Practices"
+          description="Tips for effective alert grouping"
+        >
+          <div className="p-6">
+            <ul className="list-disc list-inside space-y-2 text-gray-600">
+              <li>
+                <strong>Start with high-priority rules</strong> - Create
+                specific rules for critical services first, then add broader
+                catch-all rules with lower priority.
+              </li>
+              <li>
+                <strong>Use appropriate time windows</strong> - High-frequency
+                metric alerts may need shorter windows (5-15 min), while
+                standard monitoring can use longer windows (30-60 min).
+              </li>
+              <li>
+                <strong>Group by service or component</strong> - Configure rules
+                to group alerts from the same monitor or service together for
+                easier triage.
+              </li>
+              <li>
+                <strong>Set meaningful episode titles</strong> - Use title
+                templates to create descriptive episode names that help
+                operators understand the issue at a glance.
+              </li>
+              <li>
+                <strong>Configure on-call policies</strong> - Assign on-call
+                policies to grouping rules so the right team is notified when
+                episodes are created.
+              </li>
+              <li>
+                <strong>Document root causes</strong> - Use the root cause field
+                on episodes to document findings for future reference.
+              </li>
+            </ul>
+          </div>
+        </Card>
+      </div>
+    </Fragment>
+  );
+};
+
+export default AlertEpisodeDocs;
