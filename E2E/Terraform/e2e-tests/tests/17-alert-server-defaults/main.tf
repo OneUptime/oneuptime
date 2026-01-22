@@ -4,12 +4,20 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = var.oneuptime_url
   api_key       = var.api_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # Test: Alert with Server-Provided Defaults
@@ -24,7 +32,7 @@ provider "oneuptime" {
 # First create an alert severity (required dependency)
 resource "oneuptime_alert_severity" "test" {
   project_id  = var.project_id
-  name        = "Alert Test Severity"
+  name        = "TF Alert Severity ${random_id.suffix.hex}"
   description = "Severity for alert server defaults test"
   color       = "#FFA500"
   order       = 98
@@ -33,7 +41,7 @@ resource "oneuptime_alert_severity" "test" {
 # Create alert with minimal fields - let server provide defaults
 resource "oneuptime_alert" "test_server_defaults" {
   project_id        = var.project_id
-  title             = "Alert Server Defaults Test"
+  title             = "TF Alert Defaults ${random_id.suffix.hex}"
   alert_severity_id = oneuptime_alert_severity.test.id
 
   # IMPORTANT: We intentionally DO NOT specify these Optional+Computed fields:

@@ -4,6 +4,10 @@ terraform {
       source  = "oneuptime/oneuptime"
       version = "1.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -12,19 +16,23 @@ provider "oneuptime" {
   api_key       = var.api_key
 }
 
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
 # First, create a domain (required for status_page_domain)
 # The domain must be verified before it can be used with status_page_domain
 # For test domains (.example.com), DNS verification is bypassed
 resource "oneuptime_domain" "test" {
   project_id  = var.project_id
-  domain      = var.domain_name
+  domain      = "computed-test-${random_id.suffix.hex}.example.com"
   is_verified = true
 }
 
 # Then, create a status page (required for status_page_domain)
 resource "oneuptime_status_page" "test" {
   project_id               = var.project_id
-  name                     = var.status_page_name
+  name                     = "TF Computed Fields SP ${random_id.suffix.hex}"
   description              = "Status page created by Terraform E2E tests for computed fields test"
   page_title               = "Computed Fields Test Status"
   page_description         = "This tests computed field handling"

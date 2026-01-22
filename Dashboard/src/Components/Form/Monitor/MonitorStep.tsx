@@ -60,6 +60,7 @@ import MonitorStepTraceMonitor, {
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import MonitorTestForm from "./MonitorTest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import ObjectID from "Common/Types/ObjectID";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import MetricMonitorStepForm from "./MetricMonitor/MetricMonitorStepForm";
 import MonitorStepMetricMonitor, {
@@ -82,6 +83,7 @@ export interface ComponentProps {
   monitorType: MonitorType;
   allMonitorSteps: MonitorSteps;
   probes: Array<Probe>;
+  monitorId?: ObjectID | undefined; // this is used to populate secrets when testing the monitor.
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
@@ -824,6 +826,7 @@ return {
       {/** Monitor Test Form */}
       <div className="mt-5 mb-2">
         <MonitorTestForm
+          monitorId={props.monitorId}
           monitorSteps={props.allMonitorSteps}
           monitorType={props.monitorType}
           probes={props.probes}

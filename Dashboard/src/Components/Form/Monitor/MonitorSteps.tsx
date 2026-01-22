@@ -32,6 +32,7 @@ export interface ComponentProps extends CustomElementProps {
   initialValue?: MonitorSteps;
   monitorType: MonitorType;
   monitorName?: string | undefined; // this is used to prefill incident title and description. If not provided then it will be empty.
+  monitorId?: ObjectID | undefined; // this is used to populate secrets when testing the monitor.
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
@@ -236,6 +237,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
               value={i}
               probes={probes}
+              monitorId={props.monitorId}
               /*
                * onDelete={() => {
                *     // remove the criteria filter

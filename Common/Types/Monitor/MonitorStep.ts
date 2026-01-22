@@ -448,24 +448,6 @@ export default class MonitorStep extends DatabaseProperty {
         : undefined,
     }) as any;
 
-    if (monitorStep.data && !monitorStep.data?.logMonitor) {
-      monitorStep.data.logMonitor = MonitorStepLogMonitorUtil.getDefault();
-    }
-
-    if (monitorStep.data && !monitorStep.data?.traceMonitor) {
-      monitorStep.data.traceMonitor = MonitorStepTraceMonitorUtil.getDefault();
-    }
-
-    if (monitorStep.data && !monitorStep.data?.metricMonitor) {
-      monitorStep.data.metricMonitor =
-        MonitorStepMetricMonitorUtil.getDefault();
-    }
-
-    if (monitorStep.data && !monitorStep.data?.exceptionMonitor) {
-      monitorStep.data.exceptionMonitor =
-        MonitorStepExceptionMonitorUtil.getDefault();
-    }
-
     return monitorStep;
   }
 

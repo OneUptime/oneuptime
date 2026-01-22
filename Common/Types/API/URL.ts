@@ -98,16 +98,20 @@ export default class URL extends DatabaseProperty {
   public override toString(): string {
     let urlString: string = `${this.protocol}${this.hostname || this.email}`;
     if (!this.email && !urlString.startsWith("mailto:")) {
-      if (this.route && this.route.toString().startsWith("/")) {
-        if (urlString.endsWith("/")) {
-          urlString = urlString.substring(0, urlString.length - 1);
+      // Only add route if it's not empty
+      const routeString: string = this.route ? this.route.toString() : "";
+      if (routeString) {
+        if (routeString.startsWith("/")) {
+          if (urlString.endsWith("/")) {
+            urlString = urlString.substring(0, urlString.length - 1);
+          }
+          urlString += routeString;
+        } else {
+          if (urlString.endsWith("/")) {
+            urlString = urlString.substring(0, urlString.length - 1);
+          }
+          urlString += "/" + routeString;
         }
-        urlString += this.route.toString();
-      } else {
-        if (urlString.endsWith("/")) {
-          urlString = urlString.substring(0, urlString.length - 1);
-        }
-        urlString += "/" + this.route.toString();
       }
 
       if (Object.keys(this.params).length > 0) {

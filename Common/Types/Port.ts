@@ -23,7 +23,7 @@ export default class Port extends DatabaseProperty {
   public override toJSON(): JSONObject {
     return {
       _type: ObjectType.Port,
-      value: (this as Port).toString(),
+      value: (this as Port).toNumber(),
     };
   }
 

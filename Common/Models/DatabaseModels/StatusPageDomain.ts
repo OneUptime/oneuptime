@@ -302,12 +302,7 @@ export default class StatusPageDomain extends BaseModel {
 
   @UniqueColumnBy("projectId")
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPageDomain,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -317,7 +312,7 @@ export default class StatusPageDomain extends BaseModel {
     update: [],
   })
   @TableColumn({
-    required: true,
+    required: false,
     computed: true,
     type: TableColumnType.ShortText,
     title: "Full Domain",
@@ -438,17 +433,12 @@ export default class StatusPageDomain extends BaseModel {
    * when that happens the isCnameVerified is set to True and the certificate is added to Greenlock.
    */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPageDomain,
-    ],
+    create: [],
     read: [],
     update: [],
   })
   @TableColumn({
-    required: true,
+    required: false, // because it is generated at creation so user doesn't have to provide it
     computed: true,
     type: TableColumnType.ShortText,
     title: "CNAME Verification Token",

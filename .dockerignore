@@ -33,6 +33,15 @@ stop
 
 nohup.out*
 
+# Large directories not needed for Docker builds
+E2E/playwright-report
+E2E/test-results
+Terraform
+HelmChart
+Scripts
+.git
+GoSDK
+
 encrypted-credentials.tar
 encrypted-credentials/
 

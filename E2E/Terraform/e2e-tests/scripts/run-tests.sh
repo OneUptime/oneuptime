@@ -38,6 +38,24 @@ EOF
 
 echo "Provider installed to: $INSTALL_DIR"
 
+# Pre-download the random provider (needed by some tests)
+echo ""
+echo "=== Downloading Random Provider ==="
+RANDOM_PROVIDER_DIR="/tmp/tf-random-provider"
+mkdir -p "$RANDOM_PROVIDER_DIR"
+cat > "$RANDOM_PROVIDER_DIR/main.tf" << 'TFEOF'
+terraform {
+  required_providers {
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+  }
+}
+TFEOF
+(cd "$RANDOM_PROVIDER_DIR" && terraform init -upgrade > /dev/null 2>&1) || true
+echo "Random provider downloaded"
+
 #######################################
 # API Helper Functions (for verify.sh scripts)
 #######################################
@@ -154,6 +172,19 @@ for test_name in "${TEST_DIRS[@]}"; do
     # 3. Run verify.sh (API Validation)
     # 4. Destroy
     # 5. Verify Deletion via API
+
+    # Step 0: Initialize (copy pre-downloaded providers)
+    echo "  [0/5] Initializing..."
+    # Copy pre-downloaded random provider if the test uses it
+    if grep -q "hashicorp/random" "$test_path/main.tf" 2>/dev/null; then
+        mkdir -p "$test_path/.terraform/providers"
+        cp -r "$RANDOM_PROVIDER_DIR/.terraform/providers/registry.terraform.io/hashicorp" "$test_path/.terraform/providers/registry.terraform.io/" 2>/dev/null || true
+        # Copy lock file for random provider
+        if [ -f "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" ]; then
+            # Merge or copy lock file
+            cp "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" "$test_path/.terraform.lock.hcl" 2>/dev/null || true
+        fi
+    fi
 
     # Step 1: Plan
     echo "  [1/5] Planning..."

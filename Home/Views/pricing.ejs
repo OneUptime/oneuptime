@@ -21,6 +21,95 @@
   .payg-tab:focus {
     outline: none;
   }
+
+  /* Bitcoin Easter Egg Styles - Monochrome */
+  .bitcoin-easter-egg {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    cursor: pointer;
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+    padding: 2rem;
+  }
+
+  .bitcoin-easter-egg.active {
+    display: flex;
+  }
+
+  .bitcoin-ascii {
+    color: #fff;
+    font-size: 6px;
+    line-height: 1.1;
+    white-space: pre;
+    letter-spacing: 1px;
+  }
+
+  @media (min-width: 480px) {
+    .bitcoin-ascii {
+      font-size: 8px;
+    }
+  }
+
+  @media (min-width: 640px) {
+    .bitcoin-ascii {
+      font-size: 12px;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .bitcoin-ascii {
+      font-size: 16px;
+    }
+  }
+
+  .genesis-text {
+    color: #fff;
+    font-size: 0.65rem;
+    margin-top: 3rem;
+    text-align: left;
+    max-width: 90%;
+    line-height: 1.8;
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  @media (min-width: 640px) {
+    .genesis-text {
+      font-size: 0.875rem;
+      max-width: 700px;
+    }
+  }
+
+  .bitcoin-hint {
+    color: #fff;
+    opacity: 0.3;
+    font-size: 0.75rem;
+    position: absolute;
+    bottom: 2rem;
+    letter-spacing: 1px;
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  }
+
+  .bitcoin-trigger {
+    cursor: pointer;
+    color: #f7931a;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .bitcoin-trigger:hover {
+    text-decoration: underline;
+  }
 </style>
 
 <body>
@@ -1535,7 +1624,7 @@
                 </dt>
                 <dd class="mt-2 pr-12" id="faq-0">
                   <p class="text-base leading-7 text-gray-600">Visa / Mastercard / AmEx. Invoice payment available for
-                    Enterprise customers. We also support payments in Bitcoin. If you choose to do so, please send us an
+                    Enterprise customers. We also support payments in <span class="bitcoin-trigger" onclick="showBitcoinEasterEgg(); event.stopPropagation();">Bitcoin</span>. If you choose to do so, please send us an
                     email to billing@oneuptime.com and we will send a lightning invoice.</p>
                 </dd>
               </div>
@@ -1783,6 +1872,76 @@
               switchToYearlyBilling();
               checkCookies();
             };
+          </script>
+
+          <!-- Bitcoin Easter Egg -->
+          <div class="bitcoin-easter-egg" id="bitcoin-easter-egg" onclick="closeBitcoinEasterEgg()">
+            <pre class="bitcoin-ascii">
+██████╗ ██╗████████╗ ██████╗ ██████╗ ██╗███╗   ██╗
+██╔══██╗██║╚══██╔══╝██╔════╝██╔═══██╗██║████╗  ██║
+██████╔╝██║   ██║   ██║     ██║   ██║██║██╔██╗ ██║
+██╔══██╗██║   ██║   ██║     ██║   ██║██║██║╚██╗██║
+██████╔╝██║   ██║   ╚██████╗╚██████╔╝██║██║ ╚████║
+╚═════╝ ╚═╝   ╚═╝    ╚═════╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝</pre>
+
+            <div class="genesis-text">
+Block:         0
+Hash:          000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
+Timestamp:     2009-01-03 18:15:05
+Nonce:         2083236893
+Difficulty:    1
+Version:       1
+Merkle Root:   4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
+
+Coinbase:      "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
+            </div>
+
+            <div class="bitcoin-hint">built by bitcoiners, for bitcoiners. click anywhere to close.</div>
+          </div>
+
+          <script>
+            // Bitcoin Easter Egg - Type "bitcoin" or click on Bitcoin text to activate
+            (function() {
+              const secretWord = 'bitcoin';
+              let typedKeys = '';
+
+              window.showBitcoinEasterEgg = function() {
+                const easterEgg = document.getElementById('bitcoin-easter-egg');
+                easterEgg.classList.add('active');
+              };
+
+              window.closeBitcoinEasterEgg = function() {
+                const easterEgg = document.getElementById('bitcoin-easter-egg');
+                easterEgg.classList.remove('active');
+                typedKeys = '';
+              };
+
+              document.addEventListener('keydown', function(e) {
+                const easterEgg = document.getElementById('bitcoin-easter-egg');
+
+                // If easter egg is active, close it on any key press
+                if (easterEgg.classList.contains('active')) {
+                  closeBitcoinEasterEgg();
+                  return;
+                }
+
+                // Ignore if user is typing in an input/textarea
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                typedKeys += e.key.toLowerCase();
+
+                // Keep only the last N characters where N is the length of secret word
+                if (typedKeys.length > secretWord.length) {
+                  typedKeys = typedKeys.slice(-secretWord.length);
+                }
+
+                // Check if the secret word was typed
+                if (typedKeys === secretWord) {
+                  showBitcoinEasterEgg();
+                  typedKeys = '';
+                }
+              });
+            })();
           </script>
 
 </body>

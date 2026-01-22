@@ -56,27 +56,19 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   }
 
   if (statusPageObjectId && UserUtil.isLoggedIn(statusPageObjectId)) {
-    if (Navigation.getQueryStringByName("redirectUrl")) {
-      Navigation.navigate(
-        new Route(Navigation.getQueryStringByName("redirectUrl")!),
-      );
+    const safeRedirectUrl: string | null = StatusPageUtil.getSafeRedirectUrl();
+    if (safeRedirectUrl) {
+      Navigation.navigate(new Route(safeRedirectUrl));
     } else {
-      Navigation.navigate(
-        new Route(
-          StatusPageUtil.isPreviewPage()
-            ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
-            : "/",
-        ),
-      );
+      Navigation.navigate(StatusPageUtil.getDefaultRedirectRoute());
     }
   }
 
-  if (Navigation.getQueryStringByName("redirectUrl")) {
+  const safeRedirectUrlForStorage: string | null =
+    StatusPageUtil.getSafeRedirectUrl();
+  if (safeRedirectUrlForStorage) {
     // save this to local storage, so in the overview page. We can redirect to this page.
-    LocalStorage.setItem(
-      "redirectUrl",
-      Navigation.getQueryStringByName("redirectUrl"),
-    );
+    LocalStorage.setItem("redirectUrl", safeRedirectUrlForStorage);
   }
 
   if (isLoading) {

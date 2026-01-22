@@ -1836,6 +1836,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: MonitorStatus,
     isDefaultValueColumn: true,
+    computed: true,
     title: "Downtime Monitor Statuses",
     description:
       'List of monitors statuses that are considered as "down" for this status page.',
