@@ -92,13 +92,26 @@ async function main(): Promise<void> {
     );
     await docGen.generateDocumentation();
 
-    // Step 10: Generate build scripts
-    Logger.info("🔨 Step 9: Generating build and installation scripts...");
+    // Step 10: Write VERSION file to ensure git always detects changes
+    Logger.info("📝 Step 9: Writing VERSION file...");
+    const rootVersionPath: string = path.resolve(__dirname, "../../VERSION");
+    const providerVersionPath: string = path.resolve(providerDir, "VERSION");
+    const versionContent: string = fs.readFileSync(rootVersionPath, "utf-8").trim();
+    const versionFileContent: string = `${versionContent}
+# This file is auto-generated from the root VERSION file.
+# It ensures the Terraform provider is regenerated for each OneUptime release.
+# Generated at: ${new Date().toISOString()}
+`;
+    fs.writeFileSync(providerVersionPath, versionFileContent);
+    Logger.info(`✅ VERSION file written: ${versionContent}`);
+
+    // Step 11: Generate build scripts
+    Logger.info("🔨 Step 10: Generating build and installation scripts...");
     await generator.generateBuildScripts();
 
-    // Step 11: Run go mod tidy and update dependencies to latest
+    // Step 12: Run go mod tidy and update dependencies to latest
     Logger.info(
-      "📦 Step 10: Running go mod tidy and fetching latest dependencies...",
+      "📦 Step 11: Running go mod tidy and fetching latest dependencies...",
     );
 
     try {
@@ -122,8 +135,8 @@ async function main(): Promise<void> {
       );
     }
 
-    // Step 12: Build the provider for multiple platforms
-    Logger.info("🔨 Step 11: Building the provider for multiple platforms...");
+    // Step 13: Build the provider for multiple platforms
+    Logger.info("🔨 Step 12: Building the provider for multiple platforms...");
     try {
       const originalCwd: string = process.cwd();
       process.chdir(providerDir);
