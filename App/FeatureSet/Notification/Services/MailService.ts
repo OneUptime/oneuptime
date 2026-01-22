@@ -433,12 +433,16 @@ export default class MailService {
     try {
       for (let attempt: number = 1; attempt <= maxRetries; attempt++) {
         try {
-          await mailer.sendMail({
+          const sendMailResponse = await mailer.sendMail({
             from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
             to: mail.toEmail.toString(),
             subject: mail.subject,
             html: mail.body,
           });
+
+          logger.debug("SMTP Email Provider Response:");
+          logger.debug(JSON.stringify(sendMailResponse, null, 2));
+
           return; // Success, exit the function
         } catch (error) {
           lastError = error;
@@ -652,7 +656,20 @@ export default class MailService {
           emailLog.fromEmail = sendgridConfig.fromEmail;
         }
 
-        await SendgridMail.send(msg);
+        const sendgridResponse = await SendgridMail.send(msg);
+
+        logger.debug("SendGrid Email Provider Response:");
+        logger.debug(
+          JSON.stringify(
+            {
+              statusCode: sendgridResponse[0]?.statusCode,
+              headers: sendgridResponse[0]?.headers,
+              body: sendgridResponse[0]?.body,
+            },
+            null,
+            2,
+          ),
+        );
 
         if (emailLog) {
           emailLog.status = MailStatus.Success;
