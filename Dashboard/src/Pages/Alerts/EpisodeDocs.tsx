@@ -156,7 +156,7 @@ const AlertEpisodeDocs: FunctionComponent<
     {
       title: "Resolve Delay",
       description:
-        "Grace period before auto-resolving an episode. Prevents rapid state changes when alerts are flapping.",
+        "Grace period after all alerts resolve before auto-resolving the episode. Helps prevent unnecessary state changes during alert flapping - when alerts rapidly toggle between triggered and resolved states.",
       icon: IconProp.Clock,
       iconColor: new Color("#f59e0b"), // amber-500
     },
@@ -171,7 +171,7 @@ const AlertEpisodeDocs: FunctionComponent<
       title: "Inactivity Timeout",
       description:
         "Automatically resolve episodes after a period of no new alerts being added.",
-      icon: IconProp.Stop,
+      icon: IconProp.Time,
       iconColor: new Color("#6b7280"), // gray-500
     },
   ];
@@ -216,7 +216,7 @@ const AlertEpisodeDocs: FunctionComponent<
       title: "New Episode Created",
       description:
         "When an alert creates a NEW episode, both the alert's on-call policy AND the grouping rule's on-call policy are executed.",
-      icon: IconProp.Plus,
+      icon: IconProp.Add,
       iconColor: new Color("#22c55e"), // green-500
     },
     {
@@ -230,7 +230,7 @@ const AlertEpisodeDocs: FunctionComponent<
       title: "No On-Call Policy",
       description:
         "If neither the alert nor the grouping rule has an on-call policy configured, no notifications are sent automatically.",
-      icon: IconProp.Mute,
+      icon: IconProp.NoSignal,
       iconColor: new Color("#6b7280"), // gray-500
     },
     {
