@@ -41,34 +41,23 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     }
 
     if (props.forceSSO) {
-      if (Navigation.getQueryStringByName("redirectUrl")) {
-        // forward redirect url to sso page
-
-        const navRoute: Route = new Route(
-          (!StatusPageUtil.isPreviewPage()
-            ? RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SSO]!,
-                statusPageId,
-              )
-            : RouteUtil.populateRouteParams(
-                RouteMap[PageMap.PREVIEW_SSO]!,
-                statusPageId,
-              )
-          ).toString() +
-            `?redirectUrl=${Navigation.getQueryStringByName("redirectUrl")}`,
-        );
-
-        Navigation.navigate(navRoute);
-      } else {
-        const navRoute: Route = !StatusPageUtil.isPreviewPage()
+      const safeRedirectUrl: string | null = StatusPageUtil.getSafeRedirectUrl();
+      const ssoBasePath: string = (
+        !StatusPageUtil.isPreviewPage()
           ? RouteUtil.populateRouteParams(RouteMap[PageMap.SSO]!, statusPageId)
           : RouteUtil.populateRouteParams(
               RouteMap[PageMap.PREVIEW_SSO]!,
               statusPageId,
-            );
+            )
+      ).toString();
 
-        Navigation.navigate(navRoute);
-      }
+      const navRoute: Route = new Route(
+        safeRedirectUrl
+          ? `${ssoBasePath}?redirectUrl=${safeRedirectUrl}`
+          : ssoBasePath,
+      );
+
+      Navigation.navigate(navRoute);
     }
   }, [props.forceSSO, statusPageIdString, requiresMasterPasswordLock]);
 
@@ -102,18 +91,11 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   }
 
   if (statusPageId && UserUtil.isLoggedIn(statusPageId)) {
-    if (Navigation.getQueryStringByName("redirectUrl")) {
-      Navigation.navigate(
-        new Route(Navigation.getQueryStringByName("redirectUrl")!),
-      );
+    const safeRedirectUrl: string | null = StatusPageUtil.getSafeRedirectUrl();
+    if (safeRedirectUrl) {
+      Navigation.navigate(new Route(safeRedirectUrl));
     } else {
-      const navRoute: Route = new Route(
-        StatusPageUtil.isPreviewPage()
-          ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
-          : "/",
-      );
-
-      Navigation.navigate(navRoute);
+      Navigation.navigate(StatusPageUtil.getDefaultRedirectRoute());
     }
   }
 
@@ -184,18 +166,12 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 token: miscData ? miscData["token"] : undefined,
               });
 
-              if (Navigation.getQueryStringByName("redirectUrl")) {
-                Navigation.navigate(
-                  new Route(Navigation.getQueryStringByName("redirectUrl")!),
-                );
+              const safeRedirectUrl: string | null =
+                StatusPageUtil.getSafeRedirectUrl();
+              if (safeRedirectUrl) {
+                Navigation.navigate(new Route(safeRedirectUrl));
               } else {
-                Navigation.navigate(
-                  new Route(
-                    StatusPageUtil.isPreviewPage()
-                      ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/`
-                      : "/",
-                  ),
-                );
+                Navigation.navigate(StatusPageUtil.getDefaultRedirectRoute());
               }
             }}
             onBeforeCreate={(

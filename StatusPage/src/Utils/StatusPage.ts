@@ -7,6 +7,46 @@ import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 
 export default class StatusPageUtil {
+  // List of authentication-related paths that should not be used as redirect URLs
+  private static readonly AUTH_PATHS: string[] = [
+    "/login",
+    "/sso",
+    "/master-password",
+    "/forgot-password",
+    "/reset-password",
+  ];
+
+  // Check if a path is an authentication-related page
+  public static isAuthPath(path: string): boolean {
+    const normalizedPath: string = path.toLowerCase().split("?")[0] || "";
+    return StatusPageUtil.AUTH_PATHS.some((authPath: string) => {
+      return (
+        normalizedPath === authPath ||
+        normalizedPath.endsWith(authPath) ||
+        normalizedPath.includes(authPath + "?")
+      );
+    });
+  }
+
+  // Get a safe redirect URL, returning null if the URL is an auth page
+  public static getSafeRedirectUrl(): string | null {
+    const redirectUrl: string | null =
+      Navigation.getQueryStringByName("redirectUrl");
+    if (!redirectUrl || StatusPageUtil.isAuthPath(redirectUrl)) {
+      return null;
+    }
+    return redirectUrl;
+  }
+
+  // Get the default redirect path (overview page)
+  public static getDefaultRedirectRoute(): Route {
+    return new Route(
+      StatusPageUtil.isPreviewPage()
+        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/`
+        : "/",
+    );
+  }
+
   public static getStatusPageId(): ObjectID | null {
     const value: ObjectID | null = LocalStorage.getItem(
       "statusPageId",
@@ -138,10 +178,15 @@ export default class StatusPageUtil {
       return;
     }
 
+    const currentPath: string = Navigation.getCurrentPath().toString();
+    const shouldIncludeRedirect: boolean = !StatusPageUtil.isAuthPath(currentPath);
+
+    const basePath: string = StatusPageUtil.isPreviewPage()
+      ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login`
+      : "/login";
+
     const route: Route = new Route(
-      StatusPageUtil.isPreviewPage()
-        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
-        : `/login?redirectUrl=${Navigation.getCurrentPath()}`,
+      shouldIncludeRedirect ? `${basePath}?redirectUrl=${currentPath}` : basePath,
     );
 
     Navigation.navigate(route, { forceNavigate: true });
@@ -152,12 +197,17 @@ export default class StatusPageUtil {
       return;
     }
 
+    const currentPath: string = Navigation.getCurrentPath().toString();
+    const shouldIncludeRedirect: boolean = !StatusPageUtil.isAuthPath(currentPath);
+
     const basePath: string = StatusPageUtil.isPreviewPage()
       ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
       : "";
 
     const route: Route = new Route(
-      `${basePath}/master-password?redirectUrl=${Navigation.getCurrentPath()}`,
+      shouldIncludeRedirect
+        ? `${basePath}/master-password?redirectUrl=${currentPath}`
+        : `${basePath}/master-password`,
     );
 
     Navigation.navigate(route, { forceNavigate: true });
