@@ -177,10 +177,21 @@ const AlertGroupingRulesPage: FunctionComponent<
             title: "Time Window (minutes)",
             stepId: "time-settings",
             fieldType: FormFieldSchemaType.Number,
-            required: false,
+            required: true,
             placeholder: "60",
             description:
-              "Rolling window in minutes. Alerts within this gap of the last alert will be grouped together.",
+              "Rolling window that determines how long an episode stays open for new alerts. Alerts arriving within this time gap of the last alert will be grouped into the same episode. For example, if set to 60 minutes, alerts will keep grouping as long as each new alert arrives within 60 minutes of the previous one.",
+          },
+          {
+            field: {
+              enableResolveDelay: true,
+            },
+            title: "Enable Resolve Delay",
+            stepId: "time-settings",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Enable this to add a grace period before auto-resolving an episode after all its alerts are resolved. This helps prevent unnecessary state changes during alert flapping - when alerts rapidly toggle between triggered and resolved states. Without this, the episode would resolve immediately when alerts resolve, then potentially reopen moments later if the issue recurs.",
           },
           {
             field: {
@@ -191,8 +202,22 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "5",
+            showIf: (model: AlertGroupingRule): boolean => {
+              return model.enableResolveDelay === true;
+            },
             description:
-              "Grace period after all alerts resolve before auto-resolving the episode.",
+              "Number of minutes to wait after all alerts in the episode are resolved before automatically resolving the episode itself.",
+          },
+          {
+            field: {
+              enableReopenWindow: true,
+            },
+            title: "Enable Reopen Window",
+            stepId: "time-settings",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Enable this to reopen recently resolved episodes instead of creating new ones when matching alerts arrive. This is useful for recurring issues - if a problem returns shortly after being resolved, it makes more sense to continue tracking it in the same episode rather than fragmenting the incident history across multiple episodes.",
           },
           {
             field: {
@@ -203,8 +228,22 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "30",
+            showIf: (model: AlertGroupingRule): boolean => {
+              return model.enableReopenWindow === true;
+            },
             description:
-              "Window after episode resolution during which a new matching alert will reopen it instead of creating a new episode.",
+              "Time window after an episode is resolved during which a new matching alert will reopen that episode instead of creating a new one.",
+          },
+          {
+            field: {
+              enableInactivityTimeout: true,
+            },
+            title: "Enable Inactivity Timeout",
+            stepId: "time-settings",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Enable this to automatically resolve episodes after a period of inactivity. This helps clean up stale episodes that are no longer receiving alerts, ensuring your active episode list stays current and relevant. Without this, episodes would remain open indefinitely until manually resolved.",
           },
           {
             field: {
@@ -215,8 +254,11 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "60",
+            showIf: (model: AlertGroupingRule): boolean => {
+              return model.enableInactivityTimeout === true;
+            },
             description:
-              "Resolve episode if no new alerts are added within this time. Set to 0 to disable.",
+              "Number of minutes of inactivity (no new alerts added) after which the episode will be automatically resolved.",
           },
           {
             field: {

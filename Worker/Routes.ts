@@ -25,7 +25,7 @@ import "./Jobs/Alert/KeepCurrentStateConsistent";
 
 // Alert Episodes
 import "./Jobs/AlertEpisode/AutoResolve";
-import "./Jobs/AlertEpisode/BreakInactive";
+import "./Jobs/AlertEpisode/ResolveInactiveEpisodes";
 
 // Incident Notes
 import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";

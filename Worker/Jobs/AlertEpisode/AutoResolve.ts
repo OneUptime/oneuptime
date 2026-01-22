@@ -73,14 +73,16 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
       return;
     }
 
-    // Get resolve delay from the grouping rule if exists
+    // Get resolve delay from the grouping rule if exists and enabled
     let resolveDelayMinutes: number = 0;
+    let enableResolveDelay: boolean = false;
 
     if (episode.alertGroupingRuleId) {
       const rule: AlertGroupingRule | null =
         await AlertGroupingRuleService.findOneById({
           id: episode.alertGroupingRuleId,
           select: {
+            enableResolveDelay: true,
             resolveDelayMinutes: true,
           },
           props: {
@@ -88,8 +90,11 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
           },
         });
 
-      if (rule && rule.resolveDelayMinutes) {
-        resolveDelayMinutes = rule.resolveDelayMinutes;
+      if (rule) {
+        enableResolveDelay = rule.enableResolveDelay || false;
+        if (enableResolveDelay && rule.resolveDelayMinutes) {
+          resolveDelayMinutes = rule.resolveDelayMinutes;
+        }
       }
     }
 
@@ -171,8 +176,8 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
       return;
     }
 
-    // All alerts are resolved. Check if resolve delay has passed
-    if (resolveDelayMinutes > 0 && lastResolvedAt) {
+    // All alerts are resolved. Check if resolve delay has passed (only if enabled)
+    if (enableResolveDelay && resolveDelayMinutes > 0 && lastResolvedAt) {
       const timeSinceLastResolved: number =
         OneUptimeDate.getDifferenceInMinutes(
           lastResolvedAt,

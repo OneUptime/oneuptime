@@ -435,6 +435,40 @@ export default class AlertGroupingRule extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.Boolean,
+    title: "Enable Resolve Delay",
+    description:
+      "Enable grace period before auto-resolving episode after all alerts resolve. Helps prevent rapid state changes during alert flapping.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public enableResolveDelay?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Number,
     title: "Resolve Delay (Minutes)",
     description:
@@ -469,6 +503,40 @@ export default class AlertGroupingRule extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.Boolean,
+    title: "Enable Reopen Window",
+    description:
+      "Enable reopening recently resolved episodes instead of creating new ones. Useful when related issues recur shortly after resolution.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public enableReopenWindow?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Number,
     title: "Reopen Window (Minutes)",
     description:
@@ -482,6 +550,40 @@ export default class AlertGroupingRule extends BaseModel {
     default: 0,
   })
   public reopenWindowMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Enable Inactivity Timeout",
+    description:
+      "Enable auto-resolving episodes after a period of inactivity. Helps automatically close episodes when no new alerts arrive.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public enableInactivityTimeout?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [

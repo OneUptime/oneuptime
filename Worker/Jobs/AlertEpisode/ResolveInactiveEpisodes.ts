@@ -9,7 +9,7 @@ import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
-  "AlertEpisode:BreakInactive",
+  "AlertEpisode:ResolveInactiveEpisodes",
   {
     schedule: EVERY_FIVE_MINUTE,
     runOnStartup: false,
@@ -41,41 +41,43 @@ RunCron(
         });
 
       logger.debug(
-        `AlertEpisode:BreakInactive - Found ${activeEpisodes.length} active episodes`,
+        `AlertEpisode:ResolveInactiveEpisodes - Found ${activeEpisodes.length} active episodes`,
       );
 
       const promises: Array<Promise<void>> = [];
 
       for (const episode of activeEpisodes) {
-        promises.push(checkAndBreakInactiveEpisode(episode));
+        promises.push(checkAndResolveInactiveEpisode(episode));
       }
 
       await Promise.allSettled(promises);
     } catch (error) {
-      logger.error(`AlertEpisode:BreakInactive - Error: ${error}`);
+      logger.error(`AlertEpisode:ResolveInactiveEpisodes - Error: ${error}`);
     }
   },
 );
 
-type CheckAndBreakInactiveEpisodeFunction = (
+type CheckAndResolveInactiveEpisodeFunction = (
   episode: AlertEpisode,
 ) => Promise<void>;
 
-const checkAndBreakInactiveEpisode: CheckAndBreakInactiveEpisodeFunction =
+const checkAndResolveInactiveEpisode: CheckAndResolveInactiveEpisodeFunction =
   async (episode: AlertEpisode): Promise<void> => {
     try {
       if (!episode.id || !episode.projectId) {
         return;
       }
 
-      // Get inactivity timeout from the grouping rule
-      let inactivityTimeoutMinutes: number = 60; // Default: 1 hour
+      // Get inactivity timeout from the grouping rule (only if enabled)
+      let inactivityTimeoutMinutes: number = 0;
+      let enableInactivityTimeout: boolean = false;
 
       if (episode.alertGroupingRuleId) {
         const rule: AlertGroupingRule | null =
           await AlertGroupingRuleService.findOneById({
             id: episode.alertGroupingRuleId,
             select: {
+              enableInactivityTimeout: true,
               inactivityTimeoutMinutes: true,
             },
             props: {
@@ -83,13 +85,16 @@ const checkAndBreakInactiveEpisode: CheckAndBreakInactiveEpisodeFunction =
             },
           });
 
-        if (rule && rule.inactivityTimeoutMinutes !== undefined) {
-          inactivityTimeoutMinutes = rule.inactivityTimeoutMinutes;
+        if (rule) {
+          enableInactivityTimeout = rule.enableInactivityTimeout || false;
+          if (enableInactivityTimeout && rule.inactivityTimeoutMinutes !== undefined) {
+            inactivityTimeoutMinutes = rule.inactivityTimeoutMinutes;
+          }
         }
       }
 
-      // If inactivity timeout is 0, don't break inactive episodes
-      if (inactivityTimeoutMinutes <= 0) {
+      // If inactivity timeout is not enabled or is 0, don't resolve inactive episodes
+      if (!enableInactivityTimeout || inactivityTimeoutMinutes <= 0) {
         return;
       }
 
@@ -104,14 +109,14 @@ const checkAndBreakInactiveEpisode: CheckAndBreakInactiveEpisodeFunction =
 
       if (minutesSinceLastAlert < inactivityTimeoutMinutes) {
         logger.debug(
-          `AlertEpisode:BreakInactive - Episode ${episode.id} is still active (${minutesSinceLastAlert} minutes since last alert, timeout: ${inactivityTimeoutMinutes})`,
+          `AlertEpisode:ResolveInactiveEpisodes - Episode ${episode.id} is still active (${minutesSinceLastAlert} minutes since last alert, timeout: ${inactivityTimeoutMinutes})`,
         );
         return;
       }
 
       // Episode has been inactive for too long - resolve it
       logger.info(
-        `AlertEpisode:BreakInactive - Resolving episode ${episode.id} due to inactivity (${minutesSinceLastAlert} minutes since last alert)`,
+        `AlertEpisode:ResolveInactiveEpisodes - Resolving episode ${episode.id} due to inactivity (${minutesSinceLastAlert} minutes since last alert)`,
       );
 
       await AlertEpisodeService.resolveEpisode(
@@ -121,7 +126,7 @@ const checkAndBreakInactiveEpisode: CheckAndBreakInactiveEpisodeFunction =
       );
     } catch (error) {
       logger.error(
-        `AlertEpisode:BreakInactive - Error processing episode ${episode.id}: ${error}`,
+        `AlertEpisode:ResolveInactiveEpisodes - Error processing episode ${episode.id}: ${error}`,
       );
     }
   };

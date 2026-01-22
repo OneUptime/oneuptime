@@ -61,7 +61,11 @@ class AlertGroupingEngineServiceClass {
             timeWindowMinutes: true,
             groupByFields: true,
             episodeTitleTemplate: true,
+            enableResolveDelay: true,
+            resolveDelayMinutes: true,
+            enableReopenWindow: true,
             reopenWindowMinutes: true,
+            enableInactivityTimeout: true,
             inactivityTimeoutMinutes: true,
             defaultAssignToUserId: true,
             defaultAssignToTeamId: true,
@@ -273,46 +277,48 @@ class AlertGroupingEngineServiceClass {
       };
     }
 
-    // Check if we can reopen a recently resolved episode
-    const reopenWindowMinutes: number = rule.reopenWindowMinutes || 0;
-    if (reopenWindowMinutes > 0) {
-      const reopenCutoff: Date =
-        OneUptimeDate.getSomeMinutesAgo(reopenWindowMinutes);
-      const recentlyResolvedEpisode: AlertEpisode | null =
-        await this.findRecentlyResolvedEpisode(
-          alert.projectId!,
-          rule.id!,
-          groupingKey,
-          reopenCutoff,
-        );
+    // Check if we can reopen a recently resolved episode (only if enabled)
+    if (rule.enableReopenWindow) {
+      const reopenWindowMinutes: number = rule.reopenWindowMinutes || 0;
+      if (reopenWindowMinutes > 0) {
+        const reopenCutoff: Date =
+          OneUptimeDate.getSomeMinutesAgo(reopenWindowMinutes);
+        const recentlyResolvedEpisode: AlertEpisode | null =
+          await this.findRecentlyResolvedEpisode(
+            alert.projectId!,
+            rule.id!,
+            groupingKey,
+            reopenCutoff,
+          );
 
-      if (recentlyResolvedEpisode && recentlyResolvedEpisode.id) {
-        // Reopen the episode
-        await AlertEpisodeService.reopenEpisode(recentlyResolvedEpisode.id);
+        if (recentlyResolvedEpisode && recentlyResolvedEpisode.id) {
+          // Reopen the episode
+          await AlertEpisodeService.reopenEpisode(recentlyResolvedEpisode.id);
 
-        // Add alert to reopened episode
-        await this.addAlertToEpisode(
-          alert,
-          recentlyResolvedEpisode.id,
-          AlertEpisodeMemberAddedBy.Rule,
-          rule.id!,
-        );
+          // Add alert to reopened episode
+          await this.addAlertToEpisode(
+            alert,
+            recentlyResolvedEpisode.id,
+            AlertEpisodeMemberAddedBy.Rule,
+            rule.id!,
+          );
 
-        // Update episode severity if alert has higher severity
-        if (alert.alertSeverityId) {
-          await AlertEpisodeService.updateEpisodeSeverity({
+          // Update episode severity if alert has higher severity
+          if (alert.alertSeverityId) {
+            await AlertEpisodeService.updateEpisodeSeverity({
+              episodeId: recentlyResolvedEpisode.id,
+              severityId: alert.alertSeverityId,
+              onlyIfHigher: true,
+            });
+          }
+
+          return {
+            grouped: true,
             episodeId: recentlyResolvedEpisode.id,
-            severityId: alert.alertSeverityId,
-            onlyIfHigher: true,
-          });
+            isNewEpisode: false,
+            wasReopened: true,
+          };
         }
-
-        return {
-          grouped: true,
-          episodeId: recentlyResolvedEpisode.id,
-          isNewEpisode: false,
-          wasReopened: true,
-        };
       }
     }
 
