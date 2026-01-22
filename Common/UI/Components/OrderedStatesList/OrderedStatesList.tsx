@@ -48,14 +48,31 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
 
   if (props.data.length === 0) {
     return (
-      <ErrorMessage
-        message={
-          props.noItemsMessage
-            ? props.noItemsMessage
-            : `No ${props.singularLabel.toLocaleLowerCase()}`
-        }
-        onRefreshClick={props.onRefreshClick}
-      />
+      <div className="text-center">
+        <ErrorMessage
+          message={
+            props.noItemsMessage
+              ? props.noItemsMessage
+              : `No ${props.singularLabel.toLocaleLowerCase()}`
+          }
+          onRefreshClick={props.onRefreshClick}
+        />
+        {props.onCreateNewItem && (
+          <div className="mt-6">
+            <div
+              className="m-auto inline-flex items-center cursor-pointer text-gray-400 hover:bg-gray-50 border hover:text-gray-600 rounded-full border-gray-300 p-5"
+              onClick={() => {
+                if (props.onCreateNewItem) {
+                  props.onCreateNewItem(1);
+                }
+              }}
+            >
+              <Icon icon={IconProp.Add} className="h-5 w-5" />
+              <span className="text-sm ml-2">Add New {props.singularLabel}</span>
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
