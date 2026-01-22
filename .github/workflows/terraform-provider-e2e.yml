@@ -34,15 +34,83 @@ jobs:
 
       - name: Additional Disk Cleanup
         run: |
+          echo "=== Initial disk space ==="
+          df -h
+
+          echo "=== Removing unnecessary tools and libraries ==="
+          # Remove Android SDK (if not already removed)
           sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
+
+          # Remove .NET SDK and runtime
           sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /etc/skel/.dotnet || true
+
+          # Remove Haskell/GHC
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /usr/local/.ghcup || true
+
+          # Remove CodeQL
           sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+
+          # Remove Boost
           sudo rm -rf /usr/local/share/boost || true
+
+          # Remove Swift
           sudo rm -rf /usr/share/swift || true
+
+          # Remove Julia
+          sudo rm -rf /usr/local/julia* || true
+
+          # Remove Rust (cargo/rustup)
+          sudo rm -rf /usr/share/rust || true
+          sudo rm -rf /home/runner/.rustup || true
+          sudo rm -rf /home/runner/.cargo || true
+
+          # Remove unnecessary hostedtoolcache items
+          sudo rm -rf /opt/hostedtoolcache/Python || true
+          sudo rm -rf /opt/hostedtoolcache/PyPy || true
+          sudo rm -rf /opt/hostedtoolcache/Ruby || true
+          sudo rm -rf /opt/hostedtoolcache/Java* || true
+
+          # Remove additional large directories
+          sudo rm -rf /usr/share/miniconda || true
+          sudo rm -rf /usr/local/graalvm || true
+          sudo rm -rf /usr/local/share/chromium || true
+          sudo rm -rf /usr/local/share/powershell || true
+          sudo rm -rf /usr/share/az_* || true
+
+          # Remove documentation
+          sudo rm -rf /usr/share/doc || true
+          sudo rm -rf /usr/share/man || true
+
+          # Remove unnecessary locales
+          sudo rm -rf /usr/share/locale || true
+
+          # Clean apt cache
           sudo apt-get clean || true
           sudo rm -rf /var/lib/apt/lists/* || true
+          sudo rm -rf /var/cache/apt/archives/* || true
+
+          # Clean tmp
+          sudo rm -rf /tmp/* || true
+
+          echo "=== Moving Docker data to /mnt for more space ==="
+          # Stop docker
+          sudo systemctl stop docker || true
+
+          # Move docker data directory to /mnt (which has ~70GB)
+          sudo mv /var/lib/docker /mnt/docker || true
+          sudo mkdir -p /var/lib/docker || true
+          sudo mount --bind /mnt/docker /var/lib/docker || true
+
+          # Restart docker
+          sudo systemctl start docker || true
+
+          echo "=== Final disk space ==="
           df -h
+
+          echo "=== Docker info ==="
+          docker info | grep -E "Docker Root Dir|Storage Driver" || true
 
       - name: Checkout code
         uses: actions/checkout@v4
