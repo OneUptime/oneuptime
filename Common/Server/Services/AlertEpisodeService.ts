@@ -21,11 +21,8 @@ import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpis
 import { Red500, Green500 } from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
-
-// Type aliases for dynamically imported services
-type AlertSeverityServiceType = typeof import("./AlertSeverityService").default;
-type AlertEpisodeMemberServiceType =
-  typeof import("./AlertEpisodeMemberService").default;
+import AlertSeverityService from "./AlertSeverityService";
+import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -424,9 +421,6 @@ export class Service extends DatabaseService<Model> {
 
     if (onlyIfHigher && episode.alertSeverity?.order !== undefined) {
       // Get the new severity to check its order
-      const AlertSeverityService: AlertSeverityServiceType = (
-        await import("./AlertSeverityService")
-      ).default;
       const newSeverity: AlertSeverity | null =
         await AlertSeverityService.findOneById({
           id: severityId,
@@ -459,10 +453,6 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async updateAlertCount(episodeId: ObjectID): Promise<void> {
-    const AlertEpisodeMemberService: AlertEpisodeMemberServiceType = (
-      await import("./AlertEpisodeMemberService")
-    ).default;
-
     const count: PositiveNumber = await AlertEpisodeMemberService.countBy({
       query: {
         alertEpisodeId: episodeId,

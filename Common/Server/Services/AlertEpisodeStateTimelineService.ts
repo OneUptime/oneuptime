@@ -19,9 +19,7 @@ import logger from "../Utils/Logger";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
-
-// Type alias for dynamically imported service
-type AlertEpisodeServiceType = typeof import("./AlertEpisodeService").default;
+import AlertEpisodeService from "./AlertEpisodeService";
 
 export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
   public constructor() {
@@ -258,10 +256,6 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
 
     // Update episode's current state if this is the latest timeline entry
     if (!createdItem.endsAt) {
-      const AlertEpisodeService: AlertEpisodeServiceType = (
-        await import("./AlertEpisodeService")
-      ).default;
-
       await AlertEpisodeService.updateOneBy({
         query: {
           _id: createdItem.alertEpisodeId?.toString(),
@@ -308,10 +302,6 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
     } else if (alertState?.isCreatedState) {
       stateEmoji = "🔴";
     }
-
-    const AlertEpisodeService: AlertEpisodeServiceType = (
-      await import("./AlertEpisodeService")
-    ).default;
 
     const episode: AlertEpisode | null = await AlertEpisodeService.findOneById({
       id: createdItem.alertEpisodeId,
@@ -503,10 +493,6 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         });
 
       if (episodeStateTimeline && episodeStateTimeline.alertStateId) {
-        const AlertEpisodeService: AlertEpisodeServiceType = (
-          await import("./AlertEpisodeService")
-        ).default;
-
         await AlertEpisodeService.updateOneBy({
           query: {
             _id: episodeId.toString(),

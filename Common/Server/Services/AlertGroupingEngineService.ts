@@ -15,14 +15,10 @@ import logger from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
-
-// Type aliases for dynamically imported services
-type AlertGroupingRuleServiceType =
-  typeof import("./AlertGroupingRuleService").default;
-type AlertEpisodeServiceType = typeof import("./AlertEpisodeService").default;
-type AlertStateServiceType = typeof import("./AlertStateService").default;
-type AlertEpisodeMemberServiceType =
-  typeof import("./AlertEpisodeMemberService").default;
+import AlertGroupingRuleService from "./AlertGroupingRuleService";
+import AlertEpisodeService from "./AlertEpisodeService";
+import AlertStateService from "./AlertStateService";
+import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -46,10 +42,6 @@ class AlertGroupingEngineServiceClass {
       }
 
       // Get enabled rules sorted by priority
-      const AlertGroupingRuleService: AlertGroupingRuleServiceType = (
-        await import("./AlertGroupingRuleService")
-      ).default;
-
       const rules: Array<AlertGroupingRule> =
         await AlertGroupingRuleService.findBy({
           query: {
@@ -236,10 +228,6 @@ class AlertGroupingEngineServiceClass {
     alert: Alert,
     rule: AlertGroupingRule,
   ): Promise<GroupingResult> {
-    const AlertEpisodeService: AlertEpisodeServiceType = (
-      await import("./AlertEpisodeService")
-    ).default;
-
     // Build the grouping key based on groupByFields
     const groupingKey: string = this.buildGroupingKey(
       alert,
@@ -421,13 +409,6 @@ class AlertGroupingEngineServiceClass {
     groupingKey: string,
     timeWindowCutoff: Date,
   ): Promise<AlertEpisode | null> {
-    const AlertEpisodeService: AlertEpisodeServiceType = (
-      await import("./AlertEpisodeService")
-    ).default;
-    const AlertStateService: AlertStateServiceType = (
-      await import("./AlertStateService")
-    ).default;
-
     // Get resolved state to exclude resolved episodes
     const resolvedState: AlertState | null = await AlertStateService.findOneBy({
       query: {
@@ -489,10 +470,6 @@ class AlertGroupingEngineServiceClass {
     groupingKey: string,
     reopenCutoff: Date,
   ): Promise<AlertEpisode | null> {
-    const AlertEpisodeService: AlertEpisodeServiceType = (
-      await import("./AlertEpisodeService")
-    ).default;
-
     // Find recently resolved episode with matching rule and grouping key
     const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
       query: {
@@ -521,10 +498,6 @@ class AlertGroupingEngineServiceClass {
     rule: AlertGroupingRule,
     groupingKey: string,
   ): Promise<AlertEpisode | null> {
-    const AlertEpisodeService: AlertEpisodeServiceType = (
-      await import("./AlertEpisodeService")
-    ).default;
-
     // Generate episode title from template
     const title: string = this.generateEpisodeTitle(
       alert,
@@ -618,10 +591,6 @@ class AlertGroupingEngineServiceClass {
     addedBy: AlertEpisodeMemberAddedBy,
     ruleId?: ObjectID,
   ): Promise<void> {
-    const AlertEpisodeMemberService: AlertEpisodeMemberServiceType = (
-      await import("./AlertEpisodeMemberService")
-    ).default;
-
     const member: AlertEpisodeMember = new AlertEpisodeMember();
     member.projectId = alert.projectId;
     member.alertEpisodeId = episodeId;
@@ -658,13 +627,6 @@ class AlertGroupingEngineServiceClass {
     episodeId: ObjectID,
     addedByUserId?: ObjectID,
   ): Promise<void> {
-    const AlertEpisodeMemberService: AlertEpisodeMemberServiceType = (
-      await import("./AlertEpisodeMemberService")
-    ).default;
-    const AlertEpisodeService: AlertEpisodeServiceType = (
-      await import("./AlertEpisodeService")
-    ).default;
-
     const member: AlertEpisodeMember = new AlertEpisodeMember();
     member.projectId = alert.projectId;
     member.alertEpisodeId = episodeId;

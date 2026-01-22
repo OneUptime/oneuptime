@@ -54,10 +54,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MetricType from "../../Models/DatabaseModels/MetricType";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
-
-// Type alias for dynamically imported service
-type AlertGroupingEngineServiceType =
-  typeof import("./AlertGroupingEngineService").default;
+import AlertGroupingEngineService from "./AlertGroupingEngineService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -358,10 +355,6 @@ export class Service extends DatabaseService<Model> {
       .then(async () => {
         // Process alert for grouping into episodes
         try {
-          const AlertGroupingEngineService: AlertGroupingEngineServiceType = (
-            await import("./AlertGroupingEngineService")
-          ).default;
-
           await AlertGroupingEngineService.processAlert(createdItem);
         } catch (error) {
           logger.error(

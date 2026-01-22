@@ -13,10 +13,8 @@ import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { Yellow500, Green500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
-
-// Type aliases for dynamically imported services
-type AlertServiceType = typeof import("./AlertService").default;
-type AlertEpisodeServiceType = typeof import("./AlertEpisodeService").default;
+import AlertService from "./AlertService";
+import AlertEpisodeService from "./AlertEpisodeService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -82,9 +80,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Update alert's episode reference
-    const AlertService: AlertServiceType = (await import("./AlertService"))
-      .default;
-
     await AlertService.updateOneById({
       id: createdItem.alertId,
       data: {
@@ -96,10 +91,6 @@ export class Service extends DatabaseService<Model> {
     });
 
     // Update episode's alertCount and lastAlertAddedAt
-    const AlertEpisodeService: AlertEpisodeServiceType = (
-      await import("./AlertEpisodeService")
-    ).default;
-
     Promise.resolve()
       .then(async () => {
         try {
@@ -179,12 +170,6 @@ export class Service extends DatabaseService<Model> {
     const membersDeleted: Model[] = onDelete.carryForward as Model[];
 
     if (membersDeleted && membersDeleted.length > 0) {
-      const AlertService: AlertServiceType = (await import("./AlertService"))
-        .default;
-      const AlertEpisodeService: AlertEpisodeServiceType = (
-        await import("./AlertEpisodeService")
-      ).default;
-
       for (const member of membersDeleted) {
         if (member.alertId) {
           // Clear the episode reference from the alert
