@@ -223,6 +223,7 @@ import { AddIncomingEmailMonitor1768335589018 } from "./1768335589018-AddIncomin
 import { MigrationName1768422356713 } from "./1768422356713-MigrationName";
 import { MigrationName1768583966447 } from "./1768583966447-MigrationName";
 import { MigrationName1768825402472 } from "./1768825402472-MigrationName";
+import { MigrationName1769169355244 } from "./1769169355244-MigrationName";
 
 export default [
   InitialMigration,
@@ -450,4 +451,5 @@ export default [
   MigrationName1768422356713,
   MigrationName1768583966447,
   MigrationName1768825402472,
+  MigrationName1769169355244
 ];
