@@ -129,6 +129,16 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           },
 
           pre: ({ children, ...rest }: any) => {
+            // Check if this is a mermaid diagram - don't render pre wrapper for mermaid
+            const isMermaid: boolean =
+              React.isValidElement(children) &&
+              (children as any).props?.className?.includes("language-mermaid");
+
+            if (isMermaid) {
+              // For mermaid, just return the children (MermaidDiagram component)
+              return <>{children}</>;
+            }
+
             // Avoid double borders when SyntaxHighlighter is already styling the block.
             const isSyntaxHighlighter: boolean =
               React.isValidElement(children) &&
