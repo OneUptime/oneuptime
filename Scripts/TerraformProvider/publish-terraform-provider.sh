@@ -305,6 +305,11 @@ push_to_repository() {
         exit 1
     fi
 
+    # Configure git user first (needed before any commits)
+    print_status "Configuring git user..."
+    git config user.name "OneUptime Terraform Provider Bot"
+    git config user.email "terraform-provider@oneuptime.com"
+
     # Initialize git repository if it doesn't exist
     if [[ ! -d ".git" ]]; then
         print_status "Initializing git repository..."
@@ -329,63 +334,23 @@ push_to_repository() {
         git remote set-url origin "$remote_url"
     fi
 
-    # Fetch remote changes to check if repository exists and has content
-    print_status "Fetching remote changes..."
-    if git fetch origin master 2>/dev/null; then
-        print_status "Remote repository exists and has content"
-        
-        # Check if we have any local commits
-        if git rev-parse HEAD &>/dev/null; then
-            # We have local commits, need to merge or rebase
-            print_status "Merging remote changes..."
-            if ! git merge origin/master --allow-unrelated-histories; then
-                print_error "Failed to merge remote changes. There may be conflicts."
-                print_error "Please resolve conflicts manually or use --force flag to regenerate completely."
-                exit 1
-            fi
-        else
-            # No local commits, just reset to remote
-            print_status "No local commits found, resetting to remote master..."
-            git reset --hard origin/master
-        fi
-    else
-        print_status "Remote repository is empty or doesn't exist yet"
-    fi
-
-    # Configure git user if not already configured
-    if [[ -z "$(git config user.name)" ]]; then
-        git config user.name "OneUptime Terraform Provider Bot"
-    fi
-    if [[ -z "$(git config user.email)" ]]; then
-        git config user.email "terraform-provider@oneuptime.com"
-    fi
-
-    # Stage all changes
+    # IMPORTANT: Stage and commit generated files BEFORE fetching from remote
+    # This preserves the freshly generated files (including VERSION with new timestamp)
     print_status "Staging generated files..."
     git add .
 
-    # Check if there are any changes to commit
-    if git diff --staged --quiet; then
-        print_warning "No changes detected in generated files"
-        
-        # Check if we're behind the remote
-        if git rev-parse origin/master &>/dev/null; then
-            local local_commit=$(git rev-parse HEAD 2>/dev/null || echo "")
-            local remote_commit=$(git rev-parse origin/master 2>/dev/null || echo "")
-            
-            if [[ "$local_commit" != "$remote_commit" && -n "$remote_commit" ]]; then
-                print_status "Local repository is behind remote, but no new changes to commit"
-                print_status "Repository is already up to date with generated content"
-                return
-            fi
+    # Check if there are any files to commit (for fresh repo)
+    if git diff --staged --quiet 2>/dev/null; then
+        # No staged changes - this might be because we already have commits
+        # Check if we have any commits at all
+        if ! git rev-parse HEAD &>/dev/null; then
+            print_error "No files staged and no commits exist. Something went wrong with generation."
+            exit 1
         fi
-        
-        print_status "Repository is already up to date"
-        return
-    fi
-
-    # Commit changes
-    local commit_message="chore: generate provider for version v$VERSION
+    else
+        # Create initial commit with generated files
+        print_status "Creating commit with generated files..."
+        local commit_message_temp="chore: generate provider for version v$VERSION
 
 This commit contains the auto-generated Terraform provider code for OneUptime v$VERSION.
 
@@ -395,9 +360,61 @@ Changes include:
 - Updated provider resources and data sources
 - Latest API schema definitions
 - Generated documentation"
+        git commit -m "$commit_message_temp"
+        print_success "Created commit with generated files"
+    fi
 
-    print_status "Committing changes..."
-    git commit -m "$commit_message"
+    # Now fetch remote and rebase our changes on top
+    print_status "Fetching remote changes..."
+    if git fetch origin master 2>/dev/null; then
+        print_status "Remote repository exists and has content"
+
+        # Check if our HEAD is different from remote
+        local local_commit=$(git rev-parse HEAD 2>/dev/null || echo "")
+        local remote_commit=$(git rev-parse origin/master 2>/dev/null || echo "")
+
+        if [[ "$local_commit" != "$remote_commit" ]]; then
+            # Rebase our commit(s) onto remote master
+            print_status "Rebasing onto remote master..."
+            if ! git rebase origin/master; then
+                print_warning "Rebase had conflicts, attempting to resolve by keeping our generated files..."
+                # In case of conflicts, prefer our generated files (theirs in rebase context)
+                git checkout --theirs .
+                git add .
+                if ! git rebase --continue; then
+                    print_error "Failed to rebase. Aborting rebase and trying merge strategy..."
+                    git rebase --abort
+
+                    # Try merge with our files taking precedence
+                    if ! git merge origin/master -X ours --allow-unrelated-histories -m "Merge remote with generated v$VERSION"; then
+                        print_error "Failed to merge remote changes."
+                        exit 1
+                    fi
+                fi
+            fi
+            print_success "Successfully rebased onto remote"
+        else
+            print_status "Local and remote are in sync"
+        fi
+    else
+        print_status "Remote repository is empty or doesn't exist yet"
+    fi
+
+    # Check if we have changes compared to remote (after rebase)
+    if git rev-parse origin/master &>/dev/null; then
+        if git diff origin/master --quiet 2>/dev/null; then
+            print_warning "No differences from remote after rebase"
+            # But we should still have a new commit with updated VERSION timestamp
+            # Check if our commit message contains the current version
+            local last_commit_msg=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+            if [[ "$last_commit_msg" == *"v$VERSION"* ]]; then
+                print_status "Commit for v$VERSION exists, proceeding with push"
+            else
+                print_warning "No changes detected for version v$VERSION"
+                return
+            fi
+        fi
+    fi
 
     # Create and push tag
     print_status "Creating tag v$VERSION..."
