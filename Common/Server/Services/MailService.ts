@@ -23,6 +23,7 @@ export class MailService extends BaseService {
       projectId?: ObjectID | undefined;
       incidentId?: ObjectID | undefined;
       alertId?: ObjectID | undefined;
+      alertEpisodeId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
@@ -66,6 +67,10 @@ export class MailService extends BaseService {
 
     if (options?.alertId) {
       body["alertId"] = options.alertId.toString();
+    }
+
+    if (options?.alertEpisodeId) {
+      body["alertEpisodeId"] = options.alertEpisodeId.toString();
     }
 
     if (options?.scheduledMaintenanceId) {

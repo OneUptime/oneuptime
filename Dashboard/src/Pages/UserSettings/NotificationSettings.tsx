@@ -252,6 +252,20 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div>
         {getModelTable({
           eventOptions: [
+            NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION,
+            NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+          ],
+          title: "Alert Episode Notifications",
+          description:
+            "Here are the list of notification methods we will use when an event happens on an alert episode.",
+        })}
+      </div>
+
+      <div>
+        {getModelTable({
+          eventOptions: [
             NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
             NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
             NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,

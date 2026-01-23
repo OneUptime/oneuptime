@@ -28,6 +28,7 @@ export class SmsService extends BaseService {
       customTwilioConfig?: TwilioConfig | undefined;
       incidentId?: ObjectID | undefined;
       alertId?: ObjectID | undefined;
+      alertEpisodeId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
@@ -58,6 +59,7 @@ export class SmsService extends BaseService {
         : undefined,
       incidentId: options.incidentId?.toString(),
       alertId: options.alertId?.toString(),
+      alertEpisodeId: options.alertEpisodeId?.toString(),
       scheduledMaintenanceId: options.scheduledMaintenanceId?.toString(),
       statusPageId: options.statusPageId?.toString(),
       statusPageAnnouncementId: options.statusPageAnnouncementId?.toString(),

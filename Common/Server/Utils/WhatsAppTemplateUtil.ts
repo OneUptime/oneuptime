@@ -18,6 +18,10 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.AlertNotePostedOwnerNotification]: "alert_link",
   [WhatsAppTemplateIds.AlertStateChangedOwnerNotification]: "alert_link",
   [WhatsAppTemplateIds.AlertOwnerAddedNotification]: "alert_link",
+  [WhatsAppTemplateIds.AlertEpisodeCreatedOwnerNotification]: "episode_link",
+  [WhatsAppTemplateIds.AlertEpisodeNotePostedOwnerNotification]: "episode_link",
+  [WhatsAppTemplateIds.AlertEpisodeStateChangedOwnerNotification]: "episode_link",
+  [WhatsAppTemplateIds.AlertEpisodeOwnerAddedNotification]: "episode_link",
   [WhatsAppTemplateIds.IncidentCreated]: "incident_link",
   [WhatsAppTemplateIds.IncidentCreatedOwnerNotification]: "incident_link",
   [WhatsAppTemplateIds.IncidentNotePostedOwnerNotification]: "incident_link",
@@ -72,6 +76,14 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.AlertStateChangedOwnerNotification,
   [NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.AlertOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.AlertEpisodeCreatedOwnerNotification,
+  [NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.AlertEpisodeNotePostedOwnerNotification,
+  [NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.AlertEpisodeStateChangedOwnerNotification,
+  [NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.AlertEpisodeOwnerAddedNotification,
   [NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.MonitorOwnerAddedNotification,
   [NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION]:
