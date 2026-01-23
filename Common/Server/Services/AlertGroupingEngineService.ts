@@ -597,16 +597,18 @@ class AlertGroupingEngineServiceClass {
     rule: AlertGroupingRule,
     groupingKey: string,
   ): Promise<AlertEpisode | null> {
-    // Generate episode title from template
+    // Generate episode title from template (with initial alertCount of 1)
     const title: string = this.generateEpisodeTitle(
       alert,
       rule.episodeTitleTemplate,
+      1, // Initial alert count
     );
 
-    // Generate episode description from template
+    // Generate episode description from template (with initial alertCount of 1)
     const description: string | undefined = this.generateEpisodeDescription(
       alert,
       rule.episodeDescriptionTemplate,
+      1, // Initial alert count
     );
 
     const newEpisode: AlertEpisode = new AlertEpisode();
@@ -614,6 +616,20 @@ class AlertGroupingEngineServiceClass {
     newEpisode.title = title;
     if (description) {
       newEpisode.description = description;
+    }
+    // Store preprocessed templates for dynamic variable updates
+    // Static variables are replaced, dynamic ones (like {{alertCount}}) remain as placeholders
+    if (rule.episodeTitleTemplate) {
+      newEpisode.titleTemplate = this.preprocessTemplate(
+        alert,
+        rule.episodeTitleTemplate,
+      );
+    }
+    if (rule.episodeDescriptionTemplate) {
+      newEpisode.descriptionTemplate = this.preprocessTemplate(
+        alert,
+        rule.episodeDescriptionTemplate,
+      );
     }
     newEpisode.alertGroupingRuleId = rule.id!;
     newEpisode.groupingKey = groupingKey;
@@ -656,6 +672,7 @@ class AlertGroupingEngineServiceClass {
   private generateEpisodeTitle(
     alert: Alert,
     template: string | undefined,
+    alertCount: number = 1,
   ): string {
     if (!template) {
       // Default title based on alert
@@ -668,26 +685,34 @@ class AlertGroupingEngineServiceClass {
       return "Alert Episode";
     }
 
-    return this.replaceTemplatePlaceholders(alert, template) || "Alert Episode";
+    return (
+      this.replaceTemplatePlaceholders(alert, template, alertCount) ||
+      "Alert Episode"
+    );
   }
 
   private generateEpisodeDescription(
     alert: Alert,
     template: string | undefined,
+    alertCount: number = 1,
   ): string | undefined {
     if (!template) {
       return undefined;
     }
 
-    return this.replaceTemplatePlaceholders(alert, template) || undefined;
+    return (
+      this.replaceTemplatePlaceholders(alert, template, alertCount) || undefined
+    );
   }
 
   private replaceTemplatePlaceholders(
     alert: Alert,
     template: string,
+    alertCount: number = 1,
   ): string {
     let result: string = template;
 
+    // Static variables (from first alert)
     // {{alertTitle}}
     if (alert.title) {
       result = result.replace(/\{\{alertTitle\}\}/g, alert.title);
@@ -705,11 +730,53 @@ class AlertGroupingEngineServiceClass {
 
     // {{alertSeverity}}
     if (alert.alertSeverity?.name) {
-      result = result.replace(/\{\{alertSeverity\}\}/g, alert.alertSeverity.name);
+      result = result.replace(
+        /\{\{alertSeverity\}\}/g,
+        alert.alertSeverity.name,
+      );
     }
 
-    // Clean up any remaining placeholders
+    // Dynamic variables (updated when alerts are added/removed)
+    // {{alertCount}}
+    result = result.replace(/\{\{alertCount\}\}/g, alertCount.toString());
+
+    // Clean up any remaining unknown placeholders
     result = result.replace(/\{\{[^}]+\}\}/g, "");
+
+    return result;
+  }
+
+  // Preprocess template: replace static variables but keep dynamic ones as placeholders
+  // This is stored on the episode so we can re-render with updated dynamic values later
+  private preprocessTemplate(alert: Alert, template: string): string {
+    let result: string = template;
+
+    // Replace static variables (from first alert)
+    // {{alertTitle}}
+    if (alert.title) {
+      result = result.replace(/\{\{alertTitle\}\}/g, alert.title);
+    }
+
+    // {{alertDescription}}
+    if (alert.description) {
+      result = result.replace(/\{\{alertDescription\}\}/g, alert.description);
+    }
+
+    // {{monitorName}}
+    if (alert.monitor?.name) {
+      result = result.replace(/\{\{monitorName\}\}/g, alert.monitor.name);
+    }
+
+    // {{alertSeverity}}
+    if (alert.alertSeverity?.name) {
+      result = result.replace(
+        /\{\{alertSeverity\}\}/g,
+        alert.alertSeverity.name,
+      );
+    }
+
+    // Keep dynamic variables as placeholders (e.g., {{alertCount}})
+    // They will be replaced when title/description is re-rendered
 
     return result;
   }

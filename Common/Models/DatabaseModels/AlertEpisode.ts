@@ -844,6 +844,63 @@ export default class AlertEpisode extends BaseModel {
     ],
     update: [],
   })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Title Template",
+    description:
+      "Template used to generate the episode title. Stored for dynamic variable updates.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    length: ColumnLength.ShortText,
+  })
+  public titleTemplate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Description Template",
+    description:
+      "Template used to generate the episode description. Stored for dynamic variable updates.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public descriptionTemplate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [],
+  })
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,

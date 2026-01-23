@@ -597,40 +597,55 @@ const AlertGroupingRulesPage: FunctionComponent<
               "Template for auto-generated episode descriptions. Uses the first alert's data to generate the description.",
             footerElement: (
               <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200 text-sm">
-                <p className="font-medium mb-2">
-                  Supported Template Variables (from the first alert that
-                  creates the episode):
-                </p>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  <li>
-                    <code className="bg-gray-200 px-1 rounded">
-                      {"{{alertTitle}}"}
-                    </code>{" "}
-                    - Title of the alert
-                  </li>
-                  <li>
-                    <code className="bg-gray-200 px-1 rounded">
-                      {"{{alertDescription}}"}
-                    </code>{" "}
-                    - Description of the alert
-                  </li>
-                  <li>
-                    <code className="bg-gray-200 px-1 rounded">
-                      {"{{alertSeverity}}"}
-                    </code>{" "}
-                    - Severity level (e.g., Critical, Warning)
-                  </li>
-                  <li>
-                    <code className="bg-gray-200 px-1 rounded">
-                      {"{{monitorName}}"}
-                    </code>{" "}
-                    - Name of the monitor that triggered the alert
-                  </li>
-                </ul>
-                <p className="mt-2 text-gray-500 text-xs">
-                  Note: These values come from the first alert that triggers the
-                  episode creation. Subsequent alerts joining the episode do not
-                  update the title or description.
+                <p className="font-medium mb-3">Supported Template Variables:</p>
+                <div className="mb-3">
+                  <p className="text-xs font-medium text-gray-500 mb-1">
+                    Static Variables (from first alert):
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700">
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{alertTitle}}"}
+                      </code>{" "}
+                      - Title of the alert
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{alertDescription}}"}
+                      </code>{" "}
+                      - Description of the alert
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{alertSeverity}}"}
+                      </code>{" "}
+                      - Severity level (e.g., Critical, Warning)
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{monitorName}}"}
+                      </code>{" "}
+                      - Name of the monitor that triggered the alert
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1">
+                    Dynamic Variables (updated as alerts join):
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700">
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{alertCount}}"}
+                      </code>{" "}
+                      - Number of alerts in the episode
+                    </li>
+                  </ul>
+                </div>
+                <p className="mt-3 text-gray-500 text-xs">
+                  Static variables use data from the first alert. Dynamic
+                  variables update automatically when alerts are added or
+                  removed.
                 </p>
               </div>
             ),
