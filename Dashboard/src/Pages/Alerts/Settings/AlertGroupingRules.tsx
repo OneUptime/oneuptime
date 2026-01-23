@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -13,6 +14,9 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
 import ProjectUser from "../../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
 
 const AlertGroupingRulesPage: FunctionComponent<
   PageComponentProps
@@ -112,6 +116,14 @@ const AlertGroupingRulesPage: FunctionComponent<
             id: "basic-info",
           },
           {
+            title: "Match Criteria",
+            id: "match-criteria",
+          },
+          {
+            title: "Group By",
+            id: "group-by",
+          },
+          {
             title: "Time Settings",
             id: "time-settings",
           },
@@ -170,6 +182,134 @@ const AlertGroupingRulesPage: FunctionComponent<
             required: false,
             description: "Enable or disable this grouping rule.",
           },
+          // Match Criteria Fields
+          {
+            field: {
+              monitors: true,
+            },
+            title: "Monitors",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Monitor,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "Only group alerts from these monitors. Leave empty to match alerts from any monitor.",
+            placeholder: "Select Monitors (optional)",
+          },
+          {
+            field: {
+              alertSeverities: true,
+            },
+            title: "Alert Severities",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: AlertSeverity,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "Only group alerts with these severities. Leave empty to match alerts of any severity.",
+            placeholder: "Select Severities (optional)",
+          },
+          {
+            field: {
+              alertLabels: true,
+            },
+            title: "Alert Labels",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "Only group alerts that have at least one of these labels attached to them. Leave empty to match alerts regardless of alert labels.",
+            placeholder: "Select Alert Labels (optional)",
+          },
+          {
+            field: {
+              monitorLabels: true,
+            },
+            title: "Monitor Labels",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "Only group alerts from monitors that have at least one of these labels. Leave empty to match alerts regardless of monitor labels.",
+            placeholder: "Select Monitor Labels (optional)",
+          },
+          {
+            field: {
+              alertTitlePattern: true,
+            },
+            title: "Alert Title Pattern",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "CPU.*high",
+            description:
+              "Regular expression pattern to match alert titles. Leave empty to match any title. Example: 'CPU.*high' matches titles containing 'CPU' followed by 'high'.",
+          },
+          {
+            field: {
+              alertDescriptionPattern: true,
+            },
+            title: "Alert Description Pattern",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "timeout|connection refused",
+            description:
+              "Regular expression pattern to match alert descriptions. Leave empty to match any description. Example: 'timeout|connection refused' matches descriptions containing either phrase.",
+          },
+          // Group By Fields
+          {
+            field: {
+              groupByMonitor: true,
+            },
+            title: "Group By Monitor",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, alerts from different monitors will be grouped into separate episodes. When disabled, alerts from any monitor can be grouped together.",
+          },
+          {
+            field: {
+              groupBySeverity: true,
+            },
+            title: "Group By Alert Severity",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, alerts with different severities will be grouped into separate episodes. When disabled, alerts of any severity can be grouped together.",
+          },
+          {
+            field: {
+              groupByAlertTitle: true,
+            },
+            title: "Group By Alert Title",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "When enabled, alerts with different titles will be grouped into separate episodes. When disabled, alerts with any title can be grouped together.",
+          },
+          // Time Settings Fields
           {
             field: {
               enableTimeWindow: true,
@@ -190,7 +330,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "60",
-            showIf: (model: AlertGroupingRule): boolean => {
+            showIf: (model: FormValues<AlertGroupingRule>): boolean => {
               return model.enableTimeWindow === true;
             },
             description:
@@ -216,7 +356,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "5",
-            showIf: (model: AlertGroupingRule): boolean => {
+            showIf: (model: FormValues<AlertGroupingRule>): boolean => {
               return model.enableResolveDelay === true;
             },
             description:
@@ -242,7 +382,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "30",
-            showIf: (model: AlertGroupingRule): boolean => {
+            showIf: (model: FormValues<AlertGroupingRule>): boolean => {
               return model.enableReopenWindow === true;
             },
             description:
@@ -268,7 +408,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "60",
-            showIf: (model: AlertGroupingRule): boolean => {
+            showIf: (model: FormValues<AlertGroupingRule>): boolean => {
               return model.enableInactivityTimeout === true;
             },
             description:

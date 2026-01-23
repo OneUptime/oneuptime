@@ -1,8 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import AlertGroupingRule, {
-  AlertGroupingRuleMatchCriteria,
-  AlertGroupingRuleGroupByFields,
-} from "../../Models/DatabaseModels/AlertGroupingRule";
+import AlertGroupingRule from "../../Models/DatabaseModels/AlertGroupingRule";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember, {
@@ -10,6 +7,8 @@ import AlertEpisodeMember, {
 } from "../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import Label from "../../Models/DatabaseModels/Label";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -19,6 +18,7 @@ import AlertGroupingRuleService from "./AlertGroupingRuleService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import AlertStateService from "./AlertStateService";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
+import MonitorService from "./MonitorService";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -57,10 +57,28 @@ class AlertGroupingEngineServiceClass {
           select: {
             _id: true,
             name: true,
-            matchCriteria: true,
+            // Match criteria fields
+            monitors: {
+              _id: true,
+            },
+            alertSeverities: {
+              _id: true,
+            },
+            alertLabels: {
+              _id: true,
+            },
+            monitorLabels: {
+              _id: true,
+            },
+            alertTitlePattern: true,
+            alertDescriptionPattern: true,
+            // Group by fields
+            groupByMonitor: true,
+            groupBySeverity: true,
+            groupByAlertTitle: true,
+            // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
-            groupByFields: true,
             episodeTitleTemplate: true,
             enableResolveDelay: true,
             resolveDelayMinutes: true,
@@ -114,117 +132,133 @@ class AlertGroupingEngineServiceClass {
     alert: Alert,
     rule: AlertGroupingRule,
   ): Promise<boolean> {
-    const criteria: AlertGroupingRuleMatchCriteria | undefined =
-      rule.matchCriteria;
-
-    // If no criteria specified, rule matches all alerts
-    if (!criteria) {
-      return true;
-    }
-
-    // Check monitor IDs
-    if (criteria.monitorIds && criteria.monitorIds.length > 0) {
+    // Check monitor IDs - if monitors are specified, alert must be from one of them
+    if (rule.monitors && rule.monitors.length > 0) {
       if (!alert.monitorId) {
         return false;
       }
-      const monitorIdStr: string = alert.monitorId.toString();
-      if (!criteria.monitorIds.includes(monitorIdStr)) {
+      const monitorIds: Array<string> = rule.monitors.map((m: Monitor) => {
+        return m.id?.toString() || "";
+      });
+      const alertMonitorIdStr: string = alert.monitorId.toString();
+      if (!monitorIds.includes(alertMonitorIdStr)) {
         return false;
       }
     }
 
-    // Check alert severity IDs
-    if (criteria.alertSeverityIds && criteria.alertSeverityIds.length > 0) {
+    // Check alert severity IDs - if severities are specified, alert must have one of them
+    if (rule.alertSeverities && rule.alertSeverities.length > 0) {
       if (!alert.alertSeverityId) {
         return false;
       }
-      const severityIdStr: string = alert.alertSeverityId.toString();
-      if (!criteria.alertSeverityIds.includes(severityIdStr)) {
+      const severityIds: Array<string> = rule.alertSeverities.map(
+        (s: AlertSeverity) => {
+          return s.id?.toString() || "";
+        },
+      );
+      const alertSeverityIdStr: string = alert.alertSeverityId.toString();
+      if (!severityIds.includes(alertSeverityIdStr)) {
         return false;
       }
     }
 
-    // Check label IDs
-    if (criteria.labelIds && criteria.labelIds.length > 0) {
+    // Check alert label IDs - if alert labels are specified, alert must have at least one of them
+    if (rule.alertLabels && rule.alertLabels.length > 0) {
       if (!alert.labels || alert.labels.length === 0) {
         return false;
       }
+      const ruleLabelIds: Array<string> = rule.alertLabels.map((l: Label) => {
+        return l.id?.toString() || "";
+      });
       const alertLabelIds: Array<string> = alert.labels.map((l: Label) => {
         return l.id?.toString() || "";
       });
-      const hasMatchingLabel: boolean = criteria.labelIds.some(
-        (labelId: string) => {
-          return alertLabelIds.includes(labelId);
-        },
-      );
+      const hasMatchingLabel: boolean = ruleLabelIds.some((labelId: string) => {
+        return alertLabelIds.includes(labelId);
+      });
       if (!hasMatchingLabel) {
         return false;
       }
     }
 
+    // Check monitor label IDs - if monitor labels are specified, alert's monitor must have at least one of them
+    if (rule.monitorLabels && rule.monitorLabels.length > 0) {
+      if (!alert.monitorId) {
+        return false;
+      }
+
+      // Load monitor with its labels
+      const monitor: Monitor | null = await MonitorService.findOneById({
+        id: alert.monitorId,
+        select: {
+          labels: {
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!monitor || !monitor.labels || monitor.labels.length === 0) {
+        return false;
+      }
+
+      const ruleMonitorLabelIds: Array<string> = rule.monitorLabels.map(
+        (l: Label) => {
+          return l.id?.toString() || "";
+        },
+      );
+      const monitorLabelIds: Array<string> = monitor.labels.map((l: Label) => {
+        return l.id?.toString() || "";
+      });
+      const hasMatchingMonitorLabel: boolean = ruleMonitorLabelIds.some(
+        (labelId: string) => {
+          return monitorLabelIds.includes(labelId);
+        },
+      );
+      if (!hasMatchingMonitorLabel) {
+        return false;
+      }
+    }
+
     // Check alert title pattern (regex)
-    if (criteria.alertTitlePattern) {
+    if (rule.alertTitlePattern) {
       if (!alert.title) {
         return false;
       }
       try {
-        const regex: RegExp = new RegExp(criteria.alertTitlePattern, "i");
+        const regex: RegExp = new RegExp(rule.alertTitlePattern, "i");
         if (!regex.test(alert.title)) {
           return false;
         }
       } catch {
         logger.warn(
-          `Invalid regex pattern in rule ${rule.id}: ${criteria.alertTitlePattern}`,
+          `Invalid regex pattern in rule ${rule.id}: ${rule.alertTitlePattern}`,
         );
         return false;
       }
     }
 
     // Check alert description pattern (regex)
-    if (criteria.alertDescriptionPattern) {
+    if (rule.alertDescriptionPattern) {
       if (!alert.description) {
         return false;
       }
       try {
-        const regex: RegExp = new RegExp(criteria.alertDescriptionPattern, "i");
+        const regex: RegExp = new RegExp(rule.alertDescriptionPattern, "i");
         if (!regex.test(alert.description)) {
           return false;
         }
       } catch {
         logger.warn(
-          `Invalid regex pattern in rule ${rule.id}: ${criteria.alertDescriptionPattern}`,
+          `Invalid regex pattern in rule ${rule.id}: ${rule.alertDescriptionPattern}`,
         );
         return false;
       }
     }
 
-    // Check telemetry query match - alerts with telemetry queries can be grouped
-    if (criteria.telemetryQueryMatch) {
-      if (!alert.telemetryQuery) {
-        return false;
-      }
-    }
-
-    // Check monitor custom fields
-    if (
-      criteria.monitorCustomFields &&
-      Object.keys(criteria.monitorCustomFields).length > 0
-    ) {
-      if (!alert.customFields) {
-        return false;
-      }
-
-      for (const [key, value] of Object.entries(
-        criteria.monitorCustomFields,
-      ) as Array<[string, unknown]>) {
-        const alertCustomFields: Record<string, unknown> =
-          alert.customFields as Record<string, unknown>;
-        if (alertCustomFields[key] !== value) {
-          return false;
-        }
-      }
-    }
-
+    // If no criteria specified (all fields empty), rule matches all alerts
     return true;
   }
 
@@ -233,11 +267,8 @@ class AlertGroupingEngineServiceClass {
     alert: Alert,
     rule: AlertGroupingRule,
   ): Promise<GroupingResult> {
-    // Build the grouping key based on groupByFields
-    const groupingKey: string = this.buildGroupingKey(
-      alert,
-      rule.groupByFields,
-    );
+    // Build the grouping key based on groupBy fields
+    const groupingKey: string = this.buildGroupingKey(alert, rule);
 
     // Calculate time window cutoff (only if time window is enabled)
     let timeWindowCutoff: Date | null = null;
@@ -347,29 +378,21 @@ class AlertGroupingEngineServiceClass {
     return { grouped: false };
   }
 
-  private buildGroupingKey(
-    alert: Alert,
-    groupByFields: AlertGroupingRuleGroupByFields | undefined,
-  ): string {
+  private buildGroupingKey(alert: Alert, rule: AlertGroupingRule): string {
     const parts: Array<string> = [];
 
-    if (!groupByFields) {
-      // Default grouping by monitorId
-      if (alert.monitorId) {
-        parts.push(`monitor:${alert.monitorId.toString()}`);
-      }
-      return parts.join("|");
-    }
-
-    if (groupByFields.monitorId && alert.monitorId) {
+    // Group by monitor - default is true
+    if (rule.groupByMonitor !== false && alert.monitorId) {
       parts.push(`monitor:${alert.monitorId.toString()}`);
     }
 
-    if (groupByFields.alertSeverityId && alert.alertSeverityId) {
+    // Group by severity - default is false
+    if (rule.groupBySeverity && alert.alertSeverityId) {
       parts.push(`severity:${alert.alertSeverityId.toString()}`);
     }
 
-    if (groupByFields.alertTitle && alert.title) {
+    // Group by alert title - default is false
+    if (rule.groupByAlertTitle && alert.title) {
       // Normalize title for grouping (remove numbers, etc.)
       const normalizedTitle: string = alert.title
         .toLowerCase()
@@ -377,38 +400,7 @@ class AlertGroupingEngineServiceClass {
       parts.push(`title:${normalizedTitle}`);
     }
 
-    if (groupByFields.telemetryQuery && alert.telemetryQuery) {
-      // Hash the telemetry query for grouping
-      const queryStr: string = JSON.stringify(alert.telemetryQuery);
-      parts.push(`query:${this.simpleHash(queryStr)}`);
-    }
-
-    if (
-      groupByFields.customFieldValues &&
-      groupByFields.customFieldValues.length > 0
-    ) {
-      const customFields: Record<string, unknown> =
-        alert.customFields as Record<string, unknown>;
-      if (customFields) {
-        for (const fieldName of groupByFields.customFieldValues) {
-          if (customFields[fieldName] !== undefined) {
-            parts.push(`cf:${fieldName}:${String(customFields[fieldName])}`);
-          }
-        }
-      }
-    }
-
     return parts.join("|") || "default";
-  }
-
-  private simpleHash(str: string): string {
-    let hash: number = 0;
-    for (let i: number = 0; i < str.length; i++) {
-      const char: number = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(16);
   }
 
   @CaptureSpan()
