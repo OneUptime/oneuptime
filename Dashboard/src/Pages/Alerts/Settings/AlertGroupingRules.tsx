@@ -108,7 +108,6 @@ const AlertGroupingRulesPage: FunctionComponent<
             type: FieldType.Number,
           },
         ]}
-        noItemsMessage={"No grouping rules found."}
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           {
