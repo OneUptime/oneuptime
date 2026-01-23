@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -637,13 +636,6 @@ const AlertGroupingRulesPage: FunctionComponent<
           },
         ]}
         showRefreshButton={true}
-        showAs={ShowAs.OrderedStatesList}
-        orderedStatesListProps={{
-          titleField: "name",
-          descriptionField: "description",
-          orderField: "priority",
-          shouldAddItemInTheEnd: true,
-        }}
       />
     </Fragment>
   );
