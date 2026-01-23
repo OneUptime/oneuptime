@@ -568,4 +568,22 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
   })
   public enterpriseLicenseToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Monitor Log Retention Days",
+    description:
+      "Number of days to retain monitor logs. Monitor logs older than this will be automatically deleted. Default is 1 day.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    unique: true,
+  })
+  public monitorLogRetentionInDays?: number = undefined;
 }

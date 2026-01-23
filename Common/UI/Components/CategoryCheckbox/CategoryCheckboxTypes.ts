@@ -1,4 +1,4 @@
-import { ReactElement } from "react-markdown/lib/react-markdown";
+import { ReactElement } from "react";
 
 export type CategoryCheckboxValue = string | number | boolean;
 

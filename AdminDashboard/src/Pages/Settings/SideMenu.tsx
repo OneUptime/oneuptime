@@ -72,6 +72,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Signal}
         />
       </SideMenuSection>
+      <SideMenuSection title="Data Retention">
+        <SideMenuItem
+          link={{
+            title: "Data Retention",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route,
+            ),
+          }}
+          icon={IconProp.Database}
+        />
+      </SideMenuSection>
       <SideMenuSection title="AI">
         <SideMenuItem
           link={{
