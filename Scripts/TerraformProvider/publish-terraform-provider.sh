@@ -305,11 +305,6 @@ push_to_repository() {
         exit 1
     fi
 
-    # Configure git user first (needed before any commits)
-    print_status "Configuring git user..."
-    git config user.name "OneUptime Terraform Provider Bot"
-    git config user.email "terraform-provider@oneuptime.com"
-
     # Set up remote repository URL
     local remote_url=""
     if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" ]]; then
@@ -330,6 +325,11 @@ push_to_repository() {
         git init
         git branch -M master
     fi
+
+    # Configure git user (must be after git init)
+    print_status "Configuring git user..."
+    git config user.name "OneUptime Terraform Provider Bot"
+    git config user.email "terraform-provider@oneuptime.com"
 
     # Set up remote
     if ! git remote get-url origin &> /dev/null; then
