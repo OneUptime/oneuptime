@@ -275,6 +275,30 @@ const AlertGroupingRulesPage: FunctionComponent<
             description:
               "Regular expression pattern to match alert descriptions. Leave empty to match any description. Example: 'timeout|connection refused' matches descriptions containing either phrase.",
           },
+          {
+            field: {
+              monitorNamePattern: true,
+            },
+            title: "Monitor Name Pattern",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "prod-.*|api-server-.*",
+            description:
+              "Regular expression pattern to match monitor names. Leave empty to match any monitor. Example: 'prod-.*' matches monitors starting with 'prod-'.",
+          },
+          {
+            field: {
+              monitorDescriptionPattern: true,
+            },
+            title: "Monitor Description Pattern",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "production|critical",
+            description:
+              "Regular expression pattern to match monitor descriptions. Leave empty to match any description.",
+          },
           // Group By Fields
           {
             field: {

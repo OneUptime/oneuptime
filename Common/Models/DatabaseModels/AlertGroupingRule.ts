@@ -567,6 +567,70 @@ export default class AlertGroupingRule extends BaseModel {
   })
   public alertDescriptionPattern?: string = undefined;
 
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Monitor Name Pattern",
+    description:
+      "Regular expression pattern to match monitor names. Leave empty to match any monitor name. Example: 'prod-.*' matches monitors starting with 'prod-'.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public monitorNamePattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Monitor Description Pattern",
+    description:
+      "Regular expression pattern to match monitor descriptions. Leave empty to match any monitor description.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public monitorDescriptionPattern?: string = undefined;
+
   // Group By Fields (how to group matching alerts)
 
   @ColumnAccessControl({

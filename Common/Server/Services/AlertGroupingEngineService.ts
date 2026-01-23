@@ -72,6 +72,8 @@ class AlertGroupingEngineServiceClass {
             },
             alertTitlePattern: true,
             alertDescriptionPattern: true,
+            monitorNamePattern: true,
+            monitorDescriptionPattern: true,
             // Group by fields
             groupByMonitor: true,
             groupBySeverity: true,
@@ -181,16 +183,24 @@ class AlertGroupingEngineServiceClass {
       }
     }
 
-    // Check monitor label IDs - if monitor labels are specified, alert's monitor must have at least one of them
-    if (rule.monitorLabels && rule.monitorLabels.length > 0) {
+    // Check monitor-related criteria (labels, name pattern, description pattern)
+    const hasMonitorCriteria: boolean = Boolean(
+      (rule.monitorLabels && rule.monitorLabels.length > 0) ||
+        rule.monitorNamePattern ||
+        rule.monitorDescriptionPattern,
+    );
+
+    if (hasMonitorCriteria) {
       if (!alert.monitorId) {
         return false;
       }
 
-      // Load monitor with its labels
+      // Load monitor with all needed fields
       const monitor: Monitor | null = await MonitorService.findOneById({
         id: alert.monitorId,
         select: {
+          name: true,
+          description: true,
           labels: {
             _id: true,
           },
@@ -200,25 +210,70 @@ class AlertGroupingEngineServiceClass {
         },
       });
 
-      if (!monitor || !monitor.labels || monitor.labels.length === 0) {
+      if (!monitor) {
         return false;
       }
 
-      const ruleMonitorLabelIds: Array<string> = rule.monitorLabels.map(
-        (l: Label) => {
-          return l.id?.toString() || "";
-        },
-      );
-      const monitorLabelIds: Array<string> = monitor.labels.map((l: Label) => {
-        return l.id?.toString() || "";
-      });
-      const hasMatchingMonitorLabel: boolean = ruleMonitorLabelIds.some(
-        (labelId: string) => {
-          return monitorLabelIds.includes(labelId);
-        },
-      );
-      if (!hasMatchingMonitorLabel) {
-        return false;
+      // Check monitor labels
+      if (rule.monitorLabels && rule.monitorLabels.length > 0) {
+        if (!monitor.labels || monitor.labels.length === 0) {
+          return false;
+        }
+
+        const ruleMonitorLabelIds: Array<string> = rule.monitorLabels.map(
+          (l: Label) => {
+            return l.id?.toString() || "";
+          },
+        );
+        const monitorLabelIds: Array<string> = monitor.labels.map(
+          (l: Label) => {
+            return l.id?.toString() || "";
+          },
+        );
+        const hasMatchingMonitorLabel: boolean = ruleMonitorLabelIds.some(
+          (labelId: string) => {
+            return monitorLabelIds.includes(labelId);
+          },
+        );
+        if (!hasMatchingMonitorLabel) {
+          return false;
+        }
+      }
+
+      // Check monitor name pattern (regex)
+      if (rule.monitorNamePattern) {
+        if (!monitor.name) {
+          return false;
+        }
+        try {
+          const regex: RegExp = new RegExp(rule.monitorNamePattern, "i");
+          if (!regex.test(monitor.name)) {
+            return false;
+          }
+        } catch {
+          logger.warn(
+            `Invalid regex pattern in rule ${rule.id}: ${rule.monitorNamePattern}`,
+          );
+          return false;
+        }
+      }
+
+      // Check monitor description pattern (regex)
+      if (rule.monitorDescriptionPattern) {
+        if (!monitor.description) {
+          return false;
+        }
+        try {
+          const regex: RegExp = new RegExp(rule.monitorDescriptionPattern, "i");
+          if (!regex.test(monitor.description)) {
+            return false;
+          }
+        } catch {
+          logger.warn(
+            `Invalid regex pattern in rule ${rule.id}: ${rule.monitorDescriptionPattern}`,
+          );
+          return false;
+        }
       }
     }
 
@@ -520,9 +575,9 @@ class AlertGroupingEngineServiceClass {
     );
 
     const newEpisode: AlertEpisode = new AlertEpisode();
-    newEpisode.projectId = alert.projectId;
+    newEpisode.projectId = alert.projectId!;
     newEpisode.title = title;
-    newEpisode.alertGroupingRuleId = rule.id;
+    newEpisode.alertGroupingRuleId = rule.id!;
     newEpisode.groupingKey = groupingKey;
     newEpisode.isManuallyCreated = false;
 
@@ -607,9 +662,9 @@ class AlertGroupingEngineServiceClass {
     ruleId?: ObjectID,
   ): Promise<void> {
     const member: AlertEpisodeMember = new AlertEpisodeMember();
-    member.projectId = alert.projectId;
+    member.projectId = alert.projectId!;
     member.alertEpisodeId = episodeId;
-    member.alertId = alert.id;
+    member.alertId = alert.id!;
     member.addedBy = addedBy;
 
     if (ruleId) {
@@ -643,9 +698,9 @@ class AlertGroupingEngineServiceClass {
     addedByUserId?: ObjectID,
   ): Promise<void> {
     const member: AlertEpisodeMember = new AlertEpisodeMember();
-    member.projectId = alert.projectId;
+    member.projectId = alert.projectId!;
     member.alertEpisodeId = episodeId;
-    member.alertId = alert.id;
+    member.alertId = alert.id!;
     member.addedBy = AlertEpisodeMemberAddedBy.Manual;
 
     if (addedByUserId) {
