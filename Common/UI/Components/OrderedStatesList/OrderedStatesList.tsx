@@ -49,14 +49,17 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
   if (props.data.length === 0) {
     return (
       <div className="text-center">
-        <ErrorMessage
-          message={
-            props.noItemsMessage
-              ? props.noItemsMessage
-              : `No ${props.singularLabel.toLocaleLowerCase()}`
-          }
-          onRefreshClick={props.onRefreshClick}
-        />
+        {/* Only show the no items message if there's no create button */}
+        {!props.onCreateNewItem && (
+          <ErrorMessage
+            message={
+              props.noItemsMessage
+                ? props.noItemsMessage
+                : `No ${props.singularLabel.toLocaleLowerCase()}`
+            }
+            onRefreshClick={props.onRefreshClick}
+          />
+        )}
         {props.onCreateNewItem && (
           <div className="mt-6">
             <div
