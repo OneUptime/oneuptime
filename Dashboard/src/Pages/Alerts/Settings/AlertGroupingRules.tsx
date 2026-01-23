@@ -8,7 +8,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -17,10 +17,6 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
-import Card from "Common/UI/Components/Card/Card";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
 
 const documentationMarkdown: string = `
 ### How Alert Grouping Works
@@ -144,35 +140,8 @@ flowchart TD
 const AlertGroupingRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [showDocumentation, setShowDocumentation] = useState<boolean>(false);
-
   return (
     <Fragment>
-      {/* Documentation Toggle Button */}
-      <div className="mb-5 flex justify-end">
-        <Button
-          title={showDocumentation ? "Hide Documentation" : "Show Documentation"}
-          icon={showDocumentation ? IconProp.ChevronUp : IconProp.QuestionCircle}
-          buttonStyle={ButtonStyleType.SECONDARY_OUTLINE}
-          onClick={() => {
-            setShowDocumentation(!showDocumentation);
-          }}
-        />
-      </div>
-
-      {/* Documentation Section */}
-      {showDocumentation && (
-        <Card
-          title="How Alert Grouping Rules Work"
-          description="Understanding Match Criteria, Group By, and how alerts are organized into episodes"
-          className="mb-5"
-        >
-          <div className="p-6">
-            <MarkdownViewer text={documentationMarkdown} />
-          </div>
-        </Card>
-      )}
-
       <ModelTable<AlertGroupingRule>
         modelType={AlertGroupingRule}
         id="alert-grouping-rules-table"
@@ -185,6 +154,11 @@ const AlertGroupingRulesPage: FunctionComponent<
           title: "Alert Grouping Rules",
           description:
             "Define rules to automatically group related alerts into episodes. Rules are evaluated in priority order - lower priority numbers are evaluated first.",
+        }}
+        helpContent={{
+          title: "How Alert Grouping Rules Work",
+          description: "Understanding Match Criteria, Group By, and how alerts are organized into episodes",
+          markdown: documentationMarkdown,
         }}
         sortBy="priority"
         sortOrder={SortOrder.Ascending}
