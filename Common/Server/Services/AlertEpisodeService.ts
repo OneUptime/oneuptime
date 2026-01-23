@@ -23,6 +23,13 @@ import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
+import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
+import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
+import TeamMemberService from "./TeamMemberService";
+import AlertEpisodeOwnerUser from "../../Models/DatabaseModels/AlertEpisodeOwnerUser";
+import AlertEpisodeOwnerTeam from "../../Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import User from "../../Models/DatabaseModels/User";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -652,6 +659,81 @@ export class Service extends DatabaseService<Model> {
     }
 
     return onUpdate;
+  }
+
+  @CaptureSpan()
+  public async findOwners(episodeId: ObjectID): Promise<Array<User>> {
+    // Get direct user owners
+    const ownerUsers: Array<AlertEpisodeOwnerUser> =
+      await AlertEpisodeOwnerUserService.findBy({
+        query: {
+          alertEpisodeId: episodeId,
+        },
+        select: {
+          _id: true,
+          user: {
+            _id: true,
+            email: true,
+            name: true,
+            timezone: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    // Get team owners
+    const ownerTeams: Array<AlertEpisodeOwnerTeam> =
+      await AlertEpisodeOwnerTeamService.findBy({
+        query: {
+          alertEpisodeId: episodeId,
+        },
+        select: {
+          _id: true,
+          teamId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    let users: Array<User> = ownerUsers
+      .map((ownerUser: AlertEpisodeOwnerUser) => {
+        return ownerUser.user!;
+      })
+      .filter((user: User) => {
+        return Boolean(user);
+      });
+
+    // Expand teams to individual users
+    if (ownerTeams.length > 0) {
+      const teamIds: Array<ObjectID> = ownerTeams.map(
+        (ownerTeam: AlertEpisodeOwnerTeam) => {
+          return ownerTeam.teamId!;
+        },
+      );
+
+      const teamUsers: Array<User> =
+        await TeamMemberService.getUsersInTeams(teamIds);
+
+      for (const teamUser of teamUsers) {
+        // Avoid duplicates
+        if (
+          !users.find((user: User) => {
+            return user.id?.toString() === teamUser.id?.toString();
+          })
+        ) {
+          users.push(teamUser);
+        }
+      }
+    }
+
+    return users;
   }
 }
 
