@@ -138,7 +138,7 @@ const AlertEpisodeDocs: FunctionComponent<
     {
       title: "Time Window",
       description:
-        "A rolling window that determines how long an episode stays open for new alerts. Alerts within this gap of each other are grouped together.",
+        "Optional rolling window that limits how long an episode stays open. When enabled, alerts are only grouped if they arrive within the time gap. When disabled, all matching alerts are grouped into a single ongoing episode regardless of time.",
       icon: IconProp.Clock,
       iconColor: new Color("#f59e0b"), // amber-500
     },

@@ -172,13 +172,27 @@ const AlertGroupingRulesPage: FunctionComponent<
           },
           {
             field: {
+              enableTimeWindow: true,
+            },
+            title: "Enable Time Window",
+            stepId: "time-settings",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Enable time-based grouping to limit how long an episode stays open for new alerts. When disabled, all alerts matching the grouping criteria (severity, title, monitor, etc.) will be grouped into a single ongoing episode regardless of when they occur. When enabled, alerts are only grouped if they arrive within the specified time window of the last alert.",
+          },
+          {
+            field: {
               timeWindowMinutes: true,
             },
             title: "Time Window (minutes)",
             stepId: "time-settings",
             fieldType: FormFieldSchemaType.Number,
-            required: true,
+            required: false,
             placeholder: "60",
+            showIf: (model: AlertGroupingRule): boolean => {
+              return model.enableTimeWindow === true;
+            },
             description:
               "Rolling window that determines how long an episode stays open for new alerts. Alerts arriving within this time gap of the last alert will be grouped into the same episode. For example, if set to 60 minutes, alerts will keep grouping as long as each new alert arrives within 60 minutes of the previous one.",
           },

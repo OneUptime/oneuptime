@@ -58,6 +58,7 @@ class AlertGroupingEngineServiceClass {
             _id: true,
             name: true,
             matchCriteria: true,
+            enableTimeWindow: true,
             timeWindowMinutes: true,
             groupByFields: true,
             episodeTitleTemplate: true,
@@ -238,10 +239,12 @@ class AlertGroupingEngineServiceClass {
       rule.groupByFields,
     );
 
-    // Calculate time window cutoff
-    const timeWindowMinutes: number = rule.timeWindowMinutes || 60;
-    const timeWindowCutoff: Date =
-      OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
+    // Calculate time window cutoff (only if time window is enabled)
+    let timeWindowCutoff: Date | null = null;
+    if (rule.enableTimeWindow) {
+      const timeWindowMinutes: number = rule.timeWindowMinutes || 60;
+      timeWindowCutoff = OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
+    }
 
     // Find existing active episode that matches
     const existingEpisode: AlertEpisode | null =
@@ -413,7 +416,7 @@ class AlertGroupingEngineServiceClass {
     projectId: ObjectID,
     ruleId: ObjectID,
     groupingKey: string,
-    timeWindowCutoff: Date,
+    timeWindowCutoff: Date | null,
   ): Promise<AlertEpisode | null> {
     // Get resolved state to exclude resolved episodes
     const resolvedState: AlertState | null = await AlertStateService.findOneBy({
@@ -431,15 +434,29 @@ class AlertGroupingEngineServiceClass {
 
     /*
      * Find active episode with matching rule and grouping key
-     * that has been updated recently (within time window)
+     * If time window is enabled, also filter by lastAlertAddedAt
+     * If time window is disabled (timeWindowCutoff is null), find any matching active episode
      */
+    type EpisodeQueryType = {
+      projectId: ObjectID;
+      alertGroupingRuleId: ObjectID;
+      groupingKey: string;
+      lastAlertAddedAt?: ReturnType<typeof QueryHelper.greaterThanEqualTo>;
+    };
+
+    const query: EpisodeQueryType = {
+      projectId: projectId,
+      alertGroupingRuleId: ruleId,
+      groupingKey: groupingKey,
+    };
+
+    // Only add time window filter if enabled
+    if (timeWindowCutoff) {
+      query.lastAlertAddedAt = QueryHelper.greaterThanEqualTo(timeWindowCutoff);
+    }
+
     const episodes: Array<AlertEpisode> = await AlertEpisodeService.findBy({
-      query: {
-        projectId: projectId,
-        alertGroupingRuleId: ruleId,
-        groupingKey: groupingKey,
-        lastAlertAddedAt: QueryHelper.greaterThanEqualTo(timeWindowCutoff),
-      },
+      query: query,
       sort: {
         lastAlertAddedAt: SortOrder.Descending,
       },
