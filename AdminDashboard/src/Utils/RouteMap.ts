@@ -36,7 +36,9 @@ const RouteMap: Dictionary<Route> = {
     `/admin/settings/authentication`,
   ),
   [PageMap.SETTINGS_API_KEY]: new Route(`/admin/settings/api-key`),
-  [PageMap.SETTINGS_DATA_RETENTION]: new Route(`/admin/settings/data-retention`),
+  [PageMap.SETTINGS_DATA_RETENTION]: new Route(
+    `/admin/settings/data-retention`,
+  ),
 };
 
 export class RouteUtil {
