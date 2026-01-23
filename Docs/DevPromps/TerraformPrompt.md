@@ -14,4 +14,4 @@ Now, please fix this in terraform provider:
 
 <PROMPT>
 
-For any fixes, please do not fix the provider code directly as this is generated code. Please fix the code where the provider is generatd. 
+For any fixes, please do not fix the provider code directly as this is generated code. Please fix the code where the provider is generated. 
