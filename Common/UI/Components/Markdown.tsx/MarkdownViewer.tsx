@@ -13,6 +13,15 @@ mermaid.initialize({
   theme: "default",
   securityLevel: "loose",
   fontFamily: "inherit",
+  themeVariables: {
+    background: "#ffffff",
+    primaryColor: "#e0f2fe",
+    primaryTextColor: "#1e293b",
+    primaryBorderColor: "#0ea5e9",
+    lineColor: "#64748b",
+    secondaryColor: "#f1f5f9",
+    tertiaryColor: "#ffffff",
+  },
 });
 
 // Mermaid diagram component
@@ -39,7 +48,7 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({ chart }) => {
     renderDiagram();
   }, [chart]);
 
-  return <div ref={containerRef} className="my-4 flex justify-center" />;
+  return <div ref={containerRef} className="my-4 flex justify-center bg-white p-4 rounded-lg" />;
 };
 
 export interface ComponentProps {
