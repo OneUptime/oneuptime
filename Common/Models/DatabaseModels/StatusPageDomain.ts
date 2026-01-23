@@ -495,6 +495,7 @@ export default class StatusPageDomain extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     required: true,
+    computed: true,
     type: TableColumnType.Boolean,
     title: "SSL Ordered",
     description: "Is SSL ordered?",
@@ -526,6 +527,7 @@ export default class StatusPageDomain extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     required: true,
+    computed: true,
     type: TableColumnType.Boolean,
     title: "SSL Provisioned",
     description: "Is SSL provisioned?",
