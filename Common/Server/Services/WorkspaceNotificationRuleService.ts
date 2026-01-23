@@ -59,6 +59,7 @@ export interface MessageBlocksByWorkspaceType {
 export interface NotificationFor {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
+  alertEpisodeId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   monitorId?: ObjectID | undefined;
   onCallDutyPolicyId?: ObjectID | undefined;

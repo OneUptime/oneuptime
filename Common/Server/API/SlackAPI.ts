@@ -31,6 +31,7 @@ import SlackAuthAction, {
 } from "../Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
 import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
+import SlackAlertEpisodeActions from "../Utils/Workspace/Slack/Actions/AlertEpisode";
 import SlackScheduledMaintenanceActions from "../Utils/Workspace/Slack/Actions/ScheduledMaintenance";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SlackMonitorActions from "../Utils/Workspace/Slack/Actions/Monitor";
@@ -634,6 +635,19 @@ export default class SlackAPI {
           }
 
           if (
+            SlackAlertEpisodeActions.isAlertEpisodeAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackAlertEpisodeActions.handleAlertEpisodeAction({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
+          }
+
+          if (
             SlackMonitorActions.isMonitorAction({
               actionType: action.actionType,
             })
@@ -813,6 +827,13 @@ export default class SlackAPI {
               await SlackAlertActions.handleEmojiReaction(reactionData);
             } catch (err) {
               logger.error("Error handling alert emoji reaction:");
+              logger.error(err);
+            }
+
+            try {
+              await SlackAlertEpisodeActions.handleEmojiReaction(reactionData);
+            } catch (err) {
+              logger.error("Error handling alert episode emoji reaction:");
               logger.error(err);
             }
 

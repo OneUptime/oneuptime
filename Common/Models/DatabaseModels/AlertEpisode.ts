@@ -35,6 +35,7 @@ import {
 
 export type AlertGroupingRuleType = typeof AlertGroupingRule;
 import AlertGroupingRule from "./AlertGroupingRule";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -1073,4 +1074,72 @@ export default class AlertEpisode extends BaseModel {
     length: ColumnLength.LongText,
   })
   public groupingKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Markdown,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Remediation Notes",
+    description: "User-documented remediation steps and notes for this episode",
+  })
+  @Column({
+    type: ColumnType.Markdown,
+    nullable: true,
+  })
+  public remediationNotes?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisode,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlertEpisode,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Post Updates to Workspace Channels",
+    description:
+      "Workspace channels to post episode updates to (e.g., Slack, Microsoft Teams)",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
+    undefined;
 }

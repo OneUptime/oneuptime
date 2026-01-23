@@ -30,6 +30,9 @@ import AlertEpisodeOwnerUser from "../../Models/DatabaseModels/AlertEpisodeOwner
 import AlertEpisodeOwnerTeam from "../../Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import Typeof from "../../Types/Typeof";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -734,6 +737,79 @@ export class Service extends DatabaseService<Model> {
     }
 
     return users;
+  }
+
+  @CaptureSpan()
+  public async getWorkspaceChannelForEpisode(data: {
+    episodeId: ObjectID;
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    const episode: Model | null = await this.findOneById({
+      id: data.episodeId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!episode) {
+      throw new BadDataException("Alert Episode not found.");
+    }
+
+    return (episode.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: NotificationRuleWorkspaceChannel) => {
+        if (!data.workspaceType) {
+          return true;
+        }
+        return channel.workspaceType === data.workspaceType;
+      },
+    );
+  }
+
+  @CaptureSpan()
+  public async addOwners(
+    projectId: ObjectID,
+    episodeId: ObjectID,
+    userIds: Array<ObjectID>,
+    teamIds: Array<ObjectID>,
+    notifyOwners: boolean,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    for (let teamId of teamIds) {
+      if (typeof teamId === Typeof.String) {
+        teamId = new ObjectID(teamId.toString());
+      }
+
+      const teamOwner: AlertEpisodeOwnerTeam = new AlertEpisodeOwnerTeam();
+      teamOwner.alertEpisodeId = episodeId;
+      teamOwner.projectId = projectId;
+      teamOwner.teamId = teamId;
+      teamOwner.isOwnerNotified = !notifyOwners;
+
+      await AlertEpisodeOwnerTeamService.create({
+        data: teamOwner,
+        props: props,
+      });
+    }
+
+    for (let userId of userIds) {
+      if (typeof userId === Typeof.String) {
+        userId = new ObjectID(userId.toString());
+      }
+
+      const userOwner: AlertEpisodeOwnerUser = new AlertEpisodeOwnerUser();
+      userOwner.alertEpisodeId = episodeId;
+      userOwner.projectId = projectId;
+      userOwner.userId = userId;
+      userOwner.isOwnerNotified = !notifyOwners;
+
+      await AlertEpisodeOwnerUserService.create({
+        data: userOwner,
+        props: props,
+      });
+    }
   }
 }
 
