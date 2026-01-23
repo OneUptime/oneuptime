@@ -18,7 +18,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
-import { Red500, Green500 } from "../../Types/BrandColors";
+import { Red500, Green500, Yellow500 } from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import AlertSeverityService from "./AlertSeverityService";
@@ -28,6 +28,7 @@ import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
 import AlertEpisodeOwnerUser from "../../Models/DatabaseModels/AlertEpisodeOwnerUser";
 import AlertEpisodeOwnerTeam from "../../Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertEpisodeMember from "../../Models/DatabaseModels/AlertEpisodeMember";
 import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
@@ -219,6 +220,7 @@ export class Service extends DatabaseService<Model> {
       notifyOwners,
       rootCause,
       props,
+      cascadeToAlerts,
     } = data;
 
     // Get last episode state timeline
@@ -288,6 +290,73 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+
+    // Cascade state change to all member alerts if requested
+    if (cascadeToAlerts) {
+      await this.cascadeStateToMemberAlerts({
+        projectId,
+        episodeId,
+        alertStateId,
+        props,
+      });
+    }
+  }
+
+  @CaptureSpan()
+  private async cascadeStateToMemberAlerts(data: {
+    projectId: ObjectID;
+    episodeId: ObjectID;
+    alertStateId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const { projectId, episodeId, alertStateId, props } = data;
+
+    // Get all member alerts for this episode
+    const members: Array<AlertEpisodeMember> =
+      await AlertEpisodeMemberService.findBy({
+        query: {
+          alertEpisodeId: episodeId,
+          projectId: projectId,
+        },
+        select: {
+          alertId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    if (members.length === 0) {
+      return;
+    }
+
+    // Import AlertService dynamically to avoid circular dependency
+    const { default: AlertService } = await import("./AlertService");
+
+    // Update state for each member alert
+    for (const member of members) {
+      if (!member.alertId) {
+        continue;
+      }
+
+      try {
+        await AlertService.changeAlertState({
+          projectId: projectId,
+          alertId: member.alertId,
+          alertStateId: alertStateId,
+          notifyOwners: false, // Don't send notifications for cascaded state changes
+          rootCause: "State changed by episode state cascade.",
+          stateChangeLog: undefined,
+          props: props,
+        });
+      } catch (error) {
+        logger.error(
+          `Failed to cascade state change to alert ${member.alertId.toString()}: ${error}`,
+        );
+      }
+    }
   }
 
   @CaptureSpan()
@@ -340,6 +409,21 @@ export class Service extends DatabaseService<Model> {
         userId: acknowledgedByUserId,
       },
       cascadeToAlerts: cascadeToAlerts,
+    });
+
+    // Create feed for episode acknowledged
+    let feedMessage: string = "Episode has been acknowledged.";
+    if (cascadeToAlerts) {
+      feedMessage += " All member alerts have also been acknowledged.";
+    }
+
+    await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+      alertEpisodeId: episodeId,
+      projectId: episode.projectId,
+      alertEpisodeFeedEventType: AlertEpisodeFeedEventType.EpisodeStateChanged,
+      displayColor: Yellow500,
+      feedInfoInMarkdown: feedMessage,
+      userId: acknowledgedByUserId || undefined,
     });
   }
 
@@ -394,12 +478,17 @@ export class Service extends DatabaseService<Model> {
     });
 
     // Create feed for episode resolved
+    let feedMessage: string = "Episode has been resolved.";
+    if (cascadeToAlerts) {
+      feedMessage += " All member alerts have also been resolved.";
+    }
+
     await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
       alertEpisodeId: episodeId,
       projectId: episode.projectId,
       alertEpisodeFeedEventType: AlertEpisodeFeedEventType.EpisodeStateChanged,
       displayColor: Green500,
-      feedInfoInMarkdown: `Episode has been resolved.`,
+      feedInfoInMarkdown: feedMessage,
       userId: resolvedByUserId || undefined,
     });
   }
