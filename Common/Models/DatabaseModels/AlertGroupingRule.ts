@@ -891,7 +891,7 @@ export default class AlertGroupingRule extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Episode Title Template",
     description:
-      "Template for generating episode titles. Supports placeholders like {alertSeverity}, {monitorName}",
+      "Template for generating episode titles. Supports placeholders like {{alertSeverity}}, {{monitorName}}, {{alertTitle}}, {{alertDescription}}",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -899,6 +899,37 @@ export default class AlertGroupingRule extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public episodeTitleTemplate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Episode Description Template",
+    description:
+      "Template for generating episode descriptions. Supports placeholders like {{alertSeverity}}, {{monitorName}}, {{alertTitle}}, {{alertDescription}}",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public episodeDescriptionTemplate?: string = undefined;
 
   @ColumnAccessControl({
     create: [

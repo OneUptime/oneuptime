@@ -579,9 +579,69 @@ const AlertGroupingRulesPage: FunctionComponent<
             stepId: "episode-template",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "{alertSeverity} Alert Episode on {monitorName}",
+            placeholder: "{{alertSeverity}} Alert Episode on {{monitorName}}",
             description:
-              "Template for auto-generated episode titles. Use placeholders like {alertSeverity}, {monitorName}, {alertTitle}.",
+              "Template for auto-generated episode titles. Uses the first alert's data to generate the title.",
+          },
+          {
+            field: {
+              episodeDescriptionTemplate: true,
+            },
+            title: "Episode Description Template",
+            stepId: "episode-template",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder:
+              "Episode created from {{alertSeverity}} alert: {{alertTitle}} on monitor {{monitorName}}",
+            description:
+              "Template for auto-generated episode descriptions. Uses the first alert's data to generate the description.",
+          },
+          {
+            title: "Supported Template Variables",
+            stepId: "episode-template",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (): ReactElement => {
+              return (
+                <div className="p-4 bg-gray-50 rounded-md border border-gray-200 text-sm">
+                  <p className="font-medium mb-2">
+                    Available placeholders (from the first alert that creates
+                    the episode):
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700">
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{alertTitle}}"}
+                      </code>{" "}
+                      - Title of the alert
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{alertDescription}}"}
+                      </code>{" "}
+                      - Description of the alert
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{alertSeverity}}"}
+                      </code>{" "}
+                      - Severity level (e.g., Critical, Warning)
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        {"{{monitorName}}"}
+                      </code>{" "}
+                      - Name of the monitor that triggered the alert
+                    </li>
+                  </ul>
+                  <p className="mt-2 text-gray-500 text-xs">
+                    Note: These values come from the first alert that triggers
+                    the episode creation. Subsequent alerts joining the episode
+                    do not update the title or description.
+                  </p>
+                </div>
+              );
+            },
           },
           {
             field: {

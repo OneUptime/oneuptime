@@ -84,6 +84,7 @@ class AlertGroupingEngineServiceClass {
             enableTimeWindow: true,
             timeWindowMinutes: true,
             episodeTitleTemplate: true,
+            episodeDescriptionTemplate: true,
             enableResolveDelay: true,
             resolveDelayMinutes: true,
             enableReopenWindow: true,
@@ -602,9 +603,18 @@ class AlertGroupingEngineServiceClass {
       rule.episodeTitleTemplate,
     );
 
+    // Generate episode description from template
+    const description: string | undefined = this.generateEpisodeDescription(
+      alert,
+      rule.episodeDescriptionTemplate,
+    );
+
     const newEpisode: AlertEpisode = new AlertEpisode();
     newEpisode.projectId = alert.projectId!;
     newEpisode.title = title;
+    if (description) {
+      newEpisode.description = description;
+    }
     newEpisode.alertGroupingRuleId = rule.id!;
     newEpisode.groupingKey = groupingKey;
     newEpisode.isManuallyCreated = false;
@@ -658,28 +668,50 @@ class AlertGroupingEngineServiceClass {
       return "Alert Episode";
     }
 
-    // Replace placeholders in template
-    let title: string = template;
+    return this.replaceTemplatePlaceholders(alert, template) || "Alert Episode";
+  }
 
-    // {alertTitle}
+  private generateEpisodeDescription(
+    alert: Alert,
+    template: string | undefined,
+  ): string | undefined {
+    if (!template) {
+      return undefined;
+    }
+
+    return this.replaceTemplatePlaceholders(alert, template) || undefined;
+  }
+
+  private replaceTemplatePlaceholders(
+    alert: Alert,
+    template: string,
+  ): string {
+    let result: string = template;
+
+    // {{alertTitle}}
     if (alert.title) {
-      title = title.replace("{alertTitle}", alert.title);
+      result = result.replace(/\{\{alertTitle\}\}/g, alert.title);
     }
 
-    // {monitorName}
+    // {{alertDescription}}
+    if (alert.description) {
+      result = result.replace(/\{\{alertDescription\}\}/g, alert.description);
+    }
+
+    // {{monitorName}}
     if (alert.monitor?.name) {
-      title = title.replace("{monitorName}", alert.monitor.name);
+      result = result.replace(/\{\{monitorName\}\}/g, alert.monitor.name);
     }
 
-    // {alertSeverity} - would need severity name lookup
+    // {{alertSeverity}}
     if (alert.alertSeverity?.name) {
-      title = title.replace("{alertSeverity}", alert.alertSeverity.name);
+      result = result.replace(/\{\{alertSeverity\}\}/g, alert.alertSeverity.name);
     }
 
     // Clean up any remaining placeholders
-    title = title.replace(/\{[^}]+\}/g, "");
+    result = result.replace(/\{\{[^}]+\}\}/g, "");
 
-    return title || "Alert Episode";
+    return result;
   }
 
   @CaptureSpan()
