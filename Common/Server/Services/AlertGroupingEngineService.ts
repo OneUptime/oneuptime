@@ -436,17 +436,17 @@ class AlertGroupingEngineServiceClass {
   private buildGroupingKey(alert: Alert, rule: AlertGroupingRule): string {
     const parts: Array<string> = [];
 
-    // Group by monitor - default is true
-    if (rule.groupByMonitor !== false && alert.monitorId) {
+    // Group by monitor - only if explicitly enabled
+    if (rule.groupByMonitor && alert.monitorId) {
       parts.push(`monitor:${alert.monitorId.toString()}`);
     }
 
-    // Group by severity - default is false
+    // Group by severity - only if explicitly enabled
     if (rule.groupBySeverity && alert.alertSeverityId) {
       parts.push(`severity:${alert.alertSeverityId.toString()}`);
     }
 
-    // Group by alert title - default is false
+    // Group by alert title - only if explicitly enabled
     if (rule.groupByAlertTitle && alert.title) {
       // Normalize title for grouping (remove numbers, etc.)
       const normalizedTitle: string = alert.title
@@ -455,6 +455,7 @@ class AlertGroupingEngineServiceClass {
       parts.push(`title:${normalizedTitle}`);
     }
 
+    // If no group by options are enabled, all matching alerts go into a single episode
     return parts.join("|") || "default";
   }
 

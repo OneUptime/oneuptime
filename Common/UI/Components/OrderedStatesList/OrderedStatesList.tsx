@@ -61,7 +61,7 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
           />
         )}
         {props.onCreateNewItem && (
-          <div className="mt-6">
+          <div className="my-10">
             <div
               className="m-auto inline-flex items-center cursor-pointer text-gray-400 hover:bg-gray-50 border hover:text-gray-600 rounded-full border-gray-300 p-5"
               onClick={() => {
