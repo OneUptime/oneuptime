@@ -358,6 +358,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]:
     "microsoft-teams-integration",
   [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: "alert-on-call-rules",
+  [PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES]: "episode-on-call-rules",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: "on-call-logs",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
@@ -1803,6 +1804,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES]
     }`,
   ),
 
