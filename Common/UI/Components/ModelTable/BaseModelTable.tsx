@@ -1056,9 +1056,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     // Add help content button if provided
     if (props.helpContent) {
       headerbuttons.push({
-        title: "View Help",
+        title: "",
         icon: IconProp.Help,
-        buttonStyle: ButtonStyleType.SECONDARY,
+        buttonStyle: ButtonStyleType.ICON,
+        className: "py-0 pr-0 pl-1 mt-1",
         onClick: () => {
           setShowHelpModal(true);
         },
