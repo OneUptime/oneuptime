@@ -1,10 +1,46 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useRef } from "react";
 // https://github.com/remarkjs/react-markdown
 import ReactMarkdown from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import mermaid from "mermaid";
+
+// Initialize mermaid
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "default",
+  securityLevel: "loose",
+  fontFamily: "inherit",
+});
+
+// Mermaid diagram component
+const MermaidDiagram: FunctionComponent<{ chart: string }> = ({ chart }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const renderDiagram = async (): Promise<void> => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+        try {
+          const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+          const { svg } = await mermaid.render(id, chart);
+          if (containerRef.current) {
+            containerRef.current.innerHTML = svg;
+          }
+        } catch (error) {
+          if (containerRef.current) {
+            containerRef.current.innerHTML = `<pre class="text-red-500">Error rendering diagram: ${error}</pre>`;
+          }
+        }
+      }
+    };
+    renderDiagram();
+  }, [chart]);
+
+  return <div ref={containerRef} className="my-4 flex justify-center" />;
+};
 
 export interface ComponentProps {
   text: string;
@@ -183,6 +219,11 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               /\n$/,
               "",
             );
+
+            // Handle mermaid diagrams
+            if (match && match[1] === "mermaid") {
+              return <MermaidDiagram chart={content} />;
+            }
 
             const codeClassName: string =
               content.includes("\n") ||

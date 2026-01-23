@@ -8,7 +8,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -17,12 +17,159 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import Card from "Common/UI/Components/Card/Card";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+
+const documentationMarkdown: string = `
+## How Alert Grouping Works
+
+Alert grouping automatically combines related alerts into logical containers called **Episodes**. This reduces alert fatigue by showing one episode with 50 alerts instead of 50 individual notifications.
+
+\`\`\`mermaid
+flowchart TD
+    A[🔔 New Alert Created] --> B{Match Against Rules}
+    B -->|Rule Matches| C{Find Existing Episode}
+    B -->|No Match| D[Alert Stays Ungrouped]
+    C -->|Episode Found| E[Add Alert to Episode]
+    C -->|No Episode| F[Create New Episode]
+    E --> G[Update Episode Count]
+    F --> H[Execute On-Call Policy]
+\`\`\`
+
+---
+
+## Match Criteria vs Group By
+
+These two concepts work together but serve different purposes:
+
+| Aspect | Match Criteria | Group By |
+|--------|---------------|----------|
+| **Purpose** | Filter which alerts this rule applies to | Partition matching alerts into separate episodes |
+| **Question** | "Does this alert qualify for this rule?" | "Which episode does this alert go into?" |
+| **Example** | Only Critical alerts from production monitors | Separate episode per monitor |
+
+### Match Criteria (Filtering)
+
+Match criteria acts as a **filter** that determines which alerts are eligible for this grouping rule. An alert must pass ALL specified criteria to be processed by the rule.
+
+- **Monitors**: Only alerts from these specific monitors
+- **Severities**: Only alerts with these severity levels
+- **Labels**: Only alerts with at least one of these labels
+- **Title/Description Patterns**: Regex patterns to match alert content
+
+### Group By (Partitioning)
+
+Group By determines **how matching alerts are subdivided** into separate episodes. This creates the "grouping key" that identifies which episode an alert belongs to.
+
+\`\`\`mermaid
+flowchart LR
+    subgraph "Match Criteria: Severity = Critical"
+        A1[Alert: CPU High<br/>Monitor A]
+        A2[Alert: Memory Low<br/>Monitor A]
+        A3[Alert: CPU High<br/>Monitor B]
+        A4[Alert: Disk Full<br/>Monitor B]
+    end
+
+    subgraph "Group By: Monitor"
+        E1[Episode 1<br/>Monitor A<br/>2 alerts]
+        E2[Episode 2<br/>Monitor B<br/>2 alerts]
+    end
+
+    A1 --> E1
+    A2 --> E1
+    A3 --> E2
+    A4 --> E2
+\`\`\`
+
+---
+
+## Group By Options Explained
+
+| Option | When Enabled | When Disabled |
+|--------|-------------|---------------|
+| **Group By Monitor** | Alerts from different monitors → separate episodes | Alerts from any monitor can be grouped together |
+| **Group By Severity** | Alerts with different severities → separate episodes | Alerts of any severity can be grouped together |
+| **Group By Alert Title** | Alerts with different titles → separate episodes | Alerts with any title can be grouped together |
+
+### Default Behavior
+
+**If NO Group By options are enabled**, all matching alerts go into **ONE single episode**. This is useful when you want to group all related alerts regardless of their source.
+
+\`\`\`mermaid
+flowchart TD
+    subgraph "No Group By Enabled"
+        direction TB
+        A1[Alert 1] --> E[Single Episode<br/>All Matching Alerts]
+        A2[Alert 2] --> E
+        A3[Alert 3] --> E
+        A4[Alert 4] --> E
+    end
+\`\`\`
+
+---
+
+## Examples
+
+### Example 1: Group all Critical alerts by Monitor
+
+**Configuration:**
+- Match Criteria: Severity = Critical
+- Group By: Monitor ✓
+
+**Result:** Each monitor gets its own episode for critical alerts.
+
+### Example 2: Single episode for all database alerts
+
+**Configuration:**
+- Match Criteria: Monitor Labels = "database"
+- Group By: (none enabled)
+
+**Result:** ALL database alerts go into one episode, regardless of which specific database monitor they come from.
+
+### Example 3: Fine-grained grouping
+
+**Configuration:**
+- Match Criteria: (none - matches all alerts)
+- Group By: Monitor ✓, Severity ✓, Alert Title ✓
+
+**Result:** Very specific episodes - one per unique combination of monitor + severity + title.
+`;
+
 
 const AlertGroupingRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const [showDocumentation, setShowDocumentation] = useState<boolean>(false);
+
   return (
     <Fragment>
+      {/* Documentation Toggle Button */}
+      <div className="mb-5 flex justify-end">
+        <Button
+          title={showDocumentation ? "Hide Documentation" : "Show Documentation"}
+          icon={showDocumentation ? IconProp.ChevronUp : IconProp.QuestionCircle}
+          buttonStyle={ButtonStyleType.SECONDARY_OUTLINE}
+          onClick={() => {
+            setShowDocumentation(!showDocumentation);
+          }}
+        />
+      </div>
+
+      {/* Documentation Section */}
+      {showDocumentation && (
+        <Card
+          title="How Alert Grouping Rules Work"
+          description="Understanding Match Criteria, Group By, and how alerts are organized into episodes"
+          className="mb-5"
+        >
+          <div className="p-6">
+            <MarkdownViewer text={documentationMarkdown} />
+          </div>
+        </Card>
+      )}
+
       <ModelTable<AlertGroupingRule>
         modelType={AlertGroupingRule}
         id="alert-grouping-rules-table"
