@@ -263,6 +263,7 @@ ${onCallPolicy.description || "No description provided."}
     options: {
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
+      triggeredByAlertEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
     },
   ): Promise<void> {
@@ -321,6 +322,10 @@ ${onCallPolicy.description || "No description provided."}
 
     if (options.triggeredByAlertId) {
       log.triggeredByAlertId = options.triggeredByAlertId;
+    }
+
+    if (options.triggeredByAlertEpisodeId) {
+      log.triggeredByAlertEpisodeId = options.triggeredByAlertEpisodeId;
     }
 
     await OnCallDutyPolicyExecutionLogService.create({

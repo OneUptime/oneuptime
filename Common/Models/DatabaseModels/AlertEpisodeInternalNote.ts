@@ -422,4 +422,34 @@ export default class AlertEpisodeInternalNote extends BaseModel {
     default: false,
   })
   public isOwnerNotified?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlertEpisodeInternalNote,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertEpisodeInternalNote,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Posted from Slack Message ID",
+    description:
+      "Unique identifier for the Slack message this note was created from (channel_id:message_ts). Used to prevent duplicate notes when multiple users react to the same message.",
+    required: false,
+    example: "C1234567890:1234567890.123456",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public postedFromSlackMessageId?: string = undefined;
 }

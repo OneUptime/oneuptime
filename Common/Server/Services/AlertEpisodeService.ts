@@ -520,6 +520,41 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async isEpisodeAcknowledged(data: {
+    episodeId: ObjectID;
+  }): Promise<boolean> {
+    const episode: Model | null = await this.findOneById({
+      id: data.episodeId,
+      select: {
+        projectId: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!episode || !episode.projectId) {
+      throw new BadDataException("Episode not found.");
+    }
+
+    const acknowledgedState: AlertState =
+      await AlertStateService.getAcknowledgedAlertState({
+        projectId: episode.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentOrder: number = episode.currentAlertState?.order || 0;
+    const acknowledgedOrder: number = acknowledgedState.order || 0;
+
+    return currentOrder >= acknowledgedOrder;
+  }
+
+  @CaptureSpan()
   public async reopenEpisode(
     episodeId: ObjectID,
     reopenedByUserId?: ObjectID,
