@@ -23,7 +23,7 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 
 const documentationMarkdown: string = `
-## How Alert Grouping Works
+### How Alert Grouping Works
 
 Alert grouping automatically combines related alerts into logical containers called **Episodes**. This reduces alert fatigue by showing one episode with 50 alerts instead of 50 individual notifications.
 
@@ -40,7 +40,7 @@ flowchart TD
 
 ---
 
-## Match Criteria vs Group By
+### Match Criteria vs Group By
 
 These two concepts work together but serve different purposes:
 
@@ -50,7 +50,7 @@ These two concepts work together but serve different purposes:
 | **Question** | "Does this alert qualify for this rule?" | "Which episode does this alert go into?" |
 | **Example** | Only Critical alerts from production monitors | Separate episode per monitor |
 
-### Match Criteria (Filtering)
+#### Match Criteria (Filtering)
 
 Match criteria acts as a **filter** that determines which alerts are eligible for this grouping rule. An alert must pass ALL specified criteria to be processed by the rule.
 
@@ -59,7 +59,7 @@ Match criteria acts as a **filter** that determines which alerts are eligible fo
 - **Labels**: Only alerts with at least one of these labels
 - **Title/Description Patterns**: Regex patterns to match alert content
 
-### Group By (Partitioning)
+#### Group By (Partitioning)
 
 Group By determines **how matching alerts are subdivided** into separate episodes. This creates the "grouping key" that identifies which episode an alert belongs to.
 
@@ -85,7 +85,7 @@ flowchart LR
 
 ---
 
-## Group By Options Explained
+### Group By Options Explained
 
 | Option | When Enabled | When Disabled |
 |--------|-------------|---------------|
@@ -96,7 +96,7 @@ flowchart LR
 
 > **Note:** Monitors can be attached to Services. A Service can have multiple monitors. Group By Service is useful when you want to group all alerts from a service together regardless of which specific monitor triggered them.
 
-### Default Behavior
+#### Default Behavior
 
 **If NO Group By options are enabled**, all matching alerts go into **ONE single episode**. This is useful when you want to group all related alerts regardless of their source.
 
@@ -113,9 +113,9 @@ flowchart TD
 
 ---
 
-## Examples
+### Examples
 
-### Example 1: Group all Critical alerts by Monitor
+#### Example 1: Group all Critical alerts by Monitor
 
 **Configuration:**
 - Match Criteria: Severity = Critical
@@ -123,7 +123,7 @@ flowchart TD
 
 **Result:** Each monitor gets its own episode for critical alerts.
 
-### Example 2: Single episode for all database alerts
+#### Example 2: Single episode for all database alerts
 
 **Configuration:**
 - Match Criteria: Monitor Labels = "database"
@@ -131,7 +131,7 @@ flowchart TD
 
 **Result:** ALL database alerts go into one episode, regardless of which specific database monitor they come from.
 
-### Example 3: Fine-grained grouping
+#### Example 3: Fine-grained grouping
 
 **Configuration:**
 - Match Criteria: (none - matches all alerts)
