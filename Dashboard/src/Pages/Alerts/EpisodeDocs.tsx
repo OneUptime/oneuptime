@@ -180,31 +180,36 @@ const AlertEpisodeDocs: FunctionComponent<
   const onCallFlowSteps: Array<FlowStep> = [
     {
       title: "Alert Created",
-      description: "A new alert is triggered and may have its own on-call policy configured",
+      description:
+        "A new alert is triggered and may have its own on-call policy configured",
       icon: IconProp.Alert,
       iconColor: new Color("#ef4444"), // red-500
     },
     {
       title: "Alert Policy Executes",
-      description: "If the alert has an on-call policy, it executes immediately to notify responders",
+      description:
+        "If the alert has an on-call policy, it executes immediately to notify responders",
       icon: IconProp.Bell,
       iconColor: new Color("#f59e0b"), // amber-500
     },
     {
       title: "Alert Joins Episode",
-      description: "The alert is grouped into an existing or new episode based on grouping rules",
+      description:
+        "The alert is grouped into an existing or new episode based on grouping rules",
       icon: IconProp.SquareStack,
       iconColor: new Color("#3b82f6"), // blue-500
     },
     {
       title: "Episode Policy Executes",
-      description: "If this creates a NEW episode, the grouping rule's on-call policy executes",
+      description:
+        "If this creates a NEW episode, the grouping rule's on-call policy executes",
       icon: IconProp.Bell,
       iconColor: new Color("#22c55e"), // green-500
     },
     {
       title: "Responders Notified",
-      description: "On-call engineers receive notifications from both alert and episode policies",
+      description:
+        "On-call engineers receive notifications from both alert and episode policies",
       icon: IconProp.Team,
       iconColor: new Color("#8b5cf6"), // violet-500
     },

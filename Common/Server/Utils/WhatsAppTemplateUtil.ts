@@ -20,7 +20,8 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.AlertOwnerAddedNotification]: "alert_link",
   [WhatsAppTemplateIds.AlertEpisodeCreatedOwnerNotification]: "episode_link",
   [WhatsAppTemplateIds.AlertEpisodeNotePostedOwnerNotification]: "episode_link",
-  [WhatsAppTemplateIds.AlertEpisodeStateChangedOwnerNotification]: "episode_link",
+  [WhatsAppTemplateIds.AlertEpisodeStateChangedOwnerNotification]:
+    "episode_link",
   [WhatsAppTemplateIds.AlertEpisodeOwnerAddedNotification]: "episode_link",
   [WhatsAppTemplateIds.IncidentCreated]: "incident_link",
   [WhatsAppTemplateIds.IncidentCreatedOwnerNotification]: "incident_link",

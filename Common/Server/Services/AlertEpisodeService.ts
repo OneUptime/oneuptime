@@ -844,7 +844,7 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
       });
 
-    let users: Array<User> = ownerUsers
+    const users: Array<User> = ownerUsers
       .map((ownerUser: AlertEpisodeOwnerUser) => {
         return ownerUser.user!;
       })

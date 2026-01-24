@@ -154,11 +154,13 @@ export interface BaseTableProps<
     | undefined
     | ((data: Array<TBaseModel>, totalCount: number) => void);
   cardProps?: CardComponentProps | undefined;
-  helpContent?: {
-    title: string;
-    description?: string | undefined;
-    markdown: string;
-  } | undefined;
+  helpContent?:
+    | {
+        title: string;
+        description?: string | undefined;
+        markdown: string;
+      }
+    | undefined;
   documentationLink?: Route | URL | undefined;
   videoLink?: Route | URL | undefined;
   showCreateForm?: undefined | boolean;

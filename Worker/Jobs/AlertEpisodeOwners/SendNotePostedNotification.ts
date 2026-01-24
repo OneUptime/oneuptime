@@ -220,7 +220,8 @@ RunCron(
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id!,
         projectId: episode.projectId!,
-        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OwnerNotificationSent,
+        alertEpisodeFeedEventType:
+          AlertEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: episodeFeedText,
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,

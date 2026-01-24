@@ -230,8 +230,9 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
-            UserSettingsRoutePath[PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES] ||
-            ""
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES
+            ] || ""
           }
           element={
             <Suspense fallback={Loader}>

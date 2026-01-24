@@ -2521,7 +2521,9 @@ All monitoring checks are passing normally.`;
       }
 
       // Handle alert episode actions
-      if (MicrosoftTeamsAlertEpisodeActions.isAlertEpisodeAction({ actionType })) {
+      if (
+        MicrosoftTeamsAlertEpisodeActions.isAlertEpisodeAction({ actionType })
+      ) {
         await MicrosoftTeamsAlertEpisodeActions.handleBotAlertEpisodeAction({
           actionType,
           actionValue,

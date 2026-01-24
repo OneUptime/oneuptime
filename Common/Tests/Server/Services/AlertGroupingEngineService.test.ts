@@ -103,7 +103,11 @@ describe("AlertGroupingEngineService Models", () => {
 
         mockRule.monitors = [mockMonitor, otherMonitor];
 
-        const monitorIds = mockRule.monitors.map((m) => m._id);
+        const monitorIds: Array<string | undefined> = mockRule.monitors.map(
+          (m: Monitor) => {
+            return m._id;
+          },
+        );
         expect(monitorIds).toContain(mockMonitor._id);
         expect(monitorIds).toContain(otherMonitor._id);
       });
@@ -125,13 +129,13 @@ describe("AlertGroupingEngineService Models", () => {
 
       test("should match alert title against pattern", () => {
         mockRule.alertTitlePattern = "CPU.*High";
-        const pattern = new RegExp(mockRule.alertTitlePattern, "i");
+        const pattern: RegExp = new RegExp(mockRule.alertTitlePattern, "i");
         expect(pattern.test(mockAlert.title!)).toBe(true);
       });
 
       test("should not match when pattern doesn't match", () => {
         mockRule.alertTitlePattern = "Memory.*Low";
-        const pattern = new RegExp(mockRule.alertTitlePattern, "i");
+        const pattern: RegExp = new RegExp(mockRule.alertTitlePattern, "i");
         expect(pattern.test(mockAlert.title!)).toBe(false);
       });
 
@@ -142,7 +146,10 @@ describe("AlertGroupingEngineService Models", () => {
 
       test("should match alert description against pattern", () => {
         mockRule.alertDescriptionPattern = "CPU usage exceeded.*";
-        const pattern = new RegExp(mockRule.alertDescriptionPattern, "i");
+        const pattern: RegExp = new RegExp(
+          mockRule.alertDescriptionPattern,
+          "i",
+        );
         expect(pattern.test(mockAlert.description!)).toBe(true);
       });
     });
@@ -165,9 +172,11 @@ describe("AlertGroupingEngineService Models", () => {
         parts.push(`title:${mockAlert.title}`);
       }
 
-      const groupingKey = parts.join("|");
+      const groupingKey: string = parts.join("|");
       expect(groupingKey).toContain(`rule:${mockRule._id}`);
-      expect(groupingKey).toContain(`monitor:${mockAlert.monitorId!.toString()}`);
+      expect(groupingKey).toContain(
+        `monitor:${mockAlert.monitorId!.toString()}`,
+      );
       expect(groupingKey).not.toContain("severity:");
       expect(groupingKey).not.toContain("title:");
     });
@@ -188,7 +197,7 @@ describe("AlertGroupingEngineService Models", () => {
         parts.push(`title:${mockAlert.title}`);
       }
 
-      const groupingKey = parts.join("|");
+      const groupingKey: string = parts.join("|");
       expect(groupingKey).toContain(`rule:${mockRule._id}`);
       expect(groupingKey).not.toContain("monitor:");
       expect(groupingKey).toContain(
@@ -213,9 +222,11 @@ describe("AlertGroupingEngineService Models", () => {
         parts.push(`title:${mockAlert.title}`);
       }
 
-      const groupingKey = parts.join("|");
+      const groupingKey: string = parts.join("|");
       expect(groupingKey).toContain(`rule:${mockRule._id}`);
-      expect(groupingKey).toContain(`monitor:${mockAlert.monitorId!.toString()}`);
+      expect(groupingKey).toContain(
+        `monitor:${mockAlert.monitorId!.toString()}`,
+      );
       expect(groupingKey).toContain(
         `severity:${mockAlert.alertSeverityId!.toString()}`,
       );
@@ -245,48 +256,52 @@ describe("AlertGroupingEngineService Models", () => {
     });
 
     test("should calculate if episode is within time window", () => {
-      const windowMinutes = 30;
-      const episodeCreatedAt = new Date(Date.now() - 15 * 60 * 1000); // 15 minutes ago
-      const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000);
+      const windowMinutes: number = 30;
+      const episodeCreatedAt: Date = new Date(Date.now() - 15 * 60 * 1000); // 15 minutes ago
+      const windowStart: Date = new Date(
+        Date.now() - windowMinutes * 60 * 1000,
+      );
 
-      const isWithinWindow = episodeCreatedAt >= windowStart;
+      const isWithinWindow: boolean = episodeCreatedAt >= windowStart;
       expect(isWithinWindow).toBe(true);
     });
 
     test("should calculate if episode is outside time window", () => {
-      const windowMinutes = 30;
-      const episodeCreatedAt = new Date(Date.now() - 45 * 60 * 1000); // 45 minutes ago
-      const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000);
+      const windowMinutes: number = 30;
+      const episodeCreatedAt: Date = new Date(Date.now() - 45 * 60 * 1000); // 45 minutes ago
+      const windowStart: Date = new Date(
+        Date.now() - windowMinutes * 60 * 1000,
+      );
 
-      const isWithinWindow = episodeCreatedAt >= windowStart;
+      const isWithinWindow: boolean = episodeCreatedAt >= windowStart;
       expect(isWithinWindow).toBe(false);
     });
   });
 
   describe("Reopen Window Logic", () => {
     test("should identify recently resolved episode for reopening", () => {
-      const reopenWindowMinutes = 30;
-      const resolvedAt = new Date(Date.now() - 10 * 60 * 1000); // 10 minutes ago
-      const reopenWindowStart = new Date(
+      const reopenWindowMinutes: number = 30;
+      const resolvedAt: Date = new Date(Date.now() - 10 * 60 * 1000); // 10 minutes ago
+      const reopenWindowStart: Date = new Date(
         Date.now() - reopenWindowMinutes * 60 * 1000,
       );
 
       mockEpisode.resolvedAt = resolvedAt;
 
-      const canReopen = mockEpisode.resolvedAt >= reopenWindowStart;
+      const canReopen: boolean = mockEpisode.resolvedAt >= reopenWindowStart;
       expect(canReopen).toBe(true);
     });
 
     test("should not reopen episode outside reopen window", () => {
-      const reopenWindowMinutes = 30;
-      const resolvedAt = new Date(Date.now() - 45 * 60 * 1000); // 45 minutes ago
-      const reopenWindowStart = new Date(
+      const reopenWindowMinutes: number = 30;
+      const resolvedAt: Date = new Date(Date.now() - 45 * 60 * 1000); // 45 minutes ago
+      const reopenWindowStart: Date = new Date(
         Date.now() - reopenWindowMinutes * 60 * 1000,
       );
 
       mockEpisode.resolvedAt = resolvedAt;
 
-      const canReopen = mockEpisode.resolvedAt >= reopenWindowStart;
+      const canReopen: boolean = mockEpisode.resolvedAt >= reopenWindowStart;
       expect(canReopen).toBe(false);
     });
   });
@@ -302,8 +317,10 @@ describe("AlertGroupingEngineService Models", () => {
       const rule3: AlertGroupingRule = new AlertGroupingRule();
       rule3.priority = 5;
 
-      const rules = [rule1, rule2, rule3];
-      rules.sort((a, b) => (a.priority || 0) - (b.priority || 0));
+      const rules: AlertGroupingRule[] = [rule1, rule2, rule3];
+      rules.sort((a: AlertGroupingRule, b: AlertGroupingRule) => {
+        return (a.priority || 0) - (b.priority || 0);
+      });
 
       expect(rules[0]!.priority).toBe(1);
       expect(rules[1]!.priority).toBe(5);
@@ -341,14 +358,17 @@ describe("Template Variable Replacement Logic", () => {
 
   describe("Static Variable Replacement", () => {
     test("should replace {{alertTitle}} with alert title", () => {
-      const template = "Episode: {{alertTitle}}";
-      const result = template.replace(/\{\{alertTitle\}\}/g, mockAlert.title!);
+      const template: string = "Episode: {{alertTitle}}";
+      const result: string = template.replace(
+        /\{\{alertTitle\}\}/g,
+        mockAlert.title!,
+      );
       expect(result).toBe("Episode: High CPU Usage");
     });
 
     test("should replace {{alertDescription}} with alert description", () => {
-      const template = "Details: {{alertDescription}}";
-      const result = template.replace(
+      const template: string = "Details: {{alertDescription}}";
+      const result: string = template.replace(
         /\{\{alertDescription\}\}/g,
         mockAlert.description!,
       );
@@ -356,8 +376,8 @@ describe("Template Variable Replacement Logic", () => {
     });
 
     test("should replace {{monitorName}} with monitor name", () => {
-      const template = "Alert on {{monitorName}}";
-      const result = template.replace(
+      const template: string = "Alert on {{monitorName}}";
+      const result: string = template.replace(
         /\{\{monitorName\}\}/g,
         mockAlert.monitor?.name || "",
       );
@@ -365,8 +385,8 @@ describe("Template Variable Replacement Logic", () => {
     });
 
     test("should replace {{alertSeverity}} with severity name", () => {
-      const template = "{{alertSeverity}} Alert Episode";
-      const result = template.replace(
+      const template: string = "{{alertSeverity}} Alert Episode";
+      const result: string = template.replace(
         /\{\{alertSeverity\}\}/g,
         mockAlert.alertSeverity?.name || "",
       );
@@ -374,7 +394,8 @@ describe("Template Variable Replacement Logic", () => {
     });
 
     test("should replace multiple variables in same template", () => {
-      let template = "{{alertSeverity}}: {{alertTitle}} on {{monitorName}}";
+      let template: string =
+        "{{alertSeverity}}: {{alertTitle}} on {{monitorName}}";
       template = template.replace(/\{\{alertTitle\}\}/g, mockAlert.title!);
       template = template.replace(
         /\{\{alertSeverity\}\}/g,
@@ -390,9 +411,9 @@ describe("Template Variable Replacement Logic", () => {
 
   describe("Dynamic Variable Replacement", () => {
     test("should replace {{alertCount}} with count", () => {
-      const template = "Episode ({{alertCount}} alerts)";
-      const alertCount = 5;
-      const result = template.replace(
+      const template: string = "Episode ({{alertCount}} alerts)";
+      const alertCount: number = 5;
+      const result: string = template.replace(
         /\{\{alertCount\}\}/g,
         alertCount.toString(),
       );
@@ -400,7 +421,7 @@ describe("Template Variable Replacement Logic", () => {
     });
 
     test("should preserve {{alertCount}} placeholder in preprocessed template", () => {
-      let template = "{{alertTitle}} - {{alertCount}} alerts";
+      let template: string = "{{alertTitle}} - {{alertCount}} alerts";
 
       // Preprocess: replace static variables only
       template = template.replace(/\{\{alertTitle\}\}/g, mockAlert.title!);
@@ -412,11 +433,12 @@ describe("Template Variable Replacement Logic", () => {
 
     test("should render final title with dynamic values", () => {
       // Start with preprocessed template (static vars already replaced)
-      const preprocessedTemplate = "High CPU Usage - {{alertCount}} alerts";
-      const alertCount = 10;
+      const preprocessedTemplate: string =
+        "High CPU Usage - {{alertCount}} alerts";
+      const alertCount: number = 10;
 
       // Render dynamic values
-      const finalTitle = preprocessedTemplate.replace(
+      const finalTitle: string = preprocessedTemplate.replace(
         /\{\{alertCount\}\}/g,
         alertCount.toString(),
       );
@@ -427,7 +449,7 @@ describe("Template Variable Replacement Logic", () => {
 
   describe("Unknown Placeholder Handling", () => {
     test("should remove unknown placeholders", () => {
-      let template = "{{alertTitle}} {{unknownVar}} Episode";
+      let template: string = "{{alertTitle}} {{unknownVar}} Episode";
       template = template.replace(/\{\{alertTitle\}\}/g, mockAlert.title!);
       // Remove any remaining placeholders
       template = template.replace(/\{\{[^}]+\}\}/g, "");
@@ -439,7 +461,7 @@ describe("Template Variable Replacement Logic", () => {
 
   describe("Default Title Generation", () => {
     test("should use monitor name when no template provided", () => {
-      const defaultTitle = `Alert Episode: ${mockAlert.monitor?.name || mockAlert.title || "Alert Episode"}`;
+      const defaultTitle: string = `Alert Episode: ${mockAlert.monitor?.name || mockAlert.title || "Alert Episode"}`;
       expect(defaultTitle).toBe("Alert Episode: API Server");
     });
 
@@ -451,7 +473,7 @@ describe("Template Variable Replacement Logic", () => {
       alertNoMonitor.title = "High CPU Usage";
       // monitor is intentionally not set
 
-      const defaultTitle = `Alert Episode: ${alertNoMonitor.monitor?.name || alertNoMonitor.title || "Alert Episode"}`;
+      const defaultTitle: string = `Alert Episode: ${alertNoMonitor.monitor?.name || alertNoMonitor.title || "Alert Episode"}`;
       expect(defaultTitle).toBe("Alert Episode: High CPU Usage");
     });
 
@@ -462,7 +484,7 @@ describe("Template Variable Replacement Logic", () => {
       alertMinimal.id = alertId;
       // monitor and title are intentionally not set
 
-      const defaultTitle = `Alert Episode: ${alertMinimal.monitor?.name || alertMinimal.title || "Alert Episode"}`;
+      const defaultTitle: string = `Alert Episode: ${alertMinimal.monitor?.name || alertMinimal.title || "Alert Episode"}`;
       expect(defaultTitle).toBe("Alert Episode: Alert Episode");
     });
   });
@@ -472,7 +494,9 @@ describe("AlertEpisode Template Storage", () => {
   test("should store titleTemplate for dynamic re-rendering", () => {
     const episode: AlertEpisode = new AlertEpisode();
     episode.titleTemplate = "High CPU Usage - {{alertCount}} alerts";
-    expect(episode.titleTemplate).toBe("High CPU Usage - {{alertCount}} alerts");
+    expect(episode.titleTemplate).toBe(
+      "High CPU Usage - {{alertCount}} alerts",
+    );
   });
 
   test("should store descriptionTemplate for dynamic re-rendering", () => {
@@ -490,7 +514,9 @@ describe("AlertEpisode Template Storage", () => {
     episode.titleTemplate = "High CPU Usage - {{alertCount}} alerts";
 
     expect(episode.title).toBe("High CPU Usage - 1 alerts");
-    expect(episode.titleTemplate).toBe("High CPU Usage - {{alertCount}} alerts");
+    expect(episode.titleTemplate).toBe(
+      "High CPU Usage - {{alertCount}} alerts",
+    );
   });
 
   test("should re-render title from template when alert count changes", () => {

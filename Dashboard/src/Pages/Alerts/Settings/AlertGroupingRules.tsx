@@ -135,7 +135,6 @@ flowchart TD
 **Result:** Very specific episodes - one per unique combination of monitor + severity + title.
 `;
 
-
 const AlertGroupingRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -156,7 +155,8 @@ const AlertGroupingRulesPage: FunctionComponent<
         }}
         helpContent={{
           title: "How Alert Grouping Rules Work",
-          description: "Understanding Match Criteria, Group By, and how alerts are organized into episodes",
+          description:
+            "Understanding Match Criteria, Group By, and how alerts are organized into episodes",
           markdown: documentationMarkdown,
         }}
         sortBy="priority"
@@ -597,7 +597,9 @@ const AlertGroupingRulesPage: FunctionComponent<
               "Template for auto-generated episode descriptions. Uses the first alert's data to generate the description.",
             footerElement: (
               <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200 text-sm">
-                <p className="font-medium mb-3">Supported Template Variables:</p>
+                <p className="font-medium mb-3">
+                  Supported Template Variables:
+                </p>
                 <div className="mb-3">
                   <p className="text-xs font-medium text-gray-500 mb-1">
                     Static Variables (from first alert):

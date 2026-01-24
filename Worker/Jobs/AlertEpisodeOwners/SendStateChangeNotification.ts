@@ -303,7 +303,8 @@ RunCron(
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id!,
         projectId: episode.projectId!,
-        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OwnerNotificationSent,
+        alertEpisodeFeedEventType:
+          AlertEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert Episode ${episodeNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the alert episode because the episode state changed to **${alertState.name}**.`,
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,

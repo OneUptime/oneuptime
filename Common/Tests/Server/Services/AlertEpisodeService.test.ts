@@ -162,7 +162,9 @@ describe("AlertEpisodeService", () => {
       expect(episode.isManuallyCreated).toBe(false);
       expect(episode.groupingKey).toBe("monitor:db-server|severity:critical");
       expect(episode.titleTemplate).toBe("DB Issues ({{alertCount}})");
-      expect(episode.descriptionTemplate).toBe("{{alertCount}} connection alerts");
+      expect(episode.descriptionTemplate).toBe(
+        "{{alertCount}} connection alerts",
+      );
       expect(episode.rootCause).toBe("Network congestion");
       expect(episode.assignedToUserId).toEqual(userId);
       expect(episode.assignedToTeamId).toEqual(teamId);
@@ -173,9 +175,9 @@ describe("AlertEpisodeService", () => {
 
   describe("Template rendering helper", () => {
     test("should replace {{alertCount}} in title template", () => {
-      const template = "CPU Issues - {{alertCount}} alerts";
-      const alertCount = 5;
-      const result = template.replace(
+      const template: string = "CPU Issues - {{alertCount}} alerts";
+      const alertCount: number = 5;
+      const result: string = template.replace(
         /\{\{alertCount\}\}/g,
         alertCount.toString(),
       );
@@ -183,9 +185,9 @@ describe("AlertEpisodeService", () => {
     });
 
     test("should replace multiple occurrences of {{alertCount}}", () => {
-      const template = "{{alertCount}} alerts ({{alertCount}} total)";
-      const alertCount = 7;
-      const result = template.replace(
+      const template: string = "{{alertCount}} alerts ({{alertCount}} total)";
+      const alertCount: number = 7;
+      const result: string = template.replace(
         /\{\{alertCount\}\}/g,
         alertCount.toString(),
       );
@@ -193,9 +195,9 @@ describe("AlertEpisodeService", () => {
     });
 
     test("should handle template without placeholders", () => {
-      const template = "Static Episode Title";
-      const alertCount = 10;
-      const result = template.replace(
+      const template: string = "Static Episode Title";
+      const alertCount: number = 10;
+      const result: string = template.replace(
         /\{\{alertCount\}\}/g,
         alertCount.toString(),
       );
@@ -203,9 +205,9 @@ describe("AlertEpisodeService", () => {
     });
 
     test("should handle empty template", () => {
-      const template = "";
-      const alertCount = 3;
-      const result = template.replace(
+      const template: string = "";
+      const alertCount: number = 3;
+      const result: string = template.replace(
         /\{\{alertCount\}\}/g,
         alertCount.toString(),
       );
@@ -215,23 +217,23 @@ describe("AlertEpisodeService", () => {
 
   describe("AlertState comparison", () => {
     test("should correctly compare state orders for resolution check", () => {
-      const currentOrder = 100;
-      const resolvedOrder = 100;
-      const isResolved = currentOrder >= resolvedOrder;
+      const currentOrder: number = 100;
+      const resolvedOrder: number = 100;
+      const isResolved: boolean = currentOrder >= resolvedOrder;
       expect(isResolved).toBe(true);
     });
 
     test("should correctly identify unresolved state", () => {
-      const currentOrder = 50;
-      const resolvedOrder = 100;
-      const isResolved = currentOrder >= resolvedOrder;
+      const currentOrder: number = 50;
+      const resolvedOrder: number = 100;
+      const isResolved: boolean = currentOrder >= resolvedOrder;
       expect(isResolved).toBe(false);
     });
 
     test("should correctly identify acknowledged state", () => {
-      const currentOrder = 50;
-      const acknowledgedOrder = 50;
-      const isAcknowledged = currentOrder >= acknowledgedOrder;
+      const currentOrder: number = 50;
+      const acknowledgedOrder: number = 50;
+      const isAcknowledged: boolean = currentOrder >= acknowledgedOrder;
       expect(isAcknowledged).toBe(true);
     });
   });

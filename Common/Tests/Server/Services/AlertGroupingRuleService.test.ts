@@ -209,7 +209,9 @@ describe("AlertGroupingRule Model", () => {
   describe("Episode Template settings", () => {
     test("should set and get episodeTitleTemplate correctly", () => {
       rule.episodeTitleTemplate = "{{alertSeverity}}: {{alertTitle}}";
-      expect(rule.episodeTitleTemplate).toBe("{{alertSeverity}}: {{alertTitle}}");
+      expect(rule.episodeTitleTemplate).toBe(
+        "{{alertSeverity}}: {{alertTitle}}",
+      );
     });
 
     test("should set and get episodeDescriptionTemplate correctly", () => {
@@ -310,7 +312,8 @@ describe("AlertGroupingRule Model", () => {
       fullRule.resolveDelayMinutes = 15;
 
       // Templates
-      fullRule.episodeTitleTemplate = "{{alertSeverity}} Episode: {{alertTitle}}";
+      fullRule.episodeTitleTemplate =
+        "{{alertSeverity}} Episode: {{alertTitle}}";
       fullRule.episodeDescriptionTemplate = "{{alertCount}} related alerts";
 
       // Ownership
@@ -321,7 +324,9 @@ describe("AlertGroupingRule Model", () => {
       expect(fullRule.id).toEqual(id);
       expect(fullRule.projectId).toEqual(projectId);
       expect(fullRule.name).toBe("Production Critical Alerts");
-      expect(fullRule.description).toBe("Groups critical alerts from production");
+      expect(fullRule.description).toBe(
+        "Groups critical alerts from production",
+      );
       expect(fullRule.priority).toBe(1);
       expect(fullRule.isEnabled).toBe(true);
       expect(fullRule.alertTitlePattern).toBe(".*critical.*");
@@ -366,7 +371,7 @@ describe("AlertGroupingRule Model", () => {
       rule3.priority = 5;
 
       const rules: AlertGroupingRule[] = [rule2, rule3, rule1];
-      rules.sort((a, b) => {
+      rules.sort((a: AlertGroupingRule, b: AlertGroupingRule) => {
         return (a.priority || 0) - (b.priority || 0);
       });
 

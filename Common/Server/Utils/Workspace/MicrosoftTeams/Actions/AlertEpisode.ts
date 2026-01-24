@@ -24,7 +24,8 @@ export default class MicrosoftTeamsAlertEpisodeActions {
   public static isAlertEpisodeAction(data: { actionType: string }): boolean {
     return (
       data.actionType.includes("AlertEpisode") ||
-      data.actionType === MicrosoftTeamsAlertEpisodeActionType.AckAlertEpisode ||
+      data.actionType ===
+        MicrosoftTeamsAlertEpisodeActionType.AckAlertEpisode ||
       data.actionType ===
         MicrosoftTeamsAlertEpisodeActionType.ResolveAlertEpisode ||
       data.actionType ===
@@ -81,9 +82,7 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           break;
 
         default:
-          logger.debug(
-            "Unhandled alert episode action: " + action.actionType,
-          );
+          logger.debug("Unhandled alert episode action: " + action.actionType);
           break;
       }
     } catch (error) {
@@ -556,8 +555,7 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           type: "Action.Submit",
           title: "Submit",
           data: {
-            action:
-              MicrosoftTeamsAlertEpisodeActionType.SubmitAlertEpisodeNote,
+            action: MicrosoftTeamsAlertEpisodeActionType.SubmitAlertEpisodeNote,
             actionValue: episodeId,
           },
         },

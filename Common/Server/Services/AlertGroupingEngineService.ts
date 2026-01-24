@@ -443,8 +443,10 @@ class AlertGroupingEngineServiceClass {
   ): Promise<string> {
     const parts: Array<string> = [];
 
-    // Group by service - only if explicitly enabled
-    // Must be checked before monitor since service contains multiple monitors
+    /*
+     * Group by service - only if explicitly enabled
+     * Must be checked before monitor since service contains multiple monitors
+     */
     if (rule.groupByService && alert.monitorId) {
       const serviceMonitor: ServiceMonitor | null =
         await ServiceMonitorService.findOneBy({
@@ -617,8 +619,10 @@ class AlertGroupingEngineServiceClass {
     if (description) {
       newEpisode.description = description;
     }
-    // Store preprocessed templates for dynamic variable updates
-    // Static variables are replaced, dynamic ones (like {{alertCount}}) remain as placeholders
+    /*
+     * Store preprocessed templates for dynamic variable updates
+     * Static variables are replaced, dynamic ones (like {{alertCount}}) remain as placeholders
+     */
     if (rule.episodeTitleTemplate) {
       newEpisode.titleTemplate = this.preprocessTemplate(
         alert,
@@ -712,8 +716,10 @@ class AlertGroupingEngineServiceClass {
   ): string {
     let result: string = template;
 
-    // Static variables (from first alert)
-    // {{alertTitle}}
+    /*
+     * Static variables (from first alert)
+     * {{alertTitle}}
+     */
     if (alert.title) {
       result = result.replace(/\{\{alertTitle\}\}/g, alert.title);
     }
@@ -736,8 +742,10 @@ class AlertGroupingEngineServiceClass {
       );
     }
 
-    // Dynamic variables (updated when alerts are added/removed)
-    // {{alertCount}}
+    /*
+     * Dynamic variables (updated when alerts are added/removed)
+     * {{alertCount}}
+     */
     result = result.replace(/\{\{alertCount\}\}/g, alertCount.toString());
 
     // Clean up any remaining unknown placeholders
@@ -746,13 +754,17 @@ class AlertGroupingEngineServiceClass {
     return result;
   }
 
-  // Preprocess template: replace static variables but keep dynamic ones as placeholders
-  // This is stored on the episode so we can re-render with updated dynamic values later
+  /*
+   * Preprocess template: replace static variables but keep dynamic ones as placeholders
+   * This is stored on the episode so we can re-render with updated dynamic values later
+   */
   private preprocessTemplate(alert: Alert, template: string): string {
     let result: string = template;
 
-    // Replace static variables (from first alert)
-    // {{alertTitle}}
+    /*
+     * Replace static variables (from first alert)
+     * {{alertTitle}}
+     */
     if (alert.title) {
       result = result.replace(/\{\{alertTitle\}\}/g, alert.title);
     }
@@ -775,8 +787,10 @@ class AlertGroupingEngineServiceClass {
       );
     }
 
-    // Keep dynamic variables as placeholders (e.g., {{alertCount}})
-    // They will be replaced when title/description is re-rendered
+    /*
+     * Keep dynamic variables as placeholders (e.g., {{alertCount}})
+     * They will be replaced when title/description is re-rendered
+     */
 
     return result;
   }

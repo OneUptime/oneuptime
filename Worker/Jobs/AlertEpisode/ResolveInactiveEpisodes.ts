@@ -87,7 +87,10 @@ const checkAndResolveInactiveEpisode: CheckAndResolveInactiveEpisodeFunction =
 
         if (rule) {
           enableInactivityTimeout = rule.enableInactivityTimeout || false;
-          if (enableInactivityTimeout && rule.inactivityTimeoutMinutes !== undefined) {
+          if (
+            enableInactivityTimeout &&
+            rule.inactivityTimeoutMinutes !== undefined
+          ) {
             inactivityTimeoutMinutes = rule.inactivityTimeoutMinutes;
           }
         }

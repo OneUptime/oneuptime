@@ -890,7 +890,10 @@ export default class SlackAlertEpisodeActions {
     // Send confirmation message as a reply to the original message thread
     try {
       const episodeLink: string = (
-        await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)
+        await AlertEpisodeService.getEpisodeLinkInDashboard(
+          projectId,
+          episodeId,
+        )
       ).toString();
 
       const confirmationMessage: string = `✅ Message saved as *private note* to <${episodeLink}|Alert Episode>.`;

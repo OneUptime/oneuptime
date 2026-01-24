@@ -125,10 +125,12 @@ RunCron(
               MarkdownContentType.Email,
             ),
             episodeSeverity: episode.alertSeverity?.name || "Not Set",
-            declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-              date: episodeCreatedDate,
-              timezones: user.timezone ? [user.timezone] : [],
-            }),
+            declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+              {
+                date: episodeCreatedDate,
+                timezones: user.timezone ? [user.timezone] : [],
+              },
+            ),
             declaredBy: declaredBy,
             episodeViewLink: (
               await AlertEpisodeService.getEpisodeLinkInDashboard(
@@ -207,7 +209,8 @@ RunCron(
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id!,
         projectId: episode.projectId!,
-        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OwnerNotificationSent,
+        alertEpisodeFeedEventType:
+          AlertEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Yellow500,
         feedInfoInMarkdown: episodeFeedText,
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,

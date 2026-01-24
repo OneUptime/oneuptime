@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useRef } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 // https://github.com/remarkjs/react-markdown
 import ReactMarkdown from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
@@ -25,15 +30,20 @@ mermaid.initialize({
 });
 
 // Mermaid diagram component
-const MermaidDiagram: FunctionComponent<{ chart: string }> = ({ chart }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
+  chart,
+}: {
+  chart: string;
+}) => {
+  const containerRef: React.RefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const renderDiagram = async (): Promise<void> => {
+    const renderDiagram: () => Promise<void> = async (): Promise<void> => {
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
         try {
-          const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+          const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
           const { svg } = await mermaid.render(id, chart);
           if (containerRef.current) {
             containerRef.current.innerHTML = svg;
@@ -48,7 +58,12 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({ chart }) => {
     renderDiagram();
   }, [chart]);
 
-  return <div ref={containerRef} className="my-4 flex justify-center bg-white p-4 rounded-lg" />;
+  return (
+    <div
+      ref={containerRef}
+      className="my-4 flex justify-center bg-white p-4 rounded-lg"
+    />
+  );
 };
 
 export interface ComponentProps {

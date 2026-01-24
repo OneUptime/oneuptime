@@ -71,7 +71,9 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
               }}
             >
               <Icon icon={IconProp.Add} className="h-5 w-5" />
-              <span className="text-sm ml-2">Add New {props.singularLabel}</span>
+              <span className="text-sm ml-2">
+                Add New {props.singularLabel}
+              </span>
             </div>
           </div>
         )}

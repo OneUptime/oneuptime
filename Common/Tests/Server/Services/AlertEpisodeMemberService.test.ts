@@ -1,7 +1,8 @@
-import AlertEpisodeMember from "../../../Models/DatabaseModels/AlertEpisodeMember";
+import AlertEpisodeMember, {
+  AlertEpisodeMemberAddedBy,
+} from "../../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import ObjectID from "../../../Types/ObjectID";
-import { AlertEpisodeMemberAddedBy } from "../../../Models/DatabaseModels/AlertEpisodeMember";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 
 describe("AlertEpisodeMemberService", () => {
@@ -142,8 +143,10 @@ describe("AlertEpisodeMemberService", () => {
     });
 
     test("should allow same alert to be linked to different episodes (model level)", () => {
-      // Note: The service layer enforces single-episode constraint,
-      // but the model itself allows it
+      /*
+       * Note: The service layer enforces single-episode constraint,
+       * but the model itself allows it
+       */
       const alertId: ObjectID = ObjectID.generate();
       const episodeId1: ObjectID = ObjectID.generate();
       const episodeId2: ObjectID = ObjectID.generate();
