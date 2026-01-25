@@ -97,6 +97,9 @@ const COMPARE_PAGE_CONFIG: SitemapPageConfig = {
 // Number of blog posts per sitemap file
 const BLOG_POSTS_PER_SITEMAP: number = 1000;
 
+// Number of tags per sitemap file
+const TAGS_PER_SITEMAP: number = 500;
+
 // Cache TTL: 10 minutes
 const TTL_MS: number = 10 * 60 * 1000;
 
@@ -109,11 +112,14 @@ interface CachedData<T> {
 let indexCache: CachedData<string> | null = null;
 let pagesCache: CachedData<string> | null = null;
 let compareCache: CachedData<string> | null = null;
-let tagsCache: CachedData<string> | null = null;
+const tagsCaches: Map<number, CachedData<string>> = new Map();
 const blogCaches: Map<number, CachedData<string>> = new Map();
 
 // Cache for blog post count to avoid repeated fetches
 let blogPostCountCache: CachedData<number> | null = null;
+
+// Cache for tags count
+let tagsCountCache: CachedData<number> | null = null;
 
 function isCacheValid<T>(cache: CachedData<T> | null | undefined): boolean {
   if (!cache) {
@@ -198,6 +204,29 @@ async function getBlogPostCount(): Promise<number> {
 export async function getBlogSitemapPageCount(): Promise<number> {
   const totalPosts: number = await getBlogPostCount();
   return Math.ceil(totalPosts / BLOG_POSTS_PER_SITEMAP);
+}
+
+// Get total tags count (cached)
+async function getTagsCount(): Promise<number> {
+  if (isCacheValid(tagsCountCache)) {
+    return tagsCountCache!.data;
+  }
+
+  const tags: string[] = await BlogPostUtil.getTags();
+  const count: number = tags.length;
+
+  tagsCountCache = {
+    data: count,
+    generatedAt: OneUptimeDate.getCurrentDate().getTime(),
+  };
+
+  return count;
+}
+
+// Calculate number of tags sitemap pages needed
+export async function getTagsSitemapPageCount(): Promise<number> {
+  const totalTags: number = await getTagsCount();
+  return Math.ceil(totalTags / TAGS_PER_SITEMAP);
 }
 
 // Discover static paths from Express routes
@@ -298,11 +327,14 @@ export async function generateSitemapIndexXml(): Promise<string> {
     lastmod: timestamp,
   });
 
-  // Blog tags sitemap
-  sitemaps.push({
-    loc: `${baseUrlString}/sitemap-tags.xml`,
-    lastmod: timestamp,
-  });
+  // Blog tags sitemaps (paginated)
+  const tagsPageCount: number = await getTagsSitemapPageCount();
+  for (let i: number = 1; i <= tagsPageCount; i++) {
+    sitemaps.push({
+      loc: `${baseUrlString}/sitemap-tags-${i}.xml`,
+      lastmod: timestamp,
+    });
+  }
 
   // Blog post sitemaps (paginated)
   const blogPageCount: number = await getBlogSitemapPageCount();
@@ -401,19 +433,25 @@ export async function generateCompareSitemapXml(): Promise<string> {
   return xml;
 }
 
-// Generate sitemap for blog tags
-export async function generateTagsSitemapXml(): Promise<string> {
-  if (isCacheValid(tagsCache)) {
-    return tagsCache!.data;
+// Generate sitemap for blog tags (paginated)
+export async function generateTagsSitemapXml(page: number): Promise<string> {
+  const cachedTags: CachedData<string> | undefined = tagsCaches.get(page);
+  if (isCacheValid(cachedTags)) {
+    return cachedTags!.data;
   }
 
   const baseUrl: URL = await BlogPostUtil.getHomeUrl();
   const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
   const timestamp: string = OneUptimeDate.getCurrentDate().toISOString();
 
-  const tags: string[] = await BlogPostUtil.getTags();
+  const allTags: string[] = await BlogPostUtil.getTags();
 
-  const entries: SitemapEntry[] = tags.map((tag: string) => {
+  // Calculate slice for this page (1-indexed)
+  const startIndex: number = (page - 1) * TAGS_PER_SITEMAP;
+  const endIndex: number = startIndex + TAGS_PER_SITEMAP;
+  const tagsForPage: string[] = allTags.slice(startIndex, endIndex);
+
+  const entries: SitemapEntry[] = tagsForPage.map((tag: string) => {
     const tagSlug: string = tag.toLowerCase().replace(/\s+/g, "-").trim();
     return {
       loc: `${baseUrlString}/blog/tag/${tagSlug}`,
@@ -425,10 +463,10 @@ export async function generateTagsSitemapXml(): Promise<string> {
 
   const xml: string = buildUrlsetXml(entries);
 
-  tagsCache = {
+  tagsCaches.set(page, {
     data: xml,
     generatedAt: OneUptimeDate.getCurrentDate().getTime(),
-  };
+  });
 
   return xml;
 }

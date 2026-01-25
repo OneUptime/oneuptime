@@ -10,6 +10,7 @@ import {
   generateTagsSitemapXml,
   generateBlogSitemapXml,
   getBlogSitemapPageCount,
+  getTagsSitemapPageCount,
 } from "./Utils/Sitemap";
 import { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -1814,12 +1815,24 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog tags sitemap
+    // Blog tags sitemap (paginated)
     app.get(
-      "/sitemap-tags.xml",
-      async (_req: ExpressRequest, res: ExpressResponse) => {
+      "/sitemap-tags-:page.xml",
+      async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const xml: string = await generateTagsSitemapXml();
+          const page: number = parseInt(req.params["page"] as string, 10);
+
+          if (isNaN(page) || page < 1) {
+            return res.status(404).send("Invalid sitemap page");
+          }
+
+          // Check if page exists
+          const totalPages: number = await getTagsSitemapPageCount();
+          if (page > totalPages) {
+            return res.status(404).send("Sitemap page not found");
+          }
+
+          const xml: string = await generateTagsSitemapXml(page);
           res.setHeader("Content-Type", "text/xml");
           res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
           res.send(xml);
