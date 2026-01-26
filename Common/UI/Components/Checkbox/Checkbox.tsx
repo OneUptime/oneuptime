@@ -67,8 +67,8 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
             onFocus={props.onFocus}
             onBlur={props.onBlur}
             data-testid={props.dataTestId}
-            aria-describedby="comments-description"
-            name="comments"
+            aria-describedby={props.description ? "checkbox-description" : undefined}
+            aria-invalid={props.error ? "true" : undefined}
             type="checkbox"
             className={`accent-indigo-600 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 ${
               props.className || ""
@@ -78,7 +78,7 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
         <div className="ml-3 text-sm leading-6">
           <label className="font-medium text-gray-900">{props.title}</label>
           {props.description && (
-            <div className="text-gray-500">{props.description}</div>
+            <div id="checkbox-description" className="text-gray-500">{props.description}</div>
           )}
         </div>
       </div>

@@ -66,6 +66,8 @@ const TextArea: FunctionComponent<ComponentProps> = (
           className={`${className || ""}`}
           value={text}
           spellCheck={!props.disableSpellCheck}
+          aria-invalid={props.error ? "true" : undefined}
+          aria-describedby={props.error ? "textarea-error-message" : undefined}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
             const value: string = e.target.value;
 
@@ -88,13 +90,13 @@ const TextArea: FunctionComponent<ComponentProps> = (
           tabIndex={props.tabIndex}
         />
         {props.error && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" aria-hidden="true">
             <Icon icon={IconProp.ErrorSolid} className="h-5 w-5 text-red-500" />
           </div>
         )}
       </div>
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p id="textarea-error-message" data-testid="error-message" className="mt-1 text-sm text-red-400" role="alert">
           {props.error}
         </p>
       )}

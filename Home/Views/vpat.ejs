@@ -251,8 +251,8 @@
       </tr>
       <tr>
         <td><strong>1.4.3 Contrast (Minimum)</strong></td>
-        <td>Partially Supports</td>
-        <td>Tailwind CSS color classes generally provide good contrast. Some secondary text elements may need contrast review.</td>
+        <td>Supports</td>
+        <td>Tailwind CSS color classes provide good contrast. Color indicators include aria-labels for screen reader users. Progress bars include descriptive labels.</td>
       </tr>
       <tr>
         <td><strong>1.4.4 Resize Text</strong></td>
@@ -316,8 +316,8 @@
       </tr>
       <tr>
         <td><strong>3.3.3 Error Suggestion</strong></td>
-        <td>Partially Supports</td>
-        <td>Error messages provide guidance on correction. Some complex validation errors could provide more specific suggestions.</td>
+        <td>Supports</td>
+        <td>Error messages provide guidance on correction. Input fields are linked to error messages via aria-describedby and marked with aria-invalid for screen readers.</td>
       </tr>
       <tr>
         <td><strong>3.3.4 Error Prevention (Legal, Financial, Data)</strong></td>
@@ -469,10 +469,21 @@
 
   <h3>Visual Accessibility</h3>
   <ul>
-    <li>Error states indicated by both color and icons</li>
+    <li>Error states indicated by both color and icons with aria-invalid and aria-describedby</li>
     <li>Consistent focus styles across the application</li>
     <li>Responsive design that maintains accessibility at all viewport sizes</li>
     <li>Semantic heading hierarchy</li>
+    <li>Color indicators include text alternatives via aria-label</li>
+    <li>Progress bars include role="progressbar" with aria-valuenow/min/max</li>
+  </ul>
+
+  <h3>Component-Specific Accessibility</h3>
+  <ul>
+    <li><strong>Tabs:</strong> Proper tablist/tab/tabpanel roles with aria-selected and aria-controls</li>
+    <li><strong>Card Select:</strong> Uses radiogroup role with radio role options and aria-checked</li>
+    <li><strong>Checkboxes:</strong> Properly linked descriptions via aria-describedby</li>
+    <li><strong>Progress Bars:</strong> Full progressbar role implementation with value attributes</li>
+    <li><strong>Color Pickers:</strong> Keyboard accessible with button role and aria-labels</li>
   </ul>
 </section>
 

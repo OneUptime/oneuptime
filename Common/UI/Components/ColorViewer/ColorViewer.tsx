@@ -13,12 +13,26 @@ export interface ComponentProps {
 const ColorInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const hasOnClick: boolean = Boolean(props.onClick);
+  const colorLabel: string = props.value?.toString() || props.placeholder || "No Color Selected";
+
+  const handleKeyDown = (event: React.KeyboardEvent): void => {
+    if (hasOnClick && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      props.onClick?.();
+    }
+  };
+
   return (
     <div
       className={`flex ${props.className}`}
       onClick={() => {
         props.onClick?.();
       }}
+      onKeyDown={handleKeyDown}
+      role={hasOnClick ? "button" : undefined}
+      tabIndex={hasOnClick ? 0 : undefined}
+      aria-label={hasOnClick ? `Color picker: ${colorLabel}` : undefined}
       data-testid={props.dataTestId}
     >
       {props.value && (
@@ -34,10 +48,11 @@ const ColorInput: FunctionComponent<ComponentProps> = (
             marginRight: "7px",
             borderStyle: "solid",
           }}
+          aria-hidden="true"
         ></div>
       )}
       <div>
-        {props.value?.toString() || props.placeholder || "No Color Selected"}
+        {colorLabel}
       </div>
     </div>
   );
