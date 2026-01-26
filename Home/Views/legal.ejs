@@ -318,6 +318,7 @@
                 <option value="/legal/soc-2" <%= section === 'soc-2' ? 'selected' : '' %>>SOC 2</option>
                 <option value="/legal/soc-3" <%= section === 'soc-3' ? 'selected' : '' %>>SOC 3</option>
                 <option value="/legal/pci" <%= section === 'pci' ? 'selected' : '' %>>PCI DSS</option>
+                <option value="/legal/vpat" <%= section === 'vpat' ? 'selected' : '' %>>VPAT (Accessibility)</option>
               </optgroup>
               <optgroup label="Other">
                 <option value="/legal/dmca" <%= section && section.includes('dmca') ? 'selected' : '' %>>DMCA</option>
@@ -434,6 +435,11 @@
                 <li>
                   <a href="/legal/pci" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'pci' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
                     PCI DSS
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/vpat" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'vpat' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    VPAT (Accessibility)
                   </a>
                 </li>
               </ul>
@@ -555,6 +561,10 @@
 
           <% if(section === "subprocessors") { %>
           <%- include('subprocessors') -%>
+          <% } %>
+
+          <% if(section === "vpat") { %>
+          <%- include('vpat') -%>
           <% } %>
 
           <!-- Document Footer -->

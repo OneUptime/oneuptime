@@ -1700,6 +1700,18 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get("/legal/vpat", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.render(`${ViewsPath}/legal.ejs`, {
+        footerCards: true,
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        cta: true,
+        blackLogo: false,
+        section: "vpat",
+        requestDemoCta: false,
+      });
+    });
+
     app.get(
       "/legal/data-residency",
       (_req: ExpressRequest, res: ExpressResponse) => {
