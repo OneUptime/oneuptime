@@ -7,7 +7,10 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import Link from "../../../Types/Link";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, { ReactElement, useEffect, useState, useCallback } from "react";
+import GlobalEvents from "../../Utils/GlobalEvents";
+
+export const REFRESH_SIDEBAR_COUNT_EVENT: string = "REFRESH_SIDEBAR_COUNTS";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   link: Link;
@@ -29,7 +32,7 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
   const [error, setError] = useState<string>("");
   const [count, setCount] = useState<number>(0);
 
-  const fetchCount: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchCount: PromiseVoidFunction = useCallback(async (): Promise<void> => {
     if (!props.modelType) {
       return;
     }
@@ -59,13 +62,28 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
     }
 
     setIsLoading(false);
-  };
+  }, [props.modelType, props.countQuery, props.requestOptions, props.onCountFetchInit]);
 
   useEffect(() => {
     fetchCount().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
-  }, [props.countQuery]);
+  }, [fetchCount]);
+
+  // Listen for global refresh events
+  useEffect(() => {
+    const handleRefresh = (): void => {
+      fetchCount().catch((err: Error) => {
+        setError(API.getFriendlyMessage(err));
+      });
+    };
+
+    GlobalEvents.addEventListener(REFRESH_SIDEBAR_COUNT_EVENT, handleRefresh);
+
+    return () => {
+      GlobalEvents.removeEventListener(REFRESH_SIDEBAR_COUNT_EVENT, handleRefresh);
+    };
+  }, [fetchCount]);
 
   return (
     <SideMenuItem

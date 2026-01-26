@@ -38,6 +38,8 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ObjectID from "Common/Types/ObjectID";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 
 export interface ComponentProps {
   query?: Query<AlertEpisode> | undefined;
@@ -182,6 +184,9 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     onBulkActionEnd();
     setShowBulkStateChangeModal(false);
     setBulkActionProps(null);
+
+    // Trigger sidebar badge count refresh
+    GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
   };
 
   const getBulkChangeStateAction =
