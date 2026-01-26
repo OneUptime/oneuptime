@@ -256,13 +256,38 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
 
     // Update episode's current state if this is the latest timeline entry
     if (!createdItem.endsAt) {
+      const updateData: {
+        currentAlertStateId: ObjectID;
+        resolvedAt?: Date | null;
+      } = {
+        currentAlertStateId: createdItem.alertStateId,
+      };
+
+      // Check if the new state is a resolved state and update resolvedAt accordingly
+      const newAlertState: AlertState | null =
+        await AlertStateService.findOneById({
+          id: createdItem.alertStateId,
+          select: {
+            isResolvedState: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (newAlertState?.isResolvedState) {
+        // Set resolvedAt when transitioning to resolved state
+        updateData.resolvedAt = OneUptimeDate.getCurrentDate();
+      } else {
+        // Clear resolvedAt when transitioning away from resolved state
+        updateData.resolvedAt = null;
+      }
+
       await AlertEpisodeService.updateOneBy({
         query: {
           _id: createdItem.alertEpisodeId?.toString(),
         },
-        data: {
-          currentAlertStateId: createdItem.alertStateId,
-        },
+        data: updateData,
         props: onCreate.createBy.props,
       });
     }
