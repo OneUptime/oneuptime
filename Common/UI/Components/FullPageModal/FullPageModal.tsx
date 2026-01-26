@@ -10,13 +10,26 @@ export interface ComponentProps {
 const FullPageModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const handleClose = (): void => {
+    props.onClose?.();
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent): void => {
+    if (event.key === "Enter" || event.key === " " || event.key === "Escape") {
+      event.preventDefault();
+      handleClose();
+    }
+  };
+
   return (
-    <div className="full-page-modal">
+    <div className="full-page-modal" role="dialog" aria-modal="true">
       <div
         className="margin-50 align-right"
-        onClick={() => {
-          props.onClose?.();
-        }}
+        onClick={handleClose}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label="Close modal"
       >
         <Icon
           icon={IconProp.Close}

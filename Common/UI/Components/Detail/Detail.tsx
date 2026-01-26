@@ -395,7 +395,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
                 style={{
                   height: "100px",
                 }}
-                alt=""
+                alt={field.title ? `${field.title} image` : "Uploaded image"}
               />
             </div>
           </div>

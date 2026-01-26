@@ -21,6 +21,8 @@ const TopAlert: FunctionComponent<ComponentProps> = (
   return (
     <div
       className={`flex items-center text-center gap-x-6 ${alertType.toString()} px-6 py-2.5 sm:px-3.5`}
+      role="alert"
+      aria-live="polite"
     >
       <div className="text-sm leading-6 text-white w-full">
         <div className="w-full">

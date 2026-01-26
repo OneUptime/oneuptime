@@ -40,6 +40,7 @@ export interface ComponentProps {
   autoFocus?: boolean | undefined;
   disableSpellCheck?: boolean | undefined;
   showSecondsForDateTime?: boolean | undefined;
+  autoComplete?: string | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -156,6 +157,7 @@ const Input: FunctionComponent<ComponentProps> = (
           onClick={props.onClick}
           data-testid={props.dataTestId}
           spellCheck={!props.disableSpellCheck}
+          autoComplete={props.autoComplete}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const value: string | Date = e.target.value;
 

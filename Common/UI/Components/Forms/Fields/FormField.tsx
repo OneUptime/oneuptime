@@ -105,6 +105,27 @@ const FormField: <T extends GenericObject>(
     }
   };
 
+  type GetAutoCompleteFunction = (fieldType: FormFieldSchemaType) => string | undefined;
+
+  const getAutoComplete: GetAutoCompleteFunction = (
+    fieldType: FormFieldSchemaType,
+  ): string | undefined => {
+    switch (fieldType) {
+      case FormFieldSchemaType.Email:
+        return "email";
+      case FormFieldSchemaType.Password:
+        return "current-password";
+      case FormFieldSchemaType.Phone:
+        return "tel";
+      case FormFieldSchemaType.Name:
+        return "name";
+      case FormFieldSchemaType.URL:
+        return "url";
+      default:
+        return undefined;
+    }
+  };
+
   const getFormField: GetReactElementFunction = (): ReactElement => {
     const [
       showMultiSelectCheckboxCategoryModal,
@@ -737,6 +758,7 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               type={fieldType as InputType}
+              autoComplete={props.field.fieldType ? getAutoComplete(props.field.fieldType) : undefined}
               onChange={(value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
