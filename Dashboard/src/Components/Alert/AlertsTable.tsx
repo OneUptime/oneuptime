@@ -18,10 +18,29 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useEffect,
+} from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "../Monitor/Monitor";
+import {
+  BulkActionButtonSchema,
+  BulkActionFailed,
+  BulkActionOnClickProps,
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import API from "Common/UI/Utils/API/API";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ObjectID from "Common/Types/ObjectID";
+import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 
 export interface ComponentProps {
   query?: Query<Alert> | undefined;
@@ -38,6 +57,136 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [initialValuesForAlert, setInitialValuesForAlert] =
     useState<JSONObject>({});
+  const [alertStates, setAlertStates] = useState<AlertState[]>([]);
+  const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
+    useState<boolean>(false);
+  const [bulkActionProps, setBulkActionProps] =
+    useState<BulkActionOnClickProps<Alert> | null>(null);
+
+  // Fetch alert states on mount
+  useEffect(() => {
+    const fetchAlertStates = async (): Promise<void> => {
+      try {
+        const result: ListResult<AlertState> =
+          await ModelAPI.getList<AlertState>({
+            modelType: AlertState,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            limit: 99,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+              color: true,
+              order: true,
+              isResolvedState: true,
+              isAcknowledgedState: true,
+              isCreatedState: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+            },
+          });
+        setAlertStates(result.data);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+    };
+
+    fetchAlertStates();
+  }, []);
+
+  const handleBulkStateChange = async (
+    targetStateId: ObjectID,
+  ): Promise<void> => {
+    if (!bulkActionProps) {
+      return;
+    }
+
+    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
+      bulkActionProps;
+
+    const targetState = alertStates.find(
+      (s: AlertState) => s.id?.toString() === targetStateId.toString(),
+    );
+
+    if (!targetState) {
+      return;
+    }
+
+    const targetOrder = targetState.order || 0;
+
+    onBulkActionStart();
+
+    const inProgressItems: Array<Alert> = [...items];
+    const totalItems: Array<Alert> = [...items];
+    const successItems: Array<Alert> = [];
+    const failedItems: Array<BulkActionFailed<Alert>> = [];
+
+    for (const alert of totalItems) {
+      inProgressItems.splice(inProgressItems.indexOf(alert), 1);
+
+      try {
+        if (!alert.id) {
+          throw new Error("Alert ID not found");
+        }
+
+        const currentOrder = alert.currentAlertState?.order || 0;
+
+        // Skip if already at or past the target state
+        if (currentOrder >= targetOrder) {
+          failedItems.push({
+            item: alert,
+            failedMessage: `Skipped: Already at or past "${targetState.name}" state`,
+          });
+        } else {
+          // Create state timeline to change state
+          const stateTimeline: AlertStateTimeline = new AlertStateTimeline();
+          stateTimeline.alertId = alert.id;
+          stateTimeline.alertStateId = targetStateId;
+          stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
+
+          await ModelAPI.create<AlertStateTimeline>({
+            model: stateTimeline,
+            modelType: AlertStateTimeline,
+          });
+
+          successItems.push(alert);
+        }
+      } catch (err) {
+        failedItems.push({
+          item: alert,
+          failedMessage: API.getFriendlyMessage(err),
+        });
+      }
+
+      onProgressInfo({
+        totalItems: totalItems,
+        failed: failedItems,
+        successItems: successItems,
+        inProgressItems: inProgressItems,
+      });
+    }
+
+    onBulkActionEnd();
+    setShowBulkStateChangeModal(false);
+    setBulkActionProps(null);
+  };
+
+  const getBulkChangeStateAction = (): BulkActionButtonSchema<Alert> => {
+    return {
+      title: "Change State",
+      buttonStyleType: ButtonStyleType.NORMAL,
+      icon: IconProp.TransparentCube,
+      onClick: async (
+        actionProps: BulkActionOnClickProps<Alert>,
+      ): Promise<void> => {
+        setBulkActionProps(actionProps);
+        setShowBulkStateChangeModal(true);
+      },
+    };
+  };
 
   return (
     <>
@@ -45,7 +194,10 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         name="Alerts"
         userPreferencesKey="alerts-table"
         bulkActions={{
-          buttons: [ModalTableBulkDefaultActions.Delete],
+          buttons: [
+            getBulkChangeStateAction(),
+            ModalTableBulkDefaultActions.Delete,
+          ],
         }}
         onCreateEditModalClose={(): void => {
           setInitialValuesForAlert({});
@@ -303,6 +455,37 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           submitButtonText={"Close"}
           onSubmit={() => {
             return setError("");
+          }}
+        />
+      )}
+
+      {showBulkStateChangeModal && (
+        <BasicFormModal
+          title="Change Alert State"
+          description="Select the state to change alerts to. Alerts already at or past the selected state will be skipped."
+          onClose={() => {
+            setShowBulkStateChangeModal(false);
+            setBulkActionProps(null);
+          }}
+          submitButtonText="Change State"
+          onSubmit={async (formData: { alertStateId: ObjectID }) => {
+            await handleBulkStateChange(formData.alertStateId);
+          }}
+          formProps={{
+            fields: [
+              {
+                field: {
+                  alertStateId: true,
+                },
+                title: "Select State",
+                fieldType: FormFieldSchemaType.Dropdown,
+                required: true,
+                dropdownOptions: alertStates.map((state: AlertState) => ({
+                  label: state.name || "",
+                  value: state.id?.toString() || "",
+                })),
+              },
+            ],
           }}
         />
       )}
