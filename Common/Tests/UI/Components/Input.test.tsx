@@ -283,7 +283,7 @@ describe("Input", () => {
 
     render(<Input {...{ error }} />);
 
-    expect(screen.getByRole("icon")).toBeInTheDocument();
+    expect(screen.getByRole("icon", { hidden: true })).toBeInTheDocument();
   });
 
   test("sets error style if error exists", () => {

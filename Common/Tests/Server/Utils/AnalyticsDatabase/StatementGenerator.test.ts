@@ -176,7 +176,7 @@ describe("StatementGenerator", () => {
         p0: "_id",
         p1: "<value>",
         p2: "updatedAt",
-        p3: OneUptimeDate.toDatabaseDate(date),
+        p3: OneUptimeDate.toClickhouseDateTime(date),
       });
     });
   });

@@ -123,9 +123,13 @@ export class Statement implements BaseQueryParams {
       finalValue = v.value;
     }
 
-    // serialize to date.
+    // serialize to date (only for string values that need parsing, not already processed Date objects)
 
-    if (typeof v !== "string" && v.type === TableColumnType.Date) {
+    if (
+      typeof v !== "string" &&
+      v.type === TableColumnType.Date &&
+      !(v.value instanceof Date)
+    ) {
       finalValue = OneUptimeDate.fromString(finalValue as string);
       finalValue = OneUptimeDate.toClickhouseDateTime(finalValue);
     }

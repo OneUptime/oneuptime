@@ -118,12 +118,12 @@ describe("TextArea", () => {
 
   test("displays error icon", () => {
     const { getByRole } = render(<TextArea error="error" initialValue="" />);
-    expect(getByRole("icon")).toBeInTheDocument();
+    expect(getByRole("icon", { hidden: true })).toBeInTheDocument();
   });
 
   test("does not display error icon without error", () => {
     const { queryByRole } = render(<TextArea initialValue="" />);
-    expect(queryByRole("icon")).not.toBeInTheDocument();
+    expect(queryByRole("icon", { hidden: true })).not.toBeInTheDocument();
   });
 
   test("applies error styles", () => {
