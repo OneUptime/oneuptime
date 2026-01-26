@@ -388,6 +388,10 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`,
   ),
 
+  [PageMap.HOME_ACTIVE_EPISODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/active-episodes`,
+  ),
+
   [PageMap.MONITORS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/*`,
   ),

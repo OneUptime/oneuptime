@@ -22,6 +22,7 @@ import React, {
 } from "react";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertStateUtil from "../../Utils/AlertState";
 
 export interface ComponentProps {
@@ -111,6 +112,30 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.ExclaimationCircle,
           badgeType: BadgeType.DANGER,
           modelType: Alert,
+          countQuery: {
+            projectId: props.project?._id,
+            currentAlertStateId: new Includes(
+              unresolvedAlertStates.map((state: AlertState) => {
+                return state.id!;
+              }),
+            ),
+          },
+        },
+      ],
+    },
+    {
+      title: "Episodes",
+      items: [
+        {
+          link: {
+            title: "Active",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOME_ACTIVE_EPISODES] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack,
+          badgeType: BadgeType.DANGER,
+          modelType: AlertEpisode,
           countQuery: {
             projectId: props.project?._id,
             currentAlertStateId: new Includes(
