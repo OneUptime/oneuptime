@@ -104,7 +104,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
-            title: "Active",
+            title: "Active Alerts",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route,
             ),
@@ -121,14 +121,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
         },
-      ],
-    },
-    {
-      title: "Episodes",
-      items: [
         {
           link: {
-            title: "Active",
+            title: "Active Episodes",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOME_ACTIVE_EPISODES] as Route,
             ),
