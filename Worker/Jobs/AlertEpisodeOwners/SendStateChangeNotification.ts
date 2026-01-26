@@ -294,7 +294,7 @@ RunCron(
             userId: user.id!,
             projectId: episodeStateTimeline.projectId!,
           },
-        )})\n`;
+        )}\n`;
       }
 
       const episodeNumber: number = episode.episodeNumber!;

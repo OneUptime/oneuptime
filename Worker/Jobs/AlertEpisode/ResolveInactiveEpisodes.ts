@@ -124,7 +124,7 @@ const checkAndResolveInactiveEpisode: CheckAndResolveInactiveEpisodeFunction =
 
       await AlertEpisodeService.resolveEpisode(
         episode.id,
-        undefined as any, // No user - auto-resolved due to inactivity
+        undefined, // No user - auto-resolved due to inactivity
         true, // Cascade to alerts - resolve all member alerts as well
       );
     } catch (error) {

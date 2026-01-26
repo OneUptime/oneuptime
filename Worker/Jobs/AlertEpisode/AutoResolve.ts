@@ -199,7 +199,7 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
 
     await AlertEpisodeService.resolveEpisode(
       episode.id,
-      undefined as any, // No user - auto-resolved
+      undefined, // No user - auto-resolved by system
       false, // Don't cascade to alerts - they're already resolved
     );
   } catch (error) {

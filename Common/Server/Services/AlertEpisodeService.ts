@@ -57,7 +57,7 @@ export class Service extends DatabaseService<Model> {
         episodeNumber: true,
       },
       sort: {
-        createdAt: SortOrder.Descending,
+        episodeNumber: SortOrder.Descending,
       },
       props: {
         isRoot: true,
@@ -304,28 +304,8 @@ export class Service extends DatabaseService<Model> {
       props: props || {},
     });
 
-    // Update resolved timestamp if this is a resolved state
-    const alertState: AlertState | null = await AlertStateService.findOneById({
-      id: alertStateId,
-      select: {
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (alertState?.isResolvedState) {
-      await this.updateOneById({
-        id: episodeId,
-        data: {
-          resolvedAt: OneUptimeDate.getCurrentDate(),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    // Note: resolvedAt is updated by AlertEpisodeStateTimelineService.onCreateSuccess()
+    // to avoid duplicate updates.
 
     // Cascade state change to all member alerts if requested
     if (cascadeToAlerts) {
@@ -395,7 +375,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async acknowledgeEpisode(
     episodeId: ObjectID,
-    acknowledgedByUserId: ObjectID,
+    acknowledgedByUserId?: ObjectID,
     cascadeToAlerts: boolean = true,
   ): Promise<void> {
     const episode: Model | null = await this.findOneById({
@@ -463,7 +443,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async resolveEpisode(
     episodeId: ObjectID,
-    resolvedByUserId: ObjectID,
+    resolvedByUserId?: ObjectID,
     cascadeToAlerts: boolean = true,
   ): Promise<void> {
     const episode: Model | null = await this.findOneById({
