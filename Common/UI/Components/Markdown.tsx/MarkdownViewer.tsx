@@ -35,8 +35,7 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
 }: {
   chart: string;
 }) => {
-  const containerRef: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const renderDiagram: () => Promise<void> = async (): Promise<void> => {
