@@ -747,7 +747,7 @@ class AlertGroupingEngineServiceClass {
             projectId: alert.projectId!,
             alertEpisodeFeedEventType: AlertEpisodeFeedEventType.EpisodeCreated,
             displayColor: Green500,
-            feedInfoInMarkdown: `🆕 **Episode Created** by grouping rule **${rule.name || "Unnamed Rule"}**`,
+            feedInfoInMarkdown: `🔔 **Episode Created** by grouping rule **${rule.name || "Unnamed Rule"}**`,
             moreInformationInMarkdown: moreInfo,
           });
         } catch (feedError) {
@@ -1000,19 +1000,19 @@ class AlertGroupingEngineServiceClass {
       matchReason = `**Match Criteria:**\n- ${matchCriteria.join("\n- ")}`;
 
       if (wasReopened) {
-        alertFeedMessage = `📥 **Added to Episode #${episodeNumber}** (reopened) by rule **${rule.name || "Unnamed Rule"}**`;
-        episodeFeedMessage = `📥 **Alert #${alertNumber}** added (episode reopened) by rule **${rule.name || "Unnamed Rule"}**`;
+        alertFeedMessage = `➕ **Added to Episode #${episodeNumber}** (reopened) by rule **${rule.name || "Unnamed Rule"}**`;
+        episodeFeedMessage = `➕ **Alert #${alertNumber}** added (episode reopened) by rule **${rule.name || "Unnamed Rule"}**`;
       } else if (isNewEpisode) {
-        alertFeedMessage = `📥 **Added to new Episode #${episodeNumber}** by rule **${rule.name || "Unnamed Rule"}**`;
-        episodeFeedMessage = `📥 **Alert #${alertNumber}** added (initial alert) by rule **${rule.name || "Unnamed Rule"}**`;
+        alertFeedMessage = `➕ **Added to new Episode #${episodeNumber}** by rule **${rule.name || "Unnamed Rule"}**`;
+        episodeFeedMessage = `➕ **Alert #${alertNumber}** added (initial alert) by rule **${rule.name || "Unnamed Rule"}**`;
       } else {
-        alertFeedMessage = `📥 **Added to Episode #${episodeNumber}** by rule **${rule.name || "Unnamed Rule"}**`;
-        episodeFeedMessage = `📥 **Alert #${alertNumber}** added by rule **${rule.name || "Unnamed Rule"}**`;
+        alertFeedMessage = `➕ **Added to Episode #${episodeNumber}** by rule **${rule.name || "Unnamed Rule"}**`;
+        episodeFeedMessage = `➕ **Alert #${alertNumber}** added by rule **${rule.name || "Unnamed Rule"}**`;
       }
     } else {
       // Manual addition
-      alertFeedMessage = `📥 **Manually added to Episode #${episodeNumber}**`;
-      episodeFeedMessage = `📥 **Alert #${alertNumber}** manually added`;
+      alertFeedMessage = `➕ **Manually added to Episode #${episodeNumber}**`;
+      episodeFeedMessage = `➕ **Alert #${alertNumber}** manually added`;
       matchReason = "**Reason:** Manually added by user";
     }
 
