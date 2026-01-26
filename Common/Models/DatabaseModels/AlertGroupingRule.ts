@@ -888,15 +888,14 @@ export default class AlertGroupingRule extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Episode Title Template",
     description:
       "Template for generating episode titles. Supports placeholders like {{alertSeverity}}, {{monitorName}}, {{alertTitle}}, {{alertDescription}}",
   })
   @Column({
-    type: ColumnType.ShortText,
+    type: ColumnType.LongText,
     nullable: true,
-    length: ColumnLength.ShortText,
   })
   public episodeTitleTemplate?: string = undefined;
 

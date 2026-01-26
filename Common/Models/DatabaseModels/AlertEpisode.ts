@@ -846,15 +846,14 @@ export default class AlertEpisode extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Title Template",
     description:
       "Template used to generate the episode title. Stored for dynamic variable updates.",
   })
   @Column({
-    type: ColumnType.ShortText,
+    type: ColumnType.LongText,
     nullable: true,
-    length: ColumnLength.ShortText,
   })
   public titleTemplate?: string = undefined;
 
