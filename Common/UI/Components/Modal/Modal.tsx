@@ -66,9 +66,9 @@ const Modal: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     const modal: HTMLDivElement | null = modalRef.current;
     if (modal) {
-      // Focus the first focusable element in the modal
+      // Focus the first focusable element in the modal, excluding the close button
       const focusableElements: NodeListOf<Element> = modal.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button:not([data-testid="close-button"]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
       const firstFocusable: HTMLElement | undefined = focusableElements[0] as
         | HTMLElement
