@@ -32,6 +32,8 @@ export interface GroupingResult {
 class AlertGroupingEngineServiceClass {
   @CaptureSpan()
   public async processAlert(alert: Alert): Promise<GroupingResult> {
+    logger.debug(`Processing alert ${alert.id} for grouping`);
+
     try {
       if (!alert.id || !alert.projectId) {
         logger.warn("Alert missing id or projectId, skipping grouping");
@@ -80,6 +82,7 @@ class AlertGroupingEngineServiceClass {
             groupByMonitor: true,
             groupBySeverity: true,
             groupByAlertTitle: true,
+            groupByService: true,
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
@@ -102,9 +105,15 @@ class AlertGroupingEngineServiceClass {
         });
 
       if (rules.length === 0) {
-        logger.debug("No enabled grouping rules found for project");
+        logger.debug(
+          `No enabled grouping rules found for project ${alert.projectId}`,
+        );
         return { grouped: false };
       }
+
+      logger.debug(
+        `Found ${rules.length} enabled grouping rules for project ${alert.projectId}`,
+      );
 
       // Find first matching rule
       for (const rule of rules) {
@@ -137,6 +146,10 @@ class AlertGroupingEngineServiceClass {
     alert: Alert,
     rule: AlertGroupingRule,
   ): Promise<boolean> {
+    logger.debug(
+      `Checking if alert ${alert.id} matches rule ${rule.name || rule.id}`,
+    );
+
     // Check monitor IDs - if monitors are specified, alert must be from one of them
     if (rule.monitors && rule.monitors.length > 0) {
       if (!alert.monitorId) {
@@ -317,6 +330,9 @@ class AlertGroupingEngineServiceClass {
     }
 
     // If no criteria specified (all fields empty), rule matches all alerts
+    logger.debug(
+      `Rule ${rule.name || rule.id} matched alert ${alert.id} (all criteria passed)`,
+    );
     return true;
   }
 
