@@ -36,6 +36,9 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import Typeof from "../../Types/Typeof";
 import AlertService from "./AlertService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -200,6 +203,16 @@ export class Service extends DatabaseService<Model> {
           );
         }
       })
+      .then(async () => {
+        // Execute on-call duty policies
+        try {
+          await this.executeEpisodeOnCallDutyPoliciesAsync(createdItem);
+        } catch (error) {
+          logger.error(
+            `On-call duty policy execution failed in AlertEpisodeService.onCreateSuccess: ${error}`,
+          );
+        }
+      })
       .catch((error: Error) => {
         logger.error(
           `Critical error in AlertEpisodeService.onCreateSuccess: ${error}`,
@@ -237,6 +250,70 @@ export class Service extends DatabaseService<Model> {
       feedInfoInMarkdown: feedInfoInMarkdown,
       userId: episode.createdByUserId || undefined,
     });
+  }
+
+  @CaptureSpan()
+  private async executeEpisodeOnCallDutyPoliciesAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    if (!createdItem.id || !createdItem.projectId) {
+      return;
+    }
+
+    try {
+      // Fetch the episode with on-call duty policies since they may not be loaded
+      const episodeWithPolicies: Model | null = await this.findOneById({
+        id: createdItem.id,
+        select: {
+          onCallDutyPolicies: {
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (
+        !episodeWithPolicies?.onCallDutyPolicies?.length ||
+        episodeWithPolicies.onCallDutyPolicies.length === 0
+      ) {
+        return;
+      }
+
+      // Execute all on-call policies in parallel
+      const policyPromises: Promise<void>[] =
+        episodeWithPolicies.onCallDutyPolicies.map(
+          (policy: OnCallDutyPolicy) => {
+            return OnCallDutyPolicyService.executePolicy(
+              new ObjectID(policy._id as string),
+              {
+                triggeredByAlertEpisodeId: createdItem.id!,
+                userNotificationEventType:
+                  UserNotificationEventType.AlertEpisodeCreated,
+              },
+            );
+          },
+        );
+
+      await Promise.allSettled(policyPromises);
+
+      // Update the flag to indicate on-call policy has been executed
+      await this.updateOneById({
+        id: createdItem.id,
+        data: {
+          isOnCallPolicyExecuted: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`,
+      );
+      throw error;
+    }
   }
 
   @CaptureSpan()
