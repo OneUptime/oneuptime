@@ -304,7 +304,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  private async cascadeStateToMemberAlerts(data: {
+  public async cascadeStateToMemberAlerts(data: {
     projectId: ObjectID;
     episodeId: ObjectID;
     alertStateId: ObjectID;

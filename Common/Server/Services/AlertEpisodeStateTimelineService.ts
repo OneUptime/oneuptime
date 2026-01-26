@@ -290,6 +290,24 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         data: updateData,
         props: onCreate.createBy.props,
       });
+
+      // Cascade state change to all member alerts
+      if (createdItem.projectId) {
+        try {
+          await AlertEpisodeService.cascadeStateToMemberAlerts({
+            projectId: createdItem.projectId,
+            episodeId: createdItem.alertEpisodeId,
+            alertStateId: createdItem.alertStateId,
+            props: {
+              isRoot: true,
+            },
+          });
+        } catch (error) {
+          logger.error(
+            `Failed to cascade state change to member alerts: ${error}`,
+          );
+        }
+      }
     }
 
     if (mutex) {
