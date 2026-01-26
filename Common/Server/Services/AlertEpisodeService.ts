@@ -18,7 +18,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
-import { Red500, Green500, Yellow500 } from "../../Types/BrandColors";
+import { Red500, Green500, Yellow500, Purple500 } from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import AlertSeverityService from "./AlertSeverityService";
@@ -267,6 +267,7 @@ export class Service extends DatabaseService<Model> {
         select: {
           onCallDutyPolicies: {
             _id: true,
+            name: true,
           },
         },
         props: {
@@ -307,6 +308,26 @@ export class Service extends DatabaseService<Model> {
         props: {
           isRoot: true,
         },
+      });
+
+      // Create feed entry for on-call policy execution
+      const policyNames: string[] = episodeWithPolicies.onCallDutyPolicies
+        .map((policy: OnCallDutyPolicy) => policy.name || "Unnamed Policy")
+        .filter((name: string) => Boolean(name));
+
+      let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
+      feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
+
+      for (const policyName of policyNames) {
+        feedInfoInMarkdown += `- ${policyName}\n`;
+      }
+
+      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+        alertEpisodeId: createdItem.id,
+        projectId: createdItem.projectId,
+        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
+        displayColor: Purple500,
+        feedInfoInMarkdown: feedInfoInMarkdown,
       });
     } catch (error) {
       logger.error(
