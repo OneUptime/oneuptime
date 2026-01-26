@@ -8,8 +8,8 @@
         <%= blogPost.title %>
     </title>
     <meta name="description" content="<%= blogPost.description %>">
+    <% const seo = { fullCanonicalUrl: 'https://oneuptime.com/blog/post/' + blogPost.fileName + '/view' }; %>
     <%- include('../head-basic') -%>
-        <link rel="canonical" href="https://oneuptime.com/blog/post/<%= blogPost.fileName %>/view" />
         <meta property="og:site_name" content="OneUptime | One Complete Observability platform.">
         <meta property="og:type" content="article">
         <meta property="og:title" content="<%= blogPost.title %>">
