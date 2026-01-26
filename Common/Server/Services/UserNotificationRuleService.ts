@@ -205,7 +205,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (options.triggeredByAlertEpisodeId) {
-      logTimelineItem.triggeredByAlertEpisodeId = options.triggeredByAlertEpisodeId;
+      logTimelineItem.triggeredByAlertEpisodeId =
+        options.triggeredByAlertEpisodeId;
     }
 
     if (options.onCallDutyPolicyExecutionLogTimelineId) {
@@ -308,7 +309,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!incident && !alert && !alertEpisode) {
-      throw new BadDataException("Incident, Alert, or Alert Episode not found.");
+      throw new BadDataException(
+        "Incident, Alert, or Alert Episode not found.",
+      );
     }
 
     if (
@@ -1648,7 +1651,8 @@ export class Service extends DatabaseService<Model> {
           ).toString()
         : acknowledgeUrl.toString();
 
-    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.AlertEpisodeCreated;
+    const templateKey: WhatsAppTemplateId =
+      WhatsAppTemplateIds.AlertEpisodeCreated;
     const templateVariables: Record<string, string> = {
       project_name: alertEpisode.project?.name || "OneUptime",
       episode_title: alertEpisode.title || "",
@@ -1793,7 +1797,8 @@ export class Service extends DatabaseService<Model> {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeAlertEpisode,
       vars: vars,
-      subject: "ACTION REQUIRED: Alert Episode created - " + alertEpisode.title!,
+      subject:
+        "ACTION REQUIRED: Alert Episode created - " + alertEpisode.title!,
     };
 
     return emailMessage;
@@ -1832,7 +1837,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (options.triggeredByAlertEpisodeId) {
-      userOnCallLog.triggeredByAlertEpisodeId = options.triggeredByAlertEpisodeId;
+      userOnCallLog.triggeredByAlertEpisodeId =
+        options.triggeredByAlertEpisodeId;
     }
 
     userOnCallLog.userNotificationEventType = options.userNotificationEventType;

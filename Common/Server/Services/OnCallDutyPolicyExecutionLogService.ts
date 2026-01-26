@@ -348,7 +348,8 @@ export class Service extends DatabaseService<Model> {
           if (onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId) {
             const episodeNumber: number | null =
               await AlertEpisodeService.getEpisodeNumber({
-                episodeId: onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId,
+                episodeId:
+                  onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId,
               });
             incidentOrAlertLink = `[Alert Episode ${episodeNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId)).toString()})`;
           }

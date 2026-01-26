@@ -18,7 +18,12 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
-import { Red500, Green500, Yellow500, Purple500 } from "../../Types/BrandColors";
+import {
+  Red500,
+  Green500,
+  Yellow500,
+  Purple500,
+} from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import AlertSeverityService from "./AlertSeverityService";
@@ -312,8 +317,12 @@ export class Service extends DatabaseService<Model> {
 
       // Create feed entry for on-call policy execution
       const policyNames: string[] = episodeWithPolicies.onCallDutyPolicies
-        .map((policy: OnCallDutyPolicy) => policy.name || "Unnamed Policy")
-        .filter((name: string) => Boolean(name));
+        .map((policy: OnCallDutyPolicy) => {
+          return policy.name || "Unnamed Policy";
+        })
+        .filter((name: string) => {
+          return Boolean(name);
+        });
 
       let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
       feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
@@ -330,9 +339,7 @@ export class Service extends DatabaseService<Model> {
         feedInfoInMarkdown: feedInfoInMarkdown,
       });
     } catch (error) {
-      logger.error(
-        `Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`,
-      );
+      logger.error(`Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`);
       throw error;
     }
   }
