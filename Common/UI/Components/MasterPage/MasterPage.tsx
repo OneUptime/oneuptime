@@ -42,7 +42,6 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       {isOnline && (
         <div className={props.className}>
-          
           <div
             className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}
           >
@@ -54,9 +53,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          
-            {props.children}
-          
+          {props.children}
 
           {props.footer && props.footer}
         </div>

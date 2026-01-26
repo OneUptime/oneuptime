@@ -29,7 +29,8 @@ const MoreMenu: React.ForwardRefExoticComponent<
     const { ref, isComponentVisible, setIsComponentVisible } =
       useComponentOutsideClick(false);
     const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-    const menuItemRefs: React.MutableRefObject<(HTMLDivElement | null)[]> = useRef<(HTMLDivElement | null)[]>([]);
+    const menuItemRefs: React.MutableRefObject<(HTMLDivElement | null)[]> =
+      useRef<(HTMLDivElement | null)[]>([]);
 
     useImperativeHandle(componentRef, () => {
       return {
@@ -62,39 +63,49 @@ const MoreMenu: React.ForwardRefExoticComponent<
       }
     }, [focusedIndex]);
 
-    const handleKeyDown: (event: React.KeyboardEvent) => void = useCallback((event: React.KeyboardEvent): void => {
-      if (!isComponentVisible) {
-        return;
-      }
+    const handleKeyDown: (event: React.KeyboardEvent) => void = useCallback(
+      (event: React.KeyboardEvent): void => {
+        if (!isComponentVisible) {
+          return;
+        }
 
-      const itemCount: number = props.children.length;
+        const itemCount: number = props.children.length;
 
-      switch (event.key) {
-        case "Escape":
-          event.preventDefault();
-          setIsComponentVisible(false);
-          break;
-        case "ArrowDown":
-          event.preventDefault();
-          setFocusedIndex((prev: number) => (prev + 1) % itemCount);
-          break;
-        case "ArrowUp":
-          event.preventDefault();
-          setFocusedIndex((prev: number) => (prev - 1 + itemCount) % itemCount);
-          break;
-        case "Home":
-          event.preventDefault();
-          setFocusedIndex(0);
-          break;
-        case "End":
-          event.preventDefault();
-          setFocusedIndex(itemCount - 1);
-          break;
-      }
-    }, [isComponentVisible, props.children.length, setIsComponentVisible]);
+        switch (event.key) {
+          case "Escape":
+            event.preventDefault();
+            setIsComponentVisible(false);
+            break;
+          case "ArrowDown":
+            event.preventDefault();
+            setFocusedIndex((prev: number) => {
+              return (prev + 1) % itemCount;
+            });
+            break;
+          case "ArrowUp":
+            event.preventDefault();
+            setFocusedIndex((prev: number) => {
+              return (prev - 1 + itemCount) % itemCount;
+            });
+            break;
+          case "Home":
+            event.preventDefault();
+            setFocusedIndex(0);
+            break;
+          case "End":
+            event.preventDefault();
+            setFocusedIndex(itemCount - 1);
+            break;
+        }
+      },
+      [isComponentVisible, props.children.length, setIsComponentVisible],
+    );
 
     return (
-      <div className="relative inline-block text-left" onKeyDown={handleKeyDown}>
+      <div
+        className="relative inline-block text-left"
+        onKeyDown={handleKeyDown}
+      >
         {!props.elementToBeShownInsteadOfButton && (
           <Button
             id={buttonId}
@@ -128,7 +139,9 @@ const MoreMenu: React.ForwardRefExoticComponent<
               return (
                 <div
                   key={index}
-                  ref={(el: HTMLDivElement | null) => { menuItemRefs.current[index] = el; }}
+                  ref={(el: HTMLDivElement | null) => {
+                    menuItemRefs.current[index] = el;
+                  }}
                   role="menuitem"
                   tabIndex={focusedIndex === index ? 0 : -1}
                   onClick={() => {
@@ -141,7 +154,9 @@ const MoreMenu: React.ForwardRefExoticComponent<
                       e.preventDefault();
                       setIsComponentVisible(false);
                       // Trigger child click
-                      const clickEvent: MouseEvent = new MouseEvent("click", { bubbles: true });
+                      const clickEvent: MouseEvent = new MouseEvent("click", {
+                        bubbles: true,
+                      });
                       e.currentTarget.dispatchEvent(clickEvent);
                     }
                   }}

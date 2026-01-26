@@ -53,7 +53,15 @@ export interface ComponentProps {
   tooltip?: string | undefined;
   ariaLabel?: string | undefined;
   ariaExpanded?: boolean | undefined;
-  ariaHaspopup?: "menu" | "listbox" | "dialog" | "tree" | "grid" | "true" | "false" | undefined;
+  ariaHaspopup?:
+    | "menu"
+    | "listbox"
+    | "dialog"
+    | "tree"
+    | "grid"
+    | "true"
+    | "false"
+    | undefined;
   ariaControls?: string | undefined;
 }
 
@@ -244,7 +252,8 @@ const Button: FunctionComponent<ComponentProps> = ({
   // For icon-only buttons, use title as aria-label for accessibility
   const computedAriaLabel: string | undefined =
     ariaLabel ||
-    (buttonStyle === ButtonStyleType.ICON || buttonStyle === ButtonStyleType.ICON_LIGHT
+    (buttonStyle === ButtonStyleType.ICON ||
+    buttonStyle === ButtonStyleType.ICON_LIGHT
       ? title || tooltip
       : undefined);
 

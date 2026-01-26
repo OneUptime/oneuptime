@@ -62,7 +62,9 @@ const Accordion: FunctionComponent<ComponentProps> = (
 
   const accordionId: string = `accordion-content-${React.useId()}`;
 
-  const handleKeyDown = (event: React.KeyboardEvent): void => {
+  const handleKeyDown: (event: React.KeyboardEvent) => void = (
+    event: React.KeyboardEvent,
+  ): void => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       setIsOpen(!isOpen);
@@ -122,7 +124,10 @@ const Accordion: FunctionComponent<ComponentProps> = (
           {!isOpen && <div className="">{props.rightElement}</div>}
         </div>
         {isOpen && (
-          <div id={accordionId} className={`space-y-5 ${props.title ? "mt-4" : ""}`}>
+          <div
+            id={accordionId}
+            className={`space-y-5 ${props.title ? "mt-4" : ""}`}
+          >
             {props.children}
           </div>
         )}

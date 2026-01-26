@@ -63,7 +63,10 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
         className={`${progressBarSize} bg-indigo-600 rounded-full `}
         style={{ width: percent + "%" }}
       ></div>
-      <div className="text-sm text-gray-400 mt-1 flex justify-between" aria-hidden="true">
+      <div
+        className="text-sm text-gray-400 mt-1 flex justify-between"
+        aria-hidden="true"
+      >
         <div data-testid="progress-bar-count">
           {props.count} {props.suffix}
         </div>

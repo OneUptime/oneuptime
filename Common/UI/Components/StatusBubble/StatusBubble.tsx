@@ -17,7 +17,12 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
     : Black.toString();
 
   return (
-    <div className="flex" style={props.style} role="status" aria-label={`Status: ${props.text}`}>
+    <div
+      className="flex"
+      style={props.style}
+      role="status"
+      aria-label={`Status: ${props.text}`}
+    >
       <div className="-mr-2 ml-5" aria-hidden="true">
         <span className="relative -left-1 -translate-x-full top-1/2 -translate-y-1/2 flex h-3.5 w-3.5">
           <span

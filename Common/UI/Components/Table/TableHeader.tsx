@@ -3,7 +3,9 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import Columns from "./Types/Columns";
-import SortOrder, { SortOrderToAriaSortMap } from "../../../Types/BaseDatabase/SortOrder";
+import SortOrder, {
+  SortOrderToAriaSortMap,
+} from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useState } from "react";
@@ -85,11 +87,12 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             const canSort: boolean = !column.disableSort && Boolean(column.key);
 
             const isSorted: boolean = canSort && props.sortBy === column.key;
-            const ariaSort: "ascending" | "descending" | "none" | undefined = isSorted
-              ? SortOrderToAriaSortMap[props.sortOrder]
-              : canSort
-                ? "none"
-                : undefined;
+            const ariaSort: "ascending" | "descending" | "none" | undefined =
+              isSorted
+                ? SortOrderToAriaSortMap[props.sortOrder]
+                : canSort
+                  ? "none"
+                  : undefined;
 
             return (
               <th

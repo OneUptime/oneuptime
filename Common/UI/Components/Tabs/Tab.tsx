@@ -32,7 +32,9 @@ const TabElement: FunctionComponent<ComponentProps> = (
     ? `${backgroundColor} text-gray-700`
     : "text-gray-500 hover:text-gray-700";
 
-  const handleKeyDown = (event: React.KeyboardEvent): void => {
+  const handleKeyDown: (event: React.KeyboardEvent) => void = (
+    event: React.KeyboardEvent,
+  ): void => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       props.onClick?.();

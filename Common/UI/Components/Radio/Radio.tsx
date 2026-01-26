@@ -74,7 +74,10 @@ const Radio: FunctionComponent<ComponentProps> = (
               type="radio"
               className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
             />
-            <label htmlFor={optionId} className="block text-sm font-medium leading-6 text-gray-900">
+            <label
+              htmlFor={optionId}
+              className="block text-sm font-medium leading-6 text-gray-900"
+            >
               {option.label}
             </label>
           </div>
@@ -82,7 +85,12 @@ const Radio: FunctionComponent<ComponentProps> = (
       })}
 
       {props.error && (
-        <p id={errorId} data-testid="error-message" className="mt-1 text-sm text-red-400" role="alert">
+        <p
+          id={errorId}
+          data-testid="error-message"
+          className="mt-1 text-sm text-red-400"
+          role="alert"
+        >
           {props.error}
         </p>
       )}

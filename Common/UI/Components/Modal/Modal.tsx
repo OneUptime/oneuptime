@@ -6,7 +6,12 @@ import ModalBody from "./ModalBody";
 import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement, useEffect, useRef } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 
 export enum ModalWidth {
   Normal,
@@ -38,11 +43,14 @@ export interface ComponentProps {
 const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const modalRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const modalRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
 
   // Handle Escape key to close modal
   useEffect(() => {
-    const handleEscapeKey: (event: KeyboardEvent) => void = (event: KeyboardEvent): void => {
+    const handleEscapeKey: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
       if (event.key === "Escape" && props.onClose) {
         props.onClose();
       }
@@ -60,9 +68,11 @@ const Modal: FunctionComponent<ComponentProps> = (
     if (modal) {
       // Focus the first focusable element in the modal
       const focusableElements: NodeListOf<Element> = modal.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      const firstFocusable: HTMLElement | undefined = focusableElements[0] as HTMLElement | undefined;
+      const firstFocusable: HTMLElement | undefined = focusableElements[0] as
+        | HTMLElement
+        | undefined;
       if (firstFocusable) {
         firstFocusable.focus();
       }

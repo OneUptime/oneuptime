@@ -129,14 +129,20 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 }
               }}
               onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.key === "Enter" || e.key === " ") && !isPreviousDisabled) {
+                if (
+                  (e.key === "Enter" || e.key === " ") &&
+                  !isPreviousDisabled
+                ) {
                   e.preventDefault();
                   let currentPageNumber: number = props.currentPageNumber;
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
                   if (props.onNavigateToPage) {
-                    props.onNavigateToPage(currentPageNumber - 1, props.itemsOnPage);
+                    props.onNavigateToPage(
+                      currentPageNumber - 1,
+                      props.itemsOnPage,
+                    );
                   }
                 }
               }}
@@ -196,7 +202,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     currentPageNumber = parseInt(currentPageNumber);
                   }
                   if (props.onNavigateToPage) {
-                    props.onNavigateToPage(currentPageNumber + 1, props.itemsOnPage);
+                    props.onNavigateToPage(
+                      currentPageNumber + 1,
+                      props.itemsOnPage,
+                    );
                   }
                 }
               }}
@@ -250,14 +259,20 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 }
               }}
               onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.key === "Enter" || e.key === " ") && !isPreviousDisabled) {
+                if (
+                  (e.key === "Enter" || e.key === " ") &&
+                  !isPreviousDisabled
+                ) {
                   e.preventDefault();
                   let currentPageNumber: number = props.currentPageNumber;
                   if (typeof currentPageNumber === "string") {
                     currentPageNumber = parseInt(currentPageNumber);
                   }
                   if (props.onNavigateToPage) {
-                    props.onNavigateToPage(currentPageNumber - 1, props.itemsOnPage);
+                    props.onNavigateToPage(
+                      currentPageNumber - 1,
+                      props.itemsOnPage,
+                    );
                   }
                 }
               }}
@@ -317,7 +332,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     currentPageNumber = parseInt(currentPageNumber);
                   }
                   if (props.onNavigateToPage) {
-                    props.onNavigateToPage(currentPageNumber + 1, props.itemsOnPage);
+                    props.onNavigateToPage(
+                      currentPageNumber + 1,
+                      props.itemsOnPage,
+                    );
                   }
                 }
               }}

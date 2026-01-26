@@ -10,11 +10,13 @@ export interface ComponentProps {
 const FullPageModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const handleClose = (): void => {
+  const handleClose: () => void = (): void => {
     props.onClose?.();
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent): void => {
+  const handleKeyDown: (event: React.KeyboardEvent) => void = (
+    event: React.KeyboardEvent,
+  ): void => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handleClose();
@@ -23,7 +25,9 @@ const FullPageModal: FunctionComponent<ComponentProps> = (
 
   // Handle Escape key at the modal level
   React.useEffect(() => {
-    const handleEscapeKey = (event: KeyboardEvent): void => {
+    const handleEscapeKey: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
       if (event.key === "Escape") {
         handleClose();
       }

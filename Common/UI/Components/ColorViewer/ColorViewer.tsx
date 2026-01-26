@@ -14,9 +14,12 @@ const ColorInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const hasOnClick: boolean = Boolean(props.onClick);
-  const colorLabel: string = props.value?.toString() || props.placeholder || "No Color Selected";
+  const colorLabel: string =
+    props.value?.toString() || props.placeholder || "No Color Selected";
 
-  const handleKeyDown = (event: React.KeyboardEvent): void => {
+  const handleKeyDown: (event: React.KeyboardEvent) => void = (
+    event: React.KeyboardEvent,
+  ): void => {
     if (hasOnClick && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
       props.onClick?.();
@@ -51,9 +54,7 @@ const ColorInput: FunctionComponent<ComponentProps> = (
           aria-hidden="true"
         ></div>
       )}
-      <div>
-        {colorLabel}
-      </div>
+      <div>{colorLabel}</div>
     </div>
   );
 };

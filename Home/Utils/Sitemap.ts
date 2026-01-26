@@ -514,8 +514,10 @@ export async function generateBlogSitemapXml(page: number): Promise<string> {
   return xml;
 }
 
-// Legacy function for backwards compatibility (generates single sitemap)
-// This is kept in case any other code references it
+/*
+ * Legacy function for backwards compatibility (generates single sitemap)
+ * This is kept in case any other code references it
+ */
 export const generateSitemapXml: () => Promise<string> =
   async (): Promise<string> => {
     // Redirect to sitemap index for backwards compatibility

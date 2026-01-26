@@ -26,7 +26,7 @@ const Tabs: FunctionComponent<ComponentProps> = (
     }
   }, [currentTab]);
 
-  const tabPanelId: string = `tabpanel-${currentTab?.name || 'default'}`;
+  const tabPanelId: string = `tabpanel-${currentTab?.name || "default"}`;
 
   return (
     <div>
@@ -52,7 +52,7 @@ const Tabs: FunctionComponent<ComponentProps> = (
       <div
         id={tabPanelId}
         role="tabpanel"
-        aria-labelledby={`tab-${currentTab?.name || 'default'}`}
+        aria-labelledby={`tab-${currentTab?.name || "default"}`}
         className="mt-3 ml-1"
       >
         {currentTab && currentTab.children}

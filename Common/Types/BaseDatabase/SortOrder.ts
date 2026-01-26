@@ -4,7 +4,10 @@ enum SortOrder {
 }
 
 // Maps SortOrder to ARIA sort values for accessibility
-export const SortOrderToAriaSortMap: Record<SortOrder, "ascending" | "descending"> = {
+export const SortOrderToAriaSortMap: Record<
+  SortOrder,
+  "ascending" | "descending"
+> = {
   [SortOrder.Ascending]: "ascending",
   [SortOrder.Descending]: "descending",
 };

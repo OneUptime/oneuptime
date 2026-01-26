@@ -19,12 +19,14 @@ const CopyableButton: FunctionComponent<ComponentProps> = (
     }, 2000);
   };
 
-  const handleCopy = async (): Promise<void> => {
+  const handleCopy: () => Promise<void> = async (): Promise<void> => {
     refreshCopyToClipboardState();
     await navigator.clipboard?.writeText(props.textToBeCopied);
   };
 
-  const handleKeyDown = async (event: React.KeyboardEvent): Promise<void> => {
+  const handleKeyDown: (event: React.KeyboardEvent) => Promise<void> = async (
+    event: React.KeyboardEvent,
+  ): Promise<void> => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       await handleCopy();
@@ -40,7 +42,9 @@ const CopyableButton: FunctionComponent<ComponentProps> = (
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
-      aria-label={copiedToClipboard ? "Copied to clipboard" : "Copy to clipboard"}
+      aria-label={
+        copiedToClipboard ? "Copied to clipboard" : "Copy to clipboard"
+      }
       aria-live="polite"
     >
       {" "}
