@@ -38,6 +38,7 @@ export enum AlertFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OnCallPolicy = "OnCallPolicy",
   OnCallNotification = "OnCallNotification",
+  AddedToEpisode = "AddedToEpisode",
 }
 
 @EnableDocumentation()

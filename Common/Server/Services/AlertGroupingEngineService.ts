@@ -20,6 +20,11 @@ import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import MonitorService from "./MonitorService";
 import ServiceMonitorService from "./ServiceMonitorService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
+import AlertFeedService from "./AlertFeedService";
+import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import { Green500, Purple500 } from "../../Types/BrandColors";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -388,6 +393,9 @@ class AlertGroupingEngineServiceClass {
           existingEpisode.id,
           AlertEpisodeMemberAddedBy.Rule,
           rule.id!,
+          rule,
+          false, // isNewEpisode
+          false, // wasReopened
         );
 
         // Update episode severity if alert has higher severity
@@ -430,6 +438,9 @@ class AlertGroupingEngineServiceClass {
               recentlyResolvedEpisode.id,
               AlertEpisodeMemberAddedBy.Rule,
               rule.id!,
+              rule,
+              false, // isNewEpisode
+              true, // wasReopened
             );
 
             // Update episode severity if alert has higher severity
@@ -465,6 +476,9 @@ class AlertGroupingEngineServiceClass {
           newEpisode.id,
           AlertEpisodeMemberAddedBy.Rule,
           rule.id!,
+          rule,
+          true, // isNewEpisode
+          false, // wasReopened
         );
 
         return { grouped: true, episodeId: newEpisode.id, isNewEpisode: true };
@@ -697,6 +711,50 @@ class AlertGroupingEngineServiceClass {
         },
       });
 
+      // Add episode feed entry for episode creation
+      if (createdEpisode.id) {
+        const groupByParts: Array<string> = [];
+
+        if (rule.groupByMonitor) {
+          groupByParts.push("Monitor");
+        }
+        if (rule.groupBySeverity) {
+          groupByParts.push("Severity");
+        }
+        if (rule.groupByAlertTitle) {
+          groupByParts.push("Alert Title");
+        }
+        if (rule.groupByService) {
+          groupByParts.push("Service");
+        }
+
+        const groupByDescription: string =
+          groupByParts.length > 0
+            ? `Grouping by: ${groupByParts.join(", ")}`
+            : "Grouping all matching alerts together";
+
+        let moreInfo: string = `**Rule:** ${rule.name || "Unnamed Rule"}\n\n`;
+        moreInfo += `**Grouping Key:** \`${groupingKey}\`\n\n`;
+        moreInfo += `**${groupByDescription}**`;
+
+        if (rule.enableTimeWindow && rule.timeWindowMinutes) {
+          moreInfo += `\n\n**Time Window:** ${rule.timeWindowMinutes} minutes`;
+        }
+
+        try {
+          await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+            alertEpisodeId: createdEpisode.id,
+            projectId: alert.projectId!,
+            alertEpisodeFeedEventType: AlertEpisodeFeedEventType.EpisodeCreated,
+            displayColor: Green500,
+            feedInfoInMarkdown: `🆕 **Episode Created** by grouping rule **${rule.name || "Unnamed Rule"}**`,
+            moreInformationInMarkdown: moreInfo,
+          });
+        } catch (feedError) {
+          logger.error(`Error creating episode feed for episode creation: ${feedError}`);
+        }
+      }
+
       return createdEpisode;
     } catch (error) {
       logger.error(`Error creating new episode: ${error}`);
@@ -832,6 +890,9 @@ class AlertGroupingEngineServiceClass {
     episodeId: ObjectID,
     addedBy: AlertEpisodeMemberAddedBy,
     ruleId?: ObjectID,
+    rule?: AlertGroupingRule,
+    isNewEpisode?: boolean,
+    wasReopened?: boolean,
   ): Promise<void> {
     const member: AlertEpisodeMember = new AlertEpisodeMember();
     member.projectId = alert.projectId!;
@@ -850,6 +911,16 @@ class AlertGroupingEngineServiceClass {
           isRoot: true,
         },
       });
+
+      // Create feed entries for alert being added to episode
+      await this.createAlertAddedFeedEntries({
+        alert,
+        episodeId,
+        addedBy,
+        rule,
+        isNewEpisode,
+        wasReopened,
+      });
     } catch (error) {
       // Check if it's a duplicate error (alert already in episode)
       if (
@@ -860,6 +931,125 @@ class AlertGroupingEngineServiceClass {
         return;
       }
       throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async createAlertAddedFeedEntries(data: {
+    alert: Alert;
+    episodeId: ObjectID;
+    addedBy: AlertEpisodeMemberAddedBy;
+    rule?: AlertGroupingRule | undefined;
+    isNewEpisode?: boolean | undefined;
+    wasReopened?: boolean | undefined;
+    addedByUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    const { alert, episodeId, addedBy, rule, isNewEpisode, wasReopened, addedByUserId } = data;
+
+    // Fetch episode number for feed entry
+    const episode: AlertEpisode | null = await AlertEpisodeService.findOneById({
+      id: episodeId,
+      select: {
+        episodeNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const episodeNumber: number = episode?.episodeNumber || 0;
+    const alertNumber: number = alert.alertNumber || 0;
+
+    // Build explanation of why the alert was added
+    let matchReason: string = "";
+    let alertFeedMessage: string = "";
+    let episodeFeedMessage: string = "";
+
+    if (addedBy === AlertEpisodeMemberAddedBy.Rule && rule) {
+      const matchCriteria: Array<string> = [];
+
+      if (rule.monitors && rule.monitors.length > 0) {
+        matchCriteria.push("monitor matches rule criteria");
+      }
+      if (rule.alertSeverities && rule.alertSeverities.length > 0) {
+        matchCriteria.push("severity matches rule criteria");
+      }
+      if (rule.alertLabels && rule.alertLabels.length > 0) {
+        matchCriteria.push("alert labels match rule criteria");
+      }
+      if (rule.monitorLabels && rule.monitorLabels.length > 0) {
+        matchCriteria.push("monitor labels match rule criteria");
+      }
+      if (rule.alertTitlePattern) {
+        matchCriteria.push(`alert title matches pattern \`${rule.alertTitlePattern}\``);
+      }
+      if (rule.alertDescriptionPattern) {
+        matchCriteria.push(`alert description matches pattern \`${rule.alertDescriptionPattern}\``);
+      }
+      if (rule.monitorNamePattern) {
+        matchCriteria.push(`monitor name matches pattern \`${rule.monitorNamePattern}\``);
+      }
+      if (rule.monitorDescriptionPattern) {
+        matchCriteria.push(`monitor description matches pattern \`${rule.monitorDescriptionPattern}\``);
+      }
+
+      if (matchCriteria.length === 0) {
+        matchCriteria.push("all criteria matched (rule matches all alerts)");
+      }
+
+      matchReason = `**Match Criteria:**\n- ${matchCriteria.join("\n- ")}`;
+
+      if (wasReopened) {
+        alertFeedMessage = `📥 **Added to Episode #${episodeNumber}** (reopened) by rule **${rule.name || "Unnamed Rule"}**`;
+        episodeFeedMessage = `📥 **Alert #${alertNumber}** added (episode reopened) by rule **${rule.name || "Unnamed Rule"}**`;
+      } else if (isNewEpisode) {
+        alertFeedMessage = `📥 **Added to new Episode #${episodeNumber}** by rule **${rule.name || "Unnamed Rule"}**`;
+        episodeFeedMessage = `📥 **Alert #${alertNumber}** added (initial alert) by rule **${rule.name || "Unnamed Rule"}**`;
+      } else {
+        alertFeedMessage = `📥 **Added to Episode #${episodeNumber}** by rule **${rule.name || "Unnamed Rule"}**`;
+        episodeFeedMessage = `📥 **Alert #${alertNumber}** added by rule **${rule.name || "Unnamed Rule"}**`;
+      }
+    } else {
+      // Manual addition
+      alertFeedMessage = `📥 **Manually added to Episode #${episodeNumber}**`;
+      episodeFeedMessage = `📥 **Alert #${alertNumber}** manually added`;
+      matchReason = "**Reason:** Manually added by user";
+    }
+
+    // Create alert feed entry
+    try {
+      await AlertFeedService.createAlertFeedItem({
+        alertId: alert.id!,
+        projectId: alert.projectId!,
+        alertFeedEventType: AlertFeedEventType.AddedToEpisode,
+        displayColor: Purple500,
+        feedInfoInMarkdown: alertFeedMessage,
+        moreInformationInMarkdown: matchReason,
+        userId: addedByUserId,
+      });
+    } catch (feedError) {
+      logger.error(`Error creating alert feed for alert added to episode: ${feedError}`);
+    }
+
+    // Create episode feed entry
+    try {
+      let moreInfo: string = `**Alert:** #${alertNumber}`;
+      if (alert.title) {
+        moreInfo += ` - ${alert.title}`;
+      }
+      moreInfo += `\n\n${matchReason}`;
+
+      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+        alertEpisodeId: episodeId,
+        projectId: alert.projectId!,
+        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertAdded,
+        displayColor: Purple500,
+        feedInfoInMarkdown: episodeFeedMessage,
+        moreInformationInMarkdown: moreInfo,
+        userId: addedByUserId,
+      });
+    } catch (feedError) {
+      logger.error(`Error creating episode feed for alert added: ${feedError}`);
     }
   }
 
@@ -884,6 +1074,14 @@ class AlertGroupingEngineServiceClass {
       props: {
         isRoot: true,
       },
+    });
+
+    // Create feed entries for manual addition
+    await this.createAlertAddedFeedEntries({
+      alert,
+      episodeId,
+      addedBy: AlertEpisodeMemberAddedBy.Manual,
+      addedByUserId,
     });
 
     // Update episode severity if needed
