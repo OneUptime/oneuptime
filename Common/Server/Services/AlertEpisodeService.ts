@@ -34,6 +34,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import Typeof from "../../Types/Typeof";
+import AlertService from "./AlertService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -331,9 +332,6 @@ export class Service extends DatabaseService<Model> {
     if (members.length === 0) {
       return;
     }
-
-    // Import AlertService dynamically to avoid circular dependency
-    const { default: AlertService } = await import("./AlertService");
 
     // Update state for each member alert
     for (const member of members) {
