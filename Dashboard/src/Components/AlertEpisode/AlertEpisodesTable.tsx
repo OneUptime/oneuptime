@@ -126,13 +126,28 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           throw new Error("Episode ID not found");
         }
 
-        const currentOrder = episode.currentAlertState?.order || 0;
+        // Fetch the episode's current state order since it's not loaded in the table
+        const fetchedEpisode: AlertEpisode | null =
+          await ModelAPI.getItem<AlertEpisode>({
+            modelType: AlertEpisode,
+            id: episode.id,
+            select: {
+              currentAlertState: {
+                order: true,
+                name: true,
+              },
+            },
+          });
+
+        const currentOrder = fetchedEpisode?.currentAlertState?.order || 0;
 
         // Skip if already at or past the target state
         if (currentOrder >= targetOrder) {
+          const currentStateName =
+            fetchedEpisode?.currentAlertState?.name || "Unknown";
           failedItems.push({
             item: episode,
-            failedMessage: `Skipped: Already at or past "${targetState.name}" state`,
+            failedMessage: `Skipped: Already at "${currentStateName}" (at or past "${targetState.name}")`,
           });
         } else {
           // Create state timeline to change state
