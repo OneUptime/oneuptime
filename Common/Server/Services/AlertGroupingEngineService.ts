@@ -19,6 +19,7 @@ import AlertEpisodeService from "./AlertEpisodeService";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import MonitorService from "./MonitorService";
 import ServiceMonitorService from "./ServiceMonitorService";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -343,112 +344,138 @@ class AlertGroupingEngineServiceClass {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(alert, rule);
 
-    // Calculate time window cutoff (only if time window is enabled)
-    let timeWindowCutoff: Date | null = null;
-    if (rule.enableTimeWindow) {
-      const timeWindowMinutes: number = rule.timeWindowMinutes || 60;
-      timeWindowCutoff = OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
-    }
+    // Create mutex key to prevent race conditions when creating episodes
+    const mutexKey: string = `${alert.projectId?.toString()}-${rule.id?.toString()}-${groupingKey}`;
 
-    // Find existing active episode that matches
-    const existingEpisode: AlertEpisode | null =
-      await this.findMatchingActiveEpisode(
-        alert.projectId!,
-        rule.id!,
-        groupingKey,
-        timeWindowCutoff,
-      );
+    let mutex: SemaphoreMutex | null = null;
 
-    if (existingEpisode && existingEpisode.id) {
-      // Add alert to existing episode
-      await this.addAlertToEpisode(
-        alert,
-        existingEpisode.id,
-        AlertEpisodeMemberAddedBy.Rule,
-        rule.id!,
-      );
-
-      // Update episode severity if alert has higher severity
-      if (alert.alertSeverityId) {
-        await AlertEpisodeService.updateEpisodeSeverity({
-          episodeId: existingEpisode.id,
-          severityId: alert.alertSeverityId,
-          onlyIfHigher: true,
+    try {
+      // Acquire mutex to prevent concurrent episode creation for the same grouping key
+      try {
+        mutex = await Semaphore.lock({
+          key: mutexKey,
+          namespace: "AlertGroupingEngine.groupAlertWithRule",
         });
+      } catch (err) {
+        logger.error(err);
       }
 
-      return {
-        grouped: true,
-        episodeId: existingEpisode.id,
-        isNewEpisode: false,
-      };
-    }
+      // Calculate time window cutoff (only if time window is enabled)
+      let timeWindowCutoff: Date | null = null;
+      if (rule.enableTimeWindow) {
+        const timeWindowMinutes: number = rule.timeWindowMinutes || 60;
+        timeWindowCutoff = OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
+      }
 
-    // Check if we can reopen a recently resolved episode (only if enabled)
-    if (rule.enableReopenWindow) {
-      const reopenWindowMinutes: number = rule.reopenWindowMinutes || 0;
-      if (reopenWindowMinutes > 0) {
-        const reopenCutoff: Date =
-          OneUptimeDate.getSomeMinutesAgo(reopenWindowMinutes);
-        const recentlyResolvedEpisode: AlertEpisode | null =
-          await this.findRecentlyResolvedEpisode(
-            alert.projectId!,
-            rule.id!,
-            groupingKey,
-            reopenCutoff,
-          );
+      // Find existing active episode that matches
+      const existingEpisode: AlertEpisode | null =
+        await this.findMatchingActiveEpisode(
+          alert.projectId!,
+          rule.id!,
+          groupingKey,
+          timeWindowCutoff,
+        );
 
-        if (recentlyResolvedEpisode && recentlyResolvedEpisode.id) {
-          // Reopen the episode
-          await AlertEpisodeService.reopenEpisode(recentlyResolvedEpisode.id);
+      if (existingEpisode && existingEpisode.id) {
+        // Add alert to existing episode
+        await this.addAlertToEpisode(
+          alert,
+          existingEpisode.id,
+          AlertEpisodeMemberAddedBy.Rule,
+          rule.id!,
+        );
 
-          // Add alert to reopened episode
-          await this.addAlertToEpisode(
-            alert,
-            recentlyResolvedEpisode.id,
-            AlertEpisodeMemberAddedBy.Rule,
-            rule.id!,
-          );
+        // Update episode severity if alert has higher severity
+        if (alert.alertSeverityId) {
+          await AlertEpisodeService.updateEpisodeSeverity({
+            episodeId: existingEpisode.id,
+            severityId: alert.alertSeverityId,
+            onlyIfHigher: true,
+          });
+        }
 
-          // Update episode severity if alert has higher severity
-          if (alert.alertSeverityId) {
-            await AlertEpisodeService.updateEpisodeSeverity({
+        return {
+          grouped: true,
+          episodeId: existingEpisode.id,
+          isNewEpisode: false,
+        };
+      }
+
+      // Check if we can reopen a recently resolved episode (only if enabled)
+      if (rule.enableReopenWindow) {
+        const reopenWindowMinutes: number = rule.reopenWindowMinutes || 0;
+        if (reopenWindowMinutes > 0) {
+          const reopenCutoff: Date =
+            OneUptimeDate.getSomeMinutesAgo(reopenWindowMinutes);
+          const recentlyResolvedEpisode: AlertEpisode | null =
+            await this.findRecentlyResolvedEpisode(
+              alert.projectId!,
+              rule.id!,
+              groupingKey,
+              reopenCutoff,
+            );
+
+          if (recentlyResolvedEpisode && recentlyResolvedEpisode.id) {
+            // Reopen the episode
+            await AlertEpisodeService.reopenEpisode(recentlyResolvedEpisode.id);
+
+            // Add alert to reopened episode
+            await this.addAlertToEpisode(
+              alert,
+              recentlyResolvedEpisode.id,
+              AlertEpisodeMemberAddedBy.Rule,
+              rule.id!,
+            );
+
+            // Update episode severity if alert has higher severity
+            if (alert.alertSeverityId) {
+              await AlertEpisodeService.updateEpisodeSeverity({
+                episodeId: recentlyResolvedEpisode.id,
+                severityId: alert.alertSeverityId,
+                onlyIfHigher: true,
+              });
+            }
+
+            return {
+              grouped: true,
               episodeId: recentlyResolvedEpisode.id,
-              severityId: alert.alertSeverityId,
-              onlyIfHigher: true,
-            });
+              isNewEpisode: false,
+              wasReopened: true,
+            };
           }
+        }
+      }
 
-          return {
-            grouped: true,
-            episodeId: recentlyResolvedEpisode.id,
-            isNewEpisode: false,
-            wasReopened: true,
-          };
+      // Create new episode
+      const newEpisode: AlertEpisode | null = await this.createNewEpisode(
+        alert,
+        rule,
+        groupingKey,
+      );
+
+      if (newEpisode && newEpisode.id) {
+        // Add alert to new episode
+        await this.addAlertToEpisode(
+          alert,
+          newEpisode.id,
+          AlertEpisodeMemberAddedBy.Rule,
+          rule.id!,
+        );
+
+        return { grouped: true, episodeId: newEpisode.id, isNewEpisode: true };
+      }
+
+      return { grouped: false };
+    } finally {
+      // Release mutex
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
         }
       }
     }
-
-    // Create new episode
-    const newEpisode: AlertEpisode | null = await this.createNewEpisode(
-      alert,
-      rule,
-      groupingKey,
-    );
-
-    if (newEpisode && newEpisode.id) {
-      // Add alert to new episode
-      await this.addAlertToEpisode(
-        alert,
-        newEpisode.id,
-        AlertEpisodeMemberAddedBy.Rule,
-        rule.id!,
-      );
-
-      return { grouped: true, episodeId: newEpisode.id, isNewEpisode: true };
-    }
-
-    return { grouped: false };
   }
 
   @CaptureSpan()
