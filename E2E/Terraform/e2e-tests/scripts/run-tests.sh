@@ -48,7 +48,7 @@ terraform {
   required_providers {
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.0"
+      version = "3.8.0"
     }
   }
 }
@@ -177,11 +177,10 @@ for test_name in "${TEST_DIRS[@]}"; do
     echo "  [0/5] Initializing..."
     # Copy pre-downloaded random provider if the test uses it
     if grep -q "hashicorp/random" "$test_path/main.tf" 2>/dev/null; then
-        mkdir -p "$test_path/.terraform/providers"
+        mkdir -p "$test_path/.terraform/providers/registry.terraform.io"
         cp -r "$RANDOM_PROVIDER_DIR/.terraform/providers/registry.terraform.io/hashicorp" "$test_path/.terraform/providers/registry.terraform.io/" 2>/dev/null || true
-        # Copy lock file for random provider
-        if [ -f "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" ]; then
-            # Merge or copy lock file
+        # Only copy lock file if the test doesn't already have one
+        if [ ! -f "$test_path/.terraform.lock.hcl" ] && [ -f "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" ]; then
             cp "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" "$test_path/.terraform.lock.hcl" 2>/dev/null || true
         fi
     fi
