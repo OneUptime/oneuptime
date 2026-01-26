@@ -13,6 +13,8 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertService from "Common/Server/Services/AlertService";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 RunCron(
@@ -36,6 +38,7 @@ RunCron(
           userNotificationEventType: true,
           triggeredByIncidentId: true,
           triggeredByAlertId: true,
+          triggeredByAlertEpisodeId: true,
           onCallDutyPolicyEscalationRuleId: true,
           onCallDutyPolicyExecutionLogTimelineId: true,
           onCallDutyPolicyExecutionLogId: true,
@@ -72,6 +75,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
 
       let incident: Incident | null = null;
       let alert: Alert | null = null;
+      let alertEpisode: AlertEpisode | null = null;
 
       if (pendingNotificationLog.triggeredByIncidentId) {
         incident = await IncidentService.findOneById({
@@ -97,8 +101,20 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         });
       }
 
-      if (!incident && !alert) {
-        throw new Error("Incident or Alert not found.");
+      if (pendingNotificationLog.triggeredByAlertEpisodeId) {
+        alertEpisode = await AlertEpisodeService.findOneById({
+          id: pendingNotificationLog.triggeredByAlertEpisodeId!,
+          props: {
+            isRoot: true,
+          },
+          select: {
+            alertSeverityId: true,
+          },
+        });
+      }
+
+      if (!incident && !alert && !alertEpisode) {
+        throw new Error("Incident, Alert, or Alert Episode not found.");
       }
 
       if (incident) {
@@ -147,6 +163,30 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         }
       }
 
+      if (alertEpisode) {
+        // check if the alert episode is acknowledged.
+        const isAcknowledged: boolean =
+          await AlertEpisodeService.isEpisodeAcknowledged({
+            episodeId: pendingNotificationLog.triggeredByAlertEpisodeId!,
+          });
+
+        if (isAcknowledged) {
+          // then mark this policy as executed.
+          await UserOnCallLogService.updateOneById({
+            id: pendingNotificationLog.id!,
+            data: {
+              status: UserNotificationExecutionStatus.Completed,
+              statusMessage:
+                "Execution completed because alert episode is acknowledged.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          return;
+        }
+      }
+
       const notificationRules: Array<UserNotificationRule> =
         await UserNotificationRuleService.findBy({
           query: {
@@ -154,7 +194,10 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             userId: pendingNotificationLog.userId!,
             ruleType: ruleType,
             incidentSeverityId: incident?.incidentSeverityId || undefined,
-            alertSeverityId: alert?.alertSeverityId || undefined,
+            alertSeverityId:
+              alert?.alertSeverityId ||
+              alertEpisode?.alertSeverityId ||
+              undefined,
           },
           select: {
             _id: true,
@@ -202,6 +245,8 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             projectId: pendingNotificationLog.projectId!,
             triggeredByIncidentId: pendingNotificationLog.triggeredByIncidentId,
             triggeredByAlertId: pendingNotificationLog.triggeredByAlertId,
+            triggeredByAlertEpisodeId:
+              pendingNotificationLog.triggeredByAlertEpisodeId,
             userNotificationEventType:
               pendingNotificationLog.userNotificationEventType!,
             onCallPolicyExecutionLogId:

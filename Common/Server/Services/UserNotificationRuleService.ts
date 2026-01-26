@@ -51,6 +51,8 @@ import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
+import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeService from "./AlertEpisodeService";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import PushNotificationService from "./PushNotificationService";
@@ -73,6 +75,7 @@ export class Service extends DatabaseService<Model> {
       projectId: ObjectID;
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
+      triggeredByAlertEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
       onCallPolicyExecutionLogId?: ObjectID | undefined;
       onCallPolicyId: ObjectID | undefined;
@@ -201,6 +204,10 @@ export class Service extends DatabaseService<Model> {
       logTimelineItem.triggeredByAlertId = options.triggeredByAlertId;
     }
 
+    if (options.triggeredByAlertEpisodeId) {
+      logTimelineItem.triggeredByAlertEpisodeId = options.triggeredByAlertEpisodeId;
+    }
+
     if (options.onCallDutyPolicyExecutionLogTimelineId) {
       logTimelineItem.onCallDutyPolicyExecutionLogTimelineId =
         options.onCallDutyPolicyExecutionLogTimelineId;
@@ -210,6 +217,7 @@ export class Service extends DatabaseService<Model> {
 
     let incident: Incident | null = null;
     let alert: Alert | null = null;
+    let alertEpisode: AlertEpisode | null = null;
 
     if (
       options.userNotificationEventType ===
@@ -270,8 +278,37 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    if (!incident && !alert) {
-      throw new BadDataException("Incident or Alert not found.");
+    if (
+      options.userNotificationEventType ===
+        UserNotificationEventType.AlertEpisodeCreated &&
+      options.triggeredByAlertEpisodeId
+    ) {
+      alertEpisode = await AlertEpisodeService.findOneById({
+        id: options.triggeredByAlertEpisodeId!,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          title: true,
+          description: true,
+          projectId: true,
+          project: {
+            name: true,
+          },
+          currentAlertState: {
+            name: true,
+          },
+          alertSeverity: {
+            name: true,
+          },
+          episodeNumber: true,
+        },
+      });
+    }
+
+    if (!incident && !alert && !alertEpisode) {
+      throw new BadDataException("Incident, Alert, or Alert Episode not found.");
     }
 
     if (
@@ -364,6 +401,56 @@ export class Service extends DatabaseService<Model> {
           userOnCallLogTimelineId: updatedLog.id!,
           projectId: options.projectId,
           incidentId: incident.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending email.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send email for alert episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertEpisodeCreated &&
+        alertEpisode
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending email to ${notificationRuleItem.userEmail?.email.toString()}`;
+        logTimelineItem.userEmailId = notificationRuleItem.userEmail.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const emailMessage: EmailMessage =
+          await this.generateEmailTemplateForAlertEpisodeCreated(
+            notificationRuleItem.userEmail?.email,
+            alertEpisode,
+            updatedLog.id!,
+          );
+
+        MailService.sendMail(emailMessage, {
+          userOnCallLogTimelineId: updatedLog.id!,
+          projectId: options.projectId,
+          alertEpisodeId: alertEpisode.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
@@ -512,6 +599,56 @@ export class Service extends DatabaseService<Model> {
           });
         });
       }
+
+      // send sms for alert episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertEpisodeCreated &&
+        alertEpisode
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending SMS to ${notificationRuleItem.userSms?.phone.toString()}.`;
+        logTimelineItem.userSmsId = notificationRuleItem.userSms.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const smsMessage: SMS =
+          await this.generateSmsTemplateForAlertEpisodeCreated(
+            notificationRuleItem.userSms.phone,
+            alertEpisode,
+            updatedLog.id!,
+          );
+
+        SmsService.sendSms(smsMessage, {
+          projectId: alertEpisode.projectId,
+          userOnCallLogTimelineId: updatedLog.id!,
+          alertEpisodeId: alertEpisode.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending SMS.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
     }
 
     if (
@@ -610,6 +747,56 @@ export class Service extends DatabaseService<Model> {
         WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
           projectId: incident.projectId,
           incidentId: incident.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending WhatsApp message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send WhatsApp for alert episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertEpisodeCreated &&
+        alertEpisode
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
+        logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const whatsAppMessage: WhatsAppMessage =
+          await this.generateWhatsAppTemplateForAlertEpisodeCreated(
+            notificationRuleItem.userWhatsApp.phone,
+            alertEpisode,
+            updatedLog.id!,
+          );
+
+        WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+          projectId: alertEpisode.projectId,
+          alertEpisodeId: alertEpisode.id!,
           userOnCallLogTimelineId: updatedLog.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
@@ -738,6 +925,56 @@ export class Service extends DatabaseService<Model> {
           projectId: incident.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error making call.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send call for alert episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertEpisodeCreated &&
+        alertEpisode
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Making a call to ${notificationRuleItem.userCall?.phone.toString()}.`;
+        logTimelineItem.userCallId = notificationRuleItem.userCall.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const callRequest: CallRequest =
+          await this.generateCallTemplateForAlertEpisodeCreated(
+            notificationRuleItem.userCall?.phone,
+            alertEpisode,
+            updatedLog.id!,
+          );
+
+        CallService.makeCall(callRequest, {
+          projectId: alertEpisode.projectId,
+          userOnCallLogTimelineId: updatedLog.id!,
+          alertEpisodeId: alertEpisode.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
@@ -922,6 +1159,75 @@ export class Service extends DatabaseService<Model> {
           });
         });
       }
+
+      // send push notification for alert episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertEpisodeCreated &&
+        alertEpisode
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createAlertEpisodeCreatedNotification({
+            alertEpisodeTitle: alertEpisode.title!,
+            projectName: alertEpisode.project?.name || "OneUptime",
+            alertEpisodeViewLink: (
+              await AlertEpisodeService.getEpisodeLinkInDashboard(
+                alertEpisode.projectId!,
+                alertEpisode.id!,
+              )
+            ).toString(),
+          });
+
+        PushNotificationService.sendPushNotification(
+          {
+            devices: [
+              {
+                token: notificationRuleItem.userPush.deviceToken!,
+                ...(notificationRuleItem.userPush.deviceName && {
+                  name: notificationRuleItem.userPush.deviceName,
+                }),
+              },
+            ],
+            message: pushMessage,
+            deviceType: notificationRuleItem.userPush.deviceType!,
+          },
+          {
+            projectId: options.projectId,
+            userOnCallLogTimelineId: updatedLog.id!,
+            alertEpisodeId: alertEpisode.id!,
+            userId: notificationRuleItem.userId!,
+            onCallPolicyId: options.onCallPolicyId,
+            onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+            teamId: options.userBelongsToTeamId,
+            onCallDutyPolicyExecutionLogTimelineId:
+              options.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: options.onCallScheduleId,
+          },
+        ).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending push notification.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
     }
 
     if (
@@ -1044,6 +1350,57 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async generateCallTemplateForAlertEpisodeCreated(
+    to: Phone,
+    alertEpisode: AlertEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<CallRequest> {
+    const host: Hostname = await DatabaseConfig.getHost();
+
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const callRequest: CallRequest = {
+      to: to,
+      data: [
+        {
+          sayMessage: "This is a call from OneUptime",
+        },
+        {
+          sayMessage: "A new alert episode has been created",
+        },
+        {
+          sayMessage: alertEpisode.title!,
+        },
+        {
+          introMessage: "To acknowledge this alert episode press 1",
+          numDigits: 1,
+          timeoutInSeconds: 10,
+          noInputMessage: "You have not entered any input. Good bye",
+          onInputCallRequest: {
+            "1": {
+              sayMessage: "You have acknowledged this alert episode. Good bye",
+            },
+            default: {
+              sayMessage: "Invalid input. Good bye",
+            },
+          },
+          responseUrl: new URL(
+            httpProtocol,
+            host,
+            new Route(AppApiRoute.toString())
+              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+              .addRoute(
+                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
+              ),
+          ),
+        },
+      ],
+    };
+
+    return callRequest;
+  }
+
+  @CaptureSpan()
   public async generateSmsTemplateForAlertCreated(
     to: Phone,
     alert: Alert,
@@ -1104,6 +1461,39 @@ export class Service extends DatabaseService<Model> {
     const sms: SMS = {
       to,
       message: `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, please click on the following link ${url.toString()}`,
+    };
+
+    return sms;
+  }
+
+  @CaptureSpan()
+  public async generateSmsTemplateForAlertEpisodeCreated(
+    to: Phone,
+    alertEpisode: AlertEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<SMS> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
+      new URL(
+        httpProtocol,
+        host,
+        new Route(AppApiRoute.toString())
+          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      ),
+    );
+    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
+
+    const episodeIdentifier: string =
+      alertEpisode.episodeNumber !== undefined
+        ? `#${alertEpisode.episodeNumber} (${alertEpisode.title || "Alert Episode"})`
+        : alertEpisode.title || "Alert Episode";
+
+    const sms: SMS = {
+      to,
+      message: `This is a message from OneUptime. A new alert episode has been created: ${episodeIdentifier}. To acknowledge this alert episode, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -1224,6 +1614,65 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async generateWhatsAppTemplateForAlertEpisodeCreated(
+    to: Phone,
+    alertEpisode: AlertEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<WhatsAppMessage> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const acknowledgeShortLink: ShortLink =
+      await ShortLinkService.saveShortLinkFor(
+        new URL(
+          httpProtocol,
+          host,
+          new Route(AppApiRoute.toString())
+            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+            .addRoute(
+              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
+            ),
+        ),
+      );
+
+    const acknowledgeUrl: URL =
+      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+
+    const episodeLinkOnDashboard: string =
+      alertEpisode.projectId && alertEpisode.id
+        ? (
+            await AlertEpisodeService.getEpisodeLinkInDashboard(
+              alertEpisode.projectId,
+              alertEpisode.id,
+            )
+          ).toString()
+        : acknowledgeUrl.toString();
+
+    // Use AlertCreated template as fallback since alert episode is similar to alert
+    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.AlertCreated;
+    const templateVariables: Record<string, string> = {
+      project_name: alertEpisode.project?.name || "OneUptime",
+      alert_title: alertEpisode.title || "",
+      acknowledge_url: acknowledgeUrl.toString(),
+      alert_number:
+        alertEpisode.episodeNumber !== undefined
+          ? alertEpisode.episodeNumber.toString()
+          : "",
+      alert_link: episodeLinkOnDashboard,
+    };
+
+    const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
+
+    return {
+      to,
+      body,
+      templateKey,
+      templateVariables,
+      templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
+    };
+  }
+
+  @CaptureSpan()
   public async generateEmailTemplateForAlertCreated(
     to: Email,
     alert: Alert,
@@ -1309,12 +1758,56 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async generateEmailTemplateForAlertEpisodeCreated(
+    to: Email,
+    alertEpisode: AlertEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<EmailMessage> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const vars: Dictionary<string> = {
+      alertTitle: alertEpisode.title!,
+      projectName: alertEpisode.project!.name!,
+      currentState: alertEpisode.currentAlertState!.name!,
+      alertDescription: await Markdown.convertToHTML(
+        alertEpisode.description! || "",
+        MarkdownContentType.Email,
+      ),
+      alertSeverity: alertEpisode.alertSeverity!.name!,
+      alertViewLink: (
+        await AlertEpisodeService.getEpisodeLinkInDashboard(
+          alertEpisode.projectId!,
+          alertEpisode.id!,
+        )
+      ).toString(),
+      acknowledgeAlertLink: new URL(
+        httpProtocol,
+        host,
+        new Route(AppApiRoute.toString())
+          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      ).toString(),
+    };
+
+    const emailMessage: EmailMessage = {
+      toEmail: to!,
+      templateType: EmailTemplateType.AcknowledgeAlert,
+      vars: vars,
+      subject: "ACTION REQUIRED: Alert Episode created - " + alertEpisode.title!,
+    };
+
+    return emailMessage;
+  }
+
+  @CaptureSpan()
   public async startUserNotificationRulesExecution(
     userId: ObjectID,
     options: {
       projectId: ObjectID;
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
+      triggeredByAlertEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
       onCallPolicyExecutionLogId?: ObjectID | undefined;
       onCallPolicyId: ObjectID | undefined;
@@ -1337,6 +1830,10 @@ export class Service extends DatabaseService<Model> {
 
     if (options.triggeredByAlertId) {
       userOnCallLog.triggeredByAlertId = options.triggeredByAlertId;
+    }
+
+    if (options.triggeredByAlertEpisodeId) {
+      userOnCallLog.triggeredByAlertEpisodeId = options.triggeredByAlertEpisodeId;
     }
 
     userOnCallLog.userNotificationEventType = options.userNotificationEventType;

@@ -25,6 +25,7 @@ export interface PushNotificationOptions {
   // Optional relations for richer logging
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
+  alertEpisodeId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   statusPageId?: ObjectID | undefined;
   statusPageAnnouncementId?: ObjectID | undefined;

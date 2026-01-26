@@ -120,6 +120,28 @@ export default class PushNotificationUtil {
     });
   }
 
+  public static createAlertEpisodeCreatedNotification(params: {
+    alertEpisodeTitle: string;
+    projectName: string;
+    alertEpisodeViewLink: string;
+  }): PushNotificationMessage {
+    const { alertEpisodeTitle, projectName, alertEpisodeViewLink } = params;
+    return PushNotificationUtil.applyDefaults({
+      title: `New Alert Episode: ${alertEpisodeTitle}`,
+      body: `A new alert episode has been created in ${projectName}. Click to view details.`,
+      clickAction: alertEpisodeViewLink,
+      url: alertEpisodeViewLink,
+      tag: "alert-episode-created",
+      requireInteraction: true,
+      data: {
+        type: "alert-episode-created",
+        alertEpisodeTitle: alertEpisodeTitle,
+        projectName: projectName,
+        url: alertEpisodeViewLink,
+      },
+    });
+  }
+
   public static createMonitorStatusChangedNotification(params: {
     monitorName: string;
     projectName: string;

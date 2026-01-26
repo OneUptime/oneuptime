@@ -322,6 +322,8 @@ export class Service extends DatabaseService<Model> {
             userNotificationEventType: options.userNotificationEventType!,
             triggeredByIncidentId: options.triggeredByIncidentId || undefined,
             triggeredByAlertId: options.triggeredByAlertId || undefined,
+            triggeredByAlertEpisodeId:
+              options.triggeredByAlertEpisodeId || undefined,
             onCallPolicyExecutionLogId: options.onCallPolicyExecutionLogId,
             onCallPolicyId: options.onCallPolicyId,
             onCallPolicyEscalationRuleId: ruleId,
