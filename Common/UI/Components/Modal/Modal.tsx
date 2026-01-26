@@ -38,7 +38,7 @@ export interface ComponentProps {
 const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const modalRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement>(null);
+  const modalRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   // Handle Escape key to close modal
   useEffect(() => {
