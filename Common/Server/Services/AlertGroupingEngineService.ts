@@ -557,6 +557,7 @@ class AlertGroupingEngineServiceClass {
       },
       select: {
         _id: true,
+        lastAlertAddedAt: true,
         currentAlertState: {
           order: true,
         },
@@ -601,6 +602,7 @@ class AlertGroupingEngineServiceClass {
       },
       select: {
         _id: true,
+        resolvedAt: true,
       },
       props: {
         isRoot: true,
