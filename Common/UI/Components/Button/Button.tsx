@@ -233,6 +233,12 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyleCssClass += ` ` + className;
   }
 
+  // For icon-only buttons, use title as aria-label for accessibility
+  const ariaLabel: string | undefined =
+    buttonStyle === ButtonStyleType.ICON || buttonStyle === ButtonStyleType.ICON_LIGHT
+      ? title || tooltip
+      : undefined;
+
   const getButton: GetReactElementFunction = (): ReactElement => {
     return (
       <button
@@ -247,6 +253,8 @@ const Button: FunctionComponent<ComponentProps> = ({
         type={type}
         disabled={disabled || isLoading}
         className={buttonStyleCssClass}
+        aria-label={ariaLabel}
+        aria-disabled={disabled || isLoading}
       >
         {isLoading && buttonStyle !== ButtonStyleType.ICON && (
           <Icon icon={IconProp.Spinner} className={loadingIconClassName} />

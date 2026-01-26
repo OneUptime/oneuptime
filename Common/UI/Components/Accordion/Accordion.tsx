@@ -60,15 +60,28 @@ const Accordion: FunctionComponent<ComponentProps> = (
     className = "-ml-5 -mr-5 p-5 mt-1";
   }
 
+  const accordionId: string = `accordion-content-${React.useId()}`;
+
+  const handleKeyDown = (event: React.KeyboardEvent): void => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setIsOpen(!isOpen);
+    }
+  };
+
   return (
     <div className={className}>
       <div>
         <div
           className={`flex justify-between cursor-pointer`}
-          role="alert"
+          role="button"
+          tabIndex={0}
+          aria-expanded={isOpen}
+          aria-controls={accordionId}
           onClick={() => {
             setIsOpen(!isOpen);
           }}
+          onKeyDown={handleKeyDown}
         >
           <div className="flex">
             {props.title && (
@@ -109,7 +122,7 @@ const Accordion: FunctionComponent<ComponentProps> = (
           {!isOpen && <div className="">{props.rightElement}</div>}
         </div>
         {isOpen && (
-          <div className={`space-y-5 ${props.title ? "mt-4" : ""}`}>
+          <div id={accordionId} className={`space-y-5 ${props.title ? "mt-4" : ""}`}>
             {props.children}
           </div>
         )}

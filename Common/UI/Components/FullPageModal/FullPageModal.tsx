@@ -15,11 +15,25 @@ const FullPageModal: FunctionComponent<ComponentProps> = (
   };
 
   const handleKeyDown = (event: React.KeyboardEvent): void => {
-    if (event.key === "Enter" || event.key === " " || event.key === "Escape") {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handleClose();
     }
   };
+
+  // Handle Escape key at the modal level
+  React.useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        handleClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscapeKey);
+    return () => {
+      document.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, []);
 
   return (
     <div className="full-page-modal" role="dialog" aria-modal="true">
