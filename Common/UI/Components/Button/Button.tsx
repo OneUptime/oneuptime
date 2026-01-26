@@ -51,6 +51,10 @@ export interface ComponentProps {
   dataTestId?: string;
   className?: string | undefined;
   tooltip?: string | undefined;
+  ariaLabel?: string | undefined;
+  ariaExpanded?: boolean | undefined;
+  ariaHaspopup?: "menu" | "listbox" | "dialog" | "tree" | "grid" | "true" | "false" | undefined;
+  ariaControls?: string | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -69,6 +73,10 @@ const Button: FunctionComponent<ComponentProps> = ({
   dataTestId,
   className,
   tooltip,
+  ariaLabel,
+  ariaExpanded,
+  ariaHaspopup,
+  ariaControls,
 }: ComponentProps): ReactElement => {
   useEffect(() => {
     // componentDidMount
@@ -234,10 +242,11 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   // For icon-only buttons, use title as aria-label for accessibility
-  const ariaLabel: string | undefined =
-    buttonStyle === ButtonStyleType.ICON || buttonStyle === ButtonStyleType.ICON_LIGHT
+  const computedAriaLabel: string | undefined =
+    ariaLabel ||
+    (buttonStyle === ButtonStyleType.ICON || buttonStyle === ButtonStyleType.ICON_LIGHT
       ? title || tooltip
-      : undefined;
+      : undefined);
 
   const getButton: GetReactElementFunction = (): ReactElement => {
     return (
@@ -253,8 +262,11 @@ const Button: FunctionComponent<ComponentProps> = ({
         type={type}
         disabled={disabled || isLoading}
         className={buttonStyleCssClass}
-        aria-label={ariaLabel}
+        aria-label={computedAriaLabel}
         aria-disabled={disabled || isLoading}
+        aria-expanded={ariaExpanded}
+        aria-haspopup={ariaHaspopup}
+        aria-controls={ariaControls}
       >
         {isLoading && buttonStyle !== ButtonStyleType.ICON && (
           <Icon icon={IconProp.Spinner} className={loadingIconClassName} />

@@ -15,7 +15,17 @@ const Tooltip: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <Tippy key={Math.random()} content={<span>{props.text}</span>}>
+    <Tippy
+      key={Math.random()}
+      content={<span>{props.text}</span>}
+      interactive={true}
+      trigger="mouseenter focus"
+      hideOnClick={false}
+      aria={{
+        content: "describedby",
+        expanded: "auto",
+      }}
+    >
       {props.children}
     </Tippy>
   );

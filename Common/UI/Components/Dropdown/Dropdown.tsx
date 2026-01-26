@@ -2,6 +2,7 @@ import ObjectID from "../../../Types/ObjectID";
 import React, {
   FunctionComponent,
   ReactElement,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -51,11 +52,15 @@ export interface ComponentProps {
   error?: string | undefined;
   id?: string | undefined;
   dataTestId?: string | undefined;
+  ariaLabel?: string | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const uniqueId: string = useId();
+  const errorId: string = `dropdown-error-${uniqueId}`;
+
   type GetDropdownOptionFromValueFunctionProps =
     | undefined
     | DropdownValue
@@ -497,6 +502,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         onFocus={() => {
           props.onFocus?.();
         }}
+        aria-label={props.ariaLabel}
+        aria-invalid={props.error ? true : undefined}
+        aria-describedby={props.error ? errorId : undefined}
         classNames={{
           control: (
             state: ControlProps<DropdownOption, boolean, GroupBase<any>>,
@@ -699,7 +707,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         }}
       />
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p id={errorId} data-testid="error-message" className="mt-1 text-sm text-red-400" role="alert">
           {props.error}
         </p>
       )}

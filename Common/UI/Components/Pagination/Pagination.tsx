@@ -67,9 +67,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
 
   return (
-    <div
+    <nav
       className="flex items-center justify-between border-t border-gray-200 bg-white px-4"
       data-testid={props.dataTestId}
+      aria-label={`Pagination for ${props.pluralLabel}`}
     >
       {/* Desktop layout: Description on left, all controls on right */}
       <div className="hidden md:block">
@@ -92,7 +93,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
       {/* Desktop layout: All controls together on right */}
       <div className="hidden md:flex">
-        <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+        <div className="inline-flex -space-x-px rounded-md shadow-sm">
           <div className="my-2">
             <Button
               dataTestId="show-pagination-modal-button"
@@ -100,14 +101,19 @@ const Pagination: FunctionComponent<ComponentProps> = (
               buttonSize={ButtonSize.ExtraSmall}
               icon={IconProp.AdjustmentHorizontal}
               buttonStyle={ButtonStyleType.ICON_LIGHT}
+              ariaLabel="Open pagination settings"
               onClick={() => {
                 setShowPaginationModel(true);
               }}
             />
           </div>
 
-          <ul className="py-3">
+          <ul className="py-3" role="list">
             <li
+              role="button"
+              tabIndex={isPreviousDisabled ? -1 : 0}
+              aria-disabled={isPreviousDisabled}
+              aria-label="Go to previous page"
               onClick={() => {
                 let currentPageNumber: number = props.currentPageNumber;
 
@@ -122,6 +128,18 @@ const Pagination: FunctionComponent<ComponentProps> = (
                   );
                 }
               }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if ((e.key === "Enter" || e.key === " ") && !isPreviousDisabled) {
+                  e.preventDefault();
+                  let currentPageNumber: number = props.currentPageNumber;
+                  if (typeof currentPageNumber === "string") {
+                    currentPageNumber = parseInt(currentPageNumber);
+                  }
+                  if (props.onNavigateToPage) {
+                    props.onNavigateToPage(currentPageNumber - 1, props.itemsOnPage);
+                  }
+                }
+              }}
               className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500   ${
                 isPreviousDisabled
                   ? "bg-gray-100"
@@ -131,6 +149,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
               <span className="page-link">Previous</span>
             </li>
             <li
+              role="button"
+              tabIndex={isCurrentPageButtonDisabled ? -1 : 0}
+              aria-current="page"
+              aria-label={`Page ${props.currentPageNumber}, click to change page`}
               data-testid="current-page-link"
               className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
                 isCurrentPageButtonDisabled ? "bg-gray-100" : ""
@@ -138,10 +160,20 @@ const Pagination: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 setShowPaginationModel(true);
               }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowPaginationModel(true);
+                }
+              }}
             >
               <span>{props.currentPageNumber}</span>
             </li>
             <li
+              role="button"
+              tabIndex={isNextDisabled ? -1 : 0}
+              aria-disabled={isNextDisabled}
+              aria-label="Go to next page"
               onClick={() => {
                 let currentPageNumber: number = props.currentPageNumber;
 
@@ -156,6 +188,18 @@ const Pagination: FunctionComponent<ComponentProps> = (
                   );
                 }
               }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if ((e.key === "Enter" || e.key === " ") && !isNextDisabled) {
+                  e.preventDefault();
+                  let currentPageNumber: number = props.currentPageNumber;
+                  if (typeof currentPageNumber === "string") {
+                    currentPageNumber = parseInt(currentPageNumber);
+                  }
+                  if (props.onNavigateToPage) {
+                    props.onNavigateToPage(currentPageNumber + 1, props.itemsOnPage);
+                  }
+                }
+              }}
               className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  ${
                 isNextDisabled
                   ? "bg-gray-100"
@@ -165,7 +209,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
               <span>Next</span>
             </li>
           </ul>
-        </nav>
+        </div>
       </div>
 
       {/* Mobile layout: Navigate button on left, pagination controls on right */}
@@ -176,6 +220,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
           buttonSize={ButtonSize.ExtraSmall}
           icon={IconProp.AdjustmentHorizontal}
           buttonStyle={ButtonStyleType.ICON_LIGHT}
+          ariaLabel="Open pagination settings"
           onClick={() => {
             setShowPaginationModel(true);
           }}
@@ -183,9 +228,13 @@ const Pagination: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="md:hidden">
-        <nav className="inline-flex -space-x-px rounded-md shadow-sm">
-          <ul>
+        <div className="inline-flex -space-x-px rounded-md shadow-sm">
+          <ul role="list">
             <li
+              role="button"
+              tabIndex={isPreviousDisabled ? -1 : 0}
+              aria-disabled={isPreviousDisabled}
+              aria-label="Go to previous page"
               onClick={() => {
                 let currentPageNumber: number = props.currentPageNumber;
 
@@ -200,6 +249,18 @@ const Pagination: FunctionComponent<ComponentProps> = (
                   );
                 }
               }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if ((e.key === "Enter" || e.key === " ") && !isPreviousDisabled) {
+                  e.preventDefault();
+                  let currentPageNumber: number = props.currentPageNumber;
+                  if (typeof currentPageNumber === "string") {
+                    currentPageNumber = parseInt(currentPageNumber);
+                  }
+                  if (props.onNavigateToPage) {
+                    props.onNavigateToPage(currentPageNumber - 1, props.itemsOnPage);
+                  }
+                }
+              }}
               className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500   ${
                 isPreviousDisabled
                   ? "bg-gray-100"
@@ -209,6 +270,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
               <span className="page-link">Previous</span>
             </li>
             <li
+              role="button"
+              tabIndex={isCurrentPageButtonDisabled ? -1 : 0}
+              aria-current="page"
+              aria-label={`Page ${props.currentPageNumber}, click to change page`}
               data-testid="current-page-link-mobile"
               className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
                 isCurrentPageButtonDisabled ? "bg-gray-100" : ""
@@ -216,10 +281,20 @@ const Pagination: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 setShowPaginationModel(true);
               }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowPaginationModel(true);
+                }
+              }}
             >
               <span>{props.currentPageNumber}</span>
             </li>
             <li
+              role="button"
+              tabIndex={isNextDisabled ? -1 : 0}
+              aria-disabled={isNextDisabled}
+              aria-label="Go to next page"
               onClick={() => {
                 let currentPageNumber: number = props.currentPageNumber;
 
@@ -234,6 +309,18 @@ const Pagination: FunctionComponent<ComponentProps> = (
                   );
                 }
               }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if ((e.key === "Enter" || e.key === " ") && !isNextDisabled) {
+                  e.preventDefault();
+                  let currentPageNumber: number = props.currentPageNumber;
+                  if (typeof currentPageNumber === "string") {
+                    currentPageNumber = parseInt(currentPageNumber);
+                  }
+                  if (props.onNavigateToPage) {
+                    props.onNavigateToPage(currentPageNumber + 1, props.itemsOnPage);
+                  }
+                }
+              }}
               className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  ${
                 isNextDisabled
                   ? "bg-gray-100"
@@ -243,7 +330,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
               <span>Next</span>
             </li>
           </ul>
-        </nav>
+        </div>
       </div>
 
       {showPaginationModel && (
@@ -317,7 +404,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
           }}
         />
       )}
-    </div>
+    </nav>
   );
 };
 

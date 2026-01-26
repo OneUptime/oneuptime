@@ -2,6 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 import Tooltip from "../Tooltip/Tooltip";
@@ -25,6 +26,9 @@ export interface ComponentProps {
 const Toggle: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const uniqueId: string = useId();
+  const labelId: string = `toggle-label-${uniqueId}`;
+  const errorId: string = `toggle-error-${uniqueId}`;
   const [isChecked, setIsChecked] = useState<boolean>(
     props.initialValue || false,
   );
@@ -92,11 +96,13 @@ const Toggle: FunctionComponent<ComponentProps> = (
           className={buttonClassName}
           role="switch"
           aria-checked={isChecked ? "true" : "false"}
-          aria-labelledby="annual-billing-label"
+          aria-labelledby={labelId}
+          aria-describedby={props.error ? errorId : undefined}
+          aria-invalid={props.error ? "true" : undefined}
         >
           <span aria-hidden="true" className={toggleClassName}></span>
         </button>
-        <span className="ml-3" id="annual-billing-label">
+        <span className="ml-3" id={labelId}>
           <span className="text-sm font-medium text-gray-900">
             {props.title}
           </span>
@@ -116,7 +122,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
         )}
       </div>
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p id={errorId} data-testid="error-message" className="mt-1 text-sm text-red-400" role="alert">
           {props.error}
         </p>
       )}

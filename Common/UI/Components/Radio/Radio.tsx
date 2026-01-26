@@ -4,6 +4,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 
@@ -22,11 +23,14 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   error?: string | undefined;
   dataTestId?: string | undefined;
+  ariaLabel?: string | undefined;
 }
 
 const Radio: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const uniqueId: string = useId();
+  const errorId: string = `radio-error-${uniqueId}`;
   const [value, setValue] = useState<RadioValue | undefined>(
     props.initialValue || props.value || undefined,
   );
@@ -41,14 +45,20 @@ const Radio: FunctionComponent<ComponentProps> = (
     <div
       className={`mt-2 space-y-2 ${props.className}`}
       data-testid={props.dataTestId}
+      role="radiogroup"
+      aria-label={props.ariaLabel}
+      aria-invalid={props.error ? "true" : undefined}
+      aria-describedby={props.error ? errorId : undefined}
     >
       {props.options.map((option: RadioOption, index: number) => {
+        const optionId: string = `${groupName}-option-${index}`;
         return (
           <div key={index} className="flex items-center gap-x-3">
             <input
+              id={optionId}
               tabIndex={props.tabIndex}
               checked={value === option.value}
-              onClick={() => {
+              onChange={() => {
                 setValue(option.value);
                 if (props.onChange) {
                   props.onChange(option.value);
@@ -64,7 +74,7 @@ const Radio: FunctionComponent<ComponentProps> = (
               type="radio"
               className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
             />
-            <label className="block text-sm font-medium leading-6 text-gray-900">
+            <label htmlFor={optionId} className="block text-sm font-medium leading-6 text-gray-900">
               {option.label}
             </label>
           </div>
@@ -72,7 +82,7 @@ const Radio: FunctionComponent<ComponentProps> = (
       })}
 
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p id={errorId} data-testid="error-message" className="mt-1 text-sm text-red-400" role="alert">
           {props.error}
         </p>
       )}

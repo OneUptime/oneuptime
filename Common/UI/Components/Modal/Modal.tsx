@@ -6,7 +6,7 @@ import ModalBody from "./ModalBody";
 import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useRef } from "react";
 
 export enum ModalWidth {
   Normal,
@@ -38,6 +38,37 @@ export interface ComponentProps {
 const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const modalRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement>(null);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscapeKey: (event: KeyboardEvent) => void = (event: KeyboardEvent): void => {
+      if (event.key === "Escape" && props.onClose) {
+        props.onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscapeKey);
+    return () => {
+      document.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [props.onClose]);
+
+  // Focus trap and initial focus
+  useEffect(() => {
+    const modal: HTMLDivElement | null = modalRef.current;
+    if (modal) {
+      // Focus the first focusable element in the modal
+      const focusableElements: NodeListOf<Element> = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstFocusable: HTMLElement | undefined = focusableElements[0] as HTMLElement | undefined;
+      if (firstFocusable) {
+        firstFocusable.focus();
+      }
+    }
+  }, []);
+
   let iconBgColor: string = "bg-indigo-100";
   let iconColor: string = "text-indigo-600";
 
@@ -57,8 +88,10 @@ const Modal: FunctionComponent<ComponentProps> = (
 
   return (
     <div
+      ref={modalRef}
       className="relative z-20"
       aria-labelledby="modal-title"
+      aria-describedby={props.description ? "modal-description" : undefined}
       role="dialog"
       aria-modal="true"
     >
@@ -122,12 +155,13 @@ const Modal: FunctionComponent<ComponentProps> = (
                       {props.title}
                     </h3>
                     {props.description && (
-                      <h3
+                      <p
+                        id="modal-description"
                         data-testid="modal-description"
                         className="text-sm leading-6 text-gray-500 mt-2"
                       >
                         {props.description}
-                      </h3>
+                      </p>
                     )}
                   </div>
                   {props.rightElement && (
