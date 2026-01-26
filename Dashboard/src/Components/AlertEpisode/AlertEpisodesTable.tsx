@@ -61,7 +61,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
 
   // Fetch alert states on mount
   useEffect(() => {
-    const fetchAlertStates = async (): Promise<void> => {
+    const fetchAlertStates: () => Promise<void> = async (): Promise<void> => {
       try {
         const result: ListResult<AlertState> =
           await ModelAPI.getList<AlertState>({
@@ -93,9 +93,9 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     fetchAlertStates();
   }, []);
 
-  const handleBulkStateChange = async (
+  const handleBulkStateChange: (
     targetStateId: ObjectID,
-  ): Promise<void> => {
+  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
     if (!bulkActionProps) {
       return;
     }
@@ -103,15 +103,17 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
 
-    const targetState = alertStates.find(
-      (s: AlertState) => s.id?.toString() === targetStateId.toString(),
+    const targetState: AlertState | undefined = alertStates.find(
+      (s: AlertState) => {
+        return s.id?.toString() === targetStateId.toString();
+      },
     );
 
     if (!targetState) {
       return;
     }
 
-    const targetOrder = targetState.order || 0;
+    const targetOrder: number = targetState.order || 0;
 
     onBulkActionStart();
 
@@ -141,11 +143,12 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             },
           });
 
-        const currentOrder = fetchedEpisode?.currentAlertState?.order || 0;
+        const currentOrder: number =
+          fetchedEpisode?.currentAlertState?.order || 0;
 
         // Skip if already at or past the target state
         if (currentOrder >= targetOrder) {
-          const currentStateName =
+          const currentStateName: string =
             fetchedEpisode?.currentAlertState?.name || "Unknown";
           failedItems.push({
             item: episode,
@@ -189,7 +192,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
   };
 
-  const getBulkChangeStateAction =
+  const getBulkChangeStateAction: () => BulkActionButtonSchema<AlertEpisode> =
     (): BulkActionButtonSchema<AlertEpisode> => {
       return {
         title: "Change State",
@@ -495,10 +498,12 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                 title: "Select State",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
-                dropdownOptions: alertStates.map((state: AlertState) => ({
-                  label: state.name || "",
-                  value: state.id?.toString() || "",
-                })),
+                dropdownOptions: alertStates.map((state: AlertState) => {
+                  return {
+                    label: state.name || "",
+                    value: state.id?.toString() || "",
+                  };
+                }),
               },
             ],
           }}

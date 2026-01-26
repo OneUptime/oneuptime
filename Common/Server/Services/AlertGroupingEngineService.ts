@@ -355,8 +355,10 @@ class AlertGroupingEngineServiceClass {
     let mutex: SemaphoreMutex | null = null;
 
     try {
-      // Acquire mutex to prevent concurrent episode creation for the same grouping key
-      // This is critical - we must have the lock before proceeding to prevent race conditions
+      /*
+       * Acquire mutex to prevent concurrent episode creation for the same grouping key
+       * This is critical - we must have the lock before proceeding to prevent race conditions
+       */
       logger.debug(
         `Acquiring mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
       );
@@ -751,7 +753,9 @@ class AlertGroupingEngineServiceClass {
             moreInformationInMarkdown: moreInfo,
           });
         } catch (feedError) {
-          logger.error(`Error creating episode feed for episode creation: ${feedError}`);
+          logger.error(
+            `Error creating episode feed for episode creation: ${feedError}`,
+          );
         }
       }
 
@@ -944,7 +948,15 @@ class AlertGroupingEngineServiceClass {
     wasReopened?: boolean | undefined;
     addedByUserId?: ObjectID | undefined;
   }): Promise<void> {
-    const { alert, episodeId, addedBy, rule, isNewEpisode, wasReopened, addedByUserId } = data;
+    const {
+      alert,
+      episodeId,
+      addedBy,
+      rule,
+      isNewEpisode,
+      wasReopened,
+      addedByUserId,
+    } = data;
 
     // Fetch episode number for feed entry
     const episode: AlertEpisode | null = await AlertEpisodeService.findOneById({
@@ -981,16 +993,24 @@ class AlertGroupingEngineServiceClass {
         matchCriteria.push("monitor labels match rule criteria");
       }
       if (rule.alertTitlePattern) {
-        matchCriteria.push(`alert title matches pattern \`${rule.alertTitlePattern}\``);
+        matchCriteria.push(
+          `alert title matches pattern \`${rule.alertTitlePattern}\``,
+        );
       }
       if (rule.alertDescriptionPattern) {
-        matchCriteria.push(`alert description matches pattern \`${rule.alertDescriptionPattern}\``);
+        matchCriteria.push(
+          `alert description matches pattern \`${rule.alertDescriptionPattern}\``,
+        );
       }
       if (rule.monitorNamePattern) {
-        matchCriteria.push(`monitor name matches pattern \`${rule.monitorNamePattern}\``);
+        matchCriteria.push(
+          `monitor name matches pattern \`${rule.monitorNamePattern}\``,
+        );
       }
       if (rule.monitorDescriptionPattern) {
-        matchCriteria.push(`monitor description matches pattern \`${rule.monitorDescriptionPattern}\``);
+        matchCriteria.push(
+          `monitor description matches pattern \`${rule.monitorDescriptionPattern}\``,
+        );
       }
 
       if (matchCriteria.length === 0) {
@@ -1028,7 +1048,9 @@ class AlertGroupingEngineServiceClass {
         userId: addedByUserId,
       });
     } catch (feedError) {
-      logger.error(`Error creating alert feed for alert added to episode: ${feedError}`);
+      logger.error(
+        `Error creating alert feed for alert added to episode: ${feedError}`,
+      );
     }
 
     // Create episode feed entry

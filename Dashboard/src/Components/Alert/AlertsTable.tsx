@@ -67,7 +67,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
   // Fetch alert states on mount
   useEffect(() => {
-    const fetchAlertStates = async (): Promise<void> => {
+    const fetchAlertStates: () => Promise<void> = async (): Promise<void> => {
       try {
         const result: ListResult<AlertState> =
           await ModelAPI.getList<AlertState>({
@@ -99,9 +99,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     fetchAlertStates();
   }, []);
 
-  const handleBulkStateChange = async (
+  const handleBulkStateChange: (
     targetStateId: ObjectID,
-  ): Promise<void> => {
+  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
     if (!bulkActionProps) {
       return;
     }
@@ -109,15 +109,17 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
 
-    const targetState = alertStates.find(
-      (s: AlertState) => s.id?.toString() === targetStateId.toString(),
+    const targetState: AlertState | undefined = alertStates.find(
+      (s: AlertState) => {
+        return s.id?.toString() === targetStateId.toString();
+      },
     );
 
     if (!targetState) {
       return;
     }
 
-    const targetOrder = targetState.order || 0;
+    const targetOrder: number = targetState.order || 0;
 
     onBulkActionStart();
 
@@ -146,11 +148,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           },
         });
 
-        const currentOrder = fetchedAlert?.currentAlertState?.order || 0;
+        const currentOrder: number =
+          fetchedAlert?.currentAlertState?.order || 0;
 
         // Skip if already at or past the target state
         if (currentOrder >= targetOrder) {
-          const currentStateName =
+          const currentStateName: string =
             fetchedAlert?.currentAlertState?.name || "Unknown";
           failedItems.push({
             item: alert,
@@ -193,19 +196,20 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
   };
 
-  const getBulkChangeStateAction = (): BulkActionButtonSchema<Alert> => {
-    return {
-      title: "Change State",
-      buttonStyleType: ButtonStyleType.NORMAL,
-      icon: IconProp.TransparentCube,
-      onClick: async (
-        actionProps: BulkActionOnClickProps<Alert>,
-      ): Promise<void> => {
-        setBulkActionProps(actionProps);
-        setShowBulkStateChangeModal(true);
-      },
+  const getBulkChangeStateAction: () => BulkActionButtonSchema<Alert> =
+    (): BulkActionButtonSchema<Alert> => {
+      return {
+        title: "Change State",
+        buttonStyleType: ButtonStyleType.NORMAL,
+        icon: IconProp.TransparentCube,
+        onClick: async (
+          actionProps: BulkActionOnClickProps<Alert>,
+        ): Promise<void> => {
+          setBulkActionProps(actionProps);
+          setShowBulkStateChangeModal(true);
+        },
+      };
     };
-  };
 
   return (
     <>
@@ -499,10 +503,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 title: "Select State",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
-                dropdownOptions: alertStates.map((state: AlertState) => ({
-                  label: state.name || "",
-                  value: state.id?.toString() || "",
-                })),
+                dropdownOptions: alertStates.map((state: AlertState) => {
+                  return {
+                    label: state.name || "",
+                    value: state.id?.toString() || "",
+                  };
+                }),
               },
             ],
           }}

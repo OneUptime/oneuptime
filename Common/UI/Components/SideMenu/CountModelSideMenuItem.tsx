@@ -32,37 +32,43 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
   const [error, setError] = useState<string>("");
   const [count, setCount] = useState<number>(0);
 
-  const fetchCount: PromiseVoidFunction = useCallback(async (): Promise<void> => {
-    if (!props.modelType) {
-      return;
-    }
+  const fetchCount: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
+      if (!props.modelType) {
+        return;
+      }
 
-    if (!props.countQuery) {
-      return;
-    }
+      if (!props.countQuery) {
+        return;
+      }
 
-    setError("");
-    setIsLoading(true);
-
-    if (props.onCountFetchInit) {
-      props.onCountFetchInit();
-    }
-
-    try {
-      const count: number = await ModelAPI.count<BaseModel>({
-        modelType: props.modelType,
-        query: props.countQuery,
-        requestOptions: props.requestOptions,
-      });
-
-      setCount(count);
       setError("");
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
+      setIsLoading(true);
 
-    setIsLoading(false);
-  }, [props.modelType, props.countQuery, props.requestOptions, props.onCountFetchInit]);
+      if (props.onCountFetchInit) {
+        props.onCountFetchInit();
+      }
+
+      try {
+        const count: number = await ModelAPI.count<BaseModel>({
+          modelType: props.modelType,
+          query: props.countQuery,
+          requestOptions: props.requestOptions,
+        });
+
+        setCount(count);
+        setError("");
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+
+      setIsLoading(false);
+    }, [
+      props.modelType,
+      props.countQuery,
+      props.requestOptions,
+      props.onCountFetchInit,
+    ]);
 
   useEffect(() => {
     fetchCount().catch((err: Error) => {
@@ -72,7 +78,7 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
 
   // Listen for global refresh events
   useEffect(() => {
-    const handleRefresh = (): void => {
+    const handleRefresh: () => void = (): void => {
       fetchCount().catch((err: Error) => {
         setError(API.getFriendlyMessage(err));
       });
@@ -81,7 +87,10 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
     GlobalEvents.addEventListener(REFRESH_SIDEBAR_COUNT_EVENT, handleRefresh);
 
     return () => {
-      GlobalEvents.removeEventListener(REFRESH_SIDEBAR_COUNT_EVENT, handleRefresh);
+      GlobalEvents.removeEventListener(
+        REFRESH_SIDEBAR_COUNT_EVENT,
+        handleRefresh,
+      );
     };
   }, [fetchCount]);
 

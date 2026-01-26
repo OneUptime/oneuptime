@@ -28,7 +28,12 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import React, { FunctionComponent, ReactElement, useState, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useEffect,
+} from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
@@ -71,41 +76,42 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
   // Fetch incident states on mount
   useEffect(() => {
-    const fetchIncidentStates = async (): Promise<void> => {
-      try {
-        const result: ListResult<IncidentState> =
-          await ModelAPI.getList<IncidentState>({
-            modelType: IncidentState,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: 99,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-              color: true,
-              order: true,
-              isResolvedState: true,
-              isAcknowledgedState: true,
-              isCreatedState: true,
-            },
-            sort: {
-              order: SortOrder.Ascending,
-            },
-          });
-        setIncidentStates(result.data);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
-    };
+    const fetchIncidentStates: () => Promise<void> =
+      async (): Promise<void> => {
+        try {
+          const result: ListResult<IncidentState> =
+            await ModelAPI.getList<IncidentState>({
+              modelType: IncidentState,
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              limit: 99,
+              skip: 0,
+              select: {
+                _id: true,
+                name: true,
+                color: true,
+                order: true,
+                isResolvedState: true,
+                isAcknowledgedState: true,
+                isCreatedState: true,
+              },
+              sort: {
+                order: SortOrder.Ascending,
+              },
+            });
+          setIncidentStates(result.data);
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        }
+      };
 
     fetchIncidentStates();
   }, []);
 
-  const handleBulkStateChange = async (
+  const handleBulkStateChange: (
     targetStateId: ObjectID,
-  ): Promise<void> => {
+  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
     if (!bulkActionProps) {
       return;
     }
@@ -113,15 +119,17 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
 
-    const targetState = incidentStates.find(
-      (s: IncidentState) => s.id?.toString() === targetStateId.toString(),
+    const targetState: IncidentState | undefined = incidentStates.find(
+      (s: IncidentState) => {
+        return s.id?.toString() === targetStateId.toString();
+      },
     );
 
     if (!targetState) {
       return;
     }
 
-    const targetOrder = targetState.order || 0;
+    const targetOrder: number = targetState.order || 0;
 
     onBulkActionStart();
 
@@ -139,22 +147,24 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         }
 
         // Fetch the incident's current state order since it's not loaded in the table
-        const fetchedIncident: Incident | null = await ModelAPI.getItem<Incident>({
-          modelType: Incident,
-          id: incident.id,
-          select: {
-            currentIncidentState: {
-              order: true,
-              name: true,
+        const fetchedIncident: Incident | null =
+          await ModelAPI.getItem<Incident>({
+            modelType: Incident,
+            id: incident.id,
+            select: {
+              currentIncidentState: {
+                order: true,
+                name: true,
+              },
             },
-          },
-        });
+          });
 
-        const currentOrder = fetchedIncident?.currentIncidentState?.order || 0;
+        const currentOrder: number =
+          fetchedIncident?.currentIncidentState?.order || 0;
 
         // Skip if already at or past the target state
         if (currentOrder >= targetOrder) {
-          const currentStateName =
+          const currentStateName: string =
             fetchedIncident?.currentIncidentState?.name || "Unknown";
           failedItems.push({
             item: incident,
@@ -162,7 +172,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           });
         } else {
           // Create state timeline to change state
-          const stateTimeline: IncidentStateTimeline = new IncidentStateTimeline();
+          const stateTimeline: IncidentStateTimeline =
+            new IncidentStateTimeline();
           stateTimeline.incidentId = incident.id;
           stateTimeline.incidentStateId = targetStateId;
           stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
@@ -197,19 +208,20 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
   };
 
-  const getBulkChangeStateAction = (): BulkActionButtonSchema<Incident> => {
-    return {
-      title: "Change State",
-      buttonStyleType: ButtonStyleType.NORMAL,
-      icon: IconProp.TransparentCube,
-      onClick: async (
-        actionProps: BulkActionOnClickProps<Incident>,
-      ): Promise<void> => {
-        setBulkActionProps(actionProps);
-        setShowBulkStateChangeModal(true);
-      },
+  const getBulkChangeStateAction: () => BulkActionButtonSchema<Incident> =
+    (): BulkActionButtonSchema<Incident> => {
+      return {
+        title: "Change State",
+        buttonStyleType: ButtonStyleType.NORMAL,
+        icon: IconProp.TransparentCube,
+        onClick: async (
+          actionProps: BulkActionOnClickProps<Incident>,
+        ): Promise<void> => {
+          setBulkActionProps(actionProps);
+          setShowBulkStateChangeModal(true);
+        },
+      };
     };
-  };
 
   const fetchIncidentTemplates: () => Promise<void> =
     async (): Promise<void> => {
@@ -620,10 +632,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 title: "Select State",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
-                dropdownOptions: incidentStates.map((state: IncidentState) => ({
-                  label: state.name || "",
-                  value: state.id?.toString() || "",
-                })),
+                dropdownOptions: incidentStates.map((state: IncidentState) => {
+                  return {
+                    label: state.name || "",
+                    value: state.id?.toString() || "",
+                  };
+                }),
               },
             ],
           }}

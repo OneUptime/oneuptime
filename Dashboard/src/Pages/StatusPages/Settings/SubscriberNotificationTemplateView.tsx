@@ -306,9 +306,7 @@ const SubscriberNotificationTemplateView: FunctionComponent<
           description:
             "Status pages that use this notification template. Link this template to more status pages or remove existing connections.",
         }}
-        noItemsMessage={
-          "This template is not linked to any status pages yet."
-        }
+        noItemsMessage={"This template is not linked to any status pages yet."}
         showRefreshButton={true}
         formFields={[
           {
@@ -316,8 +314,7 @@ const SubscriberNotificationTemplateView: FunctionComponent<
               statusPage: true,
             },
             title: "Status Page",
-            description:
-              "Select a status page to link this template to.",
+            description: "Select a status page to link this template to.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: StatusPage,
@@ -351,11 +348,7 @@ const SubscriberNotificationTemplateView: FunctionComponent<
             getElement: (
               item: StatusPageSubscriberNotificationTemplateStatusPage,
             ): ReactElement => {
-              return (
-                <span>
-                  {item.statusPage?.name || "Unknown"}
-                </span>
-              );
+              return <span>{item.statusPage?.name || "Unknown"}</span>;
             },
           },
           {

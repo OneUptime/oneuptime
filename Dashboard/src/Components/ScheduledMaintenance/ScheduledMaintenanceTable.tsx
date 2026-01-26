@@ -14,7 +14,12 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import React, { FunctionComponent, ReactElement, useState, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useEffect,
+} from "react";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -75,42 +80,43 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
   // Fetch scheduled maintenance states on mount
   useEffect(() => {
-    const fetchScheduledMaintenanceStates = async (): Promise<void> => {
-      try {
-        const result: ListResult<ScheduledMaintenanceState> =
-          await ModelAPI.getList<ScheduledMaintenanceState>({
-            modelType: ScheduledMaintenanceState,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: 99,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-              color: true,
-              order: true,
-              isResolvedState: true,
-              isOngoingState: true,
-              isScheduledState: true,
-              isEndedState: true,
-            },
-            sort: {
-              order: SortOrder.Ascending,
-            },
-          });
-        setScheduledMaintenanceStates(result.data);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
-    };
+    const fetchScheduledMaintenanceStates: () => Promise<void> =
+      async (): Promise<void> => {
+        try {
+          const result: ListResult<ScheduledMaintenanceState> =
+            await ModelAPI.getList<ScheduledMaintenanceState>({
+              modelType: ScheduledMaintenanceState,
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              limit: 99,
+              skip: 0,
+              select: {
+                _id: true,
+                name: true,
+                color: true,
+                order: true,
+                isResolvedState: true,
+                isOngoingState: true,
+                isScheduledState: true,
+                isEndedState: true,
+              },
+              sort: {
+                order: SortOrder.Ascending,
+              },
+            });
+          setScheduledMaintenanceStates(result.data);
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        }
+      };
 
     fetchScheduledMaintenanceStates();
   }, []);
 
-  const handleBulkStateChange = async (
+  const handleBulkStateChange: (
     targetStateId: ObjectID,
-  ): Promise<void> => {
+  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
     if (!bulkActionProps) {
       return;
     }
@@ -118,16 +124,16 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
 
-    const targetState = scheduledMaintenanceStates.find(
-      (s: ScheduledMaintenanceState) =>
-        s.id?.toString() === targetStateId.toString(),
-    );
+    const targetState: ScheduledMaintenanceState | undefined =
+      scheduledMaintenanceStates.find((s: ScheduledMaintenanceState) => {
+        return s.id?.toString() === targetStateId.toString();
+      });
 
     if (!targetState) {
       return;
     }
 
-    const targetOrder = targetState.order || 0;
+    const targetOrder: number = targetState.order || 0;
 
     onBulkActionStart();
 
@@ -137,10 +143,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     const failedItems: Array<BulkActionFailed<ScheduledMaintenance>> = [];
 
     for (const scheduledMaintenance of totalItems) {
-      inProgressItems.splice(
-        inProgressItems.indexOf(scheduledMaintenance),
-        1,
-      );
+      inProgressItems.splice(inProgressItems.indexOf(scheduledMaintenance), 1);
 
       try {
         if (!scheduledMaintenance.id) {
@@ -160,13 +163,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
           });
 
-        const currentOrder =
+        const currentOrder: number =
           fetchedScheduledMaintenance?.currentScheduledMaintenanceState
             ?.order || 0;
 
         // Skip if already at or past the target state
         if (currentOrder >= targetOrder) {
-          const currentStateName =
+          const currentStateName: string =
             fetchedScheduledMaintenance?.currentScheduledMaintenanceState
               ?.name || "Unknown";
           failedItems.push({
@@ -211,7 +214,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
   };
 
-  const getBulkChangeStateAction =
+  const getBulkChangeStateAction: () => BulkActionButtonSchema<ScheduledMaintenance> =
     (): BulkActionButtonSchema<ScheduledMaintenance> => {
       return {
         title: "Change State",
@@ -656,10 +659,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 dropdownOptions: scheduledMaintenanceStates.map(
-                  (state: ScheduledMaintenanceState) => ({
-                    label: state.name || "",
-                    value: state.id?.toString() || "",
-                  }),
+                  (state: ScheduledMaintenanceState) => {
+                    return {
+                      label: state.name || "",
+                      value: state.id?.toString() || "",
+                    };
+                  },
                 ),
               },
             ],
