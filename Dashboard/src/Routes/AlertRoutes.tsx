@@ -199,6 +199,12 @@ const EpisodeViewInternalNote: LazyExoticComponent<
   return import("../Pages/Alerts/EpisodeView/InternalNote");
 });
 
+const EpisodeViewRemediation: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/EpisodeView/Remediation");
+});
+
 const EpisodeViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -641,6 +647,21 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ALERT_EPISODE_VIEW_REMEDIATION,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeViewRemediation
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ALERT_EPISODE_VIEW_REMEDIATION] as Route
                 }
               />
             </Suspense>

@@ -50,6 +50,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Cube}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Remediation Notes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_EPISODE_VIEW_REMEDIATION] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Wrench}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Ownership">

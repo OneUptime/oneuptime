@@ -1,5 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
+import AlertEpisodeFeedElement from "../../../Components/AlertEpisode/AlertEpisodeFeed";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
@@ -487,6 +488,8 @@ const AlertEpisodeView: FunctionComponent<
           className="w-1/2"
         />
       </div>
+
+      <AlertEpisodeFeedElement alertEpisodeId={modelId} />
     </Fragment>
   );
 };
