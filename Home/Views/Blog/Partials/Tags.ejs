@@ -20,7 +20,7 @@
 <% if(blogPost.tags.length> 0){ %>
     <div class="flex flex-wrap gap-2">
         <% for(var i=0; i<blogPost.tags.length; i++) { const tc = tagColors[hashTag(blogPost.tags[i]) % tagColors.length]; %>
-            <a href="/blog/tag/<%- blogPost.tags[i].replaceAll(' ','-').toLowerCase() -%>" class="group/tag">
+            <a href="/blog/tag/<%- encodeURIComponent(blogPost.tags[i].replaceAll(' ','-').toLowerCase()) -%>" class="group/tag">
                 <span class="inline-flex items-center gap-1.5 rounded-full border <%= tc.border %> <%= tc.bg %> px-3 py-1 text-xs font-medium <%= tc.text %> shadow-sm <%= tc.hoverBg %> <%= tc.hoverBorder %> transition">
                     <span class="h-1.5 w-1.5 rounded-full <%= tc.dot %>"></span>
                     <%- blogPost.tags[i] -%>

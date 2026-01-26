@@ -19,7 +19,7 @@
         #tag-filter-container::-webkit-scrollbar{display:none;}
       </style>
       <a href="/blog" data-tag="all" class="tag-chip <%= !tagName ? 'tag-chip-active' : '' %>" aria-label="Show all posts">All</a>
-      <% for(var i=0;i<allTags.length;i++){ const t = allTags[i]; const slug = t.replaceAll(' ','-').toLowerCase(); const active = (tagName && tagName.toLowerCase()===t.toLowerCase()); %>
+      <% for(var i=0;i<allTags.length;i++){ const t = allTags[i]; const slug = encodeURIComponent(t.replaceAll(' ','-').toLowerCase()); const active = (tagName && tagName.toLowerCase()===t.toLowerCase()); %>
         <a href="/blog/tag/<%- slug -%>" data-tag="<%- slug %>" class="tag-chip <%= active ? 'tag-chip-active' : '' %>" aria-label="Filter by <%- t %>"><%- t %></a>
       <% } %>
       <div id="no-tag-results" class="hidden px-3 py-1.5 text-xs text-gray-500">No tags match.</div>
