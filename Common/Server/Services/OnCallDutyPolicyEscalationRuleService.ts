@@ -110,6 +110,7 @@ export class Service extends DatabaseService<Model> {
       projectId: ObjectID;
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
+      triggeredByAlertEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
       onCallPolicyExecutionLogId: ObjectID;
       onCallPolicyId: ObjectID;
@@ -173,6 +174,10 @@ export class Service extends DatabaseService<Model> {
           log.triggeredByAlertId = options.triggeredByAlertId;
         }
 
+        if (options.triggeredByAlertEpisodeId) {
+          log.triggeredByAlertEpisodeId = options.triggeredByAlertEpisodeId;
+        }
+
         return log;
       };
 
@@ -192,7 +197,17 @@ export class Service extends DatabaseService<Model> {
       !options.triggeredByAlertId
     ) {
       throw new BadDataException(
-        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated",
+        "triggeredByAlertId is required when userNotificationEventType is AlertCreated",
+      );
+    }
+
+    if (
+      UserNotificationEventType.AlertEpisodeCreated ===
+        options.userNotificationEventType &&
+      !options.triggeredByAlertEpisodeId
+    ) {
+      throw new BadDataException(
+        "triggeredByAlertEpisodeId is required when userNotificationEventType is AlertEpisodeCreated",
       );
     }
 

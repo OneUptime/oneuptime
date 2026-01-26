@@ -27,6 +27,7 @@ import Permission from "../../Types/Permission";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import Alert from "./Alert";
+import AlertEpisode from "./AlertEpisode";
 
 @TableBillingAccessControl({
   create: PlanType.Growth,
@@ -287,6 +288,64 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByAlertId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "triggeredByAlertEpisodeId",
+    type: TableColumnType.Entity,
+    modelType: AlertEpisode,
+    title: "Alert Episode",
+    description:
+      "Relation to Alert Episode Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return AlertEpisode;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "triggeredByAlertEpisodeId" })
+  public triggeredByAlertEpisode?: AlertEpisode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Alert Episode ID",
+    description:
+      "ID of your OneUptime Alert Episode in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByAlertEpisodeId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

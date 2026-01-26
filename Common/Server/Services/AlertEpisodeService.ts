@@ -890,6 +890,27 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async getEpisodeNumber(data: {
+    episodeId: ObjectID;
+  }): Promise<number | null> {
+    const episode: Model | null = await this.findOneById({
+      id: data.episodeId,
+      select: {
+        episodeNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!episode) {
+      throw new BadDataException("Episode not found.");
+    }
+
+    return episode.episodeNumber ? Number(episode.episodeNumber) : null;
+  }
+
+  @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
