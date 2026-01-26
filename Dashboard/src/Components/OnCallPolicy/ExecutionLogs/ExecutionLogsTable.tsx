@@ -21,6 +21,8 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertView from "../../../Components/Alert/Alert";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeView from "../../../Components/AlertEpisode/AlertEpisode";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 
@@ -28,6 +30,7 @@ export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
+  alertEpisodeId?: ObjectID | undefined;
 }
 
 const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
@@ -51,6 +54,10 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
 
   if (props.alertId) {
     query.triggeredByAlertId = props.alertId;
+  }
+
+  if (props.alertEpisodeId) {
+    query.triggeredByAlertEpisodeId = props.alertEpisodeId;
   }
 
   let columns: Columns<OnCallDutyPolicyExecutionLog> = [];
@@ -125,6 +132,9 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         triggeredByIncident: {
           title: true,
         },
+        triggeredByAlertEpisode: {
+          title: true,
+        },
       },
       title: "Triggered By",
       type: FieldType.Element,
@@ -145,6 +155,17 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             <div>
               <p>Alert:</p>
               <AlertView alert={item["triggeredByAlert"] as Alert} />
+            </div>
+          );
+        }
+
+        if (item.triggeredByAlertEpisode) {
+          return (
+            <div>
+              <p>Alert Episode:</p>
+              <AlertEpisodeView
+                alertEpisode={item["triggeredByAlertEpisode"] as AlertEpisode}
+              />
             </div>
           );
         }
@@ -224,6 +245,9 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           statusMessage: true,
           onCallDutyPolicyId: true,
           triggeredByAlert: {
+            title: true,
+          },
+          triggeredByAlertEpisode: {
             title: true,
           },
         }}

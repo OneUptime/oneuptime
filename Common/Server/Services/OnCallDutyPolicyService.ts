@@ -285,7 +285,17 @@ ${onCallPolicy.description || "No description provided."}
       !options.triggeredByAlertId
     ) {
       throw new BadDataException(
-        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated",
+        "triggeredByAlertId is required when userNotificationEventType is AlertCreated",
+      );
+    }
+
+    if (
+      UserNotificationEventType.AlertEpisodeCreated ===
+        options.userNotificationEventType &&
+      !options.triggeredByAlertEpisodeId
+    ) {
+      throw new BadDataException(
+        "triggeredByAlertEpisodeId is required when userNotificationEventType is AlertEpisodeCreated",
       );
     }
 
