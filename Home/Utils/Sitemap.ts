@@ -452,7 +452,9 @@ export async function generateTagsSitemapXml(page: number): Promise<string> {
   const tagsForPage: string[] = allTags.slice(startIndex, endIndex);
 
   const entries: SitemapEntry[] = tagsForPage.map((tag: string) => {
-    const tagSlug: string = tag.toLowerCase().replace(/\s+/g, "-").trim();
+    const tagSlug: string = encodeURIComponent(
+      tag.toLowerCase().replace(/\s+/g, "-").trim(),
+    );
     return {
       loc: `${baseUrlString}/blog/tag/${tagSlug}`,
       lastmod: timestamp,
