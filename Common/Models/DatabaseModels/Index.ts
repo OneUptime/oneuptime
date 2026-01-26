@@ -189,6 +189,15 @@ import AlertSeverity from "./AlertSeverity";
 import AlertNoteTemplate from "./AlertNoteTemplate";
 import AlertFeed from "./AlertFeed";
 
+import AlertEpisode from "./AlertEpisode";
+import AlertEpisodeMember from "./AlertEpisodeMember";
+import AlertEpisodeStateTimeline from "./AlertEpisodeStateTimeline";
+import AlertEpisodeOwnerUser from "./AlertEpisodeOwnerUser";
+import AlertEpisodeOwnerTeam from "./AlertEpisodeOwnerTeam";
+import AlertEpisodeInternalNote from "./AlertEpisodeInternalNote";
+import AlertEpisodeFeed from "./AlertEpisodeFeed";
+import AlertGroupingRule from "./AlertGroupingRule";
+
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 
@@ -272,6 +281,15 @@ const AllModelTypes: Array<{
   AlertOwnerUser,
   AlertSeverity,
   AlertNoteTemplate,
+
+  AlertEpisode,
+  AlertEpisodeMember,
+  AlertEpisodeStateTimeline,
+  AlertEpisodeOwnerUser,
+  AlertEpisodeOwnerTeam,
+  AlertEpisodeInternalNote,
+  AlertEpisodeFeed,
+  AlertGroupingRule,
 
   MonitorStatusTimeline,
 

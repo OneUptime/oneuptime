@@ -63,6 +63,11 @@ const OngoingScheduledEvents: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Home/OngoingScheduledMaintenance");
 });
+const HomeActiveEpisodes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Home/ActiveEpisodes");
+});
 const LogsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
@@ -434,6 +439,16 @@ const App: () => JSX.Element = () => {
                     PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                   ] as Route
                 }
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.HOME_ACTIVE_EPISODES]?.toString() || ""}
+            element={
+              <HomeActiveEpisodes
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.HOME_ACTIVE_EPISODES] as Route}
               />
             }
           />

@@ -197,12 +197,27 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
 
+  // Alert Episodes
+  [PageMap.ALERT_EPISODES]: "episodes",
+  [PageMap.UNRESOLVED_ALERT_EPISODES]: "episodes/unresolved",
+  [PageMap.ALERT_EPISODE_VIEW]: `episodes/${RouteParams.ModelID}`,
+  [PageMap.ALERT_EPISODE_VIEW_DELETE]: `episodes/${RouteParams.ModelID}/delete`,
+  [PageMap.ALERT_EPISODE_VIEW_DESCRIPTION]: `episodes/${RouteParams.ModelID}/description`,
+  [PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE]: `episodes/${RouteParams.ModelID}/root-cause`,
+  [PageMap.ALERT_EPISODE_VIEW_OWNERS]: `episodes/${RouteParams.ModelID}/owners`,
+  [PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE]: `episodes/${RouteParams.ModelID}/state-timeline`,
+  [PageMap.ALERT_EPISODE_VIEW_ALERTS]: `episodes/${RouteParams.ModelID}/alerts`,
+  [PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE]: `episodes/${RouteParams.ModelID}/internal-notes`,
+  [PageMap.ALERT_EPISODE_VIEW_REMEDIATION]: `episodes/${RouteParams.ModelID}/remediation`,
+  [PageMap.ALERT_EPISODE_DOCS]: "episodes/documentation",
+
   // Alert Settings
   [PageMap.ALERTS_SETTINGS_STATE]: "settings/state",
   [PageMap.ALERTS_SETTINGS_SEVERITY]: "settings/severity",
   [PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES]: "settings/note-templates",
   [PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
+  [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -344,6 +359,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]:
     "microsoft-teams-integration",
   [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: "alert-on-call-rules",
+  [PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES]: "episode-on-call-rules",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: "on-call-logs",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
@@ -371,6 +387,10 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`,
+  ),
+
+  [PageMap.HOME_ACTIVE_EPISODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/active-episodes`,
   ),
 
   [PageMap.MONITORS_ROOT]: new Route(
@@ -647,6 +667,85 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_GROUPING_RULES]
+    }`,
+  ),
+
+  // Alert Episodes
+  [PageMap.ALERT_EPISODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODES]
+    }`,
+  ),
+
+  [PageMap.UNRESOLVED_ALERT_EPISODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.UNRESOLVED_ALERT_EPISODES]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_DESCRIPTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_DESCRIPTION]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_VIEW_REMEDIATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_REMEDIATION]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_DOCS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS]
     }`,
   ),
 
@@ -1716,6 +1815,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES]
     }`,
   ),
 

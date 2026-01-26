@@ -3,7 +3,9 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import Columns from "./Types/Columns";
-import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import SortOrder, {
+  SortOrderToAriaSortMap,
+} from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useState } from "react";
@@ -52,9 +54,14 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   return (
     <thead className="bg-gray-50" id={props.id}>
       <tr>
-        {props.enableDragAndDrop && <th></th>}
+        {props.enableDragAndDrop && (
+          <th scope="col">
+            <span className="sr-only">Drag to reorder</span>
+          </th>
+        )}
         {props.isBulkActionsEnabled && (
-          <th>
+          <th scope="col">
+            <span className="sr-only">Select all items</span>
             <div className="ml-5">
               <CheckboxElement
                 disabled={!props.hasTableItems}
@@ -79,9 +86,19 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
           .map((column: Column<T>, i: number) => {
             const canSort: boolean = !column.disableSort && Boolean(column.key);
 
+            const isSorted: boolean = canSort && props.sortBy === column.key;
+            const ariaSort: "ascending" | "descending" | "none" | undefined =
+              isSorted
+                ? SortOrderToAriaSortMap[props.sortOrder]
+                : canSort
+                  ? "none"
+                  : undefined;
+
             return (
               <th
                 key={i}
+                scope="col"
+                aria-sort={ariaSort}
                 className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
                   canSort ? "cursor-pointer" : ""
                 }`}

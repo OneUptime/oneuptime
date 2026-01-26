@@ -85,6 +85,7 @@ import {
   MicrosoftTeamsOnCallDutyActionType,
 } from "./Actions/ActionTypes";
 import MicrosoftTeamsAlertActions from "./Actions/Alert";
+import MicrosoftTeamsAlertEpisodeActions from "./Actions/AlertEpisode";
 import MicrosoftTeamsMonitorActions from "./Actions/Monitor";
 import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMaintenance";
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
@@ -2509,6 +2510,21 @@ All monitoring checks are passing normally.`;
       // Handle alert actions
       if (MicrosoftTeamsAlertActions.isAlertAction({ actionType })) {
         await MicrosoftTeamsAlertActions.handleBotAlertAction({
+          actionType,
+          actionValue,
+          value,
+          projectId,
+          oneUptimeUserId,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
+
+      // Handle alert episode actions
+      if (
+        MicrosoftTeamsAlertEpisodeActions.isAlertEpisodeAction({ actionType })
+      ) {
+        await MicrosoftTeamsAlertEpisodeActions.handleBotAlertEpisodeAction({
           actionType,
           actionValue,
           value,

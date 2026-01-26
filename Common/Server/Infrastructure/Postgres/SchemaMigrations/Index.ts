@@ -223,7 +223,17 @@ import { AddIncomingEmailMonitor1768335589018 } from "./1768335589018-AddIncomin
 import { MigrationName1768422356713 } from "./1768422356713-MigrationName";
 import { MigrationName1768583966447 } from "./1768583966447-MigrationName";
 import { MigrationName1768825402472 } from "./1768825402472-MigrationName";
+import { MigrationName1768938069147 } from "./1768938069147-MigrationName";
+import { MigrationName1769125561322 } from "./1769125561322-MigrationName";
 import { MigrationName1769169355244 } from "./1769169355244-MigrationName";
+import { MigrationName1769170578688 } from "./1769170578688-MigrationName";
+import { MigrationName1769172358833 } from "./1769172358833-MigrationName";
+import { MigrationName1769176450526 } from "./1769176450526-MigrationName";
+import { MigrationName1769190495840 } from "./1769190495840-MigrationName";
+import { MigrationName1769199303656 } from "./1769199303656-MigrationName";
+import { MigrationName1769202898645 } from "./1769202898645-MigrationName";
+import { MigrationName1769428619414 } from "./1769428619414-MigrationName";
+import { MigrationName1769428821686 } from "./1769428821686-MigrationName";
 
 export default [
   InitialMigration,
@@ -452,4 +462,14 @@ export default [
   MigrationName1768583966447,
   MigrationName1768825402472,
   MigrationName1769169355244,
+  MigrationName1768938069147,
+  MigrationName1769125561322,
+  MigrationName1769170578688,
+  MigrationName1769172358833,
+  MigrationName1769176450526,
+  MigrationName1769190495840,
+  MigrationName1769199303656,
+  MigrationName1769202898645,
+  MigrationName1769428619414,
+  MigrationName1769428821686,
 ];

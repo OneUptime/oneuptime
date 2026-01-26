@@ -25,6 +25,11 @@ export enum NotificationRuleConditionCheckOn {
   AlertDescription = "Alert Description",
   AlertSeverity = "Alert Severity",
   AlertState = "Alert State",
+  AlertEpisodeTitle = "Alert Episode Title",
+  AlertEpisodeDescription = "Alert Episode Description",
+  AlertEpisodeSeverity = "Alert Episode Severity",
+  AlertEpisodeState = "Alert Episode State",
+  AlertEpisodeLabels = "Alert Episode Labels",
   ScheduledMaintenanceTitle = "Scheduled Maintenance Title",
   ScheduledMaintenanceDescription = "Scheduled Maintenance Description",
   ScheduledMaintenanceState = "Scheduled Maintenance State",
@@ -94,6 +99,7 @@ export class NotificationRuleConditionUtil {
     if (
       eventType === NotificationRuleEventType.Incident ||
       eventType === NotificationRuleEventType.Alert ||
+      eventType === NotificationRuleEventType.AlertEpisode ||
       eventType === NotificationRuleEventType.ScheduledMaintenance
     ) {
       // either create slack channel or select existing one should be active.
@@ -154,13 +160,16 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.MonitorType:
       case NotificationRuleConditionCheckOn.IncidentState:
       case NotificationRuleConditionCheckOn.AlertState:
+      case NotificationRuleConditionCheckOn.AlertEpisodeState:
       case NotificationRuleConditionCheckOn.MonitorStatus:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceState:
       case NotificationRuleConditionCheckOn.IncidentSeverity:
       case NotificationRuleConditionCheckOn.AlertSeverity:
+      case NotificationRuleConditionCheckOn.AlertEpisodeSeverity:
       case NotificationRuleConditionCheckOn.MonitorLabels:
       case NotificationRuleConditionCheckOn.IncidentLabels:
       case NotificationRuleConditionCheckOn.AlertLabels:
+      case NotificationRuleConditionCheckOn.AlertEpisodeLabels:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
       case NotificationRuleConditionCheckOn.Monitors:
         return true;
@@ -180,7 +189,10 @@ export class NotificationRuleConditionUtil {
     monitors: Array<Monitor>;
     checkOn: NotificationRuleConditionCheckOn;
   }): Array<DropdownOption> {
-    if (data.checkOn === NotificationRuleConditionCheckOn.AlertSeverity) {
+    if (
+      data.checkOn === NotificationRuleConditionCheckOn.AlertSeverity ||
+      data.checkOn === NotificationRuleConditionCheckOn.AlertEpisodeSeverity
+    ) {
       return data.alertSeverities.map((severity: AlertSeverity) => {
         return {
           value: severity.id!.toString(),
@@ -234,6 +246,7 @@ export class NotificationRuleConditionUtil {
       data.checkOn === NotificationRuleConditionCheckOn.MonitorLabels ||
       data.checkOn === NotificationRuleConditionCheckOn.IncidentLabels ||
       data.checkOn === NotificationRuleConditionCheckOn.AlertLabels ||
+      data.checkOn === NotificationRuleConditionCheckOn.AlertEpisodeLabels ||
       data.checkOn ===
         NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
     ) {
@@ -254,8 +267,11 @@ export class NotificationRuleConditionUtil {
       });
     }
 
-    // alert states
-    if (data.checkOn === NotificationRuleConditionCheckOn.AlertState) {
+    // alert states (also used for alert episodes)
+    if (
+      data.checkOn === NotificationRuleConditionCheckOn.AlertState ||
+      data.checkOn === NotificationRuleConditionCheckOn.AlertEpisodeState
+    ) {
       return data.alertStates.map((state: AlertState) => {
         return {
           value: state.id!.toString(),
@@ -298,6 +314,14 @@ export class NotificationRuleConditionUtil {
 
           NotificationRuleConditionCheckOn.Monitors,
         ];
+      case NotificationRuleEventType.AlertEpisode:
+        return [
+          NotificationRuleConditionCheckOn.AlertEpisodeTitle,
+          NotificationRuleConditionCheckOn.AlertEpisodeDescription,
+          NotificationRuleConditionCheckOn.AlertEpisodeSeverity,
+          NotificationRuleConditionCheckOn.AlertEpisodeState,
+          NotificationRuleConditionCheckOn.AlertEpisodeLabels,
+        ];
       case NotificationRuleEventType.Monitor:
         return [
           NotificationRuleConditionCheckOn.MonitorName,
@@ -329,6 +353,8 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.IncidentDescription:
       case NotificationRuleConditionCheckOn.AlertTitle:
       case NotificationRuleConditionCheckOn.AlertDescription:
+      case NotificationRuleConditionCheckOn.AlertEpisodeTitle:
+      case NotificationRuleConditionCheckOn.AlertEpisodeDescription:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription:
         return [
@@ -341,15 +367,18 @@ export class NotificationRuleConditionUtil {
         ];
       case NotificationRuleConditionCheckOn.IncidentSeverity:
       case NotificationRuleConditionCheckOn.AlertSeverity:
+      case NotificationRuleConditionCheckOn.AlertEpisodeSeverity:
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.IncidentState:
       case NotificationRuleConditionCheckOn.AlertState:
+      case NotificationRuleConditionCheckOn.AlertEpisodeState:
       case NotificationRuleConditionCheckOn.MonitorStatus:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceState:
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.MonitorType:
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.AlertLabels:
+      case NotificationRuleConditionCheckOn.AlertEpisodeLabels:
       case NotificationRuleConditionCheckOn.IncidentLabels:
       case NotificationRuleConditionCheckOn.MonitorLabels:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:

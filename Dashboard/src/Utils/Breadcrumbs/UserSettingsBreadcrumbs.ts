@@ -33,6 +33,10 @@ export function getUserSettingsBreadcrumbs(
       "User Settings",
       "Alert On-Call Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES,
+      ["Project", "User Settings", "Episode On-Call Rules"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_ON_CALL_LOGS, [
       "Project",
       "User Settings",

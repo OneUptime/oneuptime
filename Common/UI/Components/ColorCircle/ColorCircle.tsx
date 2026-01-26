@@ -17,6 +17,8 @@ const ColorCircle: FunctionComponent<ComponentProps> = (
         style={{
           backgroundColor: props.color.toString(),
         }}
+        role="img"
+        aria-label={props.tooltip}
       ></div>
     </Tooltip>
   );

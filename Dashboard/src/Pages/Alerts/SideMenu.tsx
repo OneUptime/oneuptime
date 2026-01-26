@@ -7,6 +7,7 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -19,7 +20,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Overview",
+      title: "Alerts",
       items: [
         {
           link: {
@@ -46,6 +47,44 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               isResolvedState: false,
             },
           } as any,
+        },
+      ],
+    },
+    {
+      title: "Episodes",
+      items: [
+        {
+          link: {
+            title: "All Episodes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_EPISODES] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack,
+        },
+        {
+          link: {
+            title: "Active Episodes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route,
+            ),
+          },
+          icon: IconProp.ExclaimationCircle,
+          badgeType: BadgeType.WARNING,
+          modelType: AlertEpisode,
+          countQuery: {
+            projectId: props.project?._id,
+            resolvedAt: null,
+          } as any,
+        },
+        {
+          link: {
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_EPISODE_DOCS] as Route,
+            ),
+          },
+          icon: IconProp.Book,
         },
       ],
     },
@@ -113,6 +152,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.TableCells,
+        },
+        {
+          link: {
+            title: "Grouping Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_GROUPING_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Filter,
         },
       ],
     },

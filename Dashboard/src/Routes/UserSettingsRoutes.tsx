@@ -37,6 +37,12 @@ const UserSettingsAlertNotificationRules: LazyExoticComponent<
   return import("../Pages/UserSettings/AlertOnCallRules");
 });
 
+const UserSettingsEpisodeNotificationRules: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/UserSettings/EpisodeOnCallRules");
+});
+
 const UserSettingsNotificationLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -216,6 +222,24 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <UserSettingsEpisodeNotificationRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES] as Route
                 }
               />
             </Suspense>

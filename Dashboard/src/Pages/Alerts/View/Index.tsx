@@ -40,6 +40,7 @@ import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import TraceTable from "../../../Components/Traces/TraceTable";
 import MonitorElement from "../../../Components/Monitor/Monitor";
+import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
@@ -460,6 +461,26 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Element,
               getElement: (item: Alert): ReactElement => {
                 return <MonitorElement monitor={item["monitor"]!} />;
+              },
+            },
+            {
+              field: {
+                alertEpisode: {
+                  title: true,
+                  _id: true,
+                },
+              },
+              title: "Episode",
+              fieldType: FieldType.Element,
+              getElement: (item: Alert): ReactElement => {
+                if (item.alertEpisode) {
+                  return (
+                    <AlertEpisodeElement alertEpisode={item.alertEpisode} />
+                  );
+                }
+                return (
+                  <span className="text-gray-400">Not part of an episode</span>
+                );
               },
             },
             {

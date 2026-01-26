@@ -3,7 +3,15 @@ import "./API/BlogAPI";
 import { StaticPath, ViewsPath } from "./Utils/Config";
 import NotFoundUtil from "./Utils/NotFound";
 import ProductCompare, { Product } from "./Utils/ProductCompare";
-import generateSitemapXml from "./Utils/Sitemap";
+import {
+  generateSitemapIndexXml,
+  generatePagesSitemapXml,
+  generateCompareSitemapXml,
+  generateTagsSitemapXml,
+  generateBlogSitemapXml,
+  getBlogSitemapPageCount,
+  getTagsSitemapPageCount,
+} from "./Utils/Sitemap";
 import { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -1692,6 +1700,18 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get("/legal/vpat", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.render(`${ViewsPath}/legal.ejs`, {
+        footerCards: true,
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        cta: true,
+        blackLogo: false,
+        section: "vpat",
+        requestDemoCta: false,
+      });
+    });
+
     app.get(
       "/legal/data-residency",
       (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1759,19 +1779,104 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Dynamic Sitemap
+    // Dynamic Sitemap Index
     app.get(
       "/sitemap.xml",
       async (_req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const xml: string = await generateSitemapXml();
+          const xml: string = await generateSitemapIndexXml();
           res.setHeader("Content-Type", "text/xml");
+          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
           res.send(xml);
         } catch {
-          // Fallback minimal static sitemap if dynamic generation fails
-          const fallback: string = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://oneuptime.com/</loc></url>\n</urlset>`;
+          // Fallback minimal sitemap index if dynamic generation fails
+          const fallback: string = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n</sitemapindex>`;
           res.setHeader("Content-Type", "text/xml");
           res.status(200).send(fallback);
+        }
+      },
+    );
+
+    // Static pages sitemap
+    app.get(
+      "/sitemap-pages.xml",
+      async (_req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const xml: string = await generatePagesSitemapXml();
+          res.setHeader("Content-Type", "text/xml");
+          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
+          res.send(xml);
+        } catch {
+          res.status(500).send("Error generating sitemap");
+        }
+      },
+    );
+
+    // Compare pages sitemap
+    app.get(
+      "/sitemap-compare.xml",
+      async (_req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const xml: string = await generateCompareSitemapXml();
+          res.setHeader("Content-Type", "text/xml");
+          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
+          res.send(xml);
+        } catch {
+          res.status(500).send("Error generating sitemap");
+        }
+      },
+    );
+
+    // Blog tags sitemap (paginated)
+    app.get(
+      "/sitemap-tags-:page.xml",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const page: number = parseInt(req.params["page"] as string, 10);
+
+          if (isNaN(page) || page < 1) {
+            return res.status(404).send("Invalid sitemap page");
+          }
+
+          // Check if page exists
+          const totalPages: number = await getTagsSitemapPageCount();
+          if (page > totalPages) {
+            return res.status(404).send("Sitemap page not found");
+          }
+
+          const xml: string = await generateTagsSitemapXml(page);
+          res.setHeader("Content-Type", "text/xml");
+          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
+          res.send(xml);
+        } catch {
+          res.status(500).send("Error generating sitemap");
+        }
+      },
+    );
+
+    // Blog posts sitemap (paginated)
+    app.get(
+      "/sitemap-blog-:page.xml",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const page: number = parseInt(req.params["page"] as string, 10);
+
+          if (isNaN(page) || page < 1) {
+            return res.status(404).send("Invalid sitemap page");
+          }
+
+          // Check if page exists
+          const totalPages: number = await getBlogSitemapPageCount();
+          if (page > totalPages) {
+            return res.status(404).send("Sitemap page not found");
+          }
+
+          const xml: string = await generateBlogSitemapXml(page);
+          res.setHeader("Content-Type", "text/xml");
+          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
+          res.send(xml);
+        } catch {
+          res.status(500).send("Error generating sitemap");
         }
       },
     );

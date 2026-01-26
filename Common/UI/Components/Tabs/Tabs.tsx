@@ -26,9 +26,12 @@ const Tabs: FunctionComponent<ComponentProps> = (
     }
   }, [currentTab]);
 
+  const tabPanelId: string = `tabpanel-${currentTab?.name || "default"}`;
+
   return (
     <div>
       <nav
+        role="tablist"
         className="flex space-x-2 overflow-x-auto md:overflow-visible md:space-x-4"
         aria-label="Tabs"
       >
@@ -41,11 +44,19 @@ const Tabs: FunctionComponent<ComponentProps> = (
                 setCurrentTab(tab);
               }}
               isSelected={tab === currentTab}
+              tabPanelId={tabPanelId}
             />
           );
         })}
       </nav>
-      <div className="mt-3 ml-1">{currentTab && currentTab.children}</div>
+      <div
+        id={tabPanelId}
+        role="tabpanel"
+        aria-labelledby={`tab-${currentTab?.name || "default"}`}
+        className="mt-3 ml-1"
+      >
+        {currentTab && currentTab.children}
+      </div>
     </div>
   );
 };

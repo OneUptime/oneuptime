@@ -82,6 +82,7 @@ const Alert: FunctionComponent<ComponentProps> = (
       data-testid={props.dataTestId}
       onClick={props.onClick}
       role="alert"
+      aria-live="polite"
       style={props.color ? { backgroundColor: props.color.toString() } : {}}
     >
       <div className="alert-content flex">

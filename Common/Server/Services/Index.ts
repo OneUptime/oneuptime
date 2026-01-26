@@ -158,6 +158,17 @@ import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
+
+// AlertEpisode Services
+import AlertEpisodeService from "./AlertEpisodeService";
+import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
+import AlertEpisodeInternalNoteService from "./AlertEpisodeInternalNoteService";
+import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
+import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
+import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
+import AlertEpisodeStateTimelineService from "./AlertEpisodeStateTimelineService";
+import AlertGroupingRuleService from "./AlertGroupingRuleService";
+
 import TableViewService from "./TableViewService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import AlertFeedService from "./AlertFeedService";
@@ -350,6 +361,16 @@ const services: Array<BaseService> = [
   AlertSeverityService,
   AlertNoteTemplateService,
   AlertFeedService,
+
+  // AlertEpisode Services
+  AlertEpisodeService,
+  AlertEpisodeFeedService,
+  AlertEpisodeInternalNoteService,
+  AlertEpisodeMemberService,
+  AlertEpisodeOwnerTeamService,
+  AlertEpisodeOwnerUserService,
+  AlertEpisodeStateTimelineService,
+  AlertGroupingRuleService,
 
   TableViewService,
   MonitorTestService,

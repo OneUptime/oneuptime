@@ -70,6 +70,15 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
         {
           link: {
+            title: "Episode On-Call Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Squares,
+        },
+        {
+          link: {
             title: "On-Call Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS] as Route,

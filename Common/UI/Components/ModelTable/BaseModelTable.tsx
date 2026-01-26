@@ -36,7 +36,8 @@ import FormValues from "../Forms/Types/FormValues";
 import List from "../List/List";
 import { ListDetailProps } from "../List/ListRow";
 import ConfirmModal from "../Modal/ConfirmModal";
-import { ModalWidth } from "../Modal/Modal";
+import Modal, { ModalWidth } from "../Modal/Modal";
+import MarkdownViewer from "../Markdown.tsx/MarkdownViewer";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
 import OrderedStatesList from "../OrderedStatesList/OrderedStatesList";
@@ -153,6 +154,13 @@ export interface BaseTableProps<
     | undefined
     | ((data: Array<TBaseModel>, totalCount: number) => void);
   cardProps?: CardComponentProps | undefined;
+  helpContent?:
+    | {
+        title: string;
+        description?: string | undefined;
+        markdown: string;
+      }
+    | undefined;
   documentationLink?: Route | URL | undefined;
   videoLink?: Route | URL | undefined;
   showCreateForm?: undefined | boolean;
@@ -279,6 +287,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   );
 
   const [showViewIdModal, setShowViewIdModal] = useState<boolean>(false);
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
   const [viewId, setViewId] = useState<string | null>(null);
   const [tableColumns, setColumns] = useState<Array<TableColumn<TBaseModel>>>(
     [],
@@ -1042,6 +1051,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           Navigation.navigate(props.documentationLink!, {
             openInNewTab: true,
           });
+        },
+      });
+    }
+
+    // Add help content button if provided
+    if (props.helpContent) {
+      headerbuttons.push({
+        title: "",
+        icon: IconProp.Help,
+        buttonStyle: ButtonStyleType.ICON,
+        className: "py-0 pr-0 pl-1 mt-1",
+        onClick: () => {
+          setShowHelpModal(true);
         },
       });
     }
@@ -2104,6 +2126,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           submitButtonType={ButtonStyleType.NORMAL}
           closeButtonType={ButtonStyleType.OUTLINE}
         />
+      )}
+
+      {showHelpModal && props.helpContent && (
+        <Modal
+          title={props.helpContent.title}
+          description={props.helpContent.description}
+          onClose={() => {
+            setShowHelpModal(false);
+          }}
+          modalWidth={ModalWidth.Large}
+          submitButtonText="Close"
+          onSubmit={() => {
+            setShowHelpModal(false);
+          }}
+        >
+          <div className="p-2">
+            <MarkdownViewer text={props.helpContent.markdown} />
+          </div>
+        </Modal>
       )}
     </>
   );

@@ -59,6 +59,7 @@ export interface MessageBlocksByWorkspaceType {
 export interface NotificationFor {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
+  alertEpisodeId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   monitorId?: ObjectID | undefined;
   onCallDutyPolicyId?: ObjectID | undefined;
@@ -1943,6 +1944,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
           undefined,
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
       };
     }
 
@@ -2020,6 +2026,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
           undefined,
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
       };
     }
 
@@ -2103,6 +2114,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
           undefined,
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
       };
     }
 
@@ -2164,6 +2180,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
           undefined,
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
       };
     }
 
@@ -2224,6 +2245,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
           undefined,
         [NotificationRuleConditionCheckOn.Monitors]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
       };
     }
 

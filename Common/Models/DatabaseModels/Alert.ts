@@ -1,3 +1,4 @@
+import AlertEpisode from "./AlertEpisode";
 import AlertSeverity from "./AlertSeverity";
 import AlertState from "./AlertState";
 import Label from "./Label";
@@ -1071,4 +1072,79 @@ export default class Alert extends BaseModel {
   })
   public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
     undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "alertEpisodeId",
+    type: TableColumnType.Entity,
+    modelType: AlertEpisode,
+    title: "Alert Episode",
+    description: "The episode this alert belongs to (if grouped)",
+  })
+  @ManyToOne(
+    () => {
+      return AlertEpisode;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "alertEpisodeId" })
+  public alertEpisode?: AlertEpisode = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditAlert,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Alert Episode ID",
+    description: "The ID of the episode this alert belongs to (if grouped)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public alertEpisodeId?: ObjectID = undefined;
 }

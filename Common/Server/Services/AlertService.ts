@@ -54,6 +54,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MetricType from "../../Models/DatabaseModels/MetricType";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import AlertGroupingEngineService from "./AlertGroupingEngineService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -350,6 +351,17 @@ export class Service extends DatabaseService<Model> {
           }
         }
         return Promise.resolve();
+      })
+      .then(async () => {
+        // Process alert for grouping into episodes
+        try {
+          await AlertGroupingEngineService.processAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Alert grouping failed in AlertService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
       })
       .catch((error: Error) => {
         logger.error(

@@ -1,10 +1,70 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 // https://github.com/remarkjs/react-markdown
 import ReactMarkdown from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import mermaid from "mermaid";
+
+// Initialize mermaid
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "default",
+  securityLevel: "loose",
+  fontFamily: "inherit",
+  themeVariables: {
+    background: "#ffffff",
+    primaryColor: "#e0f2fe",
+    primaryTextColor: "#1e293b",
+    primaryBorderColor: "#0ea5e9",
+    lineColor: "#64748b",
+    secondaryColor: "#f1f5f9",
+    tertiaryColor: "#ffffff",
+  },
+});
+
+// Mermaid diagram component
+const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
+  chart,
+}: {
+  chart: string;
+}) => {
+  const containerRef: React.RefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const renderDiagram: () => Promise<void> = async (): Promise<void> => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+        try {
+          const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+          const { svg } = await mermaid.render(id, chart);
+          if (containerRef.current) {
+            containerRef.current.innerHTML = svg;
+          }
+        } catch (error) {
+          if (containerRef.current) {
+            containerRef.current.innerHTML = `<pre class="text-red-500">Error rendering diagram: ${error}</pre>`;
+          }
+        }
+      }
+    };
+    renderDiagram();
+  }, [chart]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="my-4 flex justify-center bg-white p-4 rounded-lg"
+    />
+  );
+};
 
 export interface ComponentProps {
   text: string;
@@ -84,6 +144,16 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           },
 
           pre: ({ children, ...rest }: any) => {
+            // Check if this is a mermaid diagram - don't render pre wrapper for mermaid
+            const isMermaid: boolean =
+              React.isValidElement(children) &&
+              (children as any).props?.className?.includes("language-mermaid");
+
+            if (isMermaid) {
+              // For mermaid, just return the children (MermaidDiagram component)
+              return <>{children}</>;
+            }
+
             // Avoid double borders when SyntaxHighlighter is already styling the block.
             const isSyntaxHighlighter: boolean =
               React.isValidElement(children) &&
@@ -183,6 +253,11 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               /\n$/,
               "",
             );
+
+            // Handle mermaid diagrams
+            if (match && match[1] === "mermaid") {
+              return <MermaidDiagram chart={content} />;
+            }
 
             const codeClassName: string =
               content.includes("\n") ||

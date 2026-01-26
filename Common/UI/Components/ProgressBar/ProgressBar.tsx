@@ -50,13 +50,23 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className={`w-full ${progressBarSize} mb-4 bg-gray-200 rounded-full`}>
+    <div
+      className={`w-full ${progressBarSize} mb-4 bg-gray-200 rounded-full`}
+      role="progressbar"
+      aria-valuenow={percent}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={`Progress: ${props.count} of ${props.totalCount} ${props.suffix} (${percent}%)`}
+    >
       <div
         data-testid="progress-bar"
         className={`${progressBarSize} bg-indigo-600 rounded-full `}
         style={{ width: percent + "%" }}
       ></div>
-      <div className="text-sm text-gray-400 mt-1 flex justify-between">
+      <div
+        className="text-sm text-gray-400 mt-1 flex justify-between"
+        aria-hidden="true"
+      >
         <div data-testid="progress-bar-count">
           {props.count} {props.suffix}
         </div>

@@ -19,16 +19,33 @@ const CopyableButton: FunctionComponent<ComponentProps> = (
     }, 2000);
   };
 
+  const handleCopy: () => Promise<void> = async (): Promise<void> => {
+    refreshCopyToClipboardState();
+    await navigator.clipboard?.writeText(props.textToBeCopied);
+  };
+
+  const handleKeyDown: (event: React.KeyboardEvent) => Promise<void> = async (
+    event: React.KeyboardEvent,
+  ): Promise<void> => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      await handleCopy();
+    }
+  };
+
   return (
     <div
       className={`${
         copiedToClipboard ? "" : "cursor-pointer mt-0.5"
       } flex ml-1 text-gray-500`}
-      onClick={async () => {
-        refreshCopyToClipboardState();
-        await navigator.clipboard?.writeText(props.textToBeCopied);
-      }}
-      role="copy-to-clipboard"
+      onClick={handleCopy}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={
+        copiedToClipboard ? "Copied to clipboard" : "Copy to clipboard"
+      }
+      aria-live="polite"
     >
       {" "}
       {copiedToClipboard ? (

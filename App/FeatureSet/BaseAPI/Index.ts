@@ -106,6 +106,32 @@ import AlertStateTimelineService, {
   Service as AlertStateTimelineServiceType,
 } from "Common/Server/Services/AlertStateTimelineService";
 
+// AlertEpisode Services
+import AlertEpisodeService, {
+  Service as AlertEpisodeServiceType,
+} from "Common/Server/Services/AlertEpisodeService";
+import AlertEpisodeFeedService, {
+  Service as AlertEpisodeFeedServiceType,
+} from "Common/Server/Services/AlertEpisodeFeedService";
+import AlertEpisodeInternalNoteService, {
+  Service as AlertEpisodeInternalNoteServiceType,
+} from "Common/Server/Services/AlertEpisodeInternalNoteService";
+import AlertEpisodeMemberService, {
+  Service as AlertEpisodeMemberServiceType,
+} from "Common/Server/Services/AlertEpisodeMemberService";
+import AlertEpisodeOwnerTeamService, {
+  Service as AlertEpisodeOwnerTeamServiceType,
+} from "Common/Server/Services/AlertEpisodeOwnerTeamService";
+import AlertEpisodeOwnerUserService, {
+  Service as AlertEpisodeOwnerUserServiceType,
+} from "Common/Server/Services/AlertEpisodeOwnerUserService";
+import AlertEpisodeStateTimelineService, {
+  Service as AlertEpisodeStateTimelineServiceType,
+} from "Common/Server/Services/AlertEpisodeStateTimelineService";
+import AlertGroupingRuleService, {
+  Service as AlertGroupingRuleServiceType,
+} from "Common/Server/Services/AlertGroupingRuleService";
+
 import IncidentCustomFieldService, {
   Service as IncidentCustomFieldServiceType,
 } from "Common/Server/Services/IncidentCustomFieldService";
@@ -421,6 +447,16 @@ import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+
+// AlertEpisode Models
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeFeed from "Common/Models/DatabaseModels/AlertEpisodeFeed";
+import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
+import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
+import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
+import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
+import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
@@ -902,6 +938,74 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertStateTimeline, AlertStateTimelineServiceType>(
         AlertStateTimeline,
         AlertStateTimelineService,
+      ).getRouter(),
+    );
+
+    // AlertEpisode Routes
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisode, AlertEpisodeServiceType>(
+        AlertEpisode,
+        AlertEpisodeService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeFeed, AlertEpisodeFeedServiceType>(
+        AlertEpisodeFeed,
+        AlertEpisodeFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AlertEpisodeInternalNote,
+        AlertEpisodeInternalNoteServiceType
+      >(AlertEpisodeInternalNote, AlertEpisodeInternalNoteService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeMember, AlertEpisodeMemberServiceType>(
+        AlertEpisodeMember,
+        AlertEpisodeMemberService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeOwnerTeam, AlertEpisodeOwnerTeamServiceType>(
+        AlertEpisodeOwnerTeam,
+        AlertEpisodeOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertEpisodeOwnerUser, AlertEpisodeOwnerUserServiceType>(
+        AlertEpisodeOwnerUser,
+        AlertEpisodeOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AlertEpisodeStateTimeline,
+        AlertEpisodeStateTimelineServiceType
+      >(
+        AlertEpisodeStateTimeline,
+        AlertEpisodeStateTimelineService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertGroupingRule, AlertGroupingRuleServiceType>(
+        AlertGroupingRule,
+        AlertGroupingRuleService,
       ).getRouter(),
     );
 

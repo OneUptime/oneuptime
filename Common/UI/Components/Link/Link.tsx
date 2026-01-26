@@ -53,6 +53,7 @@ const Link: FunctionComponent<ComponentProps> = (
       onMouseLeave={props.onMouseLeave}
       style={props.style}
       title={props.title}
+      aria-label={props.title}
       onAuxClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
         // middle click
         if (event.button === 1) {

@@ -26,6 +26,17 @@ enum SlackActionType {
   SubmitExecuteAlertOnCallPolicy = "SubmitExecuteAlertOnCallPolicy",
   ViewAlert = "ViewAlert",
 
+  // Alert Episode Actions
+  AcknowledgeAlertEpisode = "AcknowledgeAlertEpisode",
+  ResolveAlertEpisode = "ResolveAlertEpisode",
+  ViewAddAlertEpisodeNote = "ViewAddAlertEpisodeNote",
+  SubmitAlertEpisodeNote = "SubmitAlertEpisodeNote",
+  ViewChangeAlertEpisodeState = "ViewChangeAlertEpisodeState",
+  SubmitChangeAlertEpisodeState = "SubmitChangeAlertEpisodeState",
+  ViewExecuteAlertEpisodeOnCallPolicy = "ViewExecuteAlertEpisodeOnCallPolicy",
+  SubmitExecuteAlertEpisodeOnCallPolicy = "SubmitExecuteAlertEpisodeOnCallPolicy",
+  ViewAlertEpisode = "ViewAlertEpisode",
+
   // Scheduled Maintenance Actions just like Incident Actions.
   MarkScheduledMaintenanceAsComplete = "MarkScheduledMaintenanceAsComplete",
   MarkScheduledMaintenanceAsOngoing = "MarkScheduledMaintenanceAsOngoing",

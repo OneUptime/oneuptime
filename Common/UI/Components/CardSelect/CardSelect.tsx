@@ -23,7 +23,11 @@ const CardSelect: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div data-testid={props.dataTestId}>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        role="radiogroup"
+        aria-label="Select an option"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      >
         {props.options.map((option: CardSelectOption, index: number) => {
           const isSelected: boolean = props.value === option.value;
 

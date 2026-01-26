@@ -701,6 +701,53 @@ enum Permission {
   DeleteWorkspaceNotificationRule = "DeleteWorkspaceNotificationRule",
   EditWorkspaceNotificationRule = "EditWorkspaceNotificationRule",
   ReadWorkspaceNotificationRule = "ReadWorkspaceNotificationRule",
+
+  // Alert Episode Permissions
+  CreateAlertEpisode = "CreateAlertEpisode",
+  DeleteAlertEpisode = "DeleteAlertEpisode",
+  EditAlertEpisode = "EditAlertEpisode",
+  ReadAlertEpisode = "ReadAlertEpisode",
+
+  // Alert Episode Member Permissions
+  CreateAlertEpisodeMember = "CreateAlertEpisodeMember",
+  DeleteAlertEpisodeMember = "DeleteAlertEpisodeMember",
+  EditAlertEpisodeMember = "EditAlertEpisodeMember",
+  ReadAlertEpisodeMember = "ReadAlertEpisodeMember",
+
+  // Alert Grouping Rule Permissions
+  CreateAlertGroupingRule = "CreateAlertGroupingRule",
+  DeleteAlertGroupingRule = "DeleteAlertGroupingRule",
+  EditAlertGroupingRule = "EditAlertGroupingRule",
+  ReadAlertGroupingRule = "ReadAlertGroupingRule",
+
+  // Alert Episode State Timeline Permissions
+  CreateAlertEpisodeStateTimeline = "CreateAlertEpisodeStateTimeline",
+  DeleteAlertEpisodeStateTimeline = "DeleteAlertEpisodeStateTimeline",
+  EditAlertEpisodeStateTimeline = "EditAlertEpisodeStateTimeline",
+  ReadAlertEpisodeStateTimeline = "ReadAlertEpisodeStateTimeline",
+
+  // Alert Episode Owner User Permissions
+  CreateAlertEpisodeOwnerUser = "CreateAlertEpisodeOwnerUser",
+  DeleteAlertEpisodeOwnerUser = "DeleteAlertEpisodeOwnerUser",
+  EditAlertEpisodeOwnerUser = "EditAlertEpisodeOwnerUser",
+  ReadAlertEpisodeOwnerUser = "ReadAlertEpisodeOwnerUser",
+
+  // Alert Episode Owner Team Permissions
+  CreateAlertEpisodeOwnerTeam = "CreateAlertEpisodeOwnerTeam",
+  DeleteAlertEpisodeOwnerTeam = "DeleteAlertEpisodeOwnerTeam",
+  EditAlertEpisodeOwnerTeam = "EditAlertEpisodeOwnerTeam",
+  ReadAlertEpisodeOwnerTeam = "ReadAlertEpisodeOwnerTeam",
+
+  // Alert Episode Internal Note Permissions
+  CreateAlertEpisodeInternalNote = "CreateAlertEpisodeInternalNote",
+  DeleteAlertEpisodeInternalNote = "DeleteAlertEpisodeInternalNote",
+  EditAlertEpisodeInternalNote = "EditAlertEpisodeInternalNote",
+  ReadAlertEpisodeInternalNote = "ReadAlertEpisodeInternalNote",
+
+  // Alert Episode Feed Permissions
+  CreateAlertEpisodeFeed = "CreateAlertEpisodeFeed",
+  EditAlertEpisodeFeed = "EditAlertEpisodeFeed",
+  ReadAlertEpisodeFeed = "ReadAlertEpisodeFeed",
 }
 
 export class PermissionHelper {
@@ -5014,6 +5061,268 @@ export class PermissionHelper {
         title: "Read Scheduled Maintenance Status Page Note",
         description:
           "This permission can read Scheduled Maintenance Status Page Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Alert Episode Permissions
+      {
+        permission: Permission.CreateAlertEpisode,
+        title: "Create Alert Episode",
+        description:
+          "This permission can create Alert Episodes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.DeleteAlertEpisode,
+        title: "Delete Alert Episode",
+        description:
+          "This permission can delete Alert Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.EditAlertEpisode,
+        title: "Edit Alert Episode",
+        description: "This permission can edit Alert Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.ReadAlertEpisode,
+        title: "Read Alert Episode",
+        description: "This permission can read Alert Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+
+      // Alert Episode Member Permissions
+      {
+        permission: Permission.CreateAlertEpisodeMember,
+        title: "Create Alert Episode Member",
+        description:
+          "This permission can add alerts to Alert Episodes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeMember,
+        title: "Delete Alert Episode Member",
+        description:
+          "This permission can remove alerts from Alert Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertEpisodeMember,
+        title: "Edit Alert Episode Member",
+        description:
+          "This permission can edit Alert Episode Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeMember,
+        title: "Read Alert Episode Member",
+        description:
+          "This permission can read Alert Episode Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Alert Grouping Rule Permissions
+      {
+        permission: Permission.CreateAlertGroupingRule,
+        title: "Create Alert Grouping Rule",
+        description:
+          "This permission can create Alert Grouping Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertGroupingRule,
+        title: "Delete Alert Grouping Rule",
+        description:
+          "This permission can delete Alert Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertGroupingRule,
+        title: "Edit Alert Grouping Rule",
+        description:
+          "This permission can edit Alert Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertGroupingRule,
+        title: "Read Alert Grouping Rule",
+        description:
+          "This permission can read Alert Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Alert Episode State Timeline Permissions
+      {
+        permission: Permission.CreateAlertEpisodeStateTimeline,
+        title: "Create Alert Episode State Timeline",
+        description:
+          "This permission can create Alert Episode state history in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeStateTimeline,
+        title: "Delete Alert Episode State Timeline",
+        description:
+          "This permission can delete Alert Episode state history of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertEpisodeStateTimeline,
+        title: "Edit Alert Episode State Timeline",
+        description:
+          "This permission can edit Alert Episode state history of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeStateTimeline,
+        title: "Read Alert Episode State Timeline",
+        description:
+          "This permission can read Alert Episode state history of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Alert Episode Owner User Permissions
+      {
+        permission: Permission.CreateAlertEpisodeOwnerUser,
+        title: "Create Alert Episode User Owner",
+        description:
+          "This permission can add user owners to Alert Episodes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeOwnerUser,
+        title: "Delete Alert Episode User Owner",
+        description:
+          "This permission can remove user owners from Alert Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertEpisodeOwnerUser,
+        title: "Edit Alert Episode User Owner",
+        description:
+          "This permission can edit Alert Episode user owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeOwnerUser,
+        title: "Read Alert Episode User Owner",
+        description:
+          "This permission can read Alert Episode user owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Alert Episode Owner Team Permissions
+      {
+        permission: Permission.CreateAlertEpisodeOwnerTeam,
+        title: "Create Alert Episode Team Owner",
+        description:
+          "This permission can add team owners to Alert Episodes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeOwnerTeam,
+        title: "Delete Alert Episode Team Owner",
+        description:
+          "This permission can remove team owners from Alert Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertEpisodeOwnerTeam,
+        title: "Edit Alert Episode Team Owner",
+        description:
+          "This permission can edit Alert Episode team owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeOwnerTeam,
+        title: "Read Alert Episode Team Owner",
+        description:
+          "This permission can read Alert Episode team owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Alert Episode Internal Note Permissions
+      {
+        permission: Permission.CreateAlertEpisodeInternalNote,
+        title: "Create Alert Episode Internal Note",
+        description:
+          "This permission can create Alert Episode internal notes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAlertEpisodeInternalNote,
+        title: "Delete Alert Episode Internal Note",
+        description:
+          "This permission can delete Alert Episode internal notes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertEpisodeInternalNote,
+        title: "Edit Alert Episode Internal Note",
+        description:
+          "This permission can edit Alert Episode internal notes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeInternalNote,
+        title: "Read Alert Episode Internal Note",
+        description:
+          "This permission can read Alert Episode internal notes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Alert Episode Feed Permissions
+      {
+        permission: Permission.CreateAlertEpisodeFeed,
+        title: "Create Alert Episode Feed",
+        description:
+          "This permission can create Alert Episode feed items in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAlertEpisodeFeed,
+        title: "Edit Alert Episode Feed",
+        description:
+          "This permission can edit Alert Episode feed items of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAlertEpisodeFeed,
+        title: "Read Alert Episode Feed",
+        description:
+          "This permission can read Alert Episode feed items of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
