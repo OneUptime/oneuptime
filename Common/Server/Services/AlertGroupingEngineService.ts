@@ -351,14 +351,19 @@ class AlertGroupingEngineServiceClass {
 
     try {
       // Acquire mutex to prevent concurrent episode creation for the same grouping key
-      try {
-        mutex = await Semaphore.lock({
-          key: mutexKey,
-          namespace: "AlertGroupingEngine.groupAlertWithRule",
-        });
-      } catch (err) {
-        logger.error(err);
-      }
+      // This is critical - we must have the lock before proceeding to prevent race conditions
+      logger.debug(
+        `Acquiring mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
+      );
+      mutex = await Semaphore.lock({
+        key: mutexKey,
+        namespace: "AlertGroupingEngine.groupAlertWithRule",
+        lockTimeout: 30000, // 30 seconds - enough time to complete episode creation
+        acquireTimeout: 60000, // Wait up to 60 seconds to acquire the lock
+      });
+      logger.debug(
+        `Acquired mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
+      );
 
       // Calculate time window cutoff (only if time window is enabled)
       let timeWindowCutoff: Date | null = null;
@@ -470,9 +475,17 @@ class AlertGroupingEngineServiceClass {
       // Release mutex
       if (mutex) {
         try {
+          logger.debug(
+            `Releasing mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
+          );
           await Semaphore.release(mutex);
+          logger.debug(
+            `Released mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
+          );
         } catch (err) {
-          logger.error(err);
+          logger.error(
+            `Error releasing mutex for grouping key: ${mutexKey}: ${err}`,
+          );
         }
       }
     }
