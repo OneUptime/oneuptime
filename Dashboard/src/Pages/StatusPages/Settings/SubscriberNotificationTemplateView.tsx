@@ -6,9 +6,12 @@ import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationTemplateStatusPage from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import React, {
@@ -277,6 +280,93 @@ const SubscriberNotificationTemplateView: FunctionComponent<
           />
         </div>
       </Card>
+
+      {/* Connected Status Pages */}
+      <ModelTable<StatusPageSubscriberNotificationTemplateStatusPage>
+        modelType={StatusPageSubscriberNotificationTemplateStatusPage}
+        id="status-pages-for-template-table"
+        userPreferencesKey="status-pages-for-template-table"
+        name="Subscriber Notification Template > Status Pages"
+        isDeleteable={true}
+        createVerb="Link"
+        isCreateable={true}
+        isEditable={false}
+        isViewable={false}
+        query={{
+          statusPageSubscriberNotificationTemplateId: modelId,
+        }}
+        onBeforeCreate={(
+          item: StatusPageSubscriberNotificationTemplateStatusPage,
+        ): Promise<StatusPageSubscriberNotificationTemplateStatusPage> => {
+          item.statusPageSubscriberNotificationTemplateId = modelId;
+          return Promise.resolve(item);
+        }}
+        cardProps={{
+          title: "Connected Status Pages",
+          description:
+            "Status pages that use this notification template. Link this template to more status pages or remove existing connections.",
+        }}
+        noItemsMessage={
+          "This template is not linked to any status pages yet."
+        }
+        showRefreshButton={true}
+        formFields={[
+          {
+            field: {
+              statusPage: true,
+            },
+            title: "Status Page",
+            description:
+              "Select a status page to link this template to.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: StatusPage,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: true,
+            placeholder: "Select Status Page",
+          },
+        ]}
+        filters={[
+          {
+            field: {
+              statusPage: {
+                name: true,
+              },
+            },
+            title: "Status Page Name",
+            type: FieldType.Text,
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              statusPage: {
+                name: true,
+              },
+            },
+            title: "Status Page Name",
+            type: FieldType.Element,
+            getElement: (
+              item: StatusPageSubscriberNotificationTemplateStatusPage,
+            ): ReactElement => {
+              return (
+                <span>
+                  {item.statusPage?.name || "Unknown"}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Linked At",
+            type: FieldType.DateTime,
+          },
+        ]}
+      />
 
       <ModelDelete
         modelType={StatusPageSubscriberNotificationTemplate}
