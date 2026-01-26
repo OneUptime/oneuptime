@@ -1847,9 +1847,9 @@ const HomeFeatureSet: FeatureSet = {
           const xml: string = await generateTagsSitemapXml(page);
           res.setHeader("Content-Type", "text/xml");
           res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          res.send(xml);
+          return res.send(xml);
         } catch {
-          res.status(500).send("Error generating sitemap");
+          return res.status(500).send("Error generating sitemap");
         }
       },
     );
@@ -1874,9 +1874,9 @@ const HomeFeatureSet: FeatureSet = {
           const xml: string = await generateBlogSitemapXml(page);
           res.setHeader("Content-Type", "text/xml");
           res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          res.send(xml);
+          return res.send(xml);
         } catch {
-          res.status(500).send("Error generating sitemap");
+          return res.status(500).send("Error generating sitemap");
         }
       },
     );
