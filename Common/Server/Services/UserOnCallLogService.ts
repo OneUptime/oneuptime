@@ -236,8 +236,10 @@ export class Service extends DatabaseService<Model> {
       return createdItem;
     }
 
-    // find immediate notification rule and alert the user.
-    // Determine the alertSeverityId - can come from alert or alertEpisode
+    /*
+     * find immediate notification rule and alert the user.
+     * Determine the alertSeverityId - can come from alert or alertEpisode
+     */
     const alertSeverityIdForQuery: ObjectID | undefined =
       alert && alert.alertSeverityId
         ? (alert.alertSeverityId as ObjectID)
@@ -326,7 +328,8 @@ export class Service extends DatabaseService<Model> {
     if (
       userNotificationEventType === UserNotificationEventType.IncidentCreated ||
       userNotificationEventType === UserNotificationEventType.AlertCreated ||
-      userNotificationEventType === UserNotificationEventType.AlertEpisodeCreated
+      userNotificationEventType ===
+        UserNotificationEventType.AlertEpisodeCreated
     ) {
       notificationRuleType = NotificationRuleType.ON_CALL_EXECUTED;
     } else {
