@@ -4,6 +4,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import UserElement from "../../Components/User/User";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamElement from "../../Components/Team/Team";
 import Route from "Common/Types/API/Route";
@@ -70,6 +71,13 @@ const Teams: FunctionComponent<PageComponentProps> = (
         name="Settings > Users"
         userPreferencesKey="users-table"
         isDeleteable={!isPushGroupsManaged}
+        bulkActions={
+          !isPushGroupsManaged
+            ? {
+                buttons: [ModalTableBulkDefaultActions.Delete],
+              }
+            : undefined
+        }
         isEditable={false}
         isCreateable={false}
         onFilterApplied={(isApplied: boolean) => {

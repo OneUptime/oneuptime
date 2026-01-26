@@ -18,6 +18,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -343,6 +344,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         id="table-team-member"
         userPreferencesKey="team-member-table"
         isDeleteable={!isPushGroupsManaged}
+        bulkActions={
+          !isPushGroupsManaged
+            ? {
+                buttons: [ModalTableBulkDefaultActions.Delete],
+              }
+            : undefined
+        }
         name="Settings > Team > Member"
         createVerb={"Invite"}
         isCreateable={!isPushGroupsManaged}
