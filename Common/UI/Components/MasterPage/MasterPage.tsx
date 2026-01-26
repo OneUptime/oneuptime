@@ -42,13 +42,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       {isOnline && (
         <div className={props.className}>
-          {/* Skip to main content link for keyboard navigation */}
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-gray-900 focus:rounded-md focus:shadow-lg focus:ring-2 focus:ring-indigo-500"
-          >
-            Skip to main content
-          </a>
+          
           <div
             className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}
           >
@@ -60,9 +54,9 @@ const MasterPage: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          <main id="main-content" tabIndex={-1}>
+          
             {props.children}
-          </main>
+          
 
           {props.footer && props.footer}
         </div>
