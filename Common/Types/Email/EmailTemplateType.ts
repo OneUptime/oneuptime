@@ -58,6 +58,7 @@ enum EmailTemplateType {
   VerificationCode = "VerificationCode.hbs",
   AcknowledgeIncident = "AcknowledgeIncident.hbs",
   AcknowledgeAlert = "AcknowledgeAlert.hbs",
+  AcknowledgeAlertEpisode = "AcknowledgeAlertEpisode.hbs",
 
   UserAddedToOnCallPolicy = "UserAddedToOnCallPolicy.hbs",
   UserRemovedFromOnCallPolicy = "UserRemovedFromOnCallPolicy.hbs",

@@ -1,0 +1,35 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Alert Episode: " alertEpisodeTitle) }}
+
+{{> InfoBlock info=(concat "A new alert episode has been created in the project - " projectName)}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Alert Episode Title:" text=alertEpisodeTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " text=alertEpisodeSeverity  }}
+{{> DetailBoxField title="Root Cause: " text=rootCause  }}
+{{> DetailBoxField title="Description: " text=alertEpisodeDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="ACTION REQUIRED: Please acknowledge this alert episode by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=acknowledgeAlertEpisodeLink buttonText="Acknowledge Alert Episode"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=acknowledgeAlertEpisodeLink}}
+
+{{> InfoBlock info="You will be notified when the status of this alert episode changes."}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock info="You are receiving this email because you are a member of the team that is responsible for this alert episode or you are currently on-call."}}
+
+{{> Footer this }}
+
+{{> End this}}

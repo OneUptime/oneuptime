@@ -1,5 +1,6 @@
 type TemplateIdsMap = {
   readonly AlertCreated: "oneuptime_created_alert";
+  readonly AlertEpisodeCreated: "oneuptime_created_alert_episode";
   readonly IncidentCreated: "oneuptime_created_incident";
   readonly VerificationCode: "oneuptime_verification_code";
   readonly TestNotification: "oneuptime_test_notification";
@@ -40,6 +41,7 @@ type TemplateIdsMap = {
 
 const templateIds: TemplateIdsMap = {
   AlertCreated: "oneuptime_created_alert",
+  AlertEpisodeCreated: "oneuptime_created_alert_episode",
   IncidentCreated: "oneuptime_created_incident",
   VerificationCode: "oneuptime_verification_code",
   TestNotification: "oneuptime_test_notification",
@@ -119,6 +121,7 @@ type WhatsAppTemplateMessagesDefinition = Readonly<
 
 export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.AlertCreated]: `A new alert #{{alert_number}} ({{alert_title}}) has been created for project {{project_name}}. To acknowledge this alert, open {{acknowledge_url}} to respond. For more information, please check out this alert {{alert_link}} on the OneUptime dashboard.`,
+  [WhatsAppTemplateIds.AlertEpisodeCreated]: `A new alert episode #{{episode_number}} ({{episode_title}}) has been created for project {{project_name}}. To acknowledge this alert episode, open {{acknowledge_url}} to respond. For more information, please check out this alert episode {{episode_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentCreated]: `A new incident #{{incident_number}} ({{incident_title}}) has been created for project {{project_name}}. To acknowledge this incident, open {{acknowledge_url}} to respond. For more information, please check out this incident {{incident_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.VerificationCode]: `{{1}} is your verification code. For your security, do not share this code.`,
   [WhatsAppTemplateIds.TestNotification]: `This is a WhatsApp test message from OneUptime to verify your integration. No action is required.`,
@@ -159,6 +162,7 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
 
 export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.AlertCreated]: "en",
+  [WhatsAppTemplateIds.AlertEpisodeCreated]: "en",
   [WhatsAppTemplateIds.IncidentCreated]: "en",
   [WhatsAppTemplateIds.VerificationCode]: "en",
   [WhatsAppTemplateIds.TestNotification]: "en",

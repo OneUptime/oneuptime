@@ -1648,17 +1648,16 @@ export class Service extends DatabaseService<Model> {
           ).toString()
         : acknowledgeUrl.toString();
 
-    // Use AlertCreated template as fallback since alert episode is similar to alert
-    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.AlertCreated;
+    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.AlertEpisodeCreated;
     const templateVariables: Record<string, string> = {
       project_name: alertEpisode.project?.name || "OneUptime",
-      alert_title: alertEpisode.title || "",
+      episode_title: alertEpisode.title || "",
       acknowledge_url: acknowledgeUrl.toString(),
-      alert_number:
+      episode_number:
         alertEpisode.episodeNumber !== undefined
           ? alertEpisode.episodeNumber.toString()
           : "",
-      alert_link: episodeLinkOnDashboard,
+      episode_link: episodeLinkOnDashboard,
     };
 
     const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
@@ -1767,21 +1766,21 @@ export class Service extends DatabaseService<Model> {
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     const vars: Dictionary<string> = {
-      alertTitle: alertEpisode.title!,
+      alertEpisodeTitle: alertEpisode.title!,
       projectName: alertEpisode.project!.name!,
       currentState: alertEpisode.currentAlertState!.name!,
-      alertDescription: await Markdown.convertToHTML(
+      alertEpisodeDescription: await Markdown.convertToHTML(
         alertEpisode.description! || "",
         MarkdownContentType.Email,
       ),
-      alertSeverity: alertEpisode.alertSeverity!.name!,
-      alertViewLink: (
+      alertEpisodeSeverity: alertEpisode.alertSeverity!.name!,
+      alertEpisodeViewLink: (
         await AlertEpisodeService.getEpisodeLinkInDashboard(
           alertEpisode.projectId!,
           alertEpisode.id!,
         )
       ).toString(),
-      acknowledgeAlertLink: new URL(
+      acknowledgeAlertEpisodeLink: new URL(
         httpProtocol,
         host,
         new Route(AppApiRoute.toString())
@@ -1792,7 +1791,7 @@ export class Service extends DatabaseService<Model> {
 
     const emailMessage: EmailMessage = {
       toEmail: to!,
-      templateType: EmailTemplateType.AcknowledgeAlert,
+      templateType: EmailTemplateType.AcknowledgeAlertEpisode,
       vars: vars,
       subject: "ACTION REQUIRED: Alert Episode created - " + alertEpisode.title!,
     };
