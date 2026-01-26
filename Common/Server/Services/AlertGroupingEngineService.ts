@@ -5,7 +5,6 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember, {
   AlertEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/AlertEpisodeMember";
-import AlertState from "../../Models/DatabaseModels/AlertState";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -17,7 +16,6 @@ import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
 import AlertEpisodeService from "./AlertEpisodeService";
-import AlertStateService from "./AlertStateService";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import MonitorService from "./MonitorService";
 import ServiceMonitorService from "./ServiceMonitorService";
@@ -513,36 +511,25 @@ class AlertGroupingEngineServiceClass {
     groupingKey: string,
     timeWindowCutoff: Date | null,
   ): Promise<AlertEpisode | null> {
-    // Get resolved state to exclude resolved episodes
-    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isResolvedState: true,
-      },
-      select: {
-        order: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
     /*
      * Find active episode with matching rule and grouping key
+     * Active episodes have resolvedAt = null (not yet resolved)
      * If time window is enabled, also filter by lastAlertAddedAt
      * If time window is disabled (timeWindowCutoff is null), find any matching active episode
      */
-    type EpisodeQueryType = {
+    interface EpisodeQueryType {
       projectId: ObjectID;
       alertGroupingRuleId: ObjectID;
       groupingKey: string;
+      resolvedAt: null;
       lastAlertAddedAt?: ReturnType<typeof QueryHelper.greaterThanEqualTo>;
-    };
+    }
 
     const query: EpisodeQueryType = {
       projectId: projectId,
       alertGroupingRuleId: ruleId,
       groupingKey: groupingKey,
+      resolvedAt: null, // Only find active (non-resolved) episodes
     };
 
     // Only add time window filter if enabled
@@ -550,36 +537,21 @@ class AlertGroupingEngineServiceClass {
       query.lastAlertAddedAt = QueryHelper.greaterThanEqualTo(timeWindowCutoff);
     }
 
-    const episodes: Array<AlertEpisode> = await AlertEpisodeService.findBy({
-      query: query,
+    const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
+      query: query as any,
       sort: {
         lastAlertAddedAt: SortOrder.Descending,
       },
       select: {
         _id: true,
         lastAlertAddedAt: true,
-        currentAlertState: {
-          order: true,
-        },
       },
       props: {
         isRoot: true,
       },
-      limit: 10,
-      skip: 0,
     });
 
-    // Filter to only active (non-resolved) episodes
-    for (const episode of episodes) {
-      const episodeOrder: number = episode.currentAlertState?.order || 0;
-      const resolvedOrder: number = resolvedState?.order || 999;
-
-      if (episodeOrder < resolvedOrder) {
-        return episode;
-      }
-    }
-
-    return null;
+    return episode;
   }
 
   @CaptureSpan()
