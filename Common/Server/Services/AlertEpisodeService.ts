@@ -304,8 +304,10 @@ export class Service extends DatabaseService<Model> {
       props: props || {},
     });
 
-    // Note: resolvedAt is updated by AlertEpisodeStateTimelineService.onCreateSuccess()
-    // to avoid duplicate updates.
+    /*
+     * Note: resolvedAt is updated by AlertEpisodeStateTimelineService.onCreateSuccess()
+     * to avoid duplicate updates.
+     */
 
     // Cascade state change to all member alerts if requested
     if (cascadeToAlerts) {
