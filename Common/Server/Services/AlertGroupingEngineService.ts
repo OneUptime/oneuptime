@@ -61,6 +61,7 @@ class AlertGroupingEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            priority: true,
             // Match criteria fields
             monitors: {
               _id: true,
