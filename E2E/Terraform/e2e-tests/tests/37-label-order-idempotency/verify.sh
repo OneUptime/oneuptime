@@ -18,13 +18,13 @@ echo "    Label IDs: $LABEL_FIRST, $LABEL_SECOND"
 # Step 1: Validate labels contain both IDs in state output
 LABELS_JSON=$(terraform output -json probe_labels)
 
-if ! echo "$LABELS_JSON" | jq -e --arg label "$LABEL_FIRST" 'index($label) != null' > /dev/null; then
+if ! echo "$LABELS_JSON" | jq -e --arg id "$LABEL_FIRST" 'index($id) != null' > /dev/null; then
     echo "    ✗ FAILED: First label ID not found in probe labels state"
     echo "    Labels: $LABELS_JSON"
     exit 1
 fi
 
-if ! echo "$LABELS_JSON" | jq -e --arg label "$LABEL_SECOND" 'index($label) != null' > /dev/null; then
+if ! echo "$LABELS_JSON" | jq -e --arg id "$LABEL_SECOND" 'index($id) != null' > /dev/null; then
     echo "    ✗ FAILED: Second label ID not found in probe labels state"
     echo "    Labels: $LABELS_JSON"
     exit 1
