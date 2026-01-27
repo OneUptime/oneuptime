@@ -54,7 +54,9 @@ export class DataSourceGenerator {
     // Check if we need the attr import (for list/map/set types)
     const needsAttrImport: boolean = Object.values(dataSource.schema).some(
       (attr: any) => {
-        return attr.type === "list" || attr.type === "map" || attr.type === "set";
+        return (
+          attr.type === "list" || attr.type === "map" || attr.type === "set"
+        );
       },
     );
 
