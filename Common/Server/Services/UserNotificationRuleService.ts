@@ -1859,8 +1859,13 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    const episodeNumber: string = alertEpisode.episodeNumber
+      ? `#${alertEpisode.episodeNumber}`
+      : "";
+
     const vars: Dictionary<string> = {
       alertEpisodeTitle: alertEpisode.title!,
+      episodeNumber: episodeNumber,
       projectName: alertEpisode.project!.name!,
       currentState: alertEpisode.currentAlertState!.name!,
       alertEpisodeDescription: await Markdown.convertToHTML(
@@ -1893,8 +1898,7 @@ export class Service extends DatabaseService<Model> {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeAlertEpisode,
       vars: vars,
-      subject:
-        "ACTION REQUIRED: Alert Episode created - " + alertEpisode.title!,
+      subject: `ACTION REQUIRED: Alert Episode ${episodeNumber} created - ${alertEpisode.title!}`,
     };
 
     return emailMessage;
