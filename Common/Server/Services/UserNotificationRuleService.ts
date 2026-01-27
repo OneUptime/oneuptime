@@ -1810,10 +1810,10 @@ export class Service extends DatabaseService<Model> {
         ? Array.from(monitorNames).join(", ")
         : "No resources identified";
 
-    // Build alerts list HTML
+    // Build alerts list HTML with proper email styling
     let alertsListHtml: string = "";
     if (episodeMembers.length > 0) {
-      const alertItems: string[] = [];
+      const alertRows: string[] = [];
       for (const member of episodeMembers) {
         if (member.alert) {
           const alertTitle: string = member.alert.title || "Untitled Alert";
@@ -1826,13 +1826,36 @@ export class Service extends DatabaseService<Model> {
               new ObjectID(member.alert._id as string),
             )
           ).toString();
-          alertItems.push(
-            `<li><a href="${alertLink}">${alertNumber} ${alertTitle}</a></li>`,
-          );
+          const monitorName: string = member.alert.monitor?.name || "";
+
+          alertRows.push(`
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+                <table cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td style="vertical-align: middle;">
+                      <span style="display: inline-block; background-color: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
+                      <a href="${alertLink}" style="color: #2563eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none;">${alertTitle}</a>
+                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Monitor: ${monitorName}</span>` : ""}
+                    </td>
+                    <td style="text-align: right; vertical-align: middle;">
+                      <a href="${alertLink}" style="color: #2563eb; font-size: 12px; text-decoration: none;">View →</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          `);
         }
       }
-      if (alertItems.length > 0) {
-        alertsListHtml = `<ul>${alertItems.join("")}</ul>`;
+      if (alertRows.length > 0) {
+        alertsListHtml = `
+          <table cellpadding="0" cellspacing="0" width="100%" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0;">
+            <tbody>
+              ${alertRows.join("")}
+            </tbody>
+          </table>
+        `;
       }
     }
 
