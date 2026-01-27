@@ -137,6 +137,11 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                   title: true,
                   description: true,
                 },
+                triggeredByAlertEpisodeId: true,
+                triggeredByAlertEpisode: {
+                  title: true,
+                  description: true,
+                },
               },
               props: {
                 isRoot: true,
@@ -153,7 +158,15 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
           const notificationType: string = timelineItem.triggeredByIncidentId
             ? "Incident"
-            : "Alert";
+            : timelineItem.triggeredByAlertEpisodeId
+              ? "Alert Episode"
+              : "Alert";
+
+          const notificationTitle: string =
+            timelineItem.triggeredByIncident?.title ||
+            timelineItem.triggeredByAlertEpisode?.title ||
+            timelineItem.triggeredByAlert?.title ||
+            "";
 
           const host: Hostname = await DatabaseConfig.getHost();
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
@@ -163,7 +176,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             res,
             "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
             {
-              title: `Acknowledge ${notificationType} - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+              title: `Acknowledge ${notificationType} - ${notificationTitle}`,
               message: `Do you want to acknowledge this ${notificationType}?`,
               acknowledgeText: `Acknowledge ${notificationType}`,
               acknowledgeUrl: new URL(
@@ -208,10 +221,14 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 projectId: true,
                 triggeredByIncidentId: true,
                 triggeredByAlertId: true,
+                triggeredByAlertEpisodeId: true,
                 triggeredByAlert: {
                   title: true,
                 },
                 triggeredByIncident: {
+                  title: true,
+                },
+                triggeredByAlertEpisode: {
                   title: true,
                 },
                 acknowledgedAt: true,
@@ -233,13 +250,49 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const host: Hostname = await DatabaseConfig.getHost();
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+          // Determine the resource type and ID for routing
+          const getResourceInfo = (): {
+            type: string;
+            path: string;
+            id: ObjectID;
+            title: string;
+          } => {
+            if (timelineItem.triggeredByIncidentId) {
+              return {
+                type: "Incident",
+                path: "incidents",
+                id: timelineItem.triggeredByIncidentId,
+                title: timelineItem.triggeredByIncident?.title || "",
+              };
+            }
+            if (timelineItem.triggeredByAlertEpisodeId) {
+              return {
+                type: "Alert Episode",
+                path: "alert-episodes",
+                id: timelineItem.triggeredByAlertEpisodeId,
+                title: timelineItem.triggeredByAlertEpisode?.title || "",
+              };
+            }
+            if (timelineItem.triggeredByAlertId) {
+              return {
+                type: "Alert",
+                path: "alerts",
+                id: timelineItem.triggeredByAlertId,
+                title: timelineItem.triggeredByAlert?.title || "",
+              };
+            }
+            return { type: "", path: "", id: new ObjectID(""), title: "" };
+          };
+
+          const resourceInfo = getResourceInfo();
+
           if (timelineItem.isAcknowledged) {
             // already acknowledged. Then show already acknowledged page with view details button.
 
             const viewDetailsRoute: Route = new Route(
               DashboardRoute.toString(),
             ).addRoute(
-              `/${timelineItem.projectId?.toString()}/${timelineItem.triggeredByIncidentId ? "incidents" : "alerts"}/${timelineItem.triggeredByIncidentId ? timelineItem.triggeredByIncidentId!.toString() : timelineItem.triggeredByAlertId!.toString()}`,
+              `/${timelineItem.projectId?.toString()}/${resourceInfo.path}/${resourceInfo.id.toString()}`,
             );
 
             const viewDetailsUrl: URL = new URL(
@@ -253,9 +306,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               res,
               "/usr/src/Common/Server/Views/ViewMessage.ejs",
               {
-                title: `Notification Already Acknowledged - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+                title: `Notification Already Acknowledged - ${resourceInfo.title}`,
                 message: `This notification has already been acknowledged.`,
-                viewDetailsText: `View ${timelineItem.triggeredByIncidentId ? "Incident" : "Alert"}`,
+                viewDetailsText: `View ${resourceInfo.type}`,
                 viewDetailsUrl: viewDetailsUrl.toString(),
               },
             );
@@ -274,33 +327,18 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             },
           });
 
-          // redirect to dashboard to incidents page.
-
-          if (timelineItem.triggeredByIncidentId) {
-            const incidentRoute: Route = new Route(
+          // redirect to dashboard to the resource page.
+          if (resourceInfo.path) {
+            const resourceRoute: Route = new Route(
               DashboardRoute.toString(),
             ).addRoute(
-              `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`,
+              `/${timelineItem.projectId?.toString()}/${resourceInfo.path}/${resourceInfo.id.toString()}`,
             );
 
             return Response.redirect(
               req,
               res,
-              new URL(httpProtocol, host, incidentRoute),
-            );
-          }
-
-          if (timelineItem.triggeredByAlertId) {
-            const alertRoute: Route = new Route(
-              DashboardRoute.toString(),
-            ).addRoute(
-              `/${timelineItem.projectId?.toString()}/alerts/${timelineItem.triggeredByAlertId!.toString()}`,
-            );
-
-            return Response.redirect(
-              req,
-              res,
-              new URL(httpProtocol, host, alertRoute),
+              new URL(httpProtocol, host, resourceRoute),
             );
           }
 
