@@ -225,7 +225,9 @@ RunCron(
                 incident.id!,
               )
             ).toString(),
-            incidentNumber: incident.incidentNumber,
+            ...(incident.incidentNumber !== undefined && {
+              incidentNumber: incident.incidentNumber,
+            }),
           });
 
         const eventType: NotificationSettingEventType =

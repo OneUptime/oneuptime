@@ -212,7 +212,7 @@ RunCron(
           })
           .join(", ") || "";
 
-      const incidentNumber: string = incident.incidentNumber
+      const incidentNumberStr: string = incident.incidentNumber
         ? `#${incident.incidentNumber}`
         : "";
 
@@ -225,7 +225,7 @@ RunCron(
 
         const vars: Dictionary<string> = {
           incidentTitle: incident.title!,
-          incidentNumber: incidentNumber,
+          incidentNumber: incidentNumberStr,
           projectName: incidentStateTimeline.project!.name!,
           currentState: incidentState!.name!,
           currentStateColor: incidentState!.color?.toString() || "#000000",
@@ -255,7 +255,7 @@ RunCron(
           vars["isOwner"] = "true";
         }
 
-        const subjectLine: string = `[Incident ${incidentNumber} ${Text.uppercaseFirstLetter(incidentState!.name!)}] - ${incident.title!}`;
+        const subjectLine: string = `[Incident ${incidentNumberStr} ${Text.uppercaseFirstLetter(incidentState!.name!)}] - ${incident.title!}`;
 
         const incidentIdentifier: string =
           incident.incidentNumber !== undefined
@@ -296,7 +296,9 @@ RunCron(
           projectName: incidentStateTimeline.project!.name!,
           newState: incidentState!.name!,
           incidentViewLink: vars["incidentViewLink"] || "",
-          incidentNumber: incident.incidentNumber,
+          ...(incident.incidentNumber !== undefined && {
+            incidentNumber: incident.incidentNumber,
+          }),
         };
 
         if (previousState?.name) {
@@ -345,7 +347,7 @@ RunCron(
         )})\n`;
       }
 
-      const incidentNumber: number = incident.incidentNumber!;
+      const incidentNumberValue: number = incident.incidentNumber!;
       const projectId: ObjectID = incident.projectId!;
 
       await IncidentFeedService.createIncidentFeedItem({
@@ -353,7 +355,7 @@ RunCron(
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident ${incidentNumberValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`,
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,

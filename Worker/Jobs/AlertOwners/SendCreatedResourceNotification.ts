@@ -196,7 +196,9 @@ RunCron(
               alertTitle: alert.title!,
               projectName: alert.project!.name!,
               alertViewLink: vars["alertViewLink"] || "",
-              alertNumber: alert.alertNumber,
+              ...(alert.alertNumber !== undefined && {
+                alertNumber: alert.alertNumber,
+              }),
             });
 
           const eventType: NotificationSettingEventType =
