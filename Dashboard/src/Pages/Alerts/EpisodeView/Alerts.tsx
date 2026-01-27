@@ -56,7 +56,7 @@ const EpisodeAlerts: FunctionComponent<
       formFields={[
         {
           field: {
-            alert: true,
+            alertId: true,
           },
           title: "Alert",
           description: "Select an alert to add to this episode.",
