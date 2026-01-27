@@ -251,12 +251,14 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
           // Determine the resource type and ID for routing
-          const getResourceInfo = (): {
+          type ResourceInfo = {
             type: string;
             path: string;
             id: ObjectID;
             title: string;
-          } => {
+          };
+
+          const getResourceInfo: () => ResourceInfo = (): ResourceInfo => {
             if (timelineItem.triggeredByIncidentId) {
               return {
                 type: "Incident",
@@ -284,7 +286,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             return { type: "", path: "", id: new ObjectID(""), title: "" };
           };
 
-          const resourceInfo = getResourceInfo();
+          const resourceInfo: ResourceInfo = getResourceInfo();
 
           if (timelineItem.isAcknowledged) {
             // already acknowledged. Then show already acknowledged page with view details button.
