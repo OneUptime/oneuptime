@@ -132,6 +132,10 @@ clickhouse:
     username: oneuptime
     # Will be auto-generated if not provided
     password:
+    # Use an existing secret for the ClickHouse password
+    existingSecret:
+      name:
+      passwordKey:
   image:
     repository: clickhouse/clickhouse-server
     tag: latest
@@ -197,6 +201,10 @@ redis:
   auth:
     # Will be auto-generated if not provided
     password:
+    # Use an existing secret for the Redis password
+    existingSecret:
+      name:
+      passwordKey:
   image:
     repository: redis
     tag: latest
