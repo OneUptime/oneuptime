@@ -53,6 +53,8 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeService from "./AlertEpisodeService";
+import AlertEpisodeMember from "../../Models/DatabaseModels/AlertEpisodeMember";
+import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import PushNotificationService from "./PushNotificationService";
@@ -304,6 +306,7 @@ export class Service extends DatabaseService<Model> {
             name: true,
           },
           episodeNumber: true,
+          rootCause: true,
         },
       });
     }
@@ -1769,6 +1772,70 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+    // Fetch alerts that are members of this episode
+    const episodeMembers: Array<AlertEpisodeMember> =
+      await AlertEpisodeMemberService.findBy({
+        query: {
+          alertEpisodeId: alertEpisode.id!,
+        },
+        select: {
+          alertId: true,
+          alert: {
+            _id: true,
+            title: true,
+            alertNumber: true,
+            monitor: {
+              _id: true,
+              name: true,
+            },
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    // Get unique monitors (resources affected)
+    const monitorNames: Set<string> = new Set();
+    for (const member of episodeMembers) {
+      if (member.alert?.monitor?.name) {
+        monitorNames.add(member.alert.monitor.name);
+      }
+    }
+
+    const resourcesAffected: string =
+      monitorNames.size > 0
+        ? Array.from(monitorNames).join(", ")
+        : "No resources identified";
+
+    // Build alerts list HTML
+    let alertsListHtml: string = "";
+    if (episodeMembers.length > 0) {
+      const alertItems: string[] = [];
+      for (const member of episodeMembers) {
+        if (member.alert) {
+          const alertTitle: string = member.alert.title || "Untitled Alert";
+          const alertNumber: string = member.alert.alertNumber
+            ? `#${member.alert.alertNumber}`
+            : "";
+          const alertLink: string = (
+            await AlertService.getAlertLinkInDashboard(
+              alertEpisode.projectId!,
+              new ObjectID(member.alert._id as string),
+            )
+          ).toString();
+          alertItems.push(
+            `<li><a href="${alertLink}">${alertNumber} ${alertTitle}</a></li>`,
+          );
+        }
+      }
+      if (alertItems.length > 0) {
+        alertsListHtml = `<ul>${alertItems.join("")}</ul>`;
+      }
+    }
+
     const vars: Dictionary<string> = {
       alertEpisodeTitle: alertEpisode.title!,
       projectName: alertEpisode.project!.name!,
@@ -1778,6 +1845,12 @@ export class Service extends DatabaseService<Model> {
         MarkdownContentType.Email,
       ),
       alertEpisodeSeverity: alertEpisode.alertSeverity!.name!,
+      resourcesAffected: resourcesAffected,
+      rootCause:
+        alertEpisode.rootCause ||
+        "No root cause identified for this alert episode",
+      alertsList: alertsListHtml,
+      alertsCount: episodeMembers.length.toString(),
       alertEpisodeViewLink: (
         await AlertEpisodeService.getEpisodeLinkInDashboard(
           alertEpisode.projectId!,

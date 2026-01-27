@@ -17,6 +17,10 @@
 {{> DetailBoxField title="Description: " text=alertEpisodeDescription  }}
 {{> DetailBoxEnd this }}
 
+{{#if alertsList}}
+{{> TitleBlock title=(concat "Alerts in this Episode (" alertsCount ")") }}
+{{{alertsList}}}
+{{/if}}
 
 {{> InfoBlock info="ACTION REQUIRED: Please acknowledge this alert episode by clicking on the button below - "}}
 
