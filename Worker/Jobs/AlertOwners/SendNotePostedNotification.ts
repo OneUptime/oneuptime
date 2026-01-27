@@ -179,8 +179,8 @@ RunCron(
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: `Note Posted: ${alert.title}`,
-            body: `A new note has been posted on alert in ${alert.project!.name!}. Click to view details.`,
+            title: `Alert ${alertNumberStr} Note Posted: ${alert.title}`,
+            body: `A new note has been posted on alert ${alertNumberStr} in ${alert.project!.name!}. Click to view details.`,
             clickAction: (
               await AlertService.getAlertLinkInDashboard(
                 alert.projectId!,

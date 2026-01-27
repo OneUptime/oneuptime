@@ -274,8 +274,8 @@ RunCron(
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: `Alert State Changed: ${alert.title}`,
-            body: `Alert state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!.name!} in ${alertStateTimeline.project!.name!}. Click to view details.`,
+            title: `Alert ${alertNumber} State Changed: ${alert.title}`,
+            body: `Alert ${alertNumber} state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!.name!} in ${alertStateTimeline.project!.name!}. Click to view details.`,
             clickAction: (
               await AlertService.getAlertLinkInDashboard(
                 alertStateTimeline.projectId!,
