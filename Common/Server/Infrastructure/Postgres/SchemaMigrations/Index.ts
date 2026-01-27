@@ -235,6 +235,7 @@ import { MigrationName1769202898645 } from "./1769202898645-MigrationName";
 import { MigrationName1769428619414 } from "./1769428619414-MigrationName";
 import { MigrationName1769428821686 } from "./1769428821686-MigrationName";
 import { MigrationName1769469813786 } from "./1769469813786-MigrationName";
+import { RenameNotificationRuleTypes1769517677937 } from "./1769517677937-RenameNotificationRuleTypes";
 
 export default [
   InitialMigration,
@@ -474,4 +475,5 @@ export default [
   MigrationName1769428619414,
   MigrationName1769428821686,
   MigrationName1769469813786,
+  RenameNotificationRuleTypes1769517677937,
 ];
