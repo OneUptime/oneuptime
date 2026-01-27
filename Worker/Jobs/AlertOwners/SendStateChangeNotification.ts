@@ -200,6 +200,10 @@ RunCron(
 
       let moreAlertFeedInformationInMarkdown: string = "";
 
+      const alertNumber: string = alert.alertNumber
+        ? `#${alert.alertNumber}`
+        : "";
+
       for (const user of owners) {
         const alertIdentifier: string =
           alert.alertNumber !== undefined
@@ -214,6 +218,7 @@ RunCron(
 
         const vars: Dictionary<string> = {
           alertTitle: alert.title!,
+          alertNumber: alertNumber,
           projectName: alertStateTimeline.project!.name!,
           currentState: alertState!.name!,
           currentStateColor: alertState!.color?.toString() || "#000000",
@@ -246,9 +251,9 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerStateChanged,
           vars: vars,
-          subject: `[Alert ${Text.uppercaseFirstLetter(
+          subject: `[Alert ${alertNumber} ${Text.uppercaseFirstLetter(
             alertState!.name!,
-          )}] ${alert.title!}`,
+          )}] - ${alert.title!}`,
         };
 
         const sms: SMSMessage = {

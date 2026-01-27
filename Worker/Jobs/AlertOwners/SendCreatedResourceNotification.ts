@@ -122,6 +122,10 @@ RunCron(
         declaredBy = `${alert.createdByUser.name.toString()} (${alert.createdByUser.email.toString()})`;
       }
 
+      const alertNumberStr: string = alert.alertNumber
+        ? `#${alert.alertNumber}`
+        : "";
+
       for (const user of owners) {
         try {
           const alertIdentifier: string =
@@ -131,6 +135,7 @@ RunCron(
 
           const vars: Dictionary<string> = {
             alertTitle: alert.title!,
+            alertNumber: alertNumberStr,
             projectName: alert.project!.name!,
             currentState: alert.currentAlertState!.name!,
             alertDescription: await Markdown.convertToHTML(
@@ -171,7 +176,7 @@ RunCron(
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.AlertOwnerResourceCreated,
             vars: vars,
-            subject: "[New Alert] " + alert.title!,
+            subject: `[New Alert ${alertNumberStr}] - ${alert.title!}`,
           };
 
           const sms: SMSMessage = {
@@ -191,6 +196,7 @@ RunCron(
               alertTitle: alert.title!,
               projectName: alert.project!.name!,
               alertViewLink: vars["alertViewLink"] || "",
+              alertNumber: alert.alertNumber,
             });
 
           const eventType: NotificationSettingEventType =

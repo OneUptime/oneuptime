@@ -174,6 +174,10 @@ RunCron(
         continue;
       }
 
+      const scheduledMaintenanceNumberStr: string = scheduledMaintenance.scheduledMaintenanceNumber
+        ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+        : "";
+
       for (const user of owners) {
         // Build the "Was X for Y" string
         const previousStateDurationText: string =
@@ -183,6 +187,7 @@ RunCron(
 
         const vars: Dictionary<string> = {
           scheduledMaintenanceTitle: scheduledMaintenance.title!,
+          scheduledMaintenanceNumber: scheduledMaintenanceNumberStr,
           projectName: scheduledMaintenanceStateTimeline.project!.name!,
           currentState: scheduledMaintenanceState!.name!,
           currentStateColor:
@@ -214,24 +219,25 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
           vars: vars,
-          subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
+          subject: `[Scheduled Maintenance ${scheduledMaintenanceNumberStr} ${Text.uppercaseFirstLetter(
             scheduledMaintenanceState!.name!,
           )}] - ${scheduledMaintenance.title}`,
         };
 
+        const scheduledMaintenanceIdentifier: string =
+          scheduledMaintenance.scheduledMaintenanceNumber !== undefined
+            ? `${scheduledMaintenanceNumberStr} (${scheduledMaintenance.title})`
+            : scheduledMaintenance.title!;
+
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Scheduled maintenance event - ${
-            scheduledMaintenance.title
-          }, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
+          message: `This is a message from OneUptime. Scheduled maintenance event - ${scheduledMaintenanceIdentifier}, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
             .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. Scheduled maintenance event ${
-                scheduledMaintenance.title
-              } state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
+              sayMessage: `This is a message from OneUptime. Scheduled maintenance event ${scheduledMaintenanceIdentifier} state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
                 .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
@@ -239,8 +245,8 @@ RunCron(
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: "Scheduled Maintenance State Changed",
-            body: `Scheduled maintenance ${scheduledMaintenance.title} state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!.name!}. Click to view details.`,
+            title: `Scheduled Maintenance ${scheduledMaintenanceNumberStr} State Changed`,
+            body: `Scheduled maintenance ${scheduledMaintenanceIdentifier} state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!.name!}. Click to view details.`,
             clickAction: (
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                 scheduledMaintenance.projectId!,

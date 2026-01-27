@@ -123,10 +123,15 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
         declaredBy = `${incident.createdByUser.name.toString()} (${incident.createdByUser.email.toString()})`;
       }
 
+      const incidentNumberStr: string = incident.incidentNumber
+        ? `#${incident.incidentNumber}`
+        : "";
+
       for (const user of owners) {
         try {
           const vars: Dictionary<string> = {
             incidentTitle: incident.title!,
+            incidentNumber: incidentNumberStr,
             projectName: incident.project!.name!,
             currentState: incident.currentIncidentState!.name!,
             incidentDescription: await Markdown.convertToHTML(
@@ -178,7 +183,7 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.IncidentOwnerResourceCreated,
             vars: vars,
-            subject: "[New Incident] " + incident.title!,
+            subject: `[New Incident ${incidentNumberStr}] - ${incident.title!}`,
           };
 
           const sms: SMSMessage = {
@@ -203,6 +208,7 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
                   incident.id!,
                 )
               ).toString(),
+              incidentNumber: incident.incidentNumber,
             });
 
           const eventType: NotificationSettingEventType =

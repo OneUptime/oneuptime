@@ -212,6 +212,10 @@ RunCron(
           })
           .join(", ") || "";
 
+      const incidentNumber: string = incident.incidentNumber
+        ? `#${incident.incidentNumber}`
+        : "";
+
       for (const user of owners) {
         // Build the "Was X for Y" string
         const previousStateDurationText: string =
@@ -221,6 +225,7 @@ RunCron(
 
         const vars: Dictionary<string> = {
           incidentTitle: incident.title!,
+          incidentNumber: incidentNumber,
           projectName: incidentStateTimeline.project!.name!,
           currentState: incidentState!.name!,
           currentStateColor: incidentState!.color?.toString() || "#000000",
@@ -250,7 +255,7 @@ RunCron(
           vars["isOwner"] = "true";
         }
 
-        const subjectLine: string = `[Incident ${Text.uppercaseFirstLetter(incidentState!.name!)}] ${incident.title!}`;
+        const subjectLine: string = `[Incident ${incidentNumber} ${Text.uppercaseFirstLetter(incidentState!.name!)}] - ${incident.title!}`;
 
         const incidentIdentifier: string =
           incident.incidentNumber !== undefined
@@ -285,11 +290,13 @@ RunCron(
           newState: string;
           previousState?: string;
           incidentViewLink: string;
+          incidentNumber?: number;
         } = {
           incidentTitle: incident.title!,
           projectName: incidentStateTimeline.project!.name!,
           newState: incidentState!.name!,
           incidentViewLink: vars["incidentViewLink"] || "",
+          incidentNumber: incident.incidentNumber,
         };
 
         if (previousState?.name) {

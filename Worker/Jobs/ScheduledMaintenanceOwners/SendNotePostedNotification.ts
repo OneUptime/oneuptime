@@ -148,8 +148,13 @@ RunCron(
         continue;
       }
 
+      const scheduledMaintenanceNumberStr: string = scheduledMaintenance.scheduledMaintenanceNumber
+        ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+        : "";
+
       const vars: Dictionary<string> = {
         scheduledMaintenanceTitle: scheduledMaintenance.title!,
+        scheduledMaintenanceNumber: scheduledMaintenanceNumberStr,
         projectName: scheduledMaintenance.project!.name!,
         currentState:
           scheduledMaintenance.currentScheduledMaintenanceState!.name!,
@@ -173,30 +178,34 @@ RunCron(
         vars["isPrivateNote"] = "true";
       }
 
+      const scheduledMaintenanceIdentifier: string =
+        scheduledMaintenance.scheduledMaintenanceNumber !== undefined
+          ? `${scheduledMaintenanceNumberStr} (${scheduledMaintenance.title})`
+          : scheduledMaintenance.title!;
+
       for (const user of owners) {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerNotePosted,
           vars: vars,
-          subject:
-            "[Scheduled Maintenance Update] " + scheduledMaintenance.title,
+          subject: `[Scheduled Maintenance ${scheduledMaintenanceNumberStr} Update] - ${scheduledMaintenance.title}`,
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New note posted on scheduled maintenance event - ${scheduledMaintenance.title}. To view this note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. New note posted on scheduled maintenance event - ${scheduledMaintenanceIdentifier}. To view this note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. New note posted on scheduled maintenance event ${scheduledMaintenance.title}. To view this note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. New note posted on scheduled maintenance event ${scheduledMaintenanceIdentifier}. To view this note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: "Scheduled Maintenance Note Posted",
-            body: `New note posted on scheduled maintenance: ${scheduledMaintenance.title}. Click to view details.`,
+            title: `Scheduled Maintenance ${scheduledMaintenanceNumberStr} Note Posted`,
+            body: `New note posted on scheduled maintenance: ${scheduledMaintenanceIdentifier}. Click to view details.`,
             clickAction: (
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                 scheduledMaintenance.projectId!,

@@ -175,8 +175,13 @@ RunCron(
         continue;
       }
 
+      const scheduledMaintenanceNumber: string = scheduledMaintenance.scheduledMaintenanceNumber
+        ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+        : "";
+
       const vars: Dictionary<string> = {
         scheduledMaintenanceTitle: scheduledMaintenance.title!,
+        scheduledMaintenanceNumber: scheduledMaintenanceNumber,
         projectName: scheduledMaintenance.project!.name!,
         currentState:
           scheduledMaintenance.currentScheduledMaintenanceState!.name!,
@@ -196,26 +201,30 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerAdded,
           vars: vars,
-          subject:
-            "You have been added as the owner of the scheduled maintenance event.",
+          subject: `You have been added as the owner of Scheduled Maintenance ${scheduledMaintenanceNumber} - ${scheduledMaintenance.title}`,
         };
 
+        const scheduledMaintenanceIdentifier: string =
+          scheduledMaintenance.scheduledMaintenanceNumber !== undefined
+            ? `${scheduledMaintenanceNumber} (${scheduledMaintenance.title})`
+            : scheduledMaintenance.title!;
+
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the scheduled maintenance event - ${scheduledMaintenance.title}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. You have been added as the owner of the scheduled maintenance event - ${scheduledMaintenanceIdentifier}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime.You have been added as the owner of the scheduled maintenance event ${scheduledMaintenance.title}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. You have been added as the owner of the scheduled maintenance event ${scheduledMaintenanceIdentifier}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: "Added as Scheduled Maintenance Owner",
-            body: `You have been added as the owner of the scheduled maintenance: ${scheduledMaintenance.title}. Click to view details.`,
+            title: `Added as Scheduled Maintenance ${scheduledMaintenanceNumber} Owner`,
+            body: `You have been added as the owner of the scheduled maintenance: ${scheduledMaintenanceIdentifier}. Click to view details.`,
             clickAction: (
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                 scheduledMaintenance.projectId!,

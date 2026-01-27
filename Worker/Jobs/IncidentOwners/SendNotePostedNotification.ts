@@ -154,8 +154,13 @@ RunCron(
         continue;
       }
 
+      const incidentNumberStr: string = incident.incidentNumber
+        ? `#${incident.incidentNumber}`
+        : "";
+
       const vars: Dictionary<string> = {
         incidentTitle: incident.title!,
+        incidentNumber: incidentNumberStr,
         projectName: incident.project!.name!,
         currentState: incident.currentIncidentState!.name!,
         note: await Markdown.convertToHTML(
@@ -194,7 +199,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerNotePosted,
           vars: vars,
-          subject: "[Incident Update] " + incident.title,
+          subject: `[Incident ${incidentNumberStr} Update] - ${incident.title}`,
         };
 
         const sms: SMSMessage = {
@@ -220,6 +225,7 @@ RunCron(
                 incident.id!,
               )
             ).toString(),
+            incidentNumber: incident.incidentNumber,
           });
 
         const eventType: NotificationSettingEventType =

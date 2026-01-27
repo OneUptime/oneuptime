@@ -159,8 +159,13 @@ RunCron(
         continue;
       }
 
+      const alertNumber: string = alert.alertNumber
+        ? `#${alert.alertNumber}`
+        : "";
+
       const vars: Dictionary<string> = {
         alertTitle: alert.title!,
+        alertNumber: alertNumber,
         projectName: alert.project!.name!,
         currentState: alert.currentAlertState!.name!,
         alertDescription: await Markdown.convertToHTML(
@@ -186,7 +191,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerAdded,
           vars: vars,
-          subject: "You have been added as the owner of the alert.",
+          subject: `You have been added as the owner of Alert ${alertNumber} - ${alert.title}`,
         };
 
         const sms: SMSMessage = {

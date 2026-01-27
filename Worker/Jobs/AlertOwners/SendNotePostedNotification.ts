@@ -125,8 +125,13 @@ RunCron(
           ? `#${alert.alertNumber} (${alert.title})`
           : alert.title!;
 
+      const alertNumberStr: string = alert.alertNumber
+        ? `#${alert.alertNumber}`
+        : "";
+
       const vars: Dictionary<string> = {
         alertTitle: alert.title!,
+        alertNumber: alertNumberStr,
         projectName: alert.project!.name!,
         currentState: alert.currentAlertState!.name!,
         note: await Markdown.convertToHTML(
@@ -157,7 +162,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerNotePosted,
           vars: vars,
-          subject: "[Alert Update] " + alert.title,
+          subject: `[Alert ${alertNumberStr} Update] - ${alert.title}`,
         };
 
         const sms: SMSMessage = {

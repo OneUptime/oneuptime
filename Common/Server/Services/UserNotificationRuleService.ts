@@ -1053,6 +1053,7 @@ export class Service extends DatabaseService<Model> {
                 alert.id!,
               )
             ).toString(),
+            alertNumber: alert.alertNumber,
           });
 
         // send push notification.
@@ -1124,6 +1125,7 @@ export class Service extends DatabaseService<Model> {
                 incident.id!,
               )
             ).toString(),
+            incidentNumber: incident.incidentNumber,
           });
 
         // send push notification.
@@ -1194,6 +1196,7 @@ export class Service extends DatabaseService<Model> {
                 alertEpisode.id!,
               )
             ).toString(),
+            episodeNumber: alertEpisode.episodeNumber,
           });
 
         PushNotificationService.sendPushNotification(
@@ -1263,6 +1266,11 @@ export class Service extends DatabaseService<Model> {
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+    const alertIdentifier: string =
+      alert.alertNumber !== undefined
+        ? `Alert number ${alert.alertNumber}, ${alert.title || "Alert"}`
+        : alert.title || "Alert";
+
     const callRequest: CallRequest = {
       to: to,
       data: [
@@ -1273,7 +1281,7 @@ export class Service extends DatabaseService<Model> {
           sayMessage: "A new alert has been created",
         },
         {
-          sayMessage: alert.title!,
+          sayMessage: alertIdentifier,
         },
         {
           introMessage: "To acknowledge this alert press 1",
@@ -1314,6 +1322,11 @@ export class Service extends DatabaseService<Model> {
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+    const incidentIdentifier: string =
+      incident.incidentNumber !== undefined
+        ? `Incident number ${incident.incidentNumber}, ${incident.title || "Incident"}`
+        : incident.title || "Incident";
+
     const callRequest: CallRequest = {
       to: to,
       data: [
@@ -1324,7 +1337,7 @@ export class Service extends DatabaseService<Model> {
           sayMessage: "A new incident has been created",
         },
         {
-          sayMessage: incident.title!,
+          sayMessage: incidentIdentifier,
         },
         {
           introMessage: "To acknowledge this incident press 1",
@@ -1365,6 +1378,11 @@ export class Service extends DatabaseService<Model> {
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+    const episodeIdentifier: string =
+      alertEpisode.episodeNumber !== undefined
+        ? `Alert episode number ${alertEpisode.episodeNumber}, ${alertEpisode.title || "Alert Episode"}`
+        : alertEpisode.title || "Alert Episode";
+
     const callRequest: CallRequest = {
       to: to,
       data: [
@@ -1375,7 +1393,7 @@ export class Service extends DatabaseService<Model> {
           sayMessage: "A new alert episode has been created",
         },
         {
-          sayMessage: alertEpisode.title!,
+          sayMessage: episodeIdentifier,
         },
         {
           introMessage: "To acknowledge this alert episode press 1",
@@ -1687,8 +1705,13 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+    const alertNumber: string = alert.alertNumber
+      ? `#${alert.alertNumber}`
+      : "";
+
     const vars: Dictionary<string> = {
       alertTitle: alert.title!,
+      alertNumber: alertNumber,
       projectName: alert.project!.name!,
       currentState: alert.currentAlertState!.name!,
       alertDescription: await Markdown.convertToHTML(
@@ -1712,7 +1735,7 @@ export class Service extends DatabaseService<Model> {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeAlert,
       vars: vars,
-      subject: "ACTION REQUIRED: Alert created - " + alert.title!,
+      subject: `ACTION REQUIRED: Alert ${alertNumber} created - ${alert.title!}`,
     };
 
     return emailMessage;
@@ -1727,8 +1750,13 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+    const incidentNumber: string = incident.incidentNumber
+      ? `#${incident.incidentNumber}`
+      : "";
+
     const vars: Dictionary<string> = {
       incidentTitle: incident.title!,
+      incidentNumber: incidentNumber,
       projectName: incident.project!.name!,
       currentState: incident.currentIncidentState!.name!,
       incidentDescription: await Markdown.convertToHTML(
@@ -1757,7 +1785,7 @@ export class Service extends DatabaseService<Model> {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeIncident,
       vars: vars,
-      subject: "ACTION REQUIRED: Incident created - " + incident.title!,
+      subject: `ACTION REQUIRED: Incident ${incidentNumber} created - ${incident.title!}`,
     };
 
     return emailMessage;

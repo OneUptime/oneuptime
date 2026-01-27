@@ -160,8 +160,13 @@ RunCron(
         continue;
       }
 
+      const incidentNumber: string = incident.incidentNumber
+        ? `#${incident.incidentNumber}`
+        : "";
+
       const vars: Dictionary<string> = {
         incidentTitle: incident.title!,
+        incidentNumber: incidentNumber,
         projectName: incident.project!.name!,
         currentState: incident.currentIncidentState!.name!,
         incidentDescription: await Markdown.convertToHTML(
@@ -192,7 +197,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerAdded,
           vars: vars,
-          subject: "You have been added as the owner of the incident.",
+          subject: `You have been added as the owner of Incident ${incidentNumber} - ${incident.title}`,
         };
 
         const sms: SMSMessage = {
@@ -209,7 +214,7 @@ RunCron(
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: "Added as Incident Owner",
+            title: `Added as Incident ${incidentNumber} Owner`,
             body: `You have been added as the owner of the incident ${incidentIdentifier}. Click to view details.`,
             clickAction: (
               await IncidentService.getIncidentLinkInDashboard(
