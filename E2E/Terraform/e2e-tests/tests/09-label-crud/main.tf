@@ -22,7 +22,6 @@ resource "random_id" "suffix" {
 
 # Comprehensive CRUD test for label resource
 resource "oneuptime_label" "test" {
-  project_id  = var.project_id
   name        = "TF CRUD Label ${random_id.suffix.hex}"
   description = var.label_description
   color       = var.label_color

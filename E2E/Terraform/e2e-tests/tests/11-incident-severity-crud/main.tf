@@ -22,7 +22,6 @@ resource "random_id" "suffix" {
 
 # Comprehensive CRUD test for incident_severity resource
 resource "oneuptime_incident_severity" "test" {
-  project_id  = var.project_id
   name        = "TF CRUD Severity ${random_id.suffix.hex}"
   description = var.severity_description
   color       = var.severity_color

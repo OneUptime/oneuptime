@@ -30,7 +30,6 @@ resource "random_id" "suffix" {
 
 # Create prerequisites
 resource "oneuptime_alert_severity" "test_severity" {
-  project_id  = var.project_id
   name        = "TF Alert Severity ${random_id.suffix.hex}"
   description = "Test severity for alert CRUD"
   color       = "#f39c12"
@@ -38,7 +37,6 @@ resource "oneuptime_alert_severity" "test_severity" {
 }
 
 resource "oneuptime_alert_state" "test_state" {
-  project_id  = var.project_id
   name        = "TF Alert State ${random_id.suffix.hex}"
   description = "Test state for alert CRUD"
   color       = "#2ecc71"
@@ -46,7 +44,6 @@ resource "oneuptime_alert_state" "test_state" {
 }
 
 resource "oneuptime_monitor" "for_alert" {
-  project_id   = var.project_id
   name         = "TF Monitor For Alert ${random_id.suffix.hex}"
   description  = "Monitor associated with alerts"
   monitor_type = "Manual"
@@ -56,7 +53,6 @@ resource "oneuptime_monitor" "for_alert" {
 # Note: We do NOT specify current_alert_state_id because the server
 # will set it to the default "Created" state and override any value we provide
 resource "oneuptime_alert" "basic" {
-  project_id        = var.project_id
   title             = "TF Basic Alert ${random_id.suffix.hex}"
   description       = "Basic alert created by Terraform E2E tests"
   alert_severity_id = oneuptime_alert_severity.test_severity.id
@@ -65,7 +61,6 @@ resource "oneuptime_alert" "basic" {
 
 # Test Case 2: Alert with root cause
 resource "oneuptime_alert" "with_root_cause" {
-  project_id        = var.project_id
   title             = "TF Root Cause Alert ${random_id.suffix.hex}"
   description       = "Alert with root cause analysis"
   alert_severity_id = oneuptime_alert_severity.test_severity.id
@@ -75,14 +70,12 @@ resource "oneuptime_alert" "with_root_cause" {
 
 # Test Case 3: Alert with labels
 resource "oneuptime_label" "alert_label" {
-  project_id  = var.project_id
   name        = "TF Alert Label ${random_id.suffix.hex}"
   description = "Label for alert testing"
   color       = "#1abc9c"
 }
 
 resource "oneuptime_alert" "with_labels" {
-  project_id        = var.project_id
   title             = "TF Labeled Alert ${random_id.suffix.hex}"
   description       = "Alert with labels attached"
   alert_severity_id = oneuptime_alert_severity.test_severity.id

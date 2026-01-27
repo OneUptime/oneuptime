@@ -24,21 +24,18 @@ resource "random_id" "suffix" {
 # This test ensures labels are treated as order-independent and do not cause drift.
 
 resource "oneuptime_label" "first" {
-  project_id  = var.project_id
   name        = "TF E2E Label First ${random_id.suffix.hex}"
   description = "First label for order idempotency"
   color       = "#3498db"
 }
 
 resource "oneuptime_label" "second" {
-  project_id  = var.project_id
   name        = "TF E2E Label Second ${random_id.suffix.hex}"
   description = "Second label for order idempotency"
   color       = "#e74c3c"
 }
 
 resource "oneuptime_probe" "with_labels" {
-  project_id    = var.project_id
   key           = "tf-e2e-probe-label-order-${random_id.suffix.hex}"
   name          = "TF E2E Probe Label Order ${random_id.suffix.hex}"
   description   = "Probe with labels in non-sorted order"

@@ -14,7 +14,6 @@ provider "oneuptime" {
 
 # Comprehensive CRUD test for monitor_status resource
 resource "oneuptime_monitor_status" "test" {
-  project_id  = var.project_id
   name        = var.status_name
   description = var.status_description
   color       = var.status_color

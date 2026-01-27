@@ -23,7 +23,6 @@ provider "oneuptime" {
 
 # First create an incident severity (required dependency)
 resource "oneuptime_incident_severity" "test" {
-  project_id  = var.project_id
   name        = "Incident Test Severity"
   description = "Severity for incident server defaults test"
   color       = "#FF0000"
@@ -32,7 +31,6 @@ resource "oneuptime_incident_severity" "test" {
 
 # Create incident with minimal fields - let server provide defaults
 resource "oneuptime_incident" "test_server_defaults" {
-  project_id           = var.project_id
   title                = "Incident Server Defaults Test"
   incident_severity_id = oneuptime_incident_severity.test.id
 

@@ -31,7 +31,6 @@ resource "random_id" "suffix" {
 
 # First create an alert severity (required dependency)
 resource "oneuptime_alert_severity" "test" {
-  project_id  = var.project_id
   name        = "TF Alert Severity ${random_id.suffix.hex}"
   description = "Severity for alert server defaults test"
   color       = "#FFA500"
@@ -40,7 +39,6 @@ resource "oneuptime_alert_severity" "test" {
 
 # Create alert with minimal fields - let server provide defaults
 resource "oneuptime_alert" "test_server_defaults" {
-  project_id        = var.project_id
   title             = "TF Alert Defaults ${random_id.suffix.hex}"
   alert_severity_id = oneuptime_alert_severity.test.id
 

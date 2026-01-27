@@ -13,7 +13,6 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_label" "test" {
-  project_id  = var.project_id
   name        = "terraform-e2e-label-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   description = "Label created by Terraform E2E tests"
   color       = "#FF5733"

@@ -24,21 +24,18 @@ resource "random_id" "suffix" {
 
 # Test Case 1: Basic Monitor Group
 resource "oneuptime_monitor_group" "basic" {
-  project_id  = var.project_id
   name        = "TF Basic Monitor Group ${random_id.suffix.hex}"
   description = "Basic monitor group for testing"
 }
 
 # Test Case 2: Monitor Group with labels
 resource "oneuptime_label" "group_label" {
-  project_id  = var.project_id
   name        = "TF Group Label ${random_id.suffix.hex}"
   description = "Label for monitor group testing"
   color       = "#27ae60"
 }
 
 resource "oneuptime_monitor_group" "with_labels" {
-  project_id  = var.project_id
   name        = "TF Labeled Monitor Group ${random_id.suffix.hex}"
   description = "Monitor group with labels"
   labels      = [oneuptime_label.group_label.id]
@@ -46,7 +43,6 @@ resource "oneuptime_monitor_group" "with_labels" {
 
 # Test Case 3: Multiple monitor groups
 resource "oneuptime_monitor_group" "secondary" {
-  project_id  = var.project_id
   name        = "TF Secondary Monitor Group ${random_id.suffix.hex}"
   description = "Secondary monitor group"
 }

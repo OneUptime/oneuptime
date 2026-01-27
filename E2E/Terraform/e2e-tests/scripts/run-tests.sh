@@ -10,7 +10,6 @@ source "$TEST_DIR/test-env.sh"
 
 echo "=== Running Terraform E2E Tests ==="
 echo "OneUptime URL: $ONEUPTIME_URL"
-echo "Project ID: $ONEUPTIME_PROJECT_ID"
 
 # Build and install provider locally
 echo ""

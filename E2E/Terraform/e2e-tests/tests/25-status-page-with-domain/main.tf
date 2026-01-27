@@ -35,21 +35,18 @@ resource "random_id" "suffix" {
 
 # Step 1: Create the base domain
 resource "oneuptime_domain" "primary" {
-  project_id  = var.project_id
   domain      = "primary-${random_id.suffix.hex}.example.com"
   is_verified = true
 }
 
 # Step 2: Create a secondary domain for multiple domain testing
 resource "oneuptime_domain" "secondary" {
-  project_id  = var.project_id
   domain      = "secondary-${random_id.suffix.hex}.example.com"
   is_verified = true
 }
 
 # Step 3: Create the main status page
 resource "oneuptime_status_page" "main" {
-  project_id               = var.project_id
   name                     = "TF E2E Main Status Page ${random_id.suffix.hex}"
   description              = "Main status page with custom domains"
   page_title               = "System Status"
@@ -64,7 +61,6 @@ resource "oneuptime_status_page" "main" {
 
 # Step 4: Create a secondary status page
 resource "oneuptime_status_page" "secondary" {
-  project_id               = var.project_id
   name                     = "TF E2E Secondary Status Page ${random_id.suffix.hex}"
   description              = "Secondary status page for testing"
   page_title               = "Secondary Status"
@@ -76,7 +72,6 @@ resource "oneuptime_status_page" "secondary" {
 
 # Step 5: Link primary domain to main status page
 resource "oneuptime_status_page_domain" "primary_main" {
-  project_id     = var.project_id
   domain_id      = oneuptime_domain.primary.id
   status_page_id = oneuptime_status_page.main.id
   subdomain      = "status"
@@ -87,7 +82,6 @@ resource "oneuptime_status_page_domain" "primary_main" {
 
 # Step 6: Link secondary domain to main status page (multiple domains on one page)
 resource "oneuptime_status_page_domain" "secondary_main" {
-  project_id     = var.project_id
   domain_id      = oneuptime_domain.secondary.id
   status_page_id = oneuptime_status_page.main.id
   subdomain      = "api-status"
@@ -97,7 +91,6 @@ resource "oneuptime_status_page_domain" "secondary_main" {
 
 # Step 7: Link primary domain to secondary status page (one domain, multiple pages)
 resource "oneuptime_status_page_domain" "primary_secondary" {
-  project_id     = var.project_id
   domain_id      = oneuptime_domain.primary.id
   status_page_id = oneuptime_status_page.secondary.id
   subdomain      = "internal"

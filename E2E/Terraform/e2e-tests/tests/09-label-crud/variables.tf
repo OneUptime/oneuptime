@@ -9,10 +9,6 @@ variable "api_key" {
   sensitive   = true
 }
 
-variable "project_id" {
-  type        = string
-  description = "OneUptime Project ID"
-}
 
 variable "label_name" {
   type        = string

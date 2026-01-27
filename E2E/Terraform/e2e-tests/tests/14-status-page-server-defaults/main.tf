@@ -35,7 +35,6 @@ resource "random_id" "suffix" {
 # 3. Verify server provides default values for the field
 
 resource "oneuptime_status_page" "test_server_defaults" {
-  project_id               = var.project_id
   name                     = "TF Server Defaults SP ${random_id.suffix.hex}"
   description              = "Tests that server-provided defaults work correctly (Issue #2232)"
   page_title               = "Server Defaults Test"

@@ -123,8 +123,6 @@ cat > "$TEST_DIR/test-env.sh" << EOF
 #!/bin/bash
 export ONEUPTIME_URL="$ONEUPTIME_URL"
 export ONEUPTIME_API_KEY="$API_KEY"
-export ONEUPTIME_PROJECT_ID="$PROJECT_ID"
-export TF_VAR_project_id="$PROJECT_ID"
 export TF_VAR_api_key="$API_KEY"
 export TF_VAR_oneuptime_url="$ONEUPTIME_URL"
 EOF
@@ -137,5 +135,4 @@ rm -f "$TEST_DIR/cookies.txt"
 echo ""
 echo "=== Setup Complete ==="
 echo "ONEUPTIME_URL: $ONEUPTIME_URL"
-echo "PROJECT_ID: $PROJECT_ID"
 echo "API_KEY: $API_KEY"

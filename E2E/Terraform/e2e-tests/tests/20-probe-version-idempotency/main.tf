@@ -23,7 +23,6 @@ provider "oneuptime" {
 # - Second apply: READ returns wrapped format {"_type":"Version","value":"1.0.0"}
 # - Provider fails with "inconsistent result after apply"
 resource "oneuptime_probe" "test" {
-  project_id    = var.project_id
   key           = "tf-probe-idem-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   name          = "tf-probe-idempotency-test-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   probe_version = "1.0.0"

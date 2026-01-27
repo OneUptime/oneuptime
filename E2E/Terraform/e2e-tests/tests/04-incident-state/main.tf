@@ -13,7 +13,6 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_incident_state" "test" {
-  project_id  = var.project_id
   name        = "terraform-e2e-state-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   description = "Incident state created by Terraform E2E tests"
   color       = "#0000FF"

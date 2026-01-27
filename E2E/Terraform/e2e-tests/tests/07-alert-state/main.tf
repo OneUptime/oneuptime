@@ -13,7 +13,6 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_alert_state" "test" {
-  project_id  = var.project_id
   name        = "terraform-e2e-alert-state-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   description = "Alert state created by Terraform E2E tests"
   color       = "#800080"

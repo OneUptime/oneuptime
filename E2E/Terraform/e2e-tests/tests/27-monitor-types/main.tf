@@ -31,7 +31,6 @@ resource "random_id" "suffix" {
 
 # Test Case 1: Manual Monitor
 resource "oneuptime_monitor" "manual" {
-  project_id   = var.project_id
   name         = "TF Manual Type ${random_id.suffix.hex}"
   description  = "Manual type monitor for testing"
   monitor_type = "Manual"
@@ -39,7 +38,6 @@ resource "oneuptime_monitor" "manual" {
 
 # Test Case 2: Incoming Request Monitor
 resource "oneuptime_monitor" "incoming_request" {
-  project_id   = var.project_id
   name         = "TF Incoming Request Type ${random_id.suffix.hex}"
   description  = "Incoming Request type monitor for testing"
   monitor_type = "Incoming Request"
@@ -47,7 +45,6 @@ resource "oneuptime_monitor" "incoming_request" {
 
 # Test Case 3: Server Monitor
 resource "oneuptime_monitor" "server" {
-  project_id   = var.project_id
   name         = "TF Server Type ${random_id.suffix.hex}"
   description  = "Server type monitor for agent-based monitoring"
   monitor_type = "Server"
@@ -55,14 +52,12 @@ resource "oneuptime_monitor" "server" {
 
 # Test Case 4: Multiple monitors of same type (uniqueness test)
 resource "oneuptime_monitor" "manual_2" {
-  project_id   = var.project_id
   name         = "TF Manual Type 2 ${random_id.suffix.hex}"
   description  = "Second manual monitor"
   monitor_type = "Manual"
 }
 
 resource "oneuptime_monitor" "manual_3" {
-  project_id   = var.project_id
   name         = "TF Manual Type 3 ${random_id.suffix.hex}"
   description  = "Third manual monitor"
   monitor_type = "Manual"

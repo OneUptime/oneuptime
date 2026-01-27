@@ -33,7 +33,6 @@ resource "random_id" "suffix" {
 
 # Test Case 1: Basic Probe
 resource "oneuptime_probe" "basic" {
-  project_id    = var.project_id
   key           = "tf-e2e-probe-basic-${random_id.suffix.hex}"
   name          = "TF E2E Basic Probe ${random_id.suffix.hex}"
   description   = "Basic probe created by Terraform E2E tests"
@@ -42,7 +41,6 @@ resource "oneuptime_probe" "basic" {
 
 # Test Case 2: Probe with Different Version
 resource "oneuptime_probe" "versioned" {
-  project_id    = var.project_id
   key           = "tf-e2e-probe-v2-${random_id.suffix.hex}"
   name          = "TF E2E Versioned Probe ${random_id.suffix.hex}"
   description   = "Probe with specific version"
@@ -51,7 +49,6 @@ resource "oneuptime_probe" "versioned" {
 
 # Test Case 3: Probe with Auto-Enable Setting
 resource "oneuptime_probe" "auto_enable" {
-  project_id                             = var.project_id
   key                                    = "tf-e2e-probe-auto-${random_id.suffix.hex}"
   name                                   = "TF E2E Auto-Enable Probe ${random_id.suffix.hex}"
   description                            = "Probe with auto-enable on new monitors"
@@ -61,14 +58,12 @@ resource "oneuptime_probe" "auto_enable" {
 
 # Test Case 4: Probe with Labels
 resource "oneuptime_label" "probe_label" {
-  project_id  = var.project_id
   name        = "TF E2E Probe Label ${random_id.suffix.hex}"
   description = "Label for probe testing"
   color       = "#9b59b6"
 }
 
 resource "oneuptime_probe" "with_labels" {
-  project_id    = var.project_id
   key           = "tf-e2e-probe-labeled-${random_id.suffix.hex}"
   name          = "TF E2E Labeled Probe ${random_id.suffix.hex}"
   description   = "Probe with attached labels"

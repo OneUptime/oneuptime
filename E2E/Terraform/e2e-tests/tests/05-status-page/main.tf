@@ -13,7 +13,6 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_status_page" "test" {
-  project_id              = var.project_id
   name                    = "terraform-e2e-statuspage-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   description             = "Status page created by Terraform E2E tests"
   page_title              = "Terraform Test Status"

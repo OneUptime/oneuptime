@@ -24,27 +24,23 @@ resource "random_id" "suffix" {
 
 # Test Case 1: Basic Team
 resource "oneuptime_team" "basic" {
-  project_id  = var.project_id
   name        = "TF Basic Team ${random_id.suffix.hex}"
   description = "Basic team for testing"
 }
 
 # Test Case 2: Team with description
 resource "oneuptime_team" "detailed" {
-  project_id  = var.project_id
   name        = "TF Detailed Team ${random_id.suffix.hex}"
   description = "A detailed team with comprehensive description for testing various scenarios"
 }
 
 # Test Case 3: Multiple teams (uniqueness)
 resource "oneuptime_team" "engineering" {
-  project_id  = var.project_id
   name        = "TF Engineering Team ${random_id.suffix.hex}"
   description = "Engineering team"
 }
 
 resource "oneuptime_team" "operations" {
-  project_id  = var.project_id
   name        = "TF Operations Team ${random_id.suffix.hex}"
   description = "Operations team"
 }

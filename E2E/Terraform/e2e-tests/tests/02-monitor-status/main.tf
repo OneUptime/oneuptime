@@ -13,7 +13,6 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_monitor_status" "test" {
-  project_id         = var.project_id
   name               = "terraform-e2e-status-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   description        = "Monitor status created by Terraform E2E tests"
   color              = "#00FF00"

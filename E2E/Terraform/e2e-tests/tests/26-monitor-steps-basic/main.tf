@@ -33,7 +33,6 @@ resource "random_id" "suffix" {
 
 # Test Case 1: Manual Monitor - No monitor_steps (server provides defaults)
 resource "oneuptime_monitor" "manual_no_steps" {
-  project_id   = var.project_id
   name         = "TF Manual No Steps ${random_id.suffix.hex}"
   description  = "Manual monitor without explicit monitor_steps"
   monitor_type = "Manual"
@@ -41,7 +40,6 @@ resource "oneuptime_monitor" "manual_no_steps" {
 
 # Test Case 2: Manual Monitor - With description only (server provides monitor_steps)
 resource "oneuptime_monitor" "manual_with_description" {
-  project_id   = var.project_id
   name         = "TF Manual With Description ${random_id.suffix.hex}"
   description  = "Manual monitor with custom description"
   monitor_type = "Manual"
@@ -49,7 +47,6 @@ resource "oneuptime_monitor" "manual_with_description" {
 
 # Test Case 3: Monitor with monitoring interval
 resource "oneuptime_monitor" "with_interval" {
-  project_id          = var.project_id
   name                = "TF Monitor With Interval ${random_id.suffix.hex}"
   description         = "Monitor with custom monitoring interval"
   monitor_type        = "Manual"
@@ -58,7 +55,6 @@ resource "oneuptime_monitor" "with_interval" {
 
 # Test Case 4: Monitor with disable flag
 resource "oneuptime_monitor" "disabled" {
-  project_id              = var.project_id
   name                    = "TF Disabled Monitor ${random_id.suffix.hex}"
   description             = "Monitor that is disabled"
   monitor_type            = "Manual"

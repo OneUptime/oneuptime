@@ -30,7 +30,6 @@ resource "random_id" "suffix" {
 
 # First, create incident severity and state for testing
 resource "oneuptime_incident_severity" "test_severity" {
-  project_id  = var.project_id
   name        = "TF Test Severity ${random_id.suffix.hex}"
   description = "Test severity for incident CRUD"
   color       = "#e74c3c"
@@ -38,7 +37,6 @@ resource "oneuptime_incident_severity" "test_severity" {
 }
 
 resource "oneuptime_incident_state" "test_state" {
-  project_id  = var.project_id
   name        = "TF Test State ${random_id.suffix.hex}"
   description = "Test state for incident CRUD"
   color       = "#3498db"
@@ -47,7 +45,6 @@ resource "oneuptime_incident_state" "test_state" {
 
 # Test Case 1: Basic Incident
 resource "oneuptime_incident" "basic" {
-  project_id                  = var.project_id
   title                       = "TF Basic Incident ${random_id.suffix.hex}"
   description                 = "Basic incident created by Terraform E2E tests"
   current_incident_state_id   = oneuptime_incident_state.test_state.id
@@ -56,7 +53,6 @@ resource "oneuptime_incident" "basic" {
 
 # Test Case 2: Incident with root cause
 resource "oneuptime_incident" "with_root_cause" {
-  project_id                  = var.project_id
   title                       = "TF Incident With Root Cause ${random_id.suffix.hex}"
   description                 = "Incident with detailed root cause analysis"
   current_incident_state_id   = oneuptime_incident_state.test_state.id
@@ -66,7 +62,6 @@ resource "oneuptime_incident" "with_root_cause" {
 
 # Test Case 3: Incident with visibility settings
 resource "oneuptime_incident" "visibility_settings" {
-  project_id                          = var.project_id
   title                               = "TF Visibility Incident ${random_id.suffix.hex}"
   description                         = "Incident with custom visibility"
   current_incident_state_id           = oneuptime_incident_state.test_state.id
@@ -77,14 +72,12 @@ resource "oneuptime_incident" "visibility_settings" {
 
 # Test Case 4: Incident with labels
 resource "oneuptime_label" "incident_label" {
-  project_id  = var.project_id
   name        = "TF Incident Label ${random_id.suffix.hex}"
   description = "Label for incident testing"
   color       = "#9b59b6"
 }
 
 resource "oneuptime_incident" "with_labels" {
-  project_id                  = var.project_id
   title                       = "TF Labeled Incident ${random_id.suffix.hex}"
   description                 = "Incident with labels attached"
   current_incident_state_id   = oneuptime_incident_state.test_state.id

@@ -30,14 +30,12 @@ resource "random_id" "suffix" {
 
 # Test Case 1: Basic On-Call Policy
 resource "oneuptime_on_call_policy" "basic" {
-  project_id  = var.project_id
   name        = "TF Basic OnCall Policy ${random_id.suffix.hex}"
   description = "Basic on-call policy for testing"
 }
 
 # Test Case 2: On-Call Policy with repeat settings
 resource "oneuptime_on_call_policy" "repeat" {
-  project_id                           = var.project_id
   name                                 = "TF Repeat OnCall Policy ${random_id.suffix.hex}"
   description                          = "On-call policy with repeat settings"
   repeat_policy_if_no_one_acknowledges = true
@@ -45,14 +43,12 @@ resource "oneuptime_on_call_policy" "repeat" {
 
 # Test Case 3: On-Call Policy with labels
 resource "oneuptime_label" "oncall_label" {
-  project_id  = var.project_id
   name        = "TF OnCall Label ${random_id.suffix.hex}"
   description = "Label for on-call testing"
   color       = "#16a085"
 }
 
 resource "oneuptime_on_call_policy" "with_labels" {
-  project_id  = var.project_id
   name        = "TF Labeled OnCall Policy ${random_id.suffix.hex}"
   description = "On-call policy with labels"
   labels      = [oneuptime_label.oncall_label.id]

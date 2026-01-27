@@ -23,7 +23,6 @@ provider "oneuptime" {
 
 # Create scheduled maintenance event with minimal fields
 resource "oneuptime_scheduled_maintenance_event" "test_server_defaults" {
-  project_id = var.project_id
   title      = "Scheduled Maintenance Server Defaults Test"
 
   # Required datetime fields - use future dates

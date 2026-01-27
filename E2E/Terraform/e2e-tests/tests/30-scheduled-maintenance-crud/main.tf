@@ -36,7 +36,6 @@ locals {
 
 # Test Case 1: Basic Scheduled Maintenance
 resource "oneuptime_scheduled_maintenance_event" "basic" {
-  project_id  = var.project_id
   title       = "TF Basic Maintenance ${random_id.suffix.hex}"
   description = "Basic scheduled maintenance for testing"
   starts_at   = local.starts_at
@@ -49,7 +48,6 @@ resource "oneuptime_scheduled_maintenance_event" "basic" {
 
 # Test Case 2: Scheduled Maintenance with visibility
 resource "oneuptime_scheduled_maintenance_event" "visibility" {
-  project_id                                                 = var.project_id
   title                                                      = "TF Visibility Maintenance ${random_id.suffix.hex}"
   description                                                = "Maintenance with visibility settings"
   starts_at                                                  = local.starts_at
@@ -64,14 +62,12 @@ resource "oneuptime_scheduled_maintenance_event" "visibility" {
 
 # Test Case 3: Scheduled Maintenance with labels
 resource "oneuptime_label" "maintenance_label" {
-  project_id  = var.project_id
   name        = "TF Maintenance Label ${random_id.suffix.hex}"
   description = "Label for maintenance testing"
   color       = "#8e44ad"
 }
 
 resource "oneuptime_scheduled_maintenance_event" "with_labels" {
-  project_id  = var.project_id
   title       = "TF Labeled Maintenance ${random_id.suffix.hex}"
   description = "Maintenance with labels"
   starts_at   = local.starts_at

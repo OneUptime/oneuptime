@@ -572,7 +572,14 @@ ${this.generateValidObjectTypesMap()}
         ),
     );
 
-    if (attr.required) {
+    // project_id is inferred from API key authentication, so make it computed-only
+    const isProjectIdField: boolean =
+      name === "project_id" || name === "projectId";
+
+    if (isProjectIdField) {
+      // Project ID is always computed from API key - users don't need to provide it
+      options.push("Computed: true");
+    } else if (attr.required) {
       options.push("Required: true");
     } else if (attr.optional && attr.computed) {
       // Handle fields that are both optional and computed (server-managed with optional user input)
@@ -1153,14 +1160,14 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     const updateSchema: any = resource.operationSchemas?.update || {};
     const conditionalAssignments: string[] = [];
 
-    // Fields that should never be included in update requests (truly immutable)
-    const immutableFields: Array<string> = ["projectId", "project_id"];
+    // Fields that should never be included in requests (inferred from API key)
+    const serverInferredFields: Array<string> = ["projectId", "project_id"];
 
     // Check if there are any fields to process
     const hasFields: boolean = Object.entries(updateSchema).some(
       ([name, attr]: [string, any]) => {
         return (
-          name !== "id" && !attr.computed && !immutableFields.includes(name)
+          name !== "id" && !attr.computed && !serverInferredFields.includes(name)
         );
       },
     );
@@ -1184,8 +1191,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         continue;
       }
 
-      // Skip truly immutable fields
-      if (immutableFields.includes(name)) {
+      // Skip server-inferred fields (project_id is inferred from API key)
+      if (serverInferredFields.includes(name)) {
         continue;
       }
 
@@ -1293,8 +1300,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
   ): string {
     const fields: string[] = [];
 
-    // Fields that should not be included in update requests
-    const immutableFields: Array<string> = ["projectId", "project_id"];
+    // Fields that should not be included in requests (inferred from API key)
+    const serverInferredFields: Array<string> = ["projectId", "project_id"];
 
     for (const [name, attr] of Object.entries(schema)) {
       if (name === "id") {
@@ -1306,8 +1313,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         continue;
       }
 
-      // Skip immutable fields in update requests
-      if (isUpdate && immutableFields.includes(name)) {
+      // Skip project_id - it's inferred from API key authentication
+      if (serverInferredFields.includes(name)) {
         continue;
       }
 

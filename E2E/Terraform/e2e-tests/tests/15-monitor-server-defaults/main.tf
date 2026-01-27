@@ -28,7 +28,6 @@ provider "oneuptime" {
 # 3. Verify server can inject defaults into monitor_steps
 
 resource "oneuptime_monitor" "test_server_defaults" {
-  project_id   = var.project_id
   name         = "Monitor Server Defaults Test"
   description  = "Tests that server-provided defaults work correctly (Issue #2226)"
   monitor_type = "Manual"

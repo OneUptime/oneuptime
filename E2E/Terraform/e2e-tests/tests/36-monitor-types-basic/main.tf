@@ -34,7 +34,6 @@ resource "random_id" "suffix" {
 # Test Case 1: Website Monitor
 # =============================================================================
 resource "oneuptime_monitor" "website" {
-  project_id   = var.project_id
   name         = "TF Website Basic ${random_id.suffix.hex}"
   description  = "Basic website monitor"
   monitor_type = "Website"
@@ -44,7 +43,6 @@ resource "oneuptime_monitor" "website" {
 # Test Case 2: API Monitor
 # =============================================================================
 resource "oneuptime_monitor" "api" {
-  project_id   = var.project_id
   name         = "TF API Basic ${random_id.suffix.hex}"
   description  = "Basic API monitor"
   monitor_type = "API"
@@ -54,7 +52,6 @@ resource "oneuptime_monitor" "api" {
 # Test Case 3: Ping Monitor
 # =============================================================================
 resource "oneuptime_monitor" "ping" {
-  project_id   = var.project_id
   name         = "TF Ping Basic ${random_id.suffix.hex}"
   description  = "Basic ping monitor"
   monitor_type = "Ping"
@@ -64,7 +61,6 @@ resource "oneuptime_monitor" "ping" {
 # Test Case 4: Port Monitor
 # =============================================================================
 resource "oneuptime_monitor" "port" {
-  project_id   = var.project_id
   name         = "TF Port Basic ${random_id.suffix.hex}"
   description  = "Basic port monitor"
   monitor_type = "Port"
@@ -74,7 +70,6 @@ resource "oneuptime_monitor" "port" {
 # Test Case 5: SSL Certificate Monitor
 # =============================================================================
 resource "oneuptime_monitor" "ssl" {
-  project_id   = var.project_id
   name         = "TF SSL Basic ${random_id.suffix.hex}"
   description  = "Basic SSL certificate monitor"
   monitor_type = "SSL Certificate"
@@ -84,7 +79,6 @@ resource "oneuptime_monitor" "ssl" {
 # Test Case 6: IP Monitor
 # =============================================================================
 resource "oneuptime_monitor" "ip" {
-  project_id   = var.project_id
   name         = "TF IP Basic ${random_id.suffix.hex}"
   description  = "Basic IP monitor"
   monitor_type = "IP"
@@ -94,7 +88,6 @@ resource "oneuptime_monitor" "ip" {
 # Test Case 7: Incoming Request Monitor (Heartbeat)
 # =============================================================================
 resource "oneuptime_monitor" "incoming_request" {
-  project_id   = var.project_id
   name         = "TF Incoming Request Basic ${random_id.suffix.hex}"
   description  = "Basic incoming request (heartbeat) monitor"
   monitor_type = "Incoming Request"
@@ -104,7 +97,6 @@ resource "oneuptime_monitor" "incoming_request" {
 # Test Case 8: Server Monitor
 # =============================================================================
 resource "oneuptime_monitor" "server" {
-  project_id   = var.project_id
   name         = "TF Server Basic ${random_id.suffix.hex}"
   description  = "Basic server monitor"
   monitor_type = "Server"

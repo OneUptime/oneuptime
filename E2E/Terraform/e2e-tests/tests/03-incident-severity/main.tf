@@ -13,7 +13,6 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_incident_severity" "test" {
-  project_id  = var.project_id
   name        = "terraform-e2e-severity-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   description = "Incident severity created by Terraform E2E tests"
   color       = "#FFA500"

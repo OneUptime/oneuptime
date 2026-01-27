@@ -41,14 +41,12 @@ resource "random_id" "suffix" {
 
 # First, create a domain
 resource "oneuptime_domain" "test" {
-  project_id  = var.project_id
   domain      = "idempotency-test-${random_id.suffix.hex}.example.com"
   is_verified = true
 }
 
 # Then, create a status page
 resource "oneuptime_status_page" "test" {
-  project_id               = var.project_id
   name                     = "Idempotency Test Status Page ${random_id.suffix.hex}"
   description              = "Status page for idempotency testing"
   page_title               = "Idempotency Test"
@@ -63,7 +61,6 @@ resource "oneuptime_status_page" "test" {
 # - full_domain is NOT specified (it's computed)
 # - cname_verification_token is NOT specified (it's computed)
 resource "oneuptime_status_page_domain" "test" {
-  project_id     = var.project_id
   domain_id      = oneuptime_domain.test.id
   status_page_id = oneuptime_status_page.test.id
   subdomain      = "status"

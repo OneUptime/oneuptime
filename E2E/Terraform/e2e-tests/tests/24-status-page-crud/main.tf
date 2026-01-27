@@ -29,7 +29,6 @@ resource "random_id" "suffix" {
 
 # Test Case 1: Public Status Page
 resource "oneuptime_status_page" "public" {
-  project_id               = var.project_id
   name                     = "TF E2E Public Status Page ${random_id.suffix.hex}"
   description              = "Public status page created by Terraform E2E tests"
   page_title               = "Public Status"
@@ -41,7 +40,6 @@ resource "oneuptime_status_page" "public" {
 
 # Test Case 2: Private Status Page
 resource "oneuptime_status_page" "private" {
-  project_id               = var.project_id
   name                     = "TF E2E Private Status Page ${random_id.suffix.hex}"
   description              = "Private status page for internal use"
   page_title               = "Private Status"
@@ -53,7 +51,6 @@ resource "oneuptime_status_page" "private" {
 
 # Test Case 3: Status Page with Email Subscribers
 resource "oneuptime_status_page" "with_email" {
-  project_id               = var.project_id
   name                     = "TF E2E Email Subscribers Page ${random_id.suffix.hex}"
   description              = "Status page with email subscriber notifications"
   page_title               = "Email Status"
@@ -65,7 +62,6 @@ resource "oneuptime_status_page" "with_email" {
 
 # Test Case 4: Status Page with Custom Branding Settings
 resource "oneuptime_status_page" "branded" {
-  project_id                          = var.project_id
   name                                = "TF E2E Branded Status Page ${random_id.suffix.hex}"
   description                         = "Status page with custom branding"
   page_title                          = "Branded Status"
@@ -78,14 +74,12 @@ resource "oneuptime_status_page" "branded" {
 
 # Test Case 5: Status Page with Labels
 resource "oneuptime_label" "status_page_label" {
-  project_id  = var.project_id
   name        = "TF E2E Status Page Label ${random_id.suffix.hex}"
   description = "Label for status page testing"
   color       = "#e74c3c"
 }
 
 resource "oneuptime_status_page" "with_labels" {
-  project_id               = var.project_id
   name                     = "TF E2E Labeled Status Page ${random_id.suffix.hex}"
   description              = "Status page with attached labels"
   page_title               = "Labeled Status"

@@ -24,14 +24,12 @@ resource "random_id" "suffix" {
 # The domain must be verified before it can be used with status_page_domain
 # For test domains (.example.com), DNS verification is bypassed
 resource "oneuptime_domain" "test" {
-  project_id  = var.project_id
   domain      = "computed-test-${random_id.suffix.hex}.example.com"
   is_verified = true
 }
 
 # Then, create a status page (required for status_page_domain)
 resource "oneuptime_status_page" "test" {
-  project_id               = var.project_id
   name                     = "TF Computed Fields SP ${random_id.suffix.hex}"
   description              = "Status page created by Terraform E2E tests for computed fields test"
   page_title               = "Computed Fields Test Status"
@@ -55,7 +53,6 @@ resource "oneuptime_status_page" "test" {
 #    - User should NOT need to provide this value
 #
 resource "oneuptime_status_page_domain" "test" {
-  project_id     = var.project_id
   domain_id      = oneuptime_domain.test.id
   status_page_id = oneuptime_status_page.test.id
   subdomain      = var.subdomain

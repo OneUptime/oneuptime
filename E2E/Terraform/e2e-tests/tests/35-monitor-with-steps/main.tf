@@ -32,7 +32,6 @@ resource "random_id" "suffix" {
 
 # Create monitor statuses for criteria
 resource "oneuptime_monitor_status" "operational" {
-  project_id           = var.project_id
   name                 = "TF Operational ${random_id.suffix.hex}"
   description          = "Monitor is operational"
   color                = "#2ecc71"
@@ -41,7 +40,6 @@ resource "oneuptime_monitor_status" "operational" {
 }
 
 resource "oneuptime_monitor_status" "degraded" {
-  project_id           = var.project_id
   name                 = "TF Degraded ${random_id.suffix.hex}"
   description          = "Monitor is degraded"
   color                = "#f39c12"
@@ -50,7 +48,6 @@ resource "oneuptime_monitor_status" "degraded" {
 }
 
 resource "oneuptime_monitor_status" "offline" {
-  project_id           = var.project_id
   name                 = "TF Offline ${random_id.suffix.hex}"
   description          = "Monitor is offline"
   color                = "#e74c3c"
@@ -62,7 +59,6 @@ resource "oneuptime_monitor_status" "offline" {
 # Test Case 1: Website Monitor with Monitor Steps
 # =============================================================================
 resource "oneuptime_monitor" "website" {
-  project_id   = var.project_id
   name         = "TF Website Monitor ${random_id.suffix.hex}"
   description  = "Website monitor with URL destination and response criteria"
   monitor_type = "Website"
@@ -156,7 +152,6 @@ resource "oneuptime_monitor" "website" {
 # Test Case 2: API Monitor with Headers and Body
 # =============================================================================
 resource "oneuptime_monitor" "api" {
-  project_id   = var.project_id
   name         = "TF API Monitor ${random_id.suffix.hex}"
   description  = "API monitor with POST request, headers, and body"
   monitor_type = "API"
@@ -232,7 +227,6 @@ resource "oneuptime_monitor" "api" {
 # Test Case 3: Ping Monitor
 # =============================================================================
 resource "oneuptime_monitor" "ping" {
-  project_id   = var.project_id
   name         = "TF Ping Monitor ${random_id.suffix.hex}"
   description  = "Ping monitor with hostname destination"
   monitor_type = "Ping"
@@ -318,7 +312,6 @@ resource "oneuptime_monitor" "ping" {
 # Test Case 4: Port Monitor
 # =============================================================================
 resource "oneuptime_monitor" "port" {
-  project_id   = var.project_id
   name         = "TF Port Monitor ${random_id.suffix.hex}"
   description  = "Port monitor checking HTTPS port"
   monitor_type = "Port"
@@ -384,7 +377,6 @@ resource "oneuptime_monitor" "port" {
 # Test Case 5: SSL Certificate Monitor
 # =============================================================================
 resource "oneuptime_monitor" "ssl" {
-  project_id   = var.project_id
   name         = "TF SSL Certificate Monitor ${random_id.suffix.hex}"
   description  = "SSL certificate monitor checking certificate validity"
   monitor_type = "SSL Certificate"
@@ -471,7 +463,6 @@ resource "oneuptime_monitor" "ssl" {
 # Test Case 6: IP Monitor
 # =============================================================================
 resource "oneuptime_monitor" "ip" {
-  project_id   = var.project_id
   name         = "TF IP Monitor ${random_id.suffix.hex}"
   description  = "IP monitor checking connectivity"
   monitor_type = "IP"
