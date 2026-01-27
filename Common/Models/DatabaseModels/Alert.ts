@@ -1044,6 +1044,7 @@ export default class Alert extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     computed: true,
+    canReadOnRelationQuery: true,
     title: "Alert Number",
     description: "Alert Number",
     example: 42,
