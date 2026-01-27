@@ -76,6 +76,9 @@ export class ResourceGenerator {
 
     // Always add encoding/json since we have helper methods that use it
     imports.push("encoding/json");
+    // Always add net/url and strings for URL normalization helpers
+    imports.push("net/url");
+    imports.push("strings");
 
     if (hasDefaultValues) {
       const hasDefaultBools: boolean = Object.entries(resource.schema).some(
@@ -434,6 +437,40 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     }
 
     return result
+}
+
+// Normalize URL wrapper objects to avoid drift (e.g., trailing slash differences).
+func (r *${resourceTypeName}Resource) normalizeURLWrappers(value interface{}) interface{} {
+    switch v := value.(type) {
+    case map[string]interface{}:
+        if typeStr, ok := v["_type"].(string); ok && typeStr == "URL" {
+            if val, ok := v["value"].(string); ok {
+                v["value"] = r.normalizeURLString(val)
+            }
+        }
+        for key, child := range v {
+            v[key] = r.normalizeURLWrappers(child)
+        }
+        return v
+    case []interface{}:
+        for i, child := range v {
+            v[i] = r.normalizeURLWrappers(child)
+        }
+        return v
+    default:
+        return v
+    }
+}
+
+func (r *${resourceTypeName}Resource) normalizeURLString(value string) string {
+    parsed, err := url.Parse(value)
+    if err != nil {
+        return value
+    }
+    if parsed.Path == "/" && parsed.RawQuery == "" && parsed.Fragment == "" {
+        return strings.TrimSuffix(value, "/")
+    }
+    return value
 }
 
 // Helper method to convert *big.Float to float64 for JSON serialization
@@ -1460,17 +1497,19 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
             ${fieldName} = types.StringValue(fmt.Sprintf("%v", val))
         } else if typeStr, typeOk := obj["_type"].(string); typeOk && r.isValidOneUptimeObjectType(typeStr) && obj["value"] != nil {
             // For typed wrapper objects (only valid OneUptime ObjectTypes), preserve the full structure including _type
-            if jsonBytes, err := json.Marshal(obj); err == nil {
+            normalizedObj := r.normalizeURLWrappers(obj)
+            if jsonBytes, err := json.Marshal(normalizedObj); err == nil {
                 ${fieldName} = types.StringValue(string(jsonBytes))
             } else {
-                ${fieldName} = types.StringValue(fmt.Sprintf("%v", obj))
+                ${fieldName} = types.StringValue(fmt.Sprintf("%v", normalizedObj))
             }
         } else if obj["value"] != nil {
             // Handle complex value types (maps, arrays) by marshaling to JSON
-            if jsonBytes, err := json.Marshal(obj["value"]); err == nil {
+            normalizedValue := r.normalizeURLWrappers(obj["value"])
+            if jsonBytes, err := json.Marshal(normalizedValue); err == nil {
                 ${fieldName} = types.StringValue(string(jsonBytes))
             } else {
-                ${fieldName} = types.StringValue(fmt.Sprintf("%v", obj["value"]))
+                ${fieldName} = types.StringValue(fmt.Sprintf("%v", normalizedValue))
             }
         } else if jsonBytes, err := json.Marshal(obj); err == nil {
             // Fallback to JSON marshaling for other complex objects
@@ -1502,17 +1541,19 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
             ${fieldName} = types.StringValue(fmt.Sprintf("%v", val))
         } else if typeStr, typeOk := obj["_type"].(string); typeOk && r.isValidOneUptimeObjectType(typeStr) && obj["value"] != nil {
             // For typed wrapper objects (only valid OneUptime ObjectTypes), preserve the full structure including _type
-            if jsonBytes, err := json.Marshal(obj); err == nil {
+            normalizedObj := r.normalizeURLWrappers(obj)
+            if jsonBytes, err := json.Marshal(normalizedObj); err == nil {
                 ${fieldName} = types.StringValue(string(jsonBytes))
             } else {
-                ${fieldName} = types.StringValue(fmt.Sprintf("%v", obj))
+                ${fieldName} = types.StringValue(fmt.Sprintf("%v", normalizedObj))
             }
         } else if obj["value"] != nil {
             // Handle complex value types (maps, arrays) by marshaling to JSON
-            if jsonBytes, err := json.Marshal(obj["value"]); err == nil {
+            normalizedValue := r.normalizeURLWrappers(obj["value"])
+            if jsonBytes, err := json.Marshal(normalizedValue); err == nil {
                 ${fieldName} = types.StringValue(string(jsonBytes))
             } else {
-                ${fieldName} = types.StringValue(fmt.Sprintf("%v", obj["value"]))
+                ${fieldName} = types.StringValue(fmt.Sprintf("%v", normalizedValue))
             }
         } else if jsonBytes, err := json.Marshal(obj); err == nil {
             // Fallback to JSON marshaling for other complex objects
