@@ -109,15 +109,20 @@ RunCron(
         declaredBy = `${episode.createdByUser.name.toString()} (${episode.createdByUser.email.toString()})`;
       }
 
+      const episodeNumberStr: string = episode.episodeNumber
+        ? `#${episode.episodeNumber}`
+        : "";
+
       for (const user of owners) {
         try {
           const episodeIdentifier: string =
             episode.episodeNumber !== undefined
-              ? `#${episode.episodeNumber} (${episode.title})`
+              ? `${episodeNumberStr} (${episode.title})`
               : episode.title!;
 
           const vars: Dictionary<string> = {
             episodeTitle: episode.title!,
+            episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentAlertState!.name!,
             episodeDescription: await Markdown.convertToHTML(
@@ -147,7 +152,7 @@ RunCron(
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.AlertEpisodeOwnerResourceCreated,
             vars: vars,
-            subject: "[New Alert Episode] " + episode.title!,
+            subject: `[New Alert Episode ${episodeNumberStr}] - ${episode.title!}`,
           };
 
           const sms: SMSMessage = {
@@ -164,8 +169,8 @@ RunCron(
 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
-              title: `Alert Episode Created: ${episode.title}`,
-              body: `A new alert episode has been created in ${episode.project!.name!}. Click to view details.`,
+              title: `Alert Episode ${episodeNumberStr} Created: ${episode.title}`,
+              body: `A new alert episode ${episodeNumberStr} has been created in ${episode.project!.name!}. Click to view details.`,
               clickAction: vars["episodeViewLink"] || "",
               tag: "alert-episode-created",
               requireInteraction: true,

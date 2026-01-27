@@ -115,13 +115,18 @@ RunCron(
         continue;
       }
 
+      const episodeNumberStr: string = episode.episodeNumber
+        ? `#${episode.episodeNumber}`
+        : "";
+
       const episodeIdentifier: string =
         episode.episodeNumber !== undefined
-          ? `#${episode.episodeNumber} (${episode.title})`
+          ? `${episodeNumberStr} (${episode.title})`
           : episode.title!;
 
       const vars: Dictionary<string> = {
         episodeTitle: episode.title!,
+        episodeNumber: episodeNumberStr,
         projectName: episode.project!.name!,
         currentState: episode.currentAlertState!.name!,
         note: await Markdown.convertToHTML(
@@ -151,7 +156,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertEpisodeOwnerNotePosted,
           vars: vars,
-          subject: "[Alert Episode Update] " + episode.title,
+          subject: `[Alert Episode ${episodeNumberStr} Update] - ${episode.title}`,
         };
 
         const sms: SMSMessage = {
@@ -168,8 +173,8 @@ RunCron(
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: `Note Posted: ${episode.title}`,
-            body: `A new note has been posted on alert episode in ${episode.project!.name!}. Click to view details.`,
+            title: `Alert Episode ${episodeNumberStr} Note Posted: ${episode.title}`,
+            body: `A new note has been posted on alert episode ${episodeNumberStr} in ${episode.project!.name!}. Click to view details.`,
             clickAction: (
               await AlertEpisodeService.getEpisodeLinkInDashboard(
                 episode.projectId!,

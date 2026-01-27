@@ -155,8 +155,13 @@ RunCron(
         continue;
       }
 
+      const episodeNumber: string = episode.episodeNumber
+        ? `#${episode.episodeNumber}`
+        : "";
+
       const vars: Dictionary<string> = {
         episodeTitle: episode.title!,
+        episodeNumber: episodeNumber,
         projectName: episode.project!.name!,
         currentState: episode.currentAlertState!.name!,
         episodeDescription: await Markdown.convertToHTML(
@@ -175,13 +180,13 @@ RunCron(
       for (const user of users) {
         const episodeIdentifier: string =
           episode.episodeNumber !== undefined
-            ? `#${episode.episodeNumber} (${episode.title})`
+            ? `${episodeNumber} (${episode.title})`
             : episode.title!;
 
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertEpisodeOwnerAdded,
           vars: vars,
-          subject: "You have been added as the owner of the alert episode.",
+          subject: `You have been added as the owner of Alert Episode ${episodeNumber} - ${episode.title}`,
         };
 
         const sms: SMSMessage = {
@@ -198,7 +203,7 @@ RunCron(
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: "Added as Alert Episode Owner",
+            title: `Added as Alert Episode ${episodeNumber} Owner`,
             body: `You have been added as the owner of the alert episode ${episodeIdentifier}. Click to view details.`,
             clickAction: (
               await AlertEpisodeService.getEpisodeLinkInDashboard(

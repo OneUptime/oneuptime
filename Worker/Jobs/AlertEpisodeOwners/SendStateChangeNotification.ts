@@ -180,10 +180,14 @@ RunCron(
 
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
+      const episodeNumberStr: string = episode.episodeNumber
+        ? `#${episode.episodeNumber}`
+        : "";
+
       for (const user of owners) {
         const episodeIdentifier: string =
           episode.episodeNumber !== undefined
-            ? `#${episode.episodeNumber} (${episode.title})`
+            ? `${episodeNumberStr} (${episode.title})`
             : episode.title!;
 
         // Build the "Was X for Y" string
@@ -194,6 +198,7 @@ RunCron(
 
         const vars: Dictionary<string> = {
           episodeTitle: episode.title!,
+          episodeNumber: episodeNumberStr,
           projectName: episodeStateTimeline.project!.name!,
           currentState: alertState!.name!,
           currentStateColor: alertState!.color?.toString() || "#000000",
@@ -225,9 +230,9 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertEpisodeOwnerStateChanged,
           vars: vars,
-          subject: `[Alert Episode ${Text.uppercaseFirstLetter(
+          subject: `[Alert Episode ${episodeNumberStr} ${Text.uppercaseFirstLetter(
             alertState!.name!,
-          )}] ${episode.title!}`,
+          )}] - ${episode.title!}`,
         };
 
         const sms: SMSMessage = {
@@ -248,8 +253,8 @@ RunCron(
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: `Alert Episode State Changed: ${episode.title}`,
-            body: `Alert episode state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!.name!} in ${episodeStateTimeline.project!.name!}. Click to view details.`,
+            title: `Alert Episode ${episodeNumberStr} State Changed: ${episode.title}`,
+            body: `Alert episode ${episodeNumberStr} state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!.name!} in ${episodeStateTimeline.project!.name!}. Click to view details.`,
             clickAction: (
               await AlertEpisodeService.getEpisodeLinkInDashboard(
                 episodeStateTimeline.projectId!,
