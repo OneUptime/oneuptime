@@ -178,6 +178,11 @@ const ActiveIncidents: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Global/NewIncidents");
 });
+const ActiveAlerts: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Global/NewAlerts");
+});
 const UserSettingsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
@@ -627,6 +632,16 @@ const App: () => JSX.Element = () => {
               <ActiveIncidents
                 {...commonPageProps}
                 pageRoute={RouteMap[PageMap.NEW_INCIDENTS] as Route}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.NEW_ALERTS]?.toString() || ""}
+            element={
+              <ActiveAlerts
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.NEW_ALERTS] as Route}
               />
             }
           />

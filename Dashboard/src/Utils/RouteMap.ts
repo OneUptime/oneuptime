@@ -798,6 +798,8 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.NEW_INCIDENTS]: new Route(`/dashboard/new-incidents`),
 
+  [PageMap.NEW_ALERTS]: new Route(`/dashboard/new-alerts`),
+
   [PageMap.PROJECT_INVITATIONS]: new Route(`/dashboard/project-invitations`),
 
   [PageMap.INCIDENT_VIEW]: new Route(
@@ -1525,8 +1527,6 @@ const RouteMap: Dictionary<Route> = {
       StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS]
     }`,
   ),
-
-  [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
 
   [PageMap.AUTOMATION_SCRIPTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/automation-scripts/`,

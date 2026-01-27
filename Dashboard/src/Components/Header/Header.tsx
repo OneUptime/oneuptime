@@ -452,9 +452,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                   singularName="Alert"
                   pluralName="Alerts"
                   tooltip="View all active alerts"
+                  requestOptions={{
+                    isMultiTenantRequest: true,
+                  }}
                   onClick={() => {
                     Navigation.navigate(
-                      RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!),
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NEW_ALERTS]!,
+                      ),
                     );
                   }}
                 />
