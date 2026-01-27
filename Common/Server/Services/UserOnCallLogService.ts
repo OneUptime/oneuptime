@@ -328,9 +328,7 @@ export class Service extends DatabaseService<Model> {
       return NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
     }
 
-    if (
-      userNotificationEventType === UserNotificationEventType.AlertCreated
-    ) {
+    if (userNotificationEventType === UserNotificationEventType.AlertCreated) {
       return NotificationRuleType.ON_CALL_EXECUTED_ALERT;
     }
 

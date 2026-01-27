@@ -8,8 +8,10 @@ export class RenameNotificationRuleTypes1769517677937
 
   @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // 1. Update rules with "When on-call policy is executed" and incidentSeverityId (not null)
-    //    to "When incident on-call policy is executed"
+    /*
+     * 1. Update rules with "When on-call policy is executed" and incidentSeverityId (not null)
+     *    to "When incident on-call policy is executed"
+     */
     await queryRunner.query(
       `UPDATE "UserNotificationRule"
        SET "ruleType" = 'When incident on-call policy is executed'
@@ -17,8 +19,10 @@ export class RenameNotificationRuleTypes1769517677937
        AND "incidentSeverityId" IS NOT NULL`,
     );
 
-    // 2. Update rules with "When on-call policy is executed" and alertSeverityId (not null)
-    //    to "When alert on-call policy is executed"
+    /*
+     * 2. Update rules with "When on-call policy is executed" and alertSeverityId (not null)
+     *    to "When alert on-call policy is executed"
+     */
     await queryRunner.query(
       `UPDATE "UserNotificationRule"
        SET "ruleType" = 'When alert on-call policy is executed'
@@ -26,8 +30,10 @@ export class RenameNotificationRuleTypes1769517677937
        AND "alertSeverityId" IS NOT NULL`,
     );
 
-    // 3. Update rules with "When episode on-call policy is executed"
-    //    to "When alert episode on-call policy is executed"
+    /*
+     * 3. Update rules with "When episode on-call policy is executed"
+     *    to "When alert episode on-call policy is executed"
+     */
     await queryRunner.query(
       `UPDATE "UserNotificationRule"
        SET "ruleType" = 'When alert episode on-call policy is executed'

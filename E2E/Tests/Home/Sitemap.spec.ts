@@ -49,9 +49,9 @@ test.describe("Home: Sitemap", () => {
     expect(sitemapLocs.length).toBeGreaterThan(0);
 
     // Verify sitemap-pages.xml is in the index
-    const pagesEntry: string | undefined = sitemapLocs.find(
-      (loc: string) => loc.includes("sitemap-pages.xml"),
-    );
+    const pagesEntry: string | undefined = sitemapLocs.find((loc: string) => {
+      return loc.includes("sitemap-pages.xml");
+    });
     expect(pagesEntry, "sitemap-pages.xml should be in index").toBeTruthy();
   });
 
@@ -77,9 +77,9 @@ test.describe("Home: Sitemap", () => {
     const first: string | undefined = locs[0];
     expect(first, "First <loc> should exist").toBeTruthy();
     // Homepage URL either ends with / or has no path after domain
+    const homepageRegex: RegExp = /^https?:\/\/[^/]+$/;
     const isHomepage: boolean =
-      first!.endsWith("/") ||
-      /^https?:\/\/[^\/]+$/.test(first!);
+      first!.endsWith("/") || homepageRegex.test(first!);
     expect(isHomepage, "First <loc> should be homepage").toBeTruthy();
   });
 });

@@ -2032,7 +2032,8 @@ export class Service extends DatabaseService<Model> {
       notificationRule.userEmailId = userEmail.id!;
       notificationRule.incidentSeverityId = incidentSeverity.id!;
       notificationRule.notifyAfterMinutes = 0;
-      notificationRule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
+      notificationRule.ruleType =
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
 
       await this.create({
         data: notificationRule,
