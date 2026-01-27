@@ -322,21 +322,27 @@ export class Service extends DatabaseService<Model> {
   public getNotificationRuleType(
     userNotificationEventType: UserNotificationEventType,
   ): NotificationRuleType {
-    let notificationRuleType: NotificationRuleType =
-      NotificationRuleType.ON_CALL_EXECUTED;
+    if (
+      userNotificationEventType === UserNotificationEventType.IncidentCreated
+    ) {
+      return NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
+    }
 
     if (
-      userNotificationEventType === UserNotificationEventType.IncidentCreated ||
-      userNotificationEventType === UserNotificationEventType.AlertCreated ||
-      userNotificationEventType ===
-        UserNotificationEventType.AlertEpisodeCreated
+      userNotificationEventType === UserNotificationEventType.AlertCreated
     ) {
-      notificationRuleType = NotificationRuleType.ON_CALL_EXECUTED;
-    } else {
-      // Invalid user notification event type.
-      throw new BadDataException("Invalid user notification event type.");
+      return NotificationRuleType.ON_CALL_EXECUTED_ALERT;
     }
-    return notificationRuleType;
+
+    if (
+      userNotificationEventType ===
+      UserNotificationEventType.AlertEpisodeCreated
+    ) {
+      return NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE;
+    }
+
+    // Invalid user notification event type.
+    throw new BadDataException("Invalid user notification event type.");
   }
 }
 export default new Service();

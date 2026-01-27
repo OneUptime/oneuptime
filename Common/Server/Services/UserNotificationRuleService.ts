@@ -2014,7 +2014,7 @@ export class Service extends DatabaseService<Model> {
           userId,
           userEmailId: userEmail.id!,
           incidentSeverityId: incidentSeverity.id!,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
         },
         props: {
           isRoot: true,
@@ -2032,7 +2032,7 @@ export class Service extends DatabaseService<Model> {
       notificationRule.userEmailId = userEmail.id!;
       notificationRule.incidentSeverityId = incidentSeverity.id!;
       notificationRule.notifyAfterMinutes = 0;
-      notificationRule.ruleType = NotificationRuleType.ON_CALL_EXECUTED;
+      notificationRule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
 
       await this.create({
         data: notificationRule,
@@ -2075,7 +2075,7 @@ export class Service extends DatabaseService<Model> {
           userId,
           userEmailId: userEmail.id!,
           alertSeverityId: alertSeverity.id!,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
         },
         props: {
           isRoot: true,
@@ -2093,7 +2093,7 @@ export class Service extends DatabaseService<Model> {
       notificationRule.userEmailId = userEmail.id!;
       notificationRule.alertSeverityId = alertSeverity.id!;
       notificationRule.notifyAfterMinutes = 0;
-      notificationRule.ruleType = NotificationRuleType.ON_CALL_EXECUTED;
+      notificationRule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_ALERT;
 
       await this.create({
         data: notificationRule,

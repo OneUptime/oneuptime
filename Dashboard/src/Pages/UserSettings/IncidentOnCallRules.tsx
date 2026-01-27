@@ -447,7 +447,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <div key={i}>
                 {getModelTable({
                   incidentSeverity: incidentSeverity,
-                  ruleType: NotificationRuleType.ON_CALL_EXECUTED,
+                  ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
                   title:
                     incidentSeverity.name +
                     " Severity: " +
