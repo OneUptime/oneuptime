@@ -174,9 +174,10 @@ RunCron(
         continue;
       }
 
-      const scheduledMaintenanceNumberStr: string = scheduledMaintenance.scheduledMaintenanceNumber
-        ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-        : "";
+      const scheduledMaintenanceNumberStr: string =
+        scheduledMaintenance.scheduledMaintenanceNumber
+          ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+          : "";
 
       for (const user of owners) {
         // Build the "Was X for Y" string

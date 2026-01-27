@@ -21,7 +21,8 @@ export default class PushNotificationUtil {
     incidentViewLink: string;
     incidentNumber?: number;
   }): PushNotificationMessage {
-    const { incidentTitle, projectName, incidentViewLink, incidentNumber } = params;
+    const { incidentTitle, projectName, incidentViewLink, incidentNumber } =
+      params;
     const incidentIdentifier: string = incidentNumber
       ? `#${incidentNumber} (${incidentTitle})`
       : incidentTitle;
@@ -88,8 +89,13 @@ export default class PushNotificationUtil {
     incidentViewLink: string;
     incidentNumber?: number;
   }): PushNotificationMessage {
-    const { incidentTitle, projectName, isPrivateNote, incidentViewLink, incidentNumber } =
-      params;
+    const {
+      incidentTitle,
+      projectName,
+      isPrivateNote,
+      incidentViewLink,
+      incidentNumber,
+    } = params;
     const noteType: string = isPrivateNote ? "Private" : "Public";
     const incidentIdentifier: string = incidentNumber
       ? `#${incidentNumber} (${incidentTitle})`
@@ -143,7 +149,12 @@ export default class PushNotificationUtil {
     alertEpisodeViewLink: string;
     episodeNumber?: number;
   }): PushNotificationMessage {
-    const { alertEpisodeTitle, projectName, alertEpisodeViewLink, episodeNumber } = params;
+    const {
+      alertEpisodeTitle,
+      projectName,
+      alertEpisodeViewLink,
+      episodeNumber,
+    } = params;
     const episodeIdentifier: string = episodeNumber
       ? `#${episodeNumber} (${alertEpisodeTitle})`
       : alertEpisodeTitle;
@@ -205,7 +216,8 @@ export default class PushNotificationUtil {
     viewLink: string;
     scheduledMaintenanceNumber?: number;
   }): PushNotificationMessage {
-    const { title, projectName, state, viewLink, scheduledMaintenanceNumber } = params;
+    const { title, projectName, state, viewLink, scheduledMaintenanceNumber } =
+      params;
     const maintenanceIdentifier: string = scheduledMaintenanceNumber
       ? `#${scheduledMaintenanceNumber} (${title})`
       : title;

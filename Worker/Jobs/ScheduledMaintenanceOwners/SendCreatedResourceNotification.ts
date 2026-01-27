@@ -84,9 +84,10 @@ RunCron(
         continue;
       }
 
-      const scheduledMaintenanceNumberStr: string = scheduledMaintenance.scheduledMaintenanceNumber
-        ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-        : "";
+      const scheduledMaintenanceNumberStr: string =
+        scheduledMaintenance.scheduledMaintenanceNumber
+          ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+          : "";
 
       const vars: Dictionary<string> = {
         scheduledMaintenanceTitle: scheduledMaintenance.title!,
