@@ -200,14 +200,14 @@ RunCron(
 
       let moreAlertFeedInformationInMarkdown: string = "";
 
-      const alertNumber: string = alert.alertNumber
+      const alertNumberStr: string = alert.alertNumber
         ? `#${alert.alertNumber}`
         : "";
 
       for (const user of owners) {
         const alertIdentifier: string =
           alert.alertNumber !== undefined
-            ? `#${alert.alertNumber} (${alert.title})`
+            ? `${alertNumberStr} (${alert.title})`
             : alert.title!;
 
         // Build the "Was X for Y" string
@@ -218,7 +218,7 @@ RunCron(
 
         const vars: Dictionary<string> = {
           alertTitle: alert.title!,
-          alertNumber: alertNumber,
+          alertNumber: alertNumberStr,
           projectName: alertStateTimeline.project!.name!,
           currentState: alertState!.name!,
           currentStateColor: alertState!.color?.toString() || "#000000",
@@ -251,7 +251,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerStateChanged,
           vars: vars,
-          subject: `[Alert ${alertNumber} ${Text.uppercaseFirstLetter(
+          subject: `[Alert ${alertNumberStr} ${Text.uppercaseFirstLetter(
             alertState!.name!,
           )}] - ${alert.title!}`,
         };
@@ -274,8 +274,8 @@ RunCron(
 
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
-            title: `Alert ${alertNumber} State Changed: ${alert.title}`,
-            body: `Alert ${alertNumber} state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!.name!} in ${alertStateTimeline.project!.name!}. Click to view details.`,
+            title: `Alert ${alertNumberStr} State Changed: ${alert.title}`,
+            body: `Alert ${alertNumberStr} state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!.name!} in ${alertStateTimeline.project!.name!}. Click to view details.`,
             clickAction: (
               await AlertService.getAlertLinkInDashboard(
                 alertStateTimeline.projectId!,
