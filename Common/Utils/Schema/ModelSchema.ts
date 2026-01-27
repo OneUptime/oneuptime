@@ -237,6 +237,7 @@ export class ModelSchema extends BaseSchema {
           items: {
             type: "string",
           },
+          "x-ordered": column.ordered === true,
           example: ["item1", "item2", "item3"],
         });
       } else if (column.type === TableColumnType.SmallPositiveNumber) {
@@ -332,6 +333,7 @@ export class ModelSchema extends BaseSchema {
                 },
               },
             },
+            "x-ordered": column.ordered === true,
             example: [
               {
                 _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",

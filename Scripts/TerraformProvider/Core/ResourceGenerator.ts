@@ -183,10 +183,15 @@ export class ResourceGenerator {
       }
     }
 
-    // Check for list types that need the attr package (for response mapping)
-    const hasListTypes: boolean = Object.values(resource.schema).some(
+    // Check for collection types that need the attr package (for response mapping)
+    const hasCollectionTypes: boolean = Object.values(resource.schema).some(
       (attr: any) => {
-        return attr.type === "list";
+        return attr.type === "list" || attr.type === "set";
+      },
+    );
+    const hasSetTypes: boolean = Object.values(resource.schema).some(
+      (attr: any) => {
+        return attr.type === "set";
       },
     );
 
@@ -202,15 +207,33 @@ export class ResourceGenerator {
       },
     );
 
-    if (hasListTypes) {
+    const hasSetDefaults: boolean = Object.values(resource.schema).some(
+      (attr: any) => {
+        return (
+          attr.type === "set" &&
+          !attr.required &&
+          attr.default === undefined &&
+          !attr.computed
+        );
+      },
+    );
+
+    if (hasCollectionTypes) {
       imports.push("github.com/hashicorp/terraform-plugin-framework/attr");
-      // Add sort import for consistent list ordering (fixes idempotency issues)
+    }
+    if (hasSetTypes) {
+      // Add sort import for deterministic ordering in set outputs
       imports.push("sort");
     }
 
     if (hasListDefaults) {
       imports.push(
         "github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault",
+      );
+    }
+    if (hasSetDefaults) {
+      imports.push(
+        "github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault",
       );
     }
 
@@ -230,6 +253,11 @@ export class ResourceGenerator {
         resource.schema,
       ).some((attr: any) => {
         return attr.optional && attr.computed && attr.type === "list";
+      });
+      const hasOptionalComputedSets: boolean = Object.values(
+        resource.schema,
+      ).some((attr: any) => {
+        return attr.optional && attr.computed && attr.type === "set";
       });
 
       // Always need planmodifier and stringplanmodifier for the id field and Optional+Computed strings
@@ -254,6 +282,11 @@ export class ResourceGenerator {
       if (hasOptionalComputedLists) {
         imports.push(
           "github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier",
+        );
+      }
+      if (hasOptionalComputedSets) {
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier",
         );
       }
     }
@@ -354,6 +387,27 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
     
     var stringList []string
     terraformList.ElementsAs(context.Background(), &stringList, false)
+    
+    // Convert string array to OneUptime format with _id fields
+    var result []interface{}
+    for _, str := range stringList {
+        if str != "" {
+            result = append(result, map[string]interface{}{
+                "_id": str,
+            })
+        }
+    }
+    return result
+}
+
+// Helper method to convert Terraform set to Go interface{}
+func (r *${resourceTypeName}Resource) convertTerraformSetToInterface(terraformSet types.Set) interface{} {
+    if terraformSet.IsNull() || terraformSet.IsUnknown() {
+        return nil
+    }
+    
+    var stringList []string
+    terraformSet.ElementsAs(context.Background(), &stringList, false)
     
     // Convert string array to OneUptime format with _id fields
     var result []interface{}
@@ -553,7 +607,7 @@ ${this.generateValidObjectTypesMap()}
     }
 
     /*
-     * Add default empty list for all list types to avoid null vs empty list inconsistencies
+     * Add default empty list/set for collection types to avoid null vs empty list/set inconsistencies
      * Exception: Don't add defaults for computed fields as they should be server-managed
      */
     if (
@@ -570,9 +624,23 @@ ${this.generateValidObjectTypesMap()}
         options.push("Computed: true");
       }
     }
+    if (
+      attr.type === "set" &&
+      !attr.required &&
+      attr.default === undefined &&
+      !attr.computed
+    ) {
+      options.push(
+        "Default: setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{}))",
+      );
+      // Ensure the attribute is also computed since it has a default
+      if (!options.includes("Computed: true")) {
+        options.push("Computed: true");
+      }
+    }
 
     // For collection attributes, add ElementType
-    if (attr.type === "map" || attr.type === "list") {
+    if (attr.type === "map" || attr.type === "list" || attr.type === "set") {
       options.push("ElementType: types.StringType");
     }
 
@@ -606,6 +674,11 @@ ${this.generateValidObjectTypesMap()}
         planModifiers = `,
                 PlanModifiers: []planmodifier.List{
                     listplanmodifier.UseStateForUnknown(),
+                }`;
+      } else if (attr.type === "set") {
+        planModifiers = `,
+                PlanModifiers: []planmodifier.Set{
+                    setplanmodifier.UseStateForUnknown(),
                 }`;
       }
     }
@@ -1122,6 +1195,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         return `if ${baseCondition}`;
       case "list":
         return `if ${baseCondition}`;
+      case "set":
+        return `if ${baseCondition}`;
       case "map":
         return `if ${baseCondition}`;
       default:
@@ -1143,6 +1218,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       return `requestDataMap["${apiFieldName}"] = r.convertTerraformMapToInterface(data.${fieldName})`;
     } else if (terraformAttr.type === "list") {
       return `requestDataMap["${apiFieldName}"] = r.convertTerraformListToInterface(data.${fieldName})`;
+    } else if (terraformAttr.type === "set") {
+      return `requestDataMap["${apiFieldName}"] = r.convertTerraformSetToInterface(data.${fieldName})`;
     } else if (
       terraformAttr.type === "string" &&
       terraformAttr.isComplexObject
@@ -1219,6 +1296,11 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         // Convert list types from Terraform state to Go interface{}
         fields.push(
           `        "${apiFieldName}": r.convertTerraformListToInterface(data.${fieldName}),`,
+        );
+      } else if (attr.type === "set") {
+        // Convert set types from Terraform state to Go interface{}
+        fields.push(
+          `        "${apiFieldName}": r.convertTerraformSetToInterface(data.${fieldName}),`,
         );
       } else if (attr.type === "string" && attr.isComplexObject) {
         // For complex object strings, parse JSON and convert to interface{}
@@ -1497,17 +1579,43 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
                 listItems = append(listItems, types.StringValue(str))
             }
         }
-        // Sort list items by their string value to ensure consistent ordering
-        // This fixes idempotency issues where server returns items in different order
-        sort.Slice(listItems, func(i, j int) bool {
-            iStr := listItems[i].(types.String).ValueString()
-            jStr := listItems[j].(types.String).ValueString()
-            return iStr < jStr
-        })
         ${fieldName} = types.ListValueMust(types.StringType, listItems)
     } else {
         // For lists, always use empty list instead of null to match default values
         ${fieldName} = types.ListValueMust(types.StringType, []attr.Value{})
+    }`;
+      case "set":
+        return `if val, ok := ${responseValue}.([]interface{}); ok {
+        // Convert API response list to Terraform set
+        var setItems []attr.Value
+        for _, item := range val {
+            if itemMap, ok := item.(map[string]interface{}); ok {
+                // Handle objects with _id field (OneUptime format)
+                if id, ok := itemMap["_id"].(string); ok {
+                    setItems = append(setItems, types.StringValue(id))
+                } else if id, ok := itemMap["id"].(string); ok {
+                    setItems = append(setItems, types.StringValue(id))
+                } else {
+                    // Convert entire object to JSON string if no id field
+                    if jsonBytes, err := json.Marshal(itemMap); err == nil {
+                        setItems = append(setItems, types.StringValue(string(jsonBytes)))
+                    }
+                }
+            } else if str, ok := item.(string); ok {
+                // Handle direct string values
+                setItems = append(setItems, types.StringValue(str))
+            }
+        }
+        // Sort set items for deterministic state representation
+        sort.Slice(setItems, func(i, j int) bool {
+            iStr := setItems[i].(types.String).ValueString()
+            jStr := setItems[j].(types.String).ValueString()
+            return iStr < jStr
+        })
+        ${fieldName} = types.SetValueMust(types.StringType, setItems)
+    } else {
+        // For sets, always use empty set instead of null to match default values
+        ${fieldName} = types.SetValueMust(types.StringType, []attr.Value{})
     }`;
       default:
         return `if val, ok := ${responseValue}.(string); ok {
@@ -1532,6 +1640,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         return "types.Bool";
       case "list":
         return "types.List";
+      case "set":
+        return "types.Set";
       case "map":
         return "types.Map";
       default:
@@ -1549,6 +1659,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         return "Bool";
       case "list":
         return "List";
+      case "set":
+        return "Set";
       case "map":
         return "Map";
       default:
@@ -1576,6 +1688,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         return `""`;
       case "list":
         // For list types, we need to handle them differently
+        return `[]string{}`;
+      case "set":
+        // For set types, we need to handle them differently
         return `[]string{}`;
       default:
         return `${fieldRef}.ValueString()`;

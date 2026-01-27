@@ -468,8 +468,12 @@ export class OpenAPIParser {
           continue;
         }
 
+        const ordered: boolean = Boolean((param.schema as any)?.["x-ordered"]);
         schema[StringUtils.toSnakeCase(param.name)] = {
-          type: this.mapOpenAPITypeToTerraform(param.schema?.type || "string"),
+          type: this.mapOpenAPITypeToTerraformWithName(
+            param.schema?.type || "string",
+            ordered,
+          ),
           description: param.description || "",
           required: computed ? false : param.required || false,
           computed: computed,
@@ -580,6 +584,7 @@ export class OpenAPIParser {
         let description: string = prop.description || "";
         let example: any = prop.example;
         let defaultValue: any = prop.default;
+        let ordered: boolean = Boolean(prop?.["x-ordered"]);
 
         // Handle nested $ref
         if (prop.$ref) {
@@ -590,6 +595,7 @@ export class OpenAPIParser {
             description = resolvedProp.description || description;
             example = resolvedProp.example || example;
             defaultValue = resolvedProp.default || defaultValue;
+            ordered = Boolean(resolvedProp?.["x-ordered"]) || ordered;
           }
         }
 
@@ -667,7 +673,7 @@ export class OpenAPIParser {
         }
 
         schema[terraformName] = {
-          type: this.mapOpenAPITypeToTerraform(propType),
+          type: this.mapOpenAPITypeToTerraformWithName(propType, ordered),
           description: description,
           required: fieldRequired,
           computed: computed || isComputedField,
@@ -708,6 +714,17 @@ export class OpenAPIParser {
       default:
         return "string";
     }
+  }
+
+  private mapOpenAPITypeToTerraformWithName(
+    openApiType: string,
+    ordered?: boolean,
+  ): string {
+    if (openApiType === "array" && !ordered) {
+      return "set";
+    }
+
+    return this.mapOpenAPITypeToTerraform(openApiType);
   }
 
   private isReadOperation(

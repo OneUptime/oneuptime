@@ -51,10 +51,10 @@ export class DataSourceGenerator {
     );
     const dataSourceVarName: string = StringUtils.toCamelCase(dataSource.name);
 
-    // Check if we need the attr import (for list/map types)
+    // Check if we need the attr import (for list/map/set types)
     const needsAttrImport: boolean = Object.values(dataSource.schema).some(
       (attr: any) => {
-        return attr.type === "list" || attr.type === "map";
+        return attr.type === "list" || attr.type === "map" || attr.type === "set";
       },
     );
 
@@ -225,7 +225,7 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     }
 
     // For collection attributes, add ElementType
-    if (attr.type === "map" || attr.type === "list") {
+    if (attr.type === "map" || attr.type === "list" || attr.type === "set") {
       options.push("ElementType: types.StringType");
     }
 
@@ -485,6 +485,19 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
         listValue, _ := types.ListValue(types.StringType, elements)
         ${fieldName} = listValue
     }`;
+      case "set":
+        return `if val, ok := ${responseValue}.([]interface{}); ok {
+        elements := make([]attr.Value, len(val))
+        for i, item := range val {
+            if strItem, ok := item.(string); ok {
+                elements[i] = types.StringValue(strItem)
+            } else {
+                elements[i] = types.StringValue("")
+            }
+        }
+        setValue, _ := types.SetValue(types.StringType, elements)
+        ${fieldName} = setValue
+    }`;
       case "map":
         return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
         elements := make(map[string]attr.Value)
@@ -519,6 +532,8 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
         return "types.Bool";
       case "list":
         return "types.List";
+      case "set":
+        return "types.Set";
       case "map":
         return "types.Map";
       default:
@@ -536,6 +551,8 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
         return "Bool";
       case "list":
         return "List";
+      case "set":
+        return "Set";
       case "map":
         return "Map";
       default:
