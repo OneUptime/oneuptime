@@ -1167,7 +1167,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     const hasFields: boolean = Object.entries(updateSchema).some(
       ([name, attr]: [string, any]) => {
         return (
-          name !== "id" && !attr.computed && !serverInferredFields.includes(name)
+          name !== "id" &&
+          !attr.computed &&
+          !serverInferredFields.includes(name)
         );
       },
     );
