@@ -35,7 +35,7 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
 }: {
   chart: string;
 }) => {
-  const containerRef: React.RefObject<HTMLDivElement | null> =
+  const containerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
   useEffect(() => {
