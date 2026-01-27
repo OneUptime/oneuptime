@@ -79,8 +79,13 @@ spec:
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
+              {{- if .Values.redis.auth.existingSecret.name }}
+              name: {{ .Values.redis.auth.existingSecret.name }}
+              key: {{ .Values.redis.auth.existingSecret.passwordKey }}
+              {{- else }}
               name: {{ .Release.Name }}-redis
               key: redis-password
+              {{- end }}
         livenessProbe:
           exec:
             command:

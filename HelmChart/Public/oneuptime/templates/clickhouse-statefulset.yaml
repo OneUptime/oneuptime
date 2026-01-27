@@ -92,8 +92,13 @@ spec:
         - name: CLICKHOUSE_PASSWORD
           valueFrom:
             secretKeyRef:
+              {{- if .Values.clickhouse.auth.existingSecret.name }}
+              name: {{ .Values.clickhouse.auth.existingSecret.name }}
+              key: {{ .Values.clickhouse.auth.existingSecret.passwordKey }}
+              {{- else }}
               name: {{ .Release.Name }}-clickhouse
               key: admin-password
+              {{- end }}
         - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
           value: "1"
         livenessProbe:

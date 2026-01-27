@@ -349,6 +349,18 @@
             },
             "password": {
               "type": ["string", "null"]
+            },
+            "existingSecret": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": ["string", "null"]
+                },
+                "passwordKey": {
+                  "type": ["string", "null"]
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -450,6 +462,18 @@
           "properties": {
             "password": {
               "type": ["string", "null"]
+            },
+            "existingSecret": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": ["string", "null"]
+                },
+                "passwordKey": {
+                  "type": ["string", "null"]
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
