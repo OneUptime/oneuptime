@@ -6,11 +6,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/AlertEpisodeMember";
 import Alert from "../../Models/DatabaseModels/Alert";
+import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
+import AlertFeedService from "./AlertFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
+import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Yellow500, Green500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import AlertService from "./AlertService";
@@ -124,13 +127,35 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    // Create feed item
+    // Get episode details for feed
+    const episode: AlertEpisode | null = await AlertEpisodeService.findOneById({
+      id: createdItem.alertEpisodeId,
+      select: {
+        episodeNumber: true,
+        title: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // Create feed item on episode
     await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
       alertEpisodeId: createdItem.alertEpisodeId,
       projectId: createdItem.projectId,
       alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertAdded,
       displayColor: Yellow500,
       feedInfoInMarkdown: `**Alert #${alert?.alertNumber || "N/A"}** added to episode: ${alert?.title || "No title"}`,
+      userId: createdItem.addedByUserId || undefined,
+    });
+
+    // Create feed item on alert
+    await AlertFeedService.createAlertFeedItem({
+      alertId: createdItem.alertId,
+      projectId: createdItem.projectId,
+      alertFeedEventType: AlertFeedEventType.AddedToEpisode,
+      displayColor: Yellow500,
+      feedInfoInMarkdown: `Added to **Episode #${episode?.episodeNumber || "N/A"}**: ${episode?.title || "No title"}`,
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -197,12 +222,35 @@ export class Service extends DatabaseService<Model> {
 
           // Create feed item for removal
           if (member.alertEpisodeId && member.projectId) {
+            // Get episode details for feed
+            const episode: AlertEpisode | null =
+              await AlertEpisodeService.findOneById({
+                id: member.alertEpisodeId,
+                select: {
+                  episodeNumber: true,
+                  title: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            // Create feed item on episode
             await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
               alertEpisodeId: member.alertEpisodeId,
               projectId: member.projectId,
               alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertRemoved,
               displayColor: Green500,
               feedInfoInMarkdown: `**Alert #${alert?.alertNumber || "N/A"}** removed from episode: ${alert?.title || "No title"}`,
+            });
+
+            // Create feed item on alert
+            await AlertFeedService.createAlertFeedItem({
+              alertId: member.alertId,
+              projectId: member.projectId,
+              alertFeedEventType: AlertFeedEventType.RemovedFromEpisode,
+              displayColor: Green500,
+              feedInfoInMarkdown: `Removed from **Episode #${episode?.episodeNumber || "N/A"}**: ${episode?.title || "No title"}`,
             });
           }
         }
