@@ -20,6 +20,7 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import CallRequest from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
@@ -1053,7 +1054,9 @@ export class Service extends DatabaseService<Model> {
                 alert.id!,
               )
             ).toString(),
-            alertNumber: alert.alertNumber,
+            ...(alert.alertNumber !== undefined && {
+              alertNumber: alert.alertNumber,
+            }),
           });
 
         // send push notification.
@@ -1125,7 +1128,9 @@ export class Service extends DatabaseService<Model> {
                 incident.id!,
               )
             ).toString(),
-            incidentNumber: incident.incidentNumber,
+            ...(incident.incidentNumber !== undefined && {
+              incidentNumber: incident.incidentNumber,
+            }),
           });
 
         // send push notification.
@@ -1196,7 +1201,9 @@ export class Service extends DatabaseService<Model> {
                 alertEpisode.id!,
               )
             ).toString(),
-            episodeNumber: alertEpisode.episodeNumber,
+            ...(alertEpisode.episodeNumber !== undefined && {
+              episodeNumber: alertEpisode.episodeNumber,
+            }),
           });
 
         PushNotificationService.sendPushNotification(
@@ -1808,15 +1815,6 @@ export class Service extends DatabaseService<Model> {
         },
         select: {
           alertId: true,
-          alert: {
-            _id: true,
-            title: true,
-            alertNumber: true,
-            monitor: {
-              _id: true,
-              name: true,
-            },
-          },
         },
         props: {
           isRoot: true,
@@ -1825,11 +1823,44 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
       });
 
+    // Get the alert IDs
+    const alertIds: Array<ObjectID> = episodeMembers
+      .map((member: AlertEpisodeMember) => {
+        return member.alertId;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return id !== undefined;
+      });
+
+    // Fetch full alert data with monitors
+    const alerts: Array<Alert> =
+      alertIds.length > 0
+        ? await AlertService.findBy({
+            query: {
+              _id: QueryHelper.any(alertIds),
+            },
+            select: {
+              _id: true,
+              title: true,
+              alertNumber: true,
+              monitor: {
+                _id: true,
+                name: true,
+              },
+            },
+            props: {
+              isRoot: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+          })
+        : [];
+
     // Get unique monitors (resources affected)
     const monitorNames: Set<string> = new Set();
-    for (const member of episodeMembers) {
-      if (member.alert?.monitor?.name) {
-        monitorNames.add(member.alert.monitor.name);
+    for (const alert of alerts) {
+      if (alert.monitor?.name) {
+        monitorNames.add(alert.monitor.name);
       }
     }
 
@@ -1840,23 +1871,22 @@ export class Service extends DatabaseService<Model> {
 
     // Build alerts list HTML with proper email styling
     let alertsListHtml: string = "";
-    if (episodeMembers.length > 0) {
+    if (alerts.length > 0) {
       const alertRows: string[] = [];
-      for (const member of episodeMembers) {
-        if (member.alert) {
-          const alertTitle: string = member.alert.title || "Untitled Alert";
-          const alertNumber: string = member.alert.alertNumber
-            ? `#${member.alert.alertNumber}`
-            : "";
-          const alertLink: string = (
-            await AlertService.getAlertLinkInDashboard(
-              alertEpisode.projectId!,
-              new ObjectID(member.alert._id as string),
-            )
-          ).toString();
-          const monitorName: string = member.alert.monitor?.name || "";
+      for (const alert of alerts) {
+        const alertTitle: string = alert.title || "Untitled Alert";
+        const alertNumber: string = alert.alertNumber
+          ? `#${alert.alertNumber}`
+          : "";
+        const alertLink: string = (
+          await AlertService.getAlertLinkInDashboard(
+            alertEpisode.projectId!,
+            alert.id!,
+          )
+        ).toString();
+        const monitorName: string = alert.monitor?.name || "";
 
-          alertRows.push(`
+        alertRows.push(`
             <tr>
               <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
                 <table cellpadding="0" cellspacing="0" width="100%">
@@ -1874,7 +1904,6 @@ export class Service extends DatabaseService<Model> {
               </td>
             </tr>
           `);
-        }
       }
       if (alertRows.length > 0) {
         alertsListHtml = `
@@ -1906,7 +1935,7 @@ export class Service extends DatabaseService<Model> {
         alertEpisode.rootCause ||
         "No root cause identified for this alert episode",
       alertsList: alertsListHtml,
-      alertsCount: episodeMembers.length.toString(),
+      alertsCount: alerts.length.toString(),
       alertEpisodeViewLink: (
         await AlertEpisodeService.getEpisodeLinkInDashboard(
           alertEpisode.projectId!,
