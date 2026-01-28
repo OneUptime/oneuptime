@@ -1,5 +1,6 @@
 import Incident from "./Incident";
 import IncidentEpisode from "./IncidentEpisode";
+import IncidentGroupingRule from "./IncidentGroupingRule";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -396,6 +397,43 @@ export default class IncidentEpisodeMember extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public addedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentEpisodeMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentEpisodeMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "matchedRuleId",
+    type: TableColumnType.Entity,
+    modelType: IncidentGroupingRule,
+    title: "Matched Grouping Rule",
+    description:
+      "Relation to the Incident Grouping Rule that matched this incident (if applicable)",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentGroupingRule;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "matchedRuleId" })
+  public matchedRule?: IncidentGroupingRule = undefined;
 
   @ColumnAccessControl({
     create: [

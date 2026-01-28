@@ -173,6 +173,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.TableCells,
         },
+        {
+          link: {
+            title: "Grouping Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Layers,
+        },
       ],
     },
   ];

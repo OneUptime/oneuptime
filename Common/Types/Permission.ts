@@ -789,6 +789,12 @@ enum Permission {
   CreateIncidentEpisodeFeed = "CreateIncidentEpisodeFeed",
   EditIncidentEpisodeFeed = "EditIncidentEpisodeFeed",
   ReadIncidentEpisodeFeed = "ReadIncidentEpisodeFeed",
+
+  // Incident Grouping Rule Permissions
+  CreateIncidentGroupingRule = "CreateIncidentGroupingRule",
+  DeleteIncidentGroupingRule = "DeleteIncidentGroupingRule",
+  EditIncidentGroupingRule = "EditIncidentGroupingRule",
+  ReadIncidentGroupingRule = "ReadIncidentGroupingRule",
 }
 
 export class PermissionHelper {
@@ -5594,6 +5600,40 @@ export class PermissionHelper {
         title: "Read Incident Episode Feed",
         description:
           "This permission can read Incident Episode feed items of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Grouping Rule Permissions
+      {
+        permission: Permission.CreateIncidentGroupingRule,
+        title: "Create Incident Grouping Rule",
+        description:
+          "This permission can create Incident Grouping Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentGroupingRule,
+        title: "Delete Incident Grouping Rule",
+        description:
+          "This permission can delete Incident Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentGroupingRule,
+        title: "Edit Incident Grouping Rule",
+        description:
+          "This permission can edit Incident Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentGroupingRule,
+        title: "Read Incident Grouping Rule",
+        description:
+          "This permission can read Incident Grouping Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

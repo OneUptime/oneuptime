@@ -205,6 +205,7 @@ import IncidentEpisodeOwnerUser from "./IncidentEpisodeOwnerUser";
 import IncidentEpisodeOwnerTeam from "./IncidentEpisodeOwnerTeam";
 import IncidentEpisodeInternalNote from "./IncidentEpisodeInternalNote";
 import IncidentEpisodeFeed from "./IncidentEpisodeFeed";
+import IncidentGroupingRule from "./IncidentGroupingRule";
 
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
@@ -306,6 +307,7 @@ const AllModelTypes: Array<{
   IncidentEpisodeOwnerTeam,
   IncidentEpisodeInternalNote,
   IncidentEpisodeFeed,
+  IncidentGroupingRule,
 
   MonitorStatusTimeline,
 

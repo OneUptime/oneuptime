@@ -1,3 +1,4 @@
+import IncidentGroupingRule from "./IncidentGroupingRule";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
 import Label from "./Label";
@@ -1051,6 +1052,73 @@ export default class IncidentEpisode extends BaseModel {
     length: ColumnLength.LongText,
   })
   public groupingKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentEpisode,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentGroupingRuleId",
+    type: TableColumnType.Entity,
+    modelType: IncidentGroupingRule,
+    title: "Incident Grouping Rule",
+    description:
+      "Relation to the Incident Grouping Rule that created this episode (if applicable)",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentGroupingRule;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentGroupingRuleId" })
+  public incidentGroupingRule?: IncidentGroupingRule = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentEpisode,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentEpisode,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Incident Grouping Rule ID",
+    description:
+      "ID of the Incident Grouping Rule that created this episode (if applicable)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentGroupingRuleId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

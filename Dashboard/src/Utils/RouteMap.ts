@@ -189,6 +189,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
     "settings/postmortem-templates",
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]: `settings/postmortem-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
+  [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -1058,6 +1059,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]
     }`,
   ),
 
