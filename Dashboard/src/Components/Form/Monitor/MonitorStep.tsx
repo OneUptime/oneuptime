@@ -71,6 +71,10 @@ import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepFor
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import SnmpMonitorStepForm from "./SnmpMonitor/SnmpMonitorStepForm";
+import MonitorStepSnmpMonitor, {
+  MonitorStepSnmpMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -668,6 +672,21 @@ return {
               value: MonitorStepExceptionMonitor,
             ) => {
               monitorStep.setExceptionMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </div>
+      )}
+
+      {props.monitorType === MonitorType.SNMP && (
+        <div className="mt-5">
+          <SnmpMonitorStepForm
+            monitorStepSnmpMonitor={
+              monitorStep.data?.snmpMonitor ||
+              MonitorStepSnmpMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepSnmpMonitor) => {
+              monitorStep.setSnmpMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />
