@@ -38,7 +38,9 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
-const EpisodeCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const EpisodeCreate: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error] = useState<string>("");
 
@@ -258,7 +260,9 @@ const EpisodeCreate: FunctionComponent<PageComponentProps> = (): ReactElement =>
 
                     for (const onCallDutyPolicy of item.onCallDutyPolicies) {
                       if (typeof onCallDutyPolicy === "string") {
-                        onCallDutyPolicyIds.push(new ObjectID(onCallDutyPolicy));
+                        onCallDutyPolicyIds.push(
+                          new ObjectID(onCallDutyPolicy),
+                        );
                         continue;
                       }
 
@@ -432,7 +436,9 @@ const EpisodeCreate: FunctionComponent<PageComponentProps> = (): ReactElement =>
                       }
 
                       if (label instanceof Label) {
-                        labelIds.push(new ObjectID(label._id?.toString() || ""));
+                        labelIds.push(
+                          new ObjectID(label._id?.toString() || ""),
+                        );
                         continue;
                       }
                     }
