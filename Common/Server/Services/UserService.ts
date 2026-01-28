@@ -3,8 +3,9 @@ import {
   IsBillingEnabled,
   NotificationSlackWebhookOnCreateUser,
 } from "../EnvironmentConfig";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -196,6 +197,49 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    // Check if the user is a member of any project
+    const users: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+    });
+
+    for (const user of users) {
+      const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
+        query: {
+          userId: user.id!,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (teamMembers.length > 0) {
+        throw new BadDataException(
+          "You cannot delete your account because you are a member of one or more projects. Please leave all projects before deleting your account.",
+        );
+      }
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   @CaptureSpan()

@@ -795,6 +795,9 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_PROFILE_PICTURE]: new Route(
     `/dashboard/user-profile/profile-picture`,
   ),
+  [PageMap.USER_PROFILE_DELETE]: new Route(
+    `/dashboard/user-profile/delete-account`,
+  ),
 
   [PageMap.NEW_INCIDENTS]: new Route(`/dashboard/new-incidents`),
 
@@ -2211,6 +2214,7 @@ export class RouteUtil {
       route.toString() ===
         RouteMap[PageMap.USER_PROFILE_PASSWORD]?.toString() ||
       route.toString() === RouteMap[PageMap.USER_PROFILE_PICTURE]?.toString() ||
+      route.toString() === RouteMap[PageMap.USER_PROFILE_DELETE]?.toString() ||
       route.toString() === RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
       route.toString() === RouteMap[PageMap.NEW_INCIDENTS]?.toString()
     ) {

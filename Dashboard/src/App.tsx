@@ -168,6 +168,11 @@ const UseTwoFactorAuth: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Global/UserProfile/TwoFactorAuth");
 });
+const UserProfileDelete: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Global/UserProfile/DeleteAccount");
+});
 const ProjectInvitations: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
@@ -612,6 +617,16 @@ const App: () => JSX.Element = () => {
               <UseTwoFactorAuth
                 {...commonPageProps}
                 pageRoute={RouteMap[PageMap.USER_TWO_FACTOR_AUTH] as Route}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.USER_PROFILE_DELETE]?.toString() || ""}
+            element={
+              <UserProfileDelete
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.USER_PROFILE_DELETE] as Route}
               />
             }
           />

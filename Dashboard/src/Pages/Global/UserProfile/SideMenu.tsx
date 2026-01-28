@@ -52,6 +52,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.ShieldCheck}
         />
       </SideMenuSection>
+      <SideMenuSection title="Danger Zone">
+        <SideMenuItem
+          link={{
+            title: "Delete Account",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_PROFILE_DELETE] as Route,
+            ),
+          }}
+          icon={IconProp.Trash}
+        />
+      </SideMenuSection>
     </SideMenu>
   );
 };
