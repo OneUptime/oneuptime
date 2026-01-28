@@ -30,40 +30,52 @@ export default class BillingAPI {
       `/billing/webhook`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
+          logger.debug(`[Invoice Email] Webhook endpoint hit - /billing/webhook`);
+
           if (!IsBillingEnabled) {
+            logger.debug(`[Invoice Email] Billing not enabled, returning early`);
             return Response.sendJsonObjectResponse(req, res, {
               message: "Billing is not enabled",
             });
           }
 
           if (!BillingWebhookSecret) {
+            logger.error(`[Invoice Email] Billing webhook secret is not configured`);
             throw new BadDataException(
               "Billing webhook secret is not configured",
             );
           }
 
           const signature = req.headers["stripe-signature"] as string;
+          logger.debug(`[Invoice Email] Stripe signature header present: ${!!signature}`);
 
           if (!signature) {
+            logger.error(`[Invoice Email] Missing Stripe signature header`);
             throw new BadDataException("Missing Stripe signature header");
           }
 
           const rawBody = (req as OneUptimeRequest).rawBody;
+          logger.debug(`[Invoice Email] Raw body present: ${!!rawBody}, length: ${rawBody?.length || 0}`);
 
           if (!rawBody) {
+            logger.error(`[Invoice Email] Missing raw body for webhook verification`);
             throw new BadDataException("Missing raw body for webhook verification");
           }
 
+          logger.debug(`[Invoice Email] Verifying webhook signature...`);
           const event = BillingService.verifyWebhookSignature(rawBody, signature);
+          logger.debug(`[Invoice Email] Webhook signature verified successfully, event type: ${event.type}`);
 
           // Handle the event asynchronously
+          logger.debug(`[Invoice Email] Handling webhook event...`);
           await BillingService.handleWebhookEvent(event);
+          logger.debug(`[Invoice Email] Webhook event handled successfully`);
 
           return Response.sendJsonObjectResponse(req, res, {
             received: true,
           });
         } catch (err) {
-          logger.error("Stripe webhook error: " + err);
+          logger.error(`[Invoice Email] Stripe webhook error: ${err}`);
           next(err);
         }
       },
