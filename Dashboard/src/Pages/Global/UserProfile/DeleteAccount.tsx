@@ -22,14 +22,17 @@ import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
-const DeleteAccount: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const DeleteAccount: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [projects, setProjects] = useState<Array<Project>>([]);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
-  const [showDeleteErrorModal, setShowDeleteErrorModal] = useState<boolean>(false);
+  const [showDeleteErrorModal, setShowDeleteErrorModal] =
+    useState<boolean>(false);
 
   const userId: ObjectID = UserUtil.getUserId();
 

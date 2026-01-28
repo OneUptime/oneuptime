@@ -283,8 +283,12 @@ export class ProjectService extends DatabaseService<Model> {
         updateBy.data.financeAccountingEmail ||
         updateBy.data.sendInvoicesByEmail !== undefined
       ) {
-        logger.debug(`[Invoice Email] ProjectService.onBeforeUpdate - syncing billing details to Stripe`);
-        logger.debug(`[Invoice Email] Fields being updated - businessDetails: ${!!updateBy.data.businessDetails}, businessDetailsCountry: ${!!updateBy.data.businessDetailsCountry}, financeAccountingEmail: ${!!updateBy.data.financeAccountingEmail}, sendInvoicesByEmail: ${updateBy.data.sendInvoicesByEmail}`);
+        logger.debug(
+          `[Invoice Email] ProjectService.onBeforeUpdate - syncing billing details to Stripe`,
+        );
+        logger.debug(
+          `[Invoice Email] Fields being updated - businessDetails: ${Boolean(updateBy.data.businessDetails)}, businessDetailsCountry: ${Boolean(updateBy.data.businessDetailsCountry)}, financeAccountingEmail: ${Boolean(updateBy.data.financeAccountingEmail)}, sendInvoicesByEmail: ${updateBy.data.sendInvoicesByEmail}`,
+        );
 
         // Sync to Stripe.
         const project: Model | null = await this.findOneById({
@@ -297,15 +301,20 @@ export class ProjectService extends DatabaseService<Model> {
           props: { isRoot: true },
         });
 
-        logger.debug(`[Invoice Email] Project found - paymentProviderCustomerId: ${project?.paymentProviderCustomerId}, existing sendInvoicesByEmail: ${(project as any)?.sendInvoicesByEmail}`);
+        logger.debug(
+          `[Invoice Email] Project found - paymentProviderCustomerId: ${project?.paymentProviderCustomerId}, existing sendInvoicesByEmail: ${(project as any)?.sendInvoicesByEmail}`,
+        );
 
         if (project?.paymentProviderCustomerId) {
           try {
-            const sendInvoicesByEmailValue = updateBy.data.sendInvoicesByEmail !== undefined
-              ? (updateBy.data.sendInvoicesByEmail as boolean)
-              : (project as any).sendInvoicesByEmail || null;
+            const sendInvoicesByEmailValue =
+              updateBy.data.sendInvoicesByEmail !== undefined
+                ? (updateBy.data.sendInvoicesByEmail as boolean)
+                : (project as any).sendInvoicesByEmail || null;
 
-            logger.debug(`[Invoice Email] Calling BillingService.updateCustomerBusinessDetails with sendInvoicesByEmail: ${sendInvoicesByEmailValue}`);
+            logger.debug(
+              `[Invoice Email] Calling BillingService.updateCustomerBusinessDetails with sendInvoicesByEmail: ${sendInvoicesByEmailValue}`,
+            );
 
             await BillingService.updateCustomerBusinessDetails(
               project.paymentProviderCustomerId,
@@ -317,14 +326,18 @@ export class ProjectService extends DatabaseService<Model> {
               sendInvoicesByEmailValue,
             );
 
-            logger.debug(`[Invoice Email] Successfully synced billing details to Stripe for customer ${project.paymentProviderCustomerId}`);
+            logger.debug(
+              `[Invoice Email] Successfully synced billing details to Stripe for customer ${project.paymentProviderCustomerId}`,
+            );
           } catch (err) {
             logger.error(
               `[Invoice Email] Failed to update Stripe customer business details: ${err}`,
             );
           }
         } else {
-          logger.debug(`[Invoice Email] No paymentProviderCustomerId found, skipping Stripe sync`);
+          logger.debug(
+            `[Invoice Email] No paymentProviderCustomerId found, skipping Stripe sync`,
+          );
         }
       }
       if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {

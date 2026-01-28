@@ -1,4 +1,9 @@
-import { BillingPrivateKey, BillingWebhookSecret, IsBillingEnabled, DashboardClientUrl } from "../EnvironmentConfig";
+import {
+  BillingPrivateKey,
+  BillingWebhookSecret,
+  IsBillingEnabled,
+  DashboardClientUrl,
+} from "../EnvironmentConfig";
 import Project from "../../Models/DatabaseModels/Project";
 import ServerMeteredPlan from "../Types/Billing/MeteredPlan/ServerMeteredPlan";
 import Errors from "../Utils/Errors";
@@ -91,10 +96,14 @@ export class BillingService extends BaseService {
     financeAccountingEmail?: string | null,
     sendInvoicesByEmail?: boolean | null,
   ): Promise<void> {
-    logger.debug(`[Invoice Email] updateCustomerBusinessDetails called - customerId: ${id}, sendInvoicesByEmail: ${sendInvoicesByEmail}`);
+    logger.debug(
+      `[Invoice Email] updateCustomerBusinessDetails called - customerId: ${id}, sendInvoicesByEmail: ${sendInvoicesByEmail}`,
+    );
 
     if (!this.isBillingEnabled()) {
-      logger.debug(`[Invoice Email] Billing not enabled, skipping updateCustomerBusinessDetails for customer ${id}`);
+      logger.debug(
+        `[Invoice Email] Billing not enabled, skipping updateCustomerBusinessDetails for customer ${id}`,
+      );
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
     }
     /*
@@ -141,8 +150,12 @@ export class BillingService extends BaseService {
       metadata["finance_accounting_email"] = "";
     }
     if (sendInvoicesByEmail !== undefined && sendInvoicesByEmail !== null) {
-      metadata["send_invoices_by_email"] = sendInvoicesByEmail ? "true" : "false";
-      logger.debug(`[Invoice Email] Setting send_invoices_by_email metadata to "${metadata["send_invoices_by_email"]}" for customer ${id}`);
+      metadata["send_invoices_by_email"] = sendInvoicesByEmail
+        ? "true"
+        : "false";
+      logger.debug(
+        `[Invoice Email] Setting send_invoices_by_email metadata to "${metadata["send_invoices_by_email"]}" for customer ${id}`,
+      );
     }
 
     const updateParams: Stripe.CustomerUpdateParams = {
@@ -180,7 +193,9 @@ export class BillingService extends BaseService {
       } as any;
     }
 
-    logger.debug(`[Invoice Email] Updating Stripe customer ${id} with metadata: ${JSON.stringify(metadata)}`);
+    logger.debug(
+      `[Invoice Email] Updating Stripe customer ${id} with metadata: ${JSON.stringify(metadata)}`,
+    );
     await this.stripe.customers.update(id, updateParams);
     logger.debug(`[Invoice Email] Successfully updated Stripe customer ${id}`);
   }
@@ -943,20 +958,28 @@ export class BillingService extends BaseService {
     recipientEmail?: Email,
     projectId?: ObjectID,
   ): Promise<void> {
-    logger.debug(`[Invoice Email] sendInvoiceByEmail called for invoice: ${invoiceId}, recipientEmail: ${recipientEmail?.toString()}`);
+    logger.debug(
+      `[Invoice Email] sendInvoiceByEmail called for invoice: ${invoiceId}, recipientEmail: ${recipientEmail?.toString()}`,
+    );
 
     if (!this.isBillingEnabled()) {
-      logger.debug(`[Invoice Email] Billing not enabled, skipping send for invoice: ${invoiceId}`);
+      logger.debug(
+        `[Invoice Email] Billing not enabled, skipping send for invoice: ${invoiceId}`,
+      );
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
     }
 
     try {
       // Fetch invoice details from Stripe
-      logger.debug(`[Invoice Email] Fetching invoice ${invoiceId} details from Stripe`);
+      logger.debug(
+        `[Invoice Email] Fetching invoice ${invoiceId} details from Stripe`,
+      );
       const stripeInvoice = await this.stripe.invoices.retrieve(invoiceId);
 
       if (!stripeInvoice) {
-        logger.error(`[Invoice Email] Invoice ${invoiceId} not found in Stripe`);
+        logger.error(
+          `[Invoice Email] Invoice ${invoiceId} not found in Stripe`,
+        );
         return;
       }
 
@@ -967,16 +990,22 @@ export class BillingService extends BaseService {
       }
 
       if (!toEmail) {
-        logger.error(`[Invoice Email] No recipient email found for invoice ${invoiceId}`);
+        logger.error(
+          `[Invoice Email] No recipient email found for invoice ${invoiceId}`,
+        );
         return;
       }
 
       // Format invoice data for email
       const invoiceNumber = stripeInvoice.number || invoiceId;
       const invoiceDate = stripeInvoice.created
-        ? OneUptimeDate.getDateAsFormattedString(new Date(stripeInvoice.created * 1000))
-        : OneUptimeDate.getDateAsFormattedString(OneUptimeDate.getCurrentDate());
-      const amount = `${(stripeInvoice.amount_due / 100).toFixed(2)} ${stripeInvoice.currency?.toUpperCase() || 'USD'}`;
+        ? OneUptimeDate.getDateAsFormattedString(
+            new Date(stripeInvoice.created * 1000),
+          )
+        : OneUptimeDate.getDateAsFormattedString(
+            OneUptimeDate.getCurrentDate(),
+          );
+      const amount = `${(stripeInvoice.amount_due / 100).toFixed(2)} ${stripeInvoice.currency?.toUpperCase() || "USD"}`;
       const invoicePdfUrl = stripeInvoice.invoice_pdf || undefined;
       const description = stripeInvoice.description || undefined;
 
@@ -986,7 +1015,9 @@ export class BillingService extends BaseService {
         dashboardLink = `${DashboardClientUrl.toString()}/dashboard/${projectId.toString()}/settings/billing`;
       }
 
-      logger.debug(`[Invoice Email] Sending invoice email to ${toEmail.toString()} - Invoice #${invoiceNumber}, Amount: ${amount}`);
+      logger.debug(
+        `[Invoice Email] Sending invoice email to ${toEmail.toString()} - Invoice #${invoiceNumber}, Amount: ${amount}`,
+      );
 
       // Send email via OneUptime MailService
       await MailService.sendMail(
@@ -997,9 +1028,9 @@ export class BillingService extends BaseService {
             invoiceNumber: invoiceNumber,
             invoiceDate: invoiceDate,
             amount: amount,
-            description: description || '',
-            invoicePdfUrl: invoicePdfUrl || '',
-            dashboardLink: dashboardLink || '',
+            description: description || "",
+            invoicePdfUrl: invoicePdfUrl || "",
+            dashboardLink: dashboardLink || "",
           },
           subject: `Invoice #${invoiceNumber} from OneUptime`,
         },
@@ -1008,38 +1039,56 @@ export class BillingService extends BaseService {
         },
       );
 
-      logger.debug(`[Invoice Email] Successfully sent invoice ${invoiceId} email to ${toEmail.toString()}`);
+      logger.debug(
+        `[Invoice Email] Successfully sent invoice ${invoiceId} email to ${toEmail.toString()}`,
+      );
     } catch (err) {
-      logger.error(`[Invoice Email] Failed to send invoice ${invoiceId} by email: ${err}`);
+      logger.error(
+        `[Invoice Email] Failed to send invoice ${invoiceId} by email: ${err}`,
+      );
       // Don't throw - sending email is not critical
     }
   }
 
   @CaptureSpan()
   public async shouldSendInvoicesByEmail(customerId: string): Promise<boolean> {
-    logger.debug(`[Invoice Email] shouldSendInvoicesByEmail called for customer: ${customerId}`);
+    logger.debug(
+      `[Invoice Email] shouldSendInvoicesByEmail called for customer: ${customerId}`,
+    );
 
     if (!this.isBillingEnabled()) {
-      logger.debug(`[Invoice Email] Billing not enabled, returning false for customer: ${customerId}`);
+      logger.debug(
+        `[Invoice Email] Billing not enabled, returning false for customer: ${customerId}`,
+      );
       return false;
     }
 
     try {
-      logger.debug(`[Invoice Email] Retrieving customer ${customerId} from Stripe to check preference`);
-      const customer: Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer> =
-        await this.stripe.customers.retrieve(customerId);
+      logger.debug(
+        `[Invoice Email] Retrieving customer ${customerId} from Stripe to check preference`,
+      );
+      const customer: Stripe.Response<
+        Stripe.Customer | Stripe.DeletedCustomer
+      > = await this.stripe.customers.retrieve(customerId);
 
       if (!customer || customer.deleted) {
-        logger.debug(`[Invoice Email] Customer ${customerId} not found or deleted, returning false`);
+        logger.debug(
+          `[Invoice Email] Customer ${customerId} not found or deleted, returning false`,
+        );
         return false;
       }
 
       const metadata = (customer as Stripe.Customer).metadata;
-      const sendInvoicesByEmail = metadata?.["send_invoices_by_email"] === "true";
-      logger.debug(`[Invoice Email] Customer ${customerId} metadata.send_invoices_by_email = "${metadata?.["send_invoices_by_email"]}", result: ${sendInvoicesByEmail}`);
+      const sendInvoicesByEmail =
+        metadata?.["send_invoices_by_email"] === "true";
+      logger.debug(
+        `[Invoice Email] Customer ${customerId} metadata.send_invoices_by_email = "${metadata?.["send_invoices_by_email"]}", result: ${sendInvoicesByEmail}`,
+      );
       return sendInvoicesByEmail;
     } catch (err) {
-      logger.error(`[Invoice Email] Failed to check invoice email preference for customer ${customerId}: ${err}`);
+      logger.error(
+        `[Invoice Email] Failed to check invoice email preference for customer ${customerId}: ${err}`,
+      );
       return false;
     }
   }
@@ -1059,7 +1108,9 @@ export class BillingService extends BaseService {
     const recipientEmail = options?.recipientEmail;
     const projectId = options?.projectId;
 
-    logger.debug(`[Invoice Email] generateInvoiceAndChargeCustomer called - customer: ${customerId}, amount: $${amountInUsd}, sendInvoiceByEmail: ${sendInvoiceByEmail}, recipientEmail: ${recipientEmail?.toString()}, projectId: ${projectId?.toString()}`);
+    logger.debug(
+      `[Invoice Email] generateInvoiceAndChargeCustomer called - customer: ${customerId}, amount: $${amountInUsd}, sendInvoiceByEmail: ${sendInvoiceByEmail}, recipientEmail: ${recipientEmail?.toString()}, projectId: ${projectId?.toString()}`,
+    );
 
     const invoice: Stripe.Invoice = await this.stripe.invoices.create({
       customer: customerId,
@@ -1068,11 +1119,15 @@ export class BillingService extends BaseService {
     });
 
     if (!invoice || !invoice.id) {
-      logger.error(`[Invoice Email] Failed to create invoice for customer ${customerId}`);
+      logger.error(
+        `[Invoice Email] Failed to create invoice for customer ${customerId}`,
+      );
       throw new APIException(Errors.BillingService.INVOICE_NOT_GENERATED);
     }
 
-    logger.debug(`[Invoice Email] Created invoice ${invoice.id} for customer ${customerId}`);
+    logger.debug(
+      `[Invoice Email] Created invoice ${invoice.id} for customer ${customerId}`,
+    );
 
     await this.stripe.invoiceItems.create({
       invoice: invoice.id,
@@ -1081,7 +1136,9 @@ export class BillingService extends BaseService {
       customer: customerId,
     });
 
-    logger.debug(`[Invoice Email] Added invoice item to invoice ${invoice.id}: ${itemText}, $${amountInUsd}`);
+    logger.debug(
+      `[Invoice Email] Added invoice item to invoice ${invoice.id}: ${itemText}, $${amountInUsd}`,
+    );
 
     await this.stripe.invoices.finalizeInvoice(invoice.id!);
     logger.debug(`[Invoice Email] Finalized invoice ${invoice.id}`);
@@ -1092,13 +1149,19 @@ export class BillingService extends BaseService {
 
       // Send invoice by email if requested
       if (sendInvoiceByEmail) {
-        logger.debug(`[Invoice Email] sendInvoiceByEmail is true, sending invoice ${invoice.id} by email`);
+        logger.debug(
+          `[Invoice Email] sendInvoiceByEmail is true, sending invoice ${invoice.id} by email`,
+        );
         await this.sendInvoiceByEmail(invoice.id!, recipientEmail, projectId);
       } else {
-        logger.debug(`[Invoice Email] sendInvoiceByEmail is false, skipping email for invoice ${invoice.id}`);
+        logger.debug(
+          `[Invoice Email] sendInvoiceByEmail is false, skipping email for invoice ${invoice.id}`,
+        );
       }
     } catch (err) {
-      logger.error(`[Invoice Email] Failed to pay invoice ${invoice.id}, voiding: ${err}`);
+      logger.error(
+        `[Invoice Email] Failed to pay invoice ${invoice.id}, voiding: ${err}`,
+      );
       // mark invoice as failed and do not collect payment.
       await this.voidInvoice(invoice.id!);
       throw err;
@@ -1195,49 +1258,70 @@ export class BillingService extends BaseService {
       throw new BadDataException("Billing webhook secret is not configured");
     }
 
-    logger.debug(`[Invoice Email] Verifying webhook signature with secret (length: ${BillingWebhookSecret.length})`);
+    logger.debug(
+      `[Invoice Email] Verifying webhook signature with secret (length: ${BillingWebhookSecret.length})`,
+    );
     const event = this.stripe.webhooks.constructEvent(
       payload,
       signature,
       BillingWebhookSecret,
     );
-    logger.debug(`[Invoice Email] Webhook signature verified, event type: ${event.type}, event id: ${event.id}`);
+    logger.debug(
+      `[Invoice Email] Webhook signature verified, event type: ${event.type}, event id: ${event.id}`,
+    );
     return event;
   }
 
   @CaptureSpan()
   public async handleWebhookEvent(event: Stripe.Event): Promise<void> {
-    logger.debug(`[Invoice Email] handleWebhookEvent called - event type: ${event.type}, event id: ${event.id}`);
+    logger.debug(
+      `[Invoice Email] handleWebhookEvent called - event type: ${event.type}, event id: ${event.id}`,
+    );
 
     if (!this.isBillingEnabled()) {
-      logger.debug(`[Invoice Email] Billing not enabled, ignoring webhook event ${event.id}`);
+      logger.debug(
+        `[Invoice Email] Billing not enabled, ignoring webhook event ${event.id}`,
+      );
       return;
     }
 
     // Handle invoice.finalized event to send invoice by email if customer has opted in
     if (event.type === "invoice.finalized") {
-      logger.debug(`[Invoice Email] Processing invoice.finalized event ${event.id}`);
+      logger.debug(
+        `[Invoice Email] Processing invoice.finalized event ${event.id}`,
+      );
       const invoice = event.data.object as Stripe.Invoice;
 
-      logger.debug(`[Invoice Email] Invoice details - id: ${invoice.id}, number: ${invoice.number}, customer: ${invoice.customer}, status: ${invoice.status}`);
+      logger.debug(
+        `[Invoice Email] Invoice details - id: ${invoice.id}, number: ${invoice.number}, customer: ${invoice.customer}, status: ${invoice.status}`,
+      );
 
       if (!invoice.customer) {
-        logger.debug(`[Invoice Email] No customer on invoice ${invoice.id}, skipping`);
+        logger.debug(
+          `[Invoice Email] No customer on invoice ${invoice.id}, skipping`,
+        );
         return;
       }
 
-      const customerId = typeof invoice.customer === "string"
-        ? invoice.customer
-        : invoice.customer.id;
+      const customerId =
+        typeof invoice.customer === "string"
+          ? invoice.customer
+          : invoice.customer.id;
 
-      logger.debug(`[Invoice Email] Extracted customer ID: ${customerId} from invoice ${invoice.id}`);
+      logger.debug(
+        `[Invoice Email] Extracted customer ID: ${customerId} from invoice ${invoice.id}`,
+      );
 
       try {
-        logger.debug(`[Invoice Email] Checking if customer ${customerId} has invoice emails enabled`);
+        logger.debug(
+          `[Invoice Email] Checking if customer ${customerId} has invoice emails enabled`,
+        );
         const shouldSend = await this.shouldSendInvoicesByEmail(customerId);
 
         if (shouldSend && invoice.id) {
-          logger.debug(`[Invoice Email] Customer ${customerId} has invoice emails enabled, looking up project`);
+          logger.debug(
+            `[Invoice Email] Customer ${customerId} has invoice emails enabled, looking up project`,
+          );
 
           // Lazy import to avoid circular dependency
           const { default: ProjectService } = await import("./ProjectService");
@@ -1264,23 +1348,37 @@ export class BillingService extends BaseService {
             if (project.financeAccountingEmail) {
               recipientEmail = new Email(project.financeAccountingEmail);
             }
-            logger.debug(`[Invoice Email] Found project ${projectId?.toString()}, financeAccountingEmail: ${recipientEmail?.toString()}`);
+            logger.debug(
+              `[Invoice Email] Found project ${projectId?.toString()}, financeAccountingEmail: ${recipientEmail?.toString()}`,
+            );
           } else {
-            logger.debug(`[Invoice Email] No project found for customer ${customerId}, will use Stripe customer email`);
+            logger.debug(
+              `[Invoice Email] No project found for customer ${customerId}, will use Stripe customer email`,
+            );
           }
 
-          logger.debug(`[Invoice Email] Sending invoice ${invoice.id} by email`);
+          logger.debug(
+            `[Invoice Email] Sending invoice ${invoice.id} by email`,
+          );
           await this.sendInvoiceByEmail(invoice.id, recipientEmail, projectId);
-          logger.debug(`[Invoice Email] Successfully processed invoice.finalized - sent invoice ${invoice.id} by email`);
+          logger.debug(
+            `[Invoice Email] Successfully processed invoice.finalized - sent invoice ${invoice.id} by email`,
+          );
         } else {
-          logger.debug(`[Invoice Email] Customer ${customerId} has invoice emails disabled (shouldSend: ${shouldSend}), skipping email for invoice ${invoice.id}`);
+          logger.debug(
+            `[Invoice Email] Customer ${customerId} has invoice emails disabled (shouldSend: ${shouldSend}), skipping email for invoice ${invoice.id}`,
+          );
         }
       } catch (err) {
-        logger.error(`[Invoice Email] Failed to send invoice by email for invoice ${invoice.id}: ${err}`);
+        logger.error(
+          `[Invoice Email] Failed to send invoice by email for invoice ${invoice.id}: ${err}`,
+        );
         // Don't throw - webhook should still return success
       }
     } else {
-      logger.debug(`[Invoice Email] Ignoring event type ${event.type}, not invoice.finalized`);
+      logger.debug(
+        `[Invoice Email] Ignoring event type ${event.type}, not invoice.finalized`,
+      );
     }
   }
 }

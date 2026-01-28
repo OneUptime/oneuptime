@@ -2,14 +2,13 @@ import { BillingWebhookSecret, IsBillingEnabled } from "../EnvironmentConfig";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import BillingService from "../Services/BillingService";
 import ProjectService from "../Services/ProjectService";
-import {
+import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
-import Express from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Permission, { UserPermission } from "../../Types/Permission";
@@ -30,41 +29,60 @@ export default class BillingAPI {
       `/billing/webhook`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          logger.debug(`[Invoice Email] Webhook endpoint hit - /billing/webhook`);
+          logger.debug(
+            `[Invoice Email] Webhook endpoint hit - /billing/webhook`,
+          );
 
           if (!IsBillingEnabled) {
-            logger.debug(`[Invoice Email] Billing not enabled, returning early`);
+            logger.debug(
+              `[Invoice Email] Billing not enabled, returning early`,
+            );
             return Response.sendJsonObjectResponse(req, res, {
               message: "Billing is not enabled",
             });
           }
 
           if (!BillingWebhookSecret) {
-            logger.error(`[Invoice Email] Billing webhook secret is not configured`);
+            logger.error(
+              `[Invoice Email] Billing webhook secret is not configured`,
+            );
             throw new BadDataException(
               "Billing webhook secret is not configured",
             );
           }
 
-          const signature = req.headers["stripe-signature"] as string;
-          logger.debug(`[Invoice Email] Stripe signature header present: ${!!signature}`);
+          const signature: string = req.headers["stripe-signature"] as string;
+          logger.debug(
+            `[Invoice Email] Stripe signature header present: ${Boolean(signature)}`,
+          );
 
           if (!signature) {
             logger.error(`[Invoice Email] Missing Stripe signature header`);
             throw new BadDataException("Missing Stripe signature header");
           }
 
-          const rawBody = (req as OneUptimeRequest).rawBody;
-          logger.debug(`[Invoice Email] Raw body present: ${!!rawBody}, length: ${rawBody?.length || 0}`);
+          const rawBody: string | undefined = (req as OneUptimeRequest).rawBody;
+          logger.debug(
+            `[Invoice Email] Raw body present: ${Boolean(rawBody)}, length: ${rawBody?.length || 0}`,
+          );
 
           if (!rawBody) {
-            logger.error(`[Invoice Email] Missing raw body for webhook verification`);
-            throw new BadDataException("Missing raw body for webhook verification");
+            logger.error(
+              `[Invoice Email] Missing raw body for webhook verification`,
+            );
+            throw new BadDataException(
+              "Missing raw body for webhook verification",
+            );
           }
 
           logger.debug(`[Invoice Email] Verifying webhook signature...`);
-          const event = BillingService.verifyWebhookSignature(rawBody, signature);
-          logger.debug(`[Invoice Email] Webhook signature verified successfully, event type: ${event.type}`);
+          const event: Stripe.Event = BillingService.verifyWebhookSignature(
+            rawBody,
+            signature,
+          );
+          logger.debug(
+            `[Invoice Email] Webhook signature verified successfully, event type: ${event.type}`,
+          );
 
           // Handle the event asynchronously
           logger.debug(`[Invoice Email] Handling webhook event...`);
