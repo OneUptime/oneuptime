@@ -165,6 +165,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   // Incident Episodes
   [PageMap.INCIDENT_EPISODES]: "episodes",
   [PageMap.UNRESOLVED_INCIDENT_EPISODES]: "episodes/unresolved",
+  [PageMap.INCIDENT_EPISODE_CREATE]: "episodes/create",
   [PageMap.INCIDENT_EPISODE_VIEW]: `episodes/${RouteParams.ModelID}`,
   [PageMap.INCIDENT_EPISODE_VIEW_DELETE]: `episodes/${RouteParams.ModelID}/delete`,
   [PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION]: `episodes/${RouteParams.ModelID}/description`,
@@ -814,6 +815,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.UNRESOLVED_INCIDENT_EPISODES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENT_EPISODES]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_CREATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_CREATE]
     }`,
   ),
 

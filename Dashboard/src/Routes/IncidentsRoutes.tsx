@@ -256,12 +256,24 @@ const IncidentEpisodeViewInternalNote: LazyExoticComponent<
   return import("../Pages/Incidents/EpisodeView/InternalNote");
 });
 
+const IncidentEpisodeCreate: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeCreate");
+});
+
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   let hideSideMenu: boolean = false;
 
   if (Navigation.isOnThisPage(RouteMap[PageMap.INCIDENT_CREATE] as Route)) {
+    hideSideMenu = true;
+  }
+
+  if (
+    Navigation.isOnThisPage(RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route)
+  ) {
     hideSideMenu = true;
   }
 
@@ -517,6 +529,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.UNRESOLVED_INCIDENT_EPISODES] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_CREATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route}
               />
             </Suspense>
           }

@@ -948,6 +948,107 @@ export class Service extends DatabaseService<Model> {
       },
     );
   }
+
+  @CaptureSpan()
+  public async isEpisodeResolved(episodeId: ObjectID): Promise<boolean> {
+    const episode: Model | null = await this.findOneById({
+      id: episodeId,
+      select: {
+        projectId: true,
+        currentIncidentState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!episode || !episode.projectId) {
+      throw new BadDataException("Episode not found.");
+    }
+
+    const resolvedState: IncidentState =
+      await IncidentStateService.getResolvedIncidentState({
+        projectId: episode.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentOrder: number = episode.currentIncidentState?.order || 0;
+    const resolvedOrder: number = resolvedState.order || 0;
+
+    return currentOrder >= resolvedOrder;
+  }
+
+  @CaptureSpan()
+  public async isEpisodeAcknowledged(data: {
+    episodeId: ObjectID;
+  }): Promise<boolean> {
+    const episode: Model | null = await this.findOneById({
+      id: data.episodeId,
+      select: {
+        projectId: true,
+        currentIncidentState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!episode || !episode.projectId) {
+      throw new BadDataException("Episode not found.");
+    }
+
+    const acknowledgedState: IncidentState =
+      await IncidentStateService.getAcknowledgedIncidentState({
+        projectId: episode.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentOrder: number = episode.currentIncidentState?.order || 0;
+    const acknowledgedOrder: number = acknowledgedState.order || 0;
+
+    return currentOrder >= acknowledgedOrder;
+  }
+
+  @CaptureSpan()
+  public async getEpisodeLinkInDashboard(
+    projectId: ObjectID,
+    episodeId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/incidents/episodes/${episodeId.toString()}`,
+    );
+  }
+
+  @CaptureSpan()
+  public async getEpisodeNumber(data: {
+    episodeId: ObjectID;
+  }): Promise<number | null> {
+    const episode: Model | null = await this.findOneById({
+      id: data.episodeId,
+      select: {
+        episodeNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!episode) {
+      throw new BadDataException("Episode not found.");
+    }
+
+    return episode.episodeNumber ? Number(episode.episodeNumber) : null;
+  }
 }
 
 export default new Service();

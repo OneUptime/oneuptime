@@ -1,6 +1,7 @@
 import Incident from "./Incident";
 import Alert from "./Alert";
 import AlertEpisode from "./AlertEpisode";
+import IncidentEpisode from "./IncidentEpisode";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "./OnCallDutyPolicyExecutionLog";
@@ -437,6 +438,54 @@ export default class UserOnCallLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByAlertEpisodeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "triggeredByIncidentEpisodeId",
+    type: TableColumnType.Entity,
+    modelType: IncidentEpisode,
+    title: "Incident Episode",
+    description:
+      "Relation to Incident Episode Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentEpisode;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "triggeredByIncidentEpisodeId" })
+  public triggeredByIncidentEpisode?: IncidentEpisode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Incident Episode ID",
+    description:
+      "ID of your OneUptime Incident Episode in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByIncidentEpisodeId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
