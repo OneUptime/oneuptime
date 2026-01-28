@@ -977,7 +977,6 @@ export class BillingService extends BaseService {
         ? OneUptimeDate.getDateAsFormattedString(new Date(stripeInvoice.created * 1000))
         : OneUptimeDate.getDateAsFormattedString(OneUptimeDate.getCurrentDate());
       const amount = `${(stripeInvoice.amount_due / 100).toFixed(2)} ${stripeInvoice.currency?.toUpperCase() || 'USD'}`;
-      const status = stripeInvoice.status || 'unknown';
       const invoicePdfUrl = stripeInvoice.invoice_pdf || undefined;
       const description = stripeInvoice.description || undefined;
 
@@ -998,7 +997,6 @@ export class BillingService extends BaseService {
             invoiceNumber: invoiceNumber,
             invoiceDate: invoiceDate,
             amount: amount,
-            status: status,
             description: description || '',
             invoicePdfUrl: invoicePdfUrl || '',
             dashboardLink: dashboardLink || '',
