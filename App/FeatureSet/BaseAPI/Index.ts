@@ -128,6 +128,30 @@ import AlertEpisodeOwnerUserService, {
 import AlertEpisodeStateTimelineService, {
   Service as AlertEpisodeStateTimelineServiceType,
 } from "Common/Server/Services/AlertEpisodeStateTimelineService";
+
+// IncidentEpisode Services
+import IncidentEpisodeService, {
+  Service as IncidentEpisodeServiceType,
+} from "Common/Server/Services/IncidentEpisodeService";
+import IncidentEpisodeFeedService, {
+  Service as IncidentEpisodeFeedServiceType,
+} from "Common/Server/Services/IncidentEpisodeFeedService";
+import IncidentEpisodeInternalNoteService, {
+  Service as IncidentEpisodeInternalNoteServiceType,
+} from "Common/Server/Services/IncidentEpisodeInternalNoteService";
+import IncidentEpisodeMemberService, {
+  Service as IncidentEpisodeMemberServiceType,
+} from "Common/Server/Services/IncidentEpisodeMemberService";
+import IncidentEpisodeOwnerTeamService, {
+  Service as IncidentEpisodeOwnerTeamServiceType,
+} from "Common/Server/Services/IncidentEpisodeOwnerTeamService";
+import IncidentEpisodeOwnerUserService, {
+  Service as IncidentEpisodeOwnerUserServiceType,
+} from "Common/Server/Services/IncidentEpisodeOwnerUserService";
+import IncidentEpisodeStateTimelineService, {
+  Service as IncidentEpisodeStateTimelineServiceType,
+} from "Common/Server/Services/IncidentEpisodeStateTimelineService";
+
 import AlertGroupingRuleService, {
   Service as AlertGroupingRuleServiceType,
 } from "Common/Server/Services/AlertGroupingRuleService";
@@ -457,6 +481,15 @@ import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwne
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
+
+// IncidentEpisode Models
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
+import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEpisodeInternalNote";
+import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
+import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
 
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
@@ -998,6 +1031,69 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         AlertEpisodeStateTimeline,
         AlertEpisodeStateTimelineService,
+      ).getRouter(),
+    );
+
+    // IncidentEpisode Routes
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentEpisode, IncidentEpisodeServiceType>(
+        IncidentEpisode,
+        IncidentEpisodeService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentEpisodeFeed, IncidentEpisodeFeedServiceType>(
+        IncidentEpisodeFeed,
+        IncidentEpisodeFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeInternalNote,
+        IncidentEpisodeInternalNoteServiceType
+      >(
+        IncidentEpisodeInternalNote,
+        IncidentEpisodeInternalNoteService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentEpisodeMember, IncidentEpisodeMemberServiceType>(
+        IncidentEpisodeMember,
+        IncidentEpisodeMemberService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeOwnerTeam,
+        IncidentEpisodeOwnerTeamServiceType
+      >(IncidentEpisodeOwnerTeam, IncidentEpisodeOwnerTeamService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeOwnerUser,
+        IncidentEpisodeOwnerUserServiceType
+      >(IncidentEpisodeOwnerUser, IncidentEpisodeOwnerUserService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeStateTimeline,
+        IncidentEpisodeStateTimelineServiceType
+      >(
+        IncidentEpisodeStateTimeline,
+        IncidentEpisodeStateTimelineService,
       ).getRouter(),
     );
 

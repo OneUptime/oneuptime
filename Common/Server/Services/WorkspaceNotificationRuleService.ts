@@ -50,6 +50,8 @@ import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
+import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeService from "./IncidentEpisodeService";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -60,6 +62,7 @@ export interface NotificationFor {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
   alertEpisodeId?: ObjectID | undefined;
+  incidentEpisodeId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   monitorId?: ObjectID | undefined;
   onCallDutyPolicyId?: ObjectID | undefined;
@@ -747,6 +750,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     if (notificationFor.incidentId) {
       return NotificationRuleEventType.Incident;
+    }
+
+    if (notificationFor.alertEpisodeId) {
+      return NotificationRuleEventType.AlertEpisode;
+    }
+
+    if (notificationFor.incidentEpisodeId) {
+      return NotificationRuleEventType.IncidentEpisode;
     }
 
     if (notificationFor.monitorId) {
@@ -1949,6 +1960,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
       };
     }
 
@@ -2031,6 +2048,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
       };
     }
 
@@ -2119,6 +2142,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
       };
     }
 
@@ -2185,6 +2214,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
       };
     }
 
@@ -2250,6 +2285,87 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
+      };
+    }
+
+    // Handle Incident Episode
+    if (data.notificationFor.incidentEpisodeId) {
+      logger.debug("Fetching incident episode details for ID:");
+      logger.debug(data.notificationFor.incidentEpisodeId);
+
+      const incidentEpisode: IncidentEpisode | null =
+        await IncidentEpisodeService.findOneById({
+          id: data.notificationFor.incidentEpisodeId,
+          select: {
+            title: true,
+            description: true,
+            incidentSeverity: true,
+            currentIncidentState: true,
+            labels: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!incidentEpisode) {
+        logger.debug("Incident Episode not found for ID:");
+        logger.debug(data.notificationFor.incidentEpisodeId);
+        throw new BadDataException("Incident Episode ID not found");
+      }
+
+      logger.debug("Incident Episode details retrieved:");
+      logger.debug(incidentEpisode);
+
+      return {
+        [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentState]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
+        [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertState]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
+          undefined,
+        [NotificationRuleConditionCheckOn.Monitors]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]:
+          incidentEpisode.title || "",
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          incidentEpisode.description || "",
+        [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]:
+          incidentEpisode.incidentSeverity?._id?.toString() || "",
+        [NotificationRuleConditionCheckOn.IncidentEpisodeState]:
+          incidentEpisode.currentIncidentState?._id?.toString() || "",
+        [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]:
+          incidentEpisode.labels?.map((label: Label) => {
+            return label._id?.toString() || "";
+          }) || [],
       };
     }
 

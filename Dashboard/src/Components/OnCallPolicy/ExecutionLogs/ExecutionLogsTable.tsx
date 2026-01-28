@@ -23,6 +23,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertView from "../../../Components/Alert/Alert";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeView from "../../../Components/AlertEpisode/AlertEpisode";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeView from "../../../Components/IncidentEpisode/IncidentEpisode";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 
@@ -31,6 +33,7 @@ export interface ComponentProps {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
   alertEpisodeId?: ObjectID | undefined;
+  incidentEpisodeId?: ObjectID | undefined;
 }
 
 const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
@@ -58,6 +61,10 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
 
   if (props.alertEpisodeId) {
     query.triggeredByAlertEpisodeId = props.alertEpisodeId;
+  }
+
+  if (props.incidentEpisodeId) {
+    query.triggeredByIncidentEpisodeId = props.incidentEpisodeId;
   }
 
   let columns: Columns<OnCallDutyPolicyExecutionLog> = [];
@@ -135,6 +142,9 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         triggeredByAlertEpisode: {
           title: true,
         },
+        triggeredByIncidentEpisode: {
+          title: true,
+        },
       },
       title: "Triggered By",
       type: FieldType.Element,
@@ -165,6 +175,19 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
               <p>Alert Episode:</p>
               <AlertEpisodeView
                 alertEpisode={item["triggeredByAlertEpisode"] as AlertEpisode}
+              />
+            </div>
+          );
+        }
+
+        if (item.triggeredByIncidentEpisode) {
+          return (
+            <div>
+              <p>Incident Episode:</p>
+              <IncidentEpisodeView
+                incidentEpisode={
+                  item["triggeredByIncidentEpisode"] as IncidentEpisode
+                }
               />
             </div>
           );
@@ -248,6 +271,9 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             title: true,
           },
           triggeredByAlertEpisode: {
+            title: true,
+          },
+          triggeredByIncidentEpisode: {
             title: true,
           },
         }}

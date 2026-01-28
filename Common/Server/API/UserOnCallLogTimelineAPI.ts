@@ -142,6 +142,11 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                   title: true,
                   description: true,
                 },
+                triggeredByIncidentEpisodeId: true,
+                triggeredByIncidentEpisode: {
+                  title: true,
+                  description: true,
+                },
               },
               props: {
                 isRoot: true,
@@ -158,12 +163,15 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
           const notificationType: string = timelineItem.triggeredByIncidentId
             ? "Incident"
-            : timelineItem.triggeredByAlertEpisodeId
-              ? "Alert Episode"
-              : "Alert";
+            : timelineItem.triggeredByIncidentEpisodeId
+              ? "Incident Episode"
+              : timelineItem.triggeredByAlertEpisodeId
+                ? "Alert Episode"
+                : "Alert";
 
           const notificationTitle: string =
             timelineItem.triggeredByIncident?.title ||
+            timelineItem.triggeredByIncidentEpisode?.title ||
             timelineItem.triggeredByAlertEpisode?.title ||
             timelineItem.triggeredByAlert?.title ||
             "";
@@ -222,6 +230,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 triggeredByIncidentId: true,
                 triggeredByAlertId: true,
                 triggeredByAlertEpisodeId: true,
+                triggeredByIncidentEpisodeId: true,
                 triggeredByAlert: {
                   title: true,
                 },
@@ -229,6 +238,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                   title: true,
                 },
                 triggeredByAlertEpisode: {
+                  title: true,
+                },
+                triggeredByIncidentEpisode: {
                   title: true,
                 },
                 acknowledgedAt: true,
@@ -267,10 +279,18 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 title: timelineItem.triggeredByIncident?.title || "",
               };
             }
+            if (timelineItem.triggeredByIncidentEpisodeId) {
+              return {
+                type: "Incident Episode",
+                path: "incidents/episodes",
+                id: timelineItem.triggeredByIncidentEpisodeId,
+                title: timelineItem.triggeredByIncidentEpisode?.title || "",
+              };
+            }
             if (timelineItem.triggeredByAlertEpisodeId) {
               return {
                 type: "Alert Episode",
-                path: "alert-episodes",
+                path: "alerts/episodes",
                 id: timelineItem.triggeredByAlertEpisodeId,
                 title: timelineItem.triggeredByAlertEpisode?.title || "",
               };

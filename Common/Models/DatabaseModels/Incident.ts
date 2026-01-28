@@ -1,3 +1,4 @@
+import IncidentEpisode from "./IncidentEpisode";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
 import Label from "./Label";
@@ -1520,4 +1521,79 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public isVisibleOnStatusPage?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentEpisodeId",
+    type: TableColumnType.Entity,
+    modelType: IncidentEpisode,
+    title: "Incident Episode",
+    description: "Relation to Incident Episode this incident belongs to",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentEpisode;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentEpisodeId" })
+  public incidentEpisode?: IncidentEpisode = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Incident Episode ID",
+    description: "ID of the Incident Episode this incident belongs to",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentEpisodeId?: ObjectID = undefined;
 }

@@ -19,10 +19,13 @@ import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
+import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
+import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import BadDataException from "../../Types/Exception/BadDataException";
 import IncidentService from "./IncidentService";
 import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
+import IncidentEpisodeService from "./IncidentEpisodeService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -61,7 +64,8 @@ export class Service extends DatabaseService<Model> {
     if (
       createdItem.triggeredByIncidentId ||
       createdItem.triggeredByAlertId ||
-      createdItem.triggeredByAlertEpisodeId
+      createdItem.triggeredByAlertEpisodeId ||
+      createdItem.triggeredByIncidentEpisodeId
     ) {
       const onCallPolicy: OnCallDutyPolicy | null =
         await OnCallDutyPolicyService.findOneById({
@@ -105,6 +109,14 @@ export class Service extends DatabaseService<Model> {
           incidentOrAlertLink = `[Alert Episode ${episodeNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertEpisodeId)).toString()})`;
         }
 
+        if (createdItem.triggeredByIncidentEpisodeId) {
+          const episodeNumber: number | null =
+            await IncidentEpisodeService.getEpisodeNumber({
+              episodeId: createdItem.triggeredByIncidentEpisodeId,
+            });
+          incidentOrAlertLink = `[Incident Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByIncidentEpisodeId)).toString()})`;
+        }
+
         const feedInfoInMarkdown: string = `**📞 On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing for ${incidentOrAlertLink}. Users on call on this policy will now be notified.`;
 
         if (
@@ -143,6 +155,21 @@ export class Service extends DatabaseService<Model> {
             alertEpisodeId: createdItem.triggeredByAlertEpisodeId,
             projectId: createdItem.projectId!,
             alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
+            displayColor: Yellow500,
+            feedInfoInMarkdown: feedInfoInMarkdown,
+          });
+        }
+
+        if (
+          onCallPolicy &&
+          onCallPolicy.id &&
+          createdItem.triggeredByIncidentEpisodeId
+        ) {
+          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+            incidentEpisodeId: createdItem.triggeredByIncidentEpisodeId,
+            projectId: createdItem.projectId!,
+            incidentEpisodeFeedEventType:
+              IncidentEpisodeFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
             feedInfoInMarkdown: feedInfoInMarkdown,
           });
@@ -193,6 +220,11 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertEpisodeCreated;
       }
 
+      if (createdItem.triggeredByIncidentEpisodeId) {
+        userNotificationEventType =
+          UserNotificationEventType.IncidentEpisodeCreated;
+      }
+
       if (!userNotificationEventType) {
         throw new BadDataException("Invalid userNotificationEventType");
       }
@@ -204,6 +236,8 @@ export class Service extends DatabaseService<Model> {
           triggeredByIncidentId: createdItem.triggeredByIncidentId,
           triggeredByAlertId: createdItem.triggeredByAlertId,
           triggeredByAlertEpisodeId: createdItem.triggeredByAlertEpisodeId,
+          triggeredByIncidentEpisodeId:
+            createdItem.triggeredByIncidentEpisodeId,
           userNotificationEventType: userNotificationEventType,
           onCallPolicyExecutionLogId: createdItem.id!,
           onCallPolicyId: createdItem.onCallDutyPolicyId!,
@@ -292,6 +326,7 @@ export class Service extends DatabaseService<Model> {
             triggeredByIncidentId: true,
             triggeredByAlertId: true,
             triggeredByAlertEpisodeId: true,
+            triggeredByIncidentEpisodeId: true,
           },
           props: {
             isRoot: true,
@@ -303,7 +338,8 @@ export class Service extends DatabaseService<Model> {
         onCalldutyPolicyExecutionLog &&
         (onCalldutyPolicyExecutionLog.triggeredByIncidentId ||
           onCalldutyPolicyExecutionLog.triggeredByAlertId ||
-          onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId)
+          onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId ||
+          onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId)
       ) {
         const onCallPolicy: OnCallDutyPolicy | null =
           await OnCallDutyPolicyService.findOneById({
@@ -354,6 +390,15 @@ export class Service extends DatabaseService<Model> {
             incidentOrAlertLink = `[Alert Episode ${episodeNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId)).toString()})`;
           }
 
+          if (onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId) {
+            const episodeNumber: number | null =
+              await IncidentEpisodeService.getEpisodeNumber({
+                episodeId:
+                  onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId,
+              });
+            incidentOrAlertLink = `[Incident Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId)).toString()})`;
+          }
+
           const feedInfoInMarkdown: string = `**${this.getEmojiByStatus(onCalldutyPolicyExecutionLog.status)} On Call Policy Status Updated for ${incidentOrAlertLink}:**
 
  On-call policy **[${onCallPolicy.name?.toString()}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()})** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
@@ -397,6 +442,23 @@ export class Service extends DatabaseService<Model> {
                 onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId,
               projectId: onCalldutyPolicyExecutionLog.projectId!,
               alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
+              displayColor: onCalldutyPolicyExecutionLog.status
+                ? this.getDisplayColorByStatus(
+                    onCalldutyPolicyExecutionLog.status,
+                  )
+                : Blue500,
+              moreInformationInMarkdown: moreInformationInMarkdown,
+              feedInfoInMarkdown: feedInfoInMarkdown,
+            });
+          }
+
+          if (onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId) {
+            await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+              incidentEpisodeId:
+                onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId,
+              projectId: onCalldutyPolicyExecutionLog.projectId!,
+              incidentEpisodeFeedEventType:
+                IncidentEpisodeFeedEventType.OnCallPolicy,
               displayColor: onCalldutyPolicyExecutionLog.status
                 ? this.getDisplayColorByStatus(
                     onCalldutyPolicyExecutionLog.status,

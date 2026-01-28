@@ -21,6 +21,8 @@ import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeService from "./AlertEpisodeService";
+import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeService from "./IncidentEpisodeService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -206,6 +208,34 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    // get rule count for incident episodes.
+    let incidentEpisode: IncidentEpisode | null = null;
+    if (createdItem.triggeredByIncidentEpisodeId) {
+      incidentEpisode = await IncidentEpisodeService.findOneById({
+        id: createdItem.triggeredByIncidentEpisodeId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          incidentSeverityId: true,
+        },
+      });
+
+      ruleCount = await UserNotificationRuleService.countBy({
+        query: {
+          userId: createdItem.userId!,
+          projectId: createdItem.projectId!,
+          ruleType: notificationRuleType,
+          incidentSeverityId: incidentEpisode?.incidentSeverityId as ObjectID,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     if (ruleCount.toNumber() === 0) {
       // update this item to be processed.
       await this.updateOneById({
@@ -239,12 +269,20 @@ export class Service extends DatabaseService<Model> {
     /*
      * find immediate notification rule and alert the user.
      * Determine the alertSeverityId - can come from alert or alertEpisode
+     * Determine the incidentSeverityId - can come from incident or incidentEpisode
      */
     const alertSeverityIdForQuery: ObjectID | undefined =
       alert && alert.alertSeverityId
         ? (alert.alertSeverityId as ObjectID)
         : alertEpisode && alertEpisode.alertSeverityId
           ? (alertEpisode.alertSeverityId as ObjectID)
+          : undefined;
+
+    const incidentSeverityIdForQuery: ObjectID | undefined =
+      incident && incident.incidentSeverityId
+        ? (incident.incidentSeverityId as ObjectID)
+        : incidentEpisode && incidentEpisode.incidentSeverityId
+          ? (incidentEpisode.incidentSeverityId as ObjectID)
           : undefined;
 
     const immediateNotificationRule: Array<UserNotificationRule> =
@@ -254,10 +292,7 @@ export class Service extends DatabaseService<Model> {
           projectId: createdItem.projectId!,
           notifyAfterMinutes: 0,
           ruleType: notificationRuleType,
-          incidentSeverityId:
-            incident && incident.incidentSeverityId
-              ? (incident?.incidentSeverityId as ObjectID)
-              : undefined,
+          incidentSeverityId: incidentSeverityIdForQuery,
           alertSeverityId: alertSeverityIdForQuery,
         },
         select: {
@@ -279,6 +314,8 @@ export class Service extends DatabaseService<Model> {
           triggeredByIncidentId: createdItem.triggeredByIncidentId,
           triggeredByAlertId: createdItem.triggeredByAlertId,
           triggeredByAlertEpisodeId: createdItem.triggeredByAlertEpisodeId,
+          triggeredByIncidentEpisodeId:
+            createdItem.triggeredByIncidentEpisodeId,
           userNotificationEventType: createdItem.userNotificationEventType!,
           onCallPolicyExecutionLogId:
             createdItem.onCallDutyPolicyExecutionLogId,

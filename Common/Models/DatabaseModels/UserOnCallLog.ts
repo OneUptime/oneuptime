@@ -29,6 +29,7 @@ import UserNotificationEventType from "../../Types/UserNotification/UserNotifica
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import AlertEpisode from "./AlertEpisode";
+import IncidentEpisode from "./IncidentEpisode";
 import Alert from "./Alert";
 
 @EnableDocumentation()
@@ -480,6 +481,53 @@ export default class UserOnCallLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByAlertEpisodeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "triggeredByIncidentEpisodeId",
+    type: TableColumnType.Entity,
+    modelType: IncidentEpisode,
+    title: "Triggered By Incident Episode",
+    description:
+      "Relation to Incident Episode which triggered this on-call duty policy.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentEpisode;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "triggeredByIncidentEpisodeId" })
+  public triggeredByIncidentEpisode?: IncidentEpisode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Triggered By Incident Episode ID",
+    required: false,
+    description:
+      "ID of the Incident Episode which triggered this on-call escalation policy.",
+    example: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByIncidentEpisodeId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

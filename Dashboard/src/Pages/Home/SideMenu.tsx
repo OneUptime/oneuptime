@@ -23,6 +23,7 @@ import React, {
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import AlertStateUtil from "../../Utils/AlertState";
 
 export interface ComponentProps {
@@ -82,12 +83,31 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
-            title: "Active",
+            title: "Active Incidents",
             to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
           },
           icon: IconProp.Alert,
           badgeType: BadgeType.DANGER,
           modelType: Incident,
+          countQuery: {
+            projectId: props.project?._id,
+            currentIncidentStateId: new Includes(
+              unresolvedIncidentStates.map((state: IncidentState) => {
+                return state.id!;
+              }),
+            ),
+          },
+        },
+        {
+          link: {
+            title: "Active Episodes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack,
+          badgeType: BadgeType.DANGER,
+          modelType: IncidentEpisode,
           countQuery: {
             projectId: props.project?._id,
             currentIncidentStateId: new Includes(

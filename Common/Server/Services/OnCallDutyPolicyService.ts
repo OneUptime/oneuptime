@@ -264,6 +264,7 @@ ${onCallPolicy.description || "No description provided."}
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
       triggeredByAlertEpisodeId?: ObjectID | undefined;
+      triggeredByIncidentEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
     },
   ): Promise<void> {
@@ -296,6 +297,16 @@ ${onCallPolicy.description || "No description provided."}
     ) {
       throw new BadDataException(
         "triggeredByAlertEpisodeId is required when userNotificationEventType is AlertEpisodeCreated",
+      );
+    }
+
+    if (
+      UserNotificationEventType.IncidentEpisodeCreated ===
+        options.userNotificationEventType &&
+      !options.triggeredByIncidentEpisodeId
+    ) {
+      throw new BadDataException(
+        "triggeredByIncidentEpisodeId is required when userNotificationEventType is IncidentEpisodeCreated",
       );
     }
 
@@ -336,6 +347,10 @@ ${onCallPolicy.description || "No description provided."}
 
     if (options.triggeredByAlertEpisodeId) {
       log.triggeredByAlertEpisodeId = options.triggeredByAlertEpisodeId;
+    }
+
+    if (options.triggeredByIncidentEpisodeId) {
+      log.triggeredByIncidentEpisodeId = options.triggeredByIncidentEpisodeId;
     }
 
     await OnCallDutyPolicyExecutionLogService.create({

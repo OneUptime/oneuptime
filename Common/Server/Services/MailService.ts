@@ -24,6 +24,7 @@ export class MailService extends BaseService {
       incidentId?: ObjectID | undefined;
       alertId?: ObjectID | undefined;
       alertEpisodeId?: ObjectID | undefined;
+      incidentEpisodeId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;

@@ -56,6 +56,8 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeService from "./AlertEpisodeService";
 import AlertEpisodeMember from "../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
+import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeService from "./IncidentEpisodeService";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import PushNotificationService from "./PushNotificationService";
@@ -79,6 +81,7 @@ export class Service extends DatabaseService<Model> {
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
       triggeredByAlertEpisodeId?: ObjectID | undefined;
+      triggeredByIncidentEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
       onCallPolicyExecutionLogId?: ObjectID | undefined;
       onCallPolicyId: ObjectID | undefined;
@@ -212,6 +215,11 @@ export class Service extends DatabaseService<Model> {
         options.triggeredByAlertEpisodeId;
     }
 
+    if (options.triggeredByIncidentEpisodeId) {
+      logTimelineItem.triggeredByIncidentEpisodeId =
+        options.triggeredByIncidentEpisodeId;
+    }
+
     if (options.onCallDutyPolicyExecutionLogTimelineId) {
       logTimelineItem.onCallDutyPolicyExecutionLogTimelineId =
         options.onCallDutyPolicyExecutionLogTimelineId;
@@ -312,9 +320,41 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    if (!incident && !alert && !alertEpisode) {
+    let incidentEpisode: IncidentEpisode | null = null;
+
+    if (
+      options.userNotificationEventType ===
+        UserNotificationEventType.IncidentEpisodeCreated &&
+      options.triggeredByIncidentEpisodeId
+    ) {
+      incidentEpisode = await IncidentEpisodeService.findOneById({
+        id: options.triggeredByIncidentEpisodeId!,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          title: true,
+          description: true,
+          projectId: true,
+          project: {
+            name: true,
+          },
+          currentIncidentState: {
+            name: true,
+          },
+          incidentSeverity: {
+            name: true,
+          },
+          episodeNumber: true,
+          rootCause: true,
+        },
+      });
+    }
+
+    if (!incident && !alert && !alertEpisode && !incidentEpisode) {
       throw new BadDataException(
-        "Incident, Alert, or Alert Episode not found.",
+        "Incident, Alert, Alert Episode, or Incident Episode not found.",
       );
     }
 
@@ -1969,6 +2009,7 @@ export class Service extends DatabaseService<Model> {
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
       triggeredByAlertEpisodeId?: ObjectID | undefined;
+      triggeredByIncidentEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
       onCallPolicyExecutionLogId?: ObjectID | undefined;
       onCallPolicyId: ObjectID | undefined;
@@ -1996,6 +2037,11 @@ export class Service extends DatabaseService<Model> {
     if (options.triggeredByAlertEpisodeId) {
       userOnCallLog.triggeredByAlertEpisodeId =
         options.triggeredByAlertEpisodeId;
+    }
+
+    if (options.triggeredByIncidentEpisodeId) {
+      userOnCallLog.triggeredByIncidentEpisodeId =
+        options.triggeredByIncidentEpisodeId;
     }
 
     userOnCallLog.userNotificationEventType = options.userNotificationEventType;

@@ -134,90 +134,92 @@ const DeleteAccount: FunctionComponent<
       ]}
       sideMenu={<SideMenu />}
     >
-      <Alert
-        type={AlertType.DANGER}
-        strongTitle="DANGER ZONE"
-        title="Deleting your account is permanent and cannot be undone. All your personal data will be removed."
-      />
+      <div>
+        <Alert
+          type={AlertType.DANGER}
+          strongTitle="DANGER ZONE"
+          title="Deleting your account is permanent and cannot be undone. All your personal data will be removed."
+        />
 
-      {isLoading && <ComponentLoader />}
+        {isLoading && <ComponentLoader />}
 
-      {error && <ErrorMessage message={error} />}
+        {error && <ErrorMessage message={error} />}
 
-      {!isLoading && !error && !canDeleteAccount && (
-        <Card
-          title="Cannot Delete Account"
-          description="You must leave all projects before deleting your account."
-          icon={IconProp.Alert}
-        >
-          <div className="mt-4">
-            <p className="text-sm text-gray-600 mb-4">
-              You are currently a member of the following projects. Please leave
-              or be removed from these projects before deleting your account:
-            </p>
-            <ul className="list-disc list-inside space-y-2">
-              {projects.map((project: Project, index: number) => {
-                return (
-                  <li key={index} className="text-sm text-gray-700">
-                    {project.name || "Unnamed Project"}
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="text-sm text-gray-600 mt-4">
-              To leave a project, go to the project settings and remove yourself
-              from all teams, or ask a project admin to remove you.
-            </p>
-          </div>
-        </Card>
-      )}
+        {!isLoading && !error && !canDeleteAccount && (
+          <Card
+            title="Cannot Delete Account"
+            description="You must leave all projects before deleting your account."
+          >
+            <div className="mt-4">
+              <p className="text-sm text-gray-600 mb-4">
+                You are currently a member of the following projects. Please
+                leave or be removed from these projects before deleting your
+                account:
+              </p>
+              <ul className="list-disc list-inside space-y-2">
+                {projects.map((project: Project, index: number) => {
+                  return (
+                    <li key={index} className="text-sm text-gray-700">
+                      {project.name || "Unnamed Project"}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-sm text-gray-600 mt-4">
+                To leave a project, go to the project settings and remove
+                yourself from all teams, or ask a project admin to remove you.
+              </p>
+            </div>
+          </Card>
+        )}
 
-      {!isLoading && !error && canDeleteAccount && (
-        <Card
-          title="Delete Account"
-          description="Are you sure you want to delete your account? This action is permanent and cannot be undone."
-          buttons={[
-            {
-              title: "Delete Account",
-              buttonStyle: ButtonStyleType.DANGER,
-              onClick: () => {
-                setShowDeleteModal(true);
+        {!isLoading && !error && canDeleteAccount && (
+          <Card
+            title="Delete Account"
+            description="Are you sure you want to delete your account? This action is permanent and cannot be undone."
+            buttons={[
+              {
+                title: "Delete Account",
+                buttonStyle: ButtonStyleType.DANGER,
+                onClick: () => {
+                  setShowDeleteModal(true);
+                },
+                isLoading: isDeleting,
+                icon: IconProp.Trash,
               },
-              isLoading: isDeleting,
-              icon: IconProp.Trash,
-            },
-          ]}
-        />
-      )}
+            ]}
+          />
+        )}
 
-      {showDeleteModal && (
-        <ConfirmModal
-          description="Are you sure you want to delete your account? This action is permanent and cannot be undone. All your personal data will be removed."
-          title="Delete Account"
-          onSubmit={async () => {
-            setShowDeleteModal(false);
-            await deleteAccount();
-          }}
-          onClose={() => {
-            setShowDeleteModal(false);
-          }}
-          submitButtonText="Delete Account"
-          submitButtonType={ButtonStyleType.DANGER}
-        />
-      )}
+        {showDeleteModal && (
+          <ConfirmModal
+            description="Are you sure you want to delete your account? This action is permanent and cannot be undone. All your personal data will be removed."
+            title="Delete Account"
+            onSubmit={async () => {
+              setShowDeleteModal(false);
+              await deleteAccount();
+            }}
+            onClose={() => {
+              setShowDeleteModal(false);
+            }}
+            submitButtonText="Delete Account"
+            submitButtonType={ButtonStyleType.DANGER}
+          />
+        )}
 
-      {showDeleteErrorModal && (
-        <ConfirmModal
-          description={deleteError}
-          title="Delete Error"
-          onSubmit={() => {
-            setShowDeleteErrorModal(false);
-            setDeleteError("");
-          }}
-          submitButtonText="Close"
-          submitButtonType={ButtonStyleType.NORMAL}
-        />
-      )}
+        {showDeleteErrorModal && (
+          <ConfirmModal
+            description={deleteError}
+            title="Delete Error"
+            onSubmit={() => {
+              setShowDeleteErrorModal(false);
+              setDeleteError("");
+            }}
+            submitButtonText="Close"
+            submitButtonType={ButtonStyleType.NORMAL}
+          />
+        )}
+      </div>
     </Page>
   );
 };

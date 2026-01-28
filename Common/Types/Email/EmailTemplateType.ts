@@ -47,6 +47,11 @@ enum EmailTemplateType {
   AlertEpisodeOwnerNotePosted = "AlertEpisodeOwnerNotePosted.hbs",
   AlertEpisodeOwnerResourceCreated = "AlertEpisodeOwnerResourceCreated.hbs",
 
+  IncidentEpisodeOwnerAdded = "IncidentEpisodeOwnerAdded.hbs",
+  IncidentEpisodeOwnerStateChanged = "IncidentEpisodeOwnerStateChanged.hbs",
+  IncidentEpisodeOwnerNotePosted = "IncidentEpisodeOwnerNotePosted.hbs",
+  IncidentEpisodeOwnerResourceCreated = "IncidentEpisodeOwnerResourceCreated.hbs",
+
   ScheduledMaintenanceOwnerNotePosted = "ScheduledMaintenanceOwnerNotePosted.hbs",
   ScheduledMaintenanceOwnerAdded = "ScheduledMaintenanceOwnerAdded.hbs",
   ScheduledMaintenanceOwnerStateChanged = "ScheduledMaintenanceOwnerStateChanged.hbs",
@@ -59,6 +64,7 @@ enum EmailTemplateType {
   AcknowledgeIncident = "AcknowledgeIncident.hbs",
   AcknowledgeAlert = "AcknowledgeAlert.hbs",
   AcknowledgeAlertEpisode = "AcknowledgeAlertEpisode.hbs",
+  AcknowledgeIncidentEpisode = "AcknowledgeIncidentEpisode.hbs",
 
   UserAddedToOnCallPolicy = "UserAddedToOnCallPolicy.hbs",
   UserRemovedFromOnCallPolicy = "UserRemovedFromOnCallPolicy.hbs",

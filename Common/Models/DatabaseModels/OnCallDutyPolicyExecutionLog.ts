@@ -26,6 +26,7 @@ import UserNotificationEventType from "../../Types/UserNotification/UserNotifica
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import Alert from "./Alert";
 import AlertEpisode from "./AlertEpisode";
+import IncidentEpisode from "./IncidentEpisode";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @TableBillingAccessControl({
@@ -411,6 +412,75 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByAlertEpisodeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectOnCallDutyPolicyExecutionLog,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "triggeredByIncidentEpisodeId",
+    type: TableColumnType.Entity,
+    modelType: IncidentEpisode,
+    title: "Triggered By Incident Episode",
+    description:
+      "Relation to the incident episode which triggered this on-call escalation policy.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentEpisode;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "triggeredByIncidentEpisodeId" })
+  public triggeredByIncidentEpisode?: IncidentEpisode = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectOnCallDutyPolicyExecutionLog,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By Incident Episode ID",
+    description:
+      "ID of the incident episode which triggered this on-call escalation policy.",
+    example: "a7b8c9d0-e1f2-3456-0123-567890123456",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByIncidentEpisodeId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

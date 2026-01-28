@@ -1,0 +1,35 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Incident Episode " episodeNumber ": " episodeTitle) }}
+
+{{> InfoBlock info=(concat "A new incident episode has been created in the project - " projectName)}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Episode Title:" text=episodeTitle }}
+{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Episode Created By: " text=declaredBy  }}
+{{> DetailBoxField title="Episode Created At: " text=declaredAt  }}
+{{> DetailBoxField title="Severity: " text=episodeSeverity  }}
+{{> DetailBoxField title="Description: " text=episodeDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this incident episode by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=episodeViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=episodeViewLink}}
+
+{{> InfoBlock info="You will be notified when the status of this incident episode changes."}}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

@@ -167,6 +167,15 @@ import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
 import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
 import AlertEpisodeStateTimelineService from "./AlertEpisodeStateTimelineService";
+
+// IncidentEpisode Services
+import IncidentEpisodeService from "./IncidentEpisodeService";
+import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
+import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
+import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
+import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
+import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
+import IncidentEpisodeStateTimelineService from "./IncidentEpisodeStateTimelineService";
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
 
 import TableViewService from "./TableViewService";
@@ -370,6 +379,15 @@ const services: Array<BaseService> = [
   AlertEpisodeOwnerTeamService,
   AlertEpisodeOwnerUserService,
   AlertEpisodeStateTimelineService,
+
+  // IncidentEpisode Services
+  IncidentEpisodeService,
+  IncidentEpisodeFeedService,
+  IncidentEpisodeInternalNoteService,
+  IncidentEpisodeMemberService,
+  IncidentEpisodeOwnerTeamService,
+  IncidentEpisodeOwnerUserService,
+  IncidentEpisodeStateTimelineService,
   AlertGroupingRuleService,
 
   TableViewService,

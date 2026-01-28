@@ -49,6 +49,7 @@ import Semaphore, {
 } from "../../Server/Infrastructure/Semaphore";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
+import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -839,6 +840,16 @@ export class Service extends DatabaseService<Model> {
             `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Process incident for grouping into episodes
+        try {
+          await IncidentGroupingEngineService.processIncident(createdItem);
+        } catch (error) {
+          logger.error(
+            `Incident grouping failed in IncidentService.onCreateSuccess: ${error}`,
+          );
         }
       })
       .catch((error: Error) => {

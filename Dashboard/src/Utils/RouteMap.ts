@@ -162,6 +162,22 @@ export const IncidentsRoutePath: Dictionary<string> = {
     "workspace-connection-microsoft-teams",
   [PageMap.INCIDENT_CREATE]: "create",
 
+  // Incident Episodes
+  [PageMap.INCIDENT_EPISODES]: "episodes",
+  [PageMap.UNRESOLVED_INCIDENT_EPISODES]: "episodes/unresolved",
+  [PageMap.INCIDENT_EPISODE_CREATE]: "episodes/create",
+  [PageMap.INCIDENT_EPISODE_VIEW]: `episodes/${RouteParams.ModelID}`,
+  [PageMap.INCIDENT_EPISODE_VIEW_DELETE]: `episodes/${RouteParams.ModelID}/delete`,
+  [PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION]: `episodes/${RouteParams.ModelID}/description`,
+  [PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE]: `episodes/${RouteParams.ModelID}/root-cause`,
+  [PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM]: `episodes/${RouteParams.ModelID}/postmortem`,
+  [PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION]: `episodes/${RouteParams.ModelID}/remediation`,
+  [PageMap.INCIDENT_EPISODE_VIEW_OWNERS]: `episodes/${RouteParams.ModelID}/owners`,
+  [PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE]: `episodes/${RouteParams.ModelID}/state-timeline`,
+  [PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS]: `episodes/${RouteParams.ModelID}/incidents`,
+  [PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE]: `episodes/${RouteParams.ModelID}/internal-notes`,
+  [PageMap.INCIDENT_EPISODE_DOCS]: "episodes/documentation",
+
   // Incident Settings
   [PageMap.INCIDENTS_SETTINGS_STATE]: "settings/state",
   [PageMap.INCIDENTS_SETTINGS_SEVERITY]: "settings/severity",
@@ -173,6 +189,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
     "settings/postmortem-templates",
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]: `settings/postmortem-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
+  [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -392,6 +409,10 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.HOME_ACTIVE_EPISODES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/home/active-episodes`,
+  ),
+
+  [PageMap.HOME_ACTIVE_INCIDENT_EPISODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/active-incident-episodes`,
   ),
 
   [PageMap.MONITORS_ROOT]: new Route(
@@ -790,6 +811,90 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Incident Episodes
+  [PageMap.INCIDENT_EPISODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODES]
+    }`,
+  ),
+
+  [PageMap.UNRESOLVED_INCIDENT_EPISODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENT_EPISODES]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_CREATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_CREATE]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE]
+    }`,
+  ),
+  [PageMap.INCIDENT_EPISODE_DOCS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS]
+    }`,
+  ),
+
   [PageMap.USER_PROFILE_OVERVIEW]: new Route(
     `/dashboard/user-profile/overview`,
   ),
@@ -954,6 +1059,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]
     }`,
   ),
 

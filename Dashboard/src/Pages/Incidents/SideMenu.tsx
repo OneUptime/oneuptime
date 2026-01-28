@@ -7,6 +7,7 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -46,6 +47,44 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               isResolvedState: false,
             },
           } as any,
+        },
+      ],
+    },
+    {
+      title: "Episodes",
+      items: [
+        {
+          link: {
+            title: "All Episodes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_EPISODES] as Route,
+            ),
+          },
+          icon: IconProp.Layers,
+        },
+        {
+          link: {
+            title: "Active Episodes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.UNRESOLVED_INCIDENT_EPISODES] as Route,
+            ),
+          },
+          icon: IconProp.Alert,
+          badgeType: BadgeType.DANGER,
+          modelType: IncidentEpisode,
+          countQuery: {
+            projectId: props.project?._id,
+            resolvedAt: null,
+          } as any,
+        },
+        {
+          link: {
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route,
+            ),
+          },
+          icon: IconProp.Book,
         },
       ],
     },
@@ -133,6 +172,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.TableCells,
+        },
+        {
+          link: {
+            title: "Grouping Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Layers,
         },
       ],
     },

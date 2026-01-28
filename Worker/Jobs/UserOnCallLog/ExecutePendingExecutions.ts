@@ -15,6 +15,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 RunCron(
@@ -39,6 +41,7 @@ RunCron(
           triggeredByIncidentId: true,
           triggeredByAlertId: true,
           triggeredByAlertEpisodeId: true,
+          triggeredByIncidentEpisodeId: true,
           onCallDutyPolicyEscalationRuleId: true,
           onCallDutyPolicyExecutionLogTimelineId: true,
           onCallDutyPolicyExecutionLogId: true,
@@ -76,6 +79,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
       let incident: Incident | null = null;
       let alert: Alert | null = null;
       let alertEpisode: AlertEpisode | null = null;
+      let incidentEpisode: IncidentEpisode | null = null;
 
       if (pendingNotificationLog.triggeredByIncidentId) {
         incident = await IncidentService.findOneById({
@@ -113,8 +117,22 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         });
       }
 
-      if (!incident && !alert && !alertEpisode) {
-        throw new Error("Incident, Alert, or Alert Episode not found.");
+      if (pendingNotificationLog.triggeredByIncidentEpisodeId) {
+        incidentEpisode = await IncidentEpisodeService.findOneById({
+          id: pendingNotificationLog.triggeredByIncidentEpisodeId!,
+          props: {
+            isRoot: true,
+          },
+          select: {
+            incidentSeverityId: true,
+          },
+        });
+      }
+
+      if (!incident && !alert && !alertEpisode && !incidentEpisode) {
+        throw new Error(
+          "Incident, Alert, Alert Episode, or Incident Episode not found.",
+        );
       }
 
       if (incident) {
@@ -187,13 +205,40 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         }
       }
 
+      if (incidentEpisode) {
+        // check if the incident episode is acknowledged.
+        const isAcknowledged: boolean =
+          await IncidentEpisodeService.isEpisodeAcknowledged({
+            episodeId: pendingNotificationLog.triggeredByIncidentEpisodeId!,
+          });
+
+        if (isAcknowledged) {
+          // then mark this policy as executed.
+          await UserOnCallLogService.updateOneById({
+            id: pendingNotificationLog.id!,
+            data: {
+              status: UserNotificationExecutionStatus.Completed,
+              statusMessage:
+                "Execution completed because incident episode is acknowledged.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          return;
+        }
+      }
+
       const notificationRules: Array<UserNotificationRule> =
         await UserNotificationRuleService.findBy({
           query: {
             projectId: pendingNotificationLog.projectId!,
             userId: pendingNotificationLog.userId!,
             ruleType: ruleType,
-            incidentSeverityId: incident?.incidentSeverityId || undefined,
+            incidentSeverityId:
+              incident?.incidentSeverityId ||
+              incidentEpisode?.incidentSeverityId ||
+              undefined,
             alertSeverityId:
               alert?.alertSeverityId ||
               alertEpisode?.alertSeverityId ||
@@ -247,6 +292,8 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             triggeredByAlertId: pendingNotificationLog.triggeredByAlertId,
             triggeredByAlertEpisodeId:
               pendingNotificationLog.triggeredByAlertEpisodeId,
+            triggeredByIncidentEpisodeId:
+              pendingNotificationLog.triggeredByIncidentEpisodeId,
             userNotificationEventType:
               pendingNotificationLog.userNotificationEventType!,
             onCallPolicyExecutionLogId:

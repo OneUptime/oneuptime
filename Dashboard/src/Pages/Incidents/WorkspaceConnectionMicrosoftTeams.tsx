@@ -11,8 +11,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
 
-const IncidentsPage: FunctionComponent<
+const IncidentsTeamsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [isMicrosoftTeamsConnected, setIsMicrosoftTeamsConnected] =
@@ -49,12 +51,35 @@ const IncidentsPage: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  return (
-    <div>
-      {isMicrosoftTeamsConnected && (
+  const tabs: Array<Tab> = [
+    {
+      name: "Incidents",
+      children: (
         <WorkspaceNotificationRuleTable
           workspaceType={WorkspaceType.MicrosoftTeams}
           eventType={NotificationRuleEventType.Incident}
+        />
+      ),
+    },
+    {
+      name: "Incident Episodes",
+      children: (
+        <WorkspaceNotificationRuleTable
+          workspaceType={WorkspaceType.MicrosoftTeams}
+          eventType={NotificationRuleEventType.IncidentEpisode}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      {isMicrosoftTeamsConnected && (
+        <Tabs
+          tabs={tabs}
+          onTabChange={() => {
+            // Tab changed
+          }}
         />
       )}
       {!isMicrosoftTeamsConnected && (
@@ -71,4 +96,4 @@ const IncidentsPage: FunctionComponent<
   );
 };
 
-export default IncidentsPage;
+export default IncidentsTeamsPage;

@@ -2,6 +2,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Loader from "../Components/Loader/Loader";
 import Layout from "../Pages/Incidents/Layout";
 import IncidentViewLayout from "../Pages/Incidents/View/Layout";
+import IncidentEpisodeViewLayout from "../Pages/Incidents/EpisodeView/Layout";
 import ComponentProps from "../Pages/PageComponentProps";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { IncidentsRoutePath, RouteUtil } from "../Utils/RouteMap";
@@ -183,12 +184,108 @@ const IncidentSettingsCustomFields: LazyExoticComponent<
   return import("../Pages/Incidents/Settings/IncidentCustomFields");
 });
 
+const IncidentSettingsGroupingRules: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentGroupingRules");
+});
+
+// Incident Episode Pages
+const IncidentEpisodes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Incidents/Episodes");
+  });
+
+const UnresolvedIncidentEpisodes: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/UnresolvedEpisodes");
+});
+
+const IncidentEpisodeView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/Index");
+});
+
+const IncidentEpisodeViewDelete: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/Delete");
+});
+
+const IncidentEpisodeViewDescription: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/Description");
+});
+
+const IncidentEpisodeViewRootCause: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/RootCause");
+});
+
+const IncidentEpisodeViewPostmortem: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/Postmortem");
+});
+
+const IncidentEpisodeViewRemediation: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/Remediation");
+});
+
+const IncidentEpisodeViewOwners: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/Owners");
+});
+
+const IncidentEpisodeViewStateTimeline: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/StateTimeline");
+});
+
+const IncidentEpisodeViewIncidents: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/Incidents");
+});
+
+const IncidentEpisodeViewInternalNote: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/InternalNote");
+});
+
+const IncidentEpisodeCreate: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeCreate");
+});
+
+const IncidentEpisodeDocs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeDocs");
+});
+
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   let hideSideMenu: boolean = false;
 
   if (Navigation.isOnThisPage(RouteMap[PageMap.INCIDENT_CREATE] as Route)) {
+    hideSideMenu = true;
+  }
+
+  if (
+    Navigation.isOnThisPage(RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route)
+  ) {
     hideSideMenu = true;
   }
 
@@ -416,6 +513,237 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsGroupingRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        {/* Incident Episode Routes */}
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_EPISODES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodes
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_EPISODES] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENT_EPISODES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <UnresolvedIncidentEpisodes
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.UNRESOLVED_INCIDENT_EPISODES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_CREATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeDocs
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
+
+      {/* Incident Episode View Layout */}
+      <PageRoute
+        path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW] || ""}
+        element={<IncidentEpisodeViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeView
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_DELETE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewDelete
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_DELETE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewDescription
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewRootCause
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewPostmortem
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewRemediation
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_OWNERS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewOwners
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_OWNERS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewStateTimeline
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewIncidents
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewInternalNote
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE] as Route
                 }
               />
             </Suspense>

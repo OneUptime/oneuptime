@@ -13,6 +13,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
 
 const IncidentsPage: FunctionComponent<
   PageComponentProps
@@ -51,9 +53,10 @@ const IncidentsPage: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  return (
-    <div>
-      {isSlackConnected && (
+  const tabs: Array<Tab> = [
+    {
+      name: "Incidents",
+      children: (
         <>
           <WorkspaceNotificationRuleTable
             workspaceType={WorkspaceType.Slack}
@@ -73,6 +76,42 @@ When you react with one of these emojis, OneUptime will automatically save the m
             />
           </Card>
         </>
+      ),
+    },
+    {
+      name: "Incident Episodes",
+      children: (
+        <>
+          <WorkspaceNotificationRuleTable
+            workspaceType={WorkspaceType.Slack}
+            eventType={NotificationRuleEventType.IncidentEpisode}
+          />
+          <Card
+            title="Tips: Using Emoji Reactions"
+            description="You can use emoji reactions in Slack to quickly save messages as notes to incident episodes."
+          >
+            <MarkdownViewer
+              text={`
+- 📌 **Pin emoji** (pushpin, round_pushpin) - React with a pin emoji to save the message as a **private note** (visible only to your team).
+
+When you react with a pin emoji, OneUptime will automatically save the message content as a private note to the incident episode linked to that channel and confirm with a reply in the thread.
+              `}
+            />
+          </Card>
+        </>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      {isSlackConnected && (
+        <Tabs
+          tabs={tabs}
+          onTabChange={() => {
+            // Tab changed
+          }}
+        />
       )}
       {!isSlackConnected && (
         <div>

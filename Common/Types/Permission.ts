@@ -748,6 +748,53 @@ enum Permission {
   CreateAlertEpisodeFeed = "CreateAlertEpisodeFeed",
   EditAlertEpisodeFeed = "EditAlertEpisodeFeed",
   ReadAlertEpisodeFeed = "ReadAlertEpisodeFeed",
+
+  // Incident Episode Permissions
+  CreateIncidentEpisode = "CreateIncidentEpisode",
+  DeleteIncidentEpisode = "DeleteIncidentEpisode",
+  EditIncidentEpisode = "EditIncidentEpisode",
+  ReadIncidentEpisode = "ReadIncidentEpisode",
+
+  // Incident Episode Member Permissions
+  CreateIncidentEpisodeMember = "CreateIncidentEpisodeMember",
+  DeleteIncidentEpisodeMember = "DeleteIncidentEpisodeMember",
+  EditIncidentEpisodeMember = "EditIncidentEpisodeMember",
+  ReadIncidentEpisodeMember = "ReadIncidentEpisodeMember",
+
+  // Incident Episode State Timeline Permissions
+  CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
+  DeleteIncidentEpisodeStateTimeline = "DeleteIncidentEpisodeStateTimeline",
+  EditIncidentEpisodeStateTimeline = "EditIncidentEpisodeStateTimeline",
+  ReadIncidentEpisodeStateTimeline = "ReadIncidentEpisodeStateTimeline",
+
+  // Incident Episode Owner User Permissions
+  CreateIncidentEpisodeOwnerUser = "CreateIncidentEpisodeOwnerUser",
+  DeleteIncidentEpisodeOwnerUser = "DeleteIncidentEpisodeOwnerUser",
+  EditIncidentEpisodeOwnerUser = "EditIncidentEpisodeOwnerUser",
+  ReadIncidentEpisodeOwnerUser = "ReadIncidentEpisodeOwnerUser",
+
+  // Incident Episode Owner Team Permissions
+  CreateIncidentEpisodeOwnerTeam = "CreateIncidentEpisodeOwnerTeam",
+  DeleteIncidentEpisodeOwnerTeam = "DeleteIncidentEpisodeOwnerTeam",
+  EditIncidentEpisodeOwnerTeam = "EditIncidentEpisodeOwnerTeam",
+  ReadIncidentEpisodeOwnerTeam = "ReadIncidentEpisodeOwnerTeam",
+
+  // Incident Episode Internal Note Permissions
+  CreateIncidentEpisodeInternalNote = "CreateIncidentEpisodeInternalNote",
+  DeleteIncidentEpisodeInternalNote = "DeleteIncidentEpisodeInternalNote",
+  EditIncidentEpisodeInternalNote = "EditIncidentEpisodeInternalNote",
+  ReadIncidentEpisodeInternalNote = "ReadIncidentEpisodeInternalNote",
+
+  // Incident Episode Feed Permissions
+  CreateIncidentEpisodeFeed = "CreateIncidentEpisodeFeed",
+  EditIncidentEpisodeFeed = "EditIncidentEpisodeFeed",
+  ReadIncidentEpisodeFeed = "ReadIncidentEpisodeFeed",
+
+  // Incident Grouping Rule Permissions
+  CreateIncidentGroupingRule = "CreateIncidentGroupingRule",
+  DeleteIncidentGroupingRule = "DeleteIncidentGroupingRule",
+  EditIncidentGroupingRule = "EditIncidentGroupingRule",
+  ReadIncidentGroupingRule = "ReadIncidentGroupingRule",
 }
 
 export class PermissionHelper {
@@ -5323,6 +5370,270 @@ export class PermissionHelper {
         title: "Read Alert Episode Feed",
         description:
           "This permission can read Alert Episode feed items of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Episode Permissions
+      {
+        permission: Permission.CreateIncidentEpisode,
+        title: "Create Incident Episode",
+        description:
+          "This permission can create Incident Episodes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisode,
+        title: "Delete Incident Episode",
+        description:
+          "This permission can delete Incident Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.EditIncidentEpisode,
+        title: "Edit Incident Episode",
+        description:
+          "This permission can edit Incident Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.ReadIncidentEpisode,
+        title: "Read Incident Episode",
+        description:
+          "This permission can read Incident Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+
+      // Incident Episode Member Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeMember,
+        title: "Create Incident Episode Member",
+        description:
+          "This permission can add incidents to Incident Episodes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeMember,
+        title: "Delete Incident Episode Member",
+        description:
+          "This permission can remove incidents from Incident Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeMember,
+        title: "Edit Incident Episode Member",
+        description:
+          "This permission can edit Incident Episode Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeMember,
+        title: "Read Incident Episode Member",
+        description:
+          "This permission can read Incident Episode Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Episode State Timeline Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeStateTimeline,
+        title: "Create Incident Episode State Timeline",
+        description:
+          "This permission can create Incident Episode state history in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeStateTimeline,
+        title: "Delete Incident Episode State Timeline",
+        description:
+          "This permission can delete Incident Episode state history of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeStateTimeline,
+        title: "Edit Incident Episode State Timeline",
+        description:
+          "This permission can edit Incident Episode state history of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeStateTimeline,
+        title: "Read Incident Episode State Timeline",
+        description:
+          "This permission can read Incident Episode state history of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Episode Owner User Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeOwnerUser,
+        title: "Create Incident Episode User Owner",
+        description:
+          "This permission can add user owners to Incident Episodes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeOwnerUser,
+        title: "Delete Incident Episode User Owner",
+        description:
+          "This permission can remove user owners from Incident Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeOwnerUser,
+        title: "Edit Incident Episode User Owner",
+        description:
+          "This permission can edit Incident Episode user owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeOwnerUser,
+        title: "Read Incident Episode User Owner",
+        description:
+          "This permission can read Incident Episode user owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Episode Owner Team Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeOwnerTeam,
+        title: "Create Incident Episode Team Owner",
+        description:
+          "This permission can add team owners to Incident Episodes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeOwnerTeam,
+        title: "Delete Incident Episode Team Owner",
+        description:
+          "This permission can remove team owners from Incident Episodes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeOwnerTeam,
+        title: "Edit Incident Episode Team Owner",
+        description:
+          "This permission can edit Incident Episode team owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeOwnerTeam,
+        title: "Read Incident Episode Team Owner",
+        description:
+          "This permission can read Incident Episode team owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Episode Internal Note Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeInternalNote,
+        title: "Create Incident Episode Internal Note",
+        description:
+          "This permission can create Incident Episode internal notes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeInternalNote,
+        title: "Delete Incident Episode Internal Note",
+        description:
+          "This permission can delete Incident Episode internal notes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeInternalNote,
+        title: "Edit Incident Episode Internal Note",
+        description:
+          "This permission can edit Incident Episode internal notes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeInternalNote,
+        title: "Read Incident Episode Internal Note",
+        description:
+          "This permission can read Incident Episode internal notes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Episode Feed Permissions
+      {
+        permission: Permission.CreateIncidentEpisodeFeed,
+        title: "Create Incident Episode Feed",
+        description:
+          "This permission can create Incident Episode feed items in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeFeed,
+        title: "Edit Incident Episode Feed",
+        description:
+          "This permission can edit Incident Episode feed items of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeFeed,
+        title: "Read Incident Episode Feed",
+        description:
+          "This permission can read Incident Episode feed items of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Grouping Rule Permissions
+      {
+        permission: Permission.CreateIncidentGroupingRule,
+        title: "Create Incident Grouping Rule",
+        description:
+          "This permission can create Incident Grouping Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentGroupingRule,
+        title: "Delete Incident Grouping Rule",
+        description:
+          "This permission can delete Incident Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentGroupingRule,
+        title: "Edit Incident Grouping Rule",
+        description:
+          "This permission can edit Incident Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentGroupingRule,
+        title: "Read Incident Grouping Rule",
+        description:
+          "This permission can read Incident Grouping Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
