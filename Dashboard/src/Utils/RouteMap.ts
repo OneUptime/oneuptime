@@ -200,6 +200,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   // Alert Episodes
   [PageMap.ALERT_EPISODES]: "episodes",
   [PageMap.UNRESOLVED_ALERT_EPISODES]: "episodes/unresolved",
+  [PageMap.ALERT_EPISODE_CREATE]: "episodes/create",
   [PageMap.ALERT_EPISODE_VIEW]: `episodes/${RouteParams.ModelID}`,
   [PageMap.ALERT_EPISODE_VIEW_DELETE]: `episodes/${RouteParams.ModelID}/delete`,
   [PageMap.ALERT_EPISODE_VIEW_DESCRIPTION]: `episodes/${RouteParams.ModelID}/description`,
@@ -686,6 +687,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.UNRESOLVED_ALERT_EPISODES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.UNRESOLVED_ALERT_EPISODES]
+    }`,
+  ),
+
+  [PageMap.ALERT_EPISODE_CREATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_EPISODE_CREATE]
     }`,
   ),
 

@@ -145,6 +145,11 @@ const Episodes: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
   },
 );
 
+const EpisodeCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/EpisodeCreate");
+  });
+
 const UnresolvedEpisodes: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -366,6 +371,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/* Episode Routes */}
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERT_EPISODE_CREATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <EpisodeCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_EPISODES] || ""}
           element={

@@ -24,6 +24,8 @@ import React, {
 } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -230,6 +232,19 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           description:
             props.description ||
             "Here is a list of alert episodes for this project.",
+          buttons: [
+            {
+              title: "Create Episode",
+              onClick: () => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route,
+                  ),
+                );
+              },
+              icon: IconProp.Add,
+            },
+          ],
         }}
         noItemsMessage={props.noItemsMessage || "No episodes found."}
         showRefreshButton={true}
