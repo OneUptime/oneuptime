@@ -156,6 +156,10 @@ import AlertGroupingRuleService, {
   Service as AlertGroupingRuleServiceType,
 } from "Common/Server/Services/AlertGroupingRuleService";
 
+import IncidentGroupingRuleService, {
+  Service as IncidentGroupingRuleServiceType,
+} from "Common/Server/Services/IncidentGroupingRuleService";
+
 import IncidentCustomFieldService, {
   Service as IncidentCustomFieldServiceType,
 } from "Common/Server/Services/IncidentCustomFieldService";
@@ -481,6 +485,7 @@ import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwne
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
+import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 
 // IncidentEpisode Models
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -1102,6 +1107,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertGroupingRule, AlertGroupingRuleServiceType>(
         AlertGroupingRule,
         AlertGroupingRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentGroupingRule, IncidentGroupingRuleServiceType>(
+        IncidentGroupingRule,
+        IncidentGroupingRuleService,
       ).getRouter(),
     );
 
