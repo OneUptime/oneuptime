@@ -118,6 +118,15 @@ export class Service extends DatabaseService<Model> {
             monitorDestination = `${monitorDestination}:${port}`;
           }
         }
+
+        // For SNMP monitors, use the hostname from snmpMonitor config
+        if (monitorType === MonitorType.SNMP && firstStep?.data?.snmpMonitor) {
+          monitorDestination = firstStep.data.snmpMonitor.hostname || "";
+          const port: number = firstStep.data.snmpMonitor.port || 161;
+          if (monitorDestination && port) {
+            monitorDestination = `${monitorDestination}:${port}`;
+          }
+        }
       }
     }
 
