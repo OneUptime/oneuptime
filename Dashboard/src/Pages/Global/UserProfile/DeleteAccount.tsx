@@ -16,7 +16,6 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserUtil from "Common/UI/Utils/User";
-import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/Models/DatabaseModels/User";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -96,9 +95,9 @@ const DeleteAccount: FunctionComponent<PageComponentProps> = (): ReactElement =>
         requestOptions: {},
       });
 
-      // Clear user session and redirect to login
+      // Clear user session and force redirect to login page
       UserUtil.logout();
-      Navigation.navigate(new Route("/accounts/login"));
+      window.location.href = "/accounts/login";
     } catch (err) {
       setDeleteError(API.getFriendlyMessage(err));
       setShowDeleteErrorModal(true);
