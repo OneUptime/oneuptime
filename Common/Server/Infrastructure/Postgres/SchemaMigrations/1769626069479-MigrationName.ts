@@ -1,258 +1,729 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class MigrationName1769626069479 implements MigrationInterface {
-    public name = 'MigrationName1769626069479'
+  public name = "MigrationName1769626069479";
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE "IncidentEpisode" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "title" character varying(500) NOT NULL, "description" text, "episodeNumber" integer, "currentIncidentStateId" uuid NOT NULL, "incidentSeverityId" uuid, "rootCause" text, "lastIncidentAddedAt" TIMESTAMP WITH TIME ZONE, "resolvedAt" TIMESTAMP WITH TIME ZONE, "assignedToUserId" uuid, "assignedToTeamId" uuid, "isOnCallPolicyExecuted" boolean NOT NULL DEFAULT false, "incidentCount" integer NOT NULL DEFAULT '0', "titleTemplate" character varying, "descriptionTemplate" character varying, "isManuallyCreated" boolean NOT NULL DEFAULT false, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotifiedOfEpisodeCreation" boolean NOT NULL DEFAULT false, "groupingKey" character varying(500), "remediationNotes" text, "postmortemNote" text, "postUpdatesToWorkspaceChannels" jsonb, CONSTRAINT "PK_71e763cb04188f87c1531ecc957" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_a29b8b2b7a64698950c4834be4" ON "IncidentEpisode" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_8531c70e213e8278e8d2b5955b" ON "IncidentEpisode" ("title") `);
-        await queryRunner.query(`CREATE INDEX "IDX_42291e5547f0bd2401582e7ef9" ON "IncidentEpisode" ("episodeNumber") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9f6d0a774efb7ab0b64c115686" ON "IncidentEpisode" ("currentIncidentStateId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e5a242f475d916f2c513278546" ON "IncidentEpisode" ("incidentSeverityId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_d106971b607f11c6b8b01957f0" ON "IncidentEpisode" ("lastIncidentAddedAt") `);
-        await queryRunner.query(`CREATE INDEX "IDX_a8126385c11fdc2d87b1aaee83" ON "IncidentEpisode" ("resolvedAt") `);
-        await queryRunner.query(`CREATE INDEX "IDX_5af6049c8d8daa3b150092e2f0" ON "IncidentEpisode" ("assignedToUserId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_0288dee454184dbc2b6cdda2b3" ON "IncidentEpisode" ("assignedToTeamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_5f6bd4f072b746b333e1e93b9f" ON "IncidentEpisode" ("isOnCallPolicyExecuted") `);
-        await queryRunner.query(`CREATE INDEX "IDX_2c3b20ea21dfa16d881fa55ba3" ON "IncidentEpisode" ("incidentCount") `);
-        await queryRunner.query(`CREATE INDEX "IDX_8586c73694c0624ab0cb641730" ON "IncidentEpisode" ("isManuallyCreated") `);
-        await queryRunner.query(`CREATE INDEX "IDX_4fa4419db77dc98e15a610dbda" ON "IncidentEpisode" ("isOwnerNotifiedOfEpisodeCreation") `);
-        await queryRunner.query(`CREATE INDEX "IDX_af302d80d1323ed77e8998d0c7" ON "IncidentEpisode" ("groupingKey") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeMember" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "incidentId" uuid NOT NULL, "addedAt" TIMESTAMP WITH TIME ZONE, "addedBy" character varying(100) NOT NULL DEFAULT 'rule', "addedByUserId" uuid, "matchedRuleId" uuid, "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_0c03b312e1755725520d3016bbc" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_3b70b941bbbf692515ae2480de" ON "IncidentEpisodeMember" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_dd0b26675d2627a874fde6c922" ON "IncidentEpisodeMember" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_352f15d5b1dd925ca09a00f64e" ON "IncidentEpisodeMember" ("incidentId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_9bb9571c123cdf9995559ec275" ON "IncidentEpisodeMember" ("addedAt") `);
-        await queryRunner.query(`CREATE INDEX "IDX_6ffe7f2c28a2207aca950a8abb" ON "IncidentEpisodeMember" ("addedByUserId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b8e5a102d8effb7d56ee952df9" ON "IncidentEpisodeMember" ("matchedRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c0047a525912dde4405f980930" ON "IncidentEpisodeMember" ("incidentEpisodeId", "incidentId", "projectId") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeStateTimeline" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "incidentStateId" uuid NOT NULL, "isOwnerNotified" boolean NOT NULL DEFAULT false, "stateChangeLog" jsonb, "rootCause" text, "endsAt" TIMESTAMP WITH TIME ZONE, "startsAt" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_39921631db61e005a38ecc4a341" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_97ddad8904d256ecd1b498125b" ON "IncidentEpisodeStateTimeline" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f4337e6d702257fa1d5cae352b" ON "IncidentEpisodeStateTimeline" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_186ef9a3c668841b1286cbb18f" ON "IncidentEpisodeStateTimeline" ("incidentStateId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_084ad34d5d2dd9f6619006a061" ON "IncidentEpisodeStateTimeline" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_94984e02c00e02654a0977a51e" ON "IncidentEpisodeStateTimeline" ("rootCause") `);
-        await queryRunner.query(`CREATE INDEX "IDX_2cf094074a74f8a0f6664af1c5" ON "IncidentEpisodeStateTimeline" ("endsAt") `);
-        await queryRunner.query(`CREATE INDEX "IDX_28b903549346f7be731a8cb7d8" ON "IncidentEpisodeStateTimeline" ("startsAt") `);
-        await queryRunner.query(`CREATE INDEX "IDX_be6c93f9970af6bfbd571957d2" ON "IncidentEpisodeStateTimeline" ("incidentEpisodeId", "startsAt") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeOwnerUser" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "userId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_524c7a6cab0580238bbea1d316b" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_98ad96281ec913af6cddb9da37" ON "IncidentEpisodeOwnerUser" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_680696fb1f050a2969b6c84bd5" ON "IncidentEpisodeOwnerUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b3aeaf55267197414c6ed72cc1" ON "IncidentEpisodeOwnerUser" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_158551754f64d2e54449cec952" ON "IncidentEpisodeOwnerUser" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c715213fcbbb6e127c939e77d5" ON "IncidentEpisodeOwnerUser" ("incidentEpisodeId", "userId", "projectId") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeOwnerTeam" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "teamId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_5f00b7f4e6226e52f571fc7fd26" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_d80ad7fb1dc79c621444213c88" ON "IncidentEpisodeOwnerTeam" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_27a40d4d276c8e8806f5c701cd" ON "IncidentEpisodeOwnerTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_606609de82e5bd853742350453" ON "IncidentEpisodeOwnerTeam" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f7a5767cb7c22f541310da5eab" ON "IncidentEpisodeOwnerTeam" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f9aa734977a4131f79216083e2" ON "IncidentEpisodeOwnerTeam" ("incidentEpisodeId", "teamId", "projectId") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeInternalNote" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "note" text NOT NULL, "isOwnerNotified" boolean NOT NULL DEFAULT false, "postedFromSlackMessageId" character varying, CONSTRAINT "PK_b3b1813d857c4117d6281aa79d6" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_2b9a766d6c3a93c93371f12110" ON "IncidentEpisodeInternalNote" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_51fe6612a7c09f0969f0d8836a" ON "IncidentEpisodeInternalNote" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_a45d77147c5dfd7a913795e13f" ON "IncidentEpisodeInternalNote" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE INDEX "IDX_1405cb7223ca25b5bedd7bd936" ON "IncidentEpisodeInternalNote" ("postedFromSlackMessageId") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeFeed" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "feedInfoInMarkdown" text NOT NULL, "moreInformationInMarkdown" text, "incidentEpisodeFeedEventType" character varying NOT NULL, "displayColor" character varying(10) NOT NULL, "userId" uuid, "postedAt" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_f9929c14ff8eacc3490504865f1" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_b82cb428474b64f09931f562e2" ON "IncidentEpisodeFeed" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_a41ca4be7e20e657cc772e3aec" ON "IncidentEpisodeFeed" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeOnCallDutyPolicy" ("incidentEpisodeId" uuid NOT NULL, "onCallDutyPolicyId" uuid NOT NULL, CONSTRAINT "PK_e50db03e23dc4ea1e0da71c33f1" PRIMARY KEY ("incidentEpisodeId", "onCallDutyPolicyId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_e7bdb211320475fb6c6ea26901" ON "IncidentEpisodeOnCallDutyPolicy" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_aa1387fad94484324847aef4ac" ON "IncidentEpisodeOnCallDutyPolicy" ("onCallDutyPolicyId") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeLabel" ("incidentEpisodeId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_a6eb4fedb7b75dadb5699228590" PRIMARY KEY ("incidentEpisodeId", "labelId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_da04ba51e4fb21c658a2048de3" ON "IncidentEpisodeLabel" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_28bf1907fa342b89c08e8b3202" ON "IncidentEpisodeLabel" ("labelId") `);
-        await queryRunner.query(`CREATE TABLE "IncidentEpisodeInternalNoteFile" ("incidentEpisodeInternalNoteId" uuid NOT NULL, "fileId" uuid NOT NULL, CONSTRAINT "PK_d69c57974507b6194cac918263e" PRIMARY KEY ("incidentEpisodeInternalNoteId", "fileId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_360fb3b60a50ef473081f36df9" ON "IncidentEpisodeInternalNoteFile" ("incidentEpisodeInternalNoteId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b380b7d2fd4235e781424f5a25" ON "IncidentEpisodeInternalNoteFile" ("fileId") `);
-        await queryRunner.query(`ALTER TABLE "Incident" ADD "incidentEpisodeId" uuid`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyExecutionLog" ADD "triggeredByIncidentEpisodeId" uuid`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" ADD "triggeredByIncidentEpisodeId" uuid`);
-        await queryRunner.query(`ALTER TABLE "WorkspaceNotificationLog" ADD "incidentEpisodeId" uuid`);
-        await queryRunner.query(`ALTER TABLE "UserOnCallLog" ADD "triggeredByIncidentEpisodeId" uuid`);
-        await queryRunner.query(`ALTER TABLE "UserOnCallLogTimeline" ADD "triggeredByIncidentEpisodeId" uuid`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`);
-        await queryRunner.query(`CREATE INDEX "IDX_65226ba205f861184f98962a32" ON "Incident" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_bfa9ab686cd4c179d77e4ff7f6" ON "OnCallDutyPolicyExecutionLog" ("triggeredByIncidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_317bff3be6e5b028f44f405f49" ON "OnCallDutyPolicyExecutionLogTimeline" ("triggeredByIncidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_5914d9e328ba4a3dd4f3bae848" ON "WorkspaceNotificationLog" ("incidentEpisodeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_472e0b233594872d0e08b33c66" ON "UserOnCallLogTimeline" ("triggeredByIncidentEpisodeId") `);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_a29b8b2b7a64698950c4834be47" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_9f6d0a774efb7ab0b64c1156867" FOREIGN KEY ("currentIncidentStateId") REFERENCES "IncidentState"("_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_e5a242f475d916f2c513278546d" FOREIGN KEY ("incidentSeverityId") REFERENCES "IncidentSeverity"("_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_5af6049c8d8daa3b150092e2f07" FOREIGN KEY ("assignedToUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_0288dee454184dbc2b6cdda2b31" FOREIGN KEY ("assignedToTeamId") REFERENCES "Team"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_64397a5496adff80ede7524a2cf" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_503057381f67795efd0fdafff29" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "Incident" ADD CONSTRAINT "FK_65226ba205f861184f98962a32a" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyExecutionLog" ADD CONSTRAINT "FK_bfa9ab686cd4c179d77e4ff7f62" FOREIGN KEY ("triggeredByIncidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" ADD CONSTRAINT "FK_317bff3be6e5b028f44f405f49f" FOREIGN KEY ("triggeredByIncidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "WorkspaceNotificationLog" ADD CONSTRAINT "FK_5914d9e328ba4a3dd4f3bae8489" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "UserOnCallLog" ADD CONSTRAINT "FK_587fec46a331e53d72bb6c72fda" FOREIGN KEY ("triggeredByIncidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "UserOnCallLogTimeline" ADD CONSTRAINT "FK_472e0b233594872d0e08b33c669" FOREIGN KEY ("triggeredByIncidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_3b70b941bbbf692515ae2480de4" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_dd0b26675d2627a874fde6c922d" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_352f15d5b1dd925ca09a00f64ed" FOREIGN KEY ("incidentId") REFERENCES "Incident"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_6ffe7f2c28a2207aca950a8abb1" FOREIGN KEY ("addedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_3e0abfe38b4ea500e53f504576e" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_63e7e1419ed34d59471e09f8f6c" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_97ddad8904d256ecd1b498125b8" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_f4337e6d702257fa1d5cae352b7" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_483dc4c024b65d6b275d0cdf9e4" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_4ca3132a61efcbc119a4845b52d" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_186ef9a3c668841b1286cbb18fc" FOREIGN KEY ("incidentStateId") REFERENCES "IncidentState"("_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_98ad96281ec913af6cddb9da375" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_680696fb1f050a2969b6c84bd5d" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_b3aeaf55267197414c6ed72cc15" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_bc161f5c0ccba0ffd20eea0503d" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_c0eadcf68801054e758fd893ab7" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_d80ad7fb1dc79c621444213c885" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_27a40d4d276c8e8806f5c701cd9" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_606609de82e5bd8537423504535" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_ae2c29b4881a5c69508a14083e2" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_d848925b97dbdcf715cf32defb6" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNote" ADD CONSTRAINT "FK_2b9a766d6c3a93c93371f121105" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNote" ADD CONSTRAINT "FK_51fe6612a7c09f0969f0d8836a6" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNote" ADD CONSTRAINT "FK_7e701e0494450759129b06a57f8" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNote" ADD CONSTRAINT "FK_9dfc4d45a1976c7b1b792fb7e3b" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_b82cb428474b64f09931f562e23" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_a41ca4be7e20e657cc772e3aec6" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_072ae75f1f85fe819ebd79d2a9b" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_59150523d62a43a1f19061c7c06" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_869efffd9aecd83ed8f56ed02b0" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOnCallDutyPolicy" ADD CONSTRAINT "FK_e7bdb211320475fb6c6ea269014" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOnCallDutyPolicy" ADD CONSTRAINT "FK_aa1387fad94484324847aef4ac3" FOREIGN KEY ("onCallDutyPolicyId") REFERENCES "OnCallDutyPolicy"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeLabel" ADD CONSTRAINT "FK_da04ba51e4fb21c658a2048de3c" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeLabel" ADD CONSTRAINT "FK_28bf1907fa342b89c08e8b32028" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNoteFile" ADD CONSTRAINT "FK_360fb3b60a50ef473081f36df95" FOREIGN KEY ("incidentEpisodeInternalNoteId") REFERENCES "IncidentEpisodeInternalNote"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNoteFile" ADD CONSTRAINT "FK_b380b7d2fd4235e781424f5a257" FOREIGN KEY ("fileId") REFERENCES "File"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-    }
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisode" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "title" character varying(500) NOT NULL, "description" text, "episodeNumber" integer, "currentIncidentStateId" uuid NOT NULL, "incidentSeverityId" uuid, "rootCause" text, "lastIncidentAddedAt" TIMESTAMP WITH TIME ZONE, "resolvedAt" TIMESTAMP WITH TIME ZONE, "assignedToUserId" uuid, "assignedToTeamId" uuid, "isOnCallPolicyExecuted" boolean NOT NULL DEFAULT false, "incidentCount" integer NOT NULL DEFAULT '0', "titleTemplate" character varying, "descriptionTemplate" character varying, "isManuallyCreated" boolean NOT NULL DEFAULT false, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotifiedOfEpisodeCreation" boolean NOT NULL DEFAULT false, "groupingKey" character varying(500), "remediationNotes" text, "postmortemNote" text, "postUpdatesToWorkspaceChannels" jsonb, CONSTRAINT "PK_71e763cb04188f87c1531ecc957" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_a29b8b2b7a64698950c4834be4" ON "IncidentEpisode" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_8531c70e213e8278e8d2b5955b" ON "IncidentEpisode" ("title") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_42291e5547f0bd2401582e7ef9" ON "IncidentEpisode" ("episodeNumber") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9f6d0a774efb7ab0b64c115686" ON "IncidentEpisode" ("currentIncidentStateId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e5a242f475d916f2c513278546" ON "IncidentEpisode" ("incidentSeverityId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_d106971b607f11c6b8b01957f0" ON "IncidentEpisode" ("lastIncidentAddedAt") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_a8126385c11fdc2d87b1aaee83" ON "IncidentEpisode" ("resolvedAt") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5af6049c8d8daa3b150092e2f0" ON "IncidentEpisode" ("assignedToUserId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_0288dee454184dbc2b6cdda2b3" ON "IncidentEpisode" ("assignedToTeamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5f6bd4f072b746b333e1e93b9f" ON "IncidentEpisode" ("isOnCallPolicyExecuted") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_2c3b20ea21dfa16d881fa55ba3" ON "IncidentEpisode" ("incidentCount") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_8586c73694c0624ab0cb641730" ON "IncidentEpisode" ("isManuallyCreated") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_4fa4419db77dc98e15a610dbda" ON "IncidentEpisode" ("isOwnerNotifiedOfEpisodeCreation") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_af302d80d1323ed77e8998d0c7" ON "IncidentEpisode" ("groupingKey") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeMember" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "incidentId" uuid NOT NULL, "addedAt" TIMESTAMP WITH TIME ZONE, "addedBy" character varying(100) NOT NULL DEFAULT 'rule', "addedByUserId" uuid, "matchedRuleId" uuid, "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_0c03b312e1755725520d3016bbc" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_3b70b941bbbf692515ae2480de" ON "IncidentEpisodeMember" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_dd0b26675d2627a874fde6c922" ON "IncidentEpisodeMember" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_352f15d5b1dd925ca09a00f64e" ON "IncidentEpisodeMember" ("incidentId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_9bb9571c123cdf9995559ec275" ON "IncidentEpisodeMember" ("addedAt") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_6ffe7f2c28a2207aca950a8abb" ON "IncidentEpisodeMember" ("addedByUserId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b8e5a102d8effb7d56ee952df9" ON "IncidentEpisodeMember" ("matchedRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c0047a525912dde4405f980930" ON "IncidentEpisodeMember" ("incidentEpisodeId", "incidentId", "projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeStateTimeline" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "incidentStateId" uuid NOT NULL, "isOwnerNotified" boolean NOT NULL DEFAULT false, "stateChangeLog" jsonb, "rootCause" text, "endsAt" TIMESTAMP WITH TIME ZONE, "startsAt" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_39921631db61e005a38ecc4a341" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_97ddad8904d256ecd1b498125b" ON "IncidentEpisodeStateTimeline" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f4337e6d702257fa1d5cae352b" ON "IncidentEpisodeStateTimeline" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_186ef9a3c668841b1286cbb18f" ON "IncidentEpisodeStateTimeline" ("incidentStateId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_084ad34d5d2dd9f6619006a061" ON "IncidentEpisodeStateTimeline" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_94984e02c00e02654a0977a51e" ON "IncidentEpisodeStateTimeline" ("rootCause") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_2cf094074a74f8a0f6664af1c5" ON "IncidentEpisodeStateTimeline" ("endsAt") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_28b903549346f7be731a8cb7d8" ON "IncidentEpisodeStateTimeline" ("startsAt") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_be6c93f9970af6bfbd571957d2" ON "IncidentEpisodeStateTimeline" ("incidentEpisodeId", "startsAt") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeOwnerUser" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "userId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_524c7a6cab0580238bbea1d316b" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_98ad96281ec913af6cddb9da37" ON "IncidentEpisodeOwnerUser" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_680696fb1f050a2969b6c84bd5" ON "IncidentEpisodeOwnerUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b3aeaf55267197414c6ed72cc1" ON "IncidentEpisodeOwnerUser" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_158551754f64d2e54449cec952" ON "IncidentEpisodeOwnerUser" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c715213fcbbb6e127c939e77d5" ON "IncidentEpisodeOwnerUser" ("incidentEpisodeId", "userId", "projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeOwnerTeam" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "teamId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_5f00b7f4e6226e52f571fc7fd26" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_d80ad7fb1dc79c621444213c88" ON "IncidentEpisodeOwnerTeam" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_27a40d4d276c8e8806f5c701cd" ON "IncidentEpisodeOwnerTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_606609de82e5bd853742350453" ON "IncidentEpisodeOwnerTeam" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f7a5767cb7c22f541310da5eab" ON "IncidentEpisodeOwnerTeam" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f9aa734977a4131f79216083e2" ON "IncidentEpisodeOwnerTeam" ("incidentEpisodeId", "teamId", "projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeInternalNote" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "note" text NOT NULL, "isOwnerNotified" boolean NOT NULL DEFAULT false, "postedFromSlackMessageId" character varying, CONSTRAINT "PK_b3b1813d857c4117d6281aa79d6" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_2b9a766d6c3a93c93371f12110" ON "IncidentEpisodeInternalNote" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_51fe6612a7c09f0969f0d8836a" ON "IncidentEpisodeInternalNote" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_a45d77147c5dfd7a913795e13f" ON "IncidentEpisodeInternalNote" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1405cb7223ca25b5bedd7bd936" ON "IncidentEpisodeInternalNote" ("postedFromSlackMessageId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeFeed" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentEpisodeId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "feedInfoInMarkdown" text NOT NULL, "moreInformationInMarkdown" text, "incidentEpisodeFeedEventType" character varying NOT NULL, "displayColor" character varying(10) NOT NULL, "userId" uuid, "postedAt" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_f9929c14ff8eacc3490504865f1" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b82cb428474b64f09931f562e2" ON "IncidentEpisodeFeed" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_a41ca4be7e20e657cc772e3aec" ON "IncidentEpisodeFeed" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeOnCallDutyPolicy" ("incidentEpisodeId" uuid NOT NULL, "onCallDutyPolicyId" uuid NOT NULL, CONSTRAINT "PK_e50db03e23dc4ea1e0da71c33f1" PRIMARY KEY ("incidentEpisodeId", "onCallDutyPolicyId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e7bdb211320475fb6c6ea26901" ON "IncidentEpisodeOnCallDutyPolicy" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_aa1387fad94484324847aef4ac" ON "IncidentEpisodeOnCallDutyPolicy" ("onCallDutyPolicyId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeLabel" ("incidentEpisodeId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_a6eb4fedb7b75dadb5699228590" PRIMARY KEY ("incidentEpisodeId", "labelId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_da04ba51e4fb21c658a2048de3" ON "IncidentEpisodeLabel" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_28bf1907fa342b89c08e8b3202" ON "IncidentEpisodeLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "IncidentEpisodeInternalNoteFile" ("incidentEpisodeInternalNoteId" uuid NOT NULL, "fileId" uuid NOT NULL, CONSTRAINT "PK_d69c57974507b6194cac918263e" PRIMARY KEY ("incidentEpisodeInternalNoteId", "fileId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_360fb3b60a50ef473081f36df9" ON "IncidentEpisodeInternalNoteFile" ("incidentEpisodeInternalNoteId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b380b7d2fd4235e781424f5a25" ON "IncidentEpisodeInternalNoteFile" ("fileId") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Incident" ADD "incidentEpisodeId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLog" ADD "triggeredByIncidentEpisodeId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" ADD "triggeredByIncidentEpisodeId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "WorkspaceNotificationLog" ADD "incidentEpisodeId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "UserOnCallLog" ADD "triggeredByIncidentEpisodeId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "UserOnCallLogTimeline" ADD "triggeredByIncidentEpisodeId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_65226ba205f861184f98962a32" ON "Incident" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_bfa9ab686cd4c179d77e4ff7f6" ON "OnCallDutyPolicyExecutionLog" ("triggeredByIncidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_317bff3be6e5b028f44f405f49" ON "OnCallDutyPolicyExecutionLogTimeline" ("triggeredByIncidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5914d9e328ba4a3dd4f3bae848" ON "WorkspaceNotificationLog" ("incidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_472e0b233594872d0e08b33c66" ON "UserOnCallLogTimeline" ("triggeredByIncidentEpisodeId") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_a29b8b2b7a64698950c4834be47" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_9f6d0a774efb7ab0b64c1156867" FOREIGN KEY ("currentIncidentStateId") REFERENCES "IncidentState"("_id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_e5a242f475d916f2c513278546d" FOREIGN KEY ("incidentSeverityId") REFERENCES "IncidentSeverity"("_id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_5af6049c8d8daa3b150092e2f07" FOREIGN KEY ("assignedToUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_0288dee454184dbc2b6cdda2b31" FOREIGN KEY ("assignedToTeamId") REFERENCES "Team"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_64397a5496adff80ede7524a2cf" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" ADD CONSTRAINT "FK_503057381f67795efd0fdafff29" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Incident" ADD CONSTRAINT "FK_65226ba205f861184f98962a32a" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLog" ADD CONSTRAINT "FK_bfa9ab686cd4c179d77e4ff7f62" FOREIGN KEY ("triggeredByIncidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" ADD CONSTRAINT "FK_317bff3be6e5b028f44f405f49f" FOREIGN KEY ("triggeredByIncidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "WorkspaceNotificationLog" ADD CONSTRAINT "FK_5914d9e328ba4a3dd4f3bae8489" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "UserOnCallLog" ADD CONSTRAINT "FK_587fec46a331e53d72bb6c72fda" FOREIGN KEY ("triggeredByIncidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "UserOnCallLogTimeline" ADD CONSTRAINT "FK_472e0b233594872d0e08b33c669" FOREIGN KEY ("triggeredByIncidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_3b70b941bbbf692515ae2480de4" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_dd0b26675d2627a874fde6c922d" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_352f15d5b1dd925ca09a00f64ed" FOREIGN KEY ("incidentId") REFERENCES "Incident"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_6ffe7f2c28a2207aca950a8abb1" FOREIGN KEY ("addedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_3e0abfe38b4ea500e53f504576e" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" ADD CONSTRAINT "FK_63e7e1419ed34d59471e09f8f6c" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_97ddad8904d256ecd1b498125b8" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_f4337e6d702257fa1d5cae352b7" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_483dc4c024b65d6b275d0cdf9e4" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_4ca3132a61efcbc119a4845b52d" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" ADD CONSTRAINT "FK_186ef9a3c668841b1286cbb18fc" FOREIGN KEY ("incidentStateId") REFERENCES "IncidentState"("_id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_98ad96281ec913af6cddb9da375" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_680696fb1f050a2969b6c84bd5d" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_b3aeaf55267197414c6ed72cc15" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_bc161f5c0ccba0ffd20eea0503d" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" ADD CONSTRAINT "FK_c0eadcf68801054e758fd893ab7" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_d80ad7fb1dc79c621444213c885" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_27a40d4d276c8e8806f5c701cd9" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_606609de82e5bd8537423504535" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_ae2c29b4881a5c69508a14083e2" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" ADD CONSTRAINT "FK_d848925b97dbdcf715cf32defb6" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNote" ADD CONSTRAINT "FK_2b9a766d6c3a93c93371f121105" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNote" ADD CONSTRAINT "FK_51fe6612a7c09f0969f0d8836a6" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNote" ADD CONSTRAINT "FK_7e701e0494450759129b06a57f8" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNote" ADD CONSTRAINT "FK_9dfc4d45a1976c7b1b792fb7e3b" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_b82cb428474b64f09931f562e23" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_a41ca4be7e20e657cc772e3aec6" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_072ae75f1f85fe819ebd79d2a9b" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_59150523d62a43a1f19061c7c06" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" ADD CONSTRAINT "FK_869efffd9aecd83ed8f56ed02b0" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOnCallDutyPolicy" ADD CONSTRAINT "FK_e7bdb211320475fb6c6ea269014" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOnCallDutyPolicy" ADD CONSTRAINT "FK_aa1387fad94484324847aef4ac3" FOREIGN KEY ("onCallDutyPolicyId") REFERENCES "OnCallDutyPolicy"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeLabel" ADD CONSTRAINT "FK_da04ba51e4fb21c658a2048de3c" FOREIGN KEY ("incidentEpisodeId") REFERENCES "IncidentEpisode"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeLabel" ADD CONSTRAINT "FK_28bf1907fa342b89c08e8b32028" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNoteFile" ADD CONSTRAINT "FK_360fb3b60a50ef473081f36df95" FOREIGN KEY ("incidentEpisodeInternalNoteId") REFERENCES "IncidentEpisodeInternalNote"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNoteFile" ADD CONSTRAINT "FK_b380b7d2fd4235e781424f5a257" FOREIGN KEY ("fileId") REFERENCES "File"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNoteFile" DROP CONSTRAINT "FK_b380b7d2fd4235e781424f5a257"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNoteFile" DROP CONSTRAINT "FK_360fb3b60a50ef473081f36df95"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeLabel" DROP CONSTRAINT "FK_28bf1907fa342b89c08e8b32028"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeLabel" DROP CONSTRAINT "FK_da04ba51e4fb21c658a2048de3c"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOnCallDutyPolicy" DROP CONSTRAINT "FK_aa1387fad94484324847aef4ac3"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOnCallDutyPolicy" DROP CONSTRAINT "FK_e7bdb211320475fb6c6ea269014"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_869efffd9aecd83ed8f56ed02b0"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_59150523d62a43a1f19061c7c06"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_072ae75f1f85fe819ebd79d2a9b"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_a41ca4be7e20e657cc772e3aec6"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_b82cb428474b64f09931f562e23"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNote" DROP CONSTRAINT "FK_9dfc4d45a1976c7b1b792fb7e3b"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNote" DROP CONSTRAINT "FK_7e701e0494450759129b06a57f8"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNote" DROP CONSTRAINT "FK_51fe6612a7c09f0969f0d8836a6"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeInternalNote" DROP CONSTRAINT "FK_2b9a766d6c3a93c93371f121105"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_d848925b97dbdcf715cf32defb6"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_ae2c29b4881a5c69508a14083e2"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_606609de82e5bd8537423504535"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_27a40d4d276c8e8806f5c701cd9"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_d80ad7fb1dc79c621444213c885"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_c0eadcf68801054e758fd893ab7"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_bc161f5c0ccba0ffd20eea0503d"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_b3aeaf55267197414c6ed72cc15"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_680696fb1f050a2969b6c84bd5d"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_98ad96281ec913af6cddb9da375"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_186ef9a3c668841b1286cbb18fc"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_4ca3132a61efcbc119a4845b52d"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_483dc4c024b65d6b275d0cdf9e4"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_f4337e6d702257fa1d5cae352b7"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_97ddad8904d256ecd1b498125b8"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_63e7e1419ed34d59471e09f8f6c"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_3e0abfe38b4ea500e53f504576e"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_6ffe7f2c28a2207aca950a8abb1"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_352f15d5b1dd925ca09a00f64ed"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_dd0b26675d2627a874fde6c922d"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_3b70b941bbbf692515ae2480de4"`);
-        await queryRunner.query(`ALTER TABLE "UserOnCallLogTimeline" DROP CONSTRAINT "FK_472e0b233594872d0e08b33c669"`);
-        await queryRunner.query(`ALTER TABLE "UserOnCallLog" DROP CONSTRAINT "FK_587fec46a331e53d72bb6c72fda"`);
-        await queryRunner.query(`ALTER TABLE "WorkspaceNotificationLog" DROP CONSTRAINT "FK_5914d9e328ba4a3dd4f3bae8489"`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" DROP CONSTRAINT "FK_317bff3be6e5b028f44f405f49f"`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyExecutionLog" DROP CONSTRAINT "FK_bfa9ab686cd4c179d77e4ff7f62"`);
-        await queryRunner.query(`ALTER TABLE "Incident" DROP CONSTRAINT "FK_65226ba205f861184f98962a32a"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_503057381f67795efd0fdafff29"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_64397a5496adff80ede7524a2cf"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_0288dee454184dbc2b6cdda2b31"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_5af6049c8d8daa3b150092e2f07"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_e5a242f475d916f2c513278546d"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_9f6d0a774efb7ab0b64c1156867"`);
-        await queryRunner.query(`ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_a29b8b2b7a64698950c4834be47"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_472e0b233594872d0e08b33c66"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5914d9e328ba4a3dd4f3bae848"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_317bff3be6e5b028f44f405f49"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_bfa9ab686cd4c179d77e4ff7f6"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_65226ba205f861184f98962a32"`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type": "RestrictionTimes", "value": {"restictionType": "None", "dayRestrictionTimes": null, "weeklyRestrictionTimes": []}}'`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`);
-        await queryRunner.query(`ALTER TABLE "UserOnCallLogTimeline" DROP COLUMN "triggeredByIncidentEpisodeId"`);
-        await queryRunner.query(`ALTER TABLE "UserOnCallLog" DROP COLUMN "triggeredByIncidentEpisodeId"`);
-        await queryRunner.query(`ALTER TABLE "WorkspaceNotificationLog" DROP COLUMN "incidentEpisodeId"`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" DROP COLUMN "triggeredByIncidentEpisodeId"`);
-        await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyExecutionLog" DROP COLUMN "triggeredByIncidentEpisodeId"`);
-        await queryRunner.query(`ALTER TABLE "Incident" DROP COLUMN "incidentEpisodeId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b380b7d2fd4235e781424f5a25"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_360fb3b60a50ef473081f36df9"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeInternalNoteFile"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_28bf1907fa342b89c08e8b3202"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_da04ba51e4fb21c658a2048de3"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeLabel"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_aa1387fad94484324847aef4ac"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e7bdb211320475fb6c6ea26901"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeOnCallDutyPolicy"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a41ca4be7e20e657cc772e3aec"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b82cb428474b64f09931f562e2"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeFeed"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1405cb7223ca25b5bedd7bd936"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a45d77147c5dfd7a913795e13f"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_51fe6612a7c09f0969f0d8836a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2b9a766d6c3a93c93371f12110"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeInternalNote"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f9aa734977a4131f79216083e2"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f7a5767cb7c22f541310da5eab"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_606609de82e5bd853742350453"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_27a40d4d276c8e8806f5c701cd"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_d80ad7fb1dc79c621444213c88"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeOwnerTeam"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c715213fcbbb6e127c939e77d5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_158551754f64d2e54449cec952"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b3aeaf55267197414c6ed72cc1"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_680696fb1f050a2969b6c84bd5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_98ad96281ec913af6cddb9da37"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeOwnerUser"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_be6c93f9970af6bfbd571957d2"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_28b903549346f7be731a8cb7d8"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2cf094074a74f8a0f6664af1c5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_94984e02c00e02654a0977a51e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_084ad34d5d2dd9f6619006a061"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_186ef9a3c668841b1286cbb18f"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f4337e6d702257fa1d5cae352b"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_97ddad8904d256ecd1b498125b"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeStateTimeline"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c0047a525912dde4405f980930"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b8e5a102d8effb7d56ee952df9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6ffe7f2c28a2207aca950a8abb"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9bb9571c123cdf9995559ec275"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_352f15d5b1dd925ca09a00f64e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_dd0b26675d2627a874fde6c922"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_3b70b941bbbf692515ae2480de"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisodeMember"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_af302d80d1323ed77e8998d0c7"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_4fa4419db77dc98e15a610dbda"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8586c73694c0624ab0cb641730"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2c3b20ea21dfa16d881fa55ba3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5f6bd4f072b746b333e1e93b9f"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0288dee454184dbc2b6cdda2b3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5af6049c8d8daa3b150092e2f0"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a8126385c11fdc2d87b1aaee83"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_d106971b607f11c6b8b01957f0"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e5a242f475d916f2c513278546"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9f6d0a774efb7ab0b64c115686"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_42291e5547f0bd2401582e7ef9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8531c70e213e8278e8d2b5955b"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a29b8b2b7a64698950c4834be4"`);
-        await queryRunner.query(`DROP TABLE "IncidentEpisode"`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNoteFile" DROP CONSTRAINT "FK_b380b7d2fd4235e781424f5a257"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNoteFile" DROP CONSTRAINT "FK_360fb3b60a50ef473081f36df95"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeLabel" DROP CONSTRAINT "FK_28bf1907fa342b89c08e8b32028"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeLabel" DROP CONSTRAINT "FK_da04ba51e4fb21c658a2048de3c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOnCallDutyPolicy" DROP CONSTRAINT "FK_aa1387fad94484324847aef4ac3"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOnCallDutyPolicy" DROP CONSTRAINT "FK_e7bdb211320475fb6c6ea269014"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_869efffd9aecd83ed8f56ed02b0"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_59150523d62a43a1f19061c7c06"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_072ae75f1f85fe819ebd79d2a9b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_a41ca4be7e20e657cc772e3aec6"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeFeed" DROP CONSTRAINT "FK_b82cb428474b64f09931f562e23"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNote" DROP CONSTRAINT "FK_9dfc4d45a1976c7b1b792fb7e3b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNote" DROP CONSTRAINT "FK_7e701e0494450759129b06a57f8"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNote" DROP CONSTRAINT "FK_51fe6612a7c09f0969f0d8836a6"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeInternalNote" DROP CONSTRAINT "FK_2b9a766d6c3a93c93371f121105"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_d848925b97dbdcf715cf32defb6"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_ae2c29b4881a5c69508a14083e2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_606609de82e5bd8537423504535"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_27a40d4d276c8e8806f5c701cd9"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerTeam" DROP CONSTRAINT "FK_d80ad7fb1dc79c621444213c885"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_c0eadcf68801054e758fd893ab7"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_bc161f5c0ccba0ffd20eea0503d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_b3aeaf55267197414c6ed72cc15"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_680696fb1f050a2969b6c84bd5d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeOwnerUser" DROP CONSTRAINT "FK_98ad96281ec913af6cddb9da375"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_186ef9a3c668841b1286cbb18fc"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_4ca3132a61efcbc119a4845b52d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_483dc4c024b65d6b275d0cdf9e4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_f4337e6d702257fa1d5cae352b7"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeStateTimeline" DROP CONSTRAINT "FK_97ddad8904d256ecd1b498125b8"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_63e7e1419ed34d59471e09f8f6c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_3e0abfe38b4ea500e53f504576e"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_6ffe7f2c28a2207aca950a8abb1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_352f15d5b1dd925ca09a00f64ed"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_dd0b26675d2627a874fde6c922d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisodeMember" DROP CONSTRAINT "FK_3b70b941bbbf692515ae2480de4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "UserOnCallLogTimeline" DROP CONSTRAINT "FK_472e0b233594872d0e08b33c669"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "UserOnCallLog" DROP CONSTRAINT "FK_587fec46a331e53d72bb6c72fda"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "WorkspaceNotificationLog" DROP CONSTRAINT "FK_5914d9e328ba4a3dd4f3bae8489"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" DROP CONSTRAINT "FK_317bff3be6e5b028f44f405f49f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLog" DROP CONSTRAINT "FK_bfa9ab686cd4c179d77e4ff7f62"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Incident" DROP CONSTRAINT "FK_65226ba205f861184f98962a32a"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_503057381f67795efd0fdafff29"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_64397a5496adff80ede7524a2cf"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_0288dee454184dbc2b6cdda2b31"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_5af6049c8d8daa3b150092e2f07"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_e5a242f475d916f2c513278546d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_9f6d0a774efb7ab0b64c1156867"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "IncidentEpisode" DROP CONSTRAINT "FK_a29b8b2b7a64698950c4834be47"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_472e0b233594872d0e08b33c66"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5914d9e328ba4a3dd4f3bae848"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_317bff3be6e5b028f44f405f49"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_bfa9ab686cd4c179d77e4ff7f6"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_65226ba205f861184f98962a32"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type": "RestrictionTimes", "value": {"restictionType": "None", "dayRestrictionTimes": null, "weeklyRestrictionTimes": []}}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "UserOnCallLogTimeline" DROP COLUMN "triggeredByIncidentEpisodeId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "UserOnCallLog" DROP COLUMN "triggeredByIncidentEpisodeId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "WorkspaceNotificationLog" DROP COLUMN "incidentEpisodeId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" DROP COLUMN "triggeredByIncidentEpisodeId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLog" DROP COLUMN "triggeredByIncidentEpisodeId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Incident" DROP COLUMN "incidentEpisodeId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b380b7d2fd4235e781424f5a25"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_360fb3b60a50ef473081f36df9"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeInternalNoteFile"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_28bf1907fa342b89c08e8b3202"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_da04ba51e4fb21c658a2048de3"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeLabel"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_aa1387fad94484324847aef4ac"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e7bdb211320475fb6c6ea26901"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeOnCallDutyPolicy"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a41ca4be7e20e657cc772e3aec"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b82cb428474b64f09931f562e2"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeFeed"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1405cb7223ca25b5bedd7bd936"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a45d77147c5dfd7a913795e13f"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_51fe6612a7c09f0969f0d8836a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2b9a766d6c3a93c93371f12110"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeInternalNote"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f9aa734977a4131f79216083e2"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f7a5767cb7c22f541310da5eab"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_606609de82e5bd853742350453"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_27a40d4d276c8e8806f5c701cd"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_d80ad7fb1dc79c621444213c88"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeOwnerTeam"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c715213fcbbb6e127c939e77d5"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_158551754f64d2e54449cec952"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b3aeaf55267197414c6ed72cc1"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_680696fb1f050a2969b6c84bd5"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_98ad96281ec913af6cddb9da37"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeOwnerUser"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_be6c93f9970af6bfbd571957d2"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_28b903549346f7be731a8cb7d8"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2cf094074a74f8a0f6664af1c5"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_94984e02c00e02654a0977a51e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_084ad34d5d2dd9f6619006a061"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_186ef9a3c668841b1286cbb18f"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f4337e6d702257fa1d5cae352b"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_97ddad8904d256ecd1b498125b"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeStateTimeline"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c0047a525912dde4405f980930"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b8e5a102d8effb7d56ee952df9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6ffe7f2c28a2207aca950a8abb"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9bb9571c123cdf9995559ec275"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_352f15d5b1dd925ca09a00f64e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_dd0b26675d2627a874fde6c922"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3b70b941bbbf692515ae2480de"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisodeMember"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_af302d80d1323ed77e8998d0c7"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_4fa4419db77dc98e15a610dbda"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_8586c73694c0624ab0cb641730"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2c3b20ea21dfa16d881fa55ba3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5f6bd4f072b746b333e1e93b9f"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_0288dee454184dbc2b6cdda2b3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5af6049c8d8daa3b150092e2f0"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a8126385c11fdc2d87b1aaee83"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_d106971b607f11c6b8b01957f0"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e5a242f475d916f2c513278546"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_9f6d0a774efb7ab0b64c115686"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_42291e5547f0bd2401582e7ef9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_8531c70e213e8278e8d2b5955b"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a29b8b2b7a64698950c4834be4"`,
+    );
+    await queryRunner.query(`DROP TABLE "IncidentEpisode"`);
+  }
 }

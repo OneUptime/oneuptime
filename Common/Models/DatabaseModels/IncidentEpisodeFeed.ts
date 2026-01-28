@@ -166,8 +166,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
     type: TableColumnType.Entity,
     modelType: IncidentEpisode,
     title: "Incident Episode",
-    description:
-      "Relation to Incident Episode in which this resource belongs",
+    description: "Relation to Incident Episode in which this resource belongs",
   })
   @ManyToOne(
     () => {
@@ -406,7 +405,8 @@ export default class IncidentEpisodeFeed extends BaseModel {
     nullable: false,
     unique: false,
   })
-  public incidentEpisodeFeedEventType?: IncidentEpisodeFeedEventType = undefined;
+  public incidentEpisodeFeedEventType?: IncidentEpisodeFeedEventType =
+    undefined;
 
   @ColumnAccessControl({
     create: [

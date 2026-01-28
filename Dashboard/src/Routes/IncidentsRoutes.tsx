@@ -583,7 +583,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_EPISODE_VIEW_DELETE)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_DELETE,
+          )}
           element={
             <Suspense fallback={Loader}>
               <IncidentEpisodeViewDelete
@@ -685,7 +687,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               <IncidentEpisodeViewStateTimeline
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE] as Route
+                  RouteMap[
+                    PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE
+                  ] as Route
                 }
               />
             </Suspense>

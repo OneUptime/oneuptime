@@ -158,8 +158,9 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const currentEpisodeStateTimeline: IncidentEpisodeStateTimeline | undefined =
-      episodeStateTimelines[episodeStateTimelines.length - 1];
+    const currentEpisodeStateTimeline:
+      | IncidentEpisodeStateTimeline
+      | undefined = episodeStateTimelines[episodeStateTimelines.length - 1];
 
     if (!currentEpisodeStateTimeline) {
       return;
@@ -239,11 +240,12 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             return model;
           }}
           onSuccess={(model: IncidentEpisodeStateTimeline) => {
-            const incidentState: IncidentState | undefined = incidentStates.find(
-              (state: IncidentState) => {
-                return state.id?.toString() === model.incidentStateId?.toString();
-              },
-            );
+            const incidentState: IncidentState | undefined =
+              incidentStates.find((state: IncidentState) => {
+                return (
+                  state.id?.toString() === model.incidentStateId?.toString()
+                );
+              });
 
             setCurrentIncidentState(incidentState);
 
@@ -267,9 +269,11 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
                   ) => void,
                 ) => {
                   const selectedTemplate: IncidentNoteTemplate | undefined =
-                    incidentNoteTemplates.find((template: IncidentNoteTemplate) => {
-                      return template.id?.toString() === value;
-                    });
+                    incidentNoteTemplates.find(
+                      (template: IncidentNoteTemplate) => {
+                        return template.id?.toString() === value;
+                      },
+                    );
 
                   const note: string = selectedTemplate?.note || "";
 

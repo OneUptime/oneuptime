@@ -161,8 +161,7 @@ export default class IncidentEpisodeInternalNote extends BaseModel {
     type: TableColumnType.Entity,
     modelType: IncidentEpisode,
     title: "Incident Episode",
-    description:
-      "Relation to Incident Episode in which this resource belongs",
+    description: "Relation to Incident Episode in which this resource belongs",
   })
   @ManyToOne(
     () => {

@@ -23,8 +23,6 @@ import React, {
 } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import Route from "Common/Types/API/Route";
-import Navigation from "Common/UI/Utils/Navigation";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -62,34 +60,35 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
 
   // Fetch incident states on mount
   useEffect(() => {
-    const fetchIncidentStates: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<IncidentState> =
-          await ModelAPI.getList<IncidentState>({
-            modelType: IncidentState,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: 99,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-              color: true,
-              order: true,
-              isResolvedState: true,
-              isAcknowledgedState: true,
-              isCreatedState: true,
-            },
-            sort: {
-              order: SortOrder.Ascending,
-            },
-          });
-        setIncidentStates(result.data);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
-    };
+    const fetchIncidentStates: () => Promise<void> =
+      async (): Promise<void> => {
+        try {
+          const result: ListResult<IncidentState> =
+            await ModelAPI.getList<IncidentState>({
+              modelType: IncidentState,
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              limit: 99,
+              skip: 0,
+              select: {
+                _id: true,
+                name: true,
+                color: true,
+                order: true,
+                isResolvedState: true,
+                isAcknowledgedState: true,
+                isCreatedState: true,
+              },
+              sort: {
+                order: SortOrder.Ascending,
+              },
+            });
+          setIncidentStates(result.data);
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        }
+      };
 
     fetchIncidentStates();
   }, []);

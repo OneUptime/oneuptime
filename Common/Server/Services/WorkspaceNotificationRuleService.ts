@@ -1961,7 +1961,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
-        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
@@ -2048,7 +2049,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
-        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
@@ -2141,7 +2143,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
-        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
@@ -2212,7 +2215,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
-        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
@@ -2282,7 +2286,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
-        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
@@ -2337,7 +2342,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
         [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
-        [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
+          undefined,
         [NotificationRuleConditionCheckOn.Monitors]: undefined,
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:

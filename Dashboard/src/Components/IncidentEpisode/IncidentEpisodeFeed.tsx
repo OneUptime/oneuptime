@@ -191,8 +191,8 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     setError("");
     setIsLoading(true);
     try {
-      const episodeFeeds: ListResult<IncidentEpisodeFeed> = await ModelAPI.getList(
-        {
+      const episodeFeeds: ListResult<IncidentEpisodeFeed> =
+        await ModelAPI.getList({
           modelType: IncidentEpisodeFeed,
           query: {
             incidentEpisodeId: props.incidentEpisodeId!,
@@ -215,8 +215,7 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
             postedAt: SortOrder.Ascending,
           },
           limit: LIMIT_PER_PROJECT,
-        },
-      );
+        });
 
       setFeedItems(getFeedItemsFromEpisodeFeeds(episodeFeeds.data));
     } catch (err: unknown) {

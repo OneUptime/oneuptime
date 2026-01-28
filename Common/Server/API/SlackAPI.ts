@@ -852,7 +852,9 @@ export default class SlackAPI {
             }
 
             try {
-              await SlackIncidentEpisodeActions.handleEmojiReaction(reactionData);
+              await SlackIncidentEpisodeActions.handleEmojiReaction(
+                reactionData,
+              );
             } catch (err) {
               logger.error("Error handling incident episode emoji reaction:");
               logger.error(err);

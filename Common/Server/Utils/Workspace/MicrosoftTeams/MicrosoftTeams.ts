@@ -2538,16 +2538,20 @@ All monitoring checks are passing normally.`;
 
       // Handle incident episode actions
       if (
-        MicrosoftTeamsIncidentEpisodeActions.isIncidentEpisodeAction({ actionType })
-      ) {
-        await MicrosoftTeamsIncidentEpisodeActions.handleBotIncidentEpisodeAction({
+        MicrosoftTeamsIncidentEpisodeActions.isIncidentEpisodeAction({
           actionType,
-          actionValue,
-          value,
-          projectId,
-          oneUptimeUserId,
-          turnContext: data.turnContext,
-        });
+        })
+      ) {
+        await MicrosoftTeamsIncidentEpisodeActions.handleBotIncidentEpisodeAction(
+          {
+            actionType,
+            actionValue,
+            value,
+            projectId,
+            oneUptimeUserId,
+            turnContext: data.turnContext,
+          },
+        );
         return;
       }
 

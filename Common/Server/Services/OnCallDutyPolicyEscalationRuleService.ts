@@ -180,7 +180,8 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (options.triggeredByIncidentEpisodeId) {
-          log.triggeredByIncidentEpisodeId = options.triggeredByIncidentEpisodeId;
+          log.triggeredByIncidentEpisodeId =
+            options.triggeredByIncidentEpisodeId;
         }
 
         return log;

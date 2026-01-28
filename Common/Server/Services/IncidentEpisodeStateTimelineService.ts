@@ -391,19 +391,18 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
     deleteBy: DeleteBy<IncidentEpisodeStateTimeline>,
   ): Promise<OnDelete<IncidentEpisodeStateTimeline>> {
     if (deleteBy.query._id) {
-      const episodeStateTimelineToBeDeleted:
-        | IncidentEpisodeStateTimeline
-        | null = await this.findOneById({
-        id: new ObjectID(deleteBy.query._id as string),
-        select: {
-          incidentEpisodeId: true,
-          startsAt: true,
-          endsAt: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const episodeStateTimelineToBeDeleted: IncidentEpisodeStateTimeline | null =
+        await this.findOneById({
+          id: new ObjectID(deleteBy.query._id as string),
+          select: {
+            incidentEpisodeId: true,
+            startsAt: true,
+            endsAt: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       const episodeId: ObjectID | undefined =
         episodeStateTimelineToBeDeleted?.incidentEpisodeId;

@@ -314,7 +314,8 @@ export class Service extends DatabaseService<Model> {
           triggeredByIncidentId: createdItem.triggeredByIncidentId,
           triggeredByAlertId: createdItem.triggeredByAlertId,
           triggeredByAlertEpisodeId: createdItem.triggeredByAlertEpisodeId,
-          triggeredByIncidentEpisodeId: createdItem.triggeredByIncidentEpisodeId,
+          triggeredByIncidentEpisodeId:
+            createdItem.triggeredByIncidentEpisodeId,
           userNotificationEventType: createdItem.userNotificationEventType!,
           onCallPolicyExecutionLogId:
             createdItem.onCallDutyPolicyExecutionLogId,

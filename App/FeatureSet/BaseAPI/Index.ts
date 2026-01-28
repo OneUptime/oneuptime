@@ -1056,7 +1056,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         IncidentEpisodeInternalNote,
         IncidentEpisodeInternalNoteServiceType
-      >(IncidentEpisodeInternalNote, IncidentEpisodeInternalNoteService).getRouter(),
+      >(
+        IncidentEpisodeInternalNote,
+        IncidentEpisodeInternalNoteService,
+      ).getRouter(),
     );
 
     app.use(
@@ -1069,18 +1072,18 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentEpisodeOwnerTeam, IncidentEpisodeOwnerTeamServiceType>(
+      new BaseAPI<
         IncidentEpisodeOwnerTeam,
-        IncidentEpisodeOwnerTeamService,
-      ).getRouter(),
+        IncidentEpisodeOwnerTeamServiceType
+      >(IncidentEpisodeOwnerTeam, IncidentEpisodeOwnerTeamService).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentEpisodeOwnerUser, IncidentEpisodeOwnerUserServiceType>(
+      new BaseAPI<
         IncidentEpisodeOwnerUser,
-        IncidentEpisodeOwnerUserService,
-      ).getRouter(),
+        IncidentEpisodeOwnerUserServiceType
+      >(IncidentEpisodeOwnerUser, IncidentEpisodeOwnerUserService).getRouter(),
     );
 
     app.use(

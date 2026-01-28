@@ -578,7 +578,8 @@ export default class SlackIncidentEpisodeActions {
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
         triggeredByIncidentEpisodeId: episodeId,
-        userNotificationEventType: UserNotificationEventType.IncidentEpisodeCreated,
+        userNotificationEventType:
+          UserNotificationEventType.IncidentEpisodeCreated,
       });
     }
   }
@@ -710,7 +711,9 @@ export default class SlackIncidentEpisodeActions {
       return await this.viewExecuteOnCallPolicy(data);
     }
 
-    if (actionType === SlackActionType.SubmitExecuteIncidentEpisodeOnCallPolicy) {
+    if (
+      actionType === SlackActionType.SubmitExecuteIncidentEpisodeOnCallPolicy
+    ) {
       return await this.executeOnCallPolicy(data);
     }
 

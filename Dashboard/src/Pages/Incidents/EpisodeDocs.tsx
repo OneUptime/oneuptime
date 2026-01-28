@@ -281,10 +281,11 @@ const IncidentEpisodeDocs: FunctionComponent<
       >
         <div className="p-6">
           <p className="text-gray-600 mb-4">
-            Incident Grouping helps reduce incident fatigue by automatically combining
-            related incidents into <strong>Episodes</strong>. Instead of seeing 50
-            individual &quot;database connection timeout&quot; incidents, operators see one
-            episode: &quot;Database Connectivity Issues (50 incidents)&quot;.
+            Incident Grouping helps reduce incident fatigue by automatically
+            combining related incidents into <strong>Episodes</strong>. Instead
+            of seeing 50 individual &quot;database connection timeout&quot;
+            incidents, operators see one episode: &quot;Database Connectivity
+            Issues (50 incidents)&quot;.
           </p>
           <p className="text-gray-600">
             Episodes follow the same state lifecycle as incidents (Active,
@@ -373,7 +374,8 @@ const IncidentEpisodeDocs: FunctionComponent<
           <div className="p-6">
             <p className="text-gray-600 mb-4">
               Incident Episodes support comprehensive postmortem documentation,
-              allowing teams to capture lessons learned and prevent future incidents.
+              allowing teams to capture lessons learned and prevent future
+              incidents.
             </p>
             <ConceptCards cards={postmortemCards} columns={3} />
           </div>
@@ -389,9 +391,10 @@ const IncidentEpisodeDocs: FunctionComponent<
           <div className="p-6">
             <p className="text-gray-600 mb-4">
               On-call policies can be configured at two levels: on individual{" "}
-              <strong>incidents</strong> (via monitors or manual configuration) and
-              on <strong>grouping rules</strong> (for episodes). Understanding
-              how these interact is important for managing notification volume.
+              <strong>incidents</strong> (via monitors or manual configuration)
+              and on <strong>grouping rules</strong> (for episodes).
+              Understanding how these interact is important for managing
+              notification volume.
             </p>
             <VerticalFlowSteps steps={onCallFlowSteps} />
           </div>
@@ -444,10 +447,10 @@ const IncidentEpisodeDocs: FunctionComponent<
                 on-call policies aren&apos;t configured.
               </li>
               <li>
-                <strong>Incident-Level Policies:</strong> Individual incidents can
-                still have their own on-call policies (configured on monitors).
-                These execute regardless of whether the incident is grouped into an
-                episode.
+                <strong>Incident-Level Policies:</strong> Individual incidents
+                can still have their own on-call policies (configured on
+                monitors). These execute regardless of whether the incident is
+                grouped into an episode.
               </li>
               <li>
                 <strong>State Change Notifications:</strong> When an episode
@@ -475,8 +478,8 @@ const IncidentEpisodeDocs: FunctionComponent<
               </li>
               <li>
                 <strong>Use appropriate time windows</strong> - High-frequency
-                incidents may need shorter windows (5-15 min), while
-                standard monitoring can use longer windows (30-60 min).
+                incidents may need shorter windows (5-15 min), while standard
+                monitoring can use longer windows (30-60 min).
               </li>
               <li>
                 <strong>Group by service or component</strong> - Configure rules
@@ -498,9 +501,9 @@ const IncidentEpisodeDocs: FunctionComponent<
                 on episodes to document findings for future reference.
               </li>
               <li>
-                <strong>Write postmortems</strong> - After resolving major episodes,
-                document the timeline, root cause, and action items in the postmortem
-                to improve future incident response.
+                <strong>Write postmortems</strong> - After resolving major
+                episodes, document the timeline, root cause, and action items in
+                the postmortem to improve future incident response.
               </li>
             </ul>
           </div>

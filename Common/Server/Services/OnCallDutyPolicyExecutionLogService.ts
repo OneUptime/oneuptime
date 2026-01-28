@@ -168,7 +168,8 @@ export class Service extends DatabaseService<Model> {
           await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
             incidentEpisodeId: createdItem.triggeredByIncidentEpisodeId,
             projectId: createdItem.projectId!,
-            incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.OnCallPolicy,
+            incidentEpisodeFeedEventType:
+              IncidentEpisodeFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
             feedInfoInMarkdown: feedInfoInMarkdown,
           });
@@ -235,7 +236,8 @@ export class Service extends DatabaseService<Model> {
           triggeredByIncidentId: createdItem.triggeredByIncidentId,
           triggeredByAlertId: createdItem.triggeredByAlertId,
           triggeredByAlertEpisodeId: createdItem.triggeredByAlertEpisodeId,
-          triggeredByIncidentEpisodeId: createdItem.triggeredByIncidentEpisodeId,
+          triggeredByIncidentEpisodeId:
+            createdItem.triggeredByIncidentEpisodeId,
           userNotificationEventType: userNotificationEventType,
           onCallPolicyExecutionLogId: createdItem.id!,
           onCallPolicyId: createdItem.onCallDutyPolicyId!,
@@ -455,7 +457,8 @@ export class Service extends DatabaseService<Model> {
               incidentEpisodeId:
                 onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId,
               projectId: onCalldutyPolicyExecutionLog.projectId!,
-              incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.OnCallPolicy,
+              incidentEpisodeFeedEventType:
+                IncidentEpisodeFeedEventType.OnCallPolicy,
               displayColor: onCalldutyPolicyExecutionLog.status
                 ? this.getDisplayColorByStatus(
                     onCalldutyPolicyExecutionLog.status,

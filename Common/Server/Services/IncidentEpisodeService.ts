@@ -1,5 +1,5 @@
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import IncidentStateService from "./IncidentStateService";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -18,12 +18,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
-import {
-  Red500,
-  Green500,
-  Yellow500,
-  Purple500,
-} from "../../Types/BrandColors";
+import { Red500, Yellow500, Purple500 } from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import IncidentSeverityService from "./IncidentSeverityService";
@@ -253,8 +248,7 @@ export class Service extends DatabaseService<Model> {
     await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
       incidentEpisodeId: episode.id,
       projectId: episode.projectId,
-      incidentEpisodeFeedEventType:
-        IncidentEpisodeFeedEventType.EpisodeCreated,
+      incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.EpisodeCreated,
       displayColor: Red500,
       feedInfoInMarkdown: feedInfoInMarkdown,
       userId: episode.createdByUserId || undefined,
@@ -338,8 +332,7 @@ export class Service extends DatabaseService<Model> {
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
         incidentEpisodeId: createdItem.id,
         projectId: createdItem.projectId,
-        incidentEpisodeFeedEventType:
-          IncidentEpisodeFeedEventType.OnCallPolicy,
+        incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.OnCallPolicy,
         displayColor: Purple500,
         feedInfoInMarkdown: feedInfoInMarkdown,
       });
@@ -585,9 +578,7 @@ export class Service extends DatabaseService<Model> {
       episodeId: episodeId,
       incidentStateId: incidentState.id,
       notifyOwners: false,
-      rootCause: resolvedByUserId
-        ? `Resolved by user.`
-        : "Resolved via API.",
+      rootCause: resolvedByUserId ? `Resolved by user.` : "Resolved via API.",
       props: {
         isRoot: true,
         userId: resolvedByUserId,
@@ -641,9 +632,7 @@ export class Service extends DatabaseService<Model> {
       episodeId: episodeId,
       incidentStateId: incidentState.id,
       notifyOwners: false,
-      rootCause: reopenedByUserId
-        ? `Reopened by user.`
-        : "Reopened via API.",
+      rootCause: reopenedByUserId ? `Reopened by user.` : "Reopened via API.",
       props: {
         isRoot: true,
         userId: reopenedByUserId,
@@ -829,8 +818,9 @@ export class Service extends DatabaseService<Model> {
     // Add users from teams
     for (const teamOwner of teamOwners) {
       if (teamOwner.teamId) {
-        const teamMembers: Array<User> =
-          await TeamMemberService.getUsersInTeam(teamOwner.teamId);
+        const teamMembers: Array<User> = await TeamMemberService.getUsersInTeam(
+          teamOwner.teamId,
+        );
         for (const user of teamMembers) {
           if (user.id) {
             usersMap.set(user.id.toString(), user);

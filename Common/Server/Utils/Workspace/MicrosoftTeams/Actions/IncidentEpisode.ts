@@ -82,7 +82,9 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           break;
 
         default:
-          logger.debug("Unhandled incident episode action: " + action.actionType);
+          logger.debug(
+            "Unhandled incident episode action: " + action.actionType,
+          );
           break;
       }
     } catch (error) {
@@ -108,24 +110,25 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
     logger.debug("Acknowledging incident episode: " + episodeId);
 
     try {
-      const episode: IncidentEpisode | null = await IncidentEpisodeService.findOneBy({
-        query: {
-          _id: episodeId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentIncidentState: {
-            _id: true,
-            name: true,
-            isAcknowledgedState: true,
+      const episode: IncidentEpisode | null =
+        await IncidentEpisodeService.findOneBy({
+          query: {
+            _id: episodeId,
+            projectId: data.teamsRequest.projectId,
           },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+          select: {
+            _id: true,
+            projectId: true,
+            currentIncidentState: {
+              _id: true,
+              name: true,
+              isAcknowledgedState: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (!episode) {
         logger.error("Incident episode not found: " + episodeId);
@@ -170,24 +173,25 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
     logger.debug("Resolving incident episode: " + episodeId);
 
     try {
-      const episode: IncidentEpisode | null = await IncidentEpisodeService.findOneBy({
-        query: {
-          _id: episodeId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentIncidentState: {
-            _id: true,
-            name: true,
-            isResolvedState: true,
+      const episode: IncidentEpisode | null =
+        await IncidentEpisodeService.findOneBy({
+          query: {
+            _id: episodeId,
+            projectId: data.teamsRequest.projectId,
           },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+          select: {
+            _id: true,
+            projectId: true,
+            currentIncidentState: {
+              _id: true,
+              name: true,
+              isResolvedState: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (!episode) {
         logger.error("Incident episode not found: " + episodeId);
@@ -235,7 +239,9 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       turnContext,
     } = data;
 
-    if (actionType === MicrosoftTeamsIncidentEpisodeActionType.AckIncidentEpisode) {
+    if (
+      actionType === MicrosoftTeamsIncidentEpisodeActionType.AckIncidentEpisode
+    ) {
       if (!actionValue) {
         await turnContext.sendActivity(
           "Unable to acknowledge: missing incident episode id.",
@@ -252,7 +258,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
     }
 
     if (
-      actionType === MicrosoftTeamsIncidentEpisodeActionType.ResolveIncidentEpisode
+      actionType ===
+      MicrosoftTeamsIncidentEpisodeActionType.ResolveIncidentEpisode
     ) {
       if (!actionValue) {
         await turnContext.sendActivity(
@@ -269,7 +276,9 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       return;
     }
 
-    if (actionType === MicrosoftTeamsIncidentEpisodeActionType.ViewIncidentEpisode) {
+    if (
+      actionType === MicrosoftTeamsIncidentEpisodeActionType.ViewIncidentEpisode
+    ) {
       if (!actionValue) {
         await turnContext.sendActivity(
           "Unable to view incident episode: missing episode id.",
@@ -277,28 +286,29 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
-      const episode: IncidentEpisode | null = await IncidentEpisodeService.findOneBy({
-        query: {
-          _id: actionValue,
-          projectId: projectId,
-        },
-        select: {
-          _id: true,
-          title: true,
-          description: true,
-          currentIncidentState: {
-            name: true,
+      const episode: IncidentEpisode | null =
+        await IncidentEpisodeService.findOneBy({
+          query: {
+            _id: actionValue,
+            projectId: projectId,
           },
-          incidentSeverity: {
-            name: true,
+          select: {
+            _id: true,
+            title: true,
+            description: true,
+            currentIncidentState: {
+              name: true,
+            },
+            incidentSeverity: {
+              name: true,
+            },
+            createdAt: true,
+            incidentCount: true,
           },
-          createdAt: true,
-          incidentCount: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (!episode) {
         await turnContext.sendActivity("Incident episode not found.");
@@ -323,7 +333,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       }
 
       // Send the input card
-      const card: JSONObject = this.buildAddIncidentEpisodeNoteCard(actionValue);
+      const card: JSONObject =
+        this.buildAddIncidentEpisodeNoteCard(actionValue);
       await turnContext.sendActivity({
         attachments: [
           {
@@ -336,7 +347,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
     }
 
     if (
-      actionType === MicrosoftTeamsIncidentEpisodeActionType.SubmitIncidentEpisodeNote
+      actionType ===
+      MicrosoftTeamsIncidentEpisodeActionType.SubmitIncidentEpisodeNote
     ) {
       if (!actionValue) {
         await turnContext.sendActivity(
@@ -433,9 +445,7 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           },
         );
 
-        await turnContext.sendActivity(
-          "On-call policy executed successfully.",
-        );
+        await turnContext.sendActivity("On-call policy executed successfully.");
 
         // Hide the form card by deleting it
         if (turnContext.activity.replyToId) {
@@ -530,7 +540,9 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
     );
   }
 
-  private static buildAddIncidentEpisodeNoteCard(episodeId: string): JSONObject {
+  private static buildAddIncidentEpisodeNoteCard(
+    episodeId: string,
+  ): JSONObject {
     return {
       type: "AdaptiveCard",
       $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -555,7 +567,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           type: "Action.Submit",
           title: "Submit",
           data: {
-            action: MicrosoftTeamsIncidentEpisodeActionType.SubmitIncidentEpisodeNote,
+            action:
+              MicrosoftTeamsIncidentEpisodeActionType.SubmitIncidentEpisodeNote,
             actionValue: episodeId,
           },
         },
