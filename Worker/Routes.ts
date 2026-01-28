@@ -33,6 +33,16 @@ import "./Jobs/AlertEpisodeOwners/SendNotePostedNotification";
 import "./Jobs/AlertEpisodeOwners/SendOwnerAddedNotification";
 import "./Jobs/AlertEpisodeOwners/SendStateChangeNotification";
 
+// Incident Episodes
+import "./Jobs/IncidentEpisode/AutoResolve";
+import "./Jobs/IncidentEpisode/ResolveInactiveEpisodes";
+
+// Incident Episode Owners
+import "./Jobs/IncidentEpisodeOwners/SendCreatedResourceNotification";
+import "./Jobs/IncidentEpisodeOwners/SendNotePostedNotification";
+import "./Jobs/IncidentEpisodeOwners/SendOwnerAddedNotification";
+import "./Jobs/IncidentEpisodeOwners/SendStateChangeNotification";
+
 // Incident Notes
 import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";

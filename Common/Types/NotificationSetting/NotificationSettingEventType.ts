@@ -19,6 +19,13 @@ enum NotificationSettingEventType {
   SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION = "Send alert episode state changed notification when I am the owner of the alert episode",
   SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the alert episode",
 
+  // Incident Episodes
+
+  SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION = "Send incident episode created notification when I am the owner of the incident episode",
+  SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION = "Send incident episode note posted notification when I am the owner of the incident episode",
+  SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION = "Send incident episode state changed notification when I am the owner of the incident episode",
+  SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the incident episode",
+
   // Monitors
   SEND_MONITOR_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the monitor",
   SEND_MONITOR_CREATED_OWNER_NOTIFICATION = "Send monitor created notification when I am the owner of the monitor",

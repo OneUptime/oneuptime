@@ -50,6 +50,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     alertEpisodeId?: ObjectID | undefined;
+    incidentEpisodeId?: ObjectID | undefined;
     scheduledMaintenanceId?: ObjectID | undefined;
     statusPageId?: ObjectID | undefined;
     statusPageAnnouncementId?: ObjectID | undefined;
@@ -115,6 +116,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
+              incidentEpisodeId: data.incidentEpisodeId,
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
@@ -161,6 +163,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
+              incidentEpisodeId: data.incidentEpisodeId,
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
@@ -214,6 +217,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
+              incidentEpisodeId: data.incidentEpisodeId,
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
@@ -259,6 +263,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
+              incidentEpisodeId: data.incidentEpisodeId,
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
@@ -346,6 +351,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addOnCallNotificationSettings(userId, projectId);
     await this.addAlertNotificationSettings(userId, projectId);
     await this.addAlertEpisodeNotificationSettings(userId, projectId);
+    await this.addIncidentEpisodeNotificationSettings(userId, projectId);
   }
 
   private async addProbeOwnerNotificationSettings(
@@ -471,6 +477,23 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+    );
+  }
+
+  private async addIncidentEpisodeNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
     );
   }
 

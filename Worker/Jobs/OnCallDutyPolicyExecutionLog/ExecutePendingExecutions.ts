@@ -10,6 +10,7 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
+import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
@@ -37,6 +38,7 @@ RunCron(
           triggeredByIncidentId: true,
           triggeredByAlertId: true,
           triggeredByAlertEpisodeId: true,
+          triggeredByIncidentEpisodeId: true,
           createdAt: true,
           onCallDutyPolicy: {
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
@@ -151,6 +153,38 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
             status: OnCallDutyPolicyStatus.Completed,
             statusMessage:
               "Execution completed because alert episode is acknowledged or resolved.",
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
+      }
+    }
+
+    // get trigger by incident episode
+    if (executionLog.triggeredByIncidentEpisodeId) {
+      logger.debug(
+        `Triggered by incident episode: ${executionLog.triggeredByIncidentEpisodeId}`,
+      );
+
+      // check if this episode is ack.
+      const isAcknowledged: boolean =
+        await IncidentEpisodeService.isEpisodeAcknowledged({
+          episodeId: executionLog.triggeredByIncidentEpisodeId,
+        });
+
+      logger.debug(`Incident episode is acknowledged: ${isAcknowledged}`);
+
+      if (isAcknowledged) {
+        // then mark this policy as executed.
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: executionLog.id!,
+          data: {
+            status: OnCallDutyPolicyStatus.Completed,
+            statusMessage:
+              "Execution completed because incident episode is acknowledged or resolved.",
           },
           props: {
             isRoot: true,
@@ -282,6 +316,8 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
             triggeredByIncidentId: executionLog.triggeredByIncidentId,
             triggeredByAlertId: executionLog.triggeredByAlertId,
             triggeredByAlertEpisodeId: executionLog.triggeredByAlertEpisodeId,
+            triggeredByIncidentEpisodeId:
+              executionLog.triggeredByIncidentEpisodeId,
             userNotificationEventType: executionLog.userNotificationEventType!,
             onCallPolicyExecutionLogId: executionLog.id!,
             onCallPolicyId: executionLog.onCallDutyPolicyId!,
@@ -320,6 +356,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
         triggeredByIncidentId: executionLog.triggeredByIncidentId,
         triggeredByAlertId: executionLog.triggeredByAlertId,
         triggeredByAlertEpisodeId: executionLog.triggeredByAlertEpisodeId,
+        triggeredByIncidentEpisodeId: executionLog.triggeredByIncidentEpisodeId,
         userNotificationEventType: executionLog.userNotificationEventType!,
         onCallPolicyExecutionLogId: executionLog.id!,
         onCallPolicyId: executionLog.onCallDutyPolicyId!,
