@@ -82,12 +82,10 @@ const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         filters={[
           {
             field: {
-              project: {
-                name: true,
-              },
+              projectId: true,
             },
             title: "Project",
-            type: FieldType.Entity,
+            type: FieldType.EntityArray,
             filterEntityType: Project,
             filterDropdownField: {
               label: "name",

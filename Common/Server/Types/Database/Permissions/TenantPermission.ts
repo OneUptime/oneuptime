@@ -3,6 +3,7 @@ import Query from "../Query";
 import Select from "../Select";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -59,6 +60,23 @@ export default class TenantPermission {
         props.userGlobalAccessPermission.projectIds
       ) {
         projectIDs = props.userGlobalAccessPermission?.projectIds;
+      }
+
+      // Check if the query already has a filter on the tenant column (e.g., projectId filter)
+      // If so, only iterate through projects that match both the filter AND user's permissions
+      const existingTenantFilter: unknown = (query as any)[tenantColumn];
+      if (existingTenantFilter && existingTenantFilter instanceof Includes) {
+        const filterValues: Array<string> = (
+          existingTenantFilter as Includes
+        ).values.map((v: string | ObjectID | number) => {
+          return v.toString();
+        });
+        // Filter projectIDs to only include those that are in the filter
+        projectIDs = projectIDs.filter((pid: ObjectID) => {
+          return filterValues.includes(pid.toString());
+        });
+        // Remove the tenant filter from query since we're handling it via projectIDs iteration
+        delete (query as any)[tenantColumn];
       }
 
       let lastException: Error | null = null;
