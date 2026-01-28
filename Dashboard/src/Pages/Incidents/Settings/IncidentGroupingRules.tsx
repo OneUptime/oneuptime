@@ -280,7 +280,8 @@ const IncidentGroupingRulesPage: FunctionComponent<
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Groups all critical incidents from production services",
+            placeholder:
+              "Groups all critical incidents from production services",
           },
           {
             field: {
@@ -579,7 +580,8 @@ const IncidentGroupingRulesPage: FunctionComponent<
             stepId: "episode-template",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "{{incidentSeverity}} Incident Episode on {{monitorName}}",
+            placeholder:
+              "{{incidentSeverity}} Incident Episode on {{monitorName}}",
             description:
               "Template for auto-generated episode titles. Uses the first incident's data to generate the title.",
           },

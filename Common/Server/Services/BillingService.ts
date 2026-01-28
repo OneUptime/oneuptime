@@ -10,6 +10,7 @@ import Errors from "../Utils/Errors";
 import logger from "../Utils/Logger";
 import BaseService from "./BaseService";
 import MailService from "./MailService";
+import ProjectService from "./ProjectService";
 import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
@@ -1326,9 +1327,6 @@ export class BillingService extends BaseService {
           logger.debug(
             `[Invoice Email] Customer ${customerId} has invoice emails enabled, looking up project`,
           );
-
-          // Lazy import to avoid circular dependency
-          const { default: ProjectService } = await import("./ProjectService");
 
           // Find the project by Stripe customer ID
           const project: Project | null = await ProjectService.findOneBy({

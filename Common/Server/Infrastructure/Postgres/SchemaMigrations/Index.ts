@@ -481,5 +481,5 @@ export default [
   RenameNotificationRuleTypes1769517677937,
   MigrationName1769599843642,
   MigrationName1769626069479,
-  MigrationName1769629928240
+  MigrationName1769629928240,
 ];

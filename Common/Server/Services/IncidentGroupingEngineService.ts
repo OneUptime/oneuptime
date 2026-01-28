@@ -551,7 +551,11 @@ class IncidentGroupingEngineServiceClass {
      * Group by service - only if explicitly enabled
      * Must be checked before monitor since service contains multiple monitors
      */
-    if (rule.groupByService && incident.monitors && incident.monitors.length > 0) {
+    if (
+      rule.groupByService &&
+      incident.monitors &&
+      incident.monitors.length > 0
+    ) {
       // Use the first monitor's service for grouping
       const firstMonitor: Monitor | undefined = incident.monitors[0];
       if (firstMonitor && firstMonitor.id) {
@@ -575,7 +579,11 @@ class IncidentGroupingEngineServiceClass {
     }
 
     // Group by monitor - only if explicitly enabled
-    if (rule.groupByMonitor && incident.monitors && incident.monitors.length > 0) {
+    if (
+      rule.groupByMonitor &&
+      incident.monitors &&
+      incident.monitors.length > 0
+    ) {
       // Use the first monitor for grouping key
       const firstMonitor: Monitor | undefined = incident.monitors[0];
       if (firstMonitor && firstMonitor.id) {
@@ -819,7 +827,11 @@ class IncidentGroupingEngineServiceClass {
   ): string {
     if (!template) {
       // Default title based on incident
-      if (incident.monitors && incident.monitors.length > 0 && incident.monitors[0]?.name) {
+      if (
+        incident.monitors &&
+        incident.monitors.length > 0 &&
+        incident.monitors[0]?.name
+      ) {
         return `Incident Episode: ${incident.monitors[0].name}`;
       }
       if (incident.title) {
@@ -873,8 +885,15 @@ class IncidentGroupingEngineServiceClass {
     }
 
     // {{monitorName}} - use first monitor's name
-    if (incident.monitors && incident.monitors.length > 0 && incident.monitors[0]?.name) {
-      result = result.replace(/\{\{monitorName\}\}/g, incident.monitors[0].name);
+    if (
+      incident.monitors &&
+      incident.monitors.length > 0 &&
+      incident.monitors[0]?.name
+    ) {
+      result = result.replace(
+        /\{\{monitorName\}\}/g,
+        incident.monitors[0].name,
+      );
     }
 
     // {{incidentSeverity}}
@@ -921,8 +940,15 @@ class IncidentGroupingEngineServiceClass {
     }
 
     // {{monitorName}} - use first monitor's name
-    if (incident.monitors && incident.monitors.length > 0 && incident.monitors[0]?.name) {
-      result = result.replace(/\{\{monitorName\}\}/g, incident.monitors[0].name);
+    if (
+      incident.monitors &&
+      incident.monitors.length > 0 &&
+      incident.monitors[0]?.name
+    ) {
+      result = result.replace(
+        /\{\{monitorName\}\}/g,
+        incident.monitors[0].name,
+      );
     }
 
     // {{incidentSeverity}}
