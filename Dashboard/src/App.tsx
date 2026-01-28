@@ -68,6 +68,11 @@ const HomeActiveEpisodes: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Home/ActiveEpisodes");
 });
+const HomeActiveIncidentEpisodes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Home/ActiveIncidentEpisodes");
+});
 const LogsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
@@ -459,6 +464,20 @@ const App: () => JSX.Element = () => {
               <HomeActiveEpisodes
                 {...commonPageProps}
                 pageRoute={RouteMap[PageMap.HOME_ACTIVE_EPISODES] as Route}
+              />
+            }
+          />
+
+          <PageRoute
+            path={
+              RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES]?.toString() || ""
+            }
+            element={
+              <HomeActiveIncidentEpisodes
+                {...commonPageProps}
+                pageRoute={
+                  RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES] as Route
+                }
               />
             }
           />
