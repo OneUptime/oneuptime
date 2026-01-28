@@ -174,6 +174,37 @@ export default class PushNotificationUtil {
     });
   }
 
+  public static createIncidentEpisodeCreatedNotification(params: {
+    incidentEpisodeTitle: string;
+    projectName: string;
+    incidentEpisodeViewLink: string;
+    episodeNumber?: number;
+  }): PushNotificationMessage {
+    const {
+      incidentEpisodeTitle,
+      projectName,
+      incidentEpisodeViewLink,
+      episodeNumber,
+    } = params;
+    const episodeIdentifier: string = episodeNumber
+      ? `#${episodeNumber} (${incidentEpisodeTitle})`
+      : incidentEpisodeTitle;
+    return PushNotificationUtil.applyDefaults({
+      title: `New Incident Episode${episodeNumber ? ` #${episodeNumber}` : ""}: ${incidentEpisodeTitle}`,
+      body: `A new incident episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
+      clickAction: incidentEpisodeViewLink,
+      url: incidentEpisodeViewLink,
+      tag: "incident-episode-created",
+      requireInteraction: true,
+      data: {
+        type: "incident-episode-created",
+        incidentEpisodeTitle: incidentEpisodeTitle,
+        projectName: projectName,
+        url: incidentEpisodeViewLink,
+      },
+    });
+  }
+
   public static createMonitorStatusChangedNotification(params: {
     monitorName: string;
     projectName: string;
