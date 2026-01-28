@@ -138,6 +138,59 @@ export default class MonitorUtil {
       }
     }
 
+    if (monitorType === MonitorType.SNMP) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        // Handle SNMP community string secrets
+        if (
+          monitorStep.data?.snmpMonitor?.communityString &&
+          this.hasSecrets(monitorStep.data.snmpMonitor.communityString)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+          }
+
+          monitorStep.data.snmpMonitor.communityString =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.snmpMonitor.communityString,
+            })) as string;
+        }
+
+        // Handle SNMPv3 auth key secrets
+        if (
+          monitorStep.data?.snmpMonitor?.snmpV3Auth?.authKey &&
+          this.hasSecrets(monitorStep.data.snmpMonitor.snmpV3Auth.authKey)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+          }
+
+          monitorStep.data.snmpMonitor.snmpV3Auth.authKey =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.snmpMonitor.snmpV3Auth.authKey,
+            })) as string;
+        }
+
+        // Handle SNMPv3 priv key secrets
+        if (
+          monitorStep.data?.snmpMonitor?.snmpV3Auth?.privKey &&
+          this.hasSecrets(monitorStep.data.snmpMonitor.snmpV3Auth.privKey)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+          }
+
+          monitorStep.data.snmpMonitor.snmpV3Auth.privKey =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.snmpMonitor.snmpV3Auth.privKey,
+            })) as string;
+        }
+      }
+    }
+
     return monitorSteps;
   }
 

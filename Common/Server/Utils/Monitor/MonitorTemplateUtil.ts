@@ -11,6 +11,9 @@ import BasicInfrastructureMetrics, {
 import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import SnmpMonitorResponse, {
+  SnmpOidResponse,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import Typeof from "../../../Types/Typeof";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
@@ -200,6 +203,40 @@ export default class MonitorTemplateUtil {
             storageMap["screenshots"] = firstResponse.screenshots;
             storageMap["browserType"] = firstResponse.browserType;
             storageMap["screenSizeType"] = firstResponse.screenSizeType;
+          }
+        }
+      }
+
+      if (data.monitorType === MonitorType.SNMP) {
+        const snmpResponse: SnmpMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).snmpResponse;
+
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          responseTimeInMs: snmpResponse?.responseTimeInMs,
+          failureCause: snmpResponse?.failureCause,
+          isTimeout: snmpResponse?.isTimeout,
+        } as JSONObject;
+
+        // Add OID responses as key-value pairs
+        if (snmpResponse?.oidResponses) {
+          storageMap["oidResponses"] = snmpResponse.oidResponses.map(
+            (oidResponse: SnmpOidResponse) => {
+              return {
+                oid: oidResponse.oid,
+                name: oidResponse.name,
+                value: oidResponse.value,
+                type: oidResponse.type,
+              };
+            },
+          );
+
+          // Also add OIDs by name for easier templating
+          for (const oidResponse of snmpResponse.oidResponses) {
+            if (oidResponse.name) {
+              storageMap[oidResponse.name] = oidResponse.value;
+            }
           }
         }
       }
