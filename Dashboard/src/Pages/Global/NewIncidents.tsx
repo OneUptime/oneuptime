@@ -53,6 +53,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showRefreshButton={true}
         isCreateable={false}
         isViewable={true}
+        showViewIdButton={true}
         cardProps={{
           title: "New Incidents",
           description:
@@ -73,10 +74,10 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         filters={[
           {
             field: {
-              _id: true,
+              incidentNumber: true,
             },
-            type: FieldType.ObjectID,
-            title: "Incident ID",
+            type: FieldType.Number,
+            title: "Incident Number",
           },
           {
             field: {
@@ -111,10 +112,10 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
-              _id: true,
+              incidentNumber: true,
             },
-            title: "Incident ID",
-            type: FieldType.ObjectID,
+            title: "Incident Number",
+            type: FieldType.Number,
           },
           {
             field: {

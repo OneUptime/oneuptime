@@ -53,6 +53,7 @@ const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showRefreshButton={true}
         isCreateable={false}
         isViewable={true}
+        showViewIdButton={true}
         cardProps={{
           title: "New Alerts",
           description:
@@ -73,10 +74,10 @@ const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         filters={[
           {
             field: {
-              _id: true,
+              alertNumber: true,
             },
-            type: FieldType.ObjectID,
-            title: "Alert ID",
+            type: FieldType.Number,
+            title: "Alert Number",
           },
           {
             field: {
@@ -111,10 +112,10 @@ const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
-              _id: true,
+              alertNumber: true,
             },
-            title: "Alert ID",
-            type: FieldType.ObjectID,
+            title: "Alert Number",
+            type: FieldType.Number,
           },
           {
             field: {
