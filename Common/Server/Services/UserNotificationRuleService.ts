@@ -2009,6 +2009,7 @@ export class Service extends DatabaseService<Model> {
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
       triggeredByAlertEpisodeId?: ObjectID | undefined;
+      triggeredByIncidentEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
       onCallPolicyExecutionLogId?: ObjectID | undefined;
       onCallPolicyId: ObjectID | undefined;
@@ -2036,6 +2037,11 @@ export class Service extends DatabaseService<Model> {
     if (options.triggeredByAlertEpisodeId) {
       userOnCallLog.triggeredByAlertEpisodeId =
         options.triggeredByAlertEpisodeId;
+    }
+
+    if (options.triggeredByIncidentEpisodeId) {
+      userOnCallLog.triggeredByIncidentEpisodeId =
+        options.triggeredByIncidentEpisodeId;
     }
 
     userOnCallLog.userNotificationEventType = options.userNotificationEventType;

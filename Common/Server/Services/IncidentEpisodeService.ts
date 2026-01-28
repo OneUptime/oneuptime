@@ -33,7 +33,6 @@ import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import Typeof from "../../Types/Typeof";
 import IncidentService from "./IncidentService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -464,6 +463,8 @@ export class Service extends DatabaseService<Model> {
           projectId: projectId,
           incidentId: member.incidentId,
           incidentStateId: incidentStateId,
+          shouldNotifyStatusPageSubscribers: false,
+          isSubscribersNotified: false,
           notifyOwners: false, // Don't send notifications for cascaded state changes
           rootCause: "State changed by episode state cascade.",
           stateChangeLog: undefined,
@@ -926,7 +927,7 @@ export class Service extends DatabaseService<Model> {
   ): Array<NotificationRuleWorkspaceChannel> {
     if (
       !episode.postUpdatesToWorkspaceChannels ||
-      typeof episode.postUpdatesToWorkspaceChannels !== Typeof.Array ||
+      !Array.isArray(episode.postUpdatesToWorkspaceChannels) ||
       episode.postUpdatesToWorkspaceChannels.length === 0
     ) {
       return [];
