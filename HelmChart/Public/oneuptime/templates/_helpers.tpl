@@ -518,6 +518,9 @@ Usage:
 - name: BILLING_PRIVATE_KEY
   value: {{ $.Values.billing.privateKey }}
 
+- name: BILLING_WEBHOOK_SECRET
+  value: {{ $.Values.billing.webhookSecret }}
+
 - name: DISABLE_AUTOMATIC_INCIDENT_CREATION
   value: {{ $.Values.incidents.disableAutomaticCreation | squote }}
 

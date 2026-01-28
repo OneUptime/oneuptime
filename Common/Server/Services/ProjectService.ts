@@ -280,7 +280,8 @@ export class ProjectService extends DatabaseService<Model> {
       if (
         updateBy.data.businessDetails ||
         updateBy.data.businessDetailsCountry ||
-        updateBy.data.financeAccountingEmail
+        updateBy.data.financeAccountingEmail ||
+        updateBy.data.sendInvoicesByEmail !== undefined
       ) {
         // Sync to Stripe.
         const project: Model | null = await this.findOneById({
@@ -288,6 +289,7 @@ export class ProjectService extends DatabaseService<Model> {
           select: {
             paymentProviderCustomerId: true,
             financeAccountingEmail: true,
+            sendInvoicesByEmail: true,
           },
           props: { isRoot: true },
         });
@@ -301,6 +303,9 @@ export class ProjectService extends DatabaseService<Model> {
               (updateBy.data.financeAccountingEmail as string) ||
                 (project as any).financeAccountingEmail ||
                 null,
+              updateBy.data.sendInvoicesByEmail !== undefined
+                ? (updateBy.data.sendInvoicesByEmail as boolean)
+                : (project as any).sendInvoicesByEmail || null,
             );
           } catch (err) {
             logger.error(

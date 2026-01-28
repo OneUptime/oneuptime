@@ -1106,6 +1106,35 @@ export default class Project extends TenantModel {
   public enableAutoRechargeAiBalance?: boolean = undefined;
 
   @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Send Invoices by Email",
+    description:
+      "When enabled, invoices will be automatically sent to the finance/accounting email when they are generated.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public sendInvoicesByEmail?: boolean = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [],
     update: [],

@@ -102,6 +102,7 @@ const parsePositiveNumberFromEnv: (
 export const IsBillingEnabled: boolean = BillingConfig.IsBillingEnabled;
 export const BillingPublicKey: string = BillingConfig.BillingPublicKey;
 export const BillingPrivateKey: string = BillingConfig.BillingPrivateKey;
+export const BillingWebhookSecret: string = BillingConfig.BillingWebhookSecret;
 
 export const DatabaseHost: Hostname = Hostname.fromString(
   process.env["DATABASE_HOST"] || "postgres",

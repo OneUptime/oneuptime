@@ -620,6 +620,10 @@
         "privateKey": {
           "type": ["string", "null"]
         },
+        "webhookSecret": {
+          "type": ["string", "null"],
+          "description": "Stripe webhook secret for automatic invoice emails"
+        },
         "smsDefaultValueInCents": {
           "type": ["integer", "null"]
         },

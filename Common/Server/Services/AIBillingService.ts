@@ -39,6 +39,7 @@ export class AIBillingService extends BaseService {
         paymentProviderCustomerId: true,
         name: true,
         failedAiBalanceChargeNotificationSentToOwners: true,
+        sendInvoicesByEmail: true,
       },
       props: {
         isRoot: true,
@@ -89,6 +90,7 @@ export class AIBillingService extends BaseService {
         project.paymentProviderCustomerId!,
         "AI Balance Recharge",
         amountInUSD,
+        project.sendInvoicesByEmail || false,
       );
 
       await ProjectService.updateOneById({

@@ -604,6 +604,16 @@ const Settings: FunctionComponent<ComponentProps> = (
                   maxLength: 200,
                 },
               },
+              {
+                field: {
+                  sendInvoicesByEmail: true,
+                },
+                title: "Send Invoices by Email",
+                description:
+                  "When enabled, invoices will be automatically sent to the finance/accounting email when they are generated.",
+                required: false,
+                fieldType: FormFieldSchemaType.Toggle,
+              },
             ]}
             modelDetailProps={{
               modelType: Project,
@@ -632,6 +642,14 @@ const Settings: FunctionComponent<ComponentProps> = (
                   title: "Finance / Accounting Email",
                   placeholder: "No finance / accounting email added yet.",
                   fieldType: FieldType.Email,
+                },
+                {
+                  field: {
+                    sendInvoicesByEmail: true,
+                  },
+                  title: "Send Invoices by Email",
+                  placeholder: "Disabled",
+                  fieldType: FieldType.Boolean,
                 },
               ],
               modelId: ProjectUtil.getCurrentProjectId()!,

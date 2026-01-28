@@ -35,6 +35,7 @@ export class NotificationService extends BaseService {
         paymentProviderCustomerId: true,
         name: true,
         failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
+        sendInvoicesByEmail: true,
       },
       props: {
         isRoot: true,
@@ -85,6 +86,7 @@ export class NotificationService extends BaseService {
         project.paymentProviderCustomerId!,
         "SMS or Call Balance Recharge",
         amountInUSD,
+        project.sendInvoicesByEmail || false,
       );
 
       await ProjectService.updateOneById({

@@ -1,14 +1,15 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { BillingWebhookSecret, IsBillingEnabled } from "../EnvironmentConfig";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import BillingService from "../Services/BillingService";
 import ProjectService from "../Services/ProjectService";
-import Express, {
+import {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
+import Express from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Permission, { UserPermission } from "../../Types/Permission";
@@ -16,12 +17,57 @@ import Project from "../../Models/DatabaseModels/Project";
 import CommonAPI from "./CommonAPI";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import logger from "../Utils/Logger";
 
 export default class BillingAPI {
   public router: ExpressRouter;
 
   public constructor() {
     this.router = Express.getRouter();
+
+    // Stripe webhook endpoint - uses raw body captured by JSON parser for signature verification
+    this.router.post(
+      `/billing/webhook`,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            return Response.sendJsonObjectResponse(req, res, {
+              message: "Billing is not enabled",
+            });
+          }
+
+          if (!BillingWebhookSecret) {
+            throw new BadDataException(
+              "Billing webhook secret is not configured",
+            );
+          }
+
+          const signature = req.headers["stripe-signature"] as string;
+
+          if (!signature) {
+            throw new BadDataException("Missing Stripe signature header");
+          }
+
+          const rawBody = (req as OneUptimeRequest).rawBody;
+
+          if (!rawBody) {
+            throw new BadDataException("Missing raw body for webhook verification");
+          }
+
+          const event = BillingService.verifyWebhookSignature(rawBody, signature);
+
+          // Handle the event asynchronously
+          await BillingService.handleWebhookEvent(event);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            received: true,
+          });
+        } catch (err) {
+          logger.error("Stripe webhook error: " + err);
+          next(err);
+        }
+      },
+    );
 
     this.router.get(
       `/billing/customer-balance`,
