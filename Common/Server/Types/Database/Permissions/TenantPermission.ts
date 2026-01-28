@@ -62,8 +62,10 @@ export default class TenantPermission {
         projectIDs = props.userGlobalAccessPermission?.projectIds;
       }
 
-      // Check if the query already has a filter on the tenant column (e.g., projectId filter)
-      // If so, only iterate through projects that match both the filter AND user's permissions
+      /*
+       * Check if the query already has a filter on the tenant column (e.g., projectId filter)
+       * If so, only iterate through projects that match both the filter AND user's permissions
+       */
       const existingTenantFilter: unknown = (query as any)[tenantColumn];
       if (existingTenantFilter && existingTenantFilter instanceof Includes) {
         const filterValues: Array<string> = (

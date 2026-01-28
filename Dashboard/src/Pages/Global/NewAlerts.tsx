@@ -10,7 +10,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ModelAPI, { RequestOptions } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, {
+  ListResult,
+  RequestOptions,
+} from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -94,25 +97,26 @@ const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fetchFilterDropdownOptions: async (): Promise<
               Array<DropdownOption>
             > => {
-              const projects = await ModelAPI.getList<Project>({
-                modelType: Project,
-                query: {},
-                limit: 100,
-                skip: 0,
-                select: {
-                  name: true,
-                  _id: true,
-                },
-                sort: {
-                  name: SortOrder.Ascending,
-                },
-                requestOptions: {
-                  isMultiTenantRequest: true,
-                  overrideRequestUrl: URL.fromString(
-                    APP_API_URL.toString(),
-                  ).addRoute("/project/list-user-projects"),
-                },
-              });
+              const projects: ListResult<Project> =
+                await ModelAPI.getList<Project>({
+                  modelType: Project,
+                  query: {},
+                  limit: 100,
+                  skip: 0,
+                  select: {
+                    name: true,
+                    _id: true,
+                  },
+                  sort: {
+                    name: SortOrder.Ascending,
+                  },
+                  requestOptions: {
+                    isMultiTenantRequest: true,
+                    overrideRequestUrl: URL.fromString(
+                      APP_API_URL.toString(),
+                    ).addRoute("/project/list-user-projects"),
+                  },
+                });
 
               return projects.data.map((project: Project): DropdownOption => {
                 return {
