@@ -35,6 +35,9 @@ const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="New Alerts"
         id="new-alerts-table"
         userPreferencesKey="new-alerts-table"
+        saveFilterProps={{
+          tableId: "new-alerts-table",
+        }}
         isDeleteable={false}
         query={{
           currentAlertState: {

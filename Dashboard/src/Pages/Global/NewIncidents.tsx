@@ -33,8 +33,11 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<Incident>
         modelType={Incident}
         name="New Incidents"
-        id="incident-table"
+        id="new-incidents-table"
         userPreferencesKey="new-incidents-table"
+        saveFilterProps={{
+          tableId: "new-incidents-table",
+        }}
         isDeleteable={false}
         query={{
           currentIncidentState: {
