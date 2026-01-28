@@ -7,6 +7,7 @@ import BaseService from "./BaseService";
 import BillingService from "./BillingService";
 import ProjectService from "./ProjectService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Email from "../../Types/Email";
 import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -36,6 +37,7 @@ export class NotificationService extends BaseService {
         name: true,
         failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
         sendInvoicesByEmail: true,
+        financeAccountingEmail: true,
       },
       props: {
         isRoot: true,
@@ -86,7 +88,13 @@ export class NotificationService extends BaseService {
         project.paymentProviderCustomerId!,
         "SMS or Call Balance Recharge",
         amountInUSD,
-        project.sendInvoicesByEmail || false,
+        {
+          sendInvoiceByEmail: project.sendInvoicesByEmail || false,
+          recipientEmail: project.financeAccountingEmail
+            ? new Email(project.financeAccountingEmail)
+            : undefined,
+          projectId: project.id || undefined,
+        },
       );
 
       await ProjectService.updateOneById({

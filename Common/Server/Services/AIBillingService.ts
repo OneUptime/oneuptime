@@ -7,6 +7,7 @@ import BaseService from "./BaseService";
 import BillingService from "./BillingService";
 import ProjectService from "./ProjectService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Email from "../../Types/Email";
 import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -40,6 +41,7 @@ export class AIBillingService extends BaseService {
         name: true,
         failedAiBalanceChargeNotificationSentToOwners: true,
         sendInvoicesByEmail: true,
+        financeAccountingEmail: true,
       },
       props: {
         isRoot: true,
@@ -90,7 +92,13 @@ export class AIBillingService extends BaseService {
         project.paymentProviderCustomerId!,
         "AI Balance Recharge",
         amountInUSD,
-        project.sendInvoicesByEmail || false,
+        {
+          sendInvoiceByEmail: project.sendInvoicesByEmail || false,
+          recipientEmail: project.financeAccountingEmail
+            ? new Email(project.financeAccountingEmail)
+            : undefined,
+          projectId: project.id || undefined,
+        },
       );
 
       await ProjectService.updateOneById({

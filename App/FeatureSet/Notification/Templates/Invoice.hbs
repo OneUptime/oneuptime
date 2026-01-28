@@ -1,0 +1,38 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="Invoice from OneUptime" }}
+
+{{> InfoBlock info="A new invoice has been generated for your account. Here are the details:"}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Invoice Number:" text=invoiceNumber }}
+{{> DetailBoxField title="Invoice Date:" text=invoiceDate }}
+{{> DetailBoxField title="Amount:" text=amount }}
+{{> DetailBoxField title="Status:" text=status }}
+{{#if description}}
+{{> DetailBoxField title="Description:" text=description }}
+{{/if}}
+{{> DetailBoxEnd this }}
+
+{{#if invoicePdfUrl}}
+{{> InfoBlock info="You can view and download your invoice by clicking the button below:"}}
+
+{{> ButtonBlock buttonUrl=invoicePdfUrl buttonText="View Invoice PDF"}}
+
+{{> InfoBlock info="Or copy and paste this link:"}}
+{{> InfoBlock info=invoicePdfUrl}}
+{{/if}}
+
+{{#if dashboardLink}}
+{{> InfoBlock info="You can also view all your invoices in your dashboard:"}}
+
+{{> ButtonBlock buttonUrl=dashboardLink buttonText="View Billing Dashboard"}}
+{{/if}}
+
+{{> InfoBlock info="You have received this email because you are subscribed to receive invoice notifications for this project."}}
+
+{{> Footer this }}
+
+{{> End this}}
