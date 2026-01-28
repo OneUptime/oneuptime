@@ -307,7 +307,7 @@ export class ProjectService extends DatabaseService<Model> {
 
         if (project?.paymentProviderCustomerId) {
           try {
-            const sendInvoicesByEmailValue =
+            const sendInvoicesByEmailValue: boolean | null =
               updateBy.data.sendInvoicesByEmail !== undefined
                 ? (updateBy.data.sendInvoicesByEmail as boolean)
                 : (project as any).sendInvoicesByEmail || null;

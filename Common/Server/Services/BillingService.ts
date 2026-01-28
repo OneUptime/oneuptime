@@ -974,7 +974,8 @@ export class BillingService extends BaseService {
       logger.debug(
         `[Invoice Email] Fetching invoice ${invoiceId} details from Stripe`,
       );
-      const stripeInvoice = await this.stripe.invoices.retrieve(invoiceId);
+      const stripeInvoice: Stripe.Invoice =
+        await this.stripe.invoices.retrieve(invoiceId);
 
       if (!stripeInvoice) {
         logger.error(
@@ -997,17 +998,19 @@ export class BillingService extends BaseService {
       }
 
       // Format invoice data for email
-      const invoiceNumber = stripeInvoice.number || invoiceId;
-      const invoiceDate = stripeInvoice.created
+      const invoiceNumber: string = stripeInvoice.number || invoiceId;
+      const invoiceDate: string = stripeInvoice.created
         ? OneUptimeDate.getDateAsFormattedString(
             new Date(stripeInvoice.created * 1000),
           )
         : OneUptimeDate.getDateAsFormattedString(
             OneUptimeDate.getCurrentDate(),
           );
-      const amount = `${(stripeInvoice.amount_due / 100).toFixed(2)} ${stripeInvoice.currency?.toUpperCase() || "USD"}`;
-      const invoicePdfUrl = stripeInvoice.invoice_pdf || undefined;
-      const description = stripeInvoice.description || undefined;
+      const amount: string = `${(stripeInvoice.amount_due / 100).toFixed(2)} ${stripeInvoice.currency?.toUpperCase() || "USD"}`;
+      const invoicePdfUrl: string | undefined =
+        stripeInvoice.invoice_pdf || undefined;
+      const description: string | undefined =
+        stripeInvoice.description || undefined;
 
       // Build dashboard link
       let dashboardLink: string | undefined = undefined;
@@ -1078,8 +1081,8 @@ export class BillingService extends BaseService {
         return false;
       }
 
-      const metadata = (customer as Stripe.Customer).metadata;
-      const sendInvoicesByEmail =
+      const metadata: Stripe.Metadata = (customer as Stripe.Customer).metadata;
+      const sendInvoicesByEmail: boolean =
         metadata?.["send_invoices_by_email"] === "true";
       logger.debug(
         `[Invoice Email] Customer ${customerId} metadata.send_invoices_by_email = "${metadata?.["send_invoices_by_email"]}", result: ${sendInvoicesByEmail}`,
@@ -1104,9 +1107,9 @@ export class BillingService extends BaseService {
       projectId?: ObjectID | undefined;
     },
   ): Promise<void> {
-    const sendInvoiceByEmail = options?.sendInvoiceByEmail || false;
-    const recipientEmail = options?.recipientEmail;
-    const projectId = options?.projectId;
+    const sendInvoiceByEmail: boolean = options?.sendInvoiceByEmail || false;
+    const recipientEmail: Email | undefined = options?.recipientEmail;
+    const projectId: ObjectID | undefined = options?.projectId;
 
     logger.debug(
       `[Invoice Email] generateInvoiceAndChargeCustomer called - customer: ${customerId}, amount: $${amountInUsd}, sendInvoiceByEmail: ${sendInvoiceByEmail}, recipientEmail: ${recipientEmail?.toString()}, projectId: ${projectId?.toString()}`,
@@ -1261,7 +1264,7 @@ export class BillingService extends BaseService {
     logger.debug(
       `[Invoice Email] Verifying webhook signature with secret (length: ${BillingWebhookSecret.length})`,
     );
-    const event = this.stripe.webhooks.constructEvent(
+    const event: Stripe.Event = this.stripe.webhooks.constructEvent(
       payload,
       signature,
       BillingWebhookSecret,
@@ -1290,7 +1293,7 @@ export class BillingService extends BaseService {
       logger.debug(
         `[Invoice Email] Processing invoice.finalized event ${event.id}`,
       );
-      const invoice = event.data.object as Stripe.Invoice;
+      const invoice: Stripe.Invoice = event.data.object as Stripe.Invoice;
 
       logger.debug(
         `[Invoice Email] Invoice details - id: ${invoice.id}, number: ${invoice.number}, customer: ${invoice.customer}, status: ${invoice.status}`,
@@ -1303,7 +1306,7 @@ export class BillingService extends BaseService {
         return;
       }
 
-      const customerId =
+      const customerId: string =
         typeof invoice.customer === "string"
           ? invoice.customer
           : invoice.customer.id;
@@ -1316,7 +1319,8 @@ export class BillingService extends BaseService {
         logger.debug(
           `[Invoice Email] Checking if customer ${customerId} has invoice emails enabled`,
         );
-        const shouldSend = await this.shouldSendInvoicesByEmail(customerId);
+        const shouldSend: boolean =
+          await this.shouldSendInvoicesByEmail(customerId);
 
         if (shouldSend && invoice.id) {
           logger.debug(
