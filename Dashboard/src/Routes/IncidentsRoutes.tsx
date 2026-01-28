@@ -262,6 +262,12 @@ const IncidentEpisodeCreate: LazyExoticComponent<
   return import("../Pages/Incidents/EpisodeCreate");
 });
 
+const IncidentEpisodeDocs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeDocs");
+});
+
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
@@ -541,6 +547,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               <IncidentEpisodeCreate
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeDocs
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route}
               />
             </Suspense>
           }

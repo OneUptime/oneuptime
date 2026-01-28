@@ -2,6 +2,7 @@ import Project from "./Project";
 import Incident from "./Incident";
 import Alert from "./Alert";
 import AlertEpisode from "./AlertEpisode";
+import IncidentEpisode from "./IncidentEpisode";
 import ScheduledMaintenance from "./ScheduledMaintenance";
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
@@ -538,6 +539,62 @@ export default class WorkspaceNotificationLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertEpisodeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadPushLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentEpisodeId",
+    type: TableColumnType.Entity,
+    modelType: IncidentEpisode,
+    title: "Incident Episode",
+    description: "Incident Episode associated with this message (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentEpisode;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentEpisodeId" })
+  public incidentEpisode?: IncidentEpisode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadPushLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Incident Episode ID",
+    description: "ID of Incident Episode associated with this message (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentEpisodeId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -77,6 +77,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             resolvedAt: null,
           } as any,
         },
+        {
+          link: {
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route,
+            ),
+          },
+          icon: IconProp.Book,
+        },
       ],
     },
     {

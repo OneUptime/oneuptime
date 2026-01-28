@@ -54,6 +54,23 @@ export enum MicrosoftTeamsAlertEpisodeActionType {
   SubmitChangeAlertEpisodeState = "SubmitChangeAlertEpisodeState",
 }
 
+// Incident Episode Actions
+export enum MicrosoftTeamsIncidentEpisodeActionType {
+  AckIncidentEpisode = "AckIncidentEpisode",
+  ResolveIncidentEpisode = "ResolveIncidentEpisode",
+  ViewIncidentEpisode = "ViewIncidentEpisode",
+  IncidentEpisodeCreated = "IncidentEpisodeCreated",
+  IncidentEpisodeStateChanged = "IncidentEpisodeStateChanged",
+  AddIncidentEpisodeNote = "AddIncidentEpisodeNote",
+  ExecuteIncidentEpisodeOnCallPolicy = "ExecuteIncidentEpisodeOnCallPolicy",
+  ViewAddIncidentEpisodeNote = "ViewAddIncidentEpisodeNote",
+  SubmitIncidentEpisodeNote = "SubmitIncidentEpisodeNote",
+  ViewExecuteIncidentEpisodeOnCallPolicy = "ViewExecuteIncidentEpisodeOnCallPolicy",
+  SubmitExecuteIncidentEpisodeOnCallPolicy = "SubmitExecuteIncidentEpisodeOnCallPolicy",
+  ViewChangeIncidentEpisodeState = "ViewChangeIncidentEpisodeState",
+  SubmitChangeIncidentEpisodeState = "SubmitChangeIncidentEpisodeState",
+}
+
 // Monitor Actions
 export enum MicrosoftTeamsMonitorActionType {
   ViewMonitor = "ViewMonitor",
@@ -107,6 +124,7 @@ export type MicrosoftTeamsActionType =
   | MicrosoftTeamsIncidentActionType
   | MicrosoftTeamsAlertActionType
   | MicrosoftTeamsAlertEpisodeActionType
+  | MicrosoftTeamsIncidentEpisodeActionType
   | MicrosoftTeamsMonitorActionType
   | MicrosoftTeamsScheduledMaintenanceActionType
   | MicrosoftTeamsOnCallDutyActionType
