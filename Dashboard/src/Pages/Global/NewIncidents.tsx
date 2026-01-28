@@ -5,12 +5,17 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { RequestOptions } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { RequestOptions } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { APP_API_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -75,6 +80,50 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
         filters={[
+          {
+            field: {
+              project: {
+                name: true,
+              },
+            },
+            title: "Project",
+            type: FieldType.Entity,
+            filterEntityType: Project,
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+            fetchFilterDropdownOptions: async (): Promise<
+              Array<DropdownOption>
+            > => {
+              const projects = await ModelAPI.getList<Project>({
+                modelType: Project,
+                query: {},
+                limit: 100,
+                skip: 0,
+                select: {
+                  name: true,
+                  _id: true,
+                },
+                sort: {
+                  name: SortOrder.Ascending,
+                },
+                requestOptions: {
+                  isMultiTenantRequest: true,
+                  overrideRequestUrl: URL.fromString(
+                    APP_API_URL.toString(),
+                  ).addRoute("/project/list-user-projects"),
+                },
+              });
+
+              return projects.data.map((project: Project): DropdownOption => {
+                return {
+                  label: project.name || "",
+                  value: project._id || "",
+                };
+              });
+            },
+          },
           {
             field: {
               incidentNumber: true,
