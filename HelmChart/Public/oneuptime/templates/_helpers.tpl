@@ -277,8 +277,13 @@ Usage:
   {{- if $.Values.clickhouse.enabled }}
   valueFrom:
     secretKeyRef:
+        {{- if .Values.clickhouse.auth.existingSecret.name }}
+        name: {{ .Values.clickhouse.auth.existingSecret.name }}
+        key: {{ .Values.clickhouse.auth.existingSecret.passwordKey }}
+        {{- else }}
         name: {{ printf "%s-%s" $.Release.Name "clickhouse"  }}
         key: admin-password
+        {{- end }}
   {{- else }}
   {{- if $.Values.externalClickhouse.password }}
   valueFrom:
@@ -364,8 +369,13 @@ Usage:
   {{- if $.Values.redis.enabled }}
   valueFrom:
     secretKeyRef:
-        name: {{ $.Release.Name }}-redis
-        key: redis-password
+      {{- if .Values.redis.auth.existingSecret.name }}
+      name: {{ .Values.redis.auth.existingSecret.name }}
+      key: {{ .Values.redis.auth.existingSecret.passwordKey }}
+      {{- else }}
+      name: {{ .Release.Name }}-redis
+      key: redis-password
+      {{- end }}
   {{- else }}
   {{- if $.Values.externalRedis.password }}
   valueFrom:
