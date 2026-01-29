@@ -1,5 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
-import LIMIT_MAX, { LIMIT_INFINITY } from "Common/Types/Database/LimitMax";
+import { LIMIT_INFINITY } from "Common/Types/Database/LimitMax";
 import ProjectService from "Common/Server/Services/ProjectService";
 import IncidentRoleService from "Common/Server/Services/IncidentRoleService";
 import Project from "Common/Models/DatabaseModels/Project";

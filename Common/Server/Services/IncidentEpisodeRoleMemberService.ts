@@ -68,7 +68,8 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    const incidentEpisodeId: ObjectID | undefined = createdItem.incidentEpisodeId;
+    const incidentEpisodeId: ObjectID | undefined =
+      createdItem.incidentEpisodeId;
     const projectId: ObjectID | undefined = createdItem.projectId;
     const userId: ObjectID | undefined = createdItem.userId;
     const incidentRoleId: ObjectID | undefined = createdItem.incidentRoleId;
@@ -218,9 +219,7 @@ export class Service extends DatabaseService<Model> {
         );
       }
     } catch (error) {
-      logger.error(
-        `Failed to remove role from incidents in episode: ${error}`,
-      );
+      logger.error(`Failed to remove role from incidents in episode: ${error}`);
     }
   }
 }

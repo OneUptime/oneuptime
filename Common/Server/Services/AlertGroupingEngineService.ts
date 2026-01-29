@@ -732,7 +732,8 @@ class AlertGroupingEngineServiceClass {
             continue;
           }
           try {
-            const ownerUser: AlertEpisodeOwnerUser = new AlertEpisodeOwnerUser();
+            const ownerUser: AlertEpisodeOwnerUser =
+              new AlertEpisodeOwnerUser();
             ownerUser.projectId = alert.projectId!;
             ownerUser.alertEpisodeId = createdEpisode.id;
             ownerUser.userId = user.id;
@@ -761,7 +762,8 @@ class AlertGroupingEngineServiceClass {
             continue;
           }
           try {
-            const ownerTeam: AlertEpisodeOwnerTeam = new AlertEpisodeOwnerTeam();
+            const ownerTeam: AlertEpisodeOwnerTeam =
+              new AlertEpisodeOwnerTeam();
             ownerTeam.projectId = alert.projectId!;
             ownerTeam.alertEpisodeId = createdEpisode.id;
             ownerTeam.teamId = team.id;
