@@ -38,6 +38,7 @@ import IncidentPublicNoteAPI from "Common/Server/API/IncidentPublicNoteAPI";
 import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 import IncidentAPI from "Common/Server/API/IncidentAPI";
+import IncidentEpisodeAPI from "Common/Server/API/IncidentEpisodeAPI";
 import ScheduledMaintenanceAPI from "Common/Server/API/ScheduledMaintenanceAPI";
 import AlertAPI from "Common/Server/API/AlertAPI";
 // User Notification methods.
@@ -1042,10 +1043,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // IncidentEpisode Routes
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentEpisode, IncidentEpisodeServiceType>(
-        IncidentEpisode,
-        IncidentEpisodeService,
-      ).getRouter(),
+      new IncidentEpisodeAPI().getRouter(),
     );
 
     app.use(

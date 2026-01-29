@@ -27,6 +27,15 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import GenerateFromAIModal, {
+  GenerateAIRequestData,
+  AITemplate,
+} from "Common/UI/Components/AI/GenerateFromAIModal";
+import { POSTMORTEM_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
+import { APP_API_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 
 const POSTMORTEM_FORM_FIELDS: Fields<IncidentEpisode> = [
   {
@@ -58,6 +67,9 @@ const EpisodePostmortem: FunctionComponent<
     useState<boolean>(false);
   const [templateInitialValues, setTemplateInitialValues] =
     useState<FormValues<IncidentEpisode> | null>(null);
+  const [showAIGenerateModal, setShowAIGenerateModal] =
+    useState<boolean>(false);
+  const [aiTemplates, setAiTemplates] = useState<Array<AITemplate>>([]);
 
   const fetchTemplates: () => Promise<void> = async (): Promise<void> => {
     setError("");
@@ -79,6 +91,22 @@ const EpisodePostmortem: FunctionComponent<
         });
 
       setIncidentPostmortemTemplates(listResult.data);
+
+      // Also set AI templates format
+      const templates: Array<AITemplate> = listResult.data.map(
+        (template: IncidentPostmortemTemplate) => {
+          const templateItem: AITemplate = {
+            id: template._id?.toString() || "",
+            name: template.templateName || "Unnamed Template",
+          };
+          if (template.postmortemNote) {
+            templateItem.content = template.postmortemNote;
+          }
+          return templateItem;
+        },
+      );
+
+      setAiTemplates(templates);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -121,14 +149,57 @@ const EpisodePostmortem: FunctionComponent<
   };
 
   useEffect(() => {
-    if (!showTemplateModal) {
+    if (!showTemplateModal && !showAIGenerateModal) {
       return;
     }
 
     fetchTemplates().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
-  }, [showTemplateModal]);
+  }, [showTemplateModal, showAIGenerateModal]);
+
+  const handleGeneratePostmortemFromAI: (
+    data: GenerateAIRequestData,
+  ) => Promise<string> = async (
+    data: GenerateAIRequestData,
+  ): Promise<string> => {
+    const apiUrl: URL = URL.fromString(
+      APP_API_URL.toString() +
+        `/incident-episode/generate-postmortem-from-ai/${modelId.toString()}`,
+    );
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post<JSONObject>({
+        url: apiUrl,
+        data: {
+          template: data.template,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw new Error(API.getFriendlyMessage(response));
+    }
+
+    const postmortemNote: string = (response.data as JSONObject)[
+      "postmortemNote"
+    ] as string;
+
+    if (!postmortemNote) {
+      throw new Error("Failed to generate postmortem note from AI.");
+    }
+
+    return postmortemNote;
+  };
+
+  const handleAIGenerationSuccess: (generatedContent: string) => void = (
+    generatedContent: string,
+  ): void => {
+    setShowAIGenerateModal(false);
+    setTemplateInitialValues({
+      postmortemNote: generatedContent,
+    });
+    setShowTemplateEditModal(true);
+  };
 
   return (
     <>
@@ -139,6 +210,14 @@ const EpisodePostmortem: FunctionComponent<
           description:
             "Document the postmortem analysis for this episode. Include learnings, action items, and preventive measures.",
           buttons: [
+            {
+              title: "Generate with AI",
+              icon: IconProp.Bolt,
+              buttonStyle: ButtonStyleType.OUTLINE,
+              onClick: () => {
+                setShowAIGenerateModal(true);
+              },
+            },
             {
               title: "Apply Template",
               icon: IconProp.Template,
@@ -275,6 +354,21 @@ const EpisodePostmortem: FunctionComponent<
             name: "Postmortem",
             doNotFetchExistingModel: true,
           }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showAIGenerateModal ? (
+        <GenerateFromAIModal
+          title="Generate Postmortem with AI"
+          description="AI will analyze the episode data, member incidents, timeline, notes, and channel discussions to generate a comprehensive postmortem."
+          onClose={() => {
+            setShowAIGenerateModal(false);
+          }}
+          onGenerate={handleGeneratePostmortemFromAI}
+          onSuccess={handleAIGenerationSuccess}
+          templates={[...POSTMORTEM_TEMPLATES, ...aiTemplates]}
         />
       ) : (
         <></>
