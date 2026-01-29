@@ -7,6 +7,8 @@ import IncidentPublicNoteService from "./IncidentPublicNoteService";
 import IncidentService from "./IncidentService";
 import IncidentStateService from "./IncidentStateService";
 import UserService from "./UserService";
+import IncidentMemberService from "./IncidentMemberService";
+import IncidentRoleService from "./IncidentRoleService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -18,6 +20,8 @@ import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
+import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
@@ -438,7 +442,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         ` Changed **[Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
         stateName +
         "**",
-      moreInformationInMarkdown: `**Cause:** 
+      moreInformationInMarkdown: `**Cause:**
 ${createdItem.rootCause}`,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
@@ -447,6 +451,21 @@ ${createdItem.rootCause}`,
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
     });
+
+    // Auto-assign Incident Commander if not already assigned
+    const stateChangeUserId: ObjectID | undefined =
+      createdItem.createdByUserId || onCreate.createBy.props.userId;
+
+    if (stateChangeUserId) {
+      this.autoAssignIncidentCommander({
+        incidentId: createdItem.incidentId!,
+        projectId: createdItem.projectId!,
+        userId: stateChangeUserId,
+      }).catch((error: Error) => {
+        logger.error(`Error while auto-assigning incident commander:`);
+        logger.error(error);
+      });
+    }
 
     const isResolvedState: boolean = incidentState?.isResolvedState || false;
 
@@ -565,6 +584,91 @@ ${createdItem.rootCause}`,
     }
 
     return false;
+  }
+
+  @CaptureSpan()
+  private async autoAssignIncidentCommander(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<void> {
+    // Find the primary role (Incident Commander) for this project
+    const primaryRole: IncidentRole | null =
+      await IncidentRoleService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          isPrimaryRole: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!primaryRole || !primaryRole.id) {
+      // No primary role found for this project
+      return;
+    }
+
+    // Check if there's already an Incident Commander assigned to this incident
+    const existingCommander: IncidentMember | null =
+      await IncidentMemberService.findOneBy({
+        query: {
+          incidentId: data.incidentId,
+          incidentRoleId: primaryRole.id,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (existingCommander) {
+      // Already has an Incident Commander, don't assign another one
+      return;
+    }
+
+    // Check if this user is already assigned to the incident (with any role)
+    const existingMembership: IncidentMember | null =
+      await IncidentMemberService.findOneBy({
+        query: {
+          incidentId: data.incidentId,
+          userId: data.userId,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (existingMembership) {
+      // User is already assigned to this incident, don't assign again
+      return;
+    }
+
+    // Assign the user as Incident Commander
+    const incidentMember: IncidentMember = new IncidentMember();
+    incidentMember.incidentId = data.incidentId;
+    incidentMember.projectId = data.projectId;
+    incidentMember.userId = data.userId;
+    incidentMember.incidentRoleId = primaryRole.id;
+
+    await IncidentMemberService.create({
+      data: incidentMember,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    logger.debug(
+      `Auto-assigned user ${data.userId.toString()} as Incident Commander for incident ${data.incidentId.toString()}`,
+    );
   }
 
   @CaptureSpan()
