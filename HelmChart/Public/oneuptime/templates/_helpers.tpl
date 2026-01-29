@@ -364,8 +364,13 @@ Usage:
   {{- if $.Values.redis.enabled }}
   valueFrom:
     secretKeyRef:
-        name: {{ $.Release.Name }}-redis
-        key: redis-password
+      {{- if .Values.redis.auth.existingSecret.name }}
+      name: {{ .Values.redis.auth.existingSecret.name }}
+      key: {{ .Values.redis.auth.existingSecret.passwordKey }}
+      {{- else }}
+      name: {{ .Release.Name }}-redis
+      key: redis-password
+      {{- end }}
   {{- else }}
   {{- if $.Values.externalRedis.password }}
   valueFrom:
