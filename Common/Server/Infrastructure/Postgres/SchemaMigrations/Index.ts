@@ -243,6 +243,7 @@ import { RenameEvaluateOverTimeInCriteriaFilter1769676117342 } from "./176967611
 import { MigrationName1769712834410 } from "./1769712834410-MigrationName";
 import { MigrationName1769719135546 } from "./1769719135546-MigrationName";
 import { MigrationName1769719826928 } from "./1769719826928-MigrationName";
+import { MigrationName1769723982900 } from "./1769723982900-MigrationName";
 
 export default [
   InitialMigration,
@@ -490,4 +491,5 @@ export default [
   MigrationName1769712834410,
   MigrationName1769719135546,
   MigrationName1769719826928,
+  MigrationName1769723982900
 ];
