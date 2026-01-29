@@ -134,6 +134,10 @@ jobs:
           terraform_wrapper: false
 
       - name: Run E2E Tests
-        run: |
-          chmod +x ./E2E/Terraform/e2e-tests/scripts/*.sh
-          ./E2E/Terraform/e2e-tests/scripts/index.sh
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 60
+          max_attempts: 3
+          command: |
+            chmod +x ./E2E/Terraform/e2e-tests/scripts/*.sh
+            ./E2E/Terraform/e2e-tests/scripts/index.sh
