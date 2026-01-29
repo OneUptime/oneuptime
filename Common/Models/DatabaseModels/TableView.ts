@@ -43,7 +43,7 @@ import AnalyticsBaseModel from "../AnalyticsModels/AnalyticsBaseModel/AnalyticsB
     Permission.ProjectMember,
     Permission.ReadTableView,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

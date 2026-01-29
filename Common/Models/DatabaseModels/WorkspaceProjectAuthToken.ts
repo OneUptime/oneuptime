@@ -67,7 +67,7 @@ export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [Permission.ProjectOwner, Permission.ProjectAdmin],
   update: [
     Permission.ProjectOwner,

@@ -37,7 +37,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
     Permission.ProjectMember,
     Permission.ReadWorkspaceNotificationRule,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectAdmin,
     Permission.ProjectOwner,

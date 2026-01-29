@@ -45,7 +45,7 @@ import CodeRepositoryImprovementAction from "../../Types/Service/CodeRepositoryI
     Permission.ProjectMember,
     Permission.ReadServiceCodeRepository,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

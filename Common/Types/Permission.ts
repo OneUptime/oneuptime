@@ -4358,16 +4358,14 @@ export class PermissionHelper {
       {
         permission: Permission.EditIncidentRole,
         title: "Edit Incident Role",
-        description:
-          "This permission can edit Incident Roles of this project.",
+        description: "This permission can edit Incident Roles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.ReadIncidentRole,
         title: "Read Incident Role",
-        description:
-          "This permission can read Incident Roles of this project.",
+        description: "This permission can read Incident Roles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

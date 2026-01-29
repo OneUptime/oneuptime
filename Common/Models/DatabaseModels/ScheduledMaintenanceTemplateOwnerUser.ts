@@ -33,7 +33,7 @@ import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
     Permission.ProjectMember,
     Permission.ReadScheduledMaintenanceTemplateOwnerUser,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

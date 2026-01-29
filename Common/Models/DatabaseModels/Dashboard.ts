@@ -46,7 +46,7 @@ import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
     Permission.ProjectMember,
     Permission.ReadDashboard,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

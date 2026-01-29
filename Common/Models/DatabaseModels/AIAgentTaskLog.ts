@@ -54,7 +54,7 @@ import LogSeverity from "../../Types/Log/LogSeverity";
     Permission.ProjectMember,
     Permission.ReadProjectAIAgentTask,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -388,7 +388,11 @@ export default class AIAgentTaskLog extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadAllProjectResources,
+    ],
     update: [],
   })
   @TableColumn({ type: TableColumnType.Entity, modelType: User })
@@ -408,7 +412,11 @@ export default class AIAgentTaskLog extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadAllProjectResources,
+    ],
     update: [],
   })
   @TableColumn({

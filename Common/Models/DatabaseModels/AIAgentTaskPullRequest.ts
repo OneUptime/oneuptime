@@ -56,7 +56,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
     Permission.ProjectMember,
     Permission.ReadProjectAIAgentTask,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -712,7 +712,11 @@ export default class AIAgentTaskPullRequest extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadAllProjectResources,
+    ],
     update: [],
   })
   @TableColumn({ type: TableColumnType.Entity, modelType: User })
@@ -732,7 +736,11 @@ export default class AIAgentTaskPullRequest extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadAllProjectResources,
+    ],
     update: [],
   })
   @TableColumn({

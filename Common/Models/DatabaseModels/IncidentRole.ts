@@ -409,5 +409,4 @@ export default class IncidentRole extends BaseModel {
     transformer: Color.getDatabaseTransformer(),
   })
   public color?: Color = undefined;
-
 }

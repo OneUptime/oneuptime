@@ -46,7 +46,7 @@ import Monitor from "./Monitor";
     Permission.ProjectMember,
     Permission.ReadServiceMonitor,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

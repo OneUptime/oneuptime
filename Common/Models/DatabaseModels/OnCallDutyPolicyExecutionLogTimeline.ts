@@ -46,7 +46,7 @@ import IncidentEpisode from "./IncidentEpisode";
     Permission.ProjectMember,
     Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [],
   update: [],
 })

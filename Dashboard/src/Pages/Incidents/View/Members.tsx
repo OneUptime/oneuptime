@@ -38,9 +38,7 @@ const IncidentMembers: FunctionComponent<
           incidentId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(
-          item: IncidentMember,
-        ): Promise<IncidentMember> => {
+        onBeforeCreate={(item: IncidentMember): Promise<IncidentMember> => {
           item.incidentId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);

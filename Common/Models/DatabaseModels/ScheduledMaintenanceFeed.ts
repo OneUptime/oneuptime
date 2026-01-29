@@ -56,7 +56,7 @@ export enum ScheduledMaintenanceFeedEventType {
     Permission.ProjectMember,
     Permission.ReadScheduledMaintenanceFeed,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [],
   update: [],
 })

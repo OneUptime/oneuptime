@@ -63,7 +63,7 @@ export interface AlertGroupingRuleGroupByFields {
     Permission.ProjectMember,
     Permission.ReadAlertGroupingRule,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

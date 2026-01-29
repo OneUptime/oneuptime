@@ -43,7 +43,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.UnAuthorizedSsoUser,
     Permission.ProjectUser,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
   update: [
     Permission.ProjectOwner,

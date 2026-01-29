@@ -49,7 +49,7 @@ export enum MonitorFeedEventType {
     Permission.ProjectMember,
     Permission.ReadMonitorFeed,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [],
   update: [],
 })

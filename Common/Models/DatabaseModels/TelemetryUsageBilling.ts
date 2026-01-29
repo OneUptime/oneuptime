@@ -29,7 +29,7 @@ export const DEFAULT_RETENTION_IN_DAYS: number = 15;
     Permission.ProjectAdmin,
     Permission.ManageProjectBilling,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [],
   update: [],
 })
