@@ -24,10 +24,10 @@ const IncidentMembers: FunctionComponent<
     <Fragment>
       <ModelTable<IncidentMember>
         modelType={IncidentMember}
-        id="table-incident-on-call-users"
-        name="Incident > On-Call Users"
-        userPreferencesKey="incident-on-call-users-table"
-        singularName="On-Call User"
+        id="table-incident-members"
+        name="Incident > Members"
+        userPreferencesKey="incident-members-table"
+        singularName="Member"
         isDeleteable={true}
         createVerb={"Add"}
         isCreateable={true}
@@ -46,11 +46,11 @@ const IncidentMembers: FunctionComponent<
           return Promise.resolve(item);
         }}
         cardProps={{
-          title: "On-Call Users",
+          title: "Members",
           description:
             "Assign users to this incident with specific roles like Incident Commander or Responder.",
         }}
-        noItemsMessage={"No on-call users assigned to this incident yet."}
+        noItemsMessage={"No members assigned to this incident yet."}
         formFields={[
           {
             field: {

@@ -100,10 +100,10 @@ const IncidentViewOwner: LazyExoticComponent<
   return import("../Pages/Incidents/View/Owners");
 });
 
-const IncidentViewOnCallUsers: LazyExoticComponent<
+const IncidentViewMembers: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/Incidents/View/OnCallUsers");
+  return import("../Pages/Incidents/View/Members");
 });
 
 const IncidentViewRemediation: LazyExoticComponent<
@@ -917,12 +917,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_ON_CALL_USERS)}
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_MEMBERS)}
           element={
             <Suspense fallback={Loader}>
-              <IncidentViewOnCallUsers
+              <IncidentViewMembers
                 {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ON_CALL_USERS] as Route}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_MEMBERS] as Route}
               />
             </Suspense>
           }
