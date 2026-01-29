@@ -935,7 +935,7 @@ export class ProjectService extends DatabaseService<Model> {
     return createdItem;
   }
 
-  private async addDefaultIncidentRoles(createdItem: Model): Promise<Model> {
+  public async addDefaultIncidentRoles(createdItem: Model): Promise<Model> {
     let incidentCommander: IncidentRole = new IncidentRole();
     incidentCommander.name = "Incident Commander";
     incidentCommander.description =
