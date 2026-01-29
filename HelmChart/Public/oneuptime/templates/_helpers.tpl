@@ -277,8 +277,13 @@ Usage:
   {{- if $.Values.clickhouse.enabled }}
   valueFrom:
     secretKeyRef:
+        {{- if .Values.clickhouse.auth.existingSecret.name }}
+        name: {{ .Values.clickhouse.auth.existingSecret.name }}
+        key: {{ .Values.clickhouse.auth.existingSecret.passwordKey }}
+        {{- else }}
         name: {{ printf "%s-%s" $.Release.Name "clickhouse"  }}
         key: admin-password
+        {{- end }}
   {{- else }}
   {{- if $.Values.externalClickhouse.password }}
   valueFrom:
