@@ -60,7 +60,8 @@ export interface IncidentGroupingRuleGroupByFields {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadIncidentGroupingRule,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -102,6 +103,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -137,6 +139,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -166,6 +169,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -199,6 +203,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -230,6 +235,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -265,6 +271,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -299,6 +306,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -332,6 +340,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -377,6 +386,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -422,6 +432,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -467,6 +478,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -512,6 +524,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -544,6 +557,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -576,6 +590,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -608,6 +623,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -642,6 +658,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -676,6 +693,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -710,6 +728,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -744,6 +763,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -778,6 +798,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -812,6 +833,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -846,6 +868,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -877,6 +900,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -908,6 +932,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -939,6 +964,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -973,6 +999,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1007,6 +1034,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1041,6 +1069,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1075,6 +1104,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1109,6 +1139,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1143,6 +1174,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1188,6 +1220,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1227,6 +1260,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1259,6 +1293,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1298,6 +1333,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1330,6 +1366,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1366,6 +1403,7 @@ export default class IncidentGroupingRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

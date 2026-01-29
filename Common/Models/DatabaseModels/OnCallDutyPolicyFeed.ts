@@ -53,7 +53,8 @@ export enum OnCallDutyPolicyFeedEventType {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadOnCallDutyPolicyFeed,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [],
   update: [],
 })
@@ -88,6 +89,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -125,6 +127,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -156,6 +159,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -193,6 +197,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -224,6 +229,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -262,6 +268,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -339,6 +346,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -369,6 +377,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -399,6 +408,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -429,6 +439,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -460,6 +471,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -498,6 +510,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -527,6 +540,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

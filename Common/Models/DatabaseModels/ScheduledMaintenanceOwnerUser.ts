@@ -32,7 +32,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadScheduledMaintenanceOwnerUser,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -77,6 +78,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -114,6 +116,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -145,6 +148,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,6 +187,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -214,6 +219,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -252,6 +258,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -284,6 +291,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -322,6 +330,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -346,6 +355,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -380,6 +390,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -404,6 +415,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

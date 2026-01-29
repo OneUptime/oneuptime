@@ -41,7 +41,8 @@ export enum AlertEpisodeMemberAddedBy {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadAlertEpisodeMember,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -86,6 +87,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -122,6 +124,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -152,6 +155,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -188,6 +192,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,6 +223,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -254,6 +260,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -284,6 +291,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -312,6 +320,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -344,6 +353,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -381,6 +391,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -410,6 +421,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -446,6 +458,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -475,6 +488,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -512,6 +526,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -535,6 +550,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -568,6 +584,7 @@ export default class AlertEpisodeMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

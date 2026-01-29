@@ -399,7 +399,7 @@ class User extends UserModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.CustomerSupport],
+    read: [Permission.CustomerSupport, Permission.ReadAllProjectResources],
 
     update: [Permission.CustomerSupport],
   })
@@ -453,7 +453,7 @@ class User extends UserModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.CustomerSupport],
+    read: [Permission.CustomerSupport, Permission.ReadAllProjectResources],
 
     update: [Permission.CustomerSupport],
   })

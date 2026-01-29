@@ -17,7 +17,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 
 @TableAccessControl({
   create: [],
-  read: [Permission.ProjectOwner, Permission.Public],
+  read: [Permission.ProjectOwner, Permission.Public, Permission.ReadAllProjectResources],
   delete: [],
   update: [],
 })
@@ -35,7 +35,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 export default class Reseller extends BaseModel {
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -251,7 +251,7 @@ export default class Reseller extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -271,7 +271,7 @@ export default class Reseller extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({

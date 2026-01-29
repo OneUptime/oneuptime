@@ -49,7 +49,8 @@ import {
     Permission.ProjectAdmin,
 
     Permission.ReadMonitorSecret,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -91,6 +92,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -127,6 +129,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -158,6 +161,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -194,6 +198,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -254,6 +259,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -299,6 +305,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -336,6 +343,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -360,6 +368,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -394,6 +403,7 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadMonitorSecret,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

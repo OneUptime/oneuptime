@@ -54,7 +54,8 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectOnCallDutyPolicy,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -94,6 +95,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -130,6 +132,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -161,6 +164,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -197,6 +201,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -244,6 +249,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -280,6 +286,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -311,6 +318,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -348,6 +356,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -424,6 +433,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -459,6 +469,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -496,6 +507,7 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

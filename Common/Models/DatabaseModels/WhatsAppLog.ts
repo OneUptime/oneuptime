@@ -38,7 +38,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadWhatsAppLog,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [],
   update: [],
 })
@@ -67,6 +68,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -98,6 +100,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -123,6 +126,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -149,6 +153,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -176,6 +181,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -199,6 +205,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -223,6 +230,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -248,6 +256,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -272,6 +281,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -299,6 +309,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -330,6 +341,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -355,6 +367,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -386,6 +399,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -411,6 +425,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -442,6 +457,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -467,6 +483,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -498,6 +515,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -524,6 +542,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -555,6 +574,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -580,6 +600,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -612,6 +633,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -638,6 +660,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -669,6 +692,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -694,6 +718,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -725,6 +750,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -751,6 +777,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -784,6 +811,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -810,6 +838,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -842,6 +871,7 @@ export default class WhatsAppLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

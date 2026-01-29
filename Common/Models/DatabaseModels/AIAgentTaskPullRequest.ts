@@ -55,7 +55,8 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectAIAgentTask,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -82,6 +83,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -120,6 +122,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -150,6 +153,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -188,6 +192,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,6 +223,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -256,6 +262,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -286,6 +293,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -324,6 +332,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -354,6 +363,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -388,6 +398,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -420,6 +431,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -454,6 +466,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -483,6 +496,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -512,6 +526,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -548,6 +563,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -577,6 +593,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -606,6 +623,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -635,6 +653,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -693,7 +712,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({ type: TableColumnType.Entity, modelType: User })
@@ -713,7 +732,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({

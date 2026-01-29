@@ -51,7 +51,8 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadIncidentEpisode,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -101,6 +102,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -137,6 +139,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -167,6 +170,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -202,6 +206,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -235,6 +240,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -264,6 +270,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -305,6 +312,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -340,6 +348,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -381,6 +390,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -415,6 +425,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -448,6 +459,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -481,6 +493,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -514,6 +527,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -555,6 +569,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -589,6 +604,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -630,6 +646,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -664,6 +681,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -705,6 +723,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -732,6 +751,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -763,6 +783,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -791,6 +812,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -819,6 +841,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -851,6 +874,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -898,6 +922,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -935,6 +960,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1004,6 +1030,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1035,6 +1062,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1065,6 +1093,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1102,6 +1131,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1132,6 +1162,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1165,6 +1196,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1198,6 +1230,7 @@ export default class IncidentEpisode extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

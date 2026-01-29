@@ -43,7 +43,8 @@ import {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadAlertEpisodeInternalNote,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -87,6 +88,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -123,6 +125,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -153,6 +156,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -189,6 +193,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,6 +223,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -255,6 +261,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -329,6 +336,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -361,6 +369,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -404,6 +413,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -435,6 +445,7 @@ export default class AlertEpisodeInternalNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeInternalNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

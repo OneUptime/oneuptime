@@ -40,7 +40,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadMonitorOwnerUser,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -85,6 +86,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -122,6 +124,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -153,6 +156,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -191,6 +195,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -222,6 +227,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -259,6 +265,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -290,6 +297,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -328,6 +336,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -352,6 +361,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -386,6 +396,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -415,6 +426,7 @@ export default class MonitorOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

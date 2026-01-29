@@ -28,7 +28,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectSCIMLog,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [],
   update: [],
 })
@@ -52,6 +53,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -83,6 +85,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -108,6 +111,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -139,6 +143,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,6 +169,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -189,6 +195,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -213,6 +220,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -237,6 +245,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -260,6 +269,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -284,6 +294,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -308,6 +319,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -331,6 +343,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -356,6 +369,7 @@ export default class ProjectSCIMLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSCIMLog,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

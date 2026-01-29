@@ -39,7 +39,8 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadOnCallDutyPolicyUserOverride,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -78,6 +79,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -114,6 +116,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -150,6 +153,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -187,6 +191,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,6 +223,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -255,6 +261,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -283,6 +290,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -320,6 +328,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -349,6 +358,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -386,6 +396,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -421,6 +432,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -448,6 +460,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -795,6 +795,9 @@ enum Permission {
   DeleteIncidentGroupingRule = "DeleteIncidentGroupingRule",
   EditIncidentGroupingRule = "EditIncidentGroupingRule",
   ReadIncidentGroupingRule = "ReadIncidentGroupingRule",
+
+  // Read All Project Resources Permission - Grants read access to all project resources
+  ReadAllProjectResources = "ReadAllProjectResources",
 }
 
 export class PermissionHelper {
@@ -5634,6 +5637,16 @@ export class PermissionHelper {
         title: "Read Incident Grouping Rule",
         description:
           "This permission can read Incident Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Read All Project Resources Permission
+      {
+        permission: Permission.ReadAllProjectResources,
+        title: "Read All Project Resources",
+        description:
+          "This permission grants read access to all resources in this project. Users with this permission can view all project data including monitors, incidents, alerts, status pages, on-call policies, and other project resources.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

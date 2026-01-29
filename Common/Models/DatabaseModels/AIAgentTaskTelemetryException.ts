@@ -40,7 +40,8 @@ import TelemetryException from "./TelemetryException";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectAIAgentTaskTelemetryException,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -79,6 +80,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -115,6 +117,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -145,6 +148,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,6 +185,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -211,6 +216,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -247,6 +253,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -277,6 +284,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -314,6 +322,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -337,6 +346,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -370,6 +380,7 @@ export default class AIAgentTaskTelemetryException extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTaskTelemetryException,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

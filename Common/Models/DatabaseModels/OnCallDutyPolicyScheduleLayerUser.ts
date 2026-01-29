@@ -40,7 +40,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadOnCallDutyPolicyScheduleLayer,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -76,6 +77,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -112,6 +114,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -142,6 +145,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -179,6 +183,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -210,6 +215,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -248,6 +254,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -279,6 +286,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -316,6 +324,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -339,6 +348,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -372,6 +382,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -400,6 +411,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -433,6 +445,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -474,6 +487,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyScheduleLayer,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

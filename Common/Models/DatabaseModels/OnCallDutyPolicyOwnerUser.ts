@@ -40,7 +40,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadOnCallDutyPolicyOwnerUser,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -85,6 +86,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -121,6 +123,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -151,6 +154,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -188,6 +192,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,6 +223,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -255,6 +261,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -286,6 +293,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -323,6 +331,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -346,6 +355,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -379,6 +389,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -402,6 +413,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadOnCallDutyPolicyOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

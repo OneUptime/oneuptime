@@ -46,7 +46,8 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadStatusPageGroup,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -92,6 +93,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -128,6 +130,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -159,6 +162,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -196,6 +200,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -226,6 +231,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -257,6 +263,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -288,6 +295,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -323,6 +331,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -360,6 +369,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -389,6 +399,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -421,6 +432,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -501,6 +513,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -534,6 +547,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -567,6 +581,7 @@ export default class StatusPageGroup extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageGroup,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

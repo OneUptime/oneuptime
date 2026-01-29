@@ -44,7 +44,8 @@ import {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadIncidentPublicNote,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -88,6 +89,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -124,6 +126,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -155,6 +158,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -191,6 +195,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -221,6 +226,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -258,6 +264,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -334,6 +341,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -368,6 +376,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -416,6 +425,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -452,6 +462,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -486,6 +497,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -510,6 +522,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -543,6 +556,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -575,6 +589,7 @@ export default class IncidentPublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentPublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

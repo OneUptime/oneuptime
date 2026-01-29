@@ -36,7 +36,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadAlertEpisodeStateTimeline,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -82,6 +83,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -118,6 +120,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,6 +151,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -184,6 +188,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -213,6 +218,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -250,6 +256,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -324,6 +331,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -365,6 +373,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -395,6 +404,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -421,6 +431,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -448,6 +459,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -478,6 +490,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -506,6 +519,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertEpisodeStateTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

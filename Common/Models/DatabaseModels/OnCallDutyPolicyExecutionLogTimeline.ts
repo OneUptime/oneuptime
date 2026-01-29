@@ -45,7 +45,8 @@ import IncidentEpisode from "./IncidentEpisode";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [],
   update: [],
 })
@@ -71,6 +72,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -102,6 +104,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -127,6 +130,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -159,6 +163,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -185,6 +190,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -216,6 +222,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -241,6 +248,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -272,6 +280,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -297,6 +306,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -329,6 +339,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -355,6 +366,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -387,6 +399,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -413,6 +426,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -446,6 +460,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -472,6 +487,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -505,6 +521,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -531,6 +548,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -562,6 +580,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -586,6 +605,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -608,6 +628,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -639,6 +660,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -662,6 +684,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -694,6 +717,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -717,6 +741,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -741,6 +766,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -765,6 +791,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -797,6 +824,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -848,6 +876,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -870,6 +899,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -910,6 +940,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

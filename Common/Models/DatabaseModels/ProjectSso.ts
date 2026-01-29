@@ -50,7 +50,8 @@ import {
     Permission.UnAuthorizedSsoUser,
     Permission.ProjectMember,
     Permission.ReadProjectSSO,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -88,6 +89,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -129,6 +131,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.ReadProjectSSO,
       Permission.ProjectUser,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -164,6 +167,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.ReadProjectSSO,
       Permission.ProjectUser,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -201,6 +205,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -230,6 +235,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -260,6 +266,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -294,6 +301,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.Public,
       Permission.ProjectUser,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -326,6 +334,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -369,6 +378,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectAdmin,
 
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -399,6 +409,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -431,6 +442,7 @@ export default class ProjectSSO extends BaseModel {
 
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -469,6 +481,7 @@ export default class ProjectSSO extends BaseModel {
 
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -494,6 +507,7 @@ export default class ProjectSSO extends BaseModel {
 
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -529,6 +543,7 @@ export default class ProjectSSO extends BaseModel {
 
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -559,6 +574,7 @@ export default class ProjectSSO extends BaseModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -591,6 +607,7 @@ export default class ProjectSSO extends BaseModel {
 
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

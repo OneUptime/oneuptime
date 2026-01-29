@@ -40,7 +40,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadWorkflowVariable,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -76,6 +77,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -111,6 +113,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -140,6 +143,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -176,6 +180,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -206,6 +211,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -239,6 +245,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -291,6 +298,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -320,6 +328,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -356,6 +365,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -379,6 +389,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -412,6 +423,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadWorkflowVariable,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

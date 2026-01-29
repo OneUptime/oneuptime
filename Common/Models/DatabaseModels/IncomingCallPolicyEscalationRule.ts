@@ -40,7 +40,8 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectIncomingCallPolicyEscalationRule,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -79,6 +80,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -115,6 +117,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -145,6 +148,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,6 +185,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -211,6 +216,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -245,6 +251,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -278,6 +285,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -311,6 +319,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -347,6 +356,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -388,6 +398,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -421,6 +432,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -463,6 +475,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -496,6 +509,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -533,6 +547,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncomingCallPolicyEscalationRule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

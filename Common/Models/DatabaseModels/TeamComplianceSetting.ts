@@ -41,7 +41,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectTeam,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -84,6 +85,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -119,6 +121,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,6 +151,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -183,6 +187,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -211,6 +216,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -247,6 +253,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -320,6 +327,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -351,6 +359,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -382,6 +391,7 @@ export default class TeamComplianceSetting extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

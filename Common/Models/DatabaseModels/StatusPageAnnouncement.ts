@@ -55,7 +55,8 @@ import {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadStatusPageAnnouncement,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -100,6 +101,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -136,6 +138,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -167,6 +170,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -213,6 +217,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -260,6 +265,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -300,6 +306,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -332,6 +339,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -358,6 +366,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -392,6 +401,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -440,6 +450,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -477,6 +488,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -501,6 +513,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -557,6 +570,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -591,6 +605,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -624,6 +639,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -652,6 +668,7 @@ export default class StatusPageAnnouncement extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncement,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

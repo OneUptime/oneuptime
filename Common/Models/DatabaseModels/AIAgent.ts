@@ -77,7 +77,8 @@ export enum AIAgentConnectionStatus {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectAIAgent,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -99,7 +100,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -126,7 +127,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -154,7 +155,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -176,7 +177,7 @@ export default class AIAgent extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -202,7 +203,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -231,6 +232,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgent,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -258,6 +260,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgent,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -299,6 +302,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgent,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -328,7 +332,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -358,7 +362,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -421,7 +425,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.ProjectOwner],
+    read: [Permission.ProjectOwner, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({ type: TableColumnType.Entity, modelType: User })
@@ -446,7 +450,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.ProjectOwner],
+    read: [Permission.ProjectOwner, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -490,6 +494,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgent,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -515,7 +520,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.Public],
+    read: [Permission.Public, Permission.ReadAllProjectResources],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -552,6 +557,7 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgent,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

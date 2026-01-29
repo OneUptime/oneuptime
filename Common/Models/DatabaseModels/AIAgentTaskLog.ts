@@ -53,7 +53,8 @@ import LogSeverity from "../../Types/Log/LogSeverity";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectAIAgentTask,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -80,6 +81,7 @@ export default class AIAgentTaskLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -118,6 +120,7 @@ export default class AIAgentTaskLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -148,6 +151,7 @@ export default class AIAgentTaskLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -186,6 +190,7 @@ export default class AIAgentTaskLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -216,6 +221,7 @@ export default class AIAgentTaskLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -254,6 +260,7 @@ export default class AIAgentTaskLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -284,6 +291,7 @@ export default class AIAgentTaskLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -318,6 +326,7 @@ export default class AIAgentTaskLog extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -379,7 +388,7 @@ export default class AIAgentTaskLog extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({ type: TableColumnType.Entity, modelType: User })
@@ -399,7 +408,7 @@ export default class AIAgentTaskLog extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({

@@ -45,7 +45,8 @@ import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadDashboard,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -88,6 +89,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -124,6 +126,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -154,6 +157,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -184,6 +188,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -214,6 +219,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -246,6 +252,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -283,6 +290,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -307,6 +315,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -341,6 +350,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -370,6 +380,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -417,6 +428,7 @@ export default class Dashboard extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadDashboard,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

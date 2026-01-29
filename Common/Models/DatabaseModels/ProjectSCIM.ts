@@ -46,7 +46,8 @@ import {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectSSO,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -81,6 +82,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -116,6 +118,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -145,6 +148,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -178,6 +182,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -208,6 +213,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -239,6 +245,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -283,6 +290,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -314,6 +322,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -345,6 +354,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -372,6 +382,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -408,6 +419,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -431,6 +443,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -464,6 +477,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectSSO,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

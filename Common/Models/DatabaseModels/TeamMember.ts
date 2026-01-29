@@ -35,8 +35,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectTeam,
-    Permission.CurrentUser,
-  ],
+    Permission.CurrentUser],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -85,8 +84,7 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
-      Permission.CurrentUser,
-    ],
+      Permission.CurrentUser],
     update: [],
   })
   @TableColumn({
@@ -123,8 +121,7 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
-      Permission.CurrentUser,
-    ],
+      Permission.CurrentUser],
     update: [],
   })
   @Index()
@@ -153,8 +150,7 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
-      Permission.CurrentUser,
-    ],
+      Permission.CurrentUser],
     update: [],
   })
   @TableColumn({
@@ -191,8 +187,7 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
-      Permission.CurrentUser,
-    ],
+      Permission.CurrentUser],
     update: [],
   })
   @Index()
@@ -223,6 +218,7 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ReadProjectTeam,
       Permission.ProjectMember,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -260,8 +256,7 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
-      Permission.CurrentUser,
-    ],
+      Permission.CurrentUser],
     update: [],
   })
   @TableColumn({
@@ -385,8 +380,7 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectTeam,
-      Permission.CurrentUser,
-    ],
+      Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
   @TableColumn({
@@ -417,6 +411,7 @@ export default class TeamMember extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.CurrentUser],
   })

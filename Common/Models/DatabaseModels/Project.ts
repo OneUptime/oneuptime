@@ -42,7 +42,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ReadProject,
     Permission.UnAuthorizedSsoUser,
     Permission.ProjectUser,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
   update: [
     Permission.ProjectOwner,
@@ -74,6 +75,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -106,6 +108,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -134,6 +137,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -155,6 +159,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -176,6 +181,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -197,6 +203,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -217,6 +224,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -237,6 +245,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -258,6 +267,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -286,6 +296,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -313,6 +324,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -340,6 +352,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -361,6 +374,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -383,6 +397,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -404,6 +419,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -438,6 +454,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -492,6 +509,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -537,6 +555,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -608,6 +627,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ReadWorkflow,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -628,6 +648,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -704,6 +725,7 @@ export default class Project extends TenantModel {
       Permission.ProjectMember,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -732,6 +754,7 @@ export default class Project extends TenantModel {
       Permission.ProjectMember,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -760,6 +783,7 @@ export default class Project extends TenantModel {
       Permission.ProjectMember,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -790,6 +814,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -818,6 +843,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -846,6 +872,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -874,6 +901,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -972,6 +1000,7 @@ export default class Project extends TenantModel {
       Permission.ProjectMember,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1000,6 +1029,7 @@ export default class Project extends TenantModel {
       Permission.ProjectMember,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1028,6 +1058,7 @@ export default class Project extends TenantModel {
       Permission.ProjectMember,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1058,6 +1089,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1086,6 +1118,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1114,6 +1147,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
@@ -1206,6 +1240,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1403,7 +1438,7 @@ export default class Project extends TenantModel {
 
   @ColumnAccessControl({
     create: [Permission.User],
-    read: [Permission.ProjectOwner],
+    read: [Permission.ProjectOwner, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -1437,6 +1472,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -1459,7 +1495,7 @@ export default class Project extends TenantModel {
 
   @ColumnAccessControl({
     create: [Permission.User],
-    read: [Permission.ProjectOwner],
+    read: [Permission.ProjectOwner, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -1487,7 +1523,7 @@ export default class Project extends TenantModel {
 
   @ColumnAccessControl({
     create: [Permission.User],
-    read: [Permission.ProjectOwner],
+    read: [Permission.ProjectOwner, Permission.ReadAllProjectResources],
     update: [],
   })
   @Index()
@@ -1554,6 +1590,7 @@ export default class Project extends TenantModel {
       Permission.ProjectMember,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
@@ -1608,6 +1645,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1641,6 +1679,7 @@ export default class Project extends TenantModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProject,
+      Permission.ReadAllProjectResources,
     ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })

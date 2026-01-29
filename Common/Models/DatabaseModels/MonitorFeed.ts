@@ -48,7 +48,8 @@ export enum MonitorFeedEventType {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadMonitorFeed,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [],
   update: [],
 })
@@ -83,6 +84,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -120,6 +122,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -151,6 +154,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -188,6 +192,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -218,6 +223,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -256,6 +262,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -333,6 +340,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -363,6 +371,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -393,6 +402,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -422,6 +432,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadMonitorFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -453,6 +464,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -491,6 +503,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -520,6 +533,7 @@ export default class MonitorFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

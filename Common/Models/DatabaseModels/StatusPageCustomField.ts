@@ -40,7 +40,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadStatusPageCustomField,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -75,6 +76,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -110,6 +112,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -139,6 +142,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -172,6 +176,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -204,6 +209,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -231,6 +237,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,6 +274,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -290,6 +298,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -323,6 +332,7 @@ export default class StatusPageCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

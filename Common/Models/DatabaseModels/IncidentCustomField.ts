@@ -40,7 +40,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadIncidentCustomField,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -75,6 +76,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -110,6 +112,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -140,6 +143,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -174,6 +178,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -208,6 +213,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -236,6 +242,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -272,6 +279,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -296,6 +304,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -329,6 +338,7 @@ export default class IncidentCustomField extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentCustomField,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -33,7 +33,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.ProjectMember,
     Permission.ReadIncidentTemplateOwnerUser,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -78,6 +79,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -115,6 +117,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -147,6 +150,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -185,6 +189,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -217,6 +222,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -255,6 +261,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -288,6 +295,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -326,6 +334,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -351,6 +360,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -385,6 +395,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -410,6 +421,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadIncidentTemplateOwnerUser,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -39,7 +39,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectCallSMSConfig,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -75,6 +76,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -111,6 +113,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -141,6 +144,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -169,6 +173,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -198,6 +203,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -230,6 +236,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -267,6 +274,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -291,6 +299,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -325,6 +334,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -355,6 +365,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -387,6 +398,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -419,6 +431,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -452,6 +465,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectCallSMSConfig,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

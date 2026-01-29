@@ -33,7 +33,8 @@ import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -78,6 +79,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -114,6 +116,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -144,6 +147,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -181,6 +185,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -211,6 +216,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -249,6 +255,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -280,6 +287,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -317,6 +325,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -340,6 +349,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -373,6 +383,7 @@ export default class ScheduledMaintenanceTemplateOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -44,7 +44,8 @@ import Service from "./Service";
     Permission.ProjectMember,
     Permission.ProjectMember,
     Permission.ReadServiceDependency,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -91,6 +92,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -129,6 +131,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -161,6 +164,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -199,6 +203,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -231,6 +236,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -269,6 +275,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -301,6 +308,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -340,6 +348,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -365,6 +374,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -400,6 +410,7 @@ export default class ServiceDependency extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadServiceDependency,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

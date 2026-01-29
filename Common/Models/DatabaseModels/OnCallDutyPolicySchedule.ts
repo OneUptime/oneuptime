@@ -58,7 +58,8 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectOnCallDutyPolicySchedule,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -98,6 +99,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -135,6 +137,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -166,6 +169,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -202,6 +206,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -250,6 +255,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -286,6 +292,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -318,6 +325,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -356,6 +364,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -433,6 +442,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -465,6 +475,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -493,6 +504,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -525,6 +537,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -548,6 +561,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -571,6 +585,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -594,6 +609,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -617,6 +633,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

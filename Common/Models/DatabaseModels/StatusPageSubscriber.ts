@@ -56,7 +56,8 @@ import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadStatusPageSubscriber,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -95,6 +96,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -131,6 +133,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -162,6 +165,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -199,6 +203,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -230,6 +235,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -266,6 +272,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -301,6 +308,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -361,6 +369,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -421,6 +430,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -454,6 +464,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -491,6 +502,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -515,6 +527,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -572,6 +585,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -630,6 +644,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -664,6 +679,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -693,6 +709,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -728,6 +745,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -763,6 +781,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -811,6 +830,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -846,6 +866,7 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadStatusPageSubscriber,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

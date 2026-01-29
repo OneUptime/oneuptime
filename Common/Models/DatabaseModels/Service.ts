@@ -49,7 +49,8 @@ import {
     Permission.ProjectMember,
     Permission.ProjectMember,
     Permission.ReadService,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -96,6 +97,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -133,6 +135,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -165,6 +168,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -197,6 +201,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -228,6 +233,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -265,6 +271,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -303,6 +310,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -328,6 +336,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -362,6 +371,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -392,6 +402,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -440,6 +451,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -491,6 +503,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -526,6 +539,7 @@ export default class Service extends BaseModel {
       Permission.ProjectMember,
       Permission.ProjectMember,
       Permission.ReadService,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

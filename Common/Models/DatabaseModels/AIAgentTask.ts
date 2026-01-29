@@ -55,7 +55,8 @@ import { AIAgentTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadProjectAIAgentTask,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -82,6 +83,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -120,6 +122,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -150,6 +153,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -183,6 +187,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -216,6 +221,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -258,6 +264,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -293,6 +300,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -323,6 +331,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -354,6 +363,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -387,6 +397,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -415,6 +426,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -438,6 +450,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -495,7 +508,7 @@ export default class AIAgentTask extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({ type: TableColumnType.Entity, modelType: User })
@@ -515,7 +528,7 @@ export default class AIAgentTask extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
     update: [],
   })
   @TableColumn({
@@ -543,6 +556,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectAIAgentTask,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -33,7 +33,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ReadTelemetryIngestionKey,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -63,6 +64,7 @@ export default class TelemetryIngestionKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadTelemetryIngestionKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -98,6 +100,7 @@ export default class TelemetryIngestionKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadTelemetryIngestionKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -127,6 +130,7 @@ export default class TelemetryIngestionKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadTelemetryIngestionKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -160,6 +164,7 @@ export default class TelemetryIngestionKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadTelemetryIngestionKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -192,6 +197,7 @@ export default class TelemetryIngestionKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadTelemetryIngestionKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -228,6 +234,7 @@ export default class TelemetryIngestionKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadTelemetryIngestionKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -299,6 +306,7 @@ export default class TelemetryIngestionKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadTelemetryIngestionKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

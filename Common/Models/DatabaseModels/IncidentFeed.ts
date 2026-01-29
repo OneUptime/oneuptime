@@ -55,7 +55,8 @@ export enum IncidentFeedEventType {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadIncidentFeed,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [],
   update: [],
 })
@@ -90,6 +91,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -127,6 +129,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -158,6 +161,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -195,6 +199,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -225,6 +230,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -263,6 +269,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -340,6 +347,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -370,6 +378,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -400,6 +409,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -429,6 +439,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -460,6 +471,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -498,6 +510,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -527,6 +540,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

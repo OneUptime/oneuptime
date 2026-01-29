@@ -55,7 +55,8 @@ import {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadCodeRepository,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -100,6 +101,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -136,6 +138,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -167,6 +170,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -198,6 +202,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -228,6 +233,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -262,6 +268,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -292,6 +299,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -322,6 +330,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -352,6 +361,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -388,6 +398,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -417,6 +428,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -447,6 +459,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -504,6 +517,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -541,6 +555,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -565,6 +580,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -598,6 +614,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -627,6 +644,7 @@ export default class CodeRepository extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadCodeRepository,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

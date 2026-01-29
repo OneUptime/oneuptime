@@ -57,7 +57,8 @@ export enum AlertFeedEventType {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadAlertFeed,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [],
   update: [],
 })
@@ -92,6 +93,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -128,6 +130,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -159,6 +162,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -195,6 +199,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -225,6 +230,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -262,6 +268,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -337,6 +344,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -367,6 +375,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -395,6 +404,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -424,6 +434,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -456,6 +467,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -493,6 +505,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -522,6 +535,7 @@ export default class AlertFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

@@ -57,7 +57,8 @@ export enum IncidentEpisodeFeedEventType {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadIncidentEpisodeFeed,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [],
   update: [],
 })
@@ -92,6 +93,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -128,6 +130,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -158,6 +161,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -194,6 +198,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -224,6 +229,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -261,6 +267,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -335,6 +342,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -363,6 +371,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -391,6 +400,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -420,6 +430,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -451,6 +462,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -488,6 +500,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -516,6 +529,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

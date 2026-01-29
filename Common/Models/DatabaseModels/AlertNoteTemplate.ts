@@ -40,7 +40,8 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadAlertNoteTemplate,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -84,6 +85,7 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertNoteTemplate,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -121,6 +123,7 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertNoteTemplate,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -152,6 +155,7 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertNoteTemplate,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -188,6 +192,7 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertNoteTemplate,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -223,6 +228,7 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertNoteTemplate,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -259,6 +265,7 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertNoteTemplate,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -297,6 +304,7 @@ export default class AlertNoteTemplate extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadAlertNoteTemplate,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

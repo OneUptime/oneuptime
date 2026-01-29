@@ -43,7 +43,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ReadProjectApiKey,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -74,6 +75,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -108,6 +110,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -137,6 +140,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -170,6 +174,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -198,6 +203,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -226,6 +232,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -261,6 +268,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -335,6 +343,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -361,6 +370,7 @@ export default class ApiKey extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,

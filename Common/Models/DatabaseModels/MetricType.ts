@@ -43,7 +43,8 @@ import Service from "./Service";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadTelemetryServiceMetrics,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -86,6 +87,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -122,6 +124,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectIncident,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -167,6 +170,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -196,6 +200,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -230,6 +235,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -261,6 +267,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -293,6 +300,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -329,6 +337,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -352,6 +361,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -385,6 +395,7 @@ export default class MetricType extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadTelemetryServiceMetrics,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })

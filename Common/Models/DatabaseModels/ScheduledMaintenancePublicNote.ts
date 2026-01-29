@@ -44,7 +44,8 @@ import {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.ReadScheduledMaintenancePublicNote,
-  ],
+    Permission.ReadAllProjectResources,
+    ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -88,6 +89,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -124,6 +126,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -155,6 +158,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -192,6 +196,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -222,6 +227,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -259,6 +265,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -335,6 +342,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -369,6 +377,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -417,6 +426,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -454,6 +464,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -488,6 +499,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -513,6 +525,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
@@ -547,6 +560,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [
       Permission.ProjectOwner,
@@ -580,6 +594,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadScheduledMaintenancePublicNote,
+      Permission.ReadAllProjectResources,
     ],
     update: [],
   })
