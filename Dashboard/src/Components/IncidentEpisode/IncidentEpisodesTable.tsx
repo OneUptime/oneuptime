@@ -29,7 +29,10 @@ import {
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
@@ -45,6 +48,7 @@ export interface ComponentProps {
   noItemsMessage?: string | undefined;
   title?: string | undefined;
   description?: string | undefined;
+  disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
 }
 
@@ -207,6 +211,25 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
       };
     };
 
+  let cardbuttons: Array<CardButtonSchema> = [];
+
+  if (!props.disableCreate) {
+    cardbuttons = [
+      {
+        title: "Create Episode",
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route,
+            ),
+          );
+        },
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.Add,
+      },
+    ];
+  }
+
   return (
     <>
       <ModelTable<IncidentEpisode>
@@ -227,6 +250,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
         isViewable={true}
         cardProps={{
           title: props.title || "Incident Episodes",
+          buttons: cardbuttons,
           description:
             props.description ||
             "Here is a list of incident episodes for this project.",
