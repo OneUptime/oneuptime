@@ -38,6 +38,8 @@ export enum IncidentFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OnCallPolicy = "OnCallPolicy",
   OnCallNotification = "OnCallNotification",
+  IncidentMemberAdded = "IncidentMemberAdded",
+  IncidentMemberRemoved = "IncidentMemberRemoved",
 }
 
 @EnableDocumentation()

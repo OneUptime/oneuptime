@@ -13,6 +13,9 @@ import "./Jobs/IncidentOwners/SendNotePostedNotification";
 import "./Jobs/IncidentOwners/SendOwnerAddedNotification";
 import "./Jobs/IncidentOwners/SendStateChangeNotification";
 
+// Incident Members
+import "./Jobs/IncidentMembers/SendMemberAddedNotification";
+
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
 

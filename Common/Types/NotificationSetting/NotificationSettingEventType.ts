@@ -4,6 +4,7 @@ enum NotificationSettingEventType {
   SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION = "Send incident note posted notification when I am the owner of the incident",
   SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION = "Send incident state changed notification when I am the owner of the incident",
   SEND_INCIDENT_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the incident",
+  SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION = "Send notification when I am assigned to an incident as a member",
 
   // Alerts
 
