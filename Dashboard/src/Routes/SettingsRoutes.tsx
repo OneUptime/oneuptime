@@ -57,7 +57,6 @@ const SettingLabels: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Settings/Labels");
   });
 
-
 const SettingProbes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Probes");
@@ -415,7 +414,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PROBES)}
