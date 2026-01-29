@@ -942,7 +942,6 @@ export class ProjectService extends DatabaseService<Model> {
       "Primary decision maker during an incident. Responsible for coordinating the response and making final decisions.";
     incidentCommander.color = Purple500;
     incidentCommander.projectId = createdItem.id!;
-    incidentCommander.order = 1;
 
     incidentCommander = await IncidentRoleService.create({
       data: incidentCommander,
@@ -957,7 +956,6 @@ export class ProjectService extends DatabaseService<Model> {
       "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
     responder.color = Blue500;
     responder.projectId = createdItem.id!;
-    responder.order = 2;
 
     responder = await IncidentRoleService.create({
       data: responder,
@@ -972,7 +970,6 @@ export class ProjectService extends DatabaseService<Model> {
       "Handles stakeholder communication and status updates during an incident.";
     communicationsLead.color = Teal500;
     communicationsLead.projectId = createdItem.id!;
-    communicationsLead.order = 3;
 
     communicationsLead = await IncidentRoleService.create({
       data: communicationsLead,
@@ -987,7 +984,6 @@ export class ProjectService extends DatabaseService<Model> {
       "Read-only participant who monitors the incident without active involvement.";
     observer.color = Gray500;
     observer.projectId = createdItem.id!;
-    observer.order = 4;
 
     observer = await IncidentRoleService.create({
       data: observer,

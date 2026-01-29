@@ -78,7 +78,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "IncidentRole",
 })
-@Index(["projectId", "order"])
 export default class IncidentRole extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -411,36 +410,4 @@ export default class IncidentRole extends BaseModel {
   })
   public color?: Color = undefined;
 
-  @UniqueColumnBy("projectId")
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentRole,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadIncidentRole,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditIncidentRole,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    type: TableColumnType.SmallNumber,
-    title: "Order",
-    description: "Order / Priority of this resource",
-  })
-  @Column({
-    type: ColumnType.SmallNumber,
-  })
-  public order?: number = undefined;
 }

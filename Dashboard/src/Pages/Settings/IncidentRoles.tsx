@@ -63,15 +63,6 @@ const IncidentRoles: FunctionComponent<
             required: true,
             placeholder: "Please select color for this role.",
           },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "1",
-          },
         ]}
         showRefreshButton={true}
         selectMoreFields={{
@@ -117,13 +108,6 @@ const IncidentRoles: FunctionComponent<
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
-          },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            type: FieldType.Number,
           },
         ]}
       />
