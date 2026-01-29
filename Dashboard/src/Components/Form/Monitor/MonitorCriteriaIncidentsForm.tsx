@@ -1,4 +1,6 @@
-import MonitorCriteriaIncidentForm from "./MonitorCriteriaIncidentForm";
+import MonitorCriteriaIncidentForm, {
+  IncidentRoleOption,
+} from "./MonitorCriteriaIncidentForm";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -12,6 +14,7 @@ export interface ComponentProps {
   labelDropdownOptions: Array<DropdownOption>;
   teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
+  incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
 }
 
 const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
@@ -47,6 +50,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
             labelDropdownOptions={props.labelDropdownOptions}
             teamDropdownOptions={props.teamDropdownOptions}
             userDropdownOptions={props.userDropdownOptions}
+            incidentRoleOptions={props.incidentRoleOptions}
             initialValue={i}
             /*
              * onDelete={() => {

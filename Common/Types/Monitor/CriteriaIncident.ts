@@ -1,6 +1,11 @@
 import ObjectID from "../ObjectID";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
+export interface IncidentMemberRoleAssignment {
+  roleId: ObjectID;
+  userId: ObjectID;
+}
+
 export interface CriteriaIncident {
   title: string;
   description: string;
@@ -12,6 +17,7 @@ export interface CriteriaIncident {
   labelIds?: Array<ObjectID> | undefined;
   ownerTeamIds?: Array<ObjectID> | undefined;
   ownerUserIds?: Array<ObjectID> | undefined;
+  incidentMemberRoles?: Array<IncidentMemberRoleAssignment> | undefined;
 }
 
 export const CriteriaIncidentSchema: ZodSchema = Zod.object({
@@ -25,4 +31,10 @@ export const CriteriaIncidentSchema: ZodSchema = Zod.object({
   labelIds: Zod.array(Zod.any()).optional(),
   ownerTeamIds: Zod.array(Zod.any()).optional(),
   ownerUserIds: Zod.array(Zod.any()).optional(),
+  incidentMemberRoles: Zod.array(
+    Zod.object({
+      roleId: Zod.any(),
+      userId: Zod.any(),
+    }),
+  ).optional(),
 });

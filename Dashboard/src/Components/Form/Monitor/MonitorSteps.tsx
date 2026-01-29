@@ -1,4 +1,5 @@
 import MonitorStepElement from "./MonitorStep";
+import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -16,6 +17,7 @@ import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -64,6 +66,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [userDropdownOptions, setUserDropdownOptions] = React.useState<
     Array<DropdownOption>
+  >([]);
+
+  const [incidentRoleOptions, setIncidentRoleOptions] = React.useState<
+    Array<IncidentRoleOption>
   >([]);
 
   const [probes, setProbes] = React.useState<Array<Probe>>([]);
@@ -239,6 +245,36 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setUserDropdownOptions(userOptions);
       }
 
+      // Fetch incident roles
+      const incidentRoleList: ListResult<IncidentRole> =
+        await ModelAPI.getList({
+          modelType: IncidentRole,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+            color: true,
+          },
+          sort: {
+            isPrimaryRole: SortOrder.Descending,
+            name: SortOrder.Ascending,
+          },
+        });
+
+      if (incidentRoleList.data) {
+        setIncidentRoleOptions(
+          incidentRoleList.data.map((i: IncidentRole) => {
+            return {
+              id: i._id!,
+              name: i.name || "Unknown Role",
+              color: i.color?.toString(),
+            };
+          }),
+        );
+      }
+
       // if there is no initial value then....
 
       if (!monitorSteps) {
@@ -313,6 +349,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               labelDropdownOptions={labelDropdownOptions}
               teamDropdownOptions={teamDropdownOptions}
               userDropdownOptions={userDropdownOptions}
+              incidentRoleOptions={incidentRoleOptions}
               value={i}
               probes={probes}
               monitorId={props.monitorId}

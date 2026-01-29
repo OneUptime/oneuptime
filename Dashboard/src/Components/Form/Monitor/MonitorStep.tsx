@@ -1,4 +1,5 @@
 import MonitorCriteriaElement from "./MonitorCriteria";
+import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
@@ -82,6 +83,7 @@ export interface ComponentProps {
   labelDropdownOptions: Array<DropdownOption>;
   teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
+  incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   value?: undefined | MonitorStep;
   onChange?: undefined | ((value: MonitorStep) => void);
   // onDelete?: undefined | (() => void);
@@ -911,6 +913,7 @@ return {
             labelDropdownOptions={props.labelDropdownOptions}
             teamDropdownOptions={props.teamDropdownOptions}
             userDropdownOptions={props.userDropdownOptions}
+            incidentRoleOptions={props.incidentRoleOptions}
             value={monitorStep?.data?.monitorCriteria}
             onChange={(value: MonitorCriteria) => {
               monitorStep.setMonitorCriteria(value);

@@ -1,5 +1,6 @@
 import CriteriaFilters from "./CriteriaFilters";
 import MonitorCriteriaIncidentsForm from "./MonitorCriteriaIncidentsForm";
+import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
@@ -41,6 +42,7 @@ export interface ComponentProps {
   labelDropdownOptions: Array<DropdownOption>;
   teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
+  incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
   value?: undefined | MonitorCriteriaInstance;
@@ -466,6 +468,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 labelDropdownOptions={props.labelDropdownOptions}
                 teamDropdownOptions={props.teamDropdownOptions}
                 userDropdownOptions={props.userDropdownOptions}
+                incidentRoleOptions={props.incidentRoleOptions}
                 onChange={(value: Array<CriteriaIncident>) => {
                   monitorCriteriaInstance.setIncidents(value);
                   if (props.onChange) {

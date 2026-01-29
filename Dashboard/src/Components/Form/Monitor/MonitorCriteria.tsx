@@ -1,4 +1,5 @@
 import MonitorCriteriaInstanceElement from "./MonitorCriteriaInstance";
+import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -24,6 +25,7 @@ export interface ComponentProps {
   labelDropdownOptions: Array<DropdownOption>;
   teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
+  incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
 }
@@ -202,6 +204,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                     labelDropdownOptions={props.labelDropdownOptions}
                     teamDropdownOptions={props.teamDropdownOptions}
                     userDropdownOptions={props.userDropdownOptions}
+                    incidentRoleOptions={props.incidentRoleOptions}
                     value={i}
                     onDelete={() => {
                       if (

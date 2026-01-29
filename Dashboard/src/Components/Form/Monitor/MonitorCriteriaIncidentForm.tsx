@@ -1,4 +1,7 @@
-import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
+import {
+  CriteriaIncident,
+  IncidentMemberRoleAssignment,
+} from "Common/Types/Monitor/CriteriaIncident";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -13,6 +16,12 @@ import Toggle from "Common/UI/Components/Toggle/Toggle";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
 
+export interface IncidentRoleOption {
+  id: string;
+  name: string;
+  color?: string | undefined;
+}
+
 export interface ComponentProps {
   initialValue?: undefined | CriteriaIncident;
   onChange?: undefined | ((value: CriteriaIncident) => void);
@@ -21,6 +30,7 @@ export interface ComponentProps {
   labelDropdownOptions: Array<DropdownOption>;
   teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
+  incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
 }
 
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
@@ -66,6 +76,43 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   const hasAdvancedOptions: boolean = Boolean(
     criteriaIncident.autoResolveIncident || criteriaIncident.remediationNotes,
   );
+  const hasIncidentTeam: boolean = Boolean(
+    criteriaIncident.incidentMemberRoles?.length,
+  );
+
+  // Helper to get user for a role
+  const getUserForRole: (roleId: string) => ObjectID | undefined = (
+    roleId: string,
+  ): ObjectID | undefined => {
+    const assignment: IncidentMemberRoleAssignment | undefined =
+      criteriaIncident.incidentMemberRoles?.find(
+        (a: IncidentMemberRoleAssignment) => a.roleId.toString() === roleId,
+      );
+    return assignment?.userId;
+  };
+
+  // Helper to set user for a role
+  const setUserForRole: (roleId: string, userId: ObjectID | undefined) => void =
+    (roleId: string, userId: ObjectID | undefined): void => {
+      const existingRoles: Array<IncidentMemberRoleAssignment> =
+        criteriaIncident.incidentMemberRoles || [];
+
+      // Remove existing assignment for this role
+      const filteredRoles: Array<IncidentMemberRoleAssignment> =
+        existingRoles.filter(
+          (a: IncidentMemberRoleAssignment) => a.roleId.toString() !== roleId,
+        );
+
+      // Add new assignment if userId is provided
+      if (userId) {
+        filteredRoles.push({
+          roleId: new ObjectID(roleId),
+          userId: userId,
+        });
+      }
+
+      updateField("incidentMemberRoles", filteredRoles);
+    };
 
   const templateDocsLink: ReactElement = (
     <Link
@@ -290,6 +337,57 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           />
         </div>
       </CollapsibleSection>
+
+      {/* Incident Team - Collapsible */}
+      {props.incidentRoleOptions && props.incidentRoleOptions.length > 0 && (
+        <CollapsibleSection
+          title="Incident Team"
+          description="Pre-assign team members to incident roles"
+          badge={hasIncidentTeam ? "Configured" : undefined}
+          variant="bordered"
+          defaultCollapsed={!hasIncidentTeam}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">
+              Optionally assign users to incident roles. These users will be
+              automatically assigned when the incident is created.
+            </p>
+            {props.incidentRoleOptions.map((role: IncidentRoleOption) => {
+              const selectedUserId: ObjectID | undefined = getUserForRole(
+                role.id,
+              );
+              return (
+                <div key={role.id}>
+                  <FieldLabelElement
+                    title={role.name}
+                    description={`Assign a user to the ${role.name} role`}
+                  />
+                  <Dropdown
+                    value={
+                      selectedUserId
+                        ? props.userDropdownOptions.find(
+                            (i: DropdownOption) =>
+                              i.value === selectedUserId.toString(),
+                          )
+                        : undefined
+                    }
+                    options={props.userDropdownOptions}
+                    onChange={(
+                      value: DropdownValue | Array<DropdownValue> | null,
+                    ) => {
+                      setUserForRole(
+                        role.id,
+                        value ? new ObjectID(value.toString()) : undefined,
+                      );
+                    }}
+                    placeholder={`Select ${role.name}...`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* Advanced Options - Collapsible */}
       <CollapsibleSection

@@ -1,6 +1,7 @@
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -17,6 +18,7 @@ import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
+import IncidentMemberService from "../../Services/IncidentMemberService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -24,6 +26,7 @@ import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
+import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -295,6 +298,46 @@ export default class MonitorIncident {
               isRoot: true,
             },
           );
+        }
+
+        // Add incident member role assignments after incident creation
+        if (
+          criteriaIncident.incidentMemberRoles &&
+          criteriaIncident.incidentMemberRoles.length > 0
+        ) {
+          for (const roleAssignment of criteriaIncident.incidentMemberRoles) {
+            try {
+              const assignment: IncidentMemberRoleAssignment =
+                roleAssignment as IncidentMemberRoleAssignment;
+
+              if (assignment.roleId && assignment.userId) {
+                const incidentMember: IncidentMember = new IncidentMember();
+                incidentMember.incidentId = createdIncident.id!;
+                incidentMember.projectId = input.monitor.projectId!;
+                incidentMember.userId = new ObjectID(
+                  assignment.userId.toString(),
+                );
+                incidentMember.incidentRoleId = new ObjectID(
+                  assignment.roleId.toString(),
+                );
+
+                await IncidentMemberService.create({
+                  data: incidentMember,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+
+                logger.debug(
+                  `${input.monitor.id?.toString()} - Assigned incident member role ${assignment.roleId.toString()} to user ${assignment.userId.toString()}`,
+                );
+              }
+            } catch (memberError) {
+              logger.error(
+                `${input.monitor.id?.toString()} - Failed to assign incident member role: ${memberError}`,
+              );
+            }
+          }
         }
 
         input.evaluationSummary?.events.push({
