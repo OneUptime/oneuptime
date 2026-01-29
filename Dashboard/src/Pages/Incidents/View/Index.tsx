@@ -50,6 +50,7 @@ import HeaderAlert, {
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
+import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -622,6 +623,13 @@ const IncidentView: FunctionComponent<
       <ChangeIncidentState
         incidentId={modelId}
         onActionComplete={async () => {
+          await fetchData();
+        }}
+      />
+
+      <IncidentMemberRoleAssignment
+        incidentId={modelId}
+        onMemberChange={async () => {
           await fetchData();
         }}
       />
