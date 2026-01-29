@@ -942,6 +942,8 @@ export class ProjectService extends DatabaseService<Model> {
       "Primary decision maker during an incident. Responsible for coordinating the response and making final decisions.";
     incidentCommander.color = Purple500;
     incidentCommander.projectId = createdItem.id!;
+    incidentCommander.isPrimaryRole = true;
+    incidentCommander.isDeleteable = false;
 
     incidentCommander = await IncidentRoleService.create({
       data: incidentCommander,

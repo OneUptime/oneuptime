@@ -409,4 +409,51 @@ export default class IncidentRole extends BaseModel {
     transformer: Color.getDatabaseTransformer(),
   })
   public color?: Color = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentRole,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Is Primary Role",
+    description:
+      "Is this the primary incident role? Primary roles like Incident Commander have special significance.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isPrimaryRole?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentRole,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Is Deleteable",
+    description: "Can this role be deleted? Primary roles cannot be deleted.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public isDeleteable?: boolean = undefined;
 }
