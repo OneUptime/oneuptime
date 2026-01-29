@@ -5,6 +5,9 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember, {
   IncidentEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentEpisodeOwnerUser from "../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
+import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentEpisodeRoleMember from "../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
@@ -17,6 +20,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
+import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
+import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
+import IncidentEpisodeRoleMemberService from "./IncidentEpisodeRoleMemberService";
 import MonitorService from "./MonitorService";
 import ServiceMonitorService from "./ServiceMonitorService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -102,6 +108,20 @@ class IncidentGroupingEngineServiceClass {
             onCallDutyPolicies: {
               _id: true,
             },
+            // Episode configuration fields
+            episodeLabels: {
+              _id: true,
+            },
+            episodeOwnerUsers: {
+              _id: true,
+            },
+            episodeOwnerTeams: {
+              _id: true,
+            },
+            episodeMemberRoles: {
+              _id: true,
+            },
+            episodeMemberRoleAssignments: true,
           },
           limit: 100,
           skip: 0,
@@ -757,6 +777,11 @@ class IncidentGroupingEngineServiceClass {
       newEpisode.onCallDutyPolicies = rule.onCallDutyPolicies;
     }
 
+    // Copy episode labels from rule
+    if (rule.episodeLabels && rule.episodeLabels.length > 0) {
+      newEpisode.labels = rule.episodeLabels;
+    }
+
     try {
       const createdEpisode: IncidentEpisode =
         await IncidentEpisodeService.create({
@@ -765,6 +790,97 @@ class IncidentGroupingEngineServiceClass {
             isRoot: true,
           },
         });
+
+      // Add episode owner users from rule
+      if (
+        rule.episodeOwnerUsers &&
+        rule.episodeOwnerUsers.length > 0 &&
+        createdEpisode.id
+      ) {
+        for (const user of rule.episodeOwnerUsers) {
+          if (!user.id) {
+            continue;
+          }
+          try {
+            const ownerUser: IncidentEpisodeOwnerUser =
+              new IncidentEpisodeOwnerUser();
+            ownerUser.projectId = incident.projectId!;
+            ownerUser.incidentEpisodeId = createdEpisode.id;
+            ownerUser.userId = user.id;
+            await IncidentEpisodeOwnerUserService.create({
+              data: ownerUser,
+              props: {
+                isRoot: true,
+              },
+            });
+          } catch (ownerError) {
+            logger.error(
+              `Error adding owner user ${user.id} to episode: ${ownerError}`,
+            );
+          }
+        }
+      }
+
+      // Add episode owner teams from rule
+      if (
+        rule.episodeOwnerTeams &&
+        rule.episodeOwnerTeams.length > 0 &&
+        createdEpisode.id
+      ) {
+        for (const team of rule.episodeOwnerTeams) {
+          if (!team.id) {
+            continue;
+          }
+          try {
+            const ownerTeam: IncidentEpisodeOwnerTeam =
+              new IncidentEpisodeOwnerTeam();
+            ownerTeam.projectId = incident.projectId!;
+            ownerTeam.incidentEpisodeId = createdEpisode.id;
+            ownerTeam.teamId = team.id;
+            await IncidentEpisodeOwnerTeamService.create({
+              data: ownerTeam,
+              props: {
+                isRoot: true,
+              },
+            });
+          } catch (ownerError) {
+            logger.error(
+              `Error adding owner team ${team.id} to episode: ${ownerError}`,
+            );
+          }
+        }
+      }
+
+      // Add episode member role assignments from rule
+      if (
+        rule.episodeMemberRoleAssignments &&
+        rule.episodeMemberRoleAssignments.length > 0 &&
+        createdEpisode.id
+      ) {
+        for (const assignment of rule.episodeMemberRoleAssignments) {
+          if (!assignment.userId || !assignment.incidentRoleId) {
+            continue;
+          }
+          try {
+            const roleMember: IncidentEpisodeRoleMember =
+              new IncidentEpisodeRoleMember();
+            roleMember.projectId = incident.projectId!;
+            roleMember.incidentEpisodeId = createdEpisode.id;
+            roleMember.userId = new ObjectID(assignment.userId);
+            roleMember.incidentRoleId = new ObjectID(assignment.incidentRoleId);
+            await IncidentEpisodeRoleMemberService.create({
+              data: roleMember,
+              props: {
+                isRoot: true,
+              },
+            });
+          } catch (memberError) {
+            logger.error(
+              `Error adding member role assignment to episode: ${memberError}`,
+            );
+          }
+        }
+      }
 
       // Add episode feed entry for episode creation
       if (createdEpisode.id) {

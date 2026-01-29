@@ -1,3 +1,4 @@
+import IncidentRole from "./IncidentRole";
 import IncidentSeverity from "./IncidentSeverity";
 import Label from "./Label";
 import Monitor from "./Monitor";
@@ -45,6 +46,11 @@ export interface IncidentGroupingRuleGroupByFields {
   incidentSeverityId?: boolean;
   incidentTitle?: boolean;
   customFieldValues?: Array<string>;
+}
+
+export interface EpisodeMemberRoleAssignment {
+  userId: string;
+  incidentRoleId: string;
 }
 
 @EnableDocumentation()
@@ -1354,6 +1360,225 @@ export default class IncidentGroupingRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public defaultAssignToTeamId?: ObjectID = undefined;
+
+  // Episode Configuration Fields
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Episode Labels",
+    description:
+      "Labels to automatically apply to episodes created by this rule.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentGroupingRuleEpisodeLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentGroupingRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public episodeLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: User,
+    title: "Episode Owner Users",
+    description:
+      "Users to automatically add as owners to episodes created by this rule.",
+  })
+  @ManyToMany(
+    () => {
+      return User;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentGroupingRuleEpisodeOwnerUser",
+    inverseJoinColumn: {
+      name: "userId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentGroupingRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public episodeOwnerUsers?: Array<User> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Team,
+    title: "Episode Owner Teams",
+    description:
+      "Teams to automatically add as owners to episodes created by this rule.",
+  })
+  @ManyToMany(
+    () => {
+      return Team;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentGroupingRuleEpisodeOwnerTeam",
+    inverseJoinColumn: {
+      name: "teamId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentGroupingRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public episodeOwnerTeams?: Array<Team> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: IncidentRole,
+    title: "Episode Member Roles",
+    description:
+      "Incident roles to display in the episode members form. Select the roles that can be assigned to episode members.",
+  })
+  @ManyToMany(
+    () => {
+      return IncidentRole;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentGroupingRuleEpisodeMemberRole",
+    inverseJoinColumn: {
+      name: "incidentRoleId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentGroupingRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public episodeMemberRoles?: Array<IncidentRole> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Episode Member Role Assignments",
+    description:
+      "Users with specific incident roles to automatically add as members to episodes created by this rule. Each assignment includes a user ID and an incident role ID.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public episodeMemberRoleAssignments?: Array<EpisodeMemberRoleAssignment> =
+    undefined;
 
   @ColumnAccessControl({
     create: [

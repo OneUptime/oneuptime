@@ -5,6 +5,8 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember, {
   AlertEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/AlertEpisodeMember";
+import AlertEpisodeOwnerUser from "../../Models/DatabaseModels/AlertEpisodeOwnerUser";
+import AlertEpisodeOwnerTeam from "../../Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -17,6 +19,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
+import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
+import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
 import MonitorService from "./MonitorService";
 import ServiceMonitorService from "./ServiceMonitorService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -100,6 +104,16 @@ class AlertGroupingEngineServiceClass {
             defaultAssignToUserId: true,
             defaultAssignToTeamId: true,
             onCallDutyPolicies: {
+              _id: true,
+            },
+            // Episode configuration fields
+            episodeLabels: {
+              _id: true,
+            },
+            episodeOwnerUsers: {
+              _id: true,
+            },
+            episodeOwnerTeams: {
               _id: true,
             },
           },
@@ -694,6 +708,11 @@ class AlertGroupingEngineServiceClass {
       newEpisode.onCallDutyPolicies = rule.onCallDutyPolicies;
     }
 
+    // Copy episode labels from rule
+    if (rule.episodeLabels && rule.episodeLabels.length > 0) {
+      newEpisode.labels = rule.episodeLabels;
+    }
+
     try {
       const createdEpisode: AlertEpisode = await AlertEpisodeService.create({
         data: newEpisode,
@@ -701,6 +720,64 @@ class AlertGroupingEngineServiceClass {
           isRoot: true,
         },
       });
+
+      // Add episode owner users from rule
+      if (
+        rule.episodeOwnerUsers &&
+        rule.episodeOwnerUsers.length > 0 &&
+        createdEpisode.id
+      ) {
+        for (const user of rule.episodeOwnerUsers) {
+          if (!user.id) {
+            continue;
+          }
+          try {
+            const ownerUser: AlertEpisodeOwnerUser = new AlertEpisodeOwnerUser();
+            ownerUser.projectId = alert.projectId!;
+            ownerUser.alertEpisodeId = createdEpisode.id;
+            ownerUser.userId = user.id;
+            await AlertEpisodeOwnerUserService.create({
+              data: ownerUser,
+              props: {
+                isRoot: true,
+              },
+            });
+          } catch (ownerError) {
+            logger.error(
+              `Error adding owner user ${user.id} to episode: ${ownerError}`,
+            );
+          }
+        }
+      }
+
+      // Add episode owner teams from rule
+      if (
+        rule.episodeOwnerTeams &&
+        rule.episodeOwnerTeams.length > 0 &&
+        createdEpisode.id
+      ) {
+        for (const team of rule.episodeOwnerTeams) {
+          if (!team.id) {
+            continue;
+          }
+          try {
+            const ownerTeam: AlertEpisodeOwnerTeam = new AlertEpisodeOwnerTeam();
+            ownerTeam.projectId = alert.projectId!;
+            ownerTeam.alertEpisodeId = createdEpisode.id;
+            ownerTeam.teamId = team.id;
+            await AlertEpisodeOwnerTeamService.create({
+              data: ownerTeam,
+              props: {
+                isRoot: true,
+              },
+            });
+          } catch (ownerError) {
+            logger.error(
+              `Error adding owner team ${team.id} to episode: ${ownerError}`,
+            );
+          }
+        }
+      }
 
       // Add episode feed entry for episode creation
       if (createdEpisode.id) {

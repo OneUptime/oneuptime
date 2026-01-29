@@ -1357,6 +1357,146 @@ export default class AlertGroupingRule extends BaseModel {
   })
   public defaultAssignToTeamId?: ObjectID = undefined;
 
+  // Episode Configuration Fields
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Episode Labels",
+    description:
+      "Labels to automatically apply to episodes created by this rule.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertGroupingRuleEpisodeLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertGroupingRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public episodeLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: User,
+    title: "Episode Owner Users",
+    description:
+      "Users to automatically add as owners to episodes created by this rule.",
+  })
+  @ManyToMany(
+    () => {
+      return User;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertGroupingRuleEpisodeOwnerUser",
+    inverseJoinColumn: {
+      name: "userId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertGroupingRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public episodeOwnerUsers?: Array<User> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlertGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Team,
+    title: "Episode Owner Teams",
+    description:
+      "Teams to automatically add as owners to episodes created by this rule.",
+  })
+  @ManyToMany(
+    () => {
+      return Team;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertGroupingRuleEpisodeOwnerTeam",
+    inverseJoinColumn: {
+      name: "teamId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertGroupingRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public episodeOwnerTeams?: Array<Team> = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
