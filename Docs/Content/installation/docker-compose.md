@@ -31,12 +31,9 @@ Before you start the deployment process, please make sure you have:
 To install OneUptime: 
 
 ```
-# Clone this repo and cd into it.
-git clone https://github.com/OneUptime/oneuptime.git
+# Clone this repo with just the release branch and cd into it.
+git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
-
-# Please make sure you're on release branch.
-git checkout release
 
 # Copy config.example.env to config.env
 cp config.example.env config.env
