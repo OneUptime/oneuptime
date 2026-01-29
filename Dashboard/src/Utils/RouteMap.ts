@@ -190,6 +190,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]: `settings/postmortem-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
+  [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -310,7 +311,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_PROBE_VIEW]: `probes/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LABELS]: "labels",
-  [PageMap.SETTINGS_INCIDENT_ROLES]: "incident-roles",
   [PageMap.SETTINGS_PROBES]: "probes",
   [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
   [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
@@ -1073,6 +1073,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_ROLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ROLES]
     }`,
   ),
 
@@ -2115,13 +2121,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_LABELS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_LABELS]
-    }`,
-  ),
-
-  // Incident Roles.
-  [PageMap.SETTINGS_INCIDENT_ROLES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_ROLES]
     }`,
   ),
 

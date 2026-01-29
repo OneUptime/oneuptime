@@ -196,6 +196,12 @@ const IncidentSettingsGroupingRules: LazyExoticComponent<
   return import("../Pages/Incidents/Settings/IncidentGroupingRules");
 });
 
+const IncidentSettingsRoles: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentRoles");
+});
+
 // Incident Episode Pages
 const IncidentEpisodes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
@@ -536,6 +542,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ROLES] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsRoles
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_ROLES] as Route}
               />
             </Suspense>
           }

@@ -1,5 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -20,7 +20,7 @@ const IncidentRoles: FunctionComponent<
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="incident-roles-table"
-        name="Settings > Incident Roles"
+        name="Incidents > Settings > Incident Roles"
         userPreferencesKey="incident-roles-table"
         isDeleteable={true}
         isEditable={true}
