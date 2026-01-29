@@ -1462,6 +1462,7 @@ export default class Incident extends BaseModel {
     title: "Incident Number",
     description: "Incident Number",
     computed: true,
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Number,
