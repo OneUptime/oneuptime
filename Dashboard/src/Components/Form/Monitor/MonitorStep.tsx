@@ -16,10 +16,7 @@ import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import Port from "Common/Types/Port";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { ButtonSize } from "Common/UI/Components/Button/Button";
 import CheckBoxList, {
   CategoryCheckboxValue,
   enumToCategoryCheckboxOption,
@@ -31,10 +28,11 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import Card from "Common/UI/Components/Card/Card";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -229,12 +227,12 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   if (props.monitorType === MonitorType.CustomJavaScriptCode) {
     codeEditorPlaceholder = `
 // You can use axios, http modules here.
-await axios.get('https://example.com'); 
+await axios.get('https://example.com');
 
 // when you want to return a value, use return statement with data as a prop.
 
 return {
-    data: 'Hello World' 
+    data: 'Hello World'
 };
         `;
   }
@@ -323,294 +321,322 @@ return {
 
   const monitorStep: MonitorStep = props.value || new MonitorStep();
 
+  // Check if there are any advanced options configured
+  const hasAdvancedOptionsConfigured: boolean =
+    Boolean(monitorStep.data?.requestHeaders && Object.keys(monitorStep.data.requestHeaders).length > 0) ||
+    Boolean(monitorStep.data?.requestBody) ||
+    Boolean(monitorStep.data?.doNotFollowRedirects);
+
   return (
-    <div className="mt-5">
+    <div className="mt-5 space-y-6">
+      {/* Monitor Target Card */}
       {hasMonitorDestination && (
-        <div>
-          <div className="mt-5">
-            <FieldLabelElement
-              title={destinationFieldTitle}
-              description={destinationFieldDescription}
-              required={true}
-            />
-            <Input
-              initialValue={destinationInputValue}
-              disableSpellCheck={true}
-              onBlur={() => {
-                setTouched({
-                  ...touched,
-                  destination: true,
-                });
-
-                if (!monitorStep?.data?.monitorDestination?.toString()) {
-                  setErrors({
-                    ...errors,
-                    destination: "Destination is required",
+        <Card
+          title="Monitor Target"
+          description="Configure what you want to monitor"
+        >
+          <div className="space-y-4">
+            <div>
+              <FieldLabelElement
+                title={destinationFieldTitle}
+                description={destinationFieldDescription}
+                required={true}
+              />
+              <Input
+                initialValue={destinationInputValue}
+                disableSpellCheck={true}
+                onBlur={() => {
+                  setTouched({
+                    ...touched,
+                    destination: true,
                   });
-                } else {
-                  setErrors({
-                    ...errors,
-                    destination: "",
-                  });
-                  setDestinationInputValue(
-                    monitorStep?.data?.monitorDestination?.toString(),
-                  );
-                }
-              }}
-              error={
-                touched["destination"] && errors["destination"]
-                  ? errors["destination"]
-                  : undefined
-              }
-              onChange={(value: string) => {
-                let destination: IP | URL | Hostname | undefined = undefined;
 
-                try {
-                  if (props.monitorType === MonitorType.IP) {
-                    destination = IP.fromString(value);
-                  } else if (props.monitorType === MonitorType.Ping) {
-                    if (IP.isIP(value)) {
-                      destination = IP.fromString(value);
-                    } else {
-                      destination = Hostname.fromString(value);
-                    }
-                  } else if (props.monitorType === MonitorType.Port) {
-                    if (IP.isIP(value)) {
-                      destination = IP.fromString(value);
-                    } else {
-                      destination = Hostname.fromString(value);
-                    }
-                  } else if (props.monitorType === MonitorType.Website) {
-                    destination = URL.fromString(value);
-                  } else if (props.monitorType === MonitorType.API) {
-                    destination = URL.fromString(value);
-                  } else if (props.monitorType === MonitorType.SSLCertificate) {
-                    destination = URL.fromString(value);
-                  }
-
-                  setErrors({
-                    ...errors,
-                    destination: "",
-                  });
-                } catch (err) {
-                  if (err instanceof Exception) {
+                  if (!monitorStep?.data?.monitorDestination?.toString()) {
                     setErrors({
                       ...errors,
-                      destination: err.message,
+                      destination: "Destination is required",
                     });
                   } else {
                     setErrors({
                       ...errors,
-                      destination: "Invalid Destination",
+                      destination: "",
+                    });
+                    setDestinationInputValue(
+                      monitorStep?.data?.monitorDestination?.toString(),
+                    );
+                  }
+                }}
+                error={
+                  touched["destination"] && errors["destination"]
+                    ? errors["destination"]
+                    : undefined
+                }
+                onChange={(value: string) => {
+                  let destination: IP | URL | Hostname | undefined = undefined;
+
+                  try {
+                    if (props.monitorType === MonitorType.IP) {
+                      destination = IP.fromString(value);
+                    } else if (props.monitorType === MonitorType.Ping) {
+                      if (IP.isIP(value)) {
+                        destination = IP.fromString(value);
+                      } else {
+                        destination = Hostname.fromString(value);
+                      }
+                    } else if (props.monitorType === MonitorType.Port) {
+                      if (IP.isIP(value)) {
+                        destination = IP.fromString(value);
+                      } else {
+                        destination = Hostname.fromString(value);
+                      }
+                    } else if (props.monitorType === MonitorType.Website) {
+                      destination = URL.fromString(value);
+                    } else if (props.monitorType === MonitorType.API) {
+                      destination = URL.fromString(value);
+                    } else if (props.monitorType === MonitorType.SSLCertificate) {
+                      destination = URL.fromString(value);
+                    }
+
+                    setErrors({
+                      ...errors,
+                      destination: "",
+                    });
+                  } catch (err) {
+                    if (err instanceof Exception) {
+                      setErrors({
+                        ...errors,
+                        destination: err.message,
+                      });
+                    } else {
+                      setErrors({
+                        ...errors,
+                        destination: "Invalid Destination",
+                      });
+                    }
+                  }
+
+                  if (destination) {
+                    monitorStep.setMonitorDestination(destination);
+                  }
+
+                  setDestinationInputValue(value);
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+              />
+            </div>
+
+            {props.monitorType === MonitorType.Port && (
+              <div>
+                <FieldLabelElement
+                  title={"Port"}
+                  description={"Whats the port you want to monitor?"}
+                  required={true}
+                />
+                <Input
+                  initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
+                  onChange={(value: string) => {
+                    const port: Port = new Port(value);
+                    monitorStep.setPort(port);
+                    if (props.onChange) {
+                      props.onChange(MonitorStep.clone(monitorStep));
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {props.monitorType === MonitorType.API && (
+              <div>
+                <FieldLabelElement
+                  title={"API Request Type"}
+                  description={"What is the type of the API request?"}
+                  required={true}
+                />
+                <Dropdown
+                  initialValue={requestTypeDropdownOptions.find(
+                    (i: DropdownOption) => {
+                      return (
+                        i.value ===
+                        (monitorStep?.data?.requestType || HTTPMethod.GET)
+                      );
+                    },
+                  )}
+                  options={requestTypeDropdownOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    monitorStep.setRequestType(
+                      (value?.toString() as HTTPMethod) || HTTPMethod.GET,
+                    );
+                    if (props.onChange) {
+                      props.onChange(MonitorStep.clone(monitorStep));
+                    }
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Advanced Options - Collapsible Section for API monitors */}
+      {props.monitorType === MonitorType.API && (
+        <CollapsibleSection
+          title="Advanced Options"
+          description="Request headers, body, and redirect settings"
+          badge={hasAdvancedOptionsConfigured ? "Configured" : undefined}
+          variant="card"
+          defaultCollapsed={!hasAdvancedOptionsConfigured && !showAdvancedOptionsRequestBodyAndHeaders}
+          onToggle={(isCollapsed: boolean) => {
+            if (!isCollapsed) {
+              setShowAdvancedOptionsRequestBodyAndHeaders(true);
+            }
+          }}
+        >
+          <div className="space-y-4">
+            <div>
+              <FieldLabelElement
+                title={"Request Headers"}
+                description={
+                  <p>
+                    Request Headers to send.{" "}
+                    <Link
+                      className="underline"
+                      openInNewTab={true}
+                      to={URL.fromString(
+                        DOCS_URL.toString() + "/monitor/monitor-secrets",
+                      )}
+                    >
+                      You can use secrets here.
+                    </Link>
+                  </p>
+                }
+                required={false}
+              />
+              <DictionaryOfStrings
+                addButtonSuffix="Request Header"
+                keyPlaceholder={"Header Name"}
+                valuePlaceholder={"Header Value"}
+                initialValue={monitorStep.data?.requestHeaders || {}}
+                onChange={(value: Dictionary<string>) => {
+                  monitorStep.setRequestHeaders(value);
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+              />
+            </div>
+
+            <div>
+              <FieldLabelElement
+                title={"Request Body (in JSON)"}
+                description={
+                  <p>
+                    Request Headers to send in JSON.{" "}
+                    <Link
+                      className="underline"
+                      openInNewTab={true}
+                      to={URL.fromString(
+                        DOCS_URL.toString() + "/monitor/monitor-secrets",
+                      )}
+                    >
+                      You can use secrets here.
+                    </Link>
+                  </p>
+                }
+                required={false}
+              />
+              <CodeEditor
+                type={CodeType.JSON}
+                onBlur={() => {
+                  setTouched({
+                    ...touched,
+                    requestBody: true,
+                  });
+                }}
+                error={
+                  touched["requestBody"] && errors["requestBody"]
+                    ? errors["requestBody"]
+                    : undefined
+                }
+                initialValue={monitorStep.data?.requestBody}
+                onChange={(value: string) => {
+                  try {
+                    JSON.parse(value);
+                    setErrors({
+                      ...errors,
+                      requestBody: "",
+                    });
+                  } catch {
+                    setErrors({
+                      ...errors,
+                      requestBody: "Invalid JSON",
                     });
                   }
-                }
 
-                if (destination) {
-                  monitorStep.setMonitorDestination(destination);
-                }
+                  monitorStep.setRequestBody(value);
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+              />
+            </div>
 
-                setDestinationInputValue(value);
+            <div>
+              <CheckboxElement
+                initialValue={monitorStep.data?.doNotFollowRedirects || false}
+                title={"Do not follow redirects"}
+                description="Please check this if you do not want to follow redirects."
+                onChange={(value: boolean) => {
+                  monitorStep.setDoNotFollowRedirects(value);
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Advanced Options - Collapsible Section for Website monitors */}
+      {props.monitorType === MonitorType.Website && (
+        <CollapsibleSection
+          title="Advanced Options"
+          description="Redirect settings"
+          badge={monitorStep.data?.doNotFollowRedirects ? "Configured" : undefined}
+          variant="card"
+          defaultCollapsed={!monitorStep.data?.doNotFollowRedirects && !showDoNotFollowRedirects}
+          onToggle={(isCollapsed: boolean) => {
+            if (!isCollapsed) {
+              setShowDoNotFollowRedirects(true);
+            }
+          }}
+        >
+          <div>
+            <CheckboxElement
+              initialValue={monitorStep.data?.doNotFollowRedirects || false}
+              title={"Do not follow redirects"}
+              description="Please check this if you do not want to follow redirects."
+              onChange={(value: boolean) => {
+                monitorStep.setDoNotFollowRedirects(value);
                 if (props.onChange) {
                   props.onChange(MonitorStep.clone(monitorStep));
                 }
               }}
             />
           </div>
-          {props.monitorType === MonitorType.Port && (
-            <div className="mt-5">
-              <FieldLabelElement
-                title={"Port"}
-                description={"Whats the port you want to monitor?"}
-                required={true}
-              />
-              <Input
-                initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
-                onChange={(value: string) => {
-                  const port: Port = new Port(value);
-                  monitorStep.setPort(port);
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          {props.monitorType === MonitorType.API && (
-            <div className="mt-5">
-              <FieldLabelElement
-                title={"API Request Type"}
-                description={"What is the type of the API request?"}
-                required={true}
-              />
-              <Dropdown
-                initialValue={requestTypeDropdownOptions.find(
-                  (i: DropdownOption) => {
-                    return (
-                      i.value ===
-                      (monitorStep?.data?.requestType || HTTPMethod.GET)
-                    );
-                  },
-                )}
-                options={requestTypeDropdownOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  monitorStep.setRequestType(
-                    (value?.toString() as HTTPMethod) || HTTPMethod.GET,
-                  );
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          {!showAdvancedOptionsRequestBodyAndHeaders &&
-            props.monitorType === MonitorType.API && (
-              <div className="mt-1 -ml-3">
-                <Button
-                  title="Advanced: Add Request Headers, Body and more."
-                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                  onClick={() => {
-                    setShowAdvancedOptionsRequestBodyAndHeaders(true);
-                  }}
-                />
-              </div>
-            )}
-
-          {!showDoNotFollowRedirects &&
-            props.monitorType === MonitorType.Website && (
-              <div className="mt-1 -ml-3">
-                <Button
-                  title="Advanced: More Options"
-                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                  onClick={() => {
-                    setShowDoNotFollowRedirects(true);
-                  }}
-                />
-              </div>
-            )}
-
-          {showAdvancedOptionsRequestBodyAndHeaders &&
-            props.monitorType === MonitorType.API && (
-              <div className="mt-5">
-                <FieldLabelElement
-                  title={"Request Headers"}
-                  description={
-                    <p>
-                      Request Headers to send.{" "}
-                      <Link
-                        className="underline"
-                        openInNewTab={true}
-                        to={URL.fromString(
-                          DOCS_URL.toString() + "/monitor/monitor-secrets",
-                        )}
-                      >
-                        You can use secrets here.
-                      </Link>
-                    </p>
-                  }
-                  required={false}
-                />
-                <DictionaryOfStrings
-                  addButtonSuffix="Request Header"
-                  keyPlaceholder={"Header Name"}
-                  valuePlaceholder={"Header Value"}
-                  initialValue={monitorStep.data?.requestHeaders || {}}
-                  onChange={(value: Dictionary<string>) => {
-                    monitorStep.setRequestHeaders(value);
-                    if (props.onChange) {
-                      props.onChange(MonitorStep.clone(monitorStep));
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-          {showAdvancedOptionsRequestBodyAndHeaders &&
-            props.monitorType === MonitorType.API && (
-              <div className="mt-5">
-                <FieldLabelElement
-                  title={"Request Body (in JSON)"}
-                  description={
-                    <p>
-                      Request Headers to send in JSON.{" "}
-                      <Link
-                        className="underline"
-                        openInNewTab={true}
-                        to={URL.fromString(
-                          DOCS_URL.toString() + "/monitor/monitor-secrets",
-                        )}
-                      >
-                        You can use secrets here.
-                      </Link>
-                    </p>
-                  }
-                  required={false}
-                />
-                <CodeEditor
-                  type={CodeType.JSON}
-                  onBlur={() => {
-                    setTouched({
-                      ...touched,
-                      requestBody: true,
-                    });
-                  }}
-                  error={
-                    touched["requestBody"] && errors["requestBody"]
-                      ? errors["requestBody"]
-                      : undefined
-                  }
-                  initialValue={monitorStep.data?.requestBody}
-                  onChange={(value: string) => {
-                    try {
-                      JSON.parse(value);
-                      setErrors({
-                        ...errors,
-                        requestBody: "",
-                      });
-                    } catch {
-                      setErrors({
-                        ...errors,
-                        requestBody: "Invalid JSON",
-                      });
-                    }
-
-                    monitorStep.setRequestBody(value);
-                    if (props.onChange) {
-                      props.onChange(MonitorStep.clone(monitorStep));
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-          {(showDoNotFollowRedirects ||
-            showAdvancedOptionsRequestBodyAndHeaders) &&
-            (props.monitorType === MonitorType.API ||
-              props.monitorType === MonitorType.Website) && (
-              <div className="mt-5">
-                <CheckboxElement
-                  initialValue={monitorStep.data?.doNotFollowRedirects || false}
-                  title={"Do not follow redirects"}
-                  description="Please check this if you do not want to follow redirects."
-                  onChange={(value: boolean) => {
-                    monitorStep.setDoNotFollowRedirects(value);
-                    if (props.onChange) {
-                      props.onChange(MonitorStep.clone(monitorStep));
-                    }
-                  }}
-                />
-              </div>
-            )}
-        </div>
+        </CollapsibleSection>
       )}
 
+      {/* Telemetry Monitor Forms */}
       {props.monitorType === MonitorType.Logs && (
-        <div className="mt-5">
+        <Card
+          title="Log Monitor Configuration"
+          description="Configure the log monitoring settings"
+        >
           <LogMonitorStepForm
             monitorStepLogMonitor={
               monitorStep.data?.logMonitor ||
@@ -623,11 +649,14 @@ return {
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
           />
-        </div>
+        </Card>
       )}
 
       {props.monitorType === MonitorType.Metrics && (
-        <div className="mt-5">
+        <Card
+          title="Metric Monitor Configuration"
+          description="Configure the metric monitoring settings"
+        >
           <MetricMonitorStepForm
             monitorStepMetricMonitor={
               monitorStep.data?.metricMonitor ||
@@ -638,11 +667,14 @@ return {
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />
-        </div>
+        </Card>
       )}
 
       {props.monitorType === MonitorType.Traces && (
-        <div className="mt-5">
+        <Card
+          title="Trace Monitor Configuration"
+          description="Configure the trace monitoring settings"
+        >
           <TraceMonitorStepForm
             monitorStepTraceMonitor={
               monitorStep.data?.traceMonitor ||
@@ -657,11 +689,14 @@ return {
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
           />
-        </div>
+        </Card>
       )}
 
       {props.monitorType === MonitorType.Exceptions && (
-        <div className="mt-5">
+        <Card
+          title="Exception Monitor Configuration"
+          description="Configure the exception monitoring settings"
+        >
           <ExceptionMonitorStepForm
             monitorStepExceptionMonitor={
               monitorStep.data?.exceptionMonitor ||
@@ -675,11 +710,14 @@ return {
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />
-        </div>
+        </Card>
       )}
 
       {props.monitorType === MonitorType.SNMP && (
-        <div className="mt-5">
+        <Card
+          title="SNMP Monitor Configuration"
+          description="Configure the SNMP monitoring settings"
+        >
           <SnmpMonitorStepForm
             monitorStepSnmpMonitor={
               monitorStep.data?.snmpMonitor ||
@@ -690,126 +728,106 @@ return {
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />
-        </div>
+        </Card>
       )}
 
+      {/* Code Monitor Section */}
       {isCodeMonitor && (
-        <div className="mt-5">
-          <FieldLabelElement
-            title={
-              props.monitorType === MonitorType.CustomJavaScriptCode
-                ? "JavaScript Code"
-                : "Playwright Code"
-            }
-            description={
-              props.monitorType === MonitorType.CustomJavaScriptCode ? (
-                <p>
-                  Write your JavaScript code here.{" "}
-                  <Link
-                    className="underline"
-                    openInNewTab={true}
-                    to={URL.fromString(
-                      DOCS_URL.toString() + "/monitor/monitor-secrets",
-                    )}
-                  >
-                    You can use secrets here.
-                  </Link>
-                </p>
-              ) : (
-                <p>
-                  Write your Playwright code here. Playwright is a Node.js
-                  library to automate Chromium, Firefox and WebKit with a single
-                  API.{" "}
-                  <Link
-                    className="underline"
-                    openInNewTab={true}
-                    to={URL.fromString(
-                      DOCS_URL.toString() + "/monitor/monitor-secrets",
-                    )}
-                  >
-                    You can use secrets here.
-                  </Link>
-                </p>
-              )
-            }
-            required={true}
-          />
-          <div className="mt-1">
-            <CodeEditor
-              initialValue={monitorStep?.data?.customCode?.toString()}
-              type={CodeType.JavaScript}
-              onChange={(value: string) => {
-                monitorStep.setCustomCode(value);
-                if (props.onChange) {
-                  props.onChange(MonitorStep.clone(monitorStep));
-                }
-              }}
-              placeholder={codeEditorPlaceholder}
-            />
+        <Card
+          title={
+            props.monitorType === MonitorType.CustomJavaScriptCode
+              ? "JavaScript Code"
+              : "Playwright Code"
+          }
+          description={
+            props.monitorType === MonitorType.CustomJavaScriptCode
+              ? "Write your JavaScript code here. You can use secrets for sensitive data."
+              : "Write your Playwright code here. Playwright is a Node.js library to automate browsers."
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <CodeEditor
+                initialValue={monitorStep?.data?.customCode?.toString()}
+                type={CodeType.JavaScript}
+                onChange={(value: string) => {
+                  monitorStep.setCustomCode(value);
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+                placeholder={codeEditorPlaceholder}
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                <Link
+                  className="underline"
+                  openInNewTab={true}
+                  to={URL.fromString(
+                    DOCS_URL.toString() + "/monitor/monitor-secrets",
+                  )}
+                >
+                  You can use secrets here.
+                </Link>
+              </p>
+            </div>
+
+            {props.monitorType === MonitorType.SyntheticMonitor && (
+              <>
+                <div>
+                  <FieldLabelElement
+                    title={"Browser Type"}
+                    description={"Select the browser type."}
+                    required={true}
+                  />
+                  <CheckBoxList
+                    options={enumToCategoryCheckboxOption(BrowserType)}
+                    initialValue={props.value?.data?.browserTypes || []}
+                    onChange={(values: Array<CategoryCheckboxValue>) => {
+                      monitorStep.setBrowserTypes(values as Array<BrowserType>);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <FieldLabelElement
+                    title={"Screen Type"}
+                    description={"Which screen type should we use to run this test?"}
+                    required={true}
+                  />
+                  <CheckBoxList
+                    options={enumToCategoryCheckboxOption(ScreenSizeType)}
+                    initialValue={props.value?.data?.screenSizeTypes || []}
+                    onChange={(values: Array<CategoryCheckboxValue>) => {
+                      monitorStep.setScreenSizeTypes(values as Array<ScreenSizeType>);
+                      if (props.onChange) {
+                        props.onChange(MonitorStep.clone(monitorStep));
+                      }
+                    }}
+                  />
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        </Card>
       )}
 
+      {/* Synthetic Monitor Advanced Options */}
       {props.monitorType === MonitorType.SyntheticMonitor && (
-        <div className="mt-5">
-          <FieldLabelElement
-            title={"Browser Type"}
-            description={"Select the browser type."}
-            required={true}
-          />
-          <div className="mt-1">
-            <CheckBoxList
-              options={enumToCategoryCheckboxOption(BrowserType)}
-              initialValue={props.value?.data?.browserTypes || []}
-              onChange={(values: Array<CategoryCheckboxValue>) => {
-                monitorStep.setBrowserTypes(values as Array<BrowserType>);
-                if (props.onChange) {
-                  props.onChange(MonitorStep.clone(monitorStep));
-                }
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {props.monitorType === MonitorType.SyntheticMonitor && (
-        <div className="mt-5">
-          <FieldLabelElement
-            title={"Screen Type"}
-            description={"Which screen type should we use to run this test?"}
-            required={true}
-          />
-          <div className="mt-1">
-            <CheckBoxList
-              options={enumToCategoryCheckboxOption(ScreenSizeType)}
-              initialValue={props.value?.data?.screenSizeTypes || []}
-              onChange={(values: Array<CategoryCheckboxValue>) => {
-                monitorStep.setScreenSizeTypes(values as Array<ScreenSizeType>);
-                if (props.onChange) {
-                  props.onChange(MonitorStep.clone(monitorStep));
-                }
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {props.monitorType === MonitorType.SyntheticMonitor &&
-        !showSyntheticMonitorAdvancedOptions && (
-          <div className="mt-1 -ml-3">
-            <Button
-              title="Advanced: More Options"
-              buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              onClick={() => {
-                setShowSyntheticMonitorAdvancedOptions(true);
-              }}
-            />
-          </div>
-        )}
-
-      {props.monitorType === MonitorType.SyntheticMonitor &&
-        showSyntheticMonitorAdvancedOptions && (
-          <div className="mt-5">
+        <CollapsibleSection
+          title="Advanced Options"
+          description="Retry settings and more"
+          variant="card"
+          defaultCollapsed={!showSyntheticMonitorAdvancedOptions}
+          onToggle={(isCollapsed: boolean) => {
+            if (!isCollapsed) {
+              setShowSyntheticMonitorAdvancedOptions(true);
+            }
+          }}
+        >
+          <div>
             <FieldLabelElement
               title={"Retry Count on Error"}
               description={
@@ -817,87 +835,68 @@ return {
               }
               required={false}
             />
-            <div className="mt-1">
-              <Input
-                initialValue={
-                  props.value?.data?.retryCountOnError?.toString() || "0"
+            <Input
+              initialValue={
+                props.value?.data?.retryCountOnError?.toString() || "0"
+              }
+              onChange={(value: string) => {
+                const retryCountOnError: number = parseInt(value) || 0;
+                monitorStep.setRetryCountOnError(
+                  retryCountOnError < 0
+                    ? 0
+                    : retryCountOnError > 5
+                      ? 5
+                      : retryCountOnError,
+                );
+                if (props.onChange) {
+                  props.onChange(MonitorStep.clone(monitorStep));
                 }
-                onChange={(value: string) => {
-                  const retryCountOnError: number = parseInt(value) || 0;
-                  monitorStep.setRetryCountOnError(
-                    retryCountOnError < 0
-                      ? 0
-                      : retryCountOnError > 5
-                        ? 5
-                        : retryCountOnError,
-                  );
-                  if (props.onChange) {
-                    props.onChange(MonitorStep.clone(monitorStep));
-                  }
-                }}
-                placeholder="0"
-                type={InputType.NUMBER}
-              />
-            </div>
+              }}
+              placeholder="0"
+              type={InputType.NUMBER}
+            />
           </div>
-        )}
+        </CollapsibleSection>
+      )}
 
-      {/** Monitor Test Form */}
-      <div className="mt-5 mb-2">
+      {/* Test Monitor Card */}
+      <Card
+        title="Test Monitor"
+        description="Verify your monitor configuration before saving"
+        className="bg-blue-50 border-blue-200"
+      >
         <MonitorTestForm
           monitorId={props.monitorId}
           monitorSteps={props.allMonitorSteps}
           monitorType={props.monitorType}
           probes={props.probes}
-          buttonSize={ButtonSize.Small}
+          buttonSize={ButtonSize.Normal}
         />
-      </div>
+      </Card>
 
-      {/** Monitoring Critera Form */}
-
-      <div className="mt-5">
-        {props.monitorType !== MonitorType.IncomingRequest && (
-          <>
-            <HorizontalRule />
-            <FieldLabelElement
-              title="Monitor Criteria"
-              isHeading={true}
-              description={
-                "Add Monitoring Criteria for this monitor. Monitor different properties."
-              }
-              required={true}
-            />
-          </>
-        )}
-        <MonitorCriteriaElement
-          monitorType={props.monitorType}
-          monitorStep={monitorStep}
-          monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
-          incidentSeverityDropdownOptions={
-            props.incidentSeverityDropdownOptions
-          }
-          alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
-          onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-          value={monitorStep?.data?.monitorCriteria}
-          onChange={(value: MonitorCriteria) => {
-            monitorStep.setMonitorCriteria(value);
-            props.onChange?.(MonitorStep.clone(monitorStep));
-          }}
-        />
-      </div>
-
-      {/* <div className='mt-5 -ml-3'>
-                <Button
-                    onClick={() => {
-                        if (props.onDelete) {
-                            props.onDelete();
-                        }
-                    }}
-                    buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                    buttonSize={ButtonSize.Small}
-                    title="Delete Monitor Step"
-                />
-            </div> */}
+      {/* Monitor Criteria Section */}
+      {props.monitorType !== MonitorType.IncomingRequest && (
+        <Card
+          title="Monitor Criteria"
+          description="Add Monitoring Criteria for this monitor. Monitor different properties."
+        >
+          <MonitorCriteriaElement
+            monitorType={props.monitorType}
+            monitorStep={monitorStep}
+            monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
+            incidentSeverityDropdownOptions={
+              props.incidentSeverityDropdownOptions
+            }
+            alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
+            onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+            value={monitorStep?.data?.monitorCriteria}
+            onChange={(value: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
     </div>
   );
 };
