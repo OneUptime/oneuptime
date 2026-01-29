@@ -21,7 +21,9 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const ActiveAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ActiveAlerts: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Page
       title={"Active Alerts"}

@@ -246,8 +246,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       }
 
       // Fetch incident roles
-      const incidentRoleList: ListResult<IncidentRole> =
-        await ModelAPI.getList({
+      const incidentRoleList: ListResult<IncidentRole> = await ModelAPI.getList(
+        {
           modelType: IncidentRole,
           query: {},
           limit: LIMIT_PER_PROJECT,
@@ -261,7 +261,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             isPrimaryRole: SortOrder.Descending,
             name: SortOrder.Ascending,
           },
-        });
+        },
+      );
 
       if (incidentRoleList.data) {
         setIncidentRoleOptions(

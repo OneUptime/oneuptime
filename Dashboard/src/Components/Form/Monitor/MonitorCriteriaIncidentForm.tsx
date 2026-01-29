@@ -86,33 +86,37 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   ): ObjectID | undefined => {
     const assignment: IncidentMemberRoleAssignment | undefined =
       criteriaIncident.incidentMemberRoles?.find(
-        (a: IncidentMemberRoleAssignment) => a.roleId.toString() === roleId,
+        (a: IncidentMemberRoleAssignment) => {
+          return a.roleId.toString() === roleId;
+        },
       );
     return assignment?.userId;
   };
 
   // Helper to set user for a role
-  const setUserForRole: (roleId: string, userId: ObjectID | undefined) => void =
-    (roleId: string, userId: ObjectID | undefined): void => {
-      const existingRoles: Array<IncidentMemberRoleAssignment> =
-        criteriaIncident.incidentMemberRoles || [];
+  const setUserForRole: (
+    roleId: string,
+    userId: ObjectID | undefined,
+  ) => void = (roleId: string, userId: ObjectID | undefined): void => {
+    const existingRoles: Array<IncidentMemberRoleAssignment> =
+      criteriaIncident.incidentMemberRoles || [];
 
-      // Remove existing assignment for this role
-      const filteredRoles: Array<IncidentMemberRoleAssignment> =
-        existingRoles.filter(
-          (a: IncidentMemberRoleAssignment) => a.roleId.toString() !== roleId,
-        );
+    // Remove existing assignment for this role
+    const filteredRoles: Array<IncidentMemberRoleAssignment> =
+      existingRoles.filter((a: IncidentMemberRoleAssignment) => {
+        return a.roleId.toString() !== roleId;
+      });
 
-      // Add new assignment if userId is provided
-      if (userId) {
-        filteredRoles.push({
-          roleId: new ObjectID(roleId),
-          userId: userId,
-        });
-      }
+    // Add new assignment if userId is provided
+    if (userId) {
+      filteredRoles.push({
+        roleId: new ObjectID(roleId),
+        userId: userId,
+      });
+    }
 
-      updateField("incidentMemberRoles", filteredRoles);
-    };
+    updateField("incidentMemberRoles", filteredRoles);
+  };
 
   const templateDocsLink: ReactElement = (
     <Link
@@ -366,8 +370,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                     value={
                       selectedUserId
                         ? props.userDropdownOptions.find(
-                            (i: DropdownOption) =>
-                              i.value === selectedUserId.toString(),
+                            (i: DropdownOption) => {
+                              return i.value === selectedUserId.toString();
+                            },
                           )
                         : undefined
                     }

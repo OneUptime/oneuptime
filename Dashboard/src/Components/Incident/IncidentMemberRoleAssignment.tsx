@@ -45,116 +45,121 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  const fetchData: () => Promise<void> = useCallback(async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      setError("");
+  const fetchData: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        setError("");
 
-      if (!projectId) {
-        throw new Error("Project ID not found");
-      }
+        if (!projectId) {
+          throw new Error("Project ID not found");
+        }
 
-      // Fetch roles, members, and users in parallel
-      const [rolesResult, membersResult, projectUsers] = await Promise.all([
-        ModelAPI.getList<IncidentRole>({
-          modelType: IncidentRole,
-          query: {
-            projectId: projectId,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-            isPrimaryRole: true,
-          },
-          sort: {
-            isPrimaryRole: SortOrder.Descending,
-            name: SortOrder.Ascending,
-          },
-        }),
-        ModelAPI.getList<IncidentMember>({
-          modelType: IncidentMember,
-          query: {
-            incidentId: props.incidentId,
-            projectId: projectId,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            userId: true,
-            incidentRoleId: true,
-            user: {
-              _id: true,
-              name: true,
-              email: true,
-              profilePictureId: true,
+        // Fetch roles, members, and users in parallel
+        const [rolesResult, membersResult, projectUsers] = await Promise.all([
+          ModelAPI.getList<IncidentRole>({
+            modelType: IncidentRole,
+            query: {
+              projectId: projectId,
             },
-            incidentRole: {
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
               _id: true,
               name: true,
               color: true,
+              isPrimaryRole: true,
             },
+            sort: {
+              isPrimaryRole: SortOrder.Descending,
+              name: SortOrder.Ascending,
+            },
+          }),
+          ModelAPI.getList<IncidentMember>({
+            modelType: IncidentMember,
+            query: {
+              incidentId: props.incidentId,
+              projectId: projectId,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              userId: true,
+              incidentRoleId: true,
+              user: {
+                _id: true,
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+              incidentRole: {
+                _id: true,
+                name: true,
+                color: true,
+              },
+            },
+            sort: {
+              createdAt: SortOrder.Ascending,
+            },
+          }),
+          ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
+        ]);
+
+        // Transform roles
+        const transformedRoles: Array<MemberRole> = (
+          rolesResult.data as Array<IncidentRole>
+        ).map((role: IncidentRole) => {
+          return {
+            id: role.id!,
+            name: role.name || "Unknown Role",
+            color: role.color || Color.fromString("#6b7280"),
+            isPrimaryRole: role.isPrimaryRole || false,
+          };
+        });
+
+        // Transform assigned members
+        const transformedMembers: Array<AssignedMember> = (
+          membersResult.data as Array<IncidentMember>
+        ).map((member: IncidentMember) => {
+          const user: User | undefined = member.user;
+          const role: IncidentRole | undefined = member.incidentRole;
+
+          return {
+            id: member.id!,
+            memberId: member.id!,
+            userId: member.userId!,
+            userName: user?.name?.toString() || "",
+            userEmail: user?.email?.toString() || "",
+            userProfilePictureUrl: user?.id
+              ? UserUtil.getProfilePictureRoute(user.id).toString()
+              : undefined,
+            roleId: member.incidentRoleId!,
+            roleName: role?.name || "Unknown Role",
+            roleColor: role?.color || Color.fromString("#6b7280"),
+          };
+        });
+
+        // Transform available users from dropdown options
+        const transformedUsers: Array<AvailableUser> = projectUsers.map(
+          (option: DropdownOption) => {
+            return {
+              id: new ObjectID(option.value.toString()),
+              name: option.label,
+              email: "",
+            };
           },
-          sort: {
-            createdAt: SortOrder.Ascending,
-          },
-        }),
-        ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
-      ]);
+        );
 
-      // Transform roles
-      const transformedRoles: Array<MemberRole> = (
-        rolesResult.data as Array<IncidentRole>
-      ).map((role: IncidentRole) => ({
-        id: role.id!,
-        name: role.name || "Unknown Role",
-        color: role.color || Color.fromString("#6b7280"),
-        isPrimaryRole: role.isPrimaryRole || false,
-      }));
-
-      // Transform assigned members
-      const transformedMembers: Array<AssignedMember> = (
-        membersResult.data as Array<IncidentMember>
-      ).map((member: IncidentMember) => {
-        const user: User | undefined = member.user;
-        const role: IncidentRole | undefined = member.incidentRole;
-
-        return {
-          id: member.id!,
-          memberId: member.id!,
-          userId: member.userId!,
-          userName: user?.name?.toString() || "",
-          userEmail: user?.email?.toString() || "",
-          userProfilePictureUrl: user?.id
-            ? UserUtil.getProfilePictureRoute(user.id).toString()
-            : undefined,
-          roleId: member.incidentRoleId!,
-          roleName: role?.name || "Unknown Role",
-          roleColor: role?.color || Color.fromString("#6b7280"),
-        };
-      });
-
-      // Transform available users from dropdown options
-      const transformedUsers: Array<AvailableUser> = projectUsers.map(
-        (option: DropdownOption) => ({
-          id: new ObjectID(option.value.toString()),
-          name: option.label,
-          email: "",
-        }),
-      );
-
-      setRoles(transformedRoles);
-      setAssignedMembers(transformedMembers);
-      setAvailableUsers(transformedUsers);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [props.incidentId, projectId]);
+        setRoles(transformedRoles);
+        setAssignedMembers(transformedMembers);
+        setAvailableUsers(transformedUsers);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      } finally {
+        setIsLoading(false);
+      }
+    }, [props.incidentId, projectId]);
 
   useEffect(() => {
     fetchData();

@@ -21,7 +21,9 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const ActiveIncidents: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ActiveIncidents: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Page
       title={"Active Incidents"}

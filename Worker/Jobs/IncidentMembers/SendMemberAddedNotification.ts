@@ -54,7 +54,8 @@ RunCron(
     for (const incidentMember of incidentMembers) {
       const incidentId: ObjectID = incidentMember.incidentId!;
       const user: User = incidentMember.user!;
-      const incidentRoleId: ObjectID | undefined = incidentMember.incidentRoleId;
+      const incidentRoleId: ObjectID | undefined =
+        incidentMember.incidentRoleId;
 
       let roleName: string = "Member";
       if (incidentRoleId) {
