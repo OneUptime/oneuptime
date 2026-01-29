@@ -133,28 +133,30 @@ export default class SnmpMonitor {
       ) => {
         let session: snmp.Session;
 
-        const sessionOptions: snmp.SessionOptions = {
-          port: config.port || 161,
-          timeout: options.timeout || config.timeout || 5000,
-          retries: 0, // We handle retries ourselves
-          version:
-            config.snmpVersion === SnmpVersion.V1
-              ? snmp.Version1
-              : config.snmpVersion === SnmpVersion.V3
-                ? snmp.Version3
-                : snmp.Version2c,
-        };
-
         try {
           if (config.snmpVersion === SnmpVersion.V3 && config.snmpV3Auth) {
-            const userOptions: snmp.UserOptions =
-              SnmpMonitor.buildV3UserOptions(config);
+            const sessionOptionsV3: snmp.SessionOptionsV3 = {
+              port: config.port || 161,
+              timeout: options.timeout || config.timeout || 5000,
+              retries: 0, // We handle retries ourselves
+              version: snmp.Version3,
+            };
+            const user: snmp.User = SnmpMonitor.buildV3User(config);
             session = snmp.createV3Session(
               config.hostname,
-              userOptions,
-              sessionOptions,
+              user,
+              sessionOptionsV3,
             );
           } else {
+            const sessionOptions: snmp.SessionOptions = {
+              port: config.port || 161,
+              timeout: options.timeout || config.timeout || 5000,
+              retries: 0, // We handle retries ourselves
+              version:
+                config.snmpVersion === SnmpVersion.V1
+                  ? snmp.Version1
+                  : snmp.Version2c,
+            };
             session = snmp.createSession(
               config.hostname,
               config.communityString || "public",
@@ -172,10 +174,10 @@ export default class SnmpMonitor {
             return;
           }
 
-          session.get(oids, (error: Error | null, varbinds: snmp.Varbind[]) => {
-            if (error) {
+          session.get(oids, (error, varbinds) => {
+            if (error || !varbinds) {
               session.close();
-              reject(error);
+              reject(error || new Error("No varbinds returned"));
               return;
             }
 
@@ -212,11 +214,9 @@ export default class SnmpMonitor {
     );
   }
 
-  private static buildV3UserOptions(
-    config: MonitorStepSnmpMonitor,
-  ): snmp.UserOptions {
+  private static buildV3User(config: MonitorStepSnmpMonitor): snmp.User {
     const v3Auth = config.snmpV3Auth!;
-    const userOptions: snmp.UserOptions = {
+    const user: snmp.User = {
       name: v3Auth.username,
       level: SnmpMonitor.mapSecurityLevel(v3Auth.securityLevel),
     };
@@ -225,16 +225,16 @@ export default class SnmpMonitor {
       v3Auth.securityLevel === SnmpSecurityLevel.AuthNoPriv ||
       v3Auth.securityLevel === SnmpSecurityLevel.AuthPriv
     ) {
-      userOptions.authProtocol = SnmpMonitor.mapAuthProtocol(v3Auth.authProtocol);
-      userOptions.authKey = v3Auth.authKey;
+      user.authProtocol = SnmpMonitor.mapAuthProtocol(v3Auth.authProtocol);
+      user.authKey = v3Auth.authKey || "";
     }
 
     if (v3Auth.securityLevel === SnmpSecurityLevel.AuthPriv) {
-      userOptions.privProtocol = SnmpMonitor.mapPrivProtocol(v3Auth.privProtocol);
-      userOptions.privKey = v3Auth.privKey;
+      user.privProtocol = SnmpMonitor.mapPrivProtocol(v3Auth.privProtocol);
+      user.privKey = v3Auth.privKey || "";
     }
 
-    return userOptions;
+    return user;
   }
 
   private static mapSecurityLevel(
@@ -254,7 +254,7 @@ export default class SnmpMonitor {
 
   private static mapAuthProtocol(
     protocol: SnmpAuthProtocol | undefined,
-  ): snmp.AuthProtocol {
+  ): snmp.AuthProtocols {
     switch (protocol) {
       case SnmpAuthProtocol.MD5:
         return snmp.AuthProtocols.md5;
@@ -271,7 +271,7 @@ export default class SnmpMonitor {
 
   private static mapPrivProtocol(
     protocol: SnmpPrivProtocol | undefined,
-  ): snmp.PrivProtocol {
+  ): snmp.PrivProtocols {
     switch (protocol) {
       case SnmpPrivProtocol.DES:
         return snmp.PrivProtocols.des;
@@ -303,7 +303,7 @@ export default class SnmpMonitor {
     return String(varbind.value);
   }
 
-  private static mapSnmpDataType(type: number): SnmpDataType {
+  private static mapSnmpDataType(type: snmp.ObjectType | undefined): SnmpDataType {
     switch (type) {
       case snmp.ObjectType.Integer:
         return SnmpDataType.Integer;
@@ -336,7 +336,7 @@ export default class SnmpMonitor {
     }
   }
 
-  private static mapSnmpErrorType(type: number): SnmpDataType {
+  private static mapSnmpErrorType(type: snmp.ObjectType | undefined): SnmpDataType {
     switch (type) {
       case snmp.ObjectType.NoSuchObject:
         return SnmpDataType.NoSuchObject;
