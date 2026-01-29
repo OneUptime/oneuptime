@@ -25,6 +25,8 @@ import IncidentNoteTemplate from "./IncidentNoteTemplate";
 import IncidentPostmortemTemplate from "./IncidentPostmortemTemplate";
 import IncidentOwnerTeam from "./IncidentOwnerTeam";
 import IncidentOwnerUser from "./IncidentOwnerUser";
+import IncidentRole from "./IncidentRole";
+import IncidentMember from "./IncidentMember";
 import IncidentPublicNote from "./IncidentPublicNote";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
@@ -276,6 +278,8 @@ const AllModelTypes: Array<{
   IncidentTemplateOwnerUser,
   IncidentOwnerTeam,
   IncidentOwnerUser,
+  IncidentRole,
+  IncidentMember,
   IncidentSeverity,
   IncidentNoteTemplate,
   IncidentPostmortemTemplate,

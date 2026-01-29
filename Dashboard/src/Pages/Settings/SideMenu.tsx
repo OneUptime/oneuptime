@@ -31,6 +31,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Label,
         },
+        {
+          link: {
+            title: "Incident Roles",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_INCIDENT_ROLES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
       ],
     },
     {

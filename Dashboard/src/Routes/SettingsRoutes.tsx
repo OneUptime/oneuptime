@@ -56,6 +56,13 @@ const SettingLabels: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Labels");
   });
+
+const SettingIncidentRoles: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentRoles");
+});
+
 const SettingProbes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Probes");
@@ -409,6 +416,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingLabels
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_INCIDENT_ROLES)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingIncidentRoles
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_INCIDENT_ROLES] as Route}
               />
             </Suspense>
           }

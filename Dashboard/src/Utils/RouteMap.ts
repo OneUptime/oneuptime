@@ -198,6 +198,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_POSTMORTEM]: `${RouteParams.ModelID}/postmortem`,
   [PageMap.INCIDENT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.INCIDENT_VIEW_ON_CALL_USERS]: `${RouteParams.ModelID}/on-call-users`,
   [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: `${RouteParams.ModelID}/on-call-policy-execution-logs`,
   [PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
   [PageMap.INCIDENT_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai-logs`,
@@ -309,6 +310,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TEAM_VIEW]: `teams/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_PROBE_VIEW]: `probes/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LABELS]: "labels",
+  [PageMap.SETTINGS_INCIDENT_ROLES]: "incident-roles",
   [PageMap.SETTINGS_PROBES]: "probes",
   [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
   [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
@@ -956,6 +958,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_ON_CALL_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_ON_CALL_USERS]
     }`,
   ),
 
@@ -2107,6 +2115,13 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_LABELS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_LABELS]
+    }`,
+  ),
+
+  // Incident Roles.
+  [PageMap.SETTINGS_INCIDENT_ROLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_ROLES]
     }`,
   ),
 

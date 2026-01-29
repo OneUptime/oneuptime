@@ -187,6 +187,16 @@ enum Permission {
   EditIncidentOwnerUser = "EditIncidentOwnerUser",
   ReadIncidentOwnerUser = "ReadIncidentOwnerUser",
 
+  CreateIncidentRole = "CreateIncidentRole",
+  DeleteIncidentRole = "DeleteIncidentRole",
+  EditIncidentRole = "EditIncidentRole",
+  ReadIncidentRole = "ReadIncidentRole",
+
+  CreateIncidentMember = "CreateIncidentMember",
+  DeleteIncidentMember = "DeleteIncidentMember",
+  EditIncidentMember = "EditIncidentMember",
+  ReadIncidentMember = "ReadIncidentMember",
+
   CreateIncidentTemplate = "CreateIncidentTemplate",
   DeleteIncidentTemplate = "DeleteIncidentTemplate",
   EditIncidentTemplate = "EditIncidentTemplate",
@@ -4325,6 +4335,72 @@ export class PermissionHelper {
         title: "Read Incident User Owner",
         description:
           "This permission can read Incident User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateIncidentRole,
+        title: "Create Incident Role",
+        description:
+          "This permission can create Incident Roles for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentRole,
+        title: "Delete Incident Role",
+        description:
+          "This permission can delete Incident Roles of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentRole,
+        title: "Edit Incident Role",
+        description:
+          "This permission can edit Incident Roles of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentRole,
+        title: "Read Incident Role",
+        description:
+          "This permission can read Incident Roles of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateIncidentMember,
+        title: "Create Incident Member",
+        description:
+          "This permission can create Incident Members for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentMember,
+        title: "Delete Incident Member",
+        description:
+          "This permission can delete Incident Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentMember,
+        title: "Edit Incident Member",
+        description:
+          "This permission can edit Incident Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentMember,
+        title: "Read Incident Member",
+        description:
+          "This permission can read Incident Members of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
