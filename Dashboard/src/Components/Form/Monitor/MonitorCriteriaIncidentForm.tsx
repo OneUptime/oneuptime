@@ -81,7 +81,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Incident Title"
-            description={<span>Title for the incident. {templateDocsLink}</span>}
+            description={
+              <span>Title for the incident. {templateDocsLink}</span>
+            }
             required={true}
           />
           <Input
@@ -126,7 +128,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Incident Description"
-            description={<span>Description for the incident. {templateDocsLink}</span>}
+            description={
+              <span>Description for the incident. {templateDocsLink}</span>
+            }
           />
           <MarkdownEditor
             initialValue={criteriaIncident.description || ""}
@@ -154,16 +158,20 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             />
             <Dropdown
               value={props.teamDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerTeamIds?.some(
-                  (id: ObjectID) => id.toString() === i.value,
-                );
+                return criteriaIncident.ownerTeamIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
               })}
               options={props.teamDropdownOptions}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (Array.isArray(value)) {
                   updateField(
                     "ownerTeamIds",
-                    value.map((v: DropdownValue) => new ObjectID(v.toString())),
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
                   );
                 } else {
                   updateField("ownerTeamIds", []);
@@ -181,16 +189,20 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             />
             <Dropdown
               value={props.userDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerUserIds?.some(
-                  (id: ObjectID) => id.toString() === i.value,
-                );
+                return criteriaIncident.ownerUserIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
               })}
               options={props.userDropdownOptions}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (Array.isArray(value)) {
                   updateField(
                     "ownerUserIds",
-                    value.map((v: DropdownValue) => new ObjectID(v.toString())),
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
                   );
                 } else {
                   updateField("ownerUserIds", []);
@@ -208,16 +220,20 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             />
             <Dropdown
               value={props.labelDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.labelIds?.some(
-                  (id: ObjectID) => id.toString() === i.value,
-                );
+                return criteriaIncident.labelIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
               })}
               options={props.labelDropdownOptions}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (Array.isArray(value)) {
                   updateField(
                     "labelIds",
-                    value.map((v: DropdownValue) => new ObjectID(v.toString())),
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
                   );
                 } else {
                   updateField("labelIds", []);
@@ -247,7 +263,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             value={props.onCallPolicyDropdownOptions.filter(
               (i: DropdownOption) => {
                 return criteriaIncident.onCallPolicyIds?.some(
-                  (id: ObjectID) => id.toString() === i.value,
+                  (id: ObjectID) => {
+                    return id.toString() === i.value;
+                  },
                 );
               },
             )}
@@ -256,7 +274,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               if (Array.isArray(value)) {
                 updateField(
                   "onCallPolicyIds",
-                  value.map((v: DropdownValue) => new ObjectID(v.toString())),
+                  value.map((v: DropdownValue) => {
+                    return new ObjectID(v.toString());
+                  }),
                 );
               } else {
                 updateField("onCallPolicyIds", []);

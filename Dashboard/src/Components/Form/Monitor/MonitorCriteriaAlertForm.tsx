@@ -123,7 +123,9 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Alert Description"
-            description={<span>Description for the alert. {templateDocsLink}</span>}
+            description={
+              <span>Description for the alert. {templateDocsLink}</span>
+            }
           />
           <MarkdownEditor
             initialValue={criteriaAlert.description || ""}
@@ -151,16 +153,20 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             />
             <Dropdown
               value={props.teamDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.ownerTeamIds?.some(
-                  (id: ObjectID) => id.toString() === i.value,
-                );
+                return criteriaAlert.ownerTeamIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
               })}
               options={props.teamDropdownOptions}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (Array.isArray(value)) {
                   updateField(
                     "ownerTeamIds",
-                    value.map((v: DropdownValue) => new ObjectID(v.toString())),
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
                   );
                 } else {
                   updateField("ownerTeamIds", []);
@@ -178,16 +184,20 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             />
             <Dropdown
               value={props.userDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.ownerUserIds?.some(
-                  (id: ObjectID) => id.toString() === i.value,
-                );
+                return criteriaAlert.ownerUserIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
               })}
               options={props.userDropdownOptions}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (Array.isArray(value)) {
                   updateField(
                     "ownerUserIds",
-                    value.map((v: DropdownValue) => new ObjectID(v.toString())),
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
                   );
                 } else {
                   updateField("ownerUserIds", []);
@@ -205,16 +215,20 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             />
             <Dropdown
               value={props.labelDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.labelIds?.some(
-                  (id: ObjectID) => id.toString() === i.value,
-                );
+                return criteriaAlert.labelIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
               })}
               options={props.labelDropdownOptions}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (Array.isArray(value)) {
                   updateField(
                     "labelIds",
-                    value.map((v: DropdownValue) => new ObjectID(v.toString())),
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
                   );
                 } else {
                   updateField("labelIds", []);
@@ -243,9 +257,9 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
           <Dropdown
             value={props.onCallPolicyDropdownOptions.filter(
               (i: DropdownOption) => {
-                return criteriaAlert.onCallPolicyIds?.some(
-                  (id: ObjectID) => id.toString() === i.value,
-                );
+                return criteriaAlert.onCallPolicyIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
               },
             )}
             options={props.onCallPolicyDropdownOptions}
@@ -253,7 +267,9 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
               if (Array.isArray(value)) {
                 updateField(
                   "onCallPolicyIds",
-                  value.map((v: DropdownValue) => new ObjectID(v.toString())),
+                  value.map((v: DropdownValue) => {
+                    return new ObjectID(v.toString());
+                  }),
                 );
               } else {
                 updateField("onCallPolicyIds", []);

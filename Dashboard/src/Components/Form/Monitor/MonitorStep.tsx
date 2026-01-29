@@ -326,7 +326,10 @@ return {
 
   // Check if there are any advanced options configured
   const hasAdvancedOptionsConfigured: boolean =
-    Boolean(monitorStep.data?.requestHeaders && Object.keys(monitorStep.data.requestHeaders).length > 0) ||
+    Boolean(
+      monitorStep.data?.requestHeaders &&
+        Object.keys(monitorStep.data.requestHeaders).length > 0,
+    ) ||
     Boolean(monitorStep.data?.requestBody) ||
     Boolean(monitorStep.data?.doNotFollowRedirects);
 
@@ -396,7 +399,9 @@ return {
                       destination = URL.fromString(value);
                     } else if (props.monitorType === MonitorType.API) {
                       destination = URL.fromString(value);
-                    } else if (props.monitorType === MonitorType.SSLCertificate) {
+                    } else if (
+                      props.monitorType === MonitorType.SSLCertificate
+                    ) {
                       destination = URL.fromString(value);
                     }
 
@@ -491,7 +496,10 @@ return {
           description="Request headers, body, and redirect settings"
           badge={hasAdvancedOptionsConfigured ? "Configured" : undefined}
           variant="card"
-          defaultCollapsed={!hasAdvancedOptionsConfigured && !showAdvancedOptionsRequestBodyAndHeaders}
+          defaultCollapsed={
+            !hasAdvancedOptionsConfigured &&
+            !showAdvancedOptionsRequestBodyAndHeaders
+          }
           onToggle={(isCollapsed: boolean) => {
             if (!isCollapsed) {
               setShowAdvancedOptionsRequestBodyAndHeaders(true);
@@ -609,9 +617,13 @@ return {
         <CollapsibleSection
           title="Advanced Options"
           description="Redirect settings"
-          badge={monitorStep.data?.doNotFollowRedirects ? "Configured" : undefined}
+          badge={
+            monitorStep.data?.doNotFollowRedirects ? "Configured" : undefined
+          }
           variant="card"
-          defaultCollapsed={!monitorStep.data?.doNotFollowRedirects && !showDoNotFollowRedirects}
+          defaultCollapsed={
+            !monitorStep.data?.doNotFollowRedirects && !showDoNotFollowRedirects
+          }
           onToggle={(isCollapsed: boolean) => {
             if (!isCollapsed) {
               setShowDoNotFollowRedirects(true);
@@ -797,14 +809,18 @@ return {
                 <div>
                   <FieldLabelElement
                     title={"Screen Type"}
-                    description={"Which screen type should we use to run this test?"}
+                    description={
+                      "Which screen type should we use to run this test?"
+                    }
                     required={true}
                   />
                   <CheckBoxList
                     options={enumToCategoryCheckboxOption(ScreenSizeType)}
                     initialValue={props.value?.data?.screenSizeTypes || []}
                     onChange={(values: Array<CategoryCheckboxValue>) => {
-                      monitorStep.setScreenSizeTypes(values as Array<ScreenSizeType>);
+                      monitorStep.setScreenSizeTypes(
+                        values as Array<ScreenSizeType>,
+                      );
                       if (props.onChange) {
                         props.onChange(MonitorStep.clone(monitorStep));
                       }
