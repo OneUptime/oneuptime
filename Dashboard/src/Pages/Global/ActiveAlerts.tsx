@@ -21,30 +21,30 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ActiveAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Page
-      title={"New Alerts"}
+      title={"Active Alerts"}
       breadcrumbLinks={[
         {
           title: "Home",
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "New Alerts",
+          title: "Active Alerts",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.NEW_ALERTS] as Route,
+            RouteMap[PageMap.ACTIVE_ALERTS] as Route,
           ),
         },
       ]}
     >
       <ModelTable<Alert>
         modelType={Alert}
-        name="New Alerts"
-        id="new-alerts-table"
-        userPreferencesKey="new-alerts-table"
+        name="Active Alerts"
+        id="active-alerts-table"
+        userPreferencesKey="active-alerts-table"
         saveFilterProps={{
-          tableId: "new-alerts-table",
+          tableId: "active-alerts-table",
         }}
         isDeleteable={false}
         query={{
@@ -66,13 +66,13 @@ const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isViewable={true}
         showViewIdButton={true}
         cardProps={{
-          title: "New Alerts",
+          title: "Active Alerts",
           description:
-            "Here is a list of new alerts for all of the projects you are a part of.",
+            "Here is a list of active alerts for all of the projects you are a part of.",
         }}
         noItemsMessage={"No alert found."}
-        singularName="New Alert"
-        pluralName="New Alerts"
+        singularName="Active Alert"
+        pluralName="Active Alerts"
         onViewPage={(item: Alert): Promise<Route> => {
           return Promise.resolve(
             new Route(
@@ -255,4 +255,4 @@ const NewAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 };
 
-export default NewAlerts;
+export default ActiveAlerts;

@@ -21,30 +21,30 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ActiveIncidents: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Page
-      title={"New Incidents"}
+      title={"Active Incidents"}
       breadcrumbLinks={[
         {
           title: "Home",
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "New Incidents",
+          title: "Active Incidents",
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.NEW_INCIDENTS] as Route,
+            RouteMap[PageMap.ACTIVE_INCIDENTS] as Route,
           ),
         },
       ]}
     >
       <ModelTable<Incident>
         modelType={Incident}
-        name="New Incidents"
-        id="new-incidents-table"
-        userPreferencesKey="new-incidents-table"
+        name="Active Incidents"
+        id="active-incidents-table"
+        userPreferencesKey="active-incidents-table"
         saveFilterProps={{
-          tableId: "new-incidents-table",
+          tableId: "active-incidents-table",
         }}
         isDeleteable={false}
         query={{
@@ -66,13 +66,13 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isViewable={true}
         showViewIdButton={true}
         cardProps={{
-          title: "New Incidents",
+          title: "Active Incidents",
           description:
-            "Here is a list of new incidents for all of the projects you are a part of.",
+            "Here is a list of active incidents for all of the projects you are a part of.",
         }}
         noItemsMessage={"No incident found."}
-        singularName="New Incident"
-        pluralName="New Incidents"
+        singularName="Active Incident"
+        pluralName="Active Incidents"
         onViewPage={(item: Incident): Promise<Route> => {
           return Promise.resolve(
             new Route(
@@ -252,4 +252,4 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 };
 
-export default Home;
+export default ActiveIncidents;

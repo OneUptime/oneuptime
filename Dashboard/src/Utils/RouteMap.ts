@@ -913,9 +913,9 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/user-profile/delete-account`,
   ),
 
-  [PageMap.NEW_INCIDENTS]: new Route(`/dashboard/new-incidents`),
+  [PageMap.ACTIVE_INCIDENTS]: new Route(`/dashboard/active-incidents`),
 
-  [PageMap.NEW_ALERTS]: new Route(`/dashboard/new-alerts`),
+  [PageMap.ACTIVE_ALERTS]: new Route(`/dashboard/active-alerts`),
 
   [PageMap.PROJECT_INVITATIONS]: new Route(`/dashboard/project-invitations`),
 
@@ -2348,7 +2348,7 @@ export class RouteUtil {
       route.toString() === RouteMap[PageMap.USER_PROFILE_PICTURE]?.toString() ||
       route.toString() === RouteMap[PageMap.USER_PROFILE_DELETE]?.toString() ||
       route.toString() === RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
-      route.toString() === RouteMap[PageMap.NEW_INCIDENTS]?.toString()
+      route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()
     ) {
       return true;
     }

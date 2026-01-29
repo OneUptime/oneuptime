@@ -433,7 +433,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                   onClick={() => {
                     Navigation.navigate(
                       RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.NEW_INCIDENTS]!,
+                        RouteMap[PageMap.ACTIVE_INCIDENTS]!,
                       ),
                     );
                   }}
@@ -458,7 +458,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                   onClick={() => {
                     Navigation.navigate(
                       RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.NEW_ALERTS]!,
+                        RouteMap[PageMap.ACTIVE_ALERTS]!,
                       ),
                     );
                   }}
