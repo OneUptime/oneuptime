@@ -180,6 +180,12 @@ import IncidentOwnerUserService, {
 import IncidentSeverityService, {
   Service as IncidentSeverityServiceType,
 } from "Common/Server/Services/IncidentSeverityService";
+import IncidentRoleService, {
+  Service as IncidentRoleServiceType,
+} from "Common/Server/Services/IncidentRoleService";
+import IncidentMemberService, {
+  Service as IncidentMemberServiceType,
+} from "Common/Server/Services/IncidentMemberService";
 import IncidentStateService, {
   Service as IncidentStateServiceType,
 } from "Common/Server/Services/IncidentStateService";
@@ -500,6 +506,8 @@ import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPos
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
+import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
@@ -1567,6 +1575,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
         IncidentSeverity,
         IncidentSeverityService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentRole, IncidentRoleServiceType>(
+        IncidentRole,
+        IncidentRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentMember, IncidentMemberServiceType>(
+        IncidentMember,
+        IncidentMemberService,
       ).getRouter(),
     );
 
