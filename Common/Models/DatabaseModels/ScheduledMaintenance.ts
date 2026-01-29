@@ -57,7 +57,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     Permission.ProjectMember,
     Permission.ReadProjectScheduledMaintenance,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

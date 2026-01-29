@@ -42,7 +42,7 @@ import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNoti
     Permission.ProjectMember,
     Permission.ReadWorkspaceNotificationLog,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [],
   update: [],
 })

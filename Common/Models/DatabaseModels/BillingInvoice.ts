@@ -37,7 +37,7 @@ export enum InvoiceStatus {
     Permission.ProjectAdmin,
     Permission.ReadInvoices,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [],
   update: [],
 })

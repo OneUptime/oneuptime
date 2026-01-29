@@ -54,7 +54,7 @@ export enum OnCallDutyPolicyFeedEventType {
     Permission.ProjectMember,
     Permission.ReadOnCallDutyPolicyFeed,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [],
   update: [],
 })

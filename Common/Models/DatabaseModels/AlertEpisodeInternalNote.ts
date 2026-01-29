@@ -44,7 +44,7 @@ import {
     Permission.ProjectMember,
     Permission.ReadAlertEpisodeInternalNote,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

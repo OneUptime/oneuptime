@@ -56,6 +56,7 @@ const SettingLabels: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Labels");
   });
+
 const SettingProbes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/Probes");

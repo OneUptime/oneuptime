@@ -41,7 +41,7 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
     Permission.ProjectMember,
     Permission.ReadStatusPageResource,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

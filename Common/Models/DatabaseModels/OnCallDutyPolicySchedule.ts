@@ -59,7 +59,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     Permission.ProjectMember,
     Permission.ReadProjectOnCallDutyPolicySchedule,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

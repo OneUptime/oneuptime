@@ -44,7 +44,7 @@ import Service from "./Service";
     Permission.ProjectMember,
     Permission.ReadTelemetryServiceMetrics,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

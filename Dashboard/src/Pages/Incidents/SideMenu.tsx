@@ -182,6 +182,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Filter,
         },
+        {
+          link: {
+            title: "Incident Roles",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_ROLES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
       ],
     },
   ];

@@ -190,6 +190,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]: `settings/postmortem-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
+  [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -198,6 +199,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_POSTMORTEM]: `${RouteParams.ModelID}/postmortem`,
   [PageMap.INCIDENT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.INCIDENT_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
   [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: `${RouteParams.ModelID}/on-call-policy-execution-logs`,
   [PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
   [PageMap.INCIDENT_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai-logs`,
@@ -959,6 +961,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENT_VIEW_MEMBERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_MEMBERS]
+    }`,
+  ),
+
   [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]
@@ -1065,6 +1073,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_ROLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ROLES]
     }`,
   ),
 

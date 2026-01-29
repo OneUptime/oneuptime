@@ -58,7 +58,7 @@ export enum IncidentEpisodeFeedEventType {
     Permission.ProjectMember,
     Permission.ReadIncidentEpisodeFeed,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [],
   update: [],
 })

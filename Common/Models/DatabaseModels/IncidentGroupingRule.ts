@@ -61,7 +61,7 @@ export interface IncidentGroupingRuleGroupByFields {
     Permission.ProjectMember,
     Permission.ReadIncidentGroupingRule,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

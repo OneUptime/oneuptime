@@ -78,7 +78,7 @@ export enum AIAgentConnectionStatus {
     Permission.ProjectMember,
     Permission.ReadProjectAIAgent,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -100,7 +100,11 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadAllProjectResources,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

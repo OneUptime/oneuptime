@@ -50,7 +50,7 @@ import {
     Permission.ProjectMember,
     Permission.ReadService,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

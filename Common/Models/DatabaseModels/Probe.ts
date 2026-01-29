@@ -78,7 +78,7 @@ export enum ProbeConnectionStatus {
     Permission.ProjectMember,
     Permission.ReadProjectProbe,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -100,7 +100,11 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadAllProjectResources,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

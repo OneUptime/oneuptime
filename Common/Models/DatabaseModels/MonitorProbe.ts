@@ -38,7 +38,7 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
     Permission.ProjectMember,
     Permission.ReadMonitorProbe,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

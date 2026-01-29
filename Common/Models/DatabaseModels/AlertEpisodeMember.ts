@@ -42,7 +42,7 @@ export enum AlertEpisodeMemberAddedBy {
     Permission.ProjectMember,
     Permission.ReadAlertEpisodeMember,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

@@ -41,7 +41,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectMember,
     Permission.ReadIncidentNoteTemplate,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

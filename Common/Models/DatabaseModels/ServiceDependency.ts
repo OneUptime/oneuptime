@@ -45,7 +45,7 @@ import Service from "./Service";
     Permission.ProjectMember,
     Permission.ReadServiceDependency,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

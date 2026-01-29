@@ -57,7 +57,7 @@ import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
     Permission.ProjectMember,
     Permission.ReadStatusPageSubscriber,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

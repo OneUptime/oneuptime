@@ -17,7 +17,11 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 
 @TableAccessControl({
   create: [],
-  read: [Permission.ProjectOwner, Permission.Public, Permission.ReadAllProjectResources],
+  read: [
+    Permission.ProjectOwner,
+    Permission.Public,
+    Permission.ReadAllProjectResources,
+  ],
   delete: [],
   update: [],
 })

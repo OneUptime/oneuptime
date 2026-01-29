@@ -58,7 +58,7 @@ import LlmType from "../../Types/LLM/LlmType";
     Permission.ProjectMember,
     Permission.ReadProjectLlm,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -184,7 +184,11 @@ export default class LlmProvider extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.ReadAllProjectResources],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadAllProjectResources,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

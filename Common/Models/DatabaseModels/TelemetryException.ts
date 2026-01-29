@@ -33,7 +33,7 @@ import Service from "./Service";
     Permission.ProjectMember,
     Permission.ReadTelemetryException,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

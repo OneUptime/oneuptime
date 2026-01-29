@@ -41,7 +41,7 @@ import TelemetryException from "./TelemetryException";
     Permission.ProjectMember,
     Permission.ReadProjectAIAgentTaskTelemetryException,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

@@ -94,6 +94,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Team}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Members",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_VIEW_MEMBERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="On Call">

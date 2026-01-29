@@ -56,7 +56,7 @@ import {
     Permission.ProjectMember,
     Permission.ReadStatusPageAnnouncement,
     Permission.ReadAllProjectResources,
-    ],
+  ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

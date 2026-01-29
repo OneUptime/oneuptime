@@ -23,6 +23,8 @@ import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import IncidentInternalNoteService from "./IncidentInternalNoteService";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
+import IncidentRoleService from "./IncidentRoleService";
+import IncidentMemberService from "./IncidentMemberService";
 import IncidentPublicNoteService from "./IncidentPublicNoteService";
 // Incidents
 import IncidentService from "./IncidentService";
@@ -232,6 +234,8 @@ const services: Array<BaseService> = [
   IncidentInternalNoteService,
   IncidentOwnerTeamService,
   IncidentOwnerUserService,
+  IncidentRoleService,
+  IncidentMemberService,
   IncidentPublicNoteService,
   IncidentService,
   IncidentSeverityService,

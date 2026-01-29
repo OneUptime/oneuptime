@@ -19,6 +19,7 @@ import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
+import IncidentRoleService from "./IncidentRoleService";
 import MailService from "./MailService";
 import MonitorStatusService from "./MonitorStatusService";
 import NotificationService from "./NotificationService";
@@ -36,9 +37,13 @@ import SubscriptionPlan, {
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
 import {
   Black,
+  Blue500,
+  Gray500,
   Green,
   Moroon500,
+  Purple500,
   Red,
+  Teal500,
   Yellow,
   Yellow500,
 } from "../../Types/BrandColors";
@@ -52,6 +57,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import Model from "../../Models/DatabaseModels/Project";
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
@@ -689,6 +695,7 @@ export class ProjectService extends DatabaseService<Model> {
     createdItem = await this.addDefaultIncidentState(createdItem);
     createdItem = await this.addDefaultScheduledMaintenanceState(createdItem);
     createdItem = await this.addDefaultAlertState(createdItem);
+    createdItem = await this.addDefaultIncidentRoles(createdItem);
 
     if (NotificationSlackWebhookOnCreateProject) {
       // fetch project again.
@@ -920,6 +927,66 @@ export class ProjectService extends DatabaseService<Model> {
 
     minorIncident = await IncidentSeverityService.create({
       data: minorIncident,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return createdItem;
+  }
+
+  private async addDefaultIncidentRoles(createdItem: Model): Promise<Model> {
+    let incidentCommander: IncidentRole = new IncidentRole();
+    incidentCommander.name = "Incident Commander";
+    incidentCommander.description =
+      "Primary decision maker during an incident. Responsible for coordinating the response and making final decisions.";
+    incidentCommander.color = Purple500;
+    incidentCommander.projectId = createdItem.id!;
+
+    incidentCommander = await IncidentRoleService.create({
+      data: incidentCommander,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let responder: IncidentRole = new IncidentRole();
+    responder.name = "Responder";
+    responder.description =
+      "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
+    responder.color = Blue500;
+    responder.projectId = createdItem.id!;
+
+    responder = await IncidentRoleService.create({
+      data: responder,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let communicationsLead: IncidentRole = new IncidentRole();
+    communicationsLead.name = "Communications Lead";
+    communicationsLead.description =
+      "Handles stakeholder communication and status updates during an incident.";
+    communicationsLead.color = Teal500;
+    communicationsLead.projectId = createdItem.id!;
+
+    communicationsLead = await IncidentRoleService.create({
+      data: communicationsLead,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let observer: IncidentRole = new IncidentRole();
+    observer.name = "Observer";
+    observer.description =
+      "Read-only participant who monitors the incident without active involvement.";
+    observer.color = Gray500;
+    observer.projectId = createdItem.id!;
+
+    observer = await IncidentRoleService.create({
+      data: observer,
       props: {
         isRoot: true,
       },
