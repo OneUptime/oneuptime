@@ -11,6 +11,8 @@ import SnmpDataType from "Common/Types/Monitor/SnmpMonitor/SnmpDataType";
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
+import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import snmp from "net-snmp";
 
 export interface SnmpQueryOptions {
@@ -164,7 +166,7 @@ export default class SnmpMonitor {
             );
           }
 
-          const oids: Array<string> = config.oids.map((oid) => {
+          const oids: Array<string> = config.oids.map((oid: SnmpOid) => {
             return oid.oid;
           });
 
@@ -174,39 +176,45 @@ export default class SnmpMonitor {
             return;
           }
 
-          session.get(oids, (error, varbinds) => {
-            if (error || !varbinds) {
-              session.close();
-              reject(error || new Error("No varbinds returned"));
-              return;
-            }
-
-            const oidResponses: Array<SnmpOidResponse> = [];
-
-            for (let i = 0; i < varbinds.length; i++) {
-              const varbind: snmp.Varbind = varbinds[i]!;
-              const configOid = config.oids[i];
-
-              if (snmp.isVarbindError(varbind)) {
-                oidResponses.push({
-                  oid: varbind.oid,
-                  name: configOid?.name,
-                  value: null,
-                  type: SnmpMonitor.mapSnmpErrorType(varbind.type),
-                });
-              } else {
-                oidResponses.push({
-                  oid: varbind.oid,
-                  name: configOid?.name,
-                  value: SnmpMonitor.parseVarbindValue(varbind),
-                  type: SnmpMonitor.mapSnmpDataType(varbind.type),
-                });
+          session.get(
+            oids,
+            (
+              error: Error | null,
+              varbinds: Array<snmp.Varbind> | undefined,
+            ) => {
+              if (error || !varbinds) {
+                session.close();
+                reject(error || new Error("No varbinds returned"));
+                return;
               }
-            }
 
-            session.close();
-            resolve(oidResponses);
-          });
+              const oidResponses: Array<SnmpOidResponse> = [];
+
+              for (let i: number = 0; i < varbinds.length; i++) {
+                const varbind: snmp.Varbind = varbinds[i]!;
+                const configOid: SnmpOid | undefined = config.oids[i];
+
+                if (snmp.isVarbindError(varbind)) {
+                  oidResponses.push({
+                    oid: varbind.oid,
+                    name: configOid?.name,
+                    value: null,
+                    type: SnmpMonitor.mapSnmpErrorType(varbind.type),
+                  });
+                } else {
+                  oidResponses.push({
+                    oid: varbind.oid,
+                    name: configOid?.name,
+                    value: SnmpMonitor.parseVarbindValue(varbind),
+                    type: SnmpMonitor.mapSnmpDataType(varbind.type),
+                  });
+                }
+              }
+
+              session.close();
+              resolve(oidResponses);
+            },
+          );
         } catch (err) {
           reject(err as Error);
         }
@@ -215,7 +223,7 @@ export default class SnmpMonitor {
   }
 
   private static buildV3User(config: MonitorStepSnmpMonitor): snmp.User {
-    const v3Auth = config.snmpV3Auth!;
+    const v3Auth: SnmpV3Auth = config.snmpV3Auth!;
     const user: snmp.User = {
       name: v3Auth.username,
       level: SnmpMonitor.mapSecurityLevel(v3Auth.securityLevel),

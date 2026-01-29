@@ -12,6 +12,7 @@ import WebsiteMonitor, {
 } from "./MonitorTypes/WebsiteMonitor";
 import SnmpMonitor from "./MonitorTypes/SnmpMonitor";
 import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
@@ -452,7 +453,7 @@ export default class MonitorUtil {
         return result;
       }
 
-      const snmpConfig = monitorStep.data.snmpMonitor;
+      const snmpConfig: MonitorStepSnmpMonitor = monitorStep.data.snmpMonitor;
 
       if (!snmpConfig.hostname) {
         result.failureCause = "SNMP hostname not specified";

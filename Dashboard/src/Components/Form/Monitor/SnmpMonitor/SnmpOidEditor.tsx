@@ -34,7 +34,7 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
     setOids(props.value || []);
   }, [props.value]);
 
-  const addOid = (): void => {
+  const addOid: () => void = (): void => {
     const newOids: Array<SnmpOid> = [
       ...oids,
       { oid: "", name: "", description: "" },
@@ -43,26 +43,28 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
     props.onChange(newOids);
   };
 
-  const removeOid = (index: number): void => {
-    const newOids: Array<SnmpOid> = oids.filter((_, i) => {
+  const removeOid: (index: number) => void = (index: number): void => {
+    const newOids: Array<SnmpOid> = oids.filter((_: SnmpOid, i: number) => {
       return i !== index;
     });
     setOids(newOids);
     props.onChange(newOids);
   };
 
-  const updateOid = (
+  const updateOid: (
     index: number,
     field: keyof SnmpOid,
     value: string,
-  ): void => {
+  ) => void = (index: number, field: keyof SnmpOid, value: string): void => {
     const newOids: Array<SnmpOid> = [...oids];
     newOids[index] = { ...newOids[index]!, [field]: value };
     setOids(newOids);
     props.onChange(newOids);
   };
 
-  const addTemplate = (template: SnmpOid): void => {
+  const addTemplate: (template: SnmpOid) => void = (
+    template: SnmpOid,
+  ): void => {
     const newOids: Array<SnmpOid> = [...oids, template];
     setOids(newOids);
     props.onChange(newOids);
