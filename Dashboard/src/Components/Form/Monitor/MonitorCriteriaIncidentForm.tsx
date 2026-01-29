@@ -40,7 +40,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     props.onChange?.(criteriaIncident);
   }, [criteriaIncident]);
 
-  const updateField = <K extends keyof CriteriaIncident>(
+  const updateField: <K extends keyof CriteriaIncident>(
+    field: K,
+    value: CriteriaIncident[K],
+  ) => void = <K extends keyof CriteriaIncident>(
     field: K,
     value: CriteriaIncident[K],
   ): void => {

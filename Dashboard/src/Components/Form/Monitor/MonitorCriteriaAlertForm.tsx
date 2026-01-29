@@ -39,7 +39,10 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
     props.onChange?.(criteriaAlert);
   }, [criteriaAlert]);
 
-  const updateField = <K extends keyof CriteriaAlert>(
+  const updateField: <K extends keyof CriteriaAlert>(
+    field: K,
+    value: CriteriaAlert[K],
+  ) => void = <K extends keyof CriteriaAlert>(
     field: K,
     value: CriteriaAlert[K],
   ): void => {
