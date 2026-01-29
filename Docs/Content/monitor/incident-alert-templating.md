@@ -7,7 +7,7 @@ You can use the same `{{variable}}` placeholder syntax used by JavaScript Expres
 The following monitor types support dynamic templating with their respective variables:
 
 - **Website and API Monitors**: Response data, headers, status codes, timing
-- **Incoming Request Monitors**: Request data, headers, methods, timing  
+- **Incoming Request Monitors**: Request data, headers, methods, timing
 - **Ping Monitors**: Connectivity status, response times, failure causes
 - **Port Monitors**: Port connectivity, response times, timeout status
 - **IP Monitors**: IP reachability, ping times, failure information
@@ -15,6 +15,7 @@ The following monitor types support dynamic templating with their respective var
 - **Server/VM Monitors**: System metrics (CPU, memory, disk), processes, hostname
 - **Synthetic Monitors**: Script execution results, screenshots, browser details
 - **Custom JavaScript Code Monitors**: Execution results, timing, error messages
+- **SNMP Monitors**: Device status, response times, OID values
 
 > **Note**: Logs, Traces, and Metrics monitors do not currently support incident/alert templating as they use different trigger mechanisms.
 
@@ -128,6 +129,21 @@ The following monitor types support dynamic templating with their respective var
 | `scriptError` | Any error that occurred during code execution. | `string` |
 | `logMessages` | Array of log messages generated during execution. | `Array<string>` |
 
+### SNMP Monitors
+
+| Variable | Description | Type |
+| --- | --- | --- |
+| `isOnline` | Whether the SNMP device is online and responding. | `boolean` |
+| `responseTimeInMs` | The SNMP query response time in milliseconds. | `number` |
+| `failureCause` | The reason for failure if the SNMP query failed. | `string` |
+| `isTimeout` | Whether the SNMP query timed out. | `boolean` |
+| `oidResponses` | Array of OID response objects with oid, name, value, and type. | `Array<Object>` |
+| `oidResponses[].oid` | The OID that was queried. | `string` |
+| `oidResponses[].name` | The friendly name of the OID (if provided). | `string` |
+| `oidResponses[].value` | The value returned by the OID. | `string` or `number` |
+| `oidResponses[].type` | The SNMP data type of the value. | `string` |
+| `{{OID_NAME}}` | Direct access to OID value by name (e.g., `{{sysUpTime}}`). | `string` or `number` |
+
 
 ## Basic Usage
 
@@ -231,6 +247,21 @@ Browser: {{browserType}} ({{screenSizeType}})
 ```
 Custom code execution: {{executionTimeInMs}}ms
 Log output: {{logMessages[0]}}
+```
+
+### SNMP Monitor Alert Title
+```
+SNMP device offline: {{failureCause}} ({{responseTimeInMs}}ms)
+```
+
+### SNMP Monitor Alert Description
+```
+### SNMP Device Alert
+Status: **{{isOnline}}**
+Response Time: **{{responseTimeInMs}}ms**
+System Uptime: {{sysUpTime}}
+System Name: {{sysName}}
+First OID Value: {{oidResponses[0].value}}
 ```
 
 

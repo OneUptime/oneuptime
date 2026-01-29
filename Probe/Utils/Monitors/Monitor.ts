@@ -10,6 +10,9 @@ import SyntheticMonitor from "./MonitorTypes/SyntheticMonitor";
 import WebsiteMonitor, {
   ProbeWebsiteResponse,
 } from "./MonitorTypes/WebsiteMonitor";
+import SnmpMonitor from "./MonitorTypes/SnmpMonitor";
+import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
@@ -442,6 +445,44 @@ export default class MonitorUtil {
       result.responseCode = response.statusCode;
       result.failureCause = response.failureCause;
       result.requestFailedDetails = response.requestFailedDetails;
+    }
+
+    if (monitorType === MonitorType.SNMP) {
+      if (!monitorStep.data?.snmpMonitor) {
+        result.failureCause = "SNMP configuration not specified";
+        return result;
+      }
+
+      const snmpConfig: MonitorStepSnmpMonitor = monitorStep.data.snmpMonitor;
+
+      if (!snmpConfig.hostname) {
+        result.failureCause = "SNMP hostname not specified";
+        return result;
+      }
+
+      if (!snmpConfig.oids || snmpConfig.oids.length === 0) {
+        result.failureCause = "No OIDs configured for SNMP monitor";
+        return result;
+      }
+
+      const response: SnmpMonitorResponse | null = await SnmpMonitor.query(
+        snmpConfig,
+        {
+          retry: PROBE_MONITOR_RETRY_LIMIT,
+          monitorId: monitorId,
+          timeout: snmpConfig.timeout || 5000,
+        },
+      );
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.responseTimeInMs;
+      result.failureCause = response.failureCause;
+      result.snmpResponse = response;
     }
 
     // update the monitoredAt time to the current time.

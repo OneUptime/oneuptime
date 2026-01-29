@@ -11,6 +11,7 @@ import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
+import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
@@ -477,6 +478,18 @@ ${contextBlock}
 
       if (exceptionMonitorResult) {
         return exceptionMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.SNMP) {
+      const snmpMonitorResult: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (snmpMonitorResult) {
+        return snmpMonitorResult;
       }
     }
 

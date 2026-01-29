@@ -23,6 +23,9 @@ enum MonitorType {
   Metrics = "Metrics",
   Traces = "Traces",
   Exceptions = "Exceptions",
+
+  // Network device monitoring
+  SNMP = "SNMP",
 }
 
 export default MonitorType;
@@ -169,6 +172,13 @@ export class MonitorTypeHelper {
           "This monitor type lets you monitor metrics from any source.",
         icon: IconProp.Heartbeat,
       },
+      {
+        monitorType: MonitorType.SNMP,
+        title: "SNMP",
+        description:
+          "This monitor type lets you monitor network devices like switches, routers, and firewalls via SNMP.",
+        icon: IconProp.Signal,
+      },
     ];
 
     return monitorTypeProps;
@@ -213,7 +223,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Port ||
       monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.SyntheticMonitor ||
-      monitorType === MonitorType.CustomJavaScriptCode;
+      monitorType === MonitorType.CustomJavaScriptCode ||
+      monitorType === MonitorType.SNMP;
     return isProbeableMonitor;
   }
 
@@ -234,6 +245,7 @@ export class MonitorTypeHelper {
       MonitorType.Metrics,
       MonitorType.Traces,
       MonitorType.Exceptions,
+      MonitorType.SNMP,
     ];
   }
 
@@ -265,7 +277,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Server ||
       monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.SyntheticMonitor ||
-      monitorType === MonitorType.CustomJavaScriptCode
+      monitorType === MonitorType.CustomJavaScriptCode ||
+      monitorType === MonitorType.SNMP
     ) {
       return true;
     }

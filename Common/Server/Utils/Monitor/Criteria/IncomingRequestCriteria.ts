@@ -41,7 +41,7 @@ export default class IncomingRequestCriteria {
       undefined;
 
     if (
-      input.criteriaFilter.eveluateOverTime &&
+      input.criteriaFilter.evaluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
       try {

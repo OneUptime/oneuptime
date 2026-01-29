@@ -496,7 +496,7 @@ export async function generateBlogSitemapXml(page: number): Promise<string> {
   const entries: SitemapEntry[] = postsForPage.map((post: BlogPostHeader) => {
     const loc: string = post.blogUrl.startsWith("http")
       ? post.blogUrl
-      : `${baseUrlString}${post.blogUrl.startsWith("/") ? "" : "/"}${post.blogUrl.replace(/^\//, "")}`;
+      : `${baseUrlString}${post.blogUrl.startsWith("/") ? post.blogUrl : `/${post.blogUrl}`}`;
 
     return {
       loc,

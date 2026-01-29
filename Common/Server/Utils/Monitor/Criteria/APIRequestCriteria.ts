@@ -27,7 +27,7 @@ export default class APIRequestCriteria {
       undefined;
 
     if (
-      input.criteriaFilter.eveluateOverTime &&
+      input.criteriaFilter.evaluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
       try {

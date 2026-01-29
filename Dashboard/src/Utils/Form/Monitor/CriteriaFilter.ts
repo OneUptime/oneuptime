@@ -46,7 +46,7 @@ export default class CriteriaFilterUtil {
 
     // check evaluation over time values.
     if (
-      criteriaFilter?.eveluateOverTime &&
+      criteriaFilter?.evaluateOverTime &&
       criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType
     ) {
       if (
@@ -96,7 +96,7 @@ export default class CriteriaFilterUtil {
 
       // add minutes if evaluate over time is true
       if (
-        criteriaFilter?.eveluateOverTime &&
+        criteriaFilter?.evaluateOverTime &&
         criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
       ) {
         text +=
@@ -269,6 +269,17 @@ export default class CriteriaFilterUtil {
     if (monitorType === MonitorType.Exceptions) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.ExceptionCount;
+      });
+    }
+
+    if (monitorType === MonitorType.SNMP) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.SnmpIsOnline ||
+          i.value === CheckOn.SnmpResponseTime ||
+          i.value === CheckOn.SnmpOidValue ||
+          i.value === CheckOn.SnmpOidExists
+        );
       });
     }
 
@@ -481,6 +492,38 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (checkOn === CheckOn.SnmpIsOnline || checkOn === CheckOn.SnmpOidExists) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    if (checkOn === CheckOn.SnmpResponseTime) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.SnmpOidValue) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThanOrEqualTo
+        );
+      });
+    }
+
     return options;
   }
 
@@ -602,6 +645,14 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.ExpiresInHours) {
       return "24";
+    }
+
+    if (checkOn === CheckOn.SnmpResponseTime) {
+      return "5000";
+    }
+
+    if (checkOn === CheckOn.SnmpOidValue) {
+      return "1";
     }
 
     return "";

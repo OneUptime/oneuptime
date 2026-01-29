@@ -54,10 +54,20 @@ export enum CheckOn {
   EmailBody = "Email Body",
   EmailTo = "Email To Address",
   EmailReceivedAt = "Email Received",
+
+  // SNMP monitors.
+  SnmpOidValue = "SNMP OID Value",
+  SnmpOidExists = "SNMP OID Exists",
+  SnmpResponseTime = "SNMP Response Time (in ms)",
+  SnmpIsOnline = "SNMP Device Is Online",
 }
 
 export interface ServerMonitorOptions {
   diskPath?: string | undefined;
+}
+
+export interface SnmpMonitorOptions {
+  oid?: string | undefined;
 }
 
 export enum EvaluateOverTimeType {
@@ -95,9 +105,10 @@ export interface CriteriaFilter {
   checkOn: CheckOn;
   serverMonitorOptions?: ServerMonitorOptions | undefined;
   metricMonitorOptions?: MetricMonitorOptions | undefined;
+  snmpMonitorOptions?: SnmpMonitorOptions | undefined;
   filterType: FilterType | undefined;
   value: string | number | undefined;
-  eveluateOverTime?: boolean | undefined;
+  evaluateOverTime?: boolean | undefined;
   evaluateOverTimeOptions?: EvaluateOverTimeOptions | undefined;
 }
 
@@ -130,11 +141,15 @@ export class CriteriaFilterUtil {
   }): boolean {
     const { checkOn } = data;
 
-    if (checkOn === CheckOn.IsOnline) {
+    if (checkOn === CheckOn.IsOnline || checkOn === CheckOn.SnmpIsOnline) {
       return false;
     }
 
     if (checkOn === CheckOn.IsRequestTimeout) {
+      return false;
+    }
+
+    if (checkOn === CheckOn.SnmpOidExists) {
       return false;
     }
 
@@ -187,7 +202,9 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DiskUsagePercent ||
       checkOn === CheckOn.CPUUsagePercent ||
       checkOn === CheckOn.MemoryUsagePercent ||
-      checkOn === CheckOn.IsOnline
+      checkOn === CheckOn.IsOnline ||
+      checkOn === CheckOn.SnmpResponseTime ||
+      checkOn === CheckOn.SnmpIsOnline
     );
   }
 }
@@ -201,9 +218,12 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     metricAlias: Zod.string().optional(),
     metricAggregationType: Zod.string().optional(),
   }).optional(),
+  snmpMonitorOptions: Zod.object({
+    oid: Zod.string().optional(),
+  }).optional(),
   filterType: Zod.string().optional(),
   value: Zod.union([Zod.string(), Zod.number()]).optional(),
-  eveluateOverTime: Zod.boolean().optional(),
+  evaluateOverTime: Zod.boolean().optional(),
   evaluateOverTimeOptions: Zod.object({
     timeValueInMinutes: Zod.number().optional(),
     evaluateOverTimeType: Zod.string().optional(),

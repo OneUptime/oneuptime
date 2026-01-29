@@ -19,6 +19,7 @@ You can use secrets in the following monitoring types:
 - API (in request headers, request body, and URL)
 - Website, IP, Port, Ping, SSL Certificate (in URL)
 - Synthetic Monitor, Custom Code Monitor (in the code)
+- SNMP Monitor (in community string, SNMPv3 auth key, and priv key)
 
 
 ![Using Secret](/docs/static/images/UsingMonitorSecret.png)

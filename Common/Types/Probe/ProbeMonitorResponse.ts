@@ -6,6 +6,7 @@ import { JSONObject } from "../JSON";
 import CustomCodeMonitorResponse from "../Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import SslMonitorResponse from "../Monitor/SSLMonitor/SslMonitorResponse";
 import SyntheticMonitorResponse from "../Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import SnmpMonitorResponse from "../Monitor/SnmpMonitor/SnmpMonitorResponse";
 import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
@@ -28,6 +29,7 @@ export default interface ProbeMonitorResponse {
   sslResponse?: SslMonitorResponse | undefined;
   syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
   customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
+  snmpResponse?: SnmpMonitorResponse | undefined;
   monitoredAt: Date;
   isTimeout?: boolean | undefined;
   ingestedAt?: Date | undefined;
