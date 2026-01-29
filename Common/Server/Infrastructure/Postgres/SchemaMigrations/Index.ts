@@ -487,5 +487,5 @@ export default [
   MigrationName1769629928240,
   RenameEvaluateOverTimeInCriteriaFilter1769676117342,
   MigrationName1769712834410,
-  MigrationName1769719135546
+  MigrationName1769719135546,
 ];
