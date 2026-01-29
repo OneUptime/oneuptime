@@ -42,7 +42,7 @@ export default class MonitorUtil {
     monitorType: MonitorType;
     monitorId: ObjectID;
   }): Promise<MonitorSteps> {
-    const isSecretsLoaded: boolean = false;
+    let isSecretsLoaded: boolean = false;
     let monitorSecrets: MonitorSecret[] = [];
 
     const monitorSteps: MonitorSteps = data.monitorSteps;
@@ -148,6 +148,7 @@ export default class MonitorUtil {
         ) {
           if (!isSecretsLoaded) {
             monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
           }
 
           monitorStep.data.snmpMonitor.communityString =
@@ -164,6 +165,7 @@ export default class MonitorUtil {
         ) {
           if (!isSecretsLoaded) {
             monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
           }
 
           monitorStep.data.snmpMonitor.snmpV3Auth.authKey =
@@ -181,6 +183,7 @@ export default class MonitorUtil {
         ) {
           if (!isSecretsLoaded) {
             monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
           }
 
           monitorStep.data.snmpMonitor.snmpV3Auth.privKey =

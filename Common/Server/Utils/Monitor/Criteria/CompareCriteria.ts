@@ -553,7 +553,7 @@ export default class CompareCriteria {
     }
 
     if (
-      data.criteriaFilter.eveluateOverTime &&
+      data.criteriaFilter.evaluateOverTime &&
       data.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
     ) {
       message += ` over the last ${data.criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes} minutes`;

@@ -32,7 +32,7 @@ export default class SnmpMonitorCriteria {
       undefined;
 
     if (
-      input.criteriaFilter.eveluateOverTime &&
+      input.criteriaFilter.evaluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
       try {

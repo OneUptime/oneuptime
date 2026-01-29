@@ -180,7 +180,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 checkOn: value?.toString() as CheckOn,
                 filterType: undefined,
                 value: undefined,
-                eveluateOverTime: false,
+                evaluateOverTime: false,
                 evaluateOverTimeOptions: undefined,
               });
             }}
@@ -260,12 +260,12 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           ) && (
             <div className="mt-3">
               <CheckboxElement
-                value={criteriaFilter?.eveluateOverTime}
+                value={criteriaFilter?.evaluateOverTime}
                 title={"Evaluate this criteria over a period of time"}
                 onChange={(value: boolean) => {
                   props.onChange?.({
                     ...criteriaFilter,
-                    eveluateOverTime: value,
+                    evaluateOverTime: value,
                   });
                 }}
               />
@@ -275,7 +275,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {criteriaFilter?.checkOn &&
         criteriaFilter?.checkOn &&
         CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.eveluateOverTime ? (
+        criteriaFilter.evaluateOverTime ? (
           <div className="mt-1">
             <FieldLabelElement title="Evaluate" />
             <Dropdown
@@ -296,7 +296,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
                 props.onChange?.({
                   ...criteriaFilter,
-                  eveluateOverTime: true,
+                  evaluateOverTime: true,
                   evaluateOverTimeOptions: {
                     ...evaluateOverTimeOption,
                     evaluateOverTimeType:
@@ -313,7 +313,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {criteriaFilter?.checkOn &&
         criteriaFilter?.checkOn &&
         CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.eveluateOverTime ? (
+        criteriaFilter.evaluateOverTime ? (
           <div className="mt-1">
             <FieldLabelElement title="For the last (in minutes)" />
             <Dropdown
@@ -334,7 +334,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
                 props.onChange?.({
                   ...criteriaFilter,
-                  eveluateOverTime: true,
+                  evaluateOverTime: true,
                   evaluateOverTimeOptions: {
                     ...evaluateOverTimeOption,
                     timeValueInMinutes: value as number,

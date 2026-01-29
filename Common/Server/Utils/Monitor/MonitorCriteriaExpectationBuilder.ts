@@ -116,7 +116,7 @@ export default class MonitorCriteriaExpectationBuilder {
     const parts: Array<string> = [];
 
     if (
-      criteriaFilter.eveluateOverTime &&
+      criteriaFilter.evaluateOverTime &&
       criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
     ) {
       parts.push(

@@ -108,7 +108,7 @@ export interface CriteriaFilter {
   snmpMonitorOptions?: SnmpMonitorOptions | undefined;
   filterType: FilterType | undefined;
   value: string | number | undefined;
-  eveluateOverTime?: boolean | undefined;
+  evaluateOverTime?: boolean | undefined;
   evaluateOverTimeOptions?: EvaluateOverTimeOptions | undefined;
 }
 
@@ -223,7 +223,7 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   }).optional(),
   filterType: Zod.string().optional(),
   value: Zod.union([Zod.string(), Zod.number()]).optional(),
-  eveluateOverTime: Zod.boolean().optional(),
+  evaluateOverTime: Zod.boolean().optional(),
   evaluateOverTimeOptions: Zod.object({
     timeValueInMinutes: Zod.number().optional(),
     evaluateOverTimeType: Zod.string().optional(),

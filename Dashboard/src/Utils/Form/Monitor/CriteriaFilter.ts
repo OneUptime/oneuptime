@@ -46,7 +46,7 @@ export default class CriteriaFilterUtil {
 
     // check evaluation over time values.
     if (
-      criteriaFilter?.eveluateOverTime &&
+      criteriaFilter?.evaluateOverTime &&
       criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType
     ) {
       if (
@@ -96,7 +96,7 @@ export default class CriteriaFilterUtil {
 
       // add minutes if evaluate over time is true
       if (
-        criteriaFilter?.eveluateOverTime &&
+        criteriaFilter?.evaluateOverTime &&
         criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
       ) {
         text +=

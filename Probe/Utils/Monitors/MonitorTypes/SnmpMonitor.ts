@@ -103,7 +103,7 @@ export default class SnmpMonitor {
 
       if (isTimeout) {
         return {
-          isOnline: true,
+          isOnline: false,
           isTimeout: true,
           responseTimeInMs: responseTimeInMs,
           failureCause:

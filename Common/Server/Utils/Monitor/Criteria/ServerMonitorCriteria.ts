@@ -29,7 +29,7 @@ export default class ServerMonitorCriteria {
       undefined;
 
     if (
-      input.criteriaFilter.eveluateOverTime &&
+      input.criteriaFilter.evaluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
       try {
@@ -69,7 +69,7 @@ export default class ServerMonitorCriteria {
 
     // check evaluate  over time.
     if (
-      input.criteriaFilter.eveluateOverTime &&
+      input.criteriaFilter.evaluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
       offlineIfNotCheckedInMinutes =
