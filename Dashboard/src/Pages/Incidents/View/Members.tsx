@@ -80,24 +80,6 @@ const IncidentMembers: FunctionComponent<
           },
           {
             field: {
-              startsAt: true,
-            },
-            title: "Starts At",
-            fieldType: FormFieldSchemaType.DateTime,
-            required: false,
-            placeholder: "When does this assignment start?",
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            fieldType: FormFieldSchemaType.DateTime,
-            required: false,
-            placeholder: "When does this assignment end?",
-          },
-          {
-            field: {
               notes: true,
             },
             title: "Notes",
@@ -193,22 +175,6 @@ const IncidentMembers: FunctionComponent<
                 />
               );
             },
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "Starts At",
-            type: FieldType.DateTime,
-            noValueMessage: "-",
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            type: FieldType.DateTime,
-            noValueMessage: "-",
           },
           {
             field: {
