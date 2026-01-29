@@ -21,6 +21,9 @@ export interface ComponentProps {
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
+  labelDropdownOptions: Array<DropdownOption>;
+  teamDropdownOptions: Array<DropdownOption>;
+  userDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
 }
@@ -51,9 +54,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const getCriteriaSummary: (
+  const getCriteriaSummary: (instance: MonitorCriteriaInstance) => string = (
     instance: MonitorCriteriaInstance,
-  ) => string = (instance: MonitorCriteriaInstance): string => {
+  ): string => {
     const parts: Array<string> = [];
 
     // Filter count
@@ -88,13 +91,25 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   ) => string = (instance: MonitorCriteriaInstance): string => {
     const name: string = instance.data?.name?.toLowerCase() || "";
 
-    if (name.includes("online") || name.includes("success") || name.includes("healthy")) {
+    if (
+      name.includes("online") ||
+      name.includes("success") ||
+      name.includes("healthy")
+    ) {
       return "border-l-green-500";
     }
-    if (name.includes("offline") || name.includes("error") || name.includes("down")) {
+    if (
+      name.includes("offline") ||
+      name.includes("error") ||
+      name.includes("down")
+    ) {
       return "border-l-red-500";
     }
-    if (name.includes("degraded") || name.includes("warning") || name.includes("slow")) {
+    if (
+      name.includes("degraded") ||
+      name.includes("warning") ||
+      name.includes("slow")
+    ) {
       return "border-l-yellow-500";
     }
     return "border-l-blue-500";
@@ -181,7 +196,12 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                     alertSeverityDropdownOptions={
                       props.alertSeverityDropdownOptions
                     }
-                    onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+                    onCallPolicyDropdownOptions={
+                      props.onCallPolicyDropdownOptions
+                    }
+                    labelDropdownOptions={props.labelDropdownOptions}
+                    teamDropdownOptions={props.teamDropdownOptions}
+                    userDropdownOptions={props.userDropdownOptions}
                     value={i}
                     onDelete={() => {
                       if (
@@ -204,16 +224,19 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                         return;
                       }
 
-                      const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
-                        ...(monitorCriteria.data?.monitorCriteriaInstanceArray ||
-                          []),
-                      ];
+                      const newMonitorCriterias: Array<MonitorCriteriaInstance> =
+                        [
+                          ...(monitorCriteria.data
+                            ?.monitorCriteriaInstanceArray || []),
+                        ];
                       newMonitorCriterias.splice(criteriaIndex, 1);
                       props.onChange?.(
                         MonitorCriteria.fromJSON({
                           _type: "MonitorCriteria",
                           value: {
-                            monitorCriteriaInstanceArray: [...newMonitorCriterias],
+                            monitorCriteriaInstanceArray: [
+                              ...newMonitorCriterias,
+                            ],
                           },
                         }),
                       );
@@ -229,10 +252,11 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       if (criteriaIndex === undefined) {
                         return;
                       }
-                      const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
-                        ...(monitorCriteria.data?.monitorCriteriaInstanceArray ||
-                          []),
-                      ];
+                      const newMonitorCriterias: Array<MonitorCriteriaInstance> =
+                        [
+                          ...(monitorCriteria.data
+                            ?.monitorCriteriaInstanceArray || []),
+                        ];
                       newMonitorCriterias[criteriaIndex] = value;
                       props.onChange?.(
                         MonitorCriteria.fromJSON({

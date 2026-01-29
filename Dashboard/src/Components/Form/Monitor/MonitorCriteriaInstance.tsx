@@ -38,6 +38,9 @@ export interface ComponentProps {
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
+  labelDropdownOptions: Array<DropdownOption>;
+  teamDropdownOptions: Array<DropdownOption>;
+  userDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
   value?: undefined | MonitorCriteriaInstance;
@@ -115,7 +118,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     if (showIncidentControl) {
       const incidentCount: number =
         monitorCriteriaInstance?.data?.incidents?.length || 0;
-      actions.push(`${incidentCount} incident${incidentCount !== 1 ? "s" : ""}`);
+      actions.push(
+        `${incidentCount} incident${incidentCount !== 1 ? "s" : ""}`,
+      );
     }
     return actions.length > 0 ? actions.join(", ") : "No actions";
   };
@@ -155,7 +160,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 });
               }
             }}
-            error={touched["name"] && errors["name"] ? errors["name"] : undefined}
+            error={
+              touched["name"] && errors["name"] ? errors["name"] : undefined
+            }
             placeholder="Online Criteria"
             onChange={(value: string) => {
               if (!value) {
@@ -258,7 +265,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 FilterCondition.All
               }
               options={filterConditionOptions}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 monitorCriteriaInstance.setFilterCondition(
                   value as FilterCondition,
                 );
@@ -339,7 +348,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   },
                 )}
                 options={props.monitorStatusDropdownOptions}
-                onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
                   monitorCriteriaInstance.setMonitorStatusId(
                     value ? new ObjectID(value.toString()) : undefined,
                   );
@@ -391,8 +402,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
               <MonitorCriteriaAlertsForm
                 initialValue={monitorCriteriaInstance?.data?.alerts || []}
-                alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
+                alertSeverityDropdownOptions={
+                  props.alertSeverityDropdownOptions
+                }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+                labelDropdownOptions={props.labelDropdownOptions}
+                teamDropdownOptions={props.teamDropdownOptions}
+                userDropdownOptions={props.userDropdownOptions}
                 onChange={(value: Array<CriteriaAlert>) => {
                   monitorCriteriaInstance.setAlerts(value);
                   if (props.onChange) {
@@ -447,6 +463,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   props.incidentSeverityDropdownOptions
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+                labelDropdownOptions={props.labelDropdownOptions}
+                teamDropdownOptions={props.teamDropdownOptions}
+                userDropdownOptions={props.userDropdownOptions}
                 onChange={(value: Array<CriteriaIncident>) => {
                   monitorCriteriaInstance.setIncidents(value);
                   if (props.onChange) {
