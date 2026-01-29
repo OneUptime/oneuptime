@@ -155,9 +155,7 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
           <Dropdown
             options={templateOptions}
             placeholder="Select a common OID template..."
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ) => {
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               if (value) {
                 const template: SnmpOid | undefined =
                   SnmpOidTemplates.getCommonOids().find((t: SnmpOid) => {

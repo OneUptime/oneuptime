@@ -32,7 +32,8 @@ const SnmpMonitorStepForm: FunctionComponent<ComponentProps> = (
   const snmpVersionOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(SnmpVersion);
 
-  const isV3: boolean = props.monitorStepSnmpMonitor.snmpVersion === SnmpVersion.V3;
+  const isV3: boolean =
+    props.monitorStepSnmpMonitor.snmpVersion === SnmpVersion.V3;
 
   return (
     <div className="space-y-5">
@@ -133,7 +134,9 @@ const SnmpMonitorStepForm: FunctionComponent<ComponentProps> = (
             required={true}
           />
           <Input
-            initialValue={props.monitorStepSnmpMonitor.communityString || "public"}
+            initialValue={
+              props.monitorStepSnmpMonitor.communityString || "public"
+            }
             placeholder="public"
             onChange={(value: string) => {
               props.onChange({

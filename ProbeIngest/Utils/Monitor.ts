@@ -169,7 +169,8 @@ export default class MonitorUtil {
           monitorStep.data.snmpMonitor.snmpV3Auth.authKey =
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
-              populateSecretsIn: monitorStep.data.snmpMonitor.snmpV3Auth.authKey,
+              populateSecretsIn:
+                monitorStep.data.snmpMonitor.snmpV3Auth.authKey,
             })) as string;
         }
 
@@ -185,7 +186,8 @@ export default class MonitorUtil {
           monitorStep.data.snmpMonitor.snmpV3Auth.privKey =
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
-              populateSecretsIn: monitorStep.data.snmpMonitor.snmpV3Auth.privKey,
+              populateSecretsIn:
+                monitorStep.data.snmpMonitor.snmpV3Auth.privKey,
             })) as string;
         }
       }

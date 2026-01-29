@@ -295,7 +295,10 @@ export default class SnmpMonitor {
     }
 
     // Handle numeric values
-    if (typeof varbind.value === "number" || typeof varbind.value === "bigint") {
+    if (
+      typeof varbind.value === "number" ||
+      typeof varbind.value === "bigint"
+    ) {
       return Number(varbind.value);
     }
 
@@ -303,7 +306,9 @@ export default class SnmpMonitor {
     return String(varbind.value);
   }
 
-  private static mapSnmpDataType(type: snmp.ObjectType | undefined): SnmpDataType {
+  private static mapSnmpDataType(
+    type: snmp.ObjectType | undefined,
+  ): SnmpDataType {
     switch (type) {
       case snmp.ObjectType.Integer:
         return SnmpDataType.Integer;
@@ -336,7 +341,9 @@ export default class SnmpMonitor {
     }
   }
 
-  private static mapSnmpErrorType(type: snmp.ObjectType | undefined): SnmpDataType {
+  private static mapSnmpErrorType(
+    type: snmp.ObjectType | undefined,
+  ): SnmpDataType {
     switch (type) {
       case snmp.ObjectType.NoSuchObject:
         return SnmpDataType.NoSuchObject;

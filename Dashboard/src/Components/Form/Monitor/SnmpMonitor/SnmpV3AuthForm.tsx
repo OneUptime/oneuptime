@@ -90,7 +90,9 @@ const SnmpV3AuthForm: FunctionComponent<ComponentProps> = (
                   return option.value === props.value.authProtocol;
                 },
               )}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 props.onChange({
                   ...props.value,
                   authProtocol: value as SnmpAuthProtocol,
@@ -134,7 +136,9 @@ const SnmpV3AuthForm: FunctionComponent<ComponentProps> = (
                   return option.value === props.value.privProtocol;
                 },
               )}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 props.onChange({
                   ...props.value,
                   privProtocol: value as SnmpPrivProtocol,
