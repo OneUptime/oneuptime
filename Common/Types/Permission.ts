@@ -197,6 +197,11 @@ enum Permission {
   EditIncidentMember = "EditIncidentMember",
   ReadIncidentMember = "ReadIncidentMember",
 
+  CreateIncidentEpisodeRoleMember = "CreateIncidentEpisodeRoleMember",
+  DeleteIncidentEpisodeRoleMember = "DeleteIncidentEpisodeRoleMember",
+  EditIncidentEpisodeRoleMember = "EditIncidentEpisodeRoleMember",
+  ReadIncidentEpisodeRoleMember = "ReadIncidentEpisodeRoleMember",
+
   CreateIncidentTemplate = "CreateIncidentTemplate",
   DeleteIncidentTemplate = "DeleteIncidentTemplate",
   EditIncidentTemplate = "EditIncidentTemplate",
@@ -4399,6 +4404,39 @@ export class PermissionHelper {
         title: "Read Incident Member",
         description:
           "This permission can read Incident Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateIncidentEpisodeRoleMember,
+        title: "Create Incident Episode Role Member",
+        description:
+          "This permission can create Incident Episode Role Members for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodeRoleMember,
+        title: "Delete Incident Episode Role Member",
+        description:
+          "This permission can delete Incident Episode Role Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentEpisodeRoleMember,
+        title: "Edit Incident Episode Role Member",
+        description:
+          "This permission can edit Incident Episode Role Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodeRoleMember,
+        title: "Read Incident Episode Role Member",
+        description:
+          "This permission can read Incident Episode Role Members of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

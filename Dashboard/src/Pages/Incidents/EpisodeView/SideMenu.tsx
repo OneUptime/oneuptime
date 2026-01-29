@@ -85,6 +85,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Team}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Members",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_EPISODE_VIEW_MEMBERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.User}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Timeline">

@@ -176,6 +176,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE]: `episodes/${RouteParams.ModelID}/state-timeline`,
   [PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS]: `episodes/${RouteParams.ModelID}/incidents`,
   [PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE]: `episodes/${RouteParams.ModelID}/internal-notes`,
+  [PageMap.INCIDENT_EPISODE_VIEW_MEMBERS]: `episodes/${RouteParams.ModelID}/members`,
   [PageMap.INCIDENT_EPISODE_DOCS]: "episodes/documentation",
 
   // Incident Settings
@@ -889,6 +890,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE]
+    }`,
+  ),
+  [PageMap.INCIDENT_EPISODE_VIEW_MEMBERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_MEMBERS]
     }`,
   ),
   [PageMap.INCIDENT_EPISODE_DOCS]: new Route(

@@ -175,6 +175,7 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
 import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
+import IncidentEpisodeRoleMemberService from "./IncidentEpisodeRoleMemberService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeStateTimelineService from "./IncidentEpisodeStateTimelineService";
@@ -389,6 +390,7 @@ const services: Array<BaseService> = [
   IncidentEpisodeFeedService,
   IncidentEpisodeInternalNoteService,
   IncidentEpisodeMemberService,
+  IncidentEpisodeRoleMemberService,
   IncidentEpisodeOwnerTeamService,
   IncidentEpisodeOwnerUserService,
   IncidentEpisodeStateTimelineService,
