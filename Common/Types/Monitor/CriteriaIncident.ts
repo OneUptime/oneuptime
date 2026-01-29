@@ -9,6 +9,9 @@ export interface CriteriaIncident {
   remediationNotes?: string | undefined;
   id: string;
   onCallPolicyIds?: Array<ObjectID> | undefined;
+  labelIds?: Array<ObjectID> | undefined;
+  ownerTeamIds?: Array<ObjectID> | undefined;
+  ownerUserIds?: Array<ObjectID> | undefined;
 }
 
 export const CriteriaIncidentSchema: ZodSchema = Zod.object({
@@ -19,4 +22,7 @@ export const CriteriaIncidentSchema: ZodSchema = Zod.object({
   remediationNotes: Zod.string().optional(),
   id: Zod.string(),
   onCallPolicyIds: Zod.array(Zod.any()).optional(),
+  labelIds: Zod.array(Zod.any()).optional(),
+  ownerTeamIds: Zod.array(Zod.any()).optional(),
+  ownerUserIds: Zod.array(Zod.any()).optional(),
 });

@@ -21,6 +21,9 @@ export interface ComponentProps {
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
+  labelDropdownOptions: Array<DropdownOption>;
+  teamDropdownOptions: Array<DropdownOption>;
+  userDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
 }
@@ -182,6 +185,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       props.alertSeverityDropdownOptions
                     }
                     onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+                    labelDropdownOptions={props.labelDropdownOptions}
+                    teamDropdownOptions={props.teamDropdownOptions}
+                    userDropdownOptions={props.userDropdownOptions}
                     value={i}
                     onDelete={() => {
                       if (

@@ -1,6 +1,7 @@
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
+import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -228,6 +229,14 @@ export default class MonitorIncident {
             return onCallPolicy;
           }) || [];
 
+        // Set labels from criteria
+        incident.labels =
+          criteriaIncident.labelIds?.map((id: ObjectID) => {
+            const label: Label = new Label();
+            label._id = id.toString();
+            return label;
+          }) || [];
+
         incident.isCreatedAutomatically = true;
 
         if (input.props.telemetryQuery) {
@@ -270,6 +279,23 @@ export default class MonitorIncident {
             isRoot: true,
           },
         });
+
+        // Add owner teams and users after incident creation
+        if (
+          criteriaIncident.ownerTeamIds?.length ||
+          criteriaIncident.ownerUserIds?.length
+        ) {
+          await IncidentService.addOwners(
+            input.monitor.projectId!,
+            createdIncident.id!,
+            criteriaIncident.ownerUserIds || [],
+            criteriaIncident.ownerTeamIds || [],
+            true, // notify owners
+            {
+              isRoot: true,
+            },
+          );
+        }
 
         input.evaluationSummary?.events.push({
           type: "incident-created",

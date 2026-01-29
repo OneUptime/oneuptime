@@ -38,6 +38,9 @@ export interface ComponentProps {
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
+  labelDropdownOptions: Array<DropdownOption>;
+  teamDropdownOptions: Array<DropdownOption>;
+  userDropdownOptions: Array<DropdownOption>;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
   value?: undefined | MonitorCriteriaInstance;
@@ -393,6 +396,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 initialValue={monitorCriteriaInstance?.data?.alerts || []}
                 alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+                labelDropdownOptions={props.labelDropdownOptions}
+                teamDropdownOptions={props.teamDropdownOptions}
+                userDropdownOptions={props.userDropdownOptions}
                 onChange={(value: Array<CriteriaAlert>) => {
                   monitorCriteriaInstance.setAlerts(value);
                   if (props.onChange) {
@@ -447,6 +453,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   props.incidentSeverityDropdownOptions
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+                labelDropdownOptions={props.labelDropdownOptions}
+                teamDropdownOptions={props.teamDropdownOptions}
+                userDropdownOptions={props.userDropdownOptions}
                 onChange={(value: Array<CriteriaIncident>) => {
                   monitorCriteriaInstance.setIncidents(value);
                   if (props.onChange) {

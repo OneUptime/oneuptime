@@ -79,6 +79,9 @@ export interface ComponentProps {
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
+  labelDropdownOptions: Array<DropdownOption>;
+  teamDropdownOptions: Array<DropdownOption>;
+  userDropdownOptions: Array<DropdownOption>;
   value?: undefined | MonitorStep;
   onChange?: undefined | ((value: MonitorStep) => void);
   // onDelete?: undefined | (() => void);
@@ -889,6 +892,9 @@ return {
             }
             alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
             onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+            labelDropdownOptions={props.labelDropdownOptions}
+            teamDropdownOptions={props.teamDropdownOptions}
+            userDropdownOptions={props.userDropdownOptions}
             value={monitorStep?.data?.monitorCriteria}
             onChange={(value: MonitorCriteria) => {
               monitorStep.setMonitorCriteria(value);

@@ -9,6 +9,9 @@ export interface ComponentProps {
   onChange?: undefined | ((value: Array<CriteriaAlert>) => void);
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
+  labelDropdownOptions: Array<DropdownOption>;
+  teamDropdownOptions: Array<DropdownOption>;
+  userDropdownOptions: Array<DropdownOption>;
 }
 
 const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
@@ -41,6 +44,9 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
             key={index}
             alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
             onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+            labelDropdownOptions={props.labelDropdownOptions}
+            teamDropdownOptions={props.teamDropdownOptions}
+            userDropdownOptions={props.userDropdownOptions}
             initialValue={i}
             /*
              * onDelete={() => {

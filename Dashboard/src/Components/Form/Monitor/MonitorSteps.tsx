@@ -16,14 +16,18 @@ import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import useAsyncEffect from "use-async-effect";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeUtil from "../../../Utils/Probe";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import ProjectUser from "../../../Utils/ProjectUser";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -49,6 +53,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
+
+  const [labelDropdownOptions, setLabelDropdownOptions] = React.useState<
+    Array<DropdownOption>
+  >([]);
+
+  const [teamDropdownOptions, setTeamDropdownOptions] = React.useState<
+    Array<DropdownOption>
+  >([]);
+
+  const [userDropdownOptions, setUserDropdownOptions] = React.useState<
+    Array<DropdownOption>
+  >([]);
 
   const [probes, setProbes] = React.useState<Array<Probe>>([]);
 
@@ -164,6 +180,65 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         );
       }
 
+      // Fetch labels
+      const labelList: ListResult<Label> = await ModelAPI.getList({
+        modelType: Label,
+        query: {},
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+          color: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
+
+      if (labelList.data) {
+        setLabelDropdownOptions(
+          labelList.data.map((i: Label) => {
+            return {
+              value: i._id!,
+              label: i.name!,
+            };
+          }),
+        );
+      }
+
+      // Fetch teams
+      const teamList: ListResult<Team> = await ModelAPI.getList({
+        modelType: Team,
+        query: {},
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
+
+      if (teamList.data) {
+        setTeamDropdownOptions(
+          teamList.data.map((i: Team) => {
+            return {
+              value: i._id!,
+              label: i.name!,
+            };
+          }),
+        );
+      }
+
+      // Fetch users
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      if (projectId) {
+        const userOptions: Array<DropdownOption> =
+          await ProjectUser.fetchProjectUsersAsDropdownOptions(projectId);
+        setUserDropdownOptions(userOptions);
+      }
+
       // if there is no initial value then....
 
       if (!monitorSteps) {
@@ -235,6 +310,9 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
               alertSeverityDropdownOptions={alertSeverityDropdownOptions}
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
+              labelDropdownOptions={labelDropdownOptions}
+              teamDropdownOptions={teamDropdownOptions}
+              userDropdownOptions={userDropdownOptions}
               value={i}
               probes={probes}
               monitorId={props.monitorId}

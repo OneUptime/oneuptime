@@ -1,6 +1,7 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -218,6 +219,14 @@ export default class MonitorAlert {
             return onCallPolicy;
           }) || [];
 
+        // Set labels from criteria
+        alert.labels =
+          criteriaAlert.labelIds?.map((id: ObjectID) => {
+            const label: Label = new Label();
+            label._id = id.toString();
+            return label;
+          }) || [];
+
         alert.isCreatedAutomatically = true;
 
         if (input.props.telemetryQuery) {
@@ -258,6 +267,23 @@ export default class MonitorAlert {
             isRoot: true,
           },
         });
+
+        // Add owner teams and users after alert creation
+        if (
+          criteriaAlert.ownerTeamIds?.length ||
+          criteriaAlert.ownerUserIds?.length
+        ) {
+          await AlertService.addOwners(
+            input.monitor.projectId!,
+            createdAlert.id!,
+            criteriaAlert.ownerUserIds || [],
+            criteriaAlert.ownerTeamIds || [],
+            true, // notify owners
+            {
+              isRoot: true,
+            },
+          );
+        }
 
         input.evaluationSummary?.events.push({
           type: "alert-created",
