@@ -6,8 +6,10 @@ export class RenameEvaluateOverTimeInCriteriaFilter1769676117342
   public name = "RenameEvaluateOverTimeInCriteriaFilter1769676117342";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Update the monitorSteps JSONB column in Monitor table
-    // Replace all occurrences of "eveluateOverTime" with "evaluateOverTime"
+    /*
+     * Update the monitorSteps JSONB column in Monitor table
+     * Replace all occurrences of "eveluateOverTime" with "evaluateOverTime"
+     */
     await queryRunner.query(`
       UPDATE "Monitor"
       SET "monitorSteps" = REPLACE("monitorSteps"::text, '"eveluateOverTime"', '"evaluateOverTime"')::jsonb

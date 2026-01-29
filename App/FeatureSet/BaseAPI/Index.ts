@@ -131,9 +131,7 @@ import AlertEpisodeStateTimelineService, {
 } from "Common/Server/Services/AlertEpisodeStateTimelineService";
 
 // IncidentEpisode Services
-import IncidentEpisodeService, {
-  Service as IncidentEpisodeServiceType,
-} from "Common/Server/Services/IncidentEpisodeService";
+
 import IncidentEpisodeFeedService, {
   Service as IncidentEpisodeFeedServiceType,
 } from "Common/Server/Services/IncidentEpisodeFeedService";
@@ -489,7 +487,6 @@ import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 
 // IncidentEpisode Models
-import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
 import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";

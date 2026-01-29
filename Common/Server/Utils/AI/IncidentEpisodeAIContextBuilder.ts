@@ -7,9 +7,7 @@ import IncidentEpisodeService from "../../Services/IncidentEpisodeService";
 import IncidentEpisodeStateTimelineService from "../../Services/IncidentEpisodeStateTimelineService";
 import IncidentEpisodeInternalNoteService from "../../Services/IncidentEpisodeInternalNoteService";
 import IncidentEpisodeMemberService from "../../Services/IncidentEpisodeMemberService";
-import WorkspaceUtil, {
-  WorkspaceChannelMessage,
-} from "../Workspace/Workspace";
+import WorkspaceUtil, { WorkspaceChannelMessage } from "../Workspace/Workspace";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import logger from "../Logger";
@@ -20,6 +18,7 @@ import { LLMMessage } from "../LLM/LLMService";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { AIGenerationContext } from "./IncidentAIContextBuilder";
+import Incident from "../../../Models/DatabaseModels/Incident";
 
 export interface IncidentEpisodeContextData {
   episode: IncidentEpisode;
@@ -265,7 +264,7 @@ export default class IncidentEpisodeAIContextBuilder {
       contextText += `This episode contains ${memberIncidents.length} incident(s):\n\n`;
 
       for (const member of memberIncidents) {
-        const incident = member.incident;
+        const incident: Incident | undefined = member.incident;
         if (!incident) {
           continue;
         }
@@ -280,7 +279,11 @@ export default class IncidentEpisodeAIContextBuilder {
         }
 
         if (incident.monitors && incident.monitors.length > 0) {
-          contextText += `- **Affected Monitors:** ${incident.monitors.map((m: { name?: string }) => m.name).join(", ")}\n`;
+          contextText += `- **Affected Monitors:** ${incident.monitors
+            .map((m: { name?: string }) => {
+              return m.name;
+            })
+            .join(", ")}\n`;
         }
 
         if (incident.rootCause) {
