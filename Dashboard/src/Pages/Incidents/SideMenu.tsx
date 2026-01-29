@@ -60,7 +60,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               RouteMap[PageMap.INCIDENT_EPISODES] as Route,
             ),
           },
-          icon: IconProp.Layers,
+          icon: IconProp.SquareStack3D,
         },
         {
           link: {
@@ -180,7 +180,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route,
             ),
           },
-          icon: IconProp.Layers,
+          icon: IconProp.Filter,
         },
       ],
     },
