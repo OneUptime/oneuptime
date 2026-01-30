@@ -2,12 +2,11 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
+import RoleLabel from "Common/UI/Components/RoleLabel/RoleLabel";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import Color from "Common/Types/Color";
 
 const IncidentRoles: FunctionComponent<
   PageComponentProps
@@ -94,9 +93,10 @@ const IncidentRoles: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: IncidentRole): ReactElement => {
               return (
-                <Pill
-                  text={item.name || ""}
-                  color={item.color || Color.fromString("#000000")}
+                <RoleLabel
+                  name={item.name || ""}
+                  color={item.color || undefined}
+                  description={item.description || undefined}
                 />
               );
             },
