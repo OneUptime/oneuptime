@@ -159,7 +159,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       } finally {
         setIsLoading(false);
       }
-    }, [props.incidentId, projectId]);
+    }, [props.incidentId.toString(), projectId?.toString()]);
 
   useEffect(() => {
     fetchData();
