@@ -44,8 +44,6 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
 
           const projectId: ObjectID = new ObjectID(req.params["id"] as string);
 
-          
-
           const body: JSONObject = (req.body as JSONObject) || {};
           const data: JSONObject = (body["data"] as JSONObject) || {};
           const paymentProviderPlanId: string | undefined = data[
@@ -55,7 +53,6 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           if (!paymentProviderPlanId) {
             throw new BadDataException("Plan ID is required to change plan");
           }
-
 
           // Check for payment methods early before making any Stripe API calls
           const project: Project | null = await ProjectService.findOneById({
@@ -82,7 +79,9 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             );
 
           if (!hasPaymentMethods) {
-            throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
+            throw new BadDataException(
+              Errors.BillingService.NO_PAYMENTS_METHODS,
+            );
           }
 
           const permissions: Array<UserPermission> =
@@ -106,7 +105,6 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
               `You need ${Permission.ProjectOwner} or ${Permission.ManageProjectBilling} permission to change project plan`,
             );
           }
-
 
           await ProjectService.changePlan({
             projectId: projectId,

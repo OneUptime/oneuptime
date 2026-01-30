@@ -697,12 +697,15 @@ ${createdItem.rootCause}`,
     previousStateWasResolved: boolean;
   }): Promise<void> {
     try {
-      const IncidentSlaService = (await import("./IncidentSlaService")).default;
+      const IncidentSlaService: typeof import("./IncidentSlaService").default =
+        (await import("./IncidentSlaService")).default;
 
       // Check if incident is being reopened (previous state was resolved, current state is not resolved)
       if (data.previousStateWasResolved && !data.isResolvedState) {
         // Incident is being reopened - create a new SLA record
-        const IncidentService = (await import("./IncidentService")).default;
+        const IncidentService: typeof import("./IncidentService").default = (
+          await import("./IncidentService")
+        ).default;
 
         const incident: Incident | null = await IncidentService.findOneById({
           id: data.incidentId,

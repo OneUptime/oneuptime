@@ -94,12 +94,16 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={UserSettingsRoutePath[PageMap.USER_SETTINGS_CUSTOM_FIELDS] || ""}
+          path={
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_CUSTOM_FIELDS] || ""
+          }
           element={
             <Suspense fallback={Loader}>
               <UserSettingsCustomFields
                 {...props}
-                pageRoute={RouteMap[PageMap.USER_SETTINGS_CUSTOM_FIELDS] as Route}
+                pageRoute={
+                  RouteMap[PageMap.USER_SETTINGS_CUSTOM_FIELDS] as Route
+                }
               />
             </Suspense>
           }

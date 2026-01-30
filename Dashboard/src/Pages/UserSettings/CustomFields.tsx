@@ -81,7 +81,10 @@ const UserSettingsCustomFields: FunctionComponent<
         newProfile.userId = userId;
 
         const response: HTTPResponse<
-          JSONObject | JSONArray | ProjectUserProfile | Array<ProjectUserProfile>
+          | JSONObject
+          | JSONArray
+          | ProjectUserProfile
+          | Array<ProjectUserProfile>
         > = await ModelAPI.create<ProjectUserProfile>({
           model: newProfile,
           modelType: ProjectUserProfile,

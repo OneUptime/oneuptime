@@ -49,7 +49,10 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
         )}
 
         {errorItems.length > 0 && (
-          <NotificationBellSection title="Critical" alertType={HeaderAlertType.ERROR}>
+          <NotificationBellSection
+            title="Critical"
+            alertType={HeaderAlertType.ERROR}
+          >
             {errorItems.map((item: NotificationItem) => {
               return (
                 <NotificationBellItem
@@ -65,7 +68,10 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
         )}
 
         {successItems.length > 0 && (
-          <NotificationBellSection title="On-Call" alertType={HeaderAlertType.SUCCESS}>
+          <NotificationBellSection
+            title="On-Call"
+            alertType={HeaderAlertType.SUCCESS}
+          >
             {successItems.map((item: NotificationItem) => {
               return (
                 <NotificationBellItem
@@ -81,7 +87,10 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
         )}
 
         {infoItems.length > 0 && (
-          <NotificationBellSection title="Information" alertType={HeaderAlertType.INFO}>
+          <NotificationBellSection
+            title="Information"
+            alertType={HeaderAlertType.INFO}
+          >
             {infoItems.map((item: NotificationItem) => {
               return (
                 <NotificationBellItem

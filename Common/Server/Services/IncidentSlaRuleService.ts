@@ -65,7 +65,9 @@ export class Service extends DatabaseService<Model> {
     let incident: Incident | null = data.incident || null;
 
     if (!incident) {
-      const IncidentService = (await import("./IncidentService")).default;
+      const IncidentService: typeof import("./IncidentService").default = (
+        await import("./IncidentService")
+      ).default;
 
       incident = await IncidentService.findOneById({
         id: data.incidentId,
@@ -138,9 +140,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (rules.length === 0) {
-      logger.debug(
-        `No enabled SLA rules found for project ${data.projectId}`,
-      );
+      logger.debug(`No enabled SLA rules found for project ${data.projectId}`);
       return null;
     }
 
@@ -156,9 +156,7 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    logger.debug(
-      `Incident ${data.incidentId} did not match any SLA rules`,
-    );
+    logger.debug(`Incident ${data.incidentId} did not match any SLA rules`);
     return null;
   }
 
@@ -177,11 +175,9 @@ export class Service extends DatabaseService<Model> {
         return false;
       }
 
-      const ruleMonitorIds: Array<string> = rule.monitors.map(
-        (m: Monitor) => {
-          return m.id?.toString() || "";
-        },
-      );
+      const ruleMonitorIds: Array<string> = rule.monitors.map((m: Monitor) => {
+        return m.id?.toString() || "";
+      });
 
       const incidentMonitorIds: Array<string> = incident.monitors.map(
         (m: Monitor) => {
@@ -238,11 +234,9 @@ export class Service extends DatabaseService<Model> {
         },
       );
 
-      const hasMatchingLabel: boolean = ruleLabelIds.some(
-        (labelId: string) => {
-          return incidentLabelIds.includes(labelId);
-        },
-      );
+      const hasMatchingLabel: boolean = ruleLabelIds.some((labelId: string) => {
+        return incidentLabelIds.includes(labelId);
+      });
 
       if (!hasMatchingLabel) {
         return false;

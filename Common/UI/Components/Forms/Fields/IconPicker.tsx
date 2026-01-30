@@ -70,10 +70,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           className="flex items-center justify-center h-5 w-5 cursor-pointer"
         >
           {selectedIcon ? (
-            <Icon
-              icon={selectedIcon}
-              className="h-5 w-5 text-gray-600"
-            />
+            <Icon icon={selectedIcon} className="h-5 w-5 text-gray-600" />
           ) : (
             <div className="h-5 w-5 border border-dashed border-gray-300 rounded"></div>
           )}
@@ -150,10 +147,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
                     }`}
                     title={icon}
                   >
-                    <Icon
-                      icon={icon}
-                      className="h-5 w-5 text-gray-600"
-                    />
+                    <Icon icon={icon} className="h-5 w-5 text-gray-600" />
                   </div>
                 );
               })}

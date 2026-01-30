@@ -855,8 +855,13 @@ export class Service extends DatabaseService<Model> {
       .then(async () => {
         // Create SLA record for incident if a matching rule exists
         try {
-          if (createdItem.projectId && createdItem.id && createdItem.declaredAt) {
-            const IncidentSlaService = (await import("./IncidentSlaService")).default;
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            createdItem.declaredAt
+          ) {
+            const IncidentSlaService: typeof import("./IncidentSlaService").default =
+              (await import("./IncidentSlaService")).default;
             await IncidentSlaService.createSlaForIncident({
               incidentId: createdItem.id,
               projectId: createdItem.projectId,
@@ -1532,7 +1537,8 @@ ${incidentSeverity.name}
 
             // Recalculate SLA deadlines when severity changes
             try {
-              const IncidentSlaService = (await import("./IncidentSlaService")).default;
+              const IncidentSlaService: typeof import("./IncidentSlaService").default =
+                (await import("./IncidentSlaService")).default;
               await IncidentSlaService.recalculateDeadlines({
                 incidentId: incidentId,
               });

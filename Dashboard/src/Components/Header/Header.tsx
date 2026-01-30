@@ -71,61 +71,64 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   const [showCurrentOnCallPolicyModal, setShowCurrentOnCallPolicyModal] =
     useState<boolean>(false);
 
-  const fetchIncidentsCount: PromiseVoidFunction = useCallback(async (): Promise<void> => {
-    try {
-      const count: number = await ModelAPI.count<Incident>({
-        modelType: Incident,
-        query: {
-          currentIncidentState: {
-            order: 1,
+  const fetchIncidentsCount: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
+      try {
+        const count: number = await ModelAPI.count<Incident>({
+          modelType: Incident,
+          query: {
+            currentIncidentState: {
+              order: 1,
+            },
           },
-        },
-        requestOptions: {
-          isMultiTenantRequest: true,
-        },
-      });
-      setIncidentsCount(count);
-    } catch (err) {
-      setIncidentsCount(0);
-    }
-  }, []);
-
-  const fetchAlertsCount: PromiseVoidFunction = useCallback(async (): Promise<void> => {
-    try {
-      const count: number = await ModelAPI.count<Alert>({
-        modelType: Alert,
-        query: {
-          currentAlertState: {
-            order: 1,
+          requestOptions: {
+            isMultiTenantRequest: true,
           },
-        },
-        requestOptions: {
-          isMultiTenantRequest: true,
-        },
-      });
-      setAlertsCount(count);
-    } catch (err) {
-      setAlertsCount(0);
-    }
-  }, []);
+        });
+        setIncidentsCount(count);
+      } catch {
+        setIncidentsCount(0);
+      }
+    }, []);
 
-  const fetchInvitationsCount: PromiseVoidFunction = useCallback(async (): Promise<void> => {
-    try {
-      const count: number = await ModelAPI.count<TeamMember>({
-        modelType: TeamMember,
-        query: {
-          userId: User.getUserId(),
-          hasAcceptedInvitation: false,
-        },
-        requestOptions: {
-          isMultiTenantRequest: true,
-        },
-      });
-      setInvitationsCount(count);
-    } catch (err) {
-      setInvitationsCount(0);
-    }
-  }, []);
+  const fetchAlertsCount: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
+      try {
+        const count: number = await ModelAPI.count<Alert>({
+          modelType: Alert,
+          query: {
+            currentAlertState: {
+              order: 1,
+            },
+          },
+          requestOptions: {
+            isMultiTenantRequest: true,
+          },
+        });
+        setAlertsCount(count);
+      } catch {
+        setAlertsCount(0);
+      }
+    }, []);
+
+  const fetchInvitationsCount: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
+      try {
+        const count: number = await ModelAPI.count<TeamMember>({
+          modelType: TeamMember,
+          query: {
+            userId: User.getUserId(),
+            hasAcceptedInvitation: false,
+          },
+          requestOptions: {
+            isMultiTenantRequest: true,
+          },
+        });
+        setInvitationsCount(count);
+      } catch {
+        setInvitationsCount(0);
+      }
+    }, []);
 
   const refreshIncidentCount: VoidFunction = () => {
     fetchIncidentsCount().catch(() => {
@@ -436,77 +439,81 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       )
     : 0;
 
-  const buildNotificationItems: () => Array<NotificationItem> = (): Array<NotificationItem> => {
-    const items: Array<NotificationItem> = [];
+  const buildNotificationItems: () => Array<NotificationItem> =
+    (): Array<NotificationItem> => {
+      const items: Array<NotificationItem> = [];
 
-    // Incidents - ERROR type
-    items.push({
-      id: "incidents",
-      icon: IconProp.Alert,
-      title: `${incidentsCount} Active ${incidentsCount === 1 ? "Incident" : "Incidents"}`,
-      count: incidentsCount,
-      alertType: HeaderAlertType.ERROR,
-      tooltip: "View all active incidents",
-    });
-
-    // Alerts - ERROR type
-    items.push({
-      id: "alerts",
-      icon: IconProp.ExclaimationCircle,
-      title: `${alertsCount} Active ${alertsCount === 1 ? "Alert" : "Alerts"}`,
-      count: alertsCount,
-      alertType: HeaderAlertType.ERROR,
-      tooltip: "View all active alerts",
-    });
-
-    // On-Call Policies - SUCCESS type
-    if (props.selectedProject && currentOnCallPolicies.length > 0) {
+      // Incidents - ERROR type
       items.push({
-        id: "oncall",
-        icon: IconProp.Call,
-        title: `On duty for ${currentOnCallPolicies.length} ${currentOnCallPolicies.length === 1 ? "policy" : "policies"}`,
-        count: currentOnCallPolicies.length,
-        alertType: HeaderAlertType.SUCCESS,
-        tooltip: "On-call policies you are currently on duty for",
+        id: "incidents",
+        icon: IconProp.Alert,
+        title: `${incidentsCount} Active ${incidentsCount === 1 ? "Incident" : "Incidents"}`,
+        count: incidentsCount,
+        alertType: HeaderAlertType.ERROR,
+        tooltip: "View all active incidents",
       });
-    }
 
-    // Invitations - INFO type
-    items.push({
-      id: "invitations",
-      icon: IconProp.Folder,
-      title: `${invitationsCount} Pending ${invitationsCount === 1 ? "Invitation" : "Invitations"}`,
-      count: invitationsCount,
-      alertType: HeaderAlertType.INFO,
-      tooltip: "Looks like you have pending project invitations. Please click here to review and accept them.",
-    });
-
-    // Trial Days - INFO type (only if showTrialButton is true)
-    if (showTrialButton && trialDaysRemaining > 0) {
+      // Alerts - ERROR type
       items.push({
-        id: "trial",
-        icon: IconProp.Clock,
-        title: `Trial ends in ${trialDaysRemaining} ${trialDaysRemaining === 1 ? "day" : "days"}`,
-        count: trialDaysRemaining,
+        id: "alerts",
+        icon: IconProp.ExclaimationCircle,
+        title: `${alertsCount} Active ${alertsCount === 1 ? "Alert" : "Alerts"}`,
+        count: alertsCount,
+        alertType: HeaderAlertType.ERROR,
+        tooltip: "View all active alerts",
+      });
+
+      // On-Call Policies - SUCCESS type
+      if (props.selectedProject && currentOnCallPolicies.length > 0) {
+        items.push({
+          id: "oncall",
+          icon: IconProp.Call,
+          title: `On duty for ${currentOnCallPolicies.length} ${currentOnCallPolicies.length === 1 ? "policy" : "policies"}`,
+          count: currentOnCallPolicies.length,
+          alertType: HeaderAlertType.SUCCESS,
+          tooltip: "On-call policies you are currently on duty for",
+        });
+      }
+
+      // Invitations - INFO type
+      items.push({
+        id: "invitations",
+        icon: IconProp.Folder,
+        title: `${invitationsCount} Pending ${invitationsCount === 1 ? "Invitation" : "Invitations"}`,
+        count: invitationsCount,
         alertType: HeaderAlertType.INFO,
-        tooltip: "Your trial ends soon. Add card details to continue using the service.",
+        tooltip:
+          "Looks like you have pending project invitations. Please click here to review and accept them.",
       });
-    }
 
-    // Add Card Details - INFO type (only if showAddCardButton is true)
-    if (showAddCardButton) {
-      items.push({
-        id: "addcard",
-        icon: IconProp.Billing,
-        title: "Add Card Details",
-        count: 1,
-        alertType: HeaderAlertType.INFO,
-        tooltip: "Add your payment card details to continue using the service.",
-      });
-    }
+      // Trial Days - INFO type (only if showTrialButton is true)
+      if (showTrialButton && trialDaysRemaining > 0) {
+        items.push({
+          id: "trial",
+          icon: IconProp.Clock,
+          title: `Trial ends in ${trialDaysRemaining} ${trialDaysRemaining === 1 ? "day" : "days"}`,
+          count: trialDaysRemaining,
+          alertType: HeaderAlertType.INFO,
+          tooltip:
+            "Your trial ends soon. Add card details to continue using the service.",
+        });
+      }
 
-    return items;
-  };
+      // Add Card Details - INFO type (only if showAddCardButton is true)
+      if (showAddCardButton) {
+        items.push({
+          id: "addcard",
+          icon: IconProp.Billing,
+          title: "Add Card Details",
+          count: 1,
+          alertType: HeaderAlertType.INFO,
+          tooltip:
+            "Add your payment card details to continue using the service.",
+        });
+      }
+
+      return items;
+    };
 
   const handleNotificationItemClick: (item: NotificationItem) => void = (
     item: NotificationItem,

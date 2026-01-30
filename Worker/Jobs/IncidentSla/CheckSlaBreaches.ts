@@ -63,10 +63,11 @@ RunCron(
             breachType = "response";
           } else if (sla.status === IncidentSlaStatus.OnTrack) {
             // Check if at risk for response
-            const totalResponseTime: number = OneUptimeDate.getDifferenceInMinutes(
-              sla.responseDeadline,
-              sla.slaStartedAt,
-            );
+            const totalResponseTime: number =
+              OneUptimeDate.getDifferenceInMinutes(
+                sla.responseDeadline,
+                sla.slaStartedAt,
+              );
             const elapsedTime: number = OneUptimeDate.getDifferenceInMinutes(
               now,
               sla.slaStartedAt,

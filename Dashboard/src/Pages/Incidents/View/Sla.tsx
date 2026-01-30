@@ -13,10 +13,14 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 
-const IncidentViewSla: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const IncidentViewSla: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const getStatusColor = (status: IncidentSlaStatus | undefined): Color => {
+  const getStatusColor: (status: IncidentSlaStatus | undefined) => Color = (
+    status: IncidentSlaStatus | undefined,
+  ): Color => {
     switch (status) {
       case IncidentSlaStatus.OnTrack:
         return Green;
@@ -32,7 +36,9 @@ const IncidentViewSla: FunctionComponent<PageComponentProps> = (): ReactElement 
     }
   };
 
-  const formatTimeRemaining = (deadline: Date | undefined): string => {
+  const formatTimeRemaining: (deadline: Date | undefined) => string = (
+    deadline: Date | undefined,
+  ): string => {
     if (!deadline) {
       return "N/A";
     }
@@ -107,7 +113,8 @@ const IncidentViewSla: FunctionComponent<PageComponentProps> = (): ReactElement 
             type: FieldType.Text,
             getElement: (item: IncidentSla): ReactElement => {
               const ruleName: string =
-                (item.incidentSlaRule as { name?: string })?.name || "Unknown Rule";
+                (item.incidentSlaRule as { name?: string })?.name ||
+                "Unknown Rule";
               return <span>{ruleName}</span>;
             },
           },
@@ -138,7 +145,7 @@ const IncidentViewSla: FunctionComponent<PageComponentProps> = (): ReactElement 
                 return <span className="text-gray-400">Not configured</span>;
               }
 
-              const isResponded: boolean = !!item.respondedAt;
+              const isResponded: boolean = Boolean(item.respondedAt);
               const deadline: Date = item.responseDeadline;
               const formattedDeadline: string =
                 OneUptimeDate.getDateAsLocalFormattedString(deadline);
@@ -152,9 +159,7 @@ const IncidentViewSla: FunctionComponent<PageComponentProps> = (): ReactElement 
                 return (
                   <div>
                     <span
-                      className={
-                        wasOnTime ? "text-green-600" : "text-red-600"
-                      }
+                      className={wasOnTime ? "text-green-600" : "text-red-600"}
                     >
                       {wasOnTime ? "Met" : "Missed"}
                     </span>
@@ -190,7 +195,7 @@ const IncidentViewSla: FunctionComponent<PageComponentProps> = (): ReactElement 
                 return <span className="text-gray-400">Not configured</span>;
               }
 
-              const isResolved: boolean = !!item.resolvedAt;
+              const isResolved: boolean = Boolean(item.resolvedAt);
               const deadline: Date = item.resolutionDeadline;
               const formattedDeadline: string =
                 OneUptimeDate.getDateAsLocalFormattedString(deadline);
@@ -204,9 +209,7 @@ const IncidentViewSla: FunctionComponent<PageComponentProps> = (): ReactElement 
                 return (
                   <div>
                     <span
-                      className={
-                        wasOnTime ? "text-green-600" : "text-red-600"
-                      }
+                      className={wasOnTime ? "text-green-600" : "text-red-600"}
                     >
                       {wasOnTime ? "Met" : "Missed"}
                     </span>

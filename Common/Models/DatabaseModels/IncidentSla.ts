@@ -520,7 +520,8 @@ export default class IncidentSla extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     title: "Breach Notification Sent At",
-    description: "The time when breach notification was sent to incident owners",
+    description:
+      "The time when breach notification was sent to incident owners",
   })
   @Column({
     type: ColumnType.Date,

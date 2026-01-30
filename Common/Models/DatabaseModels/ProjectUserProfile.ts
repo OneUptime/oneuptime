@@ -44,10 +44,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ReadTeamMemberCustomField,
     Permission.ReadAllProjectResources,
   ],
-  delete: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-  ],
+  delete: [Permission.ProjectOwner, Permission.ProjectAdmin],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,

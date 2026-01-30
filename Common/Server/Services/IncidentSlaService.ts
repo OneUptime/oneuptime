@@ -104,7 +104,9 @@ export class Service extends DatabaseService<Model> {
 
       return createdSla;
     } catch (error) {
-      logger.error(`Error creating SLA record for incident ${data.incidentId}: ${error}`);
+      logger.error(
+        `Error creating SLA record for incident ${data.incidentId}: ${error}`,
+      );
       return null;
     }
   }
@@ -150,9 +152,7 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        logger.info(
-          `Marked SLA ${sla.id} as responded at ${data.respondedAt}`,
-        );
+        logger.info(`Marked SLA ${sla.id} as responded at ${data.respondedAt}`);
       }
     }
   }
@@ -238,12 +238,12 @@ export class Service extends DatabaseService<Model> {
   public async recalculateDeadlines(data: {
     incidentId: ObjectID;
   }): Promise<void> {
-    logger.debug(
-      `Recalculating deadlines for incident ${data.incidentId}`,
-    );
+    logger.debug(`Recalculating deadlines for incident ${data.incidentId}`);
 
     // Get the incident to find the new severity and project
-    const IncidentService = (await import("./IncidentService")).default;
+    const IncidentService: typeof import("./IncidentService").default = (
+      await import("./IncidentService")
+    ).default;
 
     const incident: Incident | null = await IncidentService.findOneById({
       id: data.incidentId,
@@ -355,10 +355,12 @@ export class Service extends DatabaseService<Model> {
   public async getIncidentsNeedingInternalNoteReminder(): Promise<
     Array<Model>
   > {
-    // Find SLAs where:
-    // - Not resolved
-    // - Has internal note reminder interval configured
-    // - Last reminder was sent more than interval ago OR never sent
+    /*
+     * Find SLAs where:
+     * - Not resolved
+     * - Has internal note reminder interval configured
+     * - Last reminder was sent more than interval ago OR never sent
+     */
     const now: Date = OneUptimeDate.getCurrentDate();
 
     const slaRecords: Array<Model> = await this.findBy({
@@ -405,10 +407,11 @@ export class Service extends DatabaseService<Model> {
         return timeSinceStart >= interval;
       }
 
-      const timeSinceLastReminder: number = OneUptimeDate.getDifferenceInMinutes(
-        now,
-        sla.lastInternalNoteReminderSentAt,
-      );
+      const timeSinceLastReminder: number =
+        OneUptimeDate.getDifferenceInMinutes(
+          now,
+          sla.lastInternalNoteReminderSentAt,
+        );
 
       return timeSinceLastReminder >= interval;
     });
@@ -464,10 +467,11 @@ export class Service extends DatabaseService<Model> {
         return timeSinceStart >= interval;
       }
 
-      const timeSinceLastReminder: number = OneUptimeDate.getDifferenceInMinutes(
-        now,
-        sla.lastPublicNoteReminderSentAt,
-      );
+      const timeSinceLastReminder: number =
+        OneUptimeDate.getDifferenceInMinutes(
+          now,
+          sla.lastPublicNoteReminderSentAt,
+        );
 
       return timeSinceLastReminder >= interval;
     });

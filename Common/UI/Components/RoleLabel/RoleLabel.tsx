@@ -45,11 +45,7 @@ const RoleLabel: FunctionComponent<ComponentProps> = (
             backgroundColor: resolvedColor.toString(),
           }}
         >
-          <Icon
-            icon={resolvedIcon}
-            className="h-4 w-4"
-            color={iconColor}
-          />
+          <Icon icon={resolvedIcon} className="h-4 w-4" color={iconColor} />
         </div>
       ) : (
         <div

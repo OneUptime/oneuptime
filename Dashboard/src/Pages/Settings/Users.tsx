@@ -74,142 +74,146 @@ const Teams: FunctionComponent<PageComponentProps> = (
                 )}
 
                 <ModelTable<TeamMember>
-        modelType={TeamMember}
-        id="teams-table"
-        name="Settings > Users"
-        userPreferencesKey="users-table"
-        isDeleteable={!isPushGroupsManaged}
-        bulkActions={
-          !isPushGroupsManaged
-            ? {
-                buttons: [ModalTableBulkDefaultActions.Delete],
-              }
-            : undefined
-        }
-        isEditable={false}
-        isCreateable={false}
-        onFilterApplied={(isApplied: boolean) => {
-          setIsFilterApplied(isApplied);
-        }}
-        isViewable={true}
-        onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
-          if (isPushGroupsManaged) {
-            throw new BadDataException(
-              "Cannot remove team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
-            );
-          }
-          return item;
-        }}
-        cardProps={{
-          title: "Users",
-          description:
-            "Here is a list of all the team members in this project.",
-          buttons: [
-            {
-              title: "Invite User",
-              buttonStyle: ButtonStyleType.NORMAL,
-              icon: IconProp.Add,
-              onClick: () => {
-                if (isPushGroupsManaged) {
-                  setShowScimErrorModal(true);
-                } else {
-                  setShowInviteUserModal(true);
-                }
-              },
-            },
-          ],
-        }}
-        noItemsMessage={
-          isFilterApplied
-            ? "No users found"
-            : "Please wait, we are refreshing the list of users for this project. Please try again in sometime."
-        }
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        showRefreshButton={true}
-        onViewPage={(item: TeamMember) => {
-          const viewPageRoute: string =
-            RouteUtil.populateRouteParams(props.pageRoute).toString() +
-            "/" +
-            item.user?.id?.toString();
-          // add user id to the route
-          return Promise.resolve(new Route(viewPageRoute));
-        }}
-        filters={[
-          {
-            field: {
-              team: {
-                name: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Entity,
-            filterEntityType: Team,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              hasAcceptedInvitation: true,
-            },
-            title: "Status",
-            type: FieldType.Boolean,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              user: {
-                name: true,
-                email: true,
-                profilePictureId: true,
-              },
-            },
-            title: "User",
-            type: FieldType.Element,
-            getElement: (item: TeamMember) => {
-              if (!item.user) {
-                return <p>User not found</p>;
-              }
-              return <UserElement user={item.user!} />;
-            },
-          },
-          {
-            field: {
-              team: {
-                name: true,
-                _id: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Element,
-            getElement: (item: TeamMember) => {
-              if (!item.team) {
-                return <p>No team assigned</p>;
-              }
-              return <TeamElement team={item.team!} />;
-            },
-          },
-          {
-            field: {
-              hasAcceptedInvitation: true,
-            },
-            title: "Status",
-            type: FieldType.Element,
-            getElement: (item: TeamMember) => {
-              if (item.hasAcceptedInvitation) {
-                return <Pill text="Member" color={Green} />;
-              }
-              return <Pill text="Invitation Sent" color={Yellow} />;
-            },
-          },
-        ]}
+                  modelType={TeamMember}
+                  id="teams-table"
+                  name="Settings > Users"
+                  userPreferencesKey="users-table"
+                  isDeleteable={!isPushGroupsManaged}
+                  bulkActions={
+                    !isPushGroupsManaged
+                      ? {
+                          buttons: [ModalTableBulkDefaultActions.Delete],
+                        }
+                      : undefined
+                  }
+                  isEditable={false}
+                  isCreateable={false}
+                  onFilterApplied={(isApplied: boolean) => {
+                    setIsFilterApplied(isApplied);
+                  }}
+                  isViewable={true}
+                  onBeforeDelete={async (
+                    item: TeamMember,
+                  ): Promise<TeamMember> => {
+                    if (isPushGroupsManaged) {
+                      throw new BadDataException(
+                        "Cannot remove team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
+                      );
+                    }
+                    return item;
+                  }}
+                  cardProps={{
+                    title: "Users",
+                    description:
+                      "Here is a list of all the team members in this project.",
+                    buttons: [
+                      {
+                        title: "Invite User",
+                        buttonStyle: ButtonStyleType.NORMAL,
+                        icon: IconProp.Add,
+                        onClick: () => {
+                          if (isPushGroupsManaged) {
+                            setShowScimErrorModal(true);
+                          } else {
+                            setShowInviteUserModal(true);
+                          }
+                        },
+                      },
+                    ],
+                  }}
+                  noItemsMessage={
+                    isFilterApplied
+                      ? "No users found"
+                      : "Please wait, we are refreshing the list of users for this project. Please try again in sometime."
+                  }
+                  query={{
+                    projectId: ProjectUtil.getCurrentProjectId()!,
+                  }}
+                  showRefreshButton={true}
+                  onViewPage={(item: TeamMember) => {
+                    const viewPageRoute: string =
+                      RouteUtil.populateRouteParams(
+                        props.pageRoute,
+                      ).toString() +
+                      "/" +
+                      item.user?.id?.toString();
+                    // add user id to the route
+                    return Promise.resolve(new Route(viewPageRoute));
+                  }}
+                  filters={[
+                    {
+                      field: {
+                        team: {
+                          name: true,
+                        },
+                      },
+                      title: "Team",
+                      type: FieldType.Entity,
+                      filterEntityType: Team,
+                      filterQuery: {
+                        projectId: ProjectUtil.getCurrentProjectId()!,
+                      },
+                      filterDropdownField: {
+                        label: "name",
+                        value: "_id",
+                      },
+                    },
+                    {
+                      field: {
+                        hasAcceptedInvitation: true,
+                      },
+                      title: "Status",
+                      type: FieldType.Boolean,
+                    },
+                  ]}
+                  columns={[
+                    {
+                      field: {
+                        user: {
+                          name: true,
+                          email: true,
+                          profilePictureId: true,
+                        },
+                      },
+                      title: "User",
+                      type: FieldType.Element,
+                      getElement: (item: TeamMember) => {
+                        if (!item.user) {
+                          return <p>User not found</p>;
+                        }
+                        return <UserElement user={item.user!} />;
+                      },
+                    },
+                    {
+                      field: {
+                        team: {
+                          name: true,
+                          _id: true,
+                        },
+                      },
+                      title: "Team",
+                      type: FieldType.Element,
+                      getElement: (item: TeamMember) => {
+                        if (!item.team) {
+                          return <p>No team assigned</p>;
+                        }
+                        return <TeamElement team={item.team!} />;
+                      },
+                    },
+                    {
+                      field: {
+                        hasAcceptedInvitation: true,
+                      },
+                      title: "Status",
+                      type: FieldType.Element,
+                      getElement: (item: TeamMember) => {
+                        if (item.hasAcceptedInvitation) {
+                          return <Pill text="Member" color={Green} />;
+                        }
+                        return <Pill text="Invitation Sent" color={Yellow} />;
+                      },
+                    },
+                  ]}
                 />
                 {showInviteUserModal && !isPushGroupsManaged && (
                   <ModelFormModal<TeamMember>

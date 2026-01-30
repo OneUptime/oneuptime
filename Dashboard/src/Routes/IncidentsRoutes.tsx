@@ -566,9 +566,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={
-            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SLA_RULES] || ""
-          }
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SLA_RULES] || ""}
           element={
             <Suspense fallback={Loader}>
               <IncidentSettingsSlaRules
