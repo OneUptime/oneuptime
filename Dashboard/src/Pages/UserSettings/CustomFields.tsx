@@ -18,6 +18,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import Exception from "Common/Types/Exception/Exception";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 
 const UserSettingsCustomFields: FunctionComponent<
   PageComponentProps
@@ -78,14 +80,18 @@ const UserSettingsCustomFields: FunctionComponent<
         newProfile.projectId = projectId;
         newProfile.userId = userId;
 
-        const createdProfile: ProjectUserProfile =
-          await ModelAPI.create<ProjectUserProfile>({
-            model: newProfile,
-            modelType: ProjectUserProfile,
-          });
+        const response: HTTPResponse<
+          JSONObject | ProjectUserProfile | Array<ProjectUserProfile>
+        > = await ModelAPI.create<ProjectUserProfile>({
+          model: newProfile,
+          modelType: ProjectUserProfile,
+        });
 
-        if (createdProfile.id) {
-          setProjectUserProfileId(createdProfile.id);
+        const createdProfile: ProjectUserProfile =
+          response.data as ProjectUserProfile;
+
+        if (createdProfile && createdProfile._id) {
+          setProjectUserProfileId(new ObjectID(createdProfile._id as string));
         } else {
           setError("Failed to create user profile.");
         }
