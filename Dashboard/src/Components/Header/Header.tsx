@@ -445,33 +445,42 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     items.push({
       id: "incidents",
       icon: IconProp.Alert,
-      title: "Active Incidents",
+      title: `${incidentsCount} Active ${incidentsCount === 1 ? "Incident" : "Incidents"}`,
       count: incidentsCount,
       alertType: HeaderAlertType.ERROR,
       tooltip: "View all active incidents",
-      suffix: incidentsCount === 1 ? "Incident" : "Incidents",
     });
 
     // Alerts - ERROR type
     items.push({
       id: "alerts",
       icon: IconProp.ExclaimationCircle,
-      title: "Active Alerts",
+      title: `${alertsCount} Active ${alertsCount === 1 ? "Alert" : "Alerts"}`,
       count: alertsCount,
       alertType: HeaderAlertType.ERROR,
       tooltip: "View all active alerts",
-      suffix: alertsCount === 1 ? "Alert" : "Alerts",
     });
+
+    // On-Call Policies - SUCCESS type
+    if (props.selectedProject && currentOnCallPolicies.length > 0) {
+      items.push({
+        id: "oncall",
+        icon: IconProp.Call,
+        title: `On duty for ${currentOnCallPolicies.length} ${currentOnCallPolicies.length === 1 ? "policy" : "policies"}`,
+        count: currentOnCallPolicies.length,
+        alertType: HeaderAlertType.SUCCESS,
+        tooltip: "On-call policies you are currently on duty for",
+      });
+    }
 
     // Invitations - INFO type
     items.push({
       id: "invitations",
       icon: IconProp.Folder,
-      title: "Pending Invitations",
+      title: `${invitationsCount} Pending ${invitationsCount === 1 ? "Invitation" : "Invitations"}`,
       count: invitationsCount,
       alertType: HeaderAlertType.INFO,
       tooltip: "Looks like you have pending project invitations. Please click here to review and accept them.",
-      suffix: invitationsCount === 1 ? "Invitation" : "Invitations",
     });
 
     // Trial Days - INFO type (only if showTrialButton is true)
@@ -479,24 +488,22 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       items.push({
         id: "trial",
         icon: IconProp.Clock,
-        title: "Trial Remaining",
+        title: `Trial ends in ${trialDaysRemaining} ${trialDaysRemaining === 1 ? "day" : "days"}`,
         count: trialDaysRemaining,
         alertType: HeaderAlertType.INFO,
-        tooltip: "Your trial ends soon",
-        suffix: trialDaysRemaining === 1 ? "day" : "days",
+        tooltip: "Your trial ends soon. Add card details to continue using the service.",
       });
     }
 
-    // On-Call Policies - SUCCESS type
-    if (props.selectedProject && currentOnCallPolicies.length > 0) {
+    // Add Card Details - INFO type (only if showAddCardButton is true)
+    if (showAddCardButton) {
       items.push({
-        id: "oncall",
-        icon: IconProp.Call,
-        title: "On-Call Policies",
-        count: currentOnCallPolicies.length,
-        alertType: HeaderAlertType.SUCCESS,
-        tooltip: "On-call policies you are currently on duty for",
-        suffix: currentOnCallPolicies.length === 1 ? "On-Call Policy" : "On-Call Policies",
+        id: "addcard",
+        icon: IconProp.Billing,
+        title: "Add Card Details",
+        count: 1,
+        alertType: HeaderAlertType.INFO,
+        tooltip: "Add your payment card details to continue using the service.",
       });
     }
 
@@ -523,6 +530,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         );
         break;
       case "trial":
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_BILLING]!),
+        );
+        break;
+      case "addcard":
         Navigation.navigate(
           RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_BILLING]!),
         );

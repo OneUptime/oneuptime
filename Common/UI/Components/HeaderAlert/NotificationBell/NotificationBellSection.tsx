@@ -23,7 +23,7 @@ const NotificationBellSection: (props: ComponentProps) => ReactElement = (
       textColor = "text-amber-600";
       break;
     case HeaderAlertType.INFO:
-      textColor = "text-indigo-600";
+      textColor = "text-gray-500";
       break;
   }
 

@@ -23,20 +23,16 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
     },
   );
 
-  const totalCount: number = itemsWithCount.reduce(
-    (sum: number, item: NotificationItem) => {
-      return sum + item.count;
-    },
-    0,
-  );
-
-  const hasErrorItems: boolean = itemsWithCount.some(
+  // Count of critical items (ERROR type with count > 0)
+  const criticalItemsCount: number = itemsWithCount.filter(
     (item: NotificationItem) => {
       return item.alertType === HeaderAlertType.ERROR;
     },
-  );
+  ).length;
 
-  const badgeColor: string = hasErrorItems ? "bg-red-500" : "bg-indigo-500";
+  const hasErrorItems: boolean = criticalItemsCount > 0;
+
+  const badgeColor: string = hasErrorItems ? "bg-red-500" : "bg-gray-500";
 
   return (
     <div className="relative ml-4 flex-shrink-0" ref={ref}>
@@ -53,11 +49,11 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
         <Icon className="h-5 w-5 text-gray-500" icon={IconProp.Bell} />
       </button>
 
-      {totalCount > 0 && (
+      {criticalItemsCount > 0 && (
         <span
           className={`absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ${badgeColor} text-xs font-semibold text-white ring-2 ring-white`}
         >
-          {totalCount > 99 ? "99+" : totalCount}
+          {criticalItemsCount > 99 ? "99+" : criticalItemsCount}
         </span>
       )}
 

@@ -64,9 +64,9 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
           </NotificationBellSection>
         )}
 
-        {infoItems.length > 0 && (
-          <NotificationBellSection title="Information" alertType={HeaderAlertType.INFO}>
-            {infoItems.map((item: NotificationItem) => {
+        {successItems.length > 0 && (
+          <NotificationBellSection title="On-Call" alertType={HeaderAlertType.SUCCESS}>
+            {successItems.map((item: NotificationItem) => {
               return (
                 <NotificationBellItem
                   key={item.id}
@@ -80,9 +80,9 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
           </NotificationBellSection>
         )}
 
-        {successItems.length > 0 && (
-          <NotificationBellSection title="On-Call" alertType={HeaderAlertType.SUCCESS}>
-            {successItems.map((item: NotificationItem) => {
+        {infoItems.length > 0 && (
+          <NotificationBellSection title="Information" alertType={HeaderAlertType.INFO}>
+            {infoItems.map((item: NotificationItem) => {
               return (
                 <NotificationBellItem
                   key={item.id}

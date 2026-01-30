@@ -38,10 +38,10 @@ const NotificationBellItem: (props: ComponentProps) => ReactElement = (
       borderColor = "border-amber-200";
       break;
     case HeaderAlertType.INFO:
-      textColor = "text-indigo-600";
-      bgColor = "bg-indigo-50";
-      hoverBgColor = "hover:bg-indigo-100";
-      borderColor = "border-indigo-200";
+      textColor = "text-gray-600";
+      bgColor = "bg-gray-50";
+      hoverBgColor = "hover:bg-gray-100";
+      borderColor = "border-gray-200";
       break;
   }
 
@@ -65,15 +65,10 @@ const NotificationBellItem: (props: ComponentProps) => ReactElement = (
             className={`h-4 w-4 stroke-[2.5px] ${textColor}`}
           />
         </div>
-        <div className="flex items-center gap-1">
-          <span className={`text-sm font-semibold ${textColor}`}>
-            {item.count}
+        <div className="flex-1">
+          <span className={`text-sm font-medium ${textColor}`}>
+            {item.title}
           </span>
-          {item.suffix && (
-            <span className={`${textColor} text-sm font-medium opacity-80`}>
-              {item.suffix}
-            </span>
-          )}
         </div>
       </div>
     </div>
