@@ -213,7 +213,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   return (
     <MemberRoleAssignment
       title="Incident Roles"
-      description="Assign team members to incident roles for coordinated response."
+      description="Assign one team member per role for coordinated incident response."
       roles={roles}
       assignedMembers={assignedMembers}
       availableUsers={availableUsers}

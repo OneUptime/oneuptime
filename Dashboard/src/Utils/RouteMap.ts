@@ -926,6 +926,12 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.ACTIVE_ALERTS]: new Route(`/dashboard/active-alerts`),
 
+  [PageMap.ACTIVE_ALERT_EPISODES]: new Route(`/dashboard/active-alert-episodes`),
+
+  [PageMap.ACTIVE_INCIDENT_EPISODES]: new Route(
+    `/dashboard/active-incident-episodes`,
+  ),
+
   [PageMap.PROJECT_INVITATIONS]: new Route(`/dashboard/project-invitations`),
 
   [PageMap.INCIDENT_VIEW]: new Route(
@@ -2375,7 +2381,12 @@ export class RouteUtil {
       route.toString() === RouteMap[PageMap.USER_PROFILE_PICTURE]?.toString() ||
       route.toString() === RouteMap[PageMap.USER_PROFILE_DELETE]?.toString() ||
       route.toString() === RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
-      route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()
+      route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString() ||
+      route.toString() === RouteMap[PageMap.ACTIVE_ALERTS]?.toString() ||
+      route.toString() ===
+        RouteMap[PageMap.ACTIVE_ALERT_EPISODES]?.toString() ||
+      route.toString() ===
+        RouteMap[PageMap.ACTIVE_INCIDENT_EPISODES]?.toString()
     ) {
       return true;
     }

@@ -761,14 +761,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       case "alertEpisodes":
         Navigation.navigate(
           RouteUtil.populateRouteParams(
-            RouteMap[PageMap.HOME_ACTIVE_EPISODES]!,
+            RouteMap[PageMap.ACTIVE_ALERT_EPISODES]!,
           ),
         );
         break;
       case "incidentEpisodes":
         Navigation.navigate(
           RouteUtil.populateRouteParams(
-            RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES]!,
+            RouteMap[PageMap.ACTIVE_INCIDENT_EPISODES]!,
           ),
         );
         break;
