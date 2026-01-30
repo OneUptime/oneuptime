@@ -406,15 +406,15 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 return (
                   <div key={role.id}>
                     <FieldLabelElement
-                      title={
+                      title={role.name}
+                      description={
                         <span>
-                          {role.name}{" "}
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-2">
+                          Assign multiple users to the {role.name} role{" "}
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-1">
                             Multiple
                           </span>
                         </span>
                       }
-                      description={`Assign multiple users to the ${role.name} role`}
                     />
                     <Dropdown
                       value={props.userDropdownOptions.filter(
