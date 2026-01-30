@@ -1378,6 +1378,29 @@ const Icon: FunctionComponent<ComponentProps> = ({
         <rect x="17" y="17" width="5" height="4" rx="0.5" />
       </>,
     );
+  } else if (icon === IconProp.Compass) {
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm3.5 13.5-5-2.5-2.5-5 5 2.5 2.5 5Z"
+      />,
+    );
+  } else if (icon === IconProp.Disc) {
+    return getSvgWrapper(
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="3" />
+      </>,
+    );
+  } else if (icon === IconProp.Grid) {
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+      />,
+    );
   }
 
   return <></>;
