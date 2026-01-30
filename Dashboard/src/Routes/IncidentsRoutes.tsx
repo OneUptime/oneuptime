@@ -74,6 +74,12 @@ const IncidentViewStateTimeline: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/Incidents/View/StateTimeline");
 });
+
+const IncidentViewSla: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Incidents/View/Sla");
+  });
+
 const IncidentInternalNote: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -194,6 +200,12 @@ const IncidentSettingsGroupingRules: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Incidents/Settings/IncidentGroupingRules");
+});
+
+const IncidentSettingsSlaRules: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/Settings/IncidentSlaRules");
 });
 
 const IncidentSettingsRoles: LazyExoticComponent<
@@ -554,6 +566,22 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SLA_RULES] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentSettingsSlaRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ROLES] || ""}
           element={
             <Suspense fallback={Loader}>
@@ -847,6 +875,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SLA)}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentViewSla
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SLA] as Route}
               />
             </Suspense>
           }

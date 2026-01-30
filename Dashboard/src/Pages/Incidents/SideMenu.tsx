@@ -184,6 +184,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "SLA Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Clock,
+        },
+        {
+          link: {
             title: "Incident Roles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_ROLES] as Route,

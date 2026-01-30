@@ -816,6 +816,18 @@ enum Permission {
   EditIncidentGroupingRule = "EditIncidentGroupingRule",
   ReadIncidentGroupingRule = "ReadIncidentGroupingRule",
 
+  // Incident SLA Rule Permissions
+  CreateIncidentSlaRule = "CreateIncidentSlaRule",
+  DeleteIncidentSlaRule = "DeleteIncidentSlaRule",
+  EditIncidentSlaRule = "EditIncidentSlaRule",
+  ReadIncidentSlaRule = "ReadIncidentSlaRule",
+
+  // Incident SLA Permissions
+  CreateIncidentSla = "CreateIncidentSla",
+  DeleteIncidentSla = "DeleteIncidentSla",
+  EditIncidentSla = "EditIncidentSla",
+  ReadIncidentSla = "ReadIncidentSla",
+
   // Read All Project Resources Permission - Grants read access to all project resources
   ReadAllProjectResources = "ReadAllProjectResources",
 }
@@ -5787,6 +5799,74 @@ export class PermissionHelper {
         title: "Read Incident Grouping Rule",
         description:
           "This permission can read Incident Grouping Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident SLA Rule Permissions
+      {
+        permission: Permission.CreateIncidentSlaRule,
+        title: "Create Incident SLA Rule",
+        description:
+          "This permission can create Incident SLA Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentSlaRule,
+        title: "Delete Incident SLA Rule",
+        description:
+          "This permission can delete Incident SLA Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentSlaRule,
+        title: "Edit Incident SLA Rule",
+        description:
+          "This permission can edit Incident SLA Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentSlaRule,
+        title: "Read Incident SLA Rule",
+        description:
+          "This permission can read Incident SLA Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident SLA Permissions
+      {
+        permission: Permission.CreateIncidentSla,
+        title: "Create Incident SLA",
+        description:
+          "This permission can create Incident SLA records in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentSla,
+        title: "Delete Incident SLA",
+        description:
+          "This permission can delete Incident SLA records of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentSla,
+        title: "Edit Incident SLA",
+        description:
+          "This permission can edit Incident SLA records of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentSla,
+        title: "Read Incident SLA",
+        description:
+          "This permission can read Incident SLA records of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

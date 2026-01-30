@@ -140,6 +140,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
               _id: true,
               order: true,
               name: true,
+              isResolvedState: true,
             },
             startsAt: true,
             endsAt: true,
@@ -519,6 +520,21 @@ ${createdItem.rootCause}`,
       logger.error(error);
     });
 
+    // Track SLA response/resolution times
+    this.trackSlaStateChange({
+      incidentId: createdItem.incidentId,
+      projectId: createdItem.projectId!,
+      isAcknowledgedState: incidentState?.isAcknowledgedState || false,
+      isResolvedState: incidentState?.isResolvedState || false,
+      stateChangedAt: createdItem.startsAt || OneUptimeDate.getCurrentDate(),
+      previousStateWasResolved:
+        onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentState
+          ?.isResolvedState || false,
+    }).catch((error: Error) => {
+      logger.error(`Error while tracking SLA state change:`);
+      logger.error(error);
+    });
+
     const isLastIncidentState: boolean = await this.isLastIncidentState({
       projectId: createdItem.projectId!,
       incidentStateId: createdItem.incidentStateId,
@@ -669,6 +685,70 @@ ${createdItem.rootCause}`,
     logger.debug(
       `Auto-assigned user ${data.userId.toString()} as Incident Commander for incident ${data.incidentId.toString()}`,
     );
+  }
+
+  @CaptureSpan()
+  private async trackSlaStateChange(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+    isAcknowledgedState: boolean;
+    isResolvedState: boolean;
+    stateChangedAt: Date;
+    previousStateWasResolved: boolean;
+  }): Promise<void> {
+    try {
+      const IncidentSlaService = (await import("./IncidentSlaService")).default;
+
+      // Check if incident is being reopened (previous state was resolved, current state is not resolved)
+      if (data.previousStateWasResolved && !data.isResolvedState) {
+        // Incident is being reopened - create a new SLA record
+        const IncidentService = (await import("./IncidentService")).default;
+
+        const incident: Incident | null = await IncidentService.findOneById({
+          id: data.incidentId,
+          select: {
+            declaredAt: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (incident && incident.declaredAt) {
+          // Create a new SLA record starting from the reopen time
+          await IncidentSlaService.createSlaForIncident({
+            incidentId: data.incidentId,
+            projectId: data.projectId,
+            declaredAt: data.stateChangedAt, // Use reopen time as SLA start time
+          });
+
+          logger.info(
+            `Created new SLA record for reopened incident ${data.incidentId}`,
+          );
+        }
+
+        return;
+      }
+
+      // Track acknowledged state
+      if (data.isAcknowledgedState) {
+        await IncidentSlaService.markResponded({
+          incidentId: data.incidentId,
+          respondedAt: data.stateChangedAt,
+        });
+      }
+
+      // Track resolved state
+      if (data.isResolvedState) {
+        await IncidentSlaService.markResolved({
+          incidentId: data.incidentId,
+          resolvedAt: data.stateChangedAt,
+        });
+      }
+    } catch (error) {
+      logger.error(`Error in trackSlaStateChange: ${error}`);
+      throw error;
+    }
   }
 
   @CaptureSpan()

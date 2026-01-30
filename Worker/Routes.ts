@@ -16,6 +16,10 @@ import "./Jobs/IncidentOwners/SendStateChangeNotification";
 // Incident Members
 import "./Jobs/IncidentMembers/SendMemberAddedNotification";
 
+// Incident SLA
+import "./Jobs/IncidentSla/CheckSlaBreaches";
+import "./Jobs/IncidentSla/SendNoteReminders";
+
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
 
