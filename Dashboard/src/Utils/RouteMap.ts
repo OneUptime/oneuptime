@@ -201,7 +201,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_POSTMORTEM]: `${RouteParams.ModelID}/postmortem`,
   [PageMap.INCIDENT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
-  [PageMap.INCIDENT_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
+  [PageMap.INCIDENT_VIEW_ROLES]: `${RouteParams.ModelID}/roles`,
   [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: `${RouteParams.ModelID}/on-call-policy-execution-logs`,
   [PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
   [PageMap.INCIDENT_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai-logs`,
@@ -970,9 +970,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.INCIDENT_VIEW_MEMBERS]: new Route(
+  [PageMap.INCIDENT_VIEW_ROLES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENT_VIEW_MEMBERS]
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_ROLES]
     }`,
   ),
 

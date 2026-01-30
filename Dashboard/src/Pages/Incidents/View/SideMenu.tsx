@@ -108,9 +108,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Members",
+            title: "Roles",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW_MEMBERS] as Route,
+              RouteMap[PageMap.INCIDENT_VIEW_ROLES] as Route,
               { modelId: props.modelId },
             ),
           }}
