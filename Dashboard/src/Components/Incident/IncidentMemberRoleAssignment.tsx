@@ -70,6 +70,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
               color: true,
               isPrimaryRole: true,
               roleIcon: true,
+              canAssignMultipleUsers: true,
             },
             sort: {
               isPrimaryRole: SortOrder.Descending,
@@ -118,6 +119,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
             color: role.color || Color.fromString("#6b7280"),
             isPrimaryRole: role.isPrimaryRole || false,
             icon: role.roleIcon || undefined,
+            canAssignMultipleUsers: role.canAssignMultipleUsers || false,
           };
         });
 

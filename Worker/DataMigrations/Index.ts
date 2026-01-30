@@ -55,6 +55,7 @@ import LowercaseDomains from "./LowercaseDomains";
 import AddAttributeKeysColumnToTelemetryTables from "./AddAttributeKeysColumnToTelemetryTables";
 import AddDefaultIncidentRolesToExistingProjects from "./AddDefaultIncidentRolesToExistingProjects";
 import AddDefaultIconsToIncidentRoles from "./AddDefaultIconsToIncidentRoles";
+import UpdateObserverRoleToAllowMultipleUsers from "./UpdateObserverRoleToAllowMultipleUsers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -114,6 +115,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddAttributeKeysColumnToTelemetryTables(),
   new AddDefaultIncidentRolesToExistingProjects(),
   new AddDefaultIconsToIncidentRoles(),
+  new UpdateObserverRoleToAllowMultipleUsers(),
 ];
 
 export default DataMigrations;

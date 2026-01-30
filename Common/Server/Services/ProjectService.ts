@@ -1006,6 +1006,7 @@ export class ProjectService extends DatabaseService<Model> {
     observer.color = Gray500;
     observer.roleIcon = IconProp.Activity;
     observer.projectId = createdItem.id!;
+    observer.canAssignMultipleUsers = true;
 
     observer = await IncidentRoleService.create({
       data: observer,

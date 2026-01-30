@@ -493,4 +493,38 @@ export default class IncidentRole extends BaseModel {
     default: true,
   })
   public isDeleteable?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentRole,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentRole,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentRole,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Can Assign Multiple Users",
+    description:
+      "Can multiple users be assigned to this role? If false, only one user can be assigned.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public canAssignMultipleUsers?: boolean = undefined;
 }
