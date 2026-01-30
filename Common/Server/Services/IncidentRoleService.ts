@@ -30,10 +30,7 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     // If trying to set canAssignMultipleUsers to true, check if any of the roles are primary
-    if (
-      updateBy.data.canAssignMultipleUsers === true &&
-      updateBy.query._id
-    ) {
+    if (updateBy.data.canAssignMultipleUsers === true && updateBy.query._id) {
       // Convert _id to ObjectID if it's a string
       const id: ObjectID =
         updateBy.query._id instanceof ObjectID

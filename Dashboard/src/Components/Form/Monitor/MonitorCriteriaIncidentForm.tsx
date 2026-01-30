@@ -444,41 +444,40 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                     />
                   </div>
                 );
-              } else {
-                // Single-user role
-                const selectedUserId: ObjectID | undefined = getUserForRole(
-                  role.id,
-                );
-                return (
-                  <div key={role.id}>
-                    <FieldLabelElement
-                      title={role.name}
-                      description={`Assign a user to the ${role.name} role`}
-                    />
-                    <Dropdown
-                      value={
-                        selectedUserId
-                          ? props.userDropdownOptions.find(
-                              (i: DropdownOption) => {
-                                return i.value === selectedUserId.toString();
-                              },
-                            )
-                          : undefined
-                      }
-                      options={props.userDropdownOptions}
-                      onChange={(
-                        value: DropdownValue | Array<DropdownValue> | null,
-                      ) => {
-                        setUserForRole(
-                          role.id,
-                          value ? new ObjectID(value.toString()) : undefined,
-                        );
-                      }}
-                      placeholder={`Select ${role.name}...`}
-                    />
-                  </div>
-                );
               }
+              // Single-user role
+              const selectedUserId: ObjectID | undefined = getUserForRole(
+                role.id,
+              );
+              return (
+                <div key={role.id}>
+                  <FieldLabelElement
+                    title={role.name}
+                    description={`Assign a user to the ${role.name} role`}
+                  />
+                  <Dropdown
+                    value={
+                      selectedUserId
+                        ? props.userDropdownOptions.find(
+                            (i: DropdownOption) => {
+                              return i.value === selectedUserId.toString();
+                            },
+                          )
+                        : undefined
+                    }
+                    options={props.userDropdownOptions}
+                    onChange={(
+                      value: DropdownValue | Array<DropdownValue> | null,
+                    ) => {
+                      setUserForRole(
+                        role.id,
+                        value ? new ObjectID(value.toString()) : undefined,
+                      );
+                    }}
+                    placeholder={`Select ${role.name}...`}
+                  />
+                </div>
+              );
             })}
           </div>
         </CollapsibleSection>

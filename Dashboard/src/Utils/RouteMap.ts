@@ -926,7 +926,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.ACTIVE_ALERTS]: new Route(`/dashboard/active-alerts`),
 
-  [PageMap.ACTIVE_ALERT_EPISODES]: new Route(`/dashboard/active-alert-episodes`),
+  [PageMap.ACTIVE_ALERT_EPISODES]: new Route(
+    `/dashboard/active-alert-episodes`,
+  ),
 
   [PageMap.ACTIVE_INCIDENT_EPISODES]: new Route(
     `/dashboard/active-incident-episodes`,

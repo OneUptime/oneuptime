@@ -434,14 +434,12 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                           Not assigned
                         </p>
                       ) : (
-                        members.map(
-                          (member: AssignedMember, index: number) => {
-                            return renderMemberRow(
-                              member,
-                              index === members.length - 1,
-                            );
-                          },
-                        )
+                        members.map((member: AssignedMember, index: number) => {
+                          return renderMemberRow(
+                            member,
+                            index === members.length - 1,
+                          );
+                        })
                       )}
                     </div>
                   </div>
