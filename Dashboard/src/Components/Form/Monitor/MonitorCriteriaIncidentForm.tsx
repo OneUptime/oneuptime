@@ -20,6 +20,7 @@ export interface IncidentRoleOption {
   id: string;
   name: string;
   color?: string | undefined;
+  canAssignMultipleUsers?: boolean | undefined;
 }
 
 export interface ComponentProps {
@@ -80,7 +81,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     criteriaIncident.incidentMemberRoles?.length,
   );
 
-  // Helper to get user for a role
+  // Helper to get user for a single-user role
   const getUserForRole: (roleId: string) => ObjectID | undefined = (
     roleId: string,
   ): ObjectID | undefined => {
@@ -93,7 +94,22 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     return assignment?.userId;
   };
 
-  // Helper to set user for a role
+  // Helper to get all users for a multi-user role
+  const getUsersForRole: (roleId: string) => Array<ObjectID> = (
+    roleId: string,
+  ): Array<ObjectID> => {
+    const assignments: Array<IncidentMemberRoleAssignment> =
+      criteriaIncident.incidentMemberRoles?.filter(
+        (a: IncidentMemberRoleAssignment) => {
+          return a.roleId.toString() === roleId;
+        },
+      ) || [];
+    return assignments.map((a: IncidentMemberRoleAssignment) => {
+      return a.userId;
+    });
+  };
+
+  // Helper to set user for a single-user role
   const setUserForRole: (
     roleId: string,
     userId: ObjectID | undefined,
@@ -109,6 +125,31 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
 
     // Add new assignment if userId is provided
     if (userId) {
+      filteredRoles.push({
+        roleId: new ObjectID(roleId),
+        userId: userId,
+      });
+    }
+
+    updateField("incidentMemberRoles", filteredRoles);
+  };
+
+  // Helper to set multiple users for a multi-user role
+  const setUsersForRole: (roleId: string, userIds: Array<ObjectID>) => void = (
+    roleId: string,
+    userIds: Array<ObjectID>,
+  ): void => {
+    const existingRoles: Array<IncidentMemberRoleAssignment> =
+      criteriaIncident.incidentMemberRoles || [];
+
+    // Remove all existing assignments for this role
+    const filteredRoles: Array<IncidentMemberRoleAssignment> =
+      existingRoles.filter((a: IncidentMemberRoleAssignment) => {
+        return a.roleId.toString() !== roleId;
+      });
+
+    // Add new assignments for each userId
+    for (const userId of userIds) {
       filteredRoles.push({
         roleId: new ObjectID(roleId),
         userId: userId,
@@ -357,38 +398,87 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               automatically assigned when the incident is created.
             </p>
             {props.incidentRoleOptions.map((role: IncidentRoleOption) => {
-              const selectedUserId: ObjectID | undefined = getUserForRole(
-                role.id,
-              );
-              return (
-                <div key={role.id}>
-                  <FieldLabelElement
-                    title={role.name}
-                    description={`Assign a user to the ${role.name} role`}
-                  />
-                  <Dropdown
-                    value={
-                      selectedUserId
-                        ? props.userDropdownOptions.find(
-                            (i: DropdownOption) => {
-                              return i.value === selectedUserId.toString();
-                            },
-                          )
-                        : undefined
-                    }
-                    options={props.userDropdownOptions}
-                    onChange={(
-                      value: DropdownValue | Array<DropdownValue> | null,
-                    ) => {
-                      setUserForRole(
-                        role.id,
-                        value ? new ObjectID(value.toString()) : undefined,
-                      );
-                    }}
-                    placeholder={`Select ${role.name}...`}
-                  />
-                </div>
-              );
+              if (role.canAssignMultipleUsers) {
+                // Multi-user role
+                const selectedUserIds: Array<ObjectID> = getUsersForRole(
+                  role.id,
+                );
+                return (
+                  <div key={role.id}>
+                    <FieldLabelElement
+                      title={
+                        <span>
+                          {role.name}{" "}
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-2">
+                            Multiple
+                          </span>
+                        </span>
+                      }
+                      description={`Assign multiple users to the ${role.name} role`}
+                    />
+                    <Dropdown
+                      value={props.userDropdownOptions.filter(
+                        (i: DropdownOption) => {
+                          return selectedUserIds.some((id: ObjectID) => {
+                            return id.toString() === i.value;
+                          });
+                        },
+                      )}
+                      options={props.userDropdownOptions}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        if (Array.isArray(value)) {
+                          setUsersForRole(
+                            role.id,
+                            value.map((v: DropdownValue) => {
+                              return new ObjectID(v.toString());
+                            }),
+                          );
+                        } else {
+                          setUsersForRole(role.id, []);
+                        }
+                      }}
+                      isMultiSelect={true}
+                      placeholder={`Select ${role.name}...`}
+                    />
+                  </div>
+                );
+              } else {
+                // Single-user role
+                const selectedUserId: ObjectID | undefined = getUserForRole(
+                  role.id,
+                );
+                return (
+                  <div key={role.id}>
+                    <FieldLabelElement
+                      title={role.name}
+                      description={`Assign a user to the ${role.name} role`}
+                    />
+                    <Dropdown
+                      value={
+                        selectedUserId
+                          ? props.userDropdownOptions.find(
+                              (i: DropdownOption) => {
+                                return i.value === selectedUserId.toString();
+                              },
+                            )
+                          : undefined
+                      }
+                      options={props.userDropdownOptions}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        setUserForRole(
+                          role.id,
+                          value ? new ObjectID(value.toString()) : undefined,
+                        );
+                      }}
+                      placeholder={`Select ${role.name}...`}
+                    />
+                  </div>
+                );
+              }
             })}
           </div>
         </CollapsibleSection>

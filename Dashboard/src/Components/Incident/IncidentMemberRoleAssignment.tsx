@@ -112,15 +112,20 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
         // Transform roles
         const transformedRoles: Array<MemberRole> = (
           rolesResult.data as Array<IncidentRole>
-        ).map((role: IncidentRole) => {
-          return {
+        ).map((role: IncidentRole): MemberRole => {
+          const memberRole: MemberRole = {
             id: role.id!,
             name: role.name || "Unknown Role",
             color: role.color || Color.fromString("#6b7280"),
             isPrimaryRole: role.isPrimaryRole || false,
-            icon: role.roleIcon || undefined,
             canAssignMultipleUsers: role.canAssignMultipleUsers || false,
           };
+
+          if (role.roleIcon) {
+            memberRole.icon = role.roleIcon;
+          }
+
+          return memberRole;
         });
 
         // Transform assigned members

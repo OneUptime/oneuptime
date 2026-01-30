@@ -48,12 +48,20 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import IncidentRoleFormField, {
+  RoleAssignment,
+} from "../../Components/Incident/IncidentRoleFormField";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [roleAssignments, setRoleAssignments] = useState<Array<RoleAssignment>>(
+    [],
+  );
 
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
@@ -410,6 +418,54 @@ const IncidentCreate: FunctionComponent<
                   },
                 },
                 {
+                  overrideField: {
+                    incidentRoles: true,
+                  },
+                  title: "Assign Incident Roles",
+                  stepId: "incident-roles",
+                  description:
+                    "Assign team members to incident roles. Some roles allow multiple users.",
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  required: false,
+                  overrideFieldKey: "incidentRoles",
+                  getCustomElement: (
+                    _value: FormValues<Incident>,
+                    props: CustomElementProps,
+                  ) => {
+                    return (
+                      <IncidentRoleFormField
+                        initialValue={roleAssignments}
+                        error={props.error}
+                        onChange={(assignments: Array<RoleAssignment>) => {
+                          setRoleAssignments(assignments);
+                          if (props.onChange) {
+                            props.onChange(assignments);
+                          }
+                        }}
+                      />
+                    );
+                  },
+                  getSummaryElement: (_item: FormValues<Incident>) => {
+                    if (roleAssignments.length === 0) {
+                      return <p>No incident roles assigned.</p>;
+                    }
+                    const totalAssignments: number = roleAssignments.reduce(
+                      (acc: number, assignment: RoleAssignment) => {
+                        return acc + assignment.userIds.length;
+                      },
+                      0,
+                    );
+                    return (
+                      <p>
+                        {totalAssignments} user
+                        {totalAssignments !== 1 ? "s" : ""} assigned to{" "}
+                        {roleAssignments.length} role
+                        {roleAssignments.length !== 1 ? "s" : ""}.
+                      </p>
+                    );
+                  },
+                },
+                {
                   field: {
                     onCallDutyPolicies: true,
                   },
@@ -693,6 +749,10 @@ const IncidentCreate: FunctionComponent<
                   id: "resources-affected",
                 },
                 {
+                  title: "Incident Roles",
+                  id: "incident-roles",
+                },
+                {
                   title: "On-Call",
                   id: "on-call",
                 },
@@ -705,7 +765,38 @@ const IncidentCreate: FunctionComponent<
                   id: "more",
                 },
               ]}
-              onSuccess={(createdItem: Incident) => {
+              onSuccess={async (createdItem: Incident) => {
+                // Create incident member records for role assignments
+                const projectId: ObjectID | null =
+                  ProjectUtil.getCurrentProjectId();
+                const incidentId: ObjectID = new ObjectID(
+                  createdItem._id?.toString() || "",
+                );
+
+                if (projectId && roleAssignments.length > 0) {
+                  for (const assignment of roleAssignments) {
+                    for (const userId of assignment.userIds) {
+                      try {
+                        const incidentMember: IncidentMember =
+                          new IncidentMember();
+                        incidentMember.projectId = projectId;
+                        incidentMember.incidentId = incidentId;
+                        incidentMember.incidentRoleId = new ObjectID(
+                          assignment.roleId,
+                        );
+                        incidentMember.userId = new ObjectID(userId);
+
+                        await ModelAPI.create({
+                          model: incidentMember,
+                          modelType: IncidentMember,
+                        });
+                      } catch {
+                        // Continue with other assignments even if one fails
+                      }
+                    }
+                  }
+                }
+
                 Navigation.navigate(
                   RouteUtil.populateRouteParams(
                     RouteUtil.populateRouteParams(

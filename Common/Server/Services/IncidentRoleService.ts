@@ -6,6 +6,7 @@ import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/IncidentRole";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import ObjectID from "../../Types/ObjectID";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -33,8 +34,14 @@ export class Service extends DatabaseService<Model> {
       updateBy.data.canAssignMultipleUsers === true &&
       updateBy.query._id
     ) {
+      // Convert _id to ObjectID if it's a string
+      const id: ObjectID =
+        updateBy.query._id instanceof ObjectID
+          ? updateBy.query._id
+          : new ObjectID(updateBy.query._id as string);
+
       const role: Model | null = await this.findOneById({
-        id: updateBy.query._id,
+        id: id,
         select: {
           isPrimaryRole: true,
         },

@@ -256,6 +256,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             _id: true,
             name: true,
             color: true,
+            canAssignMultipleUsers: true,
           },
           sort: {
             isPrimaryRole: SortOrder.Descending,
@@ -271,6 +272,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               id: i._id!,
               name: i.name || "Unknown Role",
               color: i.color?.toString(),
+              canAssignMultipleUsers: i.canAssignMultipleUsers || false,
             };
           }),
         );
