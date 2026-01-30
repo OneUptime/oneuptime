@@ -14,6 +14,7 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
+import Errors from "../Utils/Errors";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
@@ -393,6 +394,7 @@ export class ProjectService extends DatabaseService<Model> {
         paymentProviderSubscriptionSeats: true,
         paymentProviderPlanId: true,
         trialEndsAt: true,
+        paymentProviderCustomerId: true,
       },
       props: {
         isRoot: true,
@@ -411,6 +413,19 @@ export class ProjectService extends DatabaseService<Model> {
       throw new BadDataException(
         "Payment Provider metered subscription not found",
       );
+    }
+
+    // Check if customer has payment methods before attempting to change plan
+    if (!project.paymentProviderCustomerId) {
+      throw new BadDataException("Payment Provider customer not found");
+    }
+
+    const hasPaymentMethods: boolean = await BillingService.hasPaymentMethods(
+      project.paymentProviderCustomerId,
+    );
+
+    if (!hasPaymentMethods) {
+      throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
     }
 
     const plan: SubscriptionPlan | undefined =
