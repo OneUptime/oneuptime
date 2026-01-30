@@ -159,6 +159,14 @@ import IncidentGroupingRuleService, {
   Service as IncidentGroupingRuleServiceType,
 } from "Common/Server/Services/IncidentGroupingRuleService";
 
+import IncidentSlaService, {
+  Service as IncidentSlaServiceType,
+} from "Common/Server/Services/IncidentSlaService";
+
+import IncidentSlaRuleService, {
+  Service as IncidentSlaRuleServiceType,
+} from "Common/Server/Services/IncidentSlaRuleService";
+
 import IncidentCustomFieldService, {
   Service as IncidentCustomFieldServiceType,
 } from "Common/Server/Services/IncidentCustomFieldService";
@@ -497,6 +505,8 @@ import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwne
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
+import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
+import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 
 // IncidentEpisode Models
 import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
@@ -1126,6 +1136,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentGroupingRule, IncidentGroupingRuleServiceType>(
         IncidentGroupingRule,
         IncidentGroupingRuleService,
+      ).getRouter(),
+    );
+
+    // IncidentSla
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentSla, IncidentSlaServiceType>(
+        IncidentSla,
+        IncidentSlaService,
+      ).getRouter(),
+    );
+
+    // IncidentSlaRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentSlaRule, IncidentSlaRuleServiceType>(
+        IncidentSlaRule,
+        IncidentSlaRuleService,
       ).getRouter(),
     );
 
