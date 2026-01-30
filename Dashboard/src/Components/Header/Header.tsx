@@ -16,11 +16,11 @@ import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
-import HeaderAlert, {
-  HeaderAlertType,
-} from "Common/UI/Components/HeaderAlert/HeaderAlert";
-import HeaderModelAlert from "Common/UI/Components/HeaderAlert/HeaderModelAlert";
-import HeaderAlertGroup from "Common/UI/Components/HeaderAlert/HeaderAlertGroup";
+import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import {
+  NotificationBell,
+  NotificationItem,
+} from "Common/UI/Components/HeaderAlert/NotificationBell";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { APP_API_URL, BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -33,6 +33,7 @@ import React, {
   ReactElement,
   useEffect,
   useState,
+  useCallback,
 } from "react";
 import Realtime from "Common/UI/Utils/Realtime";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -65,22 +66,80 @@ export interface ComponentProps {
 const DashboardHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
-    useState<string>(OneUptimeDate.getCurrentDate().toString());
-
-  const [activeAlertToggleRefresh, setActiveAlertToggleRefresh] =
-    useState<string>(OneUptimeDate.getCurrentDate().toString());
-
-  const refreshIncidentCount: VoidFunction = () => {
-    setActiveIncidentToggleRefresh(OneUptimeDate.getCurrentDate().toString());
-  };
-
-  const refreshAlertCount: VoidFunction = () => {
-    setActiveAlertToggleRefresh(OneUptimeDate.getCurrentDate().toString());
-  };
+  const [incidentsCount, setIncidentsCount] = useState<number>(0);
+  const [alertsCount, setAlertsCount] = useState<number>(0);
+  const [invitationsCount, setInvitationsCount] = useState<number>(0);
 
   const [showCurrentOnCallPolicyModal, setShowCurrentOnCallPolicyModal] =
     useState<boolean>(false);
+
+  const fetchIncidentsCount: PromiseVoidFunction = useCallback(async (): Promise<void> => {
+    try {
+      const count: number = await ModelAPI.count<Incident>({
+        modelType: Incident,
+        query: {
+          currentIncidentState: {
+            order: 1,
+          },
+        },
+        requestOptions: {
+          isMultiTenantRequest: true,
+        },
+      });
+      setIncidentsCount(count);
+    } catch (err) {
+      setIncidentsCount(0);
+    }
+  }, []);
+
+  const fetchAlertsCount: PromiseVoidFunction = useCallback(async (): Promise<void> => {
+    try {
+      const count: number = await ModelAPI.count<Alert>({
+        modelType: Alert,
+        query: {
+          currentAlertState: {
+            order: 1,
+          },
+        },
+        requestOptions: {
+          isMultiTenantRequest: true,
+        },
+      });
+      setAlertsCount(count);
+    } catch (err) {
+      setAlertsCount(0);
+    }
+  }, []);
+
+  const fetchInvitationsCount: PromiseVoidFunction = useCallback(async (): Promise<void> => {
+    try {
+      const count: number = await ModelAPI.count<TeamMember>({
+        modelType: TeamMember,
+        query: {
+          userId: User.getUserId(),
+          hasAcceptedInvitation: false,
+        },
+        requestOptions: {
+          isMultiTenantRequest: true,
+        },
+      });
+      setInvitationsCount(count);
+    } catch (err) {
+      setInvitationsCount(0);
+    }
+  }, []);
+
+  const refreshIncidentCount: VoidFunction = () => {
+    fetchIncidentsCount().catch(() => {
+      // ignore
+    });
+  };
+
+  const refreshAlertCount: VoidFunction = () => {
+    fetchAlertsCount().catch(() => {
+      // ignore
+    });
+  };
 
   const realtimeIncidentCountRefresh: () => VoidFunction = (): VoidFunction => {
     const stopListeningOnCreate: VoidFunction =
@@ -181,11 +240,22 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
     const realtimeAlertStop: VoidFunction = realtimeAlertCountRefresh();
 
+    // Initial fetch of counts
+    fetchIncidentsCount().catch(() => {
+      // ignore
+    });
+    fetchAlertsCount().catch(() => {
+      // ignore
+    });
+    fetchInvitationsCount().catch(() => {
+      // ignore
+    });
+
     return () => {
       realtimeIncidentStop();
       realtimeAlertStop();
     };
-  }, []);
+  }, [fetchIncidentsCount, fetchAlertsCount, fetchInvitationsCount]);
 
   const [
     currentOnCallDutyEscalationPolicyUser,
@@ -361,6 +431,108 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       !props.selectedProject.resellerId,
   );
 
+  const trialDaysRemaining: number = props.selectedProject?.trialEndsAt
+    ? OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+        OneUptimeDate.getCurrentDate(),
+        props.selectedProject.trialEndsAt,
+      )
+    : 0;
+
+  const buildNotificationItems: () => Array<NotificationItem> = (): Array<NotificationItem> => {
+    const items: Array<NotificationItem> = [];
+
+    // Incidents - ERROR type
+    items.push({
+      id: "incidents",
+      icon: IconProp.Alert,
+      title: "Active Incidents",
+      count: incidentsCount,
+      alertType: HeaderAlertType.ERROR,
+      tooltip: "View all active incidents",
+      suffix: incidentsCount === 1 ? "Incident" : "Incidents",
+    });
+
+    // Alerts - ERROR type
+    items.push({
+      id: "alerts",
+      icon: IconProp.ExclaimationCircle,
+      title: "Active Alerts",
+      count: alertsCount,
+      alertType: HeaderAlertType.ERROR,
+      tooltip: "View all active alerts",
+      suffix: alertsCount === 1 ? "Alert" : "Alerts",
+    });
+
+    // Invitations - INFO type
+    items.push({
+      id: "invitations",
+      icon: IconProp.Folder,
+      title: "Pending Invitations",
+      count: invitationsCount,
+      alertType: HeaderAlertType.INFO,
+      tooltip: "Looks like you have pending project invitations. Please click here to review and accept them.",
+      suffix: invitationsCount === 1 ? "Invitation" : "Invitations",
+    });
+
+    // Trial Days - INFO type (only if showTrialButton is true)
+    if (showTrialButton && trialDaysRemaining > 0) {
+      items.push({
+        id: "trial",
+        icon: IconProp.Clock,
+        title: "Trial Remaining",
+        count: trialDaysRemaining,
+        alertType: HeaderAlertType.INFO,
+        tooltip: "Your trial ends soon",
+        suffix: trialDaysRemaining === 1 ? "day" : "days",
+      });
+    }
+
+    // On-Call Policies - SUCCESS type
+    if (props.selectedProject && currentOnCallPolicies.length > 0) {
+      items.push({
+        id: "oncall",
+        icon: IconProp.Call,
+        title: "On-Call Policies",
+        count: currentOnCallPolicies.length,
+        alertType: HeaderAlertType.SUCCESS,
+        tooltip: "On-call policies you are currently on duty for",
+        suffix: currentOnCallPolicies.length === 1 ? "On-Call Policy" : "On-Call Policies",
+      });
+    }
+
+    return items;
+  };
+
+  const handleNotificationItemClick: (item: NotificationItem) => void = (
+    item: NotificationItem,
+  ): void => {
+    switch (item.id) {
+      case "incidents":
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[PageMap.ACTIVE_INCIDENTS]!),
+        );
+        break;
+      case "alerts":
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[PageMap.ACTIVE_ALERTS]!),
+        );
+        break;
+      case "invitations":
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECT_INVITATIONS]!),
+        );
+        break;
+      case "trial":
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_BILLING]!),
+        );
+        break;
+      case "oncall":
+        setShowCurrentOnCallPolicyModal(true);
+        break;
+    }
+  };
+
   return (
     <>
       {onCallDutyPolicyFetchError ? (
@@ -389,128 +561,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               selectedProject={props.selectedProject}
             />
 
-            <div className="flex">
-              <HeaderAlertGroup>
-                <HeaderModelAlert<TeamMember>
-                  icon={IconProp.Folder}
-                  modelType={TeamMember}
-                  query={{
-                    userId: User.getUserId(),
-                    hasAcceptedInvitation: false,
-                  }}
-                  alertType={HeaderAlertType.INFO}
-                  singularName="Invitation"
-                  pluralName="Invitations"
-                  tooltip="Looks like you have pending project invitations. Please click here to review and accept them."
-                  requestOptions={{
-                    isMultiTenantRequest: true,
-                  }}
-                  onClick={() => {
-                    Navigation.navigate(
-                      RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.PROJECT_INVITATIONS]!,
-                      ),
-                    );
-                  }}
-                />
-
-                <HeaderModelAlert<Incident>
-                  icon={IconProp.Alert}
-                  modelType={Incident}
-                  alertType={HeaderAlertType.ERROR}
-                  query={{
-                    currentIncidentState: {
-                      order: 1,
-                    },
-                  }}
-                  refreshToggle={activeIncidentToggleRefresh}
-                  singularName="Incident"
-                  pluralName="Incidents"
-                  tooltip="View all active incidents"
-                  requestOptions={{
-                    isMultiTenantRequest: true,
-                  }}
-                  onClick={() => {
-                    Navigation.navigate(
-                      RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ACTIVE_INCIDENTS]!,
-                      ),
-                    );
-                  }}
-                />
-
-                <HeaderModelAlert<Alert>
-                  icon={IconProp.ExclaimationCircle}
-                  modelType={Alert}
-                  alertType={HeaderAlertType.ERROR}
-                  query={{
-                    currentAlertState: {
-                      order: 1,
-                    },
-                  }}
-                  refreshToggle={activeAlertToggleRefresh}
-                  singularName="Alert"
-                  pluralName="Alerts"
-                  tooltip="View all active alerts"
-                  requestOptions={{
-                    isMultiTenantRequest: true,
-                  }}
-                  onClick={() => {
-                    Navigation.navigate(
-                      RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.ACTIVE_ALERTS]!,
-                      ),
-                    );
-                  }}
-                />
-
-                {showTrialButton && (
-                  <HeaderAlert
-                    icon={IconProp.Clock}
-                    tooltip="Your trial ends soon"
-                    alertType={HeaderAlertType.INFO}
-                    onClick={() => {
-                      Navigation.navigate(
-                        RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.SETTINGS_BILLING]!,
-                        ),
-                      );
-                    }}
-                    title={`${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                      OneUptimeDate.getCurrentDate(),
-                      props.selectedProject!.trialEndsAt!,
-                    )}`}
-                    suffix={`${
-                      OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                        OneUptimeDate.getCurrentDate(),
-                        props.selectedProject!.trialEndsAt!,
-                      ) > 1
-                        ? "days"
-                        : "day"
-                    }`}
-                  />
-                )}
-
-                {props.selectedProject && currentOnCallPolicies.length > 0 ? (
-                  <HeaderAlert
-                    icon={IconProp.Call}
-                    tooltip="On-call policies you are currently on duty for"
-                    alertType={HeaderAlertType.SUCCESS}
-                    onClick={() => {
-                      setShowCurrentOnCallPolicyModal(true);
-                    }}
-                    title={`${currentOnCallPolicies.length}`}
-                    suffix={`${
-                      currentOnCallPolicies.length > 1
-                        ? "On-Call Policies"
-                        : "On-Call Policy"
-                    }`}
-                  />
-                ) : (
-                  <></>
-                )}
-              </HeaderAlertGroup>
-            </div>
+            <NotificationBell
+              items={buildNotificationItems()}
+              onItemClick={handleNotificationItemClick}
+            />
           </>
         }
         centerComponents={
