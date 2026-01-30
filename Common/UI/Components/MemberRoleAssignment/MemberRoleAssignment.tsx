@@ -118,28 +118,40 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
       [props.assignedMembers],
     );
 
-  // Get users not assigned to this incident yet
-  const getAvailableUsersForAssignment: () => Array<AvailableUser> =
-    useCallback((): Array<AvailableUser> => {
-      const assignedUserIds: Set<string> = new Set(
-        props.assignedMembers.map((member: AssignedMember) => {
-          return member.userId.toString();
-        }),
-      );
-      return props.availableUsers.filter((user: AvailableUser) => {
-        return !assignedUserIds.has(user.id.toString());
-      });
-    }, [props.assignedMembers, props.availableUsers]);
+  // Get users not already assigned to a specific role
+  const getAvailableUsersForRole: (roleId: ObjectID) => Array<AvailableUser> =
+    useCallback(
+      (roleId: ObjectID): Array<AvailableUser> => {
+        // Get user IDs already assigned to this specific role
+        const assignedUserIdsForRole: Set<string> = new Set(
+          props.assignedMembers
+            .filter((member: AssignedMember) => {
+              return member.roleId.toString() === roleId.toString();
+            })
+            .map((member: AssignedMember) => {
+              return member.userId.toString();
+            }),
+        );
+        return props.availableUsers.filter((user: AvailableUser) => {
+          return !assignedUserIdsForRole.has(user.id.toString());
+        });
+      },
+      [props.assignedMembers, props.availableUsers],
+    );
 
-  const getUserDropdownOptions: () => Array<DropdownOption> =
-    useCallback((): Array<DropdownOption> => {
-      return getAvailableUsersForAssignment().map((user: AvailableUser) => {
+  const getUserDropdownOptionsForRole: (
+    roleId: ObjectID,
+  ) => Array<DropdownOption> = useCallback(
+    (roleId: ObjectID): Array<DropdownOption> => {
+      return getAvailableUsersForRole(roleId).map((user: AvailableUser) => {
         return {
           value: user.id.toString(),
           label: user.name || user.email,
         };
       });
-    }, [getAvailableUsersForAssignment]);
+    },
+    [getAvailableUsersForRole],
+  );
 
   const cardTitle: string = props.title || "Team Members";
   const cardDescription: string =
@@ -203,7 +215,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
               const isDropdownActive: boolean =
                 activeRoleDropdown?.toString() === role.id.toString();
               const availableUsers: Array<DropdownOption> =
-                getUserDropdownOptions();
+                getUserDropdownOptionsForRole(role.id);
 
               return (
                 <div

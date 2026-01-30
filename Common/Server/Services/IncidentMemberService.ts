@@ -7,6 +7,7 @@ import { Gray500, Red500 } from "../../Types/BrandColors";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import IncidentService from "./IncidentService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
@@ -16,10 +17,51 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import IncidentRoleService from "./IncidentRoleService";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    if (!createBy.data.incidentId) {
+      throw new BadDataException("incidentId is required");
+    }
+
+    if (!createBy.data.userId) {
+      throw new BadDataException("userId is required");
+    }
+
+    if (!createBy.data.incidentRoleId) {
+      throw new BadDataException("incidentRoleId is required");
+    }
+
+    // Check if this user is already assigned to this role for this incident
+    const existingMember: Model | null = await this.findOneBy({
+      query: {
+        incidentId: createBy.data.incidentId,
+        userId: createBy.data.userId,
+        incidentRoleId: createBy.data.incidentRoleId,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+      },
+    });
+
+    if (existingMember) {
+      throw new BadDataException(
+        "This user is already assigned to this role for this incident",
+      );
+    }
+
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()
