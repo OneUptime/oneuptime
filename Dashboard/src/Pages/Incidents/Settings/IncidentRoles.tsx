@@ -71,11 +71,22 @@ const IncidentRoles: FunctionComponent<
             required: true,
             placeholder: "Please select color for this role.",
           },
+          {
+            field: {
+              canAssignMultipleUsers: true,
+            },
+            title: "Allow Multiple Users",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Enable this to allow multiple users to be assigned to this role for the same incident.",
+          },
         ]}
         showRefreshButton={true}
         selectMoreFields={{
           color: true,
           roleIcon: true,
+          canAssignMultipleUsers: true,
         }}
         showViewIdButton={true}
         filters={[
@@ -119,6 +130,13 @@ const IncidentRoles: FunctionComponent<
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
+          },
+          {
+            field: {
+              canAssignMultipleUsers: true,
+            },
+            title: "Multiple Users",
+            type: FieldType.Boolean,
           },
         ]}
       />
