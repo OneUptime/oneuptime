@@ -1,7 +1,7 @@
 import Color from "../../../Types/Color";
-import { Black } from "../../../Types/BrandColors";
+import { Black, White } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
-import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
+import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -32,6 +32,10 @@ const RoleLabel: FunctionComponent<ComponentProps> = (
     return props.icon;
   })();
 
+  const iconColor: Color = Color.shouldUseDarkText(resolvedColor)
+    ? Black
+    : White;
+
   const element: ReactElement = (
     <div className="flex items-center gap-2">
       {resolvedIcon ? (
@@ -43,9 +47,8 @@ const RoleLabel: FunctionComponent<ComponentProps> = (
         >
           <Icon
             icon={resolvedIcon}
-            size={SizeProp.Smaller}
-            thick={ThickProp.Normal}
-            color={Color.shouldUseDarkText(resolvedColor) ? Black : new Color("#ffffff")}
+            className="h-4 w-4"
+            color={iconColor}
           />
         </div>
       ) : (

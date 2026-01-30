@@ -1,5 +1,5 @@
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
-import Icon, { SizeProp, ThickProp } from "../../Icon/Icon";
+import Icon from "../../Icon/Icon";
 import Input, { InputType } from "../../Input/Input";
 import IconProp from "../../../../Types/Icon/IconProp";
 import React, {
@@ -72,9 +72,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           {selectedIcon ? (
             <Icon
               icon={selectedIcon}
-              size={SizeProp.Regular}
-              thick={ThickProp.Normal}
-              className="text-gray-600"
+              className="h-5 w-5 text-gray-600"
             />
           ) : (
             <div className="h-5 w-5 border border-dashed border-gray-300 rounded"></div>
@@ -154,9 +152,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
                   >
                     <Icon
                       icon={icon}
-                      size={SizeProp.Regular}
-                      thick={ThickProp.Normal}
-                      className="text-gray-600"
+                      className="h-5 w-5 text-gray-600"
                     />
                   </div>
                 );
