@@ -85,6 +85,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
             skip: 0,
             select: {
               _id: true,
+              createdAt: true,
               userId: true,
               incidentRoleId: true,
               user: {
