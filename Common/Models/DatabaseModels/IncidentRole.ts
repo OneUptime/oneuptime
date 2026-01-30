@@ -411,6 +411,43 @@ export default class IncidentRole extends BaseModel {
   public color?: Color = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentRole,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentRole,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentRole,
+    ],
+  })
+  @TableColumn({
+    title: "Icon",
+    required: false,
+    unique: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    description: "Icon for this incident role (e.g., User, Shield, etc.)",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: true,
+  })
+  public icon?: string = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,

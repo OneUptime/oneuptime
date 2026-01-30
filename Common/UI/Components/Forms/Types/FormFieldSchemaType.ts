@@ -37,6 +37,7 @@ enum FormFieldSchemaType {
   CategoryCheckbox = "CategoryCheckbox",
   Dictionary = "Dictionary",
   CardSelect = "CardSelect",
+  Icon = "Icon",
 }
 
 export default FormFieldSchemaType;

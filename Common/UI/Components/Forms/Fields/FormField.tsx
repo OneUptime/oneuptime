@@ -18,6 +18,7 @@ import RadioButtons from "../../RadioButtons/GroupRadioButtons";
 import TextArea from "../../TextArea/TextArea";
 import Toggle from "../../Toggle/Toggle";
 import ColorPicker from "../Fields/ColorPicker";
+import IconPicker from "../Fields/IconPicker";
 import FieldLabelElement from "../Fields/FieldLabel";
 import Field, { FormFieldStyleType } from "../Types/Field";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
@@ -25,6 +26,7 @@ import FormValues from "../Types/FormValues";
 import FileModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import CodeType from "../../../../Types/Code/CodeType";
 import Color from "../../../../Types/Color";
+import IconProp from "../../../../Types/Icon/IconProp";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import MimeType from "../../../../Types/File/MimeType";
@@ -354,6 +356,26 @@ const FormField: <T extends GenericObject>(
                 (props.currentValues as any)[props.fieldName]
                   ? (props.currentValues as any)[props.fieldName]
                   : ""
+              }
+            />
+          )}
+
+          {props.field.fieldType === FormFieldSchemaType.Icon && (
+            <IconPicker
+              error={props.touched && props.error ? props.error : undefined}
+              dataTestId={props.field.dataTestId}
+              onChange={async (value: IconProp | null) => {
+                onChange(value);
+                props.setFieldValue(props.fieldName, value);
+                props.setFieldTouched(props.fieldName, true);
+              }}
+              tabIndex={index}
+              placeholder={props.field.placeholder || ""}
+              initialValue={
+                props.currentValues &&
+                (props.currentValues as any)[props.fieldName]
+                  ? (props.currentValues as any)[props.fieldName]
+                  : undefined
               }
             />
           )}

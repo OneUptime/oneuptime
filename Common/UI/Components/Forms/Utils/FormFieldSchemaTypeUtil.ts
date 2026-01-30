@@ -76,6 +76,8 @@ export default class FormFieldSchemaTypeUtil {
         return FieldType.Boolean;
       case FormFieldSchemaType.CategoryCheckbox:
         return FieldType.Boolean;
+      case FormFieldSchemaType.Icon:
+        return FieldType.Icon;
 
       default:
         return FieldType.Text;

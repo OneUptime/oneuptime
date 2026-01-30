@@ -37,6 +37,7 @@ enum FieldType {
   ArrayOfText = "ArrayOfText",
   Code = "Code",
   InlineCode = "InlineCode",
+  Icon = "Icon",
 }
 
 export default FieldType;

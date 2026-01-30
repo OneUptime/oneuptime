@@ -55,6 +55,15 @@ const IncidentRoles: FunctionComponent<
           },
           {
             field: {
+              icon: true,
+            },
+            title: "Role Icon",
+            fieldType: FormFieldSchemaType.Icon,
+            required: false,
+            placeholder: "Select an icon for this role",
+          },
+          {
+            field: {
               color: true,
             },
             title: "Role Color",
@@ -66,6 +75,7 @@ const IncidentRoles: FunctionComponent<
         showRefreshButton={true}
         selectMoreFields={{
           color: true,
+          icon: true,
         }}
         showViewIdButton={true}
         filters={[
@@ -96,6 +106,7 @@ const IncidentRoles: FunctionComponent<
                 <RoleLabel
                   name={item.name || ""}
                   color={item.color || undefined}
+                  icon={item.icon || undefined}
                   description={item.description || undefined}
                 />
               );
