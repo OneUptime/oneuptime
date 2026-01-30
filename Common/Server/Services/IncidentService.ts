@@ -48,6 +48,7 @@ import Semaphore, {
   SemaphoreMutex,
 } from "../../Server/Infrastructure/Semaphore";
 import IncidentFeedService from "./IncidentFeedService";
+import IncidentSlaService from "./IncidentSlaService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
@@ -860,8 +861,6 @@ export class Service extends DatabaseService<Model> {
             createdItem.id &&
             createdItem.declaredAt
           ) {
-            const IncidentSlaService: typeof import("./IncidentSlaService").default =
-              (await import("./IncidentSlaService")).default;
             await IncidentSlaService.createSlaForIncident({
               incidentId: createdItem.id,
               projectId: createdItem.projectId,
@@ -1537,8 +1536,6 @@ ${incidentSeverity.name}
 
             // Recalculate SLA deadlines when severity changes
             try {
-              const IncidentSlaService: typeof import("./IncidentSlaService").default =
-                (await import("./IncidentSlaService")).default;
               await IncidentSlaService.recalculateDeadlines({
                 incidentId: incidentId,
               });

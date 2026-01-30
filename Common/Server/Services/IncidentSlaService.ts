@@ -9,6 +9,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import IncidentSlaRuleService from "./IncidentSlaRuleService";
+import IncidentService from "./IncidentService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
@@ -241,10 +242,6 @@ export class Service extends DatabaseService<Model> {
     logger.debug(`Recalculating deadlines for incident ${data.incidentId}`);
 
     // Get the incident to find the new severity and project
-    const IncidentService: typeof import("./IncidentService").default = (
-      await import("./IncidentService")
-    ).default;
-
     const incident: Incident | null = await IncidentService.findOneById({
       id: data.incidentId,
       select: {

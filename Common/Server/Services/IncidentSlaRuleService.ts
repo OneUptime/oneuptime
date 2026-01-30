@@ -12,6 +12,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import MonitorService from "./MonitorService";
+import IncidentService from "./IncidentService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -65,10 +66,6 @@ export class Service extends DatabaseService<Model> {
     let incident: Incident | null = data.incident || null;
 
     if (!incident) {
-      const IncidentService: typeof import("./IncidentService").default = (
-        await import("./IncidentService")
-      ).default;
-
       incident = await IncidentService.findOneById({
         id: data.incidentId,
         select: {
