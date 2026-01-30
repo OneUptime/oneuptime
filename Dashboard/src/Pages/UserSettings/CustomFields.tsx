@@ -19,7 +19,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import Exception from "Common/Types/Exception/Exception";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 
 const UserSettingsCustomFields: FunctionComponent<
   PageComponentProps
@@ -81,7 +81,7 @@ const UserSettingsCustomFields: FunctionComponent<
         newProfile.userId = userId;
 
         const response: HTTPResponse<
-          JSONObject | ProjectUserProfile | Array<ProjectUserProfile>
+          JSONObject | JSONArray | ProjectUserProfile | Array<ProjectUserProfile>
         > = await ModelAPI.create<ProjectUserProfile>({
           model: newProfile,
           modelType: ProjectUserProfile,

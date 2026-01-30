@@ -54,6 +54,7 @@ import StartOnCallUserTimeLog from "./StartOnCallUserTimeLog";
 import LowercaseDomains from "./LowercaseDomains";
 import AddAttributeKeysColumnToTelemetryTables from "./AddAttributeKeysColumnToTelemetryTables";
 import AddDefaultIncidentRolesToExistingProjects from "./AddDefaultIncidentRolesToExistingProjects";
+import AddDefaultIconsToIncidentRoles from "./AddDefaultIconsToIncidentRoles";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -112,6 +113,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new LowercaseDomains(),
   new AddAttributeKeysColumnToTelemetryTables(),
   new AddDefaultIncidentRolesToExistingProjects(),
+  new AddDefaultIconsToIncidentRoles(),
 ];
 
 export default DataMigrations;

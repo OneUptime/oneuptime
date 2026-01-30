@@ -54,6 +54,7 @@ import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
@@ -956,6 +957,7 @@ export class ProjectService extends DatabaseService<Model> {
     incidentCommander.description =
       "Primary decision maker during an incident. Responsible for coordinating the response and making final decisions.";
     incidentCommander.color = Purple500;
+    incidentCommander.roleIcon = IconProp.ShieldCheck;
     incidentCommander.projectId = createdItem.id!;
     incidentCommander.isPrimaryRole = true;
     incidentCommander.isDeleteable = false;
@@ -972,6 +974,7 @@ export class ProjectService extends DatabaseService<Model> {
     responder.description =
       "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
     responder.color = Blue500;
+    responder.roleIcon = IconProp.Wrench;
     responder.projectId = createdItem.id!;
 
     responder = await IncidentRoleService.create({
@@ -986,6 +989,7 @@ export class ProjectService extends DatabaseService<Model> {
     communicationsLead.description =
       "Handles stakeholder communication and status updates during an incident.";
     communicationsLead.color = Teal500;
+    communicationsLead.roleIcon = IconProp.Announcement;
     communicationsLead.projectId = createdItem.id!;
 
     communicationsLead = await IncidentRoleService.create({
@@ -1000,6 +1004,7 @@ export class ProjectService extends DatabaseService<Model> {
     observer.description =
       "Read-only participant who monitors the incident without active involvement.";
     observer.color = Gray500;
+    observer.roleIcon = IconProp.Activity;
     observer.projectId = createdItem.id!;
 
     observer = await IncidentRoleService.create({

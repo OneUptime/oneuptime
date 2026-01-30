@@ -432,7 +432,7 @@ export default class IncidentRole extends BaseModel {
     ],
   })
   @TableColumn({
-    title: "Icon",
+    title: "Role Icon",
     required: false,
     unique: false,
     type: TableColumnType.ShortText,
@@ -445,7 +445,7 @@ export default class IncidentRole extends BaseModel {
     unique: false,
     nullable: true,
   })
-  public icon?: string = undefined;
+  public roleIcon?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
