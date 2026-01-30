@@ -9,7 +9,6 @@ import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
 import UserProfile from "./UserProfile";
-import Route from "Common/Types/API/Route";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -21,7 +20,6 @@ import {
   NotificationBell,
   NotificationItem,
 } from "Common/UI/Components/HeaderAlert/NotificationBell";
-import Icon from "Common/UI/Components/Icon/Icon";
 import { APP_API_URL, BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
@@ -590,29 +588,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         }
         rightComponents={
           <>
-            {/* <Notifications /> */}
-            {showAddCardButton ? (
-              <div
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.SETTINGS_BILLING] as Route,
-                    ),
-                  );
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg cursor-pointer transition-all duration-150 mr-1"
-              >
-                <Icon
-                  icon={IconProp.Billing}
-                  className="h-4 w-4 text-amber-600"
-                />
-                <span className="text-sm font-medium text-amber-700">
-                  Add Card Details
-                </span>
-              </div>
-            ) : (
-              <></>
-            )}
             {BILLING_ENABLED &&
             props.selectedProject?.id &&
             props.selectedProject.paymentProviderPlanId &&

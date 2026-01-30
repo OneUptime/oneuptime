@@ -23,16 +23,39 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
     },
   );
 
-  // Count of critical items (ERROR type with count > 0)
+  // Count items by type
   const criticalItemsCount: number = itemsWithCount.filter(
     (item: NotificationItem) => {
       return item.alertType === HeaderAlertType.ERROR;
     },
   ).length;
 
-  const hasErrorItems: boolean = criticalItemsCount > 0;
+  const successItemsCount: number = itemsWithCount.filter(
+    (item: NotificationItem) => {
+      return item.alertType === HeaderAlertType.SUCCESS;
+    },
+  ).length;
 
-  const badgeColor: string = hasErrorItems ? "bg-red-500" : "bg-gray-500";
+  const infoItemsCount: number = itemsWithCount.filter(
+    (item: NotificationItem) => {
+      return item.alertType === HeaderAlertType.INFO;
+    },
+  ).length;
+
+  // Determine badge count and color based on priority: Critical > Success > Info
+  let badgeCount: number = 0;
+  let badgeColor: string = "bg-gray-500";
+
+  if (criticalItemsCount > 0) {
+    badgeCount = criticalItemsCount;
+    badgeColor = "bg-red-500";
+  } else if (successItemsCount > 0) {
+    badgeCount = successItemsCount;
+    badgeColor = "bg-emerald-500";
+  } else if (infoItemsCount > 0) {
+    badgeCount = infoItemsCount;
+    badgeColor = "bg-gray-500";
+  }
 
   return (
     <div className="relative ml-4 flex-shrink-0" ref={ref}>
@@ -49,11 +72,11 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
         <Icon className="h-5 w-5 text-gray-500" icon={IconProp.Bell} />
       </button>
 
-      {criticalItemsCount > 0 && (
+      {badgeCount > 0 && (
         <span
           className={`absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ${badgeColor} text-xs font-semibold text-white ring-2 ring-white`}
         >
-          {criticalItemsCount > 99 ? "99+" : criticalItemsCount}
+          {badgeCount > 99 ? "99+" : badgeCount}
         </span>
       )}
 
