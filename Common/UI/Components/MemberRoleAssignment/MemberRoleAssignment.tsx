@@ -23,6 +23,7 @@ export interface MemberRole {
   name: string;
   color: Color;
   isPrimaryRole?: boolean;
+  icon?: IconProp;
 }
 
 export interface AssignedMember {
@@ -239,22 +240,33 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                       <tr key={role.id.toString()} className="hover:bg-gray-50">
                         {/* Role Column */}
                         <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <div
-                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                               style={{
-                                backgroundColor:
-                                  role.color?.toString() || "#6b7280",
+                                backgroundColor: role.color
+                                  ? `${role.color.toString()}20`
+                                  : "#f3f4f6",
                               }}
-                            />
-                            <span className="text-sm font-medium text-gray-900">
-                              {role.name}
-                            </span>
-                            {role.isPrimaryRole && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                                Primary
+                            >
+                              <Icon
+                                icon={role.icon || IconProp.User}
+                                className="w-4 h-4"
+                                style={{
+                                  color: role.color?.toString() || "#6b7280",
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">
+                                {role.name}
                               </span>
-                            )}
+                              {role.isPrimaryRole && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                  Primary
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
 
