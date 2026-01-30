@@ -324,6 +324,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
           name="User Custom Fields"
           projectId={ProjectUtil.getCurrentProjectId()!}
           modelId={projectUserProfileId}
+          isEditable={false}
         />
       )}
 

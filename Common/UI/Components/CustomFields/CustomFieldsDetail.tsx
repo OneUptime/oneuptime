@@ -25,6 +25,7 @@ export interface ComponentProps {
   customFieldType: DatabaseBaseModelType;
   projectId: ObjectID;
   name: string;
+  isEditable?: boolean;
 }
 
 const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
@@ -102,20 +103,26 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     await onLoad();
   }, []);
 
+  const isEditable: boolean = props.isEditable !== false;
+
   return (
     <Card
       title={props.title}
       description={props.description}
-      buttons={[
-        {
-          title: "Edit Fields",
-          buttonStyle: ButtonStyleType.NORMAL,
-          onClick: () => {
-            setShowModelForm(true);
-          },
-          icon: IconProp.Edit,
-        },
-      ]}
+      buttons={
+        isEditable
+          ? [
+              {
+                title: "Edit Fields",
+                buttonStyle: ButtonStyleType.NORMAL,
+                onClick: () => {
+                  setShowModelForm(true);
+                },
+                icon: IconProp.Edit,
+              },
+            ]
+          : []
+      }
     >
       <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
         {isLoading && !error && <ComponentLoader />}
