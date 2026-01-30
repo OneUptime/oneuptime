@@ -19,6 +19,11 @@ const UserSettingsNotificationMethods: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/UserSettings/NotificationMethods");
 });
+const UserSettingsCustomFields: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/UserSettings/CustomFields");
+});
 const UserSettingsIncidentNotificationRules: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -84,6 +89,17 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
               <UserSettingsNotificationMethods
                 {...props}
                 pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={UserSettingsRoutePath[PageMap.USER_SETTINGS_CUSTOM_FIELDS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <UserSettingsCustomFields
+                {...props}
+                pageRoute={RouteMap[PageMap.USER_SETTINGS_CUSTOM_FIELDS] as Route}
               />
             </Suspense>
           }

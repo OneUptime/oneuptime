@@ -373,6 +373,7 @@ export const MonitorGroupRoutePath: Dictionary<string> = {
 
 export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS]: "notification-methods",
+  [PageMap.USER_SETTINGS_CUSTOM_FIELDS]: "custom-fields",
   [PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: "notification-methods",
   [PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES]: "incident-on-call-rules",
@@ -1920,6 +1921,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.USER_SETTINGS_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_CUSTOM_FIELDS]
     }`,
   ),
 

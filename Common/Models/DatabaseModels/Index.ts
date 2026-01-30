@@ -91,6 +91,7 @@ import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
 import Project from "./Project";
 import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
+import ProjectUserProfile from "./ProjectUserProfile";
 // Project SMTP Config.
 import ProjectSmtpConfig from "./ProjectSmtpConfig";
 //SSO
@@ -144,6 +145,7 @@ import StatusPageSubscriberNotificationTemplateStatusPage from "./StatusPageSubs
 // Team
 import Team from "./Team";
 import TeamMember from "./TeamMember";
+import TeamMemberCustomField from "./TeamMemberCustomField";
 import TeamPermission from "./TeamPermission";
 import TeamComplianceSetting from "./TeamComplianceSetting";
 import UsageBilling from "./TelemetryUsageBilling";
@@ -239,6 +241,7 @@ const AllModelTypes: Array<{
   EmailVerificationToken,
   Team,
   TeamMember,
+  TeamMemberCustomField,
   TeamPermission,
   TeamComplianceSetting,
   ApiKey,
@@ -421,6 +424,7 @@ const AllModelTypes: Array<{
   UsageBilling,
 
   ProjectCallSMSConfig,
+  ProjectUserProfile,
 
   AcmeCertificate,
 

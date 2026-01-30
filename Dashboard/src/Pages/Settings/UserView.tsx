@@ -35,6 +35,9 @@ import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import RemoveUserFromProject from "../../Components/User/RemoveUserFromProject";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
+import ProjectUserProfile from "Common/Models/DatabaseModels/ProjectUserProfile";
+import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 
 const UserView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -44,17 +47,22 @@ const UserView: FunctionComponent<PageComponentProps> = (
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [projectUserProfileId, setProjectUserProfileId] =
+    useState<ObjectID | null>(null);
+  const [hasCustomFields, setHasCustomFields] = useState<boolean>(false);
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
+      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+
       const teamMembers: ListResult<TeamMember> =
         await ModelAPI.getList<TeamMember>({
           modelType: TeamMember,
           query: {
             userId: userId,
-            projectId: ProjectUtil.getCurrentProjectId()!,
+            projectId: projectId,
           },
           select: {
             user: {
@@ -74,8 +82,46 @@ const UserView: FunctionComponent<PageComponentProps> = (
       }
 
       const user: User = teamMembers!.data[0]!.user!;
-
       setUser(user);
+
+      // Check if there are any custom fields defined
+      const customFieldsResult: ListResult<TeamMemberCustomField> =
+        await ModelAPI.getList<TeamMemberCustomField>({
+          modelType: TeamMemberCustomField,
+          query: {
+            projectId: projectId,
+          },
+          limit: 1,
+          skip: 0,
+          select: {
+            _id: true,
+          },
+          sort: {},
+        });
+
+      setHasCustomFields(customFieldsResult.data.length > 0);
+
+      if (customFieldsResult.data.length > 0) {
+        // Try to find existing ProjectUserProfile for this user
+        const profileResult: ListResult<ProjectUserProfile> =
+          await ModelAPI.getList<ProjectUserProfile>({
+            modelType: ProjectUserProfile,
+            query: {
+              projectId: projectId,
+              userId: userId,
+            },
+            limit: 1,
+            skip: 0,
+            select: {
+              _id: true,
+            },
+            sort: {},
+          });
+
+        if (profileResult.data.length > 0 && profileResult.data[0]!.id) {
+          setProjectUserProfileId(profileResult.data[0]!.id);
+        }
+      }
     } catch (error) {
       setError(API.getFriendlyErrorMessage(error as Exception));
     } finally {
@@ -268,6 +314,18 @@ const UserView: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+
+      {hasCustomFields && projectUserProfileId && (
+        <CustomFieldsDetail
+          title="Custom Fields"
+          description="Custom field values for this user."
+          modelType={ProjectUserProfile}
+          customFieldType={TeamMemberCustomField}
+          name="User Custom Fields"
+          projectId={ProjectUtil.getCurrentProjectId()!}
+          modelId={projectUserProfileId}
+        />
+      )}
 
       <RemoveUserFromProject
         userId={userId}

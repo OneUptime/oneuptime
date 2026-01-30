@@ -1,55 +1,34 @@
-import PageComponentProps from "../../PageComponentProps";
+import PageComponentProps from "../PageComponentProps";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
-import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
-import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
-import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
-import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
-import React, { Fragment, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-export type CustomFieldsBaseModels =
-  | MonitorCustomField
-  | StatusPageCustomField
-  | IncidentCustomField
-  | ScheduledMaintenanceCustomField
-  | OnCallDutyPolicyCustomField
-  | TeamMemberCustomField;
-
-export interface ComponentProps<CustomFieldsBaseModels>
-  extends PageComponentProps {
-  title: string;
-  modelType: { new (): CustomFieldsBaseModels };
-}
-
-const CustomFieldsPageBase: (
-  props: ComponentProps<CustomFieldsBaseModels>,
-) => ReactElement = (
-  props: ComponentProps<CustomFieldsBaseModels>,
+const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
+  _props: PageComponentProps,
 ): ReactElement => {
   return (
     <Fragment>
-      <ModelTable<CustomFieldsBaseModels>
-        modelType={props.modelType}
-        userPreferencesKey="custom-fields-table"
+      <ModelTable<TeamMemberCustomField>
+        modelType={TeamMemberCustomField}
+        userPreferencesKey="team-member-custom-fields-table"
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        id="custom-fields-table"
-        name={"Settings > " + props.title}
+        id="team-member-custom-fields-table"
+        name="Settings > Team Member Custom Fields"
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
         cardProps={{
-          title: props.title,
+          title: "Team Member Custom Fields",
           description:
-            "Custom fields help you add new fields to your resources in OneUptime.",
+            "Custom fields help you collect additional information about team members in your project.",
         }}
         noItemsMessage={"No custom fields found."}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -61,7 +40,7 @@ const CustomFieldsPageBase: (
             title: "Field Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "internal-service",
+            placeholder: "Department",
             validation: {
               minLength: 2,
             },
@@ -73,7 +52,8 @@ const CustomFieldsPageBase: (
             title: "Field Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "This label is for all the internal services.",
+            placeholder:
+              "The department or team this user belongs to (e.g., Engineering, Sales, Support)",
           },
           {
             field: {
@@ -146,4 +126,4 @@ const CustomFieldsPageBase: (
   );
 };
 
-export default CustomFieldsPageBase;
+export default TeamMemberCustomFields;

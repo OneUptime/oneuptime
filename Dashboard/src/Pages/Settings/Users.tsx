@@ -23,6 +23,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Banner from "Common/UI/Components/Banner/Banner";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import TeamMemberCustomFields from "./TeamMemberCustomFields";
 
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -58,14 +60,20 @@ const Teams: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      {isPushGroupsManaged && (
-        <Banner
-          title="Users are managed by SCIM Push Groups"
-          description="Invite or remove users from your identity provider or disable Push Groups in Settings > SCIM to manage them here."
-        />
-      )}
+      <Tabs
+        tabs={[
+          {
+            name: "Users",
+            children: (
+              <Fragment>
+                {isPushGroupsManaged && (
+                  <Banner
+                    title="Users are managed by SCIM Push Groups"
+                    description="Invite or remove users from your identity provider or disable Push Groups in Settings > SCIM to manage them here."
+                  />
+                )}
 
-      <ModelTable<TeamMember>
+                <ModelTable<TeamMember>
         modelType={TeamMember}
         id="teams-table"
         name="Settings > Users"
@@ -202,80 +210,92 @@ const Teams: FunctionComponent<PageComponentProps> = (
             },
           },
         ]}
+                />
+                {showInviteUserModal && !isPushGroupsManaged && (
+                  <ModelFormModal<TeamMember>
+                    modelType={TeamMember}
+                    name="Invite New User"
+                    title="Invite New User"
+                    description="Invite new user to this project."
+                    onClose={() => {
+                      setShowInviteUserModal(false);
+                    }}
+                    submitButtonText="Invite"
+                    onSuccess={(teamMember: TeamMember | null) => {
+                      // go to users page.
+                      if (teamMember) {
+                        const userId: string =
+                          teamMember.user?.id?.toString() ||
+                          teamMember.userId?.toString() ||
+                          "";
+                        const viewPageRoute: string =
+                          RouteUtil.populateRouteParams(
+                            props.pageRoute,
+                          ).toString() +
+                          "/" +
+                          userId;
+                        Navigation.navigate(new Route(viewPageRoute));
+                      }
+                      setShowInviteUserModal(false);
+                    }}
+                    formProps={{
+                      name: "Create New Project",
+                      modelType: TeamMember,
+                      id: "create-project-from",
+                      fields: [
+                        {
+                          field: {
+                            user: true,
+                          },
+                          title: "User Email",
+                          description:
+                            "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to team you have selected.",
+                          fieldType: FormFieldSchemaType.Email,
+                          required: true,
+                          placeholder: "member@company.com",
+                          overrideFieldKey: "email",
+                        },
+                        {
+                          field: {
+                            team: true,
+                          },
+                          title: "Team",
+                          description:
+                            "Select the team you would like to add this user to.",
+                          fieldType: FormFieldSchemaType.Dropdown,
+                          required: true,
+                          dropdownModal: {
+                            type: Team,
+                            labelField: "name",
+                            valueField: "_id",
+                          },
+                          placeholder: "Select a team",
+                        },
+                      ],
+                      formType: FormType.Create,
+                    }}
+                  />
+                )}
+                {showScimErrorModal && (
+                  <ConfirmModal
+                    title="Users are managed by SCIM Push Groups"
+                    description="Team membership is being managed by your identity provider. Disable Push Groups in Settings > SCIM if you need to invite or promote users from OneUptime."
+                    onSubmit={() => {
+                      setShowScimErrorModal(false);
+                    }}
+                    submitButtonText="Close"
+                  />
+                )}
+              </Fragment>
+            ),
+          },
+          {
+            name: "Custom Fields",
+            children: <TeamMemberCustomFields {...props} />,
+          },
+        ]}
+        onTabChange={() => {}}
       />
-      {showInviteUserModal && !isPushGroupsManaged && (
-        <ModelFormModal<TeamMember>
-          modelType={TeamMember}
-          name="Invite New User"
-          title="Invite New User"
-          description="Invite new user to this project."
-          onClose={() => {
-            setShowInviteUserModal(false);
-          }}
-          submitButtonText="Invite"
-          onSuccess={(teamMember: TeamMember | null) => {
-            // go to users page.
-            if (teamMember) {
-              const userId: string =
-                teamMember.user?.id?.toString() ||
-                teamMember.userId?.toString() ||
-                "";
-              const viewPageRoute: string =
-                RouteUtil.populateRouteParams(props.pageRoute).toString() +
-                "/" +
-                userId;
-              Navigation.navigate(new Route(viewPageRoute));
-            }
-            setShowInviteUserModal(false);
-          }}
-          formProps={{
-            name: "Create New Project",
-            modelType: TeamMember,
-            id: "create-project-from",
-            fields: [
-              {
-                field: {
-                  user: true,
-                },
-                title: "User Email",
-                description:
-                  "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to team you have selected.",
-                fieldType: FormFieldSchemaType.Email,
-                required: true,
-                placeholder: "member@company.com",
-                overrideFieldKey: "email",
-              },
-              {
-                field: {
-                  team: true,
-                },
-                title: "Team",
-                description:
-                  "Select the team you would like to add this user to.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                required: true,
-                dropdownModal: {
-                  type: Team,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                placeholder: "Select a team",
-              },
-            ],
-            formType: FormType.Create,
-          }}
-        />
-      )}
-      {showScimErrorModal && (
-        <ConfirmModal
-          title="Users are managed by SCIM Push Groups"
-          description="Team membership is being managed by your identity provider. Disable Push Groups in Settings > SCIM if you need to invite or promote users from OneUptime."
-          onSubmit={() => {
-            setShowScimErrorModal(false);
-          }}
-          submitButtonText="Close"
-        />
-      )}
     </Fragment>
   );
 };

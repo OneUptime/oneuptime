@@ -25,6 +25,20 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
 
   const sections: SideMenuSectionProps[] = [
     {
+      title: "Profile",
+      items: [
+        {
+          link: {
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_CUSTOM_FIELDS] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
+    {
       title: "Alerts & Notifications",
       items: [
         {

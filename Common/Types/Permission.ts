@@ -317,6 +317,11 @@ enum Permission {
   EditAlertCustomField = "EditAlertCustomField",
   ReadAlertCustomField = "ReadAlertCustomField",
 
+  CreateTeamMemberCustomField = "CreateTeamMemberCustomField",
+  DeleteTeamMemberCustomField = "DeleteTeamMemberCustomField",
+  EditTeamMemberCustomField = "EditTeamMemberCustomField",
+  ReadTeamMemberCustomField = "ReadTeamMemberCustomField",
+
   CreateProjectIncident = "CreateProjectIncident",
   DeleteProjectIncident = "DeleteProjectIncident",
   EditProjectIncident = "EditProjectIncident",
@@ -3388,6 +3393,39 @@ export class PermissionHelper {
         title: "Read Alert Custom Field",
         description:
           "This permission can read Alert Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateTeamMemberCustomField,
+        title: "Create Team Member Custom Field",
+        description:
+          "This permission can create Team Member Custom Field for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteTeamMemberCustomField,
+        title: "Delete Team Member Custom Field",
+        description:
+          "This permission can delete Team Member Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditTeamMemberCustomField,
+        title: "Edit Team Member Custom Field",
+        description:
+          "This permission can edit Team Member Custom Field of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadTeamMemberCustomField,
+        title: "Read Team Member Custom Field",
+        description:
+          "This permission can read Team Member Custom Field of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

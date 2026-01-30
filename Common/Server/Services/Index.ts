@@ -73,6 +73,7 @@ import AIAgentTaskLogService from "./AIAgentTaskLogService";
 import AIAgentTaskPullRequestService from "./AIAgentTaskPullRequestService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
+import ProjectUserProfileService from "./ProjectUserProfileService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
@@ -120,6 +121,7 @@ import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusPageSubscriberNotificationTemplateStatusPageService";
 import TeamMemberService from "./TeamMemberService";
+import TeamMemberCustomFieldService from "./TeamMemberCustomFieldService";
 import TeamPermissionService from "./TeamPermissionService";
 import TeamComplianceSettingService from "./TeamComplianceSettingService";
 // Team
@@ -314,6 +316,7 @@ const services: Array<BaseService> = [
   StatusPageHistoryChartBarColorRuleService,
 
   TeamMemberService,
+  TeamMemberCustomFieldService,
   TeamPermissionService,
   TeamComplianceSettingService,
   TeamService,
@@ -350,6 +353,7 @@ const services: Array<BaseService> = [
 
   UsageBillingService,
   ProjectCallSMSConfigService,
+  ProjectUserProfileService,
 
   ServiceService,
   ServiceOwnerTeamService,

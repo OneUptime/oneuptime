@@ -296,6 +296,9 @@ import OnCallDutyPolicyScheduleService, {
 import ProjectCallSMSConfigService, {
   Service as ProjectCallSMSConfigServiceType,
 } from "Common/Server/Services/ProjectCallSMSConfigService";
+import ProjectUserProfileService, {
+  Service as ProjectUserProfileServiceType,
+} from "Common/Server/Services/ProjectUserProfileService";
 import ProjectSmtpConfigService, {
   Service as ProjectSMTPConfigServiceType,
 } from "Common/Server/Services/ProjectSmtpConfigService";
@@ -395,6 +398,9 @@ import StatusPageSSOService, {
 import TeamMemberService, {
   TeamMemberService as TeamMemberServiceType,
 } from "Common/Server/Services/TeamMemberService";
+import TeamMemberCustomFieldService, {
+  Service as TeamMemberCustomFieldServiceType,
+} from "Common/Server/Services/TeamMemberCustomFieldService";
 import TeamPermissionService, {
   Service as TeamPermissionServiceType,
 } from "Common/Server/Services/TeamPermissionService";
@@ -543,6 +549,7 @@ import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDu
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
+import ProjectUserProfile from "Common/Models/DatabaseModels/ProjectUserProfile";
 import PromoCode from "Common/Models/DatabaseModels/PromoCode";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
@@ -571,6 +578,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
@@ -1378,6 +1386,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProjectUserProfile, ProjectUserProfileServiceType>(
+        ProjectUserProfile,
+        ProjectUserProfileService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<MonitorGroupResource, MonitorGroupResourceServiceType>(
         MonitorGroupResource,
         MonitorGroupResourceService,
@@ -1389,6 +1405,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TeamMember, TeamMemberServiceType>(
         TeamMember,
         TeamMemberService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamMemberCustomField, TeamMemberCustomFieldServiceType>(
+        TeamMemberCustomField,
+        TeamMemberCustomFieldService,
       ).getRouter(),
     );
 
