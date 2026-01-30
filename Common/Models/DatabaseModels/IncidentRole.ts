@@ -445,7 +445,7 @@ export default class IncidentRole extends BaseModel {
     unique: false,
     nullable: true,
   })
-  public roleIcon?: string = undefined;
+  public roleIcon?: IconProp = undefined;
 
   @ColumnAccessControl({
     create: [],
