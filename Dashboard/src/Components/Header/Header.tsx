@@ -1,3 +1,5 @@
+import AlertStateUtil from "../../Utils/AlertState";
+import IncidentStateUtil from "../../Utils/IncidentState";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 /*
@@ -9,6 +11,7 @@ import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
 import UserProfile from "./UserProfile";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -23,7 +26,11 @@ import {
 import { APP_API_URL, BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Project from "Common/Models/DatabaseModels/Project";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import React, {
@@ -66,6 +73,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [incidentsCount, setIncidentsCount] = useState<number>(0);
   const [alertsCount, setAlertsCount] = useState<number>(0);
+  const [alertEpisodesCount, setAlertEpisodesCount] = useState<number>(0);
+  const [incidentEpisodesCount, setIncidentEpisodesCount] = useState<number>(0);
   const [invitationsCount, setInvitationsCount] = useState<number>(0);
 
   const [showCurrentOnCallPolicyModal, setShowCurrentOnCallPolicyModal] =
@@ -111,6 +120,78 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       }
     }, []);
 
+  const fetchAlertEpisodesCount: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          setAlertEpisodesCount(0);
+          return;
+        }
+
+        const unresolvedAlertStates: Array<AlertState> =
+          await AlertStateUtil.getUnresolvedAlertStates(projectId);
+
+        if (unresolvedAlertStates.length === 0) {
+          setAlertEpisodesCount(0);
+          return;
+        }
+
+        const count: number = await ModelAPI.count<AlertEpisode>({
+          modelType: AlertEpisode,
+          query: {
+            currentAlertStateId: new Includes(
+              unresolvedAlertStates.map((state: AlertState) => {
+                return state.id!;
+              }),
+            ),
+          },
+          requestOptions: {
+            isMultiTenantRequest: true,
+          },
+        });
+        setAlertEpisodesCount(count);
+      } catch {
+        setAlertEpisodesCount(0);
+      }
+    }, []);
+
+  const fetchIncidentEpisodesCount: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          setIncidentEpisodesCount(0);
+          return;
+        }
+
+        const unresolvedIncidentStates: Array<IncidentState> =
+          await IncidentStateUtil.getUnresolvedIncidentStates(projectId);
+
+        if (unresolvedIncidentStates.length === 0) {
+          setIncidentEpisodesCount(0);
+          return;
+        }
+
+        const count: number = await ModelAPI.count<IncidentEpisode>({
+          modelType: IncidentEpisode,
+          query: {
+            currentIncidentStateId: new Includes(
+              unresolvedIncidentStates.map((state: IncidentState) => {
+                return state.id!;
+              }),
+            ),
+          },
+          requestOptions: {
+            isMultiTenantRequest: true,
+          },
+        });
+        setIncidentEpisodesCount(count);
+      } catch {
+        setIncidentEpisodesCount(0);
+      }
+    }, []);
+
   const fetchInvitationsCount: PromiseVoidFunction =
     useCallback(async (): Promise<void> => {
       try {
@@ -138,6 +219,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
   const refreshAlertCount: VoidFunction = () => {
     fetchAlertsCount().catch(() => {
+      // ignore
+    });
+  };
+
+  const refreshAlertEpisodeCount: VoidFunction = () => {
+    fetchAlertEpisodesCount().catch(() => {
+      // ignore
+    });
+  };
+
+  const refreshIncidentEpisodeCount: VoidFunction = () => {
+    fetchIncidentEpisodesCount().catch(() => {
       // ignore
     });
   };
@@ -236,16 +329,124 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     return stopListening;
   };
 
+  const realtimeAlertEpisodeCountRefresh: () => VoidFunction =
+    (): VoidFunction => {
+      const stopListeningOnCreate: VoidFunction =
+        Realtime.listenToModelEvent<AlertEpisode>(
+          {
+            eventType: ModelEventType.Create,
+            modelType: AlertEpisode,
+            tenantId: ProjectUtil.getCurrentProjectId()!,
+          },
+          () => {
+            refreshAlertEpisodeCount();
+          },
+        );
+
+      const stopListeningOnUpdate: VoidFunction =
+        Realtime.listenToModelEvent<AlertEpisode>(
+          {
+            eventType: ModelEventType.Update,
+            modelType: AlertEpisode,
+            tenantId: ProjectUtil.getCurrentProjectId()!,
+          },
+          () => {
+            refreshAlertEpisodeCount();
+          },
+        );
+
+      const stopListeningOnDelete: VoidFunction =
+        Realtime.listenToModelEvent<AlertEpisode>(
+          {
+            eventType: ModelEventType.Delete,
+            modelType: AlertEpisode,
+            tenantId: ProjectUtil.getCurrentProjectId()!,
+          },
+          () => {
+            refreshAlertEpisodeCount();
+          },
+        );
+
+      const stopListening: VoidFunction = () => {
+        // on unmount.
+        stopListeningOnCreate();
+        stopListeningOnUpdate();
+        stopListeningOnDelete();
+      };
+
+      return stopListening;
+    };
+
+  const realtimeIncidentEpisodeCountRefresh: () => VoidFunction =
+    (): VoidFunction => {
+      const stopListeningOnCreate: VoidFunction =
+        Realtime.listenToModelEvent<IncidentEpisode>(
+          {
+            eventType: ModelEventType.Create,
+            modelType: IncidentEpisode,
+            tenantId: ProjectUtil.getCurrentProjectId()!,
+          },
+          () => {
+            refreshIncidentEpisodeCount();
+          },
+        );
+
+      const stopListeningOnUpdate: VoidFunction =
+        Realtime.listenToModelEvent<IncidentEpisode>(
+          {
+            eventType: ModelEventType.Update,
+            modelType: IncidentEpisode,
+            tenantId: ProjectUtil.getCurrentProjectId()!,
+          },
+          () => {
+            refreshIncidentEpisodeCount();
+          },
+        );
+
+      const stopListeningOnDelete: VoidFunction =
+        Realtime.listenToModelEvent<IncidentEpisode>(
+          {
+            eventType: ModelEventType.Delete,
+            modelType: IncidentEpisode,
+            tenantId: ProjectUtil.getCurrentProjectId()!,
+          },
+          () => {
+            refreshIncidentEpisodeCount();
+          },
+        );
+
+      const stopListening: VoidFunction = () => {
+        // on unmount.
+        stopListeningOnCreate();
+        stopListeningOnUpdate();
+        stopListeningOnDelete();
+      };
+
+      return stopListening;
+    };
+
   useEffect(() => {
     const realtimeIncidentStop: VoidFunction = realtimeIncidentCountRefresh();
 
     const realtimeAlertStop: VoidFunction = realtimeAlertCountRefresh();
+
+    const realtimeAlertEpisodeStop: VoidFunction =
+      realtimeAlertEpisodeCountRefresh();
+
+    const realtimeIncidentEpisodeStop: VoidFunction =
+      realtimeIncidentEpisodeCountRefresh();
 
     // Initial fetch of counts
     fetchIncidentsCount().catch(() => {
       // ignore
     });
     fetchAlertsCount().catch(() => {
+      // ignore
+    });
+    fetchAlertEpisodesCount().catch(() => {
+      // ignore
+    });
+    fetchIncidentEpisodesCount().catch(() => {
       // ignore
     });
     fetchInvitationsCount().catch(() => {
@@ -255,8 +456,16 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     return () => {
       realtimeIncidentStop();
       realtimeAlertStop();
+      realtimeAlertEpisodeStop();
+      realtimeIncidentEpisodeStop();
     };
-  }, [fetchIncidentsCount, fetchAlertsCount, fetchInvitationsCount]);
+  }, [
+    fetchIncidentsCount,
+    fetchAlertsCount,
+    fetchAlertEpisodesCount,
+    fetchIncidentEpisodesCount,
+    fetchInvitationsCount,
+  ]);
 
   const [
     currentOnCallDutyEscalationPolicyUser,
@@ -463,6 +672,26 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         tooltip: "View all active alerts",
       });
 
+      // Alert Episodes - ERROR type
+      items.push({
+        id: "alertEpisodes",
+        icon: IconProp.SquareStack3D,
+        title: `${alertEpisodesCount} Active Alert ${alertEpisodesCount === 1 ? "Episode" : "Episodes"}`,
+        count: alertEpisodesCount,
+        alertType: HeaderAlertType.ERROR,
+        tooltip: "View all active alert episodes",
+      });
+
+      // Incident Episodes - ERROR type
+      items.push({
+        id: "incidentEpisodes",
+        icon: IconProp.SquareStack3D,
+        title: `${incidentEpisodesCount} Active Incident ${incidentEpisodesCount === 1 ? "Episode" : "Episodes"}`,
+        count: incidentEpisodesCount,
+        alertType: HeaderAlertType.ERROR,
+        tooltip: "View all active incident episodes",
+      });
+
       // On-Call Policies - SUCCESS type
       if (props.selectedProject && currentOnCallPolicies.length > 0) {
         items.push({
@@ -527,6 +756,20 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       case "alerts":
         Navigation.navigate(
           RouteUtil.populateRouteParams(RouteMap[PageMap.ACTIVE_ALERTS]!),
+        );
+        break;
+      case "alertEpisodes":
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOME_ACTIVE_EPISODES]!,
+          ),
+        );
+        break;
+      case "incidentEpisodes":
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES]!,
+          ),
         );
         break;
       case "invitations":
