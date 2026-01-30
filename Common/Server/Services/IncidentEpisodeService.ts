@@ -293,7 +293,7 @@ export class Service extends DatabaseService<Model> {
               {
                 triggeredByIncidentEpisodeId: createdItem.id!,
                 userNotificationEventType:
-                  UserNotificationEventType.IncidentCreated,
+                  UserNotificationEventType.IncidentEpisodeCreated,
               },
             );
           },
