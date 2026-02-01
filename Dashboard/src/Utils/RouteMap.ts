@@ -936,6 +936,8 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.PROJECT_INVITATIONS]: new Route(`/dashboard/project-invitations`),
 
+  [PageMap.MY_ON_CALL_POLICIES]: new Route(`/dashboard/my-on-call-policies`),
+
   [PageMap.INCIDENT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW]

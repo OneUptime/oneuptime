@@ -788,7 +788,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         );
         break;
       case "oncall":
-        setShowCurrentOnCallPolicyModal(true);
+        Navigation.navigate(
+          RouteUtil.populateRouteParams(RouteMap[PageMap.MY_ON_CALL_POLICIES]!),
+        );
         break;
     }
   };
