@@ -1,6 +1,7 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
+import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
@@ -456,6 +457,13 @@ const IncidentEpisodeView: FunctionComponent<
       <ChangeEpisodeState
         episodeId={modelId}
         onActionComplete={async () => {
+          await fetchData();
+        }}
+      />
+
+      <IncidentEpisodeMemberRoleAssignment
+        incidentEpisodeId={modelId}
+        onMemberChange={async () => {
           await fetchData();
         }}
       />

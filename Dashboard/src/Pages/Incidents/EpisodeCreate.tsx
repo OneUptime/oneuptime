@@ -9,6 +9,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -16,8 +17,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -29,20 +28,25 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import FetchUsers from "../../Components/User/FetchUsers";
-import User from "Common/Models/DatabaseModels/User";
-import FetchTeam from "../../Components/Team/FetchTeams";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import IncidentEpisodeRoleFormField, {
+  RoleAssignment,
+} from "../../Components/IncidentEpisode/IncidentEpisodeRoleFormField";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
+import UserUtil from "Common/UI/Utils/User";
 
 const EpisodeCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error] = useState<string>("");
+  const roleAssignmentsRef = useRef<Array<RoleAssignment>>([]);
 
   const [initialValuesForEpisode, setInitialValuesForEpisode] =
     useState<JSONObject>({});
@@ -229,6 +233,56 @@ const EpisodeCreate: FunctionComponent<
                   },
                 },
                 {
+                  overrideField: {
+                    episodeRoles: true,
+                  },
+                  showEvenIfPermissionDoesNotExist: true,
+                  title: "Assign Episode Roles",
+                  stepId: "episode-roles",
+                  description:
+                    "Assign team members to roles. Role assignments will propagate to all incidents in this episode.",
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  required: false,
+                  overrideFieldKey: "episodeRoles",
+                  getCustomElement: (
+                    _value: FormValues<IncidentEpisode>,
+                    props: CustomElementProps,
+                  ) => {
+                    return (
+                      <IncidentEpisodeRoleFormField
+                        initialValue={roleAssignmentsRef.current}
+                        error={props.error}
+                        onChange={(assignments: Array<RoleAssignment>) => {
+                          roleAssignmentsRef.current = assignments;
+                          if (props.onChange) {
+                            props.onChange(assignments);
+                          }
+                        }}
+                      />
+                    );
+                  },
+                  getSummaryElement: (_item: FormValues<IncidentEpisode>) => {
+                    if (roleAssignmentsRef.current.length === 0) {
+                      return <p>No episode roles assigned.</p>;
+                    }
+                    const totalAssignments: number =
+                      roleAssignmentsRef.current.reduce(
+                        (acc: number, assignment: RoleAssignment) => {
+                          return acc + assignment.userIds.length;
+                        },
+                        0,
+                      );
+                    return (
+                      <p>
+                        {totalAssignments} user
+                        {totalAssignments !== 1 ? "s" : ""} assigned to{" "}
+                        {roleAssignmentsRef.current.length} role
+                        {roleAssignmentsRef.current.length !== 1 ? "s" : ""}.
+                      </p>
+                    );
+                  },
+                },
+                {
                   field: {
                     onCallDutyPolicies: true,
                   },
@@ -290,118 +344,6 @@ const EpisodeCreate: FunctionComponent<
                   },
                 },
                 {
-                  overrideField: {
-                    ownerTeams: true,
-                  },
-                  showEvenIfPermissionDoesNotExist: true,
-                  title: "Owner - Teams",
-                  stepId: "owners",
-                  description:
-                    "Select which teams own this episode. They will be notified when the episode is created or updated.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Team,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Select Teams",
-                  overrideFieldKey: "ownerTeams",
-                  getSummaryElement: (item: FormValues<IncidentEpisode>) => {
-                    if (
-                      !(item as JSONObject)["ownerTeams"] ||
-                      !Array.isArray((item as JSONObject)["ownerTeams"])
-                    ) {
-                      return <p>No teams assigned.</p>;
-                    }
-
-                    const ownerTeamIds: Array<ObjectID> = [];
-
-                    for (const ownerTeam of (item as JSONObject)[
-                      "ownerTeams"
-                    ] as Array<any>) {
-                      if (typeof ownerTeam === "string") {
-                        ownerTeamIds.push(new ObjectID(ownerTeam));
-                        continue;
-                      }
-
-                      if (ownerTeam instanceof ObjectID) {
-                        ownerTeamIds.push(ownerTeam);
-                        continue;
-                      }
-
-                      if (ownerTeam instanceof Team) {
-                        ownerTeamIds.push(
-                          new ObjectID(ownerTeam._id?.toString() || ""),
-                        );
-                        continue;
-                      }
-                    }
-
-                    return (
-                      <div>
-                        <FetchTeam teamIds={ownerTeamIds} />
-                      </div>
-                    );
-                  },
-                },
-                {
-                  overrideField: {
-                    ownerUsers: true,
-                  },
-                  showEvenIfPermissionDoesNotExist: true,
-                  title: "Owner - Users",
-                  stepId: "owners",
-                  description:
-                    "Select which users own this episode. They will be notified when the episode is created or updated.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  fetchDropdownOptions: async () => {
-                    return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                      ProjectUtil.getCurrentProjectId()!,
-                    );
-                  },
-                  required: false,
-                  placeholder: "Select Users",
-                  overrideFieldKey: "ownerUsers",
-                  getSummaryElement: (item: FormValues<IncidentEpisode>) => {
-                    if (
-                      !(item as JSONObject)["ownerUsers"] ||
-                      !Array.isArray((item as JSONObject)["ownerUsers"])
-                    ) {
-                      return <p>No owners assigned.</p>;
-                    }
-
-                    const ownerUserIds: Array<ObjectID> = [];
-
-                    for (const ownerUser of (item as JSONObject)[
-                      "ownerUsers"
-                    ] as Array<any>) {
-                      if (typeof ownerUser === "string") {
-                        ownerUserIds.push(new ObjectID(ownerUser));
-                        continue;
-                      }
-
-                      if (ownerUser instanceof ObjectID) {
-                        ownerUserIds.push(ownerUser);
-                        continue;
-                      }
-
-                      if (ownerUser instanceof User) {
-                        ownerUserIds.push(
-                          new ObjectID(ownerUser._id?.toString() || ""),
-                        );
-                        continue;
-                      }
-                    }
-
-                    return (
-                      <div>
-                        <FetchUsers userIds={ownerUserIds} />
-                      </div>
-                    );
-                  },
-                },
-                {
                   field: {
                     labels: true,
                   },
@@ -458,19 +400,108 @@ const EpisodeCreate: FunctionComponent<
                   id: "episode-details",
                 },
                 {
-                  title: "On-Call",
-                  id: "on-call",
+                  title: "Episode Roles",
+                  id: "episode-roles",
                 },
                 {
-                  title: "Owners",
-                  id: "owners",
+                  title: "On-Call",
+                  id: "on-call",
                 },
                 {
                   title: "More",
                   id: "more",
                 },
               ]}
-              onSuccess={(createdItem: IncidentEpisode) => {
+              onSuccess={async (createdItem: IncidentEpisode) => {
+                // Create episode role member records for role assignments
+                const projectId: ObjectID | null =
+                  ProjectUtil.getCurrentProjectId();
+                const episodeId: ObjectID = new ObjectID(
+                  createdItem._id?.toString() || "",
+                );
+                const currentUserId: ObjectID | null = UserUtil.getUserId();
+
+                if (projectId) {
+                  // Create role assignments from form
+                  if (roleAssignmentsRef.current.length > 0) {
+                    for (const assignment of roleAssignmentsRef.current) {
+                      for (const userId of assignment.userIds) {
+                        try {
+                          const episodeRoleMember: IncidentEpisodeRoleMember =
+                            new IncidentEpisodeRoleMember();
+                          episodeRoleMember.projectId = projectId;
+                          episodeRoleMember.incidentEpisodeId = episodeId;
+                          episodeRoleMember.incidentRoleId = new ObjectID(
+                            assignment.roleId,
+                          );
+                          episodeRoleMember.userId = new ObjectID(userId);
+
+                          await ModelAPI.create({
+                            model: episodeRoleMember,
+                            modelType: IncidentEpisodeRoleMember,
+                          });
+                        } catch {
+                          // Continue with other assignments even if one fails
+                        }
+                      }
+                    }
+                  }
+
+                  // Assign creator to primary roles if no one is assigned
+                  if (currentUserId) {
+                    try {
+                      // Fetch primary roles
+                      const primaryRolesResult: ListResult<IncidentRole> =
+                        await ModelAPI.getList<IncidentRole>({
+                          modelType: IncidentRole,
+                          query: {
+                            projectId: projectId,
+                            isPrimaryRole: true,
+                          },
+                          limit: LIMIT_PER_PROJECT,
+                          skip: 0,
+                          select: {
+                            _id: true,
+                          },
+                          sort: {},
+                        });
+
+                      // Get the role IDs that already have assignments
+                      const assignedRoleIds: Set<string> = new Set(
+                        roleAssignmentsRef.current
+                          .filter(
+                            (a: RoleAssignment) => a.userIds.length > 0,
+                          )
+                          .map((a: RoleAssignment) => a.roleId),
+                      );
+
+                      // Assign creator to primary roles that don't have anyone assigned
+                      for (const primaryRole of primaryRolesResult.data) {
+                        const roleId: string = primaryRole.id!.toString();
+                        if (!assignedRoleIds.has(roleId)) {
+                          try {
+                            const episodeRoleMember: IncidentEpisodeRoleMember =
+                              new IncidentEpisodeRoleMember();
+                            episodeRoleMember.projectId = projectId;
+                            episodeRoleMember.incidentEpisodeId = episodeId;
+                            episodeRoleMember.incidentRoleId = primaryRole.id!;
+                            episodeRoleMember.userId = currentUserId;
+
+                            await ModelAPI.create({
+                              model: episodeRoleMember,
+                              modelType: IncidentEpisodeRoleMember,
+                            });
+                          } catch {
+                            // Continue even if assignment fails
+                          }
+                        }
+                      }
+                    } catch {
+                      // Continue even if fetching primary roles fails
+                    }
+                  }
+                }
+
                 Navigation.navigate(
                   RouteUtil.populateRouteParams(
                     RouteUtil.populateRouteParams(
