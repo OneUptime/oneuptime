@@ -341,19 +341,39 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                       </div>
 
                       {/* Add Button */}
-                      {!isDropdownActive &&
-                        canAddMore &&
-                        availableUsers.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
+                      {!isDropdownActive && canAddMore && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (availableUsers.length > 0) {
                               setActiveRoleDropdown(role.id);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-                          >
-                            <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
-                            {members.length === 0 ? "Assign" : "Add"}
-                          </button>
+                            }
+                          }}
+                          disabled={availableUsers.length === 0}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm ${
+                            availableUsers.length > 0
+                              ? "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                              : "text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed"
+                          }`}
+                          title={
+                            availableUsers.length === 0
+                              ? "All users are already assigned to this role"
+                              : undefined
+                          }
+                        >
+                          <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
+                          {members.length === 0 ? "Assign" : "Add More"}
+                        </button>
+                      )}
+
+                      {/* Message for single-user roles that are already assigned */}
+                      {!isDropdownActive &&
+                        !canAddMore &&
+                        !role.canAssignMultipleUsers &&
+                        members.length > 0 && (
+                          <span className="text-xs text-gray-400 italic">
+                            Single assignment only
+                          </span>
                         )}
                     </div>
 
