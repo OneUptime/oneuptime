@@ -399,8 +399,12 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
           label="Response Time"
           deadline={sla.responseDeadline}
           startedAt={sla.slaStartedAt!}
-          isCompleted={Boolean(sla.respondedAt)}
-          {...(sla.respondedAt ? { completedAt: sla.respondedAt } : {})}
+          isCompleted={Boolean(sla.respondedAt) || isIncidentResolved}
+          {...(sla.respondedAt
+            ? { completedAt: sla.respondedAt }
+            : sla.resolvedAt
+              ? { completedAt: sla.resolvedAt }
+              : {})}
           {...(rule?.responseTimeInMinutes ? { totalMinutes: rule.responseTimeInMinutes } : {})}
         />
 
