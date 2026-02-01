@@ -151,6 +151,10 @@ import IncidentEpisodeStateTimelineService, {
   Service as IncidentEpisodeStateTimelineServiceType,
 } from "Common/Server/Services/IncidentEpisodeStateTimelineService";
 
+import IncidentEpisodeRoleMemberService, {
+  Service as IncidentEpisodeRoleMemberServiceType,
+} from "Common/Server/Services/IncidentEpisodeRoleMemberService";
+
 import AlertGroupingRuleService, {
   Service as AlertGroupingRuleServiceType,
 } from "Common/Server/Services/AlertGroupingRuleService";
@@ -515,6 +519,7 @@ import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeM
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
+import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
 
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
@@ -1121,6 +1126,14 @@ const BaseAPIFeatureSet: FeatureSet = {
         IncidentEpisodeStateTimeline,
         IncidentEpisodeStateTimelineService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentEpisodeRoleMember,
+        IncidentEpisodeRoleMemberServiceType
+      >(IncidentEpisodeRoleMember, IncidentEpisodeRoleMemberService).getRouter(),
     );
 
     app.use(
