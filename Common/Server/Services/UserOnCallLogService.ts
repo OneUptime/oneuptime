@@ -376,6 +376,13 @@ export class Service extends DatabaseService<Model> {
       return NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE;
     }
 
+    if (
+      userNotificationEventType ===
+      UserNotificationEventType.IncidentEpisodeCreated
+    ) {
+      return NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE;
+    }
+
     // Invalid user notification event type.
     throw new BadDataException("Invalid user notification event type.");
   }

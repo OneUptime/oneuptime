@@ -461,8 +461,9 @@ describe("Template Variable Replacement Logic", () => {
 
   describe("Default Title Generation", () => {
     test("should use monitor name when no template provided", () => {
-      const defaultTitle: string = `Alert Episode: ${mockAlert.monitor?.name || mockAlert.title || "Alert Episode"}`;
-      expect(defaultTitle).toBe("Alert Episode: API Server");
+      const defaultTitle: string =
+        mockAlert.monitor?.name || mockAlert.title || "Untitled Episode";
+      expect(defaultTitle).toBe("API Server");
     });
 
     test("should use alert title when no monitor", () => {
@@ -473,8 +474,11 @@ describe("Template Variable Replacement Logic", () => {
       alertNoMonitor.title = "High CPU Usage";
       // monitor is intentionally not set
 
-      const defaultTitle: string = `Alert Episode: ${alertNoMonitor.monitor?.name || alertNoMonitor.title || "Alert Episode"}`;
-      expect(defaultTitle).toBe("Alert Episode: High CPU Usage");
+      const defaultTitle: string =
+        alertNoMonitor.monitor?.name ||
+        alertNoMonitor.title ||
+        "Untitled Episode";
+      expect(defaultTitle).toBe("High CPU Usage");
     });
 
     test("should use generic title when no monitor and no alert title", () => {
@@ -484,8 +488,9 @@ describe("Template Variable Replacement Logic", () => {
       alertMinimal.id = alertId;
       // monitor and title are intentionally not set
 
-      const defaultTitle: string = `Alert Episode: ${alertMinimal.monitor?.name || alertMinimal.title || "Alert Episode"}`;
-      expect(defaultTitle).toBe("Alert Episode: Alert Episode");
+      const defaultTitle: string =
+        alertMinimal.monitor?.name || alertMinimal.title || "Untitled Episode";
+      expect(defaultTitle).toBe("Untitled Episode");
     });
   });
 });
