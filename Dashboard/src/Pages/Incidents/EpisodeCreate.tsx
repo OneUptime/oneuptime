@@ -469,10 +469,12 @@ const EpisodeCreate: FunctionComponent<
                       // Get the role IDs that already have assignments
                       const assignedRoleIds: Set<string> = new Set(
                         roleAssignmentsRef.current
-                          .filter(
-                            (a: RoleAssignment) => a.userIds.length > 0,
-                          )
-                          .map((a: RoleAssignment) => a.roleId),
+                          .filter((a: RoleAssignment) => {
+                            return a.userIds.length > 0;
+                          })
+                          .map((a: RoleAssignment) => {
+                            return a.roleId;
+                          }),
                       );
 
                       // Assign creator to primary roles that don't have anyone assigned

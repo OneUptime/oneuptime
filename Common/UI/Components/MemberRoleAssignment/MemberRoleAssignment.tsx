@@ -409,7 +409,6 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                           {members.length === 0 ? "Assign" : "Add More"}
                         </button>
                       )}
-
                     </div>
 
                     {/* Dropdown for adding member */}
@@ -563,8 +562,8 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
         >
           <p className="text-gray-500 text-sm mb-4">
             Select a new user to reassign the {reassignState.role.name} role
-            from {reassignState.member.userName || reassignState.member.userEmail}
-            .
+            from{" "}
+            {reassignState.member.userName || reassignState.member.userEmail}.
           </p>
           <Dropdown
             options={props.availableUsers
@@ -584,10 +583,12 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               if (value && !Array.isArray(value)) {
                 const option: DropdownOption | undefined = props.availableUsers
-                  .map((user: AvailableUser) => ({
-                    value: user.id.toString(),
-                    label: user.name || user.email,
-                  }))
+                  .map((user: AvailableUser) => {
+                    return {
+                      value: user.id.toString(),
+                      label: user.name || user.email,
+                    };
+                  })
                   .find((opt: DropdownOption) => {
                     return opt.value.toString() === value.toString();
                   });

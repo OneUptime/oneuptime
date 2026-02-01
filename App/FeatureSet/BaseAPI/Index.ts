@@ -1133,7 +1133,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         IncidentEpisodeRoleMember,
         IncidentEpisodeRoleMemberServiceType
-      >(IncidentEpisodeRoleMember, IncidentEpisodeRoleMemberService).getRouter(),
+      >(
+        IncidentEpisodeRoleMember,
+        IncidentEpisodeRoleMemberService,
+      ).getRouter(),
     );
 
     app.use(

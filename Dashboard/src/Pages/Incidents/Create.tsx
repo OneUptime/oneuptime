@@ -19,7 +19,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Card from "Common/UI/Components/Card/Card";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import ProjectUser from "../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -705,10 +704,12 @@ const IncidentCreate: FunctionComponent<
                       // Get the role IDs that already have assignments
                       const assignedRoleIds: Set<string> = new Set(
                         roleAssignmentsRef.current
-                          .filter(
-                            (a: RoleAssignment) => a.userIds.length > 0,
-                          )
-                          .map((a: RoleAssignment) => a.roleId),
+                          .filter((a: RoleAssignment) => {
+                            return a.userIds.length > 0;
+                          })
+                          .map((a: RoleAssignment) => {
+                            return a.roleId;
+                          }),
                       );
 
                       // Assign creator to primary roles that don't have anyone assigned

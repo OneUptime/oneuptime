@@ -685,7 +685,9 @@ const IncidentGroupingRulesPage: FunctionComponent<
                     (values.episodeMemberRoleAssignments as Array<EpisodeMemberRoleAssignment>) ||
                     []
                   }
-                  onChange={(assignments: Array<EpisodeMemberRoleAssignment>) => {
+                  onChange={(
+                    assignments: Array<EpisodeMemberRoleAssignment>,
+                  ) => {
                     if (props.onChange) {
                       props.onChange(assignments);
                     }

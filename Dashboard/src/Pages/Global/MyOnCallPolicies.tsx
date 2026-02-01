@@ -63,104 +63,103 @@ const MyOnCallPolicies: FunctionComponent<
     Array<OnCallPolicyWithProject>
   >([]);
 
-  const fetchOnCallPolicies: PromiseVoidFunction =
-    async (): Promise<void> => {
-      try {
-        setIsLoading(true);
-        setError("");
+  const fetchOnCallPolicies: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      setError("");
 
-        const projectsResult: ListResult<Project> =
-          await ModelAPI.getList<Project>({
-            modelType: Project,
-            query: {},
-            limit: 100,
-            skip: 0,
-            select: {
-              name: true,
-              _id: true,
-            },
-            sort: {
-              name: SortOrder.Ascending,
-            },
-            requestOptions: {
-              isMultiTenantRequest: true,
-              overrideRequestUrl: URL.fromString(
-                APP_API_URL.toString(),
-              ).addRoute("/project/list-user-projects"),
-            },
-          });
+      const projectsResult: ListResult<Project> =
+        await ModelAPI.getList<Project>({
+          modelType: Project,
+          query: {},
+          limit: 100,
+          skip: 0,
+          select: {
+            name: true,
+            _id: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+          requestOptions: {
+            isMultiTenantRequest: true,
+            overrideRequestUrl: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/project/list-user-projects",
+            ),
+          },
+        });
 
-        const projects: Array<Project> = projectsResult.data;
-        const onCallData: Array<OnCallPolicyWithProject> = [];
+      const projects: Array<Project> = projectsResult.data;
+      const onCallData: Array<OnCallPolicyWithProject> = [];
 
-        for (const project of projects) {
-          if (!project._id) {
-            continue;
-          }
-
-          try {
-            const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-              await API.get<JSONObject>({
-                url: URL.fromString(APP_API_URL.toString()).addRoute(
-                  `/${new OnCallDutyPolicy().crudApiPath}/current-on-duty-escalation-policies`,
-                ),
-                data: {},
-                headers: {
-                  ...ModelAPI.getCommonHeaders(),
-                  tenantid: project._id.toString(),
-                },
-              });
-
-            if (response.isSuccess()) {
-              const result: JSONObject = response.jsonData as JSONObject;
-
-              const escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser> =
-                DatabaseBaseModel.fromJSONArray(
-                  result["escalationRulesByUser"] as Array<JSONObject>,
-                  OnCallDutyPolicyEscalationRuleUser,
-                ) as Array<OnCallDutyPolicyEscalationRuleUser>;
-
-              const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
-                DatabaseBaseModel.fromJSONArray(
-                  result["escalationRulesByTeam"] as Array<JSONObject>,
-                  OnCallDutyPolicyEscalationRuleTeam,
-                ) as Array<OnCallDutyPolicyEscalationRuleTeam>;
-
-              const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
-                DatabaseBaseModel.fromJSONArray(
-                  result["escalationRulesBySchedule"] as Array<JSONObject>,
-                  OnCallDutyPolicyEscalationRuleSchedule,
-                ) as Array<OnCallDutyPolicyEscalationRuleSchedule>;
-
-              if (
-                escalationRulesByUser.length > 0 ||
-                escalationRulesByTeam.length > 0 ||
-                escalationRulesBySchedule.length > 0
-              ) {
-                onCallData.push({
-                  project,
-                  escalationRulesByUser,
-                  escalationRulesByTeam,
-                  escalationRulesBySchedule,
-                });
-              }
-            }
-          } catch {
-            // Continue with other projects if one fails
-          }
+      for (const project of projects) {
+        if (!project._id) {
+          continue;
         }
 
-        setOnCallPoliciesByProject(onCallData);
-        setIsLoading(false);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "An error occurred while fetching on-call policies",
-        );
-        setIsLoading(false);
+        try {
+          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await API.get<JSONObject>({
+              url: URL.fromString(APP_API_URL.toString()).addRoute(
+                `/${new OnCallDutyPolicy().crudApiPath}/current-on-duty-escalation-policies`,
+              ),
+              data: {},
+              headers: {
+                ...ModelAPI.getCommonHeaders(),
+                tenantid: project._id.toString(),
+              },
+            });
+
+          if (response.isSuccess()) {
+            const result: JSONObject = response.jsonData as JSONObject;
+
+            const escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser> =
+              DatabaseBaseModel.fromJSONArray(
+                result["escalationRulesByUser"] as Array<JSONObject>,
+                OnCallDutyPolicyEscalationRuleUser,
+              ) as Array<OnCallDutyPolicyEscalationRuleUser>;
+
+            const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
+              DatabaseBaseModel.fromJSONArray(
+                result["escalationRulesByTeam"] as Array<JSONObject>,
+                OnCallDutyPolicyEscalationRuleTeam,
+              ) as Array<OnCallDutyPolicyEscalationRuleTeam>;
+
+            const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
+              DatabaseBaseModel.fromJSONArray(
+                result["escalationRulesBySchedule"] as Array<JSONObject>,
+                OnCallDutyPolicyEscalationRuleSchedule,
+              ) as Array<OnCallDutyPolicyEscalationRuleSchedule>;
+
+            if (
+              escalationRulesByUser.length > 0 ||
+              escalationRulesByTeam.length > 0 ||
+              escalationRulesBySchedule.length > 0
+            ) {
+              onCallData.push({
+                project,
+                escalationRulesByUser,
+                escalationRulesByTeam,
+                escalationRulesBySchedule,
+              });
+            }
+          }
+        } catch {
+          // Continue with other projects if one fails
+        }
       }
-    };
+
+      setOnCallPoliciesByProject(onCallData);
+      setIsLoading(false);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while fetching on-call policies",
+      );
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchOnCallPolicies().catch(() => {
@@ -319,7 +318,9 @@ const MyOnCallPolicies: FunctionComponent<
                   <span className="font-bold">
                     {onCallPoliciesByProject.length}
                   </span>{" "}
-                  {onCallPoliciesByProject.length === 1 ? "project" : "projects"}
+                  {onCallPoliciesByProject.length === 1
+                    ? "project"
+                    : "projects"}
                   .
                 </p>
               </div>
@@ -366,7 +367,10 @@ const MyOnCallPolicies: FunctionComponent<
                       {/* Policy Items */}
                       <div className="divide-y divide-gray-100">
                         {policyItems.map(
-                          (item: PolicyItem, itemIndex: number): ReactElement => {
+                          (
+                            item: PolicyItem,
+                            itemIndex: number,
+                          ): ReactElement => {
                             return (
                               <div
                                 key={itemIndex}
@@ -385,14 +389,17 @@ const MyOnCallPolicies: FunctionComponent<
                                             )}
                                             className="hover:text-indigo-600 hover:underline"
                                           >
-                                            {item.policyName || "Unknown Policy"}
+                                            {item.policyName ||
+                                              "Unknown Policy"}
                                           </Link>
                                         ) : (
                                           item.policyName || "Unknown Policy"
                                         )}
                                       </div>
                                       {/* Assignment Type Pill */}
-                                      {getAssignmentTypePill(item.assignmentType)}
+                                      {getAssignmentTypePill(
+                                        item.assignmentType,
+                                      )}
                                     </div>
 
                                     {/* Escalation Rule and Assignment Detail */}
@@ -425,7 +432,9 @@ const MyOnCallPolicies: FunctionComponent<
                                     <div className="flex-shrink-0 ml-4">
                                       <Button
                                         title="View"
-                                        buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                                        buttonStyle={
+                                          ButtonStyleType.SECONDARY_LINK
+                                        }
                                         icon={IconProp.ChevronRight}
                                         onClick={() => {
                                           window.location.href = getPolicyLink(

@@ -135,10 +135,12 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
   const getSelectedUsersForRole = useCallback(
     (roleId: string): string[] => {
       return assignments
-        .filter(
-          (a: EpisodeMemberRoleAssignment) => a.incidentRoleId === roleId,
-        )
-        .map((a: EpisodeMemberRoleAssignment) => a.userId);
+        .filter((a: EpisodeMemberRoleAssignment) => {
+          return a.incidentRoleId === roleId;
+        })
+        .map((a: EpisodeMemberRoleAssignment) => {
+          return a.userId;
+        });
     },
     [assignments],
   );
@@ -148,8 +150,9 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
     (roleId: string, userId: string): void => {
       // Check if assignment already exists
       const exists: boolean = assignments.some(
-        (a: EpisodeMemberRoleAssignment) =>
-          a.incidentRoleId === roleId && a.userId === userId,
+        (a: EpisodeMemberRoleAssignment) => {
+          return a.incidentRoleId === roleId && a.userId === userId;
+        },
       );
 
       if (exists) {
@@ -174,10 +177,9 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
   const removeUserFromRole = useCallback(
     (roleId: string, userId: string): void => {
       const newAssignments: Array<EpisodeMemberRoleAssignment> =
-        assignments.filter(
-          (a: EpisodeMemberRoleAssignment) =>
-            !(a.incidentRoleId === roleId && a.userId === userId),
-        );
+        assignments.filter((a: EpisodeMemberRoleAssignment) => {
+          return !(a.incidentRoleId === roleId && a.userId === userId);
+        });
 
       setAssignments(newAssignments);
 
