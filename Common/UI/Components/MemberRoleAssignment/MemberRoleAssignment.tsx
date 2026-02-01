@@ -345,105 +345,102 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                         <button
                           type="button"
                           onClick={() => {
-                            if (availableUsers.length > 0) {
-                              setActiveRoleDropdown(role.id);
-                            }
+                            setActiveRoleDropdown(role.id);
                           }}
-                          disabled={availableUsers.length === 0}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm ${
-                            availableUsers.length > 0
-                              ? "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-                              : "text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed"
-                          }`}
-                          title={
-                            availableUsers.length === 0
-                              ? "All users are already assigned to this role"
-                              : undefined
-                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                         >
                           <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
                           {members.length === 0 ? "Assign" : "Add More"}
                         </button>
                       )}
 
-                      {/* Message for single-user roles that are already assigned */}
-                      {!isDropdownActive &&
-                        !canAddMore &&
-                        !role.canAssignMultipleUsers &&
-                        members.length > 0 && (
-                          <span className="text-xs text-gray-400 italic">
-                            Single assignment only
-                          </span>
-                        )}
                     </div>
 
                     {/* Dropdown for adding member */}
                     {isDropdownActive && (
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 max-w-sm">
-                            <Dropdown
-                              options={availableUsers}
-                              placeholder="Select member..."
-                              onChange={(
-                                value:
-                                  | DropdownValue
-                                  | Array<DropdownValue>
-                                  | null,
-                              ) => {
-                                if (value && !Array.isArray(value)) {
-                                  const option: DropdownOption | undefined =
-                                    availableUsers.find(
-                                      (opt: DropdownOption) => {
-                                        return (
-                                          opt.value.toString() ===
-                                          value.toString()
-                                        );
-                                      },
-                                    );
-                                  setSelectedUserOption(option || null);
-                                } else {
-                                  setSelectedUserOption(null);
+                        {availableUsers.length === 0 ? (
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-red-600">
+                              All users are already assigned to this role.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveRoleDropdown(null);
+                                setSelectedUserOption(null);
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                            >
+                              Close
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 max-w-sm">
+                              <Dropdown
+                                options={availableUsers}
+                                placeholder="Select member..."
+                                onChange={(
+                                  value:
+                                    | DropdownValue
+                                    | Array<DropdownValue>
+                                    | null,
+                                ) => {
+                                  if (value && !Array.isArray(value)) {
+                                    const option: DropdownOption | undefined =
+                                      availableUsers.find(
+                                        (opt: DropdownOption) => {
+                                          return (
+                                            opt.value.toString() ===
+                                            value.toString()
+                                          );
+                                        },
+                                      );
+                                    setSelectedUserOption(option || null);
+                                  } else {
+                                    setSelectedUserOption(null);
+                                  }
+                                }}
+                                value={selectedUserOption || undefined}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (selectedUserOption) {
+                                  handleAssign(
+                                    new ObjectID(
+                                      selectedUserOption.value.toString(),
+                                    ),
+                                    role.id,
+                                  );
                                 }
                               }}
-                              value={selectedUserOption || undefined}
-                            />
+                              disabled={!selectedUserOption || isAssigning}
+                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {isAssigning ? (
+                                <Icon
+                                  icon={IconProp.Refresh}
+                                  className="w-3.5 h-3.5 animate-spin"
+                                />
+                              ) : (
+                                "Save"
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveRoleDropdown(null);
+                                setSelectedUserOption(null);
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                            >
+                              Cancel
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (selectedUserOption) {
-                                handleAssign(
-                                  new ObjectID(
-                                    selectedUserOption.value.toString(),
-                                  ),
-                                  role.id,
-                                );
-                              }
-                            }}
-                            disabled={!selectedUserOption || isAssigning}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {isAssigning ? (
-                              <Icon
-                                icon={IconProp.Refresh}
-                                className="w-3.5 h-3.5 animate-spin"
-                              />
-                            ) : (
-                              "Save"
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveRoleDropdown(null);
-                              setSelectedUserOption(null);
-                            }}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        )}
                       </div>
                     )}
 
