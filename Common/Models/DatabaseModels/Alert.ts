@@ -592,13 +592,13 @@ export default class Alert extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     isDefaultValueColumn: true,
+    canReadOnRelationQuery: true,
     title: "Current Alert State ID",
     description: "Current Alert State ID",
     example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
-
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })

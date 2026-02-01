@@ -633,6 +633,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: true,
     required: true,
+    canReadOnRelationQuery: true,
     title: "Current Incident State ID",
     description: "Current Incident State ID",
     example: "d4e5f6a7-b8c9-0123-defg-456789012345",
