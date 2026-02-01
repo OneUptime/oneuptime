@@ -42,6 +42,7 @@ interface RoleData {
   color: Color;
   icon?: IconProp;
   canAssignMultipleUsers: boolean;
+  isPrimaryRole: boolean;
 }
 
 const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
@@ -83,19 +84,21 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
             color: true,
             roleIcon: true,
             canAssignMultipleUsers: true,
+            isPrimaryRole: true,
           },
           sort: {
             name: SortOrder.Ascending,
           },
         });
 
-      const roleData: Array<RoleData> = rolesResult.data.map(
-        (role: IncidentRole): RoleData => {
+      const roleData: Array<RoleData> = rolesResult.data
+        .map((role: IncidentRole): RoleData => {
           const data: RoleData = {
             id: role.id!,
             name: role.name || "",
             color: role.color || new Color("#000000"),
             canAssignMultipleUsers: role.canAssignMultipleUsers || false,
+            isPrimaryRole: role.isPrimaryRole || false,
           };
 
           if (role.roleIcon) {
@@ -103,8 +106,17 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
           }
 
           return data;
-        },
-      );
+        })
+        .sort((a: RoleData, b: RoleData) => {
+          // Primary roles first, then sort by name
+          if (a.isPrimaryRole && !b.isPrimaryRole) {
+            return -1;
+          }
+          if (!a.isPrimaryRole && b.isPrimaryRole) {
+            return 1;
+          }
+          return a.name.localeCompare(b.name);
+        });
 
       setRoles(roleData);
 
@@ -220,6 +232,11 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
                   color={role.color}
                   icon={role.icon}
                 />
+                {role.isPrimaryRole && (
+                  <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
+                    Primary
+                  </span>
+                )}
                 {role.canAssignMultipleUsers && (
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                     Multiple

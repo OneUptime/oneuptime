@@ -10,6 +10,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -59,9 +60,7 @@ const IncidentCreate: FunctionComponent<
 > = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [roleAssignments, setRoleAssignments] = useState<Array<RoleAssignment>>(
-    [],
-  );
+  const roleAssignmentsRef = useRef<Array<RoleAssignment>>([]);
 
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
@@ -435,10 +434,10 @@ const IncidentCreate: FunctionComponent<
                   ) => {
                     return (
                       <IncidentRoleFormField
-                        initialValue={roleAssignments}
+                        initialValue={roleAssignmentsRef.current}
                         error={props.error}
                         onChange={(assignments: Array<RoleAssignment>) => {
-                          setRoleAssignments(assignments);
+                          roleAssignmentsRef.current = assignments;
                           if (props.onChange) {
                             props.onChange(assignments);
                           }
@@ -447,21 +446,22 @@ const IncidentCreate: FunctionComponent<
                     );
                   },
                   getSummaryElement: (_item: FormValues<Incident>) => {
-                    if (roleAssignments.length === 0) {
+                    if (roleAssignmentsRef.current.length === 0) {
                       return <p>No incident roles assigned.</p>;
                     }
-                    const totalAssignments: number = roleAssignments.reduce(
-                      (acc: number, assignment: RoleAssignment) => {
-                        return acc + assignment.userIds.length;
-                      },
-                      0,
-                    );
+                    const totalAssignments: number =
+                      roleAssignmentsRef.current.reduce(
+                        (acc: number, assignment: RoleAssignment) => {
+                          return acc + assignment.userIds.length;
+                        },
+                        0,
+                      );
                     return (
                       <p>
                         {totalAssignments} user
                         {totalAssignments !== 1 ? "s" : ""} assigned to{" "}
-                        {roleAssignments.length} role
-                        {roleAssignments.length !== 1 ? "s" : ""}.
+                        {roleAssignmentsRef.current.length} role
+                        {roleAssignmentsRef.current.length !== 1 ? "s" : ""}.
                       </p>
                     );
                   },
@@ -774,8 +774,8 @@ const IncidentCreate: FunctionComponent<
                   createdItem._id?.toString() || "",
                 );
 
-                if (projectId && roleAssignments.length > 0) {
-                  for (const assignment of roleAssignments) {
+                if (projectId && roleAssignmentsRef.current.length > 0) {
+                  for (const assignment of roleAssignmentsRef.current) {
                     for (const userId of assignment.userIds) {
                       try {
                         const incidentMember: IncidentMember =
