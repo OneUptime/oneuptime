@@ -50,6 +50,8 @@ import IncidentRoleFormField, {
 } from "../../Components/Incident/IncidentRoleFormField";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
+import UserUtil from "Common/UI/Utils/User";
 
 const IncidentCreate: FunctionComponent<
   PageComponentProps
@@ -653,27 +655,85 @@ const IncidentCreate: FunctionComponent<
                 const incidentId: ObjectID = new ObjectID(
                   createdItem._id?.toString() || "",
                 );
+                const currentUserId: ObjectID | null = UserUtil.getUserId();
 
-                if (projectId && roleAssignmentsRef.current.length > 0) {
-                  for (const assignment of roleAssignmentsRef.current) {
-                    for (const userId of assignment.userIds) {
-                      try {
-                        const incidentMember: IncidentMember =
-                          new IncidentMember();
-                        incidentMember.projectId = projectId;
-                        incidentMember.incidentId = incidentId;
-                        incidentMember.incidentRoleId = new ObjectID(
-                          assignment.roleId,
-                        );
-                        incidentMember.userId = new ObjectID(userId);
+                if (projectId) {
+                  // Create role assignments from form
+                  if (roleAssignmentsRef.current.length > 0) {
+                    for (const assignment of roleAssignmentsRef.current) {
+                      for (const userId of assignment.userIds) {
+                        try {
+                          const incidentMember: IncidentMember =
+                            new IncidentMember();
+                          incidentMember.projectId = projectId;
+                          incidentMember.incidentId = incidentId;
+                          incidentMember.incidentRoleId = new ObjectID(
+                            assignment.roleId,
+                          );
+                          incidentMember.userId = new ObjectID(userId);
 
-                        await ModelAPI.create({
-                          model: incidentMember,
-                          modelType: IncidentMember,
-                        });
-                      } catch {
-                        // Continue with other assignments even if one fails
+                          await ModelAPI.create({
+                            model: incidentMember,
+                            modelType: IncidentMember,
+                          });
+                        } catch {
+                          // Continue with other assignments even if one fails
+                        }
                       }
+                    }
+                  }
+
+                  // Assign creator to primary roles if no one is assigned
+                  if (currentUserId) {
+                    try {
+                      // Fetch primary roles
+                      const primaryRolesResult: ListResult<IncidentRole> =
+                        await ModelAPI.getList<IncidentRole>({
+                          modelType: IncidentRole,
+                          query: {
+                            projectId: projectId,
+                            isPrimaryRole: true,
+                          },
+                          limit: LIMIT_PER_PROJECT,
+                          skip: 0,
+                          select: {
+                            _id: true,
+                          },
+                          sort: {},
+                        });
+
+                      // Get the role IDs that already have assignments
+                      const assignedRoleIds: Set<string> = new Set(
+                        roleAssignmentsRef.current
+                          .filter(
+                            (a: RoleAssignment) => a.userIds.length > 0,
+                          )
+                          .map((a: RoleAssignment) => a.roleId),
+                      );
+
+                      // Assign creator to primary roles that don't have anyone assigned
+                      for (const primaryRole of primaryRolesResult.data) {
+                        const roleId: string = primaryRole.id!.toString();
+                        if (!assignedRoleIds.has(roleId)) {
+                          try {
+                            const incidentMember: IncidentMember =
+                              new IncidentMember();
+                            incidentMember.projectId = projectId;
+                            incidentMember.incidentId = incidentId;
+                            incidentMember.incidentRoleId = primaryRole.id!;
+                            incidentMember.userId = currentUserId;
+
+                            await ModelAPI.create({
+                              model: incidentMember,
+                              modelType: IncidentMember,
+                            });
+                          } catch {
+                            // Continue even if assignment fails
+                          }
+                        }
+                      }
+                    } catch {
+                      // Continue even if fetching primary roles fails
                     }
                   }
                 }
