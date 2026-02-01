@@ -237,110 +237,6 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         </div>
       </CollapsibleSection>
 
-      {/* Ownership & Labels - Collapsible */}
-      <CollapsibleSection
-        title="Ownership & Labels"
-        description="Assign owners and labels to the incident"
-        badge={hasOwnershipOrLabels ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasOwnershipOrLabels}
-      >
-        <div className="space-y-4">
-          <div>
-            <FieldLabelElement
-              title="Owner Teams"
-              description="Teams that will own and be notified about this incident"
-            />
-            <Dropdown
-              value={props.teamDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerTeamIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.teamDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerTeamIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerTeamIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Teams"
-            />
-          </div>
-
-          <div>
-            <FieldLabelElement
-              title="Owner Users"
-              description="Users that will own and be notified about this incident"
-            />
-            <Dropdown
-              value={props.userDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerUserIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.userDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerUserIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerUserIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Users"
-            />
-          </div>
-
-          <div>
-            <FieldLabelElement
-              title="Labels"
-              description="Labels to categorize the incident"
-            />
-            <Dropdown
-              value={props.labelDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.labelIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.labelDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "labelIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("labelIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Labels"
-            />
-          </div>
-        </div>
-      </CollapsibleSection>
-
       {/* Notifications - Collapsible */}
       <CollapsibleSection
         title="Notifications"
@@ -482,6 +378,110 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           </div>
         </CollapsibleSection>
       )}
+
+      {/* Ownership & Labels - Collapsible */}
+      <CollapsibleSection
+        title="Ownership & Labels"
+        description="Assign owners and labels to the incident"
+        badge={hasOwnershipOrLabels ? "Configured" : undefined}
+        variant="bordered"
+        defaultCollapsed={!hasOwnershipOrLabels}
+      >
+        <div className="space-y-4">
+          <div>
+            <FieldLabelElement
+              title="Owner Teams"
+              description="Teams that will own and be notified about this incident"
+            />
+            <Dropdown
+              value={props.teamDropdownOptions.filter((i: DropdownOption) => {
+                return criteriaIncident.ownerTeamIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
+              })}
+              options={props.teamDropdownOptions}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                if (Array.isArray(value)) {
+                  updateField(
+                    "ownerTeamIds",
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
+                  );
+                } else {
+                  updateField("ownerTeamIds", []);
+                }
+              }}
+              isMultiSelect={true}
+              placeholder="Select Teams"
+            />
+          </div>
+
+          <div>
+            <FieldLabelElement
+              title="Owner Users"
+              description="Users that will own and be notified about this incident"
+            />
+            <Dropdown
+              value={props.userDropdownOptions.filter((i: DropdownOption) => {
+                return criteriaIncident.ownerUserIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
+              })}
+              options={props.userDropdownOptions}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                if (Array.isArray(value)) {
+                  updateField(
+                    "ownerUserIds",
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
+                  );
+                } else {
+                  updateField("ownerUserIds", []);
+                }
+              }}
+              isMultiSelect={true}
+              placeholder="Select Users"
+            />
+          </div>
+
+          <div>
+            <FieldLabelElement
+              title="Labels"
+              description="Labels to categorize the incident"
+            />
+            <Dropdown
+              value={props.labelDropdownOptions.filter((i: DropdownOption) => {
+                return criteriaIncident.labelIds?.some((id: ObjectID) => {
+                  return id.toString() === i.value;
+                });
+              })}
+              options={props.labelDropdownOptions}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                if (Array.isArray(value)) {
+                  updateField(
+                    "labelIds",
+                    value.map((v: DropdownValue) => {
+                      return new ObjectID(v.toString());
+                    }),
+                  );
+                } else {
+                  updateField("labelIds", []);
+                }
+              }}
+              isMultiSelect={true}
+              placeholder="Select Labels"
+            />
+          </div>
+        </div>
+      </CollapsibleSection>
 
       {/* Advanced Options - Collapsible */}
       <CollapsibleSection

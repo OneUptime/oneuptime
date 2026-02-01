@@ -672,6 +672,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             };
           },
         }}
+        menuPortalTarget={document.body}
+        menuPosition="fixed"
         isClearable={true}
         isSearchable={true}
         placeholder={props.placeholder}
