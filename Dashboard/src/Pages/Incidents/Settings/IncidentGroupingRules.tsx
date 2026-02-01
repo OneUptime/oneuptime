@@ -6,7 +6,9 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
+import IncidentGroupingRule, {
+  EpisodeMemberRoleAssignment,
+} from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -16,6 +18,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import EpisodeMemberRoleAssignmentsFormField from "../../../Components/IncidentGroupingRule/EpisodeMemberRoleAssignmentsFormField";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 
 const documentationMarkdown: string = `
 ### How Incident Grouping Works
@@ -252,6 +256,10 @@ const IncidentGroupingRulesPage: FunctionComponent<
           {
             title: "Episode Template",
             id: "episode-template",
+          },
+          {
+            title: "Episode Roles",
+            id: "episode-roles",
           },
           {
             title: "On-Call & Ownership",
@@ -653,6 +661,32 @@ const IncidentGroupingRulesPage: FunctionComponent<
                 </p>
               </div>
             ),
+          },
+          // Episode Roles Fields
+          {
+            field: {
+              episodeMemberRoleAssignments: true,
+            },
+            title: "Episode Role Assignments",
+            stepId: "episode-roles",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            description:
+              "Automatically assign users to specific roles when episodes are created with this rule. These role assignments will be applied to all new episodes that match this grouping rule.",
+            getCustomElement: (
+              value: EpisodeMemberRoleAssignment[] | undefined,
+              props: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <EpisodeMemberRoleAssignmentsFormField
+                  initialValue={value || []}
+                  onChange={(assignments: Array<EpisodeMemberRoleAssignment>) => {
+                    props.onChange(assignments);
+                  }}
+                  error={props.error}
+                />
+              );
+            },
           },
           {
             field: {
