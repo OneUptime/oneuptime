@@ -2,13 +2,19 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import IncidentEpisodeMember, {
   IncidentEpisodeMemberAddedBy,
 } from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IncidentElement from "../../../Components/Incident/Incident";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -19,11 +25,54 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 const EpisodeIncidents: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  const [incidentStates, setIncidentStates] = useState<IncidentState[]>([]);
+
+  useEffect(() => {
+    const fetchStates = async (): Promise<void> => {
+      try {
+        const result: ListResult<IncidentState> =
+          await ModelAPI.getList<IncidentState>({
+            modelType: IncidentState,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+              color: true,
+            },
+            sort: {},
+          });
+        setIncidentStates(result.data);
+      } catch (err) {
+        // Silently fail - states just won't show
+      }
+    };
+
+    fetchStates();
+  }, []);
+
+  const getStateById = (
+    stateId: ObjectID | string | undefined,
+  ): IncidentState | undefined => {
+    if (!stateId) {
+      return undefined;
+    }
+    const stateIdStr: string = stateId.toString();
+    return incidentStates.find((state: IncidentState) => {
+      return state._id?.toString() === stateIdStr;
+    });
+  };
 
   return (
     <ModelTable<IncidentEpisodeMember>
@@ -115,6 +164,7 @@ const EpisodeIncidents: FunctionComponent<
             incident: {
               title: true,
               _id: true,
+              currentIncidentStateId: true,
             },
           },
           title: "Title",
@@ -129,23 +179,23 @@ const EpisodeIncidents: FunctionComponent<
         {
           field: {
             incident: {
-              currentIncidentState: {
-                name: true,
-                color: true,
-              },
+              currentIncidentStateId: true,
             },
           },
           title: "Current State",
           type: FieldType.Element,
           getElement: (item: IncidentEpisodeMember): ReactElement => {
-            if (!item.incident?.currentIncidentState) {
+            const state: IncidentState | undefined = getStateById(
+              item.incident?.currentIncidentStateId,
+            );
+            if (!state) {
               return <>-</>;
             }
             return (
               <Pill
                 isMinimal={true}
-                color={item.incident.currentIncidentState.color || Black}
-                text={item.incident.currentIncidentState.name || "Unknown"}
+                color={state.color || Black}
+                text={state.name || "Unknown"}
               />
             );
           },

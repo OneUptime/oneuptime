@@ -2,13 +2,19 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import AlertEpisodeMember, {
   AlertEpisodeMemberAddedBy,
 } from "Common/Models/DatabaseModels/AlertEpisodeMember";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import AlertElement from "../../../Components/Alert/Alert";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -19,11 +25,54 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 const EpisodeAlerts: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  const [alertStates, setAlertStates] = useState<AlertState[]>([]);
+
+  useEffect(() => {
+    const fetchStates = async (): Promise<void> => {
+      try {
+        const result: ListResult<AlertState> =
+          await ModelAPI.getList<AlertState>({
+            modelType: AlertState,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+              color: true,
+            },
+            sort: {},
+          });
+        setAlertStates(result.data);
+      } catch (err) {
+        // Silently fail - states just won't show
+      }
+    };
+
+    fetchStates();
+  }, []);
+
+  const getStateById = (
+    stateId: ObjectID | string | undefined,
+  ): AlertState | undefined => {
+    if (!stateId) {
+      return undefined;
+    }
+    const stateIdStr: string = stateId.toString();
+    return alertStates.find((state: AlertState) => {
+      return state._id?.toString() === stateIdStr;
+    });
+  };
 
   return (
     <ModelTable<AlertEpisodeMember>
@@ -115,6 +164,7 @@ const EpisodeAlerts: FunctionComponent<
             alert: {
               title: true,
               _id: true,
+              currentAlertStateId: true,
             },
           },
           title: "Title",
@@ -129,23 +179,23 @@ const EpisodeAlerts: FunctionComponent<
         {
           field: {
             alert: {
-              currentAlertState: {
-                name: true,
-                color: true,
-              },
+              currentAlertStateId: true,
             },
           },
           title: "Current State",
           type: FieldType.Element,
           getElement: (item: AlertEpisodeMember): ReactElement => {
-            if (!item.alert?.currentAlertState) {
+            const state: AlertState | undefined = getStateById(
+              item.alert?.currentAlertStateId,
+            );
+            if (!state) {
               return <>-</>;
             }
             return (
               <Pill
                 isMinimal={true}
-                color={item.alert.currentAlertState.color || Black}
-                text={item.alert.currentAlertState.name || "Unknown"}
+                color={state.color || Black}
+                text={state.name || "Unknown"}
               />
             );
           },
