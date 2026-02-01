@@ -1,10 +1,13 @@
 import OnCallDutyPoliciesView from "../../OnCallPolicy/OnCallPolicies";
-import { Black, Gray500 } from "Common/Types/BrandColors";
+import TeamsElement from "../../Team/TeamsElement";
+import UsersElement from "../../User/Users";
+import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import ObjectID from "Common/Types/ObjectID";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Pill from "Common/UI/Components/Pill/Pill";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -141,20 +144,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
                     .includes(team.id?.toString() || "");
                 },
               );
-              return (
-                <div className="flex flex-wrap gap-1">
-                  {teams.map((team: Team, index: number) => {
-                    return (
-                      <Pill
-                        key={index}
-                        isMinimal={true}
-                        color={Gray500}
-                        text={team.name || ""}
-                      />
-                    );
-                  })}
-                </div>
-              );
+              return <TeamsElement teams={teams} />;
             },
           },
           {
@@ -179,22 +169,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
                     .includes(user.id?.toString() || "");
                 },
               );
-              return (
-                <div className="flex flex-wrap gap-1">
-                  {users.map((user: User, index: number) => {
-                    return (
-                      <Pill
-                        key={index}
-                        isMinimal={true}
-                        color={Gray500}
-                        text={
-                          user.name?.toString() || user.email?.toString() || ""
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              );
+              return <UsersElement users={users} />;
             },
           },
           {
@@ -219,20 +194,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
                     .includes(label.id?.toString() || "");
                 },
               );
-              return (
-                <div className="flex flex-wrap gap-1">
-                  {labels.map((label: Label, index: number) => {
-                    return (
-                      <Pill
-                        key={index}
-                        isMinimal={true}
-                        color={(label.color as Color) || Black}
-                        text={label.name || ""}
-                      />
-                    );
-                  })}
-                </div>
-              );
+              return <LabelsElement labels={labels} />;
             },
           },
         ]}
