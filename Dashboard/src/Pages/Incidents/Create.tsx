@@ -421,6 +421,7 @@ const IncidentCreate: FunctionComponent<
                   overrideField: {
                     incidentRoles: true,
                   },
+                  showEvenIfPermissionDoesNotExist: true,
                   title: "Assign Incident Roles",
                   stepId: "incident-roles",
                   description:
