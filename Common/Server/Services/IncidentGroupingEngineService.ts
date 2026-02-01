@@ -948,17 +948,17 @@ class IncidentGroupingEngineServiceClass {
         incident.monitors.length > 0 &&
         incident.monitors[0]?.name
       ) {
-        return `Incident Episode: ${incident.monitors[0].name}`;
+        return incident.monitors[0].name;
       }
       if (incident.title) {
-        return `Incident Episode: ${incident.title.substring(0, 50)}`;
+        return incident.title.substring(0, 50);
       }
-      return "Incident Episode";
+      return "Untitled Episode";
     }
 
     return (
       this.replaceTemplatePlaceholders(incident, template, incidentCount) ||
-      "Incident Episode"
+      "Untitled Episode"
     );
   }
 

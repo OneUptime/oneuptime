@@ -842,17 +842,17 @@ class AlertGroupingEngineServiceClass {
     if (!template) {
       // Default title based on alert
       if (alert.monitor?.name) {
-        return `Alert Episode: ${alert.monitor.name}`;
+        return alert.monitor.name;
       }
       if (alert.title) {
-        return `Alert Episode: ${alert.title.substring(0, 50)}`;
+        return alert.title.substring(0, 50);
       }
-      return "Alert Episode";
+      return "Untitled Episode";
     }
 
     return (
       this.replaceTemplatePlaceholders(alert, template, alertCount) ||
-      "Alert Episode"
+      "Untitled Episode"
     );
   }
 
