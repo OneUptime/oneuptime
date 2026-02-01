@@ -36,7 +36,7 @@ const EpisodeIncidents: FunctionComponent<
   const [incidentStates, setIncidentStates] = useState<IncidentState[]>([]);
 
   useEffect(() => {
-    const fetchStates = async (): Promise<void> => {
+    const fetchStates: () => Promise<void> = async (): Promise<void> => {
       try {
         const result: ListResult<IncidentState> =
           await ModelAPI.getList<IncidentState>({
@@ -54,7 +54,7 @@ const EpisodeIncidents: FunctionComponent<
             sort: {},
           });
         setIncidentStates(result.data);
-      } catch (err) {
+      } catch {
         // Silently fail - states just won't show
       }
     };
@@ -62,7 +62,9 @@ const EpisodeIncidents: FunctionComponent<
     fetchStates();
   }, []);
 
-  const getStateById = (
+  const getStateById: (
+    stateId: ObjectID | string | undefined,
+  ) => IncidentState | undefined = (
     stateId: ObjectID | string | undefined,
   ): IncidentState | undefined => {
     if (!stateId) {

@@ -36,7 +36,7 @@ const EpisodeAlerts: FunctionComponent<
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
 
   useEffect(() => {
-    const fetchStates = async (): Promise<void> => {
+    const fetchStates: () => Promise<void> = async (): Promise<void> => {
       try {
         const result: ListResult<AlertState> =
           await ModelAPI.getList<AlertState>({
@@ -54,7 +54,7 @@ const EpisodeAlerts: FunctionComponent<
             sort: {},
           });
         setAlertStates(result.data);
-      } catch (err) {
+      } catch {
         // Silently fail - states just won't show
       }
     };
@@ -62,7 +62,9 @@ const EpisodeAlerts: FunctionComponent<
     fetchStates();
   }, []);
 
-  const getStateById = (
+  const getStateById: (
+    stateId: ObjectID | string | undefined,
+  ) => AlertState | undefined = (
     stateId: ObjectID | string | undefined,
   ): AlertState | undefined => {
     if (!stateId) {
@@ -111,10 +113,7 @@ const EpisodeAlerts: FunctionComponent<
         {
           title: "View Alert",
           buttonStyleType: ButtonStyleType.OUTLINE,
-          onClick: (
-            item: AlertEpisodeMember,
-            onCompleteAction: () => void,
-          ) => {
+          onClick: (item: AlertEpisodeMember, onCompleteAction: () => void) => {
             if (item.alert?._id) {
               Navigation.navigate(
                 RouteUtil.populateRouteParams(
