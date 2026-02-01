@@ -198,6 +198,7 @@ export default class IncidentSlaRule extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Description of this SLA rule",
+    canReadOnRelationQuery: true,
   })
   @Column({
     nullable: true,
@@ -304,6 +305,7 @@ export default class IncidentSlaRule extends BaseModel {
     title: "Response Time (Minutes)",
     description:
       "Target response time in minutes. This is the maximum time allowed before the incident must be acknowledged.",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -336,6 +338,7 @@ export default class IncidentSlaRule extends BaseModel {
     title: "Resolution Time (Minutes)",
     description:
       "Target resolution time in minutes. This is the maximum time allowed before the incident must be resolved.",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -370,6 +373,7 @@ export default class IncidentSlaRule extends BaseModel {
       "Percentage of the deadline at which the SLA status changes to At Risk. For example, 80 means the status becomes At Risk when 80% of the time has elapsed.",
     defaultValue: 80,
     isDefaultValueColumn: true,
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -405,6 +409,7 @@ export default class IncidentSlaRule extends BaseModel {
     title: "Internal Note Reminder Interval (Minutes)",
     description:
       "Interval in minutes between automatic internal note reminders. Leave empty to disable internal note reminders.",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -437,6 +442,7 @@ export default class IncidentSlaRule extends BaseModel {
     title: "Public Note Reminder Interval (Minutes)",
     description:
       "Interval in minutes between automatic public note reminders. Leave empty to disable public note reminders.",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Number,
