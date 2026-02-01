@@ -89,31 +89,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   };
 
   const getCriteriaHeaderColor: (
-    instance: MonitorCriteriaInstance,
-  ) => string = (instance: MonitorCriteriaInstance): string => {
-    const name: string = instance.data?.name?.toLowerCase() || "";
-
-    if (
-      name.includes("online") ||
-      name.includes("success") ||
-      name.includes("healthy")
-    ) {
-      return "border-l-green-500";
-    }
-    if (
-      name.includes("offline") ||
-      name.includes("error") ||
-      name.includes("down")
-    ) {
-      return "border-l-red-500";
-    }
-    if (
-      name.includes("degraded") ||
-      name.includes("warning") ||
-      name.includes("slow")
-    ) {
-      return "border-l-yellow-500";
-    }
+    _instance: MonitorCriteriaInstance,
+  ) => string = (_instance: MonitorCriteriaInstance): string => {
     return "border-l-blue-500";
   };
 

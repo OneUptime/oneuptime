@@ -237,9 +237,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         </div>
       </CollapsibleSection>
 
-      {/* Notifications - Collapsible */}
+      {/* On-Call - Collapsible */}
       <CollapsibleSection
-        title="Notifications"
+        title="On-Call"
         description="Configure on-call policy escalation"
         badge={hasNotifications ? "Configured" : undefined}
         variant="bordered"
@@ -279,10 +279,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         </div>
       </CollapsibleSection>
 
-      {/* Incident Team - Collapsible */}
+      {/* Incident Roles - Collapsible */}
       {props.incidentRoleOptions && props.incidentRoleOptions.length > 0 && (
         <CollapsibleSection
-          title="Incident Team"
+          title="Incident Roles"
           description="Pre-assign team members to incident roles"
           badge={hasIncidentTeam ? "Configured" : undefined}
           variant="bordered"

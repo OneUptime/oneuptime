@@ -244,9 +244,9 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         </div>
       </CollapsibleSection>
 
-      {/* Notifications - Collapsible */}
+      {/* On-Call - Collapsible */}
       <CollapsibleSection
-        title="Notifications"
+        title="On-Call"
         description="Configure on-call policy escalation"
         badge={hasNotifications ? "Configured" : undefined}
         variant="bordered"
