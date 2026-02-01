@@ -5,6 +5,10 @@ import Text from "Common/Types/Text";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Label from "Common/Models/DatabaseModels/Label";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -13,6 +17,10 @@ export interface ComponentProps {
   incidentSeverityOptions: Array<IncidentSeverity>;
   alertSeverityOptions: Array<IncidentSeverity>;
   onCallPolicyOptions: Array<OnCallDutyPolicy>;
+  labelOptions: Array<Label>;
+  teamOptions: Array<Team>;
+  userOptions: Array<User>;
+  incidentRoleOptions: Array<IncidentRole>;
 }
 
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
@@ -44,6 +52,10 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       onCallPolicyOptions={props.onCallPolicyOptions}
                       incidentSeverityOptions={props.incidentSeverityOptions}
                       alertSeverityOptions={props.alertSeverityOptions}
+                      labelOptions={props.labelOptions}
+                      teamOptions={props.teamOptions}
+                      userOptions={props.userOptions}
+                      incidentRoleOptions={props.incidentRoleOptions}
                       monitorCriteriaInstance={i}
                       isLastCriteria={
                         index ===

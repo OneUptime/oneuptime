@@ -19,6 +19,10 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 
 export interface ComponentProps extends CustomElementProps {
   monitorSteps: MonitorSteps;
@@ -42,6 +46,16 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [onCallPolicyOptions, setOnCallPolicyOptions] = React.useState<
     Array<OnCallDutyPolicy>
+  >([]);
+
+  const [labelOptions, setLabelOptions] = React.useState<Array<Label>>([]);
+
+  const [teamOptions, setTeamOptions] = React.useState<Array<Team>>([]);
+
+  const [userOptions, setUserOptions] = React.useState<Array<User>>([]);
+
+  const [incidentRoleOptions, setIncidentRoleOptions] = React.useState<
+    Array<IncidentRole>
   >([]);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -131,6 +145,72 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           onCallPolicyList.data as Array<OnCallDutyPolicy>,
         );
       }
+
+      const labelList: ListResult<Label> = await ModelAPI.getList({
+        modelType: Label,
+        query: {},
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+          color: true,
+        },
+        sort: {},
+      });
+
+      if (labelList.data) {
+        setLabelOptions(labelList.data as Array<Label>);
+      }
+
+      const teamList: ListResult<Team> = await ModelAPI.getList({
+        modelType: Team,
+        query: {},
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+        },
+        sort: {},
+      });
+
+      if (teamList.data) {
+        setTeamOptions(teamList.data as Array<Team>);
+      }
+
+      const userList: ListResult<User> = await ModelAPI.getList({
+        modelType: User,
+        query: {},
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+          email: true,
+        },
+        sort: {},
+      });
+
+      if (userList.data) {
+        setUserOptions(userList.data as Array<User>);
+      }
+
+      const incidentRoleList: ListResult<IncidentRole> = await ModelAPI.getList(
+        {
+          modelType: IncidentRole,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+            color: true,
+            canAssignMultipleUsers: true,
+          },
+          sort: {},
+        },
+      );
+
+      if (incidentRoleList.data) {
+        setIncidentRoleOptions(incidentRoleList.data as Array<IncidentRole>);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -166,6 +246,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               alertSeverityOptions={alertSeverityOptions}
               monitorStep={i}
               onCallPolicyOptions={onCallPolicyOptions}
+              labelOptions={labelOptions}
+              teamOptions={teamOptions}
+              userOptions={userOptions}
+              incidentRoleOptions={incidentRoleOptions}
             />
           );
         },

@@ -10,6 +10,10 @@ import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Label from "Common/Models/DatabaseModels/Label";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import React, { FunctionComponent, ReactElement } from "react";
 import MonitorCriteriaAlerts from "./MonitorCriteriaAlerts";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -22,6 +26,10 @@ export interface ComponentProps {
   isLastCriteria: boolean;
   monitorCriteriaInstance: MonitorCriteriaInstance;
   onCallPolicyOptions: Array<OnCallDutyPolicy>;
+  labelOptions: Array<Label>;
+  teamOptions: Array<Team>;
+  userOptions: Array<User>;
+  incidentRoleOptions: Array<IncidentRole>;
 }
 
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
@@ -111,6 +119,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               incidents={props.monitorCriteriaInstance?.data?.incidents || []}
               onCallPolicyOptions={props.onCallPolicyOptions}
               incidentSeverityOptions={props.incidentSeverityOptions}
+              labelOptions={props.labelOptions}
+              teamOptions={props.teamOptions}
+              userOptions={props.userOptions}
+              incidentRoleOptions={props.incidentRoleOptions}
             />
           </div>
         )}
@@ -132,6 +144,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               alerts={props.monitorCriteriaInstance?.data?.alerts || []}
               onCallPolicyOptions={props.onCallPolicyOptions}
               alertSeverityOptions={props.alertSeverityOptions}
+              labelOptions={props.labelOptions}
+              teamOptions={props.teamOptions}
+              userOptions={props.userOptions}
             />
           </div>
         )}

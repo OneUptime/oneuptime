@@ -35,6 +35,10 @@ import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import ObjectID from "Common/Types/ObjectID";
 import SpanUtil from "../../../Utils/SpanUtil";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Label from "Common/Models/DatabaseModels/Label";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -43,6 +47,10 @@ export interface ComponentProps {
   monitorStep: MonitorStep;
   monitorType: MonitorType;
   onCallPolicyOptions: Array<OnCallDutyPolicy>;
+  labelOptions: Array<Label>;
+  teamOptions: Array<Team>;
+  userOptions: Array<User>;
+  incidentRoleOptions: Array<IncidentRole>;
 }
 
 export interface LogMonitorStepView {
@@ -537,6 +545,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           monitorStatusOptions={props.monitorStatusOptions}
           incidentSeverityOptions={props.incidentSeverityOptions}
           alertSeverityOptions={props.alertSeverityOptions}
+          labelOptions={props.labelOptions}
+          teamOptions={props.teamOptions}
+          userOptions={props.userOptions}
+          incidentRoleOptions={props.incidentRoleOptions}
           monitorCriteria={
             props.monitorStep?.data?.monitorCriteria as MonitorCriteria
           }
