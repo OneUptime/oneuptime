@@ -15,6 +15,7 @@ import Image from "../Image/Image";
 import Route from "../../../Types/API/Route";
 import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
+import Modal from "../Modal/Modal";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import { ButtonStyleType } from "../Button/Button";
 
@@ -61,6 +62,11 @@ export interface ComponentProps {
   className?: string;
 }
 
+interface ReassignState {
+  member: AssignedMember;
+  role: MemberRole;
+}
+
 const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -74,6 +80,10 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
   const [selectedUserOption, setSelectedUserOption] =
     useState<DropdownOption | null>(null);
   const [localError, setLocalError] = useState<string>("");
+  const [reassignState, setReassignState] = useState<ReassignState | null>(
+    null,
+  );
+  const [isReassigning, setIsReassigning] = useState<boolean>(false);
 
   const handleAssign: (userId: ObjectID, roleId: ObjectID) => Promise<void> =
     useCallback(
@@ -107,6 +117,34 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
       }
     },
     [props.onUnassignMember],
+  );
+
+  const handleReassign: (
+    currentMember: AssignedMember,
+    newUserId: ObjectID,
+    roleId: ObjectID,
+  ) => Promise<void> = useCallback(
+    async (
+      currentMember: AssignedMember,
+      newUserId: ObjectID,
+      roleId: ObjectID,
+    ): Promise<void> => {
+      try {
+        setIsReassigning(true);
+        setLocalError("");
+        // First unassign the current member
+        await props.onUnassignMember(currentMember.memberId);
+        // Then assign the new user
+        await props.onAssignMember(newUserId, roleId);
+        setReassignState(null);
+        setSelectedUserOption(null);
+      } catch (err) {
+        setLocalError(API.getFriendlyMessage(err));
+      } finally {
+        setIsReassigning(false);
+      }
+    },
+    [props.onUnassignMember, props.onAssignMember],
   );
 
   // Get members for a specific role
@@ -174,11 +212,15 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
   // Render a single member row
   const renderMemberRow: (
     member: AssignedMember,
+    role: MemberRole,
     isLastInGroup?: boolean,
   ) => ReactElement = (
     member: AssignedMember,
+    role: MemberRole,
     isLastInGroup?: boolean,
   ): ReactElement => {
+    const isPrimaryRole: boolean = role.isPrimaryRole || false;
+
     return (
       <div
         key={member.memberId.toString()}
@@ -211,21 +253,35 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setShowConfirmDelete(member);
-          }}
-          disabled={isUnassigning?.toString() === member.memberId.toString()}
-          className="inline-flex items-center p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-          title="Remove"
-        >
-          {isUnassigning?.toString() === member.memberId.toString() ? (
-            <Icon icon={IconProp.Refresh} className="w-4 h-4 animate-spin" />
-          ) : (
-            <Icon icon={IconProp.Close} className="w-4 h-4" />
-          )}
-        </button>
+        {isPrimaryRole ? (
+          <button
+            type="button"
+            onClick={() => {
+              setReassignState({ member, role });
+            }}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
+            title="Reassign"
+          >
+            <Icon icon={IconProp.ArrowCircleRight} className="w-3.5 h-3.5" />
+            Reassign
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setShowConfirmDelete(member);
+            }}
+            disabled={isUnassigning?.toString() === member.memberId.toString()}
+            className="inline-flex items-center p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+            title="Remove"
+          >
+            {isUnassigning?.toString() === member.memberId.toString() ? (
+              <Icon icon={IconProp.Refresh} className="w-4 h-4 animate-spin" />
+            ) : (
+              <Icon icon={IconProp.Close} className="w-4 h-4" />
+            )}
+          </button>
+        )}
       </div>
     );
   };
@@ -454,6 +510,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                         members.map((member: AssignedMember, index: number) => {
                           return renderMemberRow(
                             member,
+                            role,
                             index === members.length - 1,
                           );
                         })
@@ -481,6 +538,67 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
             setShowConfirmDelete(null);
           }}
         />
+      )}
+
+      {/* Reassign Modal */}
+      {reassignState && (
+        <Modal
+          title="Reassign Role"
+          submitButtonText={isReassigning ? "Reassigning..." : "Reassign"}
+          submitButtonStyleType={ButtonStyleType.PRIMARY}
+          onSubmit={() => {
+            if (selectedUserOption) {
+              handleReassign(
+                reassignState.member,
+                new ObjectID(selectedUserOption.value.toString()),
+                reassignState.role.id,
+              );
+            }
+          }}
+          disableSubmitButton={!selectedUserOption || isReassigning}
+          onClose={() => {
+            setReassignState(null);
+            setSelectedUserOption(null);
+          }}
+        >
+          <p className="text-gray-500 text-sm mb-4">
+            Select a new user to reassign the {reassignState.role.name} role
+            from {reassignState.member.userName || reassignState.member.userEmail}
+            .
+          </p>
+          <Dropdown
+            options={props.availableUsers
+              .filter((user: AvailableUser) => {
+                // Exclude the current member from the list
+                return (
+                  user.id.toString() !== reassignState.member.userId.toString()
+                );
+              })
+              .map((user: AvailableUser) => {
+                return {
+                  value: user.id.toString(),
+                  label: user.name || user.email,
+                };
+              })}
+            placeholder="Select new user..."
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              if (value && !Array.isArray(value)) {
+                const option: DropdownOption | undefined = props.availableUsers
+                  .map((user: AvailableUser) => ({
+                    value: user.id.toString(),
+                    label: user.name || user.email,
+                  }))
+                  .find((opt: DropdownOption) => {
+                    return opt.value.toString() === value.toString();
+                  });
+                setSelectedUserOption(option || null);
+              } else {
+                setSelectedUserOption(null);
+              }
+            }}
+            value={selectedUserOption || undefined}
+          />
+        </Modal>
       )}
     </>
   );
