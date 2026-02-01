@@ -3,6 +3,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -152,6 +153,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Incident Grouping Rules",
           description:
@@ -674,14 +676,19 @@ const IncidentGroupingRulesPage: FunctionComponent<
             description:
               "Automatically assign users to specific roles when episodes are created with this rule. These role assignments will be applied to all new episodes that match this grouping rule.",
             getCustomElement: (
-              value: EpisodeMemberRoleAssignment[] | undefined,
+              values: FormValues<IncidentGroupingRule>,
               props: CustomElementProps,
             ): ReactElement => {
               return (
                 <EpisodeMemberRoleAssignmentsFormField
-                  initialValue={value || []}
+                  initialValue={
+                    (values.episodeMemberRoleAssignments as Array<EpisodeMemberRoleAssignment>) ||
+                    []
+                  }
                   onChange={(assignments: Array<EpisodeMemberRoleAssignment>) => {
-                    props.onChange(assignments);
+                    if (props.onChange) {
+                      props.onChange(assignments);
+                    }
                   }}
                   error={props.error}
                 />
