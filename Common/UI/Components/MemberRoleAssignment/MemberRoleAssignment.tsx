@@ -310,7 +310,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                         >
                           <Icon
                             icon={role.icon || IconProp.User}
-                            className="w-4.5 h-4.5"
+                            className="w-5 h-5"
                             style={{
                               color: role.color?.toString() || "#6b7280",
                             }}
