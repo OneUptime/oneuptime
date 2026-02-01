@@ -880,20 +880,22 @@ return {
         </CollapsibleSection>
       )}
 
-      {/* Test Monitor Card */}
-      <Card
-        title="Test Monitor"
-        description="Verify your monitor configuration before saving"
-        className="bg-blue-50 border-blue-200"
-      >
-        <MonitorTestForm
-          monitorId={props.monitorId}
-          monitorSteps={props.allMonitorSteps}
-          monitorType={props.monitorType}
-          probes={props.probes}
-          buttonSize={ButtonSize.Normal}
-        />
-      </Card>
+      {/* Test Monitor Card - not shown for Incoming Request monitors */}
+      {props.monitorType !== MonitorType.IncomingRequest && (
+        <Card
+          title="Test Monitor"
+          description="Verify your monitor configuration before saving"
+          className="bg-blue-50 border-blue-200"
+        >
+          <MonitorTestForm
+            monitorId={props.monitorId}
+            monitorSteps={props.allMonitorSteps}
+            monitorType={props.monitorType}
+            probes={props.probes}
+            buttonSize={ButtonSize.Normal}
+          />
+        </Card>
+      )}
 
       {/* Monitor Criteria Section */}
       <Card
