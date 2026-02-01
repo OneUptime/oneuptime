@@ -33,8 +33,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Button from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Incident from "Common/Models/DatabaseModels/Incident";
 
 interface SlaTimerProps {
@@ -43,7 +42,6 @@ interface SlaTimerProps {
   isCompleted: boolean;
   completedAt?: Date;
   label: string;
-  totalMinutes?: number;
 }
 
 const SlaTimer: FunctionComponent<SlaTimerProps> = (
@@ -128,11 +126,14 @@ const SlaTimer: FunctionComponent<SlaTimerProps> = (
     textColor = "text-yellow-600";
   }
 
-  const formatTimeUnit = (value: number, unit: string): string => {
+  const formatTimeUnit: (value: number, unit: string) => string = (
+    value: number,
+    unit: string,
+  ): string => {
     return `${value}${unit}`;
   };
 
-  const getTimeDisplay = (): string => {
+  const getTimeDisplay: () => string = (): string => {
     const parts: string[] = [];
     if (days > 0) {
       parts.push(formatTimeUnit(days, "d"));
@@ -279,7 +280,7 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
     textColor = "text-yellow-600";
   }
 
-  const getTimeDisplay = (): string => {
+  const getTimeDisplay: () => string = (): string => {
     const parts: string[] = [];
     if (hours > 0) {
       parts.push(`${hours}h`);
@@ -351,7 +352,9 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
 ): ReactElement => {
   const { sla, rule, onRemove, isRemoving } = props;
 
-  const getStatusColor = (status: IncidentSlaStatus | undefined): Color => {
+  const getStatusColor: (status: IncidentSlaStatus | undefined) => Color = (
+    status: IncidentSlaStatus | undefined,
+  ): Color => {
     switch (status) {
       case IncidentSlaStatus.OnTrack:
         return Green;
@@ -367,7 +370,9 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
     }
   };
 
-  const getStatusIcon = (status: IncidentSlaStatus | undefined): IconProp => {
+  const getStatusIcon: (status: IncidentSlaStatus | undefined) => IconProp = (
+    status: IncidentSlaStatus | undefined,
+  ): IconProp => {
     switch (status) {
       case IncidentSlaStatus.OnTrack:
         return IconProp.CheckCircle;
@@ -434,9 +439,6 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
             : sla.resolvedAt
               ? { completedAt: sla.resolvedAt }
               : {})}
-          {...(rule?.responseTimeInMinutes
-            ? { totalMinutes: rule.responseTimeInMinutes }
-            : {})}
         />
 
         <SlaTimer
@@ -445,9 +447,6 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
           startedAt={sla.slaStartedAt!}
           isCompleted={Boolean(sla.resolvedAt)}
           {...(sla.resolvedAt ? { completedAt: sla.resolvedAt } : {})}
-          {...(rule?.resolutionTimeInMinutes
-            ? { totalMinutes: rule.resolutionTimeInMinutes }
-            : {})}
         />
       </div>
 
@@ -559,83 +558,84 @@ const IncidentViewSla: FunctionComponent<
     null,
   );
 
-  const fetchData: () => Promise<void> = useCallback(async (): Promise<void> => {
-    setIsLoading(true);
-    setError("");
+  const fetchData: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      setIsLoading(true);
+      setError("");
 
-    try {
-      // Fetch incident to get declaredAt time
-      const incidentResponse: Incident | null =
-        await ModelAPI.getItem<Incident>({
-          modelType: Incident,
-          id: new ObjectID(modelIdString),
+      try {
+        // Fetch incident to get declaredAt time
+        const incidentResponse: Incident | null =
+          await ModelAPI.getItem<Incident>({
+            modelType: Incident,
+            id: new ObjectID(modelIdString),
+            select: {
+              createdAt: true,
+            },
+          });
+
+        if (incidentResponse?.createdAt) {
+          setIncidentDeclaredAt(incidentResponse.createdAt);
+        }
+
+        // Fetch SLA records for this incident
+        const slaResponse: {
+          data: IncidentSla[];
+          count: number;
+        } = await ModelAPI.getList<IncidentSla>({
+          modelType: IncidentSla,
+          query: {
+            incidentId: new ObjectID(modelIdString),
+            projectId: new ObjectID(projectIdString),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
           select: {
-            createdAt: true,
+            _id: true,
+            incidentSlaRuleId: true,
+            responseDeadline: true,
+            resolutionDeadline: true,
+            status: true,
+            respondedAt: true,
+            resolvedAt: true,
+            slaStartedAt: true,
+            lastInternalNoteReminderSentAt: true,
+            lastPublicNoteReminderSentAt: true,
+            incidentSlaRule: {
+              _id: true,
+              name: true,
+              description: true,
+              responseTimeInMinutes: true,
+              resolutionTimeInMinutes: true,
+              atRiskThresholdInPercentage: true,
+              internalNoteReminderIntervalInMinutes: true,
+              publicNoteReminderIntervalInMinutes: true,
+            },
+          },
+          sort: {
+            slaStartedAt: SortOrder.Descending,
           },
         });
 
-      if (incidentResponse?.createdAt) {
-        setIncidentDeclaredAt(incidentResponse.createdAt);
-      }
+        setSlaRecords(slaResponse.data);
 
-      // Fetch SLA records for this incident
-      const slaResponse: {
-        data: IncidentSla[];
-        count: number;
-      } = await ModelAPI.getList<IncidentSla>({
-        modelType: IncidentSla,
-        query: {
-          incidentId: new ObjectID(modelIdString),
-          projectId: new ObjectID(projectIdString),
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-          incidentSlaRuleId: true,
-          responseDeadline: true,
-          resolutionDeadline: true,
-          status: true,
-          respondedAt: true,
-          resolvedAt: true,
-          slaStartedAt: true,
-          lastInternalNoteReminderSentAt: true,
-          lastPublicNoteReminderSentAt: true,
-          incidentSlaRule: {
-            _id: true,
-            name: true,
-            description: true,
-            responseTimeInMinutes: true,
-            resolutionTimeInMinutes: true,
-            atRiskThresholdInPercentage: true,
-            internalNoteReminderIntervalInMinutes: true,
-            publicNoteReminderIntervalInMinutes: true,
-          },
-        },
-        sort: {
-          slaStartedAt: SortOrder.Descending,
-        },
-      });
-
-      setSlaRecords(slaResponse.data);
-
-      // Extract rules from the response
-      const rulesMap: Map<string, IncidentSlaRule> = new Map();
-      for (const sla of slaResponse.data) {
-        if (sla.incidentSlaRule && sla.incidentSlaRuleId) {
-          rulesMap.set(
-            sla.incidentSlaRuleId.toString(),
-            sla.incidentSlaRule as IncidentSlaRule,
-          );
+        // Extract rules from the response
+        const rulesMap: Map<string, IncidentSlaRule> = new Map();
+        for (const sla of slaResponse.data) {
+          if (sla.incidentSlaRule && sla.incidentSlaRuleId) {
+            rulesMap.set(
+              sla.incidentSlaRuleId.toString(),
+              sla.incidentSlaRule as IncidentSlaRule,
+            );
+          }
         }
+        setSlaRules(rulesMap);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      } finally {
+        setIsLoading(false);
       }
-      setSlaRules(rulesMap);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [modelIdString, projectIdString]);
+    }, [modelIdString, projectIdString]);
 
   const fetchAvailableRules: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -667,15 +667,16 @@ const IncidentViewSla: FunctionComponent<
         // Filter out rules that are already applied to this incident
         const appliedRuleIds: Set<string> = new Set(
           slaRecords
-            .map((sla: IncidentSla) => sla.incidentSlaRuleId?.toString())
+            .map((sla: IncidentSla) => {
+              return sla.incidentSlaRuleId?.toString();
+            })
             .filter(Boolean) as string[],
         );
 
         const availableRulesFiltered: IncidentSlaRule[] =
-          rulesResponse.data.filter(
-            (rule: IncidentSlaRule) =>
-              !appliedRuleIds.has(rule._id?.toString() || ""),
-          );
+          rulesResponse.data.filter((rule: IncidentSlaRule) => {
+            return !appliedRuleIds.has(rule._id?.toString() || "");
+          });
 
         setAvailableRules(availableRulesFiltered);
       } catch (err) {
@@ -698,7 +699,9 @@ const IncidentViewSla: FunctionComponent<
       try {
         // Find the selected rule to get its configuration
         const selectedRule: IncidentSlaRule | undefined = availableRules.find(
-          (rule: IncidentSlaRule) => rule._id?.toString() === selectedRuleId,
+          (rule: IncidentSlaRule) => {
+            return rule._id?.toString() === selectedRuleId;
+          },
         );
 
         if (!selectedRule) {
@@ -737,7 +740,10 @@ const IncidentViewSla: FunctionComponent<
         let resolvedAt: Date | undefined;
 
         for (const timeline of timelineResponse.data) {
-          const state = timeline.incidentState as {
+          const state: {
+            isCreatedState?: boolean;
+            isResolvedState?: boolean;
+          } = timeline.incidentState as {
             isCreatedState?: boolean;
             isResolvedState?: boolean;
           };
@@ -986,7 +992,9 @@ const IncidentViewSla: FunctionComponent<
                     icon={IconProp.Spinner}
                     className="h-6 w-6 animate-spin mx-auto"
                   />
-                  <p className="text-gray-500 mt-2">Loading available rules...</p>
+                  <p className="text-gray-500 mt-2">
+                    Loading available rules...
+                  </p>
                 </div>
               ) : availableRules.length === 0 ? (
                 <div className="text-center py-4">
@@ -1002,7 +1010,9 @@ const IncidentViewSla: FunctionComponent<
                   </label>
                   <Dropdown
                     options={ruleOptions}
-                    onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                    onChange={(
+                      value: DropdownValue | Array<DropdownValue> | null,
+                    ) => {
                       setSelectedRuleId(value as string);
                     }}
                     placeholder="Select an SLA rule..."
@@ -1091,7 +1101,9 @@ const IncidentViewSla: FunctionComponent<
                 </label>
                 <Dropdown
                   options={ruleOptions}
-                  onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
                     setSelectedRuleId(value as string);
                   }}
                   placeholder="Select an SLA rule..."
