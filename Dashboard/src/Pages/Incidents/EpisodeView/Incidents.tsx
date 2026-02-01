@@ -14,6 +14,11 @@ import IncidentElement from "../../../Components/Incident/Incident";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
 const EpisodeIncidents: FunctionComponent<
   PageComponentProps
@@ -53,6 +58,26 @@ const EpisodeIncidents: FunctionComponent<
       }}
       noItemsMessage="No incidents in this episode."
       showRefreshButton={true}
+      actionButtons={[
+        {
+          title: "View Incident",
+          buttonStyleType: ButtonStyleType.OUTLINE,
+          onClick: (
+            item: IncidentEpisodeMember,
+            onCompleteAction: () => void,
+          ) => {
+            if (item.incident?._id) {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                  { modelId: new ObjectID(item.incident._id.toString()) },
+                ),
+              );
+            }
+            onCompleteAction();
+          },
+        } as ActionButtonSchema<IncidentEpisodeMember>,
+      ]}
       formFields={[
         {
           field: {
@@ -99,6 +124,30 @@ const EpisodeIncidents: FunctionComponent<
               return <>-</>;
             }
             return <IncidentElement incident={item.incident} />;
+          },
+        },
+        {
+          field: {
+            incident: {
+              currentIncidentState: {
+                name: true,
+                color: true,
+              },
+            },
+          },
+          title: "Current State",
+          type: FieldType.Element,
+          getElement: (item: IncidentEpisodeMember): ReactElement => {
+            if (!item.incident?.currentIncidentState) {
+              return <>-</>;
+            }
+            return (
+              <Pill
+                isMinimal={true}
+                color={item.incident.currentIncidentState.color || Black}
+                text={item.incident.currentIncidentState.name || "Unknown"}
+              />
+            );
           },
         },
         {

@@ -14,6 +14,11 @@ import AlertElement from "../../../Components/Alert/Alert";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
 const EpisodeAlerts: FunctionComponent<
   PageComponentProps
@@ -53,6 +58,26 @@ const EpisodeAlerts: FunctionComponent<
       }}
       noItemsMessage="No alerts in this episode."
       showRefreshButton={true}
+      actionButtons={[
+        {
+          title: "View Alert",
+          buttonStyleType: ButtonStyleType.OUTLINE,
+          onClick: (
+            item: AlertEpisodeMember,
+            onCompleteAction: () => void,
+          ) => {
+            if (item.alert?._id) {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.ALERT_VIEW] as Route,
+                  { modelId: new ObjectID(item.alert._id.toString()) },
+                ),
+              );
+            }
+            onCompleteAction();
+          },
+        } as ActionButtonSchema<AlertEpisodeMember>,
+      ]}
       formFields={[
         {
           field: {
@@ -99,6 +124,30 @@ const EpisodeAlerts: FunctionComponent<
               return <>-</>;
             }
             return <AlertElement alert={item.alert} />;
+          },
+        },
+        {
+          field: {
+            alert: {
+              currentAlertState: {
+                name: true,
+                color: true,
+              },
+            },
+          },
+          title: "Current State",
+          type: FieldType.Element,
+          getElement: (item: AlertEpisodeMember): ReactElement => {
+            if (!item.alert?.currentAlertState) {
+              return <>-</>;
+            }
+            return (
+              <Pill
+                isMinimal={true}
+                color={item.alert.currentAlertState.color || Black}
+                text={item.alert.currentAlertState.name || "Unknown"}
+              />
+            );
           },
         },
         {
