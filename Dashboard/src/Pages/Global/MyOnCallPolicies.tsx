@@ -276,7 +276,7 @@ const MyOnCallPolicies: FunctionComponent<
   return (
     <Page title={"My On-Call Policies"} breadcrumbLinks={breadcrumbLinks}>
       <Card
-        title="My On-Call Policies"
+        title="Active On-Call Assignments"
         description="All on-call policies you are currently on duty for across all your projects."
         buttons={[
           {
