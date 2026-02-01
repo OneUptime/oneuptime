@@ -408,7 +408,7 @@ export default class IncidentSlaRule extends BaseModel {
     type: TableColumnType.Number,
     title: "Internal Note Reminder Interval (Minutes)",
     description:
-      "Interval in minutes between automatic internal note reminders. Leave empty to disable internal note reminders.",
+      "How often (in minutes) to automatically post internal notes to unresolved incidents. Internal notes are only visible to your team. For example, set to 30 to remind your team every 30 minutes to provide an update. Leave empty to disable.",
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -441,7 +441,7 @@ export default class IncidentSlaRule extends BaseModel {
     type: TableColumnType.Number,
     title: "Public Note Reminder Interval (Minutes)",
     description:
-      "Interval in minutes between automatic public note reminders. Leave empty to disable public note reminders.",
+      "How often (in minutes) to automatically post public notes to unresolved incidents. Public notes are visible to external stakeholders on your status page. For example, set to 60 to post a status update every hour. Leave empty to disable.",
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -474,7 +474,7 @@ export default class IncidentSlaRule extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Internal Note Reminder Template",
     description:
-      "Markdown template for internal note reminders. Supports variables: {{incidentTitle}}, {{incidentNumber}}, {{elapsedTime}}, {{responseDeadline}}, {{resolutionDeadline}}, {{slaStatus}}, {{timeToResponseDeadline}}, {{timeToResolutionDeadline}}",
+      "The content of the automatic internal note posted to your team. Use variables like {{incidentTitle}}, {{elapsedTime}}, {{slaStatus}}, {{timeToResolutionDeadline}} to include dynamic incident data. If left empty, a default template will be used.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -506,7 +506,7 @@ export default class IncidentSlaRule extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Public Note Reminder Template",
     description:
-      "Markdown template for public note reminders. Supports variables: {{incidentTitle}}, {{incidentNumber}}, {{elapsedTime}}, {{responseDeadline}}, {{resolutionDeadline}}, {{slaStatus}}, {{timeToResponseDeadline}}, {{timeToResolutionDeadline}}",
+      "The content of the automatic public note shown on your status page. Use variables like {{incidentTitle}}, {{elapsedTime}}, {{slaStatus}}, {{timeToResolutionDeadline}} to include dynamic incident data. If left empty, a default template will be used.",
   })
   @Column({
     type: ColumnType.Markdown,
