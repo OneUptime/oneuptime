@@ -492,6 +492,10 @@ const IncidentViewSla: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
+  // Convert to strings for stable dependency references
+  const modelIdString: string = modelId.toString();
+  const projectIdString: string = projectId.toString();
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [slaRecords, setSlaRecords] = useState<IncidentSla[]>([]);
@@ -511,8 +515,8 @@ const IncidentViewSla: FunctionComponent<
       } = await ModelAPI.getList<IncidentSla>({
         modelType: IncidentSla,
         query: {
-          incidentId: modelId,
-          projectId: projectId,
+          incidentId: new ObjectID(modelIdString),
+          projectId: new ObjectID(projectIdString),
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -561,7 +565,7 @@ const IncidentViewSla: FunctionComponent<
     } finally {
       setIsLoading(false);
     }
-  }, [modelId, projectId]);
+  }, [modelIdString, projectIdString]);
 
   useEffect(() => {
     fetchData();
