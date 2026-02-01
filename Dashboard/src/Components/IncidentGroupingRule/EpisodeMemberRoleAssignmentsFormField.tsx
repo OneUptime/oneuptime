@@ -15,11 +15,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
-import {
+import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import Dropdown from "Common/UI/Components/Dropdown/Dropdown";
 import RoleLabel from "Common/UI/Components/RoleLabel/RoleLabel";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProjectUser from "../../Utils/ProjectUser";
@@ -52,87 +51,88 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
     Array<EpisodeMemberRoleAssignment>
   >(props.initialValue || []);
 
-  const fetchRolesAndUsers = useCallback(async (): Promise<void> => {
-    setIsLoading(true);
-    setError("");
+  const fetchRolesAndUsers: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      setIsLoading(true);
+      setError("");
 
-    try {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-      if (!projectId) {
-        setError("Project not found");
-        setIsLoading(false);
-        return;
+        if (!projectId) {
+          setError("Project not found");
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch incident roles
+        const rolesResult: ListResult<IncidentRole> =
+          await ModelAPI.getList<IncidentRole>({
+            modelType: IncidentRole,
+            query: {
+              projectId: projectId,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+              color: true,
+              roleIcon: true,
+              canAssignMultipleUsers: true,
+              isPrimaryRole: true,
+            },
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
+
+        const roleData: Array<RoleData> = rolesResult.data
+          .map((role: IncidentRole): RoleData => {
+            const data: RoleData = {
+              id: role.id!,
+              name: role.name || "",
+              color: role.color || new Color("#000000"),
+              canAssignMultipleUsers: role.canAssignMultipleUsers || false,
+              isPrimaryRole: role.isPrimaryRole || false,
+            };
+
+            if (role.roleIcon) {
+              data.icon = role.roleIcon;
+            }
+
+            return data;
+          })
+          .sort((a: RoleData, b: RoleData) => {
+            // Primary roles first, then sort by name
+            if (a.isPrimaryRole && !b.isPrimaryRole) {
+              return -1;
+            }
+            if (!a.isPrimaryRole && b.isPrimaryRole) {
+              return 1;
+            }
+            return a.name.localeCompare(b.name);
+          });
+
+        setRoles(roleData);
+
+        // Fetch project users
+        const users: Array<DropdownOption> =
+          await ProjectUser.fetchProjectUsersAsDropdownOptions(projectId);
+        setUserOptions(users);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
       }
 
-      // Fetch incident roles
-      const rolesResult: ListResult<IncidentRole> =
-        await ModelAPI.getList<IncidentRole>({
-          modelType: IncidentRole,
-          query: {
-            projectId: projectId,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-            roleIcon: true,
-            canAssignMultipleUsers: true,
-            isPrimaryRole: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-      const roleData: Array<RoleData> = rolesResult.data
-        .map((role: IncidentRole): RoleData => {
-          const data: RoleData = {
-            id: role.id!,
-            name: role.name || "",
-            color: role.color || new Color("#000000"),
-            canAssignMultipleUsers: role.canAssignMultipleUsers || false,
-            isPrimaryRole: role.isPrimaryRole || false,
-          };
-
-          if (role.roleIcon) {
-            data.icon = role.roleIcon;
-          }
-
-          return data;
-        })
-        .sort((a: RoleData, b: RoleData) => {
-          // Primary roles first, then sort by name
-          if (a.isPrimaryRole && !b.isPrimaryRole) {
-            return -1;
-          }
-          if (!a.isPrimaryRole && b.isPrimaryRole) {
-            return 1;
-          }
-          return a.name.localeCompare(b.name);
-        });
-
-      setRoles(roleData);
-
-      // Fetch project users
-      const users: Array<DropdownOption> =
-        await ProjectUser.fetchProjectUsersAsDropdownOptions(projectId);
-      setUserOptions(users);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
-  }, []);
+      setIsLoading(false);
+    }, []);
 
   useEffect(() => {
     fetchRolesAndUsers();
   }, [fetchRolesAndUsers]);
 
   // Get user IDs assigned to a specific role
-  const getSelectedUsersForRole = useCallback(
+  const getSelectedUsersForRole: (roleId: string) => string[] = useCallback(
     (roleId: string): string[] => {
       return assignments
         .filter((a: EpisodeMemberRoleAssignment) => {
@@ -146,7 +146,7 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
   );
 
   // Add a user to a role
-  const addUserToRole = useCallback(
+  const addUserToRole: (roleId: string, userId: string) => void = useCallback(
     (roleId: string, userId: string): void => {
       // Check if assignment already exists
       const exists: boolean = assignments.some(
@@ -174,21 +174,22 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
   );
 
   // Remove a user from a role
-  const removeUserFromRole = useCallback(
-    (roleId: string, userId: string): void => {
-      const newAssignments: Array<EpisodeMemberRoleAssignment> =
-        assignments.filter((a: EpisodeMemberRoleAssignment) => {
-          return !(a.incidentRoleId === roleId && a.userId === userId);
-        });
+  const removeUserFromRole: (roleId: string, userId: string) => void =
+    useCallback(
+      (roleId: string, userId: string): void => {
+        const newAssignments: Array<EpisodeMemberRoleAssignment> =
+          assignments.filter((a: EpisodeMemberRoleAssignment) => {
+            return !(a.incidentRoleId === roleId && a.userId === userId);
+          });
 
-      setAssignments(newAssignments);
+        setAssignments(newAssignments);
 
-      if (props.onChange) {
-        props.onChange(newAssignments);
-      }
-    },
-    [assignments, props.onChange],
-  );
+        if (props.onChange) {
+          props.onChange(newAssignments);
+        }
+      },
+      [assignments, props.onChange],
+    );
 
   if (isLoading) {
     return <ComponentLoader />;

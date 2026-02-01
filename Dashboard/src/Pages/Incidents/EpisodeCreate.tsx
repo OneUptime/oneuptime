@@ -46,7 +46,8 @@ const EpisodeCreate: FunctionComponent<
 > = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error] = useState<string>("");
-  const roleAssignmentsRef = useRef<Array<RoleAssignment>>([]);
+  const roleAssignmentsRef: React.MutableRefObject<Array<RoleAssignment>> =
+    useRef<Array<RoleAssignment>>([]);
 
   const [initialValuesForEpisode, setInitialValuesForEpisode] =
     useState<JSONObject>({});
@@ -251,7 +252,6 @@ const EpisodeCreate: FunctionComponent<
                     return (
                       <IncidentEpisodeRoleFormField
                         initialValue={roleAssignmentsRef.current}
-                        error={props.error}
                         onChange={(assignments: Array<RoleAssignment>) => {
                           roleAssignmentsRef.current = assignments;
                           if (props.onChange) {

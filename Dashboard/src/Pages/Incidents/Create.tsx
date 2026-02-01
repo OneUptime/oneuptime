@@ -57,7 +57,8 @@ const IncidentCreate: FunctionComponent<
 > = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const roleAssignmentsRef = useRef<Array<RoleAssignment>>([]);
+  const roleAssignmentsRef: React.MutableRefObject<Array<RoleAssignment>> =
+    useRef<Array<RoleAssignment>>([]);
 
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
@@ -432,7 +433,6 @@ const IncidentCreate: FunctionComponent<
                     return (
                       <IncidentRoleFormField
                         initialValue={roleAssignmentsRef.current}
-                        error={props.error}
                         onChange={(assignments: Array<RoleAssignment>) => {
                           roleAssignmentsRef.current = assignments;
                           if (props.onChange) {
