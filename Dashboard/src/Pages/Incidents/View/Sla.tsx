@@ -91,7 +91,7 @@ const IncidentViewSla: FunctionComponent<
           incidentId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        sortBy="createdAt"
+        sortBy="slaStartedAt"
         sortOrder={SortOrder.Descending}
         cardProps={{
           title: "SLA Tracking",
