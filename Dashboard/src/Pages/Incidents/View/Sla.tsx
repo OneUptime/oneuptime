@@ -26,6 +26,15 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
+import Modal from "Common/UI/Components/Modal/Modal";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button from "Common/UI/Components/Button/Button";
+import Incident from "Common/Models/DatabaseModels/Incident";
 
 interface SlaTimerProps {
   deadline: Date | undefined;
@@ -293,7 +302,10 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
             <span className="text-gray-500">Incident resolved</span>
           ) : isOverdue ? (
             <span className="flex items-center">
-              <Icon icon={IconProp.Bell} className="h-4 w-4 mr-1 animate-bounce" />
+              <Icon
+                icon={IconProp.Bell}
+                className="h-4 w-4 mr-1 animate-bounce"
+              />
               Note due now!
             </span>
           ) : (
@@ -317,7 +329,8 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
         <span>Interval: Every {props.intervalMinutes} min</span>
         {props.lastSentAt && (
           <span>
-            Last: {OneUptimeDate.getDateAsLocalFormattedString(props.lastSentAt)}
+            Last:{" "}
+            {OneUptimeDate.getDateAsLocalFormattedString(props.lastSentAt)}
           </span>
         )}
       </div>
@@ -328,12 +341,14 @@ const NoteReminderTimer: FunctionComponent<NoteReminderTimerProps> = (
 interface SlaCardProps {
   sla: IncidentSla;
   rule: IncidentSlaRule | undefined;
+  onRemove: (slaId: ObjectID) => void;
+  isRemoving: boolean;
 }
 
 const SlaCard: FunctionComponent<SlaCardProps> = (
   props: SlaCardProps,
 ): ReactElement => {
-  const { sla, rule } = props;
+  const { sla, rule, onRemove, isRemoving } = props;
 
   const getStatusColor = (status: IncidentSlaStatus | undefined): Color => {
     switch (status) {
@@ -381,11 +396,24 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
             <p className="text-sm text-gray-500 mt-1">{rule.description}</p>
           )}
         </div>
-        <Pill
-          color={getStatusColor(sla.status)}
-          text={sla.status || "Unknown"}
-          icon={getStatusIcon(sla.status)}
-        />
+        <div className="flex items-center space-x-2">
+          <Pill
+            color={getStatusColor(sla.status)}
+            text={sla.status || "Unknown"}
+            icon={getStatusIcon(sla.status)}
+          />
+          <Button
+            buttonStyle={ButtonStyleType.ICON}
+            icon={IconProp.Trash}
+            onClick={() => {
+              if (sla.id) {
+                onRemove(sla.id);
+              }
+            }}
+            isLoading={isRemoving}
+            tooltip="Remove SLA Rule"
+          />
+        </div>
       </div>
 
       {/* SLA Timers */}
@@ -405,7 +433,9 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
             : sla.resolvedAt
               ? { completedAt: sla.resolvedAt }
               : {})}
-          {...(rule?.responseTimeInMinutes ? { totalMinutes: rule.responseTimeInMinutes } : {})}
+          {...(rule?.responseTimeInMinutes
+            ? { totalMinutes: rule.responseTimeInMinutes }
+            : {})}
         />
 
         <SlaTimer
@@ -414,7 +444,9 @@ const SlaCard: FunctionComponent<SlaCardProps> = (
           startedAt={sla.slaStartedAt!}
           isCompleted={Boolean(sla.resolvedAt)}
           {...(sla.resolvedAt ? { completedAt: sla.resolvedAt } : {})}
-          {...(rule?.resolutionTimeInMinutes ? { totalMinutes: rule.resolutionTimeInMinutes } : {})}
+          {...(rule?.resolutionTimeInMinutes
+            ? { totalMinutes: rule.resolutionTimeInMinutes }
+            : {})}
         />
       </div>
 
@@ -507,11 +539,44 @@ const IncidentViewSla: FunctionComponent<
     new Map(),
   );
 
+  // Add SLA Modal state
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [availableRules, setAvailableRules] = useState<IncidentSlaRule[]>([]);
+  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+  const [isAddingRule, setIsAddingRule] = useState<boolean>(false);
+  const [addError, setAddError] = useState<string>("");
+  const [isLoadingRules, setIsLoadingRules] = useState<boolean>(false);
+
+  // Remove SLA state
+  const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
+  const [slaToRemove, setSlaToRemove] = useState<ObjectID | null>(null);
+  const [isRemovingRule, setIsRemovingRule] = useState<boolean>(false);
+  const [removeError, setRemoveError] = useState<string>("");
+
+  // Incident data for SLA start time
+  const [incidentDeclaredAt, setIncidentDeclaredAt] = useState<Date | null>(
+    null,
+  );
+
   const fetchData: () => Promise<void> = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError("");
 
     try {
+      // Fetch incident to get declaredAt time
+      const incidentResponse: Incident | null =
+        await ModelAPI.getItem<Incident>({
+          modelType: Incident,
+          id: new ObjectID(modelIdString),
+          select: {
+            createdAt: true,
+          },
+        });
+
+      if (incidentResponse?.createdAt) {
+        setIncidentDeclaredAt(incidentResponse.createdAt);
+      }
+
       // Fetch SLA records for this incident
       const slaResponse: {
         data: IncidentSla[];
@@ -571,6 +636,175 @@ const IncidentViewSla: FunctionComponent<
     }
   }, [modelIdString, projectIdString]);
 
+  const fetchAvailableRules: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      setIsLoadingRules(true);
+      try {
+        const rulesResponse: {
+          data: IncidentSlaRule[];
+          count: number;
+        } = await ModelAPI.getList<IncidentSlaRule>({
+          modelType: IncidentSlaRule,
+          query: {
+            projectId: new ObjectID(projectIdString),
+            isEnabled: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+            description: true,
+            responseTimeInMinutes: true,
+            resolutionTimeInMinutes: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+        });
+
+        // Filter out rules that are already applied to this incident
+        const appliedRuleIds: Set<string> = new Set(
+          slaRecords
+            .map((sla: IncidentSla) => sla.incidentSlaRuleId?.toString())
+            .filter(Boolean) as string[],
+        );
+
+        const availableRulesFiltered: IncidentSlaRule[] =
+          rulesResponse.data.filter(
+            (rule: IncidentSlaRule) =>
+              !appliedRuleIds.has(rule._id?.toString() || ""),
+          );
+
+        setAvailableRules(availableRulesFiltered);
+      } catch (err) {
+        setAddError(API.getFriendlyMessage(err));
+      } finally {
+        setIsLoadingRules(false);
+      }
+    }, [projectIdString, slaRecords]);
+
+  const handleAddRule: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      if (!selectedRuleId) {
+        setAddError("Please select an SLA rule");
+        return;
+      }
+
+      setIsAddingRule(true);
+      setAddError("");
+
+      try {
+        // Find the selected rule to get its configuration
+        const selectedRule: IncidentSlaRule | undefined = availableRules.find(
+          (rule: IncidentSlaRule) => rule._id?.toString() === selectedRuleId,
+        );
+
+        if (!selectedRule) {
+          setAddError("Selected rule not found");
+          return;
+        }
+
+        // Calculate deadlines based on rule configuration
+        const now: Date = incidentDeclaredAt || OneUptimeDate.getCurrentDate();
+        let responseDeadline: Date | undefined;
+        let resolutionDeadline: Date | undefined;
+
+        if (selectedRule.responseTimeInMinutes) {
+          responseDeadline = OneUptimeDate.addRemoveMinutes(
+            now,
+            selectedRule.responseTimeInMinutes,
+          );
+        }
+
+        if (selectedRule.resolutionTimeInMinutes) {
+          resolutionDeadline = OneUptimeDate.addRemoveMinutes(
+            now,
+            selectedRule.resolutionTimeInMinutes,
+          );
+        }
+
+        // Create new IncidentSla record
+        const newSla: IncidentSla = new IncidentSla();
+        newSla.projectId = new ObjectID(projectIdString);
+        newSla.incidentId = new ObjectID(modelIdString);
+        newSla.incidentSlaRuleId = new ObjectID(selectedRuleId);
+        newSla.slaStartedAt = now;
+        newSla.status = IncidentSlaStatus.OnTrack;
+
+        if (responseDeadline) {
+          newSla.responseDeadline = responseDeadline;
+        }
+
+        if (resolutionDeadline) {
+          newSla.resolutionDeadline = resolutionDeadline;
+        }
+
+        await ModelAPI.create<IncidentSla>({
+          model: newSla,
+          modelType: IncidentSla,
+        });
+
+        // Close modal and refresh data
+        setShowAddModal(false);
+        setSelectedRuleId(null);
+        await fetchData();
+      } catch (err) {
+        setAddError(API.getFriendlyMessage(err));
+      } finally {
+        setIsAddingRule(false);
+      }
+    }, [
+      selectedRuleId,
+      availableRules,
+      projectIdString,
+      modelIdString,
+      incidentDeclaredAt,
+      fetchData,
+    ]);
+
+  const handleRemoveRule: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      if (!slaToRemove) {
+        return;
+      }
+
+      setIsRemovingRule(true);
+      setRemoveError("");
+
+      try {
+        await ModelAPI.deleteItem<IncidentSla>({
+          modelType: IncidentSla,
+          id: slaToRemove,
+        });
+
+        // Close modal and refresh data
+        setShowRemoveModal(false);
+        setSlaToRemove(null);
+        await fetchData();
+      } catch (err) {
+        setRemoveError(API.getFriendlyMessage(err));
+      } finally {
+        setIsRemovingRule(false);
+      }
+    }, [slaToRemove, fetchData]);
+
+  const openAddModal: () => void = useCallback((): void => {
+    setShowAddModal(true);
+    setAddError("");
+    setSelectedRuleId(null);
+    fetchAvailableRules();
+  }, [fetchAvailableRules]);
+
+  const openRemoveModal: (slaId: ObjectID) => void = useCallback(
+    (slaId: ObjectID): void => {
+      setSlaToRemove(slaId);
+      setShowRemoveModal(true);
+      setRemoveError("");
+    },
+    [],
+  );
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -583,26 +817,101 @@ const IncidentViewSla: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  const ruleOptions: DropdownOption[] = availableRules.map(
+    (rule: IncidentSlaRule) => {
+      const option: DropdownOption = {
+        value: rule._id?.toString() || "",
+        label: rule.name || "Unnamed Rule",
+      };
+      if (rule.description) {
+        option.description = rule.description;
+      }
+      return option;
+    },
+  );
+
   if (slaRecords.length === 0) {
     return (
-      <Card
-        title="SLA Tracking"
-        description="View SLA status and deadlines for this incident. SLA rules are automatically applied when incidents are created."
-      >
-        <div className="text-center py-12">
-          <Icon
-            icon={IconProp.Clock}
-            className="h-12 w-12 text-gray-400 mx-auto mb-4"
-          />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No SLA Rules Applied
-          </h3>
-          <p className="text-gray-500 max-w-md mx-auto">
-            No SLA rules matched this incident. Configure SLA rules in Settings
-            to automatically track response and resolution times.
-          </p>
-        </div>
-      </Card>
+      <Fragment>
+        <Card
+          title="SLA Tracking"
+          description="View SLA status and deadlines for this incident. SLA rules are automatically applied when incidents are created."
+          buttons={[
+            {
+              title: "Add SLA Rule",
+              icon: IconProp.Add,
+              onClick: openAddModal,
+            },
+          ]}
+        >
+          <div className="text-center py-12">
+            <Icon
+              icon={IconProp.Clock}
+              className="h-12 w-12 text-gray-400 mx-auto mb-4"
+            />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No SLA Rules Applied
+            </h3>
+            <p className="text-gray-500 max-w-md mx-auto mb-4">
+              No SLA rules matched this incident. You can manually add an SLA
+              rule or configure SLA rules in Settings to automatically track
+              response and resolution times.
+            </p>
+            <Button
+              title="Add SLA Rule"
+              icon={IconProp.Add}
+              onClick={openAddModal}
+            />
+          </div>
+        </Card>
+
+        {/* Add SLA Modal */}
+        {showAddModal && (
+          <Modal
+            title="Add SLA Rule"
+            onClose={() => {
+              setShowAddModal(false);
+            }}
+            onSubmit={handleAddRule}
+            submitButtonText="Add Rule"
+            isLoading={isAddingRule}
+            error={addError}
+            disableSubmitButton={!selectedRuleId || isLoadingRules}
+          >
+            <div className="mt-4">
+              {isLoadingRules ? (
+                <div className="text-center py-4">
+                  <Icon
+                    icon={IconProp.Spinner}
+                    className="h-6 w-6 animate-spin mx-auto"
+                  />
+                  <p className="text-gray-500 mt-2">Loading available rules...</p>
+                </div>
+              ) : availableRules.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-gray-500">
+                    No SLA rules available. All rules have already been applied
+                    to this incident, or no rules are configured.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select SLA Rule
+                  </label>
+                  <Dropdown
+                    options={ruleOptions}
+                    onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                      setSelectedRuleId(value as string);
+                    }}
+                    placeholder="Select an SLA rule..."
+                  />
+                </div>
+              )}
+            </div>
+          </Modal>
+        )}
+      </Fragment>
     );
   }
 
@@ -612,6 +921,11 @@ const IncidentViewSla: FunctionComponent<
         title="SLA Tracking"
         description="Real-time SLA status and deadlines for this incident. Timers update automatically."
         buttons={[
+          {
+            title: "Add SLA Rule",
+            icon: IconProp.Add,
+            onClick: openAddModal,
+          },
           {
             title: "Refresh",
             icon: IconProp.Refresh,
@@ -630,11 +944,79 @@ const IncidentViewSla: FunctionComponent<
                 key={sla._id?.toString()}
                 sla={sla}
                 rule={rule || (sla.incidentSlaRule as IncidentSlaRule)}
+                onRemove={openRemoveModal}
+                isRemoving={
+                  isRemovingRule && slaToRemove?.toString() === sla._id
+                }
               />
             );
           })}
         </div>
       </Card>
+
+      {/* Add SLA Modal */}
+      {showAddModal && (
+        <Modal
+          title="Add SLA Rule"
+          onClose={() => {
+            setShowAddModal(false);
+          }}
+          onSubmit={handleAddRule}
+          submitButtonText="Add Rule"
+          isLoading={isAddingRule}
+          error={addError}
+          disableSubmitButton={!selectedRuleId || isLoadingRules}
+        >
+          <div className="mt-4">
+            {isLoadingRules ? (
+              <div className="text-center py-4">
+                <Icon
+                  icon={IconProp.Spinner}
+                  className="h-6 w-6 animate-spin mx-auto"
+                />
+                <p className="text-gray-500 mt-2">Loading available rules...</p>
+              </div>
+            ) : availableRules.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500">
+                  No SLA rules available. All rules have already been applied to
+                  this incident, or no rules are configured.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select SLA Rule
+                </label>
+                <Dropdown
+                  options={ruleOptions}
+                  onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                    setSelectedRuleId(value as string);
+                  }}
+                  placeholder="Select an SLA rule..."
+                />
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Remove SLA Confirmation Modal */}
+      {showRemoveModal && (
+        <ConfirmModal
+          title="Remove SLA Rule"
+          description="Are you sure you want to remove this SLA rule from the incident? This will delete all SLA tracking data for this rule."
+          onClose={() => {
+            setShowRemoveModal(false);
+            setSlaToRemove(null);
+          }}
+          onSubmit={handleRemoveRule}
+          submitButtonText="Remove"
+          submitButtonType={ButtonStyleType.DANGER}
+          isLoading={isRemovingRule}
+          error={removeError}
+        />
+      )}
     </Fragment>
   );
 };
