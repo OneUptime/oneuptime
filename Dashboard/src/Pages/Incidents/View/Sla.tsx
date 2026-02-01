@@ -26,6 +26,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
+import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Modal from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Dropdown, {
@@ -705,23 +706,114 @@ const IncidentViewSla: FunctionComponent<
           return;
         }
 
+        // Fetch incident state timeline to determine respondedAt and resolvedAt
+        const timelineResponse: {
+          data: IncidentStateTimeline[];
+          count: number;
+        } = await ModelAPI.getList<IncidentStateTimeline>({
+          modelType: IncidentStateTimeline,
+          query: {
+            incidentId: new ObjectID(modelIdString),
+            projectId: new ObjectID(projectIdString),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            startsAt: true,
+            incidentState: {
+              _id: true,
+              isCreatedState: true,
+              isResolvedState: true,
+            },
+          },
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+        });
+
+        // Find when the incident was first responded to (moved out of created state)
+        let respondedAt: Date | undefined;
+        let resolvedAt: Date | undefined;
+
+        for (const timeline of timelineResponse.data) {
+          const state = timeline.incidentState as {
+            isCreatedState?: boolean;
+            isResolvedState?: boolean;
+          };
+
+          // First non-created state is when the incident was responded to
+          if (!respondedAt && !state?.isCreatedState && timeline.startsAt) {
+            respondedAt = timeline.startsAt;
+          }
+
+          // Find when the incident was resolved
+          if (state?.isResolvedState && timeline.startsAt) {
+            resolvedAt = timeline.startsAt;
+          }
+        }
+
         // Calculate deadlines based on rule configuration
-        const now: Date = incidentDeclaredAt || OneUptimeDate.getCurrentDate();
+        const slaStartTime: Date =
+          incidentDeclaredAt || OneUptimeDate.getCurrentDate();
         let responseDeadline: Date | undefined;
         let resolutionDeadline: Date | undefined;
 
         if (selectedRule.responseTimeInMinutes) {
           responseDeadline = OneUptimeDate.addRemoveMinutes(
-            now,
+            slaStartTime,
             selectedRule.responseTimeInMinutes,
           );
         }
 
         if (selectedRule.resolutionTimeInMinutes) {
           resolutionDeadline = OneUptimeDate.addRemoveMinutes(
-            now,
+            slaStartTime,
             selectedRule.resolutionTimeInMinutes,
           );
+        }
+
+        // Determine the SLA status based on current incident state
+        let slaStatus: IncidentSlaStatus = IncidentSlaStatus.OnTrack;
+
+        if (resolvedAt) {
+          // Incident is resolved - check if SLA was met
+          const responseMetDeadline: boolean =
+            !responseDeadline ||
+            !respondedAt ||
+            OneUptimeDate.isBefore(respondedAt, responseDeadline);
+          const resolutionMetDeadline: boolean =
+            !resolutionDeadline ||
+            OneUptimeDate.isBefore(resolvedAt, resolutionDeadline);
+
+          if (responseMetDeadline && resolutionMetDeadline) {
+            slaStatus = IncidentSlaStatus.Met;
+          } else if (!resolutionMetDeadline) {
+            slaStatus = IncidentSlaStatus.ResolutionBreached;
+          } else if (!responseMetDeadline) {
+            slaStatus = IncidentSlaStatus.ResponseBreached;
+          }
+        } else if (respondedAt) {
+          // Incident is responded but not resolved
+          if (resolutionDeadline) {
+            const now: Date = OneUptimeDate.getCurrentDate();
+            if (OneUptimeDate.isAfter(now, resolutionDeadline)) {
+              slaStatus = IncidentSlaStatus.ResolutionBreached;
+            } else {
+              // Check if at risk (80% of time elapsed)
+              const totalTime: number = OneUptimeDate.getDifferenceInMinutes(
+                resolutionDeadline,
+                slaStartTime,
+              );
+              const elapsedTime: number = OneUptimeDate.getDifferenceInMinutes(
+                now,
+                slaStartTime,
+              );
+              if (elapsedTime / totalTime >= 0.8) {
+                slaStatus = IncidentSlaStatus.AtRisk;
+              }
+            }
+          }
         }
 
         // Create new IncidentSla record
@@ -729,8 +821,8 @@ const IncidentViewSla: FunctionComponent<
         newSla.projectId = new ObjectID(projectIdString);
         newSla.incidentId = new ObjectID(modelIdString);
         newSla.incidentSlaRuleId = new ObjectID(selectedRuleId);
-        newSla.slaStartedAt = now;
-        newSla.status = IncidentSlaStatus.OnTrack;
+        newSla.slaStartedAt = slaStartTime;
+        newSla.status = slaStatus;
 
         if (responseDeadline) {
           newSla.responseDeadline = responseDeadline;
@@ -738,6 +830,15 @@ const IncidentViewSla: FunctionComponent<
 
         if (resolutionDeadline) {
           newSla.resolutionDeadline = resolutionDeadline;
+        }
+
+        // Set respondedAt and resolvedAt based on incident state
+        if (respondedAt) {
+          newSla.respondedAt = respondedAt;
+        }
+
+        if (resolvedAt) {
+          newSla.resolvedAt = resolvedAt;
         }
 
         await ModelAPI.create<IncidentSla>({
