@@ -42,10 +42,16 @@ const UserSettingsAlertNotificationRules: LazyExoticComponent<
   return import("../Pages/UserSettings/AlertOnCallRules");
 });
 
-const UserSettingsEpisodeNotificationRules: LazyExoticComponent<
+const UserSettingsAlertEpisodeNotificationRules: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/UserSettings/EpisodeOnCallRules");
+});
+
+const UserSettingsIncidentEpisodeNotificationRules: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/UserSettings/IncidentEpisodeOnCallRules");
 });
 
 const UserSettingsNotificationLogs: LazyExoticComponent<
@@ -251,15 +257,33 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             UserSettingsRoutePath[
-              PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES
+              PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES
             ] || ""
           }
           element={
             <Suspense fallback={Loader}>
-              <UserSettingsEpisodeNotificationRules
+              <UserSettingsAlertEpisodeNotificationRules
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES] as Route
+                  RouteMap[PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <UserSettingsIncidentEpisodeNotificationRules
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES] as Route
                 }
               />
             </Suspense>

@@ -48,7 +48,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
     {
-      title: "On-Call",
+      title: "Incident On-Call",
       items: [
         {
           link: {
@@ -61,6 +61,20 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
         {
           link: {
+            title: "Incident Episode On-Call Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Squares,
+        },
+      ],
+    },
+    {
+      title: "Alert On-Call",
+      items: [
+        {
+          link: {
             title: "Alert On-Call Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route,
@@ -70,13 +84,18 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
         {
           link: {
-            title: "Episode On-Call Rules",
+            title: "Alert Episode On-Call Rules",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES] as Route,
+              RouteMap[PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES] as Route,
             ),
           },
           icon: IconProp.Squares,
         },
+      ],
+    },
+    {
+      title: "On-Call Logs",
+      items: [
         {
           link: {
             title: "On-Call Logs",

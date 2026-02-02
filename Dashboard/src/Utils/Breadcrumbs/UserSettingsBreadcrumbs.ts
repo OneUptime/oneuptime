@@ -34,8 +34,12 @@ export function getUserSettingsBreadcrumbs(
       "Alert On-Call Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
-      PageMap.USER_SETTINGS_EPISODE_ON_CALL_RULES,
-      ["Project", "User Settings", "Episode On-Call Rules"],
+      PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES,
+      ["Project", "User Settings", "Alert Episode On-Call Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES,
+      ["Project", "User Settings", "Incident Episode On-Call Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_ON_CALL_LOGS, [
       "Project",
