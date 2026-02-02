@@ -70,6 +70,7 @@ export default class CallService {
       customTwilioConfig?: TwilioConfig | undefined;
       incidentId?: ObjectID | undefined;
       alertId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
@@ -142,6 +143,10 @@ export default class CallService {
 
       if (options.alertId) {
         callLog.alertId = options.alertId;
+      }
+
+      if (options.monitorId) {
+        callLog.monitorId = options.monitorId;
       }
 
       if (options.scheduledMaintenanceId) {

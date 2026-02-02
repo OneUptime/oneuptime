@@ -1,6 +1,7 @@
 import Project from "./Project";
 import Incident from "./Incident";
 import Alert from "./Alert";
+import Monitor from "./Monitor";
 import ScheduledMaintenance from "./ScheduledMaintenance";
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
@@ -463,6 +464,66 @@ export default class CallLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadCallLog,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "monitorId",
+    type: TableColumnType.Entity,
+    modelType: Monitor,
+    title: "Monitor",
+    description: "Monitor associated with this Call (if any)",
+    example: "d4e5f6a7-89ab-23de-f456-456789abcdef",
+  })
+  @ManyToOne(
+    () => {
+      return Monitor;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "monitorId" })
+  public monitor?: Monitor = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadCallLog,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Monitor ID",
+    description: "ID of Monitor associated with this Call (if any)",
+    example: "d4e5f6a7-89ab-23de-f456-456789abcdef",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public monitorId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

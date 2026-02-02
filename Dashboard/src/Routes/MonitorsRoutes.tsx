@@ -126,6 +126,12 @@ const MonitorViewSettings: LazyExoticComponent<
   return import("../Pages/Monitor/View/Settings");
 });
 
+const MonitorViewNotificationLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/View/NotificationLogs");
+});
+
 const MonitorCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Monitor/Create");
@@ -488,6 +494,22 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               <MonitorViewLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_VIEW_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.MONITOR_VIEW_NOTIFICATION_LOGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <MonitorViewNotificationLogs
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS] as Route
+                }
               />
             </Suspense>
           }

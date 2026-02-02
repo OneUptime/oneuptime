@@ -28,6 +28,7 @@ export class WhatsAppService extends BaseService {
       alertId?: ObjectID | undefined;
       alertEpisodeId?: ObjectID | undefined;
       incidentEpisodeId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
@@ -88,6 +89,10 @@ export class WhatsAppService extends BaseService {
 
     if (options.alertEpisodeId) {
       body["alertEpisodeId"] = options.alertEpisodeId.toString();
+    }
+
+    if (options.monitorId) {
+      body["monitorId"] = options.monitorId.toString();
     }
 
     if (options.scheduledMaintenanceId) {

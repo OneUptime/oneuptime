@@ -34,6 +34,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_VIEW_PROBES]: `${RouteParams.ModelID}/probes`,
   [PageMap.MONITOR_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.MONITOR_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.MONITOR_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
 };
 
 export const ServiceRoutePath: Dictionary<string> = {
@@ -549,6 +550,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.MONITOR_VIEW_NOTIFICATION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS]
     }`,
   ),
 

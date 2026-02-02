@@ -26,6 +26,7 @@ export interface PushNotificationOptions {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
   alertEpisodeId?: ObjectID | undefined;
+  monitorId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   statusPageId?: ObjectID | undefined;
   statusPageAnnouncementId?: ObjectID | undefined;
@@ -162,6 +163,9 @@ export default class PushNotificationService {
         }
         if (options.alertId) {
           log.alertId = options.alertId;
+        }
+        if (options.monitorId) {
+          log.monitorId = options.monitorId;
         }
         if (options.scheduledMaintenanceId) {
           log.scheduledMaintenanceId = options.scheduledMaintenanceId;

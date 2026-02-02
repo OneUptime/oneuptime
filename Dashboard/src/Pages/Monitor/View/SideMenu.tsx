@@ -132,6 +132,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.ExclaimationCircle}
         />
+        <SideMenuItem
+          link={{
+            title: "Notification Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Bell}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

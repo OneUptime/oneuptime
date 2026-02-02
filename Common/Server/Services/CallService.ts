@@ -30,6 +30,7 @@ export class CallService extends BaseService {
       alertId?: ObjectID | undefined;
       alertEpisodeId?: ObjectID | undefined;
       incidentEpisodeId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
@@ -60,6 +61,7 @@ export class CallService extends BaseService {
       incidentId: options.incidentId?.toString(),
       alertId: options.alertId?.toString(),
       alertEpisodeId: options.alertEpisodeId?.toString(),
+      monitorId: options.monitorId?.toString(),
       scheduledMaintenanceId: options.scheduledMaintenanceId?.toString(),
       statusPageId: options.statusPageId?.toString(),
       statusPageAnnouncementId: options.statusPageAnnouncementId?.toString(),

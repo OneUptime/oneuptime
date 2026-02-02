@@ -33,6 +33,7 @@ export default class SmsService {
       userOnCallLogTimelineId?: ObjectID | undefined;
       incidentId?: ObjectID | undefined;
       alertId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
@@ -89,6 +90,10 @@ export default class SmsService {
 
       if (options.alertId) {
         smsLog.alertId = options.alertId;
+      }
+
+      if (options.monitorId) {
+        smsLog.monitorId = options.monitorId;
       }
 
       if (options.scheduledMaintenanceId) {

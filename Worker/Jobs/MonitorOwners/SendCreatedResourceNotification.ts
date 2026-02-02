@@ -148,6 +148,7 @@ RunCron(
           pushNotificationMessage: pushMessage,
           whatsAppMessage,
           eventType,
+          monitorId: monitor.id!,
         });
       }
     }

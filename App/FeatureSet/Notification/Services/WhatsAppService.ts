@@ -41,6 +41,7 @@ export default class WhatsAppService {
       userOnCallLogTimelineId?: ObjectID | undefined;
       incidentId?: ObjectID | undefined;
       alertId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
@@ -94,6 +95,10 @@ export default class WhatsAppService {
 
       if (options.alertId) {
         whatsAppLog.alertId = options.alertId;
+      }
+
+      if (options.monitorId) {
+        whatsAppLog.monitorId = options.monitorId;
       }
 
       if (options.scheduledMaintenanceId) {

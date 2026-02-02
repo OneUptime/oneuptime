@@ -1314,6 +1314,7 @@ ${createdItem.description?.trim() || "No description provided."}
           }),
         whatsAppMessage,
         eventType,
+        monitorId: monitor.id!,
       });
     }
   }
@@ -1440,6 +1441,7 @@ ${createdItem.description?.trim() || "No description provided."}
           }),
         whatsAppMessage,
         eventType,
+        monitorId: monitor.id!,
       });
     }
   }

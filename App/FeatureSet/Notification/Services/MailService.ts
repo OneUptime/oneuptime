@@ -483,6 +483,7 @@ export default class MailService {
           timeout?: number | undefined;
           incidentId?: ObjectID | undefined;
           alertId?: ObjectID | undefined;
+          monitorId?: ObjectID | undefined;
           scheduledMaintenanceId?: ObjectID | undefined;
           statusPageId?: ObjectID | undefined;
           statusPageAnnouncementId?: ObjectID | undefined;
@@ -514,6 +515,10 @@ export default class MailService {
 
       if (options.alertId) {
         emailLog.alertId = options.alertId;
+      }
+
+      if (options.monitorId) {
+        emailLog.monitorId = options.monitorId;
       }
 
       if (options.scheduledMaintenanceId) {

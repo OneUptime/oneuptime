@@ -51,6 +51,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     alertId?: ObjectID | undefined;
     alertEpisodeId?: ObjectID | undefined;
     incidentEpisodeId?: ObjectID | undefined;
+    monitorId?: ObjectID | undefined;
     scheduledMaintenanceId?: ObjectID | undefined;
     statusPageId?: ObjectID | undefined;
     statusPageAnnouncementId?: ObjectID | undefined;
@@ -117,6 +118,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
               incidentEpisodeId: data.incidentEpisodeId,
+              monitorId: data.monitorId,
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
@@ -164,6 +166,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
               incidentEpisodeId: data.incidentEpisodeId,
+              monitorId: data.monitorId,
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
@@ -218,6 +221,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
               incidentEpisodeId: data.incidentEpisodeId,
+              monitorId: data.monitorId,
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
@@ -264,6 +268,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
               incidentEpisodeId: data.incidentEpisodeId,
+              monitorId: data.monitorId,
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
@@ -294,6 +299,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             projectId: data.projectId,
             userId: data.userId,
             teamId: data.teamId,
+            monitorId: data.monitorId,
             // OnCall-related fields
             onCallPolicyId: data.onCallPolicyId,
             onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,

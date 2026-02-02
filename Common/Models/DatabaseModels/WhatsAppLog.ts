@@ -1,6 +1,7 @@
 import Project from "./Project";
 import Incident from "./Incident";
 import Alert from "./Alert";
+import Monitor from "./Monitor";
 import ScheduledMaintenance from "./ScheduledMaintenance";
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
@@ -475,6 +476,64 @@ export default class WhatsAppLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "monitorId",
+    type: TableColumnType.Entity,
+    modelType: Monitor,
+    title: "Monitor",
+    description: "Monitor associated with this message (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return Monitor;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "monitorId" })
+  public monitor?: Monitor = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadWhatsAppLog,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Monitor ID",
+    description: "ID of Monitor associated with this message (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public monitorId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
