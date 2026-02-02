@@ -19,7 +19,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
-      title: "Overview",
+      title: "Monitors",
       items: [
         {
           link: {
@@ -30,6 +30,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.List,
         },
+        ...(props.project?.isFeatureFlagMonitorGroupsEnabled
+          ? [
+              {
+                link: {
+                  title: "Monitor Groups",
+                  to: RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.MONITOR_GROUPS] as Route,
+                  ),
+                },
+                icon: IconProp.Squares,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      title: "Attention Required",
+      items: [
         {
           link: {
             title: "Inoperational",
@@ -47,36 +65,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             },
           },
         },
-      ],
-    },
-  ];
-
-  // Conditionally add Monitor Groups section
-  if (props.project?.isFeatureFlagMonitorGroupsEnabled) {
-    sections.push({
-      title: "Monitor Groups",
-      items: [
         {
           link: {
-            title: "All Groups",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_GROUPS] as Route,
-            ),
-          },
-          icon: IconProp.Squares,
-        },
-      ],
-    });
-  }
-
-  // Add remaining sections
-  sections.push(
-    {
-      title: "Not Being Monitored",
-      items: [
-        {
-          link: {
-            title: "Disabled Monitors",
+            title: "Disabled",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_DISABLED] as Route,
             ),
@@ -179,7 +170,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
-  );
+  ];
 
   return <SideMenu sections={sections} />;
 };
