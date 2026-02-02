@@ -6,9 +6,10 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
-import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import SideMenu, {
+  SideMenuSectionProps,
+  SideMenuItemProps,
+} from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -31,198 +32,215 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props.monitorType,
   );
 
-  return (
-    <SideMenu>
-      <SideMenuSection title="Basic">
-        <SideMenuItem
-          link={{
-            title: "Overview",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Info}
-        />
+  // Overview section items
+  const overviewItems: SideMenuItemProps[] = [
+    {
+      link: {
+        title: "Overview",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Info,
+    },
+  ];
 
-        {MonitorTypeHelper.doesMonitorTypeHaveGraphs(props.monitorType) ? (
-          <SideMenuItem
-            link={{
-              title: "Metrics",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route,
-                { modelId: props.modelId },
-              ),
-            }}
-            icon={IconProp.Graph}
-          />
-        ) : (
-          <></>
-        )}
+  if (MonitorTypeHelper.doesMonitorTypeHaveGraphs(props.monitorType)) {
+    overviewItems.push({
+      link: {
+        title: "Metrics",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Graph,
+    });
+  }
 
-        <SideMenuItem
-          link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
+  overviewItems.push({
+    link: {
+      title: "Status Timeline",
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route,
+        { modelId: props.modelId },
+      ),
+    },
+    icon: IconProp.List,
+  });
 
-        {MonitorTypeHelper.doesMonitorTypeHaveCriteria(props.monitorType) ? (
-          <SideMenuItem
-            link={{
-              title: "Criteria",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route,
-                { modelId: props.modelId },
-              ),
-            }}
-            icon={IconProp.Criteria}
-          />
-        ) : (
-          <></>
-        )}
-        {MonitorTypeHelper.isProbableMonitor(props.monitorType) ? (
-          <SideMenuItem
-            link={{
-              title: "Interval",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route,
-                { modelId: props.modelId },
-              ),
-            }}
-            icon={IconProp.Clock}
-          />
-        ) : (
-          <></>
-        )}
-      </SideMenuSection>
+  // Activity section items
+  const activityItems: SideMenuItemProps[] = [
+    {
+      link: {
+        title: "Incidents",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Alert,
+    },
+    {
+      link: {
+        title: "Alerts",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_ALERTS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.ExclaimationCircle,
+    },
+    {
+      link: {
+        title: "Notification Logs",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Bell,
+    },
+  ];
 
-      <SideMenuSection title="More">
-        <SideMenuItem
-          link={{
-            title: "Status Timeline",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.List}
-        />
-        <SideMenuItem
-          link={{
-            title: "Incidents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Alert}
-        />
-        <SideMenuItem
-          link={{
-            title: "Alerts",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW_ALERTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.ExclaimationCircle}
-        />
-        <SideMenuItem
-          link={{
-            title: "Notification Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Bell}
-        />
-      </SideMenuSection>
+  if (!isManualMonitor && !isTelemetryMonitor) {
+    activityItems.push({
+      link: {
+        title: "Monitoring Logs",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_LOGS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Logs,
+    });
+  }
 
-      <SideMenuSection title="Advanced">
-        {MonitorTypeHelper.doesMonitorTypeHaveDocumentation(
-          props.monitorType,
-        ) ? (
-          <SideMenuItem
-            link={{
-              title: "Documentation",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_VIEW_DOCUMENTATION] as Route,
-                { modelId: props.modelId },
-              ),
-            }}
-            icon={IconProp.Book}
-          />
-        ) : (
-          <></>
-        )}
-        {isProbeableMonitor ? (
-          <SideMenuItem
-            link={{
-              title: "Probes",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route,
-                { modelId: props.modelId },
-              ),
-            }}
-            icon={IconProp.Signal}
-          />
-        ) : (
-          <></>
-        )}
-        {!isManualMonitor && !isTelemetryMonitor ? (
-          <SideMenuItem
-            link={{
-              title: "Monitoring Logs",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_VIEW_LOGS] as Route,
-                { modelId: props.modelId },
-              ),
-            }}
-            icon={IconProp.Logs}
-          />
-        ) : (
-          <></>
-        )}
-        <SideMenuItem
-          link={{
-            title: "Custom Fields",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW_CUSTOM_FIELDS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.TableCells}
-        />
-        <SideMenuItem
-          link={{
-            title: "Settings",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW_SETTINGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Settings}
-        />
-        <SideMenuItem
-          link={{
-            title: "Delete Monitor",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Trash}
-          className="danger-on-hover"
-        />
-      </SideMenuSection>
-    </SideMenu>
-  );
+  // Configuration section items
+  const configurationItems: SideMenuItemProps[] = [];
+
+  if (MonitorTypeHelper.doesMonitorTypeHaveCriteria(props.monitorType)) {
+    configurationItems.push({
+      link: {
+        title: "Criteria",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Criteria,
+    });
+  }
+
+  if (isProbeableMonitor) {
+    configurationItems.push({
+      link: {
+        title: "Interval",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Clock,
+    });
+
+    configurationItems.push({
+      link: {
+        title: "Probes",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Signal,
+    });
+  }
+
+  if (MonitorTypeHelper.doesMonitorTypeHaveDocumentation(props.monitorType)) {
+    configurationItems.push({
+      link: {
+        title: "Documentation",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_DOCUMENTATION] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Book,
+    });
+  }
+
+  // Settings section items
+  const settingsItems: SideMenuItemProps[] = [
+    {
+      link: {
+        title: "Owners",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_OWNERS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Team,
+    },
+    {
+      link: {
+        title: "Custom Fields",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_CUSTOM_FIELDS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.TableCells,
+    },
+    {
+      link: {
+        title: "Settings",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_SETTINGS] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Settings,
+    },
+    {
+      link: {
+        title: "Delete Monitor",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Trash,
+      className: "danger-on-hover",
+    },
+  ];
+
+  // Build sections array
+  const sections: SideMenuSectionProps[] = [
+    {
+      title: "Overview",
+      items: overviewItems,
+    },
+    {
+      title: "Activity",
+      items: activityItems,
+    },
+  ];
+
+  // Only add Configuration section if there are items
+  if (configurationItems.length > 0) {
+    sections.push({
+      title: "Configuration",
+      items: configurationItems,
+    });
+  }
+
+  sections.push({
+    title: "Settings",
+    items: settingsItems,
+  });
+
+  return <SideMenu sections={sections} />;
 };
 
 export default DashboardSideMenu;
