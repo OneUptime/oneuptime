@@ -4,7 +4,6 @@ export class MigrationName1770054293299 implements MigrationInterface {
   public name = "MigrationName1770054293299";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-
     await queryRunner.query(`ALTER TABLE "CallLog" ADD "monitorId" uuid`);
     await queryRunner.query(`ALTER TABLE "EmailLog" ADD "monitorId" uuid`);
     await queryRunner.query(`ALTER TABLE "SmsLog" ADD "monitorId" uuid`);
@@ -114,6 +113,5 @@ export class MigrationName1770054293299 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "SmsLog" DROP COLUMN "monitorId"`);
     await queryRunner.query(`ALTER TABLE "EmailLog" DROP COLUMN "monitorId"`);
     await queryRunner.query(`ALTER TABLE "CallLog" DROP COLUMN "monitorId"`);
-      
   }
 }
