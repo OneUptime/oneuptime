@@ -63,7 +63,9 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           link: {
             title: "Incident Episode On-Call Rules",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES] as Route,
+              RouteMap[
+                PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
+              ] as Route,
             ),
           },
           icon: IconProp.Squares,
@@ -86,7 +88,9 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           link: {
             title: "Alert Episode On-Call Rules",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES] as Route,
+              RouteMap[
+                PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES
+              ] as Route,
             ),
           },
           icon: IconProp.Squares,

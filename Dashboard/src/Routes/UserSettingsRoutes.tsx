@@ -265,7 +265,9 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
               <UserSettingsAlertEpisodeNotificationRules
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES] as Route
+                  RouteMap[
+                    PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES
+                  ] as Route
                 }
               />
             </Suspense>
@@ -283,7 +285,9 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
               <UserSettingsIncidentEpisodeNotificationRules
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES] as Route
+                  RouteMap[
+                    PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
+                  ] as Route
                 }
               />
             </Suspense>
