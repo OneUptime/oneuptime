@@ -584,7 +584,8 @@ export default class IncidentEpisodeStateTimeline extends BaseModel {
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
     title: "Subscriber Notification Status",
-    description: "Status of notification sent to subscribers about this state change",
+    description:
+      "Status of notification sent to subscribers about this state change",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
   @Column({

@@ -81,9 +81,7 @@ RunCron(
 
     for (const episodePublicNote of episodePublicNotes) {
       try {
-        logger.debug(
-          `Processing episode public note ${episodePublicNote.id}.`,
-        );
+        logger.debug(`Processing episode public note ${episodePublicNote.id}.`);
         if (!episodePublicNote.incidentEpisodeId) {
           logger.debug(
             `Episode public note ${episodePublicNote.id} has no incidentEpisodeId; skipping.`,
@@ -534,8 +532,7 @@ RunCron(
                         ? "true"
                         : "false",
                       resourcesAffected: resourcesAffectedString,
-                      episodeSeverity:
-                        episode.incidentSeverity?.name || " - ",
+                      episodeSeverity: episode.incidentSeverity?.name || " - ",
                       episodeTitle: episode.title || "",
                       episodeDescription: episode.description || "",
                       unsubscribeUrl: unsubscribeUrl,

@@ -60,8 +60,8 @@ export default class IncidentEpisodePublicNoteAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    const note: IncidentEpisodePublicNote | null =
-      await this.service.findOneBy({
+    const note: IncidentEpisodePublicNote | null = await this.service.findOneBy(
+      {
         query: {
           _id: noteId,
         },
@@ -74,7 +74,8 @@ export default class IncidentEpisodePublicNoteAPI extends BaseAPI<
           },
         },
         props,
-      });
+      },
+    );
 
     const attachment: File | undefined = note?.attachments?.find(
       (file: File) => {

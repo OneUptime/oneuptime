@@ -3648,7 +3648,7 @@ export default class StatusPageAPI extends BaseAPI<
     );
 
     // First get incidents that are visible on status page and have the required monitors
-    let incidentQuery: Query<Incident> = {
+    const incidentQuery: Query<Incident> = {
       monitors: monitorsOnStatusPage as any,
       projectId: statusPage.projectId!,
       createdAt: QueryHelper.inBetween(historyDays, today),

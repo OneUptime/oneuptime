@@ -281,8 +281,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         (incident.createdAt as Date | undefined) ||
         OneUptimeDate.getCurrentDate();
 
-      const isResolved =
-        (incident.currentIncidentState?.order || 0) >= resolvedIncidentStateOrder;
+      const isResolved: boolean =
+        (incident.currentIncidentState?.order || 0) >=
+        resolvedIncidentStateOrder;
 
       allEvents.push({
         date: incidentDate,
@@ -306,8 +307,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         (episode.createdAt as Date | undefined) ||
         OneUptimeDate.getCurrentDate();
 
-      const isResolved =
-        (episode.currentIncidentState?.order || 0) >= resolvedIncidentStateOrder;
+      const isResolved: boolean =
+        (episode.currentIncidentState?.order || 0) >=
+        resolvedIncidentStateOrder;
 
       allEvents.push({
         date: episodeDate,

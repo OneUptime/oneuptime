@@ -449,8 +449,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
 
       if (!currentStateStatus) {
         currentStateStatus = episodeStateTimeline.incidentState?.name || "";
-        currentStatusColor =
-          episodeStateTimeline.incidentState?.color || Green;
+        currentStatusColor = episodeStateTimeline.incidentState?.color || Green;
       }
 
       // If this episode is a summary then don't include all the notes.
@@ -567,7 +566,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
       }
 
       // First try to fetch as an incident
-      let foundIncident = false;
+      let foundIncident: boolean = false;
       try {
         const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
           url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(

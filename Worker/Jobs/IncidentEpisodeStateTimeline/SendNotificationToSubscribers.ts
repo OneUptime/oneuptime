@@ -522,8 +522,7 @@ RunCron(
               MailService.sendMail(
                 {
                   toEmail: subscriber.subscriberEmail,
-                  templateType:
-                    EmailTemplateType.SubscriberEpisodeStateChanged,
+                  templateType: EmailTemplateType.SubscriberEpisodeStateChanged,
                   vars: {
                     emailTitle: emailTitle,
                     statusPageName: statusPageName,
@@ -644,12 +643,9 @@ RunCron(
         }
       }
 
-      logger.debug(
-        "Notification sent to subscribers for episode state change",
-      );
+      logger.debug("Notification sent to subscribers for episode state change");
 
-      const episodeNumber: string =
-        episode.episodeNumber?.toString() || " - ";
+      const episodeNumber: string = episode.episodeNumber?.toString() || " - ";
       const projectId: ObjectID = episode.projectId!;
       const episodeId: ObjectID = episode.id!;
 

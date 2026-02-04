@@ -31,7 +31,6 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
@@ -44,7 +43,6 @@ import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import Incident from "Common/Models/DatabaseModels/Incident";
 
 RunCron(
   "IncidentEpisode:SendNotificationToSubscribers",
@@ -364,7 +362,8 @@ RunCron(
                   statusPageId: statuspage.id!,
                   eventType:
                     StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated,
-                  notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.SMS,
                 },
               ),
               StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
