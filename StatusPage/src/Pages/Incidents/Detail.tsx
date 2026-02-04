@@ -476,7 +476,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
           ]
         : [],
     eventTimeline: timeline,
-    eventType: "Episode",
+    eventType: "Incident",
     eventViewRoute: !isSummary
       ? undefined
       : RouteUtil.populateRouteParams(

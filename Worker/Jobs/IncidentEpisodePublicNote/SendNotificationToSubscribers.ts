@@ -447,7 +447,7 @@ RunCron(
                   );
               } else {
                 // Use default hard-coded template
-                smsMessage = `Episode update: ${episode.title || "-"} on ${statusPageName}. A new note is posted. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                smsMessage = `Incident update: ${episode.title || "-"} on ${statusPageName}. A new note is posted. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
               }
 
               const sms: SMS = {
@@ -485,7 +485,7 @@ RunCron(
                       emailTemplate.emailSubject,
                       subscriberTemplateVariables,
                     )
-                  : "[Episode Update] " + episode.title || "";
+                  : "[Incident Update] " + episode.title || "";
 
                 MailService.sendMail(
                   {
@@ -541,7 +541,7 @@ RunCron(
                           statuspage,
                         ),
                     },
-                    subject: "[Episode Update] " + episode.title,
+                    subject: "[Incident Update] " + episode.title,
                   },
                   {
                     mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -575,9 +575,9 @@ RunCron(
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Episode - ${episode.title || ""}
+                markdownMessage = `## Incident - ${episode.title || ""}
 
-**New note has been added to an episode**
+**New note has been added to an incident**
 
 **Resources Affected:** ${resourcesAffectedString}
 **Severity:** ${episode.incidentSeverity?.name || " - "}
@@ -615,9 +615,9 @@ ${episodePublicNote.note || ""}
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Episode - ${episode.title || ""}
+                markdownMessage = `## Incident - ${episode.title || ""}
 
-**New note has been added to an episode**
+**New note has been added to an incident**
 
 **Resources Affected:** ${resourcesAffectedString}
 **Severity:** ${episode.incidentSeverity?.name || " - "}

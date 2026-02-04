@@ -1,17 +1,17 @@
 {{> Start this}}
 
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Episode Update: " episodeTitle) }}
+{{> EmailTitle title=(concat "Incident: " episodeTitle) }}
 
-{{> InfoBlock info="A new note has been added to the episode. Here are the details:  "}}
+{{> InfoBlock info="A new note has been added to the incident. Here are the details:"}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Episode Title: " text=episodeTitle }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title="Incident Title" text=episodeTitle }}
+{{> DetailBoxField title="Resources Affected" text=resourcesAffected  }}
 {{#if episodeSeverity}}
-{{> DetailBoxField title="Severity: " text=episodeSeverity  }}
+{{> DetailBoxField title="Severity" text=episodeSeverity  }}
 {{/if}}
-{{> DetailBoxField title="Note: " text=note  }}
+{{> DetailBoxField title="Note" text=note  }}
 {{> DetailBoxEnd this }}
 
 

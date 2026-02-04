@@ -450,7 +450,7 @@ RunCron(
                 );
             } else {
               // Use default hard-coded template
-              smsMessage = `Episode ${episode.title || ""} on ${statusPageName} is ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+              smsMessage = `Incident ${episode.title || ""} on ${statusPageName} is ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
             }
 
             const sms: SMS = {
@@ -470,7 +470,7 @@ RunCron(
             });
           }
 
-          let emailTitle: string = `Episode `;
+          let emailTitle: string = `Incident `;
 
           if (resourcesAffected) {
             emailTitle += `on ${resourcesAffected} `;
@@ -496,7 +496,7 @@ RunCron(
                     emailTemplate.emailSubject,
                     templateVariables,
                   )
-                : `[Episode ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}] ${episode.title}`;
+                : `[Incident ${Text.uppercaseFirstLetter(episodeStateTimeline.incidentState.name)}] ${episode.title}`;
 
               MailService.sendMail(
                 {
@@ -548,7 +548,7 @@ RunCron(
                         statuspage,
                       ),
                   },
-                  subject: `[Episode ${Text.uppercaseFirstLetter(
+                  subject: `[Incident ${Text.uppercaseFirstLetter(
                     episodeStateTimeline.incidentState.name,
                   )}] ${episode.title}`,
                 },
@@ -576,7 +576,7 @@ RunCron(
                 );
             } else {
               // Use default hard-coded template
-              slackTitle = `🚨 ## Episode - ${episode.title || " - "}
+              slackTitle = `🚨 ## Incident - ${episode.title || " - "}
 
 `;
 
@@ -614,7 +614,7 @@ RunCron(
                 );
             } else {
               // Use default hard-coded template
-              teamsTitle = `🚨 ## Episode - ${episode.title || " - "}
+              teamsTitle = `🚨 ## Incident - ${episode.title || " - "}
 
 `;
 

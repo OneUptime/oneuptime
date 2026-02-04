@@ -4,10 +4,10 @@
 
 {{> EmailTitle title=emailTitle }}
 
-{{> InfoBlock info="The status of an incident episode affecting services you're subscribed to has been updated."}}
+{{> InfoBlock info="The status of an incident affecting services you're subscribed to has been updated."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Episode" text=episodeTitle }}
+{{> DetailBoxField title="Incident" text=episodeTitle }}
 {{> DetailBoxField title="Current State" text=episodeState  }}
 {{#if episodeSeverity}}
 {{> DetailBoxField title="Severity" text=episodeSeverity  }}
@@ -16,7 +16,7 @@
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}
-{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Episode Details"}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Incident Details"}}
 {{else}}
 {{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
 {{/if}}

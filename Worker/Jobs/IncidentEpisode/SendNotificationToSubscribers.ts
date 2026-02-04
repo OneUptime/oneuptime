@@ -464,7 +464,7 @@ RunCron(
                           emailTemplate.emailSubject,
                           subscriberTemplateVariables,
                         )
-                      : "[Incident Episode] " + episode.title || "";
+                      : "[Incident] " + episode.title || "";
 
                     MailService.sendMail(
                       {
@@ -521,7 +521,7 @@ RunCron(
                               statuspage,
                             ),
                         },
-                        subject: "[Incident Episode] " + episode.title || "",
+                        subject: "[Incident] " + episode.title || "",
                       },
                       {
                         mailServer: ProjectSMTPConfigService.toEmailServer(
@@ -564,7 +564,7 @@ RunCron(
                       );
                   } else {
                     // Use default hard-coded template
-                    smsMessage = `Incident Episode ${episode.title || ""} (${episode.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedString}. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                    smsMessage = `Incident ${episode.title || ""} (${episode.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedString}. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
                   }
 
                   const sms: SMS = {
@@ -603,7 +603,7 @@ RunCron(
                       );
                   } else {
                     // Use default hard-coded template
-                    markdownMessage = `## 🚨 Incident Episode - ${episode.title || ""}
+                    markdownMessage = `## 🚨 Incident - ${episode.title || ""}
 
 **Severity:** ${episode.incidentSeverity?.name || " - "}
 
@@ -643,7 +643,7 @@ RunCron(
                       );
                   } else {
                     // Use default hard-coded template
-                    markdownMessage = `## 🚨 Incident Episode - ${episode.title || ""}
+                    markdownMessage = `## 🚨 Incident - ${episode.title || ""}
 **Severity:** ${episode.incidentSeverity?.name || " - "}
 **Resources Affected:** ${resourcesAffectedString}
 **Description:** ${episode.description || ""}

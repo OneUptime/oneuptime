@@ -2,12 +2,12 @@
 
 {{> CustomLogo this}}
 
-{{> EmailTitle title=(concat "New Incident Episode: " episodeTitle) }}
+{{> EmailTitle title=(concat "New Incident: " episodeTitle) }}
 
-{{> InfoBlock info="A new incident episode has been declared that may affect the services you're subscribed to."}}
+{{> InfoBlock info="A new incident has been reported that may affect the services you're subscribed to."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Episode" text=episodeTitle }}
+{{> DetailBoxField title="Incident" text=episodeTitle }}
 {{#if episodeSeverity}}
 {{> DetailBoxField title="Severity" text=episodeSeverity  }}
 {{/if}}
@@ -18,7 +18,7 @@
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}
-{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Episode Details"}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Incident Details"}}
 {{else}}
 {{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
 {{/if}}
