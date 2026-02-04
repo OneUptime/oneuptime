@@ -286,6 +286,12 @@ const IncidentEpisodeViewInternalNote: LazyExoticComponent<
   return import("../Pages/Incidents/EpisodeView/InternalNote");
 });
 
+const IncidentEpisodeViewPublicNote: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/PublicNote");
+});
+
 const IncidentEpisodeViewMembers: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -800,6 +806,22 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewPublicNote
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE] as Route
                 }
               />
             </Suspense>
