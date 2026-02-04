@@ -315,6 +315,17 @@ const IncidentGroupingRulesPage: FunctionComponent<
             required: false,
             description: "Enable or disable this grouping rule.",
           },
+          {
+            field: {
+              showEpisodeOnStatusPage: true,
+            },
+            title: "Show Episodes on Status Page",
+            stepId: "basic-info",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, episodes created by this rule will be visible on public status pages.",
+          },
           // Match Criteria Fields
           {
             field: {

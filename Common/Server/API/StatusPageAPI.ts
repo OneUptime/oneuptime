@@ -3611,8 +3611,9 @@ export default class StatusPageAPI extends BaseAPI<
       select: {
         _id: true,
         projectId: true,
-        showIncidentHistoryInDays: true,
+        showEpisodeHistoryInDays: true,
         showEpisodesOnStatusPage: true,
+        showEpisodeLabelsOnStatusPage: true,
       },
       props: {
         isRoot: true,
@@ -3643,7 +3644,7 @@ export default class StatusPageAPI extends BaseAPI<
     const today: Date = OneUptimeDate.getCurrentDate();
 
     const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showIncidentHistoryInDays || 14,
+      statusPage.showEpisodeHistoryInDays || 14,
     );
 
     // First get incidents that are visible on status page and have the required monitors
@@ -3728,7 +3729,7 @@ export default class StatusPageAPI extends BaseAPI<
     // Get episodes
     let episodes: Array<IncidentEpisode> = [];
 
-    const selectEpisodes: Select<IncidentEpisode> = {
+    let selectEpisodes: Select<IncidentEpisode> = {
       createdAt: true,
       declaredAt: true,
       updatedAt: true,
@@ -3745,9 +3746,22 @@ export default class StatusPageAPI extends BaseAPI<
         color: true,
         _id: true,
         order: true,
+        isCreatedState: true,
+        isAcknowledgedState: true,
+        isResolvedState: true,
       },
       incidentCount: true,
     };
+
+    if (statusPage.showEpisodeLabelsOnStatusPage) {
+      selectEpisodes = {
+        ...selectEpisodes,
+        labels: {
+          name: true,
+          color: true,
+        },
+      };
+    }
 
     if (episodeIdsFromMembers.size > 0 || episodeId) {
       episodes = await IncidentEpisodeService.findBy({
@@ -3860,6 +3874,9 @@ export default class StatusPageAPI extends BaseAPI<
           incidentState: {
             name: true,
             color: true,
+            isCreatedState: true,
+            isAcknowledgedState: true,
+            isResolvedState: true,
           },
         },
         sort: {
