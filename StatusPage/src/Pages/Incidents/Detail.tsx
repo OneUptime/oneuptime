@@ -34,6 +34,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
+import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
@@ -46,6 +49,7 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
+// Incident Event Item Helper
 type GetIncidentEventItemFunctionProps = {
   incident: Incident;
   incidentPublicNotes: Array<IncidentPublicNote>;
@@ -350,6 +354,163 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
   return data;
 };
 
+// Episode Event Item Helper
+type GetEpisodeEventItemFunctionProps = {
+  episode: IncidentEpisode;
+  episodePublicNotes: Array<IncidentEpisodePublicNote>;
+  episodeStateTimelines: Array<IncidentEpisodeStateTimeline>;
+  statusPageResources: Array<StatusPageResource>;
+  monitorsInGroup: Dictionary<Array<ObjectID>>;
+  isPreviewPage: boolean;
+  isSummary: boolean;
+};
+
+type GetEpisodeEventItemFunction = (
+  props: GetEpisodeEventItemFunctionProps,
+) => EventItemComponentProps;
+
+export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
+  props: GetEpisodeEventItemFunctionProps,
+): EventItemComponentProps => {
+  const {
+    episode,
+    episodePublicNotes,
+    episodeStateTimelines,
+    isPreviewPage,
+    isSummary,
+  } = props;
+
+  const timeline: Array<TimelineItem> = [];
+
+  let currentStateStatus: string = "";
+  let currentStatusColor: Color = Green;
+
+  if (isSummary) {
+    // If this is summary then reverse the order so we show the latest first
+    episodePublicNotes.sort(
+      (a: IncidentEpisodePublicNote, b: IncidentEpisodePublicNote) => {
+        return OneUptimeDate.isAfter(a.postedAt!, b.postedAt!) === false
+          ? 1
+          : -1;
+      },
+    );
+
+    episodeStateTimelines.sort(
+      (a: IncidentEpisodeStateTimeline, b: IncidentEpisodeStateTimeline) => {
+        const aDate: Date = a.startsAt || a.createdAt!;
+        const bDate: Date = b.startsAt || b.createdAt!;
+        return OneUptimeDate.isAfter(aDate, bDate) === false ? 1 : -1;
+      },
+    );
+  }
+
+  for (const episodePublicNote of episodePublicNotes) {
+    if (
+      episodePublicNote.incidentEpisodeId?.toString() ===
+        episode.id?.toString() &&
+      episodePublicNote?.note
+    ) {
+      timeline.push({
+        note: episodePublicNote?.note,
+        date: episodePublicNote?.postedAt as Date,
+        type: TimelineItemType.Note,
+        icon: IconProp.Chat,
+        iconColor: Gray500,
+      });
+
+      // If this episode is a summary then don't include all the notes.
+      if (isSummary) {
+        break;
+      }
+    }
+  }
+
+  for (const episodeStateTimeline of episodeStateTimelines) {
+    if (
+      episodeStateTimeline.incidentEpisodeId?.toString() ===
+        episode.id?.toString() &&
+      episodeStateTimeline.incidentState
+    ) {
+      timeline.push({
+        state: episodeStateTimeline.incidentState,
+        date:
+          episodeStateTimeline?.startsAt ||
+          (episodeStateTimeline?.createdAt as Date),
+        type: TimelineItemType.StateChange,
+        icon: episodeStateTimeline.incidentState.isCreatedState
+          ? IconProp.Layers
+          : episodeStateTimeline.incidentState.isAcknowledgedState
+            ? IconProp.TransparentCube
+            : episodeStateTimeline.incidentState.isResolvedState
+              ? IconProp.CheckCircle
+              : IconProp.ArrowCircleRight,
+        iconColor: episodeStateTimeline.incidentState.color || Gray500,
+      });
+
+      if (!currentStateStatus) {
+        currentStateStatus = episodeStateTimeline.incidentState?.name || "";
+        currentStatusColor =
+          episodeStateTimeline.incidentState?.color || Green;
+      }
+
+      // If this episode is a summary then don't include all the notes.
+      if (isSummary) {
+        break;
+      }
+    }
+  }
+
+  timeline.sort((a: TimelineItem, b: TimelineItem) => {
+    return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
+  });
+
+  const episodeDeclaredAt: Date | undefined =
+    episode.declaredAt || (episode.createdAt as Date | undefined);
+
+  const data: EventItemComponentProps = {
+    eventTitle: episode.title || "",
+    eventDescription: episode.description,
+    eventResourcesAffected:
+      episode.incidentCount !== undefined
+        ? [
+            `${episode.incidentCount} incident${episode.incidentCount !== 1 ? "s" : ""}`,
+          ]
+        : [],
+    eventTimeline: timeline,
+    eventType: "Episode",
+    eventViewRoute: !isSummary
+      ? undefined
+      : RouteUtil.populateRouteParams(
+          isPreviewPage
+            ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+            : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+          episode.id!,
+        ),
+    isDetailItem: !isSummary,
+    currentStatus: currentStateStatus,
+    currentStatusColor: currentStatusColor,
+    anotherStatusColor: episode.incidentSeverity?.color || undefined,
+    anotherStatus: episode.incidentSeverity?.name,
+    eventSecondDescription: episodeDeclaredAt
+      ? "Declared at " +
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          episodeDeclaredAt,
+        )
+      : "",
+    eventTypeColor: Red,
+    labels:
+      episode.labels?.map((label: Label) => {
+        return {
+          name: label.name!,
+          color: label.color!,
+        };
+      }) || [],
+  };
+
+  return data;
+};
+
+// Detail Page Component
 const Detail: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
@@ -360,6 +521,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
   const [statusPageResources, setStatusPageResources] = useState<
     Array<StatusPageResource>
   >([]);
+
+  // Incident state
   const [incidentPublicNotes, setIncidentPublicNotes] = useState<
     Array<IncidentPublicNote>
   >([]);
@@ -367,6 +530,16 @@ const Detail: FunctionComponent<PageComponentProps> = (
   const [incidentStateTimelines, setIncidentStateTimelines] = useState<
     Array<IncidentStateTimeline>
   >([]);
+
+  // Episode state
+  const [episodePublicNotes, setEpisodePublicNotes] = useState<
+    Array<IncidentEpisodePublicNote>
+  >([]);
+  const [episode, setEpisode] = useState<IncidentEpisode | null>(null);
+  const [episodeStateTimelines, setEpisodeStateTimelines] = useState<
+    Array<IncidentEpisodeStateTimeline>
+  >([]);
+
   const [parsedData, setParsedData] = useState<EventItemComponentProps | null>(
     null,
   );
@@ -374,6 +547,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
   const [monitorsInGroup, setMonitorsInGroup] = useState<
     Dictionary<Array<ObjectID>>
   >({});
+
+  const [isEpisode, setIsEpisode] = useState<boolean>(false);
 
   useAsyncEffect(async () => {
     try {
@@ -384,60 +559,138 @@ const Detail: FunctionComponent<PageComponentProps> = (
 
       const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
 
-      const incidentId: string | undefined =
+      const itemId: string | undefined =
         Navigation.getLastParamAsObjectID().toString();
 
       if (!id) {
         throw new BadDataException("Status Page ID is required");
       }
-      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
-        url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
-          `/incidents/${id.toString()}/${incidentId?.toString()}`,
-        ),
-        data: {},
-        headers: API.getDefaultHeaders(),
-      });
 
-      if (!response.isSuccess()) {
-        throw response;
+      // First try to fetch as an incident
+      let foundIncident = false;
+      try {
+        const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+          url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+            `/incidents/${id.toString()}/${itemId?.toString()}`,
+          ),
+          data: {},
+          headers: API.getDefaultHeaders(),
+        });
+
+        if (response.isSuccess()) {
+          const data: JSONObject = response.data;
+
+          const incidentPublicNotes: Array<IncidentPublicNote> =
+            BaseModel.fromJSONArray(
+              (data["incidentPublicNotes"] as JSONArray) || [],
+              IncidentPublicNote,
+            );
+
+          const rawIncidents: JSONArray =
+            (data["incidents"] as JSONArray) || [];
+
+          if (rawIncidents.length > 0) {
+            const incident: Incident = BaseModel.fromJSONObject(
+              (rawIncidents[0] as JSONObject) || {},
+              Incident,
+            );
+
+            if (incident && incident.id) {
+              foundIncident = true;
+              setIsEpisode(false);
+
+              const statusPageResources: Array<StatusPageResource> =
+                BaseModel.fromJSONArray(
+                  (data["statusPageResources"] as JSONArray) || [],
+                  StatusPageResource,
+                );
+
+              const incidentStateTimelines: Array<IncidentStateTimeline> =
+                BaseModel.fromJSONArray(
+                  (data["incidentStateTimelines"] as JSONArray) || [],
+                  IncidentStateTimeline,
+                );
+
+              const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                JSONFunctions.deserialize(
+                  (data["monitorsInGroup"] as JSONObject) || {},
+                ) as Dictionary<Array<ObjectID>>;
+
+              setMonitorsInGroup(monitorsInGroup);
+              setIncidentPublicNotes(incidentPublicNotes);
+              setIncident(incident);
+              setStatusPageResources(statusPageResources);
+              setIncidentStateTimelines(incidentStateTimelines);
+            }
+          }
+        }
+      } catch {
+        // Incident not found, will try episode
       }
-      const data: JSONObject = response.data;
 
-      const incidentPublicNotes: Array<IncidentPublicNote> =
-        BaseModel.fromJSONArray(
-          (data["incidentPublicNotes"] as JSONArray) || [],
-          IncidentPublicNote,
-        );
+      // If not found as incident, try as episode
+      if (!foundIncident) {
+        try {
+          const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
+            {
+              url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+                `/episodes/${id.toString()}/${itemId?.toString()}`,
+              ),
+              data: {},
+              headers: API.getDefaultHeaders(),
+            },
+          );
 
-      const rawIncidents: JSONArray = (data["incidents"] as JSONArray) || [];
-      const incident: Incident = BaseModel.fromJSONObject(
-        (rawIncidents[0] as JSONObject) || {},
-        Incident,
-      );
-      const statusPageResources: Array<StatusPageResource> =
-        BaseModel.fromJSONArray(
-          (data["statusPageResources"] as JSONArray) || [],
-          StatusPageResource,
-        );
+          if (response.isSuccess()) {
+            const data: JSONObject = response.data;
 
-      const incidentStateTimelines: Array<IncidentStateTimeline> =
-        BaseModel.fromJSONArray(
-          (data["incidentStateTimelines"] as JSONArray) || [],
-          IncidentStateTimeline,
-        );
+            const rawEpisodes: JSONArray =
+              (data["episodes"] as JSONArray) || [];
 
-      const monitorsInGroup: Dictionary<Array<ObjectID>> =
-        JSONFunctions.deserialize(
-          (data["monitorsInGroup"] as JSONObject) || {},
-        ) as Dictionary<Array<ObjectID>>;
+            if (rawEpisodes.length > 0) {
+              const episode: IncidentEpisode = BaseModel.fromJSONObject(
+                (rawEpisodes[0] as JSONObject) || {},
+                IncidentEpisode,
+              );
 
-      setMonitorsInGroup(monitorsInGroup);
+              if (episode && episode.id) {
+                setIsEpisode(true);
 
-      // save data. set()
-      setIncidentPublicNotes(incidentPublicNotes);
-      setIncident(incident);
-      setStatusPageResources(statusPageResources);
-      setIncidentStateTimelines(incidentStateTimelines);
+                const episodePublicNotes: Array<IncidentEpisodePublicNote> =
+                  BaseModel.fromJSONArray(
+                    (data["episodePublicNotes"] as JSONArray) || [],
+                    IncidentEpisodePublicNote,
+                  );
+
+                const statusPageResources: Array<StatusPageResource> =
+                  BaseModel.fromJSONArray(
+                    (data["statusPageResources"] as JSONArray) || [],
+                    StatusPageResource,
+                  );
+
+                const episodeStateTimelines: Array<IncidentEpisodeStateTimeline> =
+                  BaseModel.fromJSONArray(
+                    (data["episodeStateTimelines"] as JSONArray) || [],
+                    IncidentEpisodeStateTimeline,
+                  );
+
+                const monitorsInGroup: Dictionary<Array<ObjectID>> =
+                  JSONFunctions.deserialize(
+                    (data["monitorsInGroup"] as JSONObject) || {},
+                  ) as Dictionary<Array<ObjectID>>;
+
+                setMonitorsInGroup(monitorsInGroup);
+                setEpisodePublicNotes(episodePublicNotes);
+                setEpisode(episode);
+                setStatusPageResources(statusPageResources);
+                setEpisodeStateTimelines(episodeStateTimelines);
+              }
+            }
+          }
+        } catch {
+          // Episode not found either
+        }
+      }
 
       setIsLoading(false);
       props.onLoadComplete();
@@ -457,22 +710,32 @@ const Detail: FunctionComponent<PageComponentProps> = (
       return;
     }
 
-    if (!incident) {
-      return;
+    if (isEpisode && episode) {
+      setParsedData(
+        getEpisodeEventItem({
+          episode,
+          episodePublicNotes,
+          episodeStateTimelines,
+          statusPageResources,
+          monitorsInGroup,
+          isPreviewPage: StatusPageUtil.isPreviewPage(),
+          isSummary: false,
+        }),
+      );
+    } else if (!isEpisode && incident) {
+      setParsedData(
+        getIncidentEventItem({
+          incident,
+          incidentPublicNotes,
+          incidentStateTimelines,
+          statusPageResources,
+          monitorsInGroup,
+          isPreviewPage: StatusPageUtil.isPreviewPage(),
+          isSummary: false,
+        }),
+      );
     }
-
-    setParsedData(
-      getIncidentEventItem({
-        incident,
-        incidentPublicNotes,
-        incidentStateTimelines,
-        statusPageResources,
-        monitorsInGroup,
-        isPreviewPage: StatusPageUtil.isPreviewPage(),
-        isSummary: false,
-      }),
-    );
-  }, [isLoading, incident]);
+  }, [isLoading, incident, episode, isEpisode]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -486,9 +749,12 @@ const Detail: FunctionComponent<PageComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
+  const pageTitle: string = isEpisode ? "Episode Report" : "Incident Report";
+  const hasItem: boolean = isEpisode ? Boolean(episode) : Boolean(incident);
+
   return (
     <Page
-      title="Incident Report"
+      title={pageTitle}
       breadcrumbLinks={[
         {
           title: "Overview",
@@ -507,7 +773,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           ),
         },
         {
-          title: "Incident Report",
+          title: pageTitle,
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
@@ -517,13 +783,17 @@ const Detail: FunctionComponent<PageComponentProps> = (
         },
       ]}
     >
-      {incident ? <EventItem {...parsedData} /> : <></>}
-      {!incident ? (
+      {hasItem ? <EventItem {...parsedData} /> : <></>}
+      {!hasItem ? (
         <EmptyState
-          id="incident-empty-state"
-          title={"No Incident"}
-          description={"Incident not found on this status page."}
-          icon={IconProp.Alert}
+          id="item-empty-state"
+          title={isEpisode ? "No Episode" : "No Incident"}
+          description={
+            isEpisode
+              ? "Episode not found on this status page."
+              : "Incident not found on this status page."
+          }
+          icon={isEpisode ? IconProp.Layers : IconProp.Alert}
         />
       ) : (
         <></>

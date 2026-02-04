@@ -74,11 +74,6 @@ const IncidentList: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Incidents/List");
 });
-const EpisodeDetail: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Incidents/EpisodeDetail");
-});
 const PageNotFound: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
@@ -412,18 +407,6 @@ const App: () => JSX.Element = () => {
             element={
               <ScheduledEventList
                 pageRoute={RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route}
-                onLoadComplete={() => {
-                  onPageLoadComplete();
-                }}
-              />
-            }
-          />
-
-          <PageRoute
-            path={RouteMap[PageMap.EPISODE_DETAIL]?.toString() || ""}
-            element={
-              <EpisodeDetail
-                pageRoute={RouteMap[PageMap.EPISODE_DETAIL] as Route}
                 onLoadComplete={() => {
                   onPageLoadComplete();
                 }}
@@ -792,18 +775,6 @@ const App: () => JSX.Element = () => {
                 pageRoute={
                   RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route
                 }
-              />
-            }
-          />
-
-          <PageRoute
-            path={RouteMap[PageMap.PREVIEW_EPISODE_DETAIL]?.toString() || ""}
-            element={
-              <EpisodeDetail
-                onLoadComplete={() => {
-                  onPageLoadComplete();
-                }}
-                pageRoute={RouteMap[PageMap.PREVIEW_EPISODE_DETAIL] as Route}
               />
             }
           />
