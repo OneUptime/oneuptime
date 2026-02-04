@@ -75,7 +75,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     criteriaIncident.onCallPolicyIds?.length,
   );
   const hasAdvancedOptions: boolean = Boolean(
-    criteriaIncident.autoResolveIncident || criteriaIncident.remediationNotes,
+    criteriaIncident.autoResolveIncident ||
+      criteriaIncident.remediationNotes ||
+      criteriaIncident.showIncidentOnStatusPage === false,
   );
   const hasIncidentTeam: boolean = Boolean(
     criteriaIncident.incidentMemberRoles?.length,
@@ -499,6 +501,17 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               description="Automatically resolve this incident when this criteria is no longer met"
               onChange={(value: boolean) => {
                 updateField("autoResolveIncident", value);
+              }}
+            />
+          </div>
+
+          <div>
+            <Toggle
+              value={criteriaIncident.showIncidentOnStatusPage !== false}
+              title="Show Incident on Status Page"
+              description="When disabled, this incident will not be visible on your public status pages"
+              onChange={(value: boolean) => {
+                updateField("showIncidentOnStatusPage", value);
               }}
             />
           </div>
