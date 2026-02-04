@@ -3647,12 +3647,15 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage.showEpisodeHistoryInDays || 14,
     );
 
-    // First get incidents that are visible on status page and have the required monitors
+    // Get incidents that have monitors on this status page
+    // Note: We don't filter by incident.isVisibleOnStatusPage here because
+    // episode visibility is independent of incident visibility.
+    // An episode should show if episode.isVisibleOnStatusPage is true,
+    // regardless of whether its member incidents are visible.
     const incidentQuery: Query<Incident> = {
       monitors: monitorsOnStatusPage as any,
       projectId: statusPage.projectId!,
       createdAt: QueryHelper.inBetween(historyDays, today),
-      isVisibleOnStatusPage: true,
     };
 
     let incidents: Array<Incident> = [];
