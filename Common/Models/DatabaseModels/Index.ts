@@ -210,6 +210,7 @@ import IncidentEpisodeOwnerUser from "./IncidentEpisodeOwnerUser";
 import IncidentEpisodeOwnerTeam from "./IncidentEpisodeOwnerTeam";
 import IncidentEpisodeInternalNote from "./IncidentEpisodeInternalNote";
 import IncidentEpisodeFeed from "./IncidentEpisodeFeed";
+import IncidentEpisodePublicNote from "./IncidentEpisodePublicNote";
 import IncidentGroupingRule from "./IncidentGroupingRule";
 import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
@@ -318,6 +319,7 @@ const AllModelTypes: Array<{
   IncidentEpisodeOwnerTeam,
   IncidentEpisodeInternalNote,
   IncidentEpisodeFeed,
+  IncidentEpisodePublicNote,
   IncidentGroupingRule,
   IncidentSlaRule,
   IncidentSla,

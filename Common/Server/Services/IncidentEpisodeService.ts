@@ -38,6 +38,8 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
+import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
+import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -133,6 +135,30 @@ export class Service extends DatabaseService<Model> {
       // Set initial lastIncidentAddedAt
       if (!createBy.data.lastIncidentAddedAt) {
         createBy.data.lastIncidentAddedAt = OneUptimeDate.getCurrentDate();
+      }
+
+      // Set declaredAt if not provided
+      if (!createBy.data.declaredAt) {
+        createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
+      }
+
+      // Copy showEpisodeOnStatusPage from grouping rule if available
+      if (createBy.data.incidentGroupingRuleId) {
+        const groupingRule: IncidentGroupingRule | null =
+          await IncidentGroupingRuleService.findOneById({
+            id: createBy.data.incidentGroupingRuleId,
+            select: {
+              showEpisodeOnStatusPage: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (groupingRule) {
+          createBy.data.isVisibleOnStatusPage =
+            groupingRule.showEpisodeOnStatusPage ?? true;
+        }
       }
 
       return { createBy, carryForward: { mutex } };

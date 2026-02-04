@@ -1,5 +1,9 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import AcmeChallengeService from "../Services/AcmeChallengeService";
+import IncidentEpisodeService from "../Services/IncidentEpisodeService";
+import IncidentEpisodeMemberService from "../Services/IncidentEpisodeMemberService";
+import IncidentEpisodePublicNoteService from "../Services/IncidentEpisodePublicNoteService";
+import IncidentEpisodeStateTimelineService from "../Services/IncidentEpisodeStateTimelineService";
 import IncidentPublicNoteService from "../Services/IncidentPublicNoteService";
 import IncidentService from "../Services/IncidentService";
 import IncidentStateService from "../Services/IncidentStateService";
@@ -52,6 +56,10 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import HashedString from "../../Types/HashedString";
 import AcmeChallenge from "../../Models/DatabaseModels/AcmeChallenge";
 import Incident from "../../Models/DatabaseModels/Incident";
+import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentEpisodePublicNote from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
+import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
@@ -2097,6 +2105,59 @@ export default class StatusPageAPI extends BaseAPI<
         }
       },
     );
+
+    // Episodes endpoints
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/episodes/:statusPageIdOrDomain`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const response: JSONObject = await this.getEpisodes(
+            objectId,
+            null,
+            req,
+          );
+
+          return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/episodes/:statusPageIdOrDomain/:episodeId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const episodeId: ObjectID = new ObjectID(
+            req.params["episodeId"] as string,
+          );
+
+          const response: JSONObject = await this.getEpisodes(
+            objectId,
+            episodeId,
+            req,
+          );
+
+          return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
   }
 
   @CaptureSpan()
@@ -3525,6 +3586,324 @@ export default class StatusPageAPI extends BaseAPI<
       incidentStateTimelines: BaseModel.toJSONArray(
         incidentStateTimelines,
         IncidentStateTimeline,
+      ),
+      monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
+    };
+
+    return response;
+  }
+
+  @CaptureSpan()
+  public async getEpisodes(
+    statusPageId: ObjectID,
+    episodeId: ObjectID | null,
+    req: ExpressRequest,
+  ): Promise<JSONObject> {
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showIncidentHistoryInDays: true,
+        showEpisodesOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    if (!statusPage.showEpisodesOnStatusPage) {
+      throw new BadDataException(
+        "Episodes are not enabled on this status page.",
+      );
+    }
+
+    // get monitors on status page.
+    const statusPageResources: Array<StatusPageResource> =
+      await StatusPageService.getStatusPageResources({
+        statusPageId: statusPageId,
+      });
+
+    const { monitorsOnStatusPage, monitorsInGroup } =
+      await StatusPageService.getMonitorIdsOnStatusPage({
+        statusPageId: statusPageId,
+      });
+
+    const today: Date = OneUptimeDate.getCurrentDate();
+
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
+      statusPage.showIncidentHistoryInDays || 14,
+    );
+
+    // First get incidents that are visible on status page and have the required monitors
+    let incidentQuery: Query<Incident> = {
+      monitors: monitorsOnStatusPage as any,
+      projectId: statusPage.projectId!,
+      createdAt: QueryHelper.inBetween(historyDays, today),
+      isVisibleOnStatusPage: true,
+    };
+
+    let incidents: Array<Incident> = [];
+
+    if (monitorsOnStatusPage.length > 0) {
+      incidents = await IncidentService.findBy({
+        query: incidentQuery,
+        select: {
+          _id: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    const incidentIds: Array<ObjectID> = incidents.map((incident: Incident) => {
+      return incident.id!;
+    });
+
+    // Get episode members that link to these incidents
+    let episodeMembers: Array<IncidentEpisodeMember> = [];
+
+    if (incidentIds.length > 0) {
+      episodeMembers = await IncidentEpisodeMemberService.findBy({
+        query: {
+          incidentId: QueryHelper.any(incidentIds),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          incidentEpisodeId: true,
+          incident: {
+            monitors: {
+              _id: true,
+            },
+          },
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // Get unique episode IDs
+    const episodeIdsFromMembers: Set<string> = new Set();
+    for (const member of episodeMembers) {
+      if (member.incidentEpisodeId) {
+        episodeIdsFromMembers.add(member.incidentEpisodeId.toString());
+      }
+    }
+
+    let episodeQuery: Query<IncidentEpisode> = {
+      _id: QueryHelper.any(
+        Array.from(episodeIdsFromMembers).map((id: string) => {
+          return new ObjectID(id);
+        }),
+      ),
+      projectId: statusPage.projectId!,
+      isVisibleOnStatusPage: true,
+    };
+
+    if (episodeId) {
+      episodeQuery = {
+        _id: episodeId.toString(),
+        projectId: statusPage.projectId!,
+        isVisibleOnStatusPage: true,
+      };
+    }
+
+    // Get episodes
+    let episodes: Array<IncidentEpisode> = [];
+
+    const selectEpisodes: Select<IncidentEpisode> = {
+      createdAt: true,
+      declaredAt: true,
+      updatedAt: true,
+      title: true,
+      description: true,
+      _id: true,
+      episodeNumber: true,
+      incidentSeverity: {
+        name: true,
+        color: true,
+      },
+      currentIncidentState: {
+        name: true,
+        color: true,
+        _id: true,
+        order: true,
+      },
+      incidentCount: true,
+    };
+
+    if (episodeIdsFromMembers.size > 0 || episodeId) {
+      episodes = await IncidentEpisodeService.findBy({
+        query: episodeQuery,
+        select: selectEpisodes,
+        sort: {
+          declaredAt: SortOrder.Descending,
+          createdAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // If no specific episode, also fetch active (unresolved) episodes
+    if (!episodeId && episodeIdsFromMembers.size > 0) {
+      const unresolvedIncidentStates: Array<IncidentState> =
+        await IncidentStateService.getUnresolvedIncidentStates(
+          statusPage.projectId!,
+          {
+            isRoot: true,
+          },
+        );
+
+      const unresolvedIncidentStateIds: Array<ObjectID> =
+        unresolvedIncidentStates.map((state: IncidentState) => {
+          return state.id!;
+        });
+
+      const activeEpisodes: Array<IncidentEpisode> =
+        await IncidentEpisodeService.findBy({
+          query: {
+            _id: QueryHelper.any(
+              Array.from(episodeIdsFromMembers).map((id: string) => {
+                return new ObjectID(id);
+              }),
+            ),
+            isVisibleOnStatusPage: true,
+            currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
+            projectId: statusPage.projectId!,
+          },
+          select: selectEpisodes,
+          sort: {
+            declaredAt: SortOrder.Descending,
+            createdAt: SortOrder.Descending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      episodes = [...activeEpisodes, ...episodes];
+      episodes = ArrayUtil.distinctByFieldName(episodes, "_id");
+    }
+
+    const episodesOnStatusPage: Array<ObjectID> = episodes.map(
+      (episode: IncidentEpisode) => {
+        return episode.id!;
+      },
+    );
+
+    // Get public notes for episodes
+    let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
+
+    if (episodesOnStatusPage.length > 0) {
+      episodePublicNotes = await IncidentEpisodePublicNoteService.findBy({
+        query: {
+          incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          postedAt: true,
+          note: true,
+          incidentEpisodeId: true,
+          attachments: {
+            _id: true,
+            name: true,
+          },
+        },
+        sort: {
+          postedAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // Get state timelines for episodes
+    let episodeStateTimelines: Array<IncidentEpisodeStateTimeline> = [];
+
+    if (episodesOnStatusPage.length > 0) {
+      episodeStateTimelines = await IncidentEpisodeStateTimelineService.findBy({
+        query: {
+          incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          _id: true,
+          createdAt: true,
+          startsAt: true,
+          incidentEpisodeId: true,
+          incidentState: {
+            name: true,
+            color: true,
+          },
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // Get all incident states for this project
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.findBy({
+        query: {
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          isResolvedState: true,
+          order: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const response: JSONObject = {
+      episodePublicNotes: BaseModel.toJSONArray(
+        episodePublicNotes,
+        IncidentEpisodePublicNote,
+      ),
+      incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
+      episodes: BaseModel.toJSONArray(episodes, IncidentEpisode),
+      statusPageResources: BaseModel.toJSONArray(
+        statusPageResources,
+        StatusPageResource,
+      ),
+      episodeStateTimelines: BaseModel.toJSONArray(
+        episodeStateTimelines,
+        IncidentEpisodeStateTimeline,
       ),
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     };

@@ -2381,6 +2381,46 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    title: "Show Incident Episodes on Status Page",
+    description: "Show Incident Episodes on Status Page?",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+    nullable: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
+  })
+  public showEpisodesOnStatusPage?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
     title: "Show Scheduled Maintenance Events on Status Page",
     description: "Show Scheduled Maintenance Events on Status Page?",
     defaultValue: true,

@@ -181,6 +181,7 @@ import IncidentEpisodeRoleMemberService from "./IncidentEpisodeRoleMemberService
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeStateTimelineService from "./IncidentEpisodeStateTimelineService";
+import IncidentEpisodePublicNoteService from "./IncidentEpisodePublicNoteService";
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
 import IncidentSlaRuleService from "./IncidentSlaRuleService";
 import IncidentSlaService from "./IncidentSlaService";
@@ -400,6 +401,7 @@ const services: Array<BaseService> = [
   IncidentEpisodeOwnerTeamService,
   IncidentEpisodeOwnerUserService,
   IncidentEpisodeStateTimelineService,
+  IncidentEpisodePublicNoteService,
   AlertGroupingRuleService,
   IncidentSlaRuleService,
   IncidentSlaService,

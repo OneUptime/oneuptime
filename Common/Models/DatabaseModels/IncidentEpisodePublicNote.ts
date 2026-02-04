@@ -1,48 +1,33 @@
 import IncidentEpisode from "./IncidentEpisode";
 import Project from "./Project";
 import User from "./User";
+import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
-import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
-import ColorField from "../../Types/Database/ColorField";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
-import Color from "../../Types/Color";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
-
-export enum IncidentEpisodeFeedEventType {
-  EpisodeCreated = "EpisodeCreated",
-  EpisodeStateChanged = "EpisodeStateChanged",
-  EpisodeUpdated = "EpisodeUpdated",
-  IncidentAdded = "IncidentAdded",
-  IncidentRemoved = "IncidentRemoved",
-  OwnerUserAdded = "OwnerUserAdded",
-  OwnerTeamAdded = "OwnerTeamAdded",
-  OwnerUserRemoved = "OwnerUserRemoved",
-  OwnerTeamRemoved = "OwnerTeamRemoved",
-  OwnerNotificationSent = "OwnerNotificationSent",
-  PrivateNote = "PrivateNote",
-  PublicNote = "PublicNote",
-  RootCause = "RootCause",
-  RemediationNotes = "RemediationNotes",
-  PostmortemNote = "PostmortemNote",
-  OnCallPolicy = "OnCallPolicy",
-  OnCallNotification = "OnCallNotification",
-  SeverityChanged = "SeverityChanged",
-  SubscriberNotificationSent = "SubscriberNotificationSent",
-}
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("incidentEpisode")
@@ -52,17 +37,27 @@ export enum IncidentEpisodeFeedEventType {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.CreateIncidentEpisodeFeed,
+    Permission.CreateIncidentEpisodePublicNote,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadIncidentEpisodeFeed,
+    Permission.ReadIncidentEpisodePublicNote,
     Permission.ReadAllProjectResources,
   ],
-  delete: [],
-  update: [],
+  delete: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.DeleteIncidentEpisodePublicNote,
+  ],
+  update: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.EditIncidentEpisodePublicNote,
+  ],
 })
 @EnableWorkflow({
   create: true,
@@ -70,31 +65,30 @@ export enum IncidentEpisodeFeedEventType {
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/incident-episode-feed"))
+@CrudApiEndpoint(new Route("/incident-episode-public-note"))
 @Entity({
-  name: "IncidentEpisodeFeed",
+  name: "IncidentEpisodePublicNote",
 })
 @TableMetadata({
-  tableName: "IncidentEpisodeFeed",
-  singularName: "Incident Episode Feed",
-  pluralName: "Incident Episode Feeds",
-  icon: IconProp.List,
-  tableDescription:
-    "Log of the entire incident episode activity. This is a log of all the episode state changes, incidents added/removed, notes, etc.",
+  tableName: "IncidentEpisodePublicNote",
+  singularName: "Incident Episode Public Note",
+  pluralName: "Incident Episode Public Notes",
+  icon: IconProp.Team,
+  tableDescription: "Manage public notes for your incident episode",
 })
-export default class IncidentEpisodeFeed extends BaseModel {
+export default class IncidentEpisodePublicNote extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -125,13 +119,13 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -143,6 +137,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -156,13 +151,13 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -193,13 +188,13 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -211,6 +206,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
     title: "Incident Episode ID",
     description:
       "Relation to Incident Episode ID in which this resource belongs",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -224,13 +220,13 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -262,13 +258,13 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
     update: [],
@@ -278,6 +274,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "7c8d9e0f-a1b2-3c4d-9e5f-8a9b0c1d2e3f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -324,6 +321,7 @@ export default class IncidentEpisodeFeed extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "9d0e1f2a-b3c4-5d6e-af7b-8c9d0e1f2a3b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -337,87 +335,120 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentEpisodePublicNote,
+    ],
   })
   @TableColumn({
     type: TableColumnType.Markdown,
-    required: true,
-    title: "Log (in Markdown)",
-    description: "Log of the entire incident episode activity in Markdown",
+    title: "Note",
+    description: "Notes in markdown",
+    example:
+      "## Update - Episode Resolved\n\nWe have identified and resolved the issue. All services are now operating normally.",
   })
   @Column({
     type: ColumnType.Markdown,
     nullable: false,
     unique: false,
   })
-  public feedInfoInMarkdown?: string = undefined;
+  public note?: string = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentEpisodePublicNote,
+    ],
   })
   @TableColumn({
-    type: TableColumnType.Markdown,
+    type: TableColumnType.EntityArray,
+    modelType: File,
+    title: "Attachments",
+    description: "Files attached to this note",
     required: false,
-    title: "More Information (in Markdown)",
-    description: "More information in Markdown",
   })
-  @Column({
-    type: ColumnType.Markdown,
-    nullable: true,
-    unique: false,
+  @ManyToMany(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+    },
+  )
+  @JoinTable({
+    name: "IncidentEpisodePublicNoteFile",
+    joinColumn: {
+      name: "incidentEpisodePublicNoteId",
+      referencedColumnName: "_id",
+    },
+    inverseJoinColumn: {
+      name: "fileId",
+      referencedColumnName: "_id",
+    },
   })
-  public moreInformationInMarkdown?: string = undefined;
+  public attachments?: Array<File> = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentEpisodePublicNote,
+    ],
   })
   @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
-    required: true,
-    title: "Incident Episode Feed Event",
-    description: "Incident Episode Feed Event Type",
+    title: "Subscriber Notification Status",
+    description: "Status of notification sent to subscribers about this note",
+    defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
   @Column({
     type: ColumnType.ShortText,
-    nullable: false,
-    unique: false,
+    default: StatusPageSubscriberNotificationStatus.Pending,
   })
-  public incidentEpisodeFeedEventType?: IncidentEpisodeFeedEventType =
+  public subscriberNotificationStatusOnNoteCreated?: StatusPageSubscriberNotificationStatus =
     undefined;
 
   @ColumnAccessControl({
@@ -425,119 +456,119 @@ export default class IncidentEpisodeFeed extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentEpisodePublicNote,
+    ],
   })
-  @ColorField()
   @TableColumn({
-    type: TableColumnType.Color,
-    required: true,
-    title: "Color",
-    description: "Display color for the incident episode log",
+    type: TableColumnType.VeryLongText,
+    title: "Notification Status Message",
+    description:
+      "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
+    required: false,
+    example: "Successfully notified 1,234 subscribers via email and SMS",
   })
   @Column({
-    type: ColumnType.Color,
-    length: ColumnLength.Color,
-    nullable: false,
-    unique: false,
-    transformer: Color.getDatabaseTransformer(),
-  })
-  public displayColor?: Color = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "userId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "User",
-    description:
-      "Relation to User who this feed belongs to (if this feed belongs to a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "userId" })
-  public user?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
-      Permission.ReadAllProjectResources,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "User ID",
-    description:
-      "User who this feed belongs to (if this feed belongs to a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public userId?: ObjectID = undefined;
+  public subscriberNotificationStatusMessage?: string = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentEpisodeFeed,
+      Permission.CreateIncidentEpisodePublicNote,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadIncidentEpisodeFeed,
+      Permission.ReadIncidentEpisodePublicNote,
       Permission.ReadAllProjectResources,
     ],
     update: [],
   })
   @TableColumn({
-    title: "Feed Posted At",
-    description: "Date and time when the feed was posted",
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Should subscribers be notified?",
+    description: "Should subscribers be notified about this note?",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public shouldStatusPageSubscribersBeNotifiedOnNoteCreated?: boolean =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentEpisodePublicNote,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Are Owners Notified",
+    description: "Are owners notified of this resource ownership?",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isOwnerNotified?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentEpisodePublicNote,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentEpisodePublicNote,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentEpisodePublicNote,
+    ],
+  })
+  @TableColumn({
+    title: "Note Posted At",
+    description: "Date and time when the note was posted",
     type: TableColumnType.Date,
   })
   @Column({
@@ -546,4 +577,35 @@ export default class IncidentEpisodeFeed extends BaseModel {
     unique: false,
   })
   public postedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentEpisodePublicNote,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentEpisodePublicNote,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Posted from Slack Message ID",
+    description:
+      "Unique identifier for the Slack message this note was created from (channel_id:message_ts). Used to prevent duplicate notes when multiple users react to the same message.",
+    required: false,
+    example: "C1234567890:1234567890.123456",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public postedFromSlackMessageId?: string = undefined;
 }
