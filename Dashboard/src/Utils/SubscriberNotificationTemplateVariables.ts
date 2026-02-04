@@ -243,6 +243,86 @@ Status changed to: **{{scheduledMaintenanceState}}**
 [View Details]({{detailsUrl}})`;
       break;
 
+    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeCreated:
+      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
+| \`{{episodeDescription}}\` | Description of the incident |
+| \`{{episodeSeverity}}\` | Severity level of the incident |
+| \`{{detailsUrl}}\` | URL to view incident details |`;
+      exampleSubject = "{{statusPageName}}: {{episodeTitle}}";
+      exampleEmailBody = `<h2>{{episodeTitle}}</h2>
+<p>{{episodeDescription}}</p>
+<p><strong>Severity:</strong> {{episodeSeverity}}</p>
+<p><strong>Affected Resources:</strong> {{resourcesAffected}}</p>
+<p><a href="{{detailsUrl}}">View Details</a></p>`;
+      exampleSMSBody = `{{statusPageName}}: {{episodeTitle}} - {{episodeSeverity}}. {{episodeDescription}} Details: {{detailsUrl}}`;
+      exampleSlackBody = `**{{episodeTitle}}**
+
+{{episodeDescription}}
+
+**Severity:** {{episodeSeverity}}
+**Affected Resources:** {{resourcesAffected}}
+
+[View Details]({{detailsUrl}})`;
+      exampleTeamsBody = `**{{episodeTitle}}**
+
+{{episodeDescription}}
+
+**Severity:** {{episodeSeverity}}
+**Affected Resources:** {{resourcesAffected}}
+
+[View Details]({{detailsUrl}})`;
+      break;
+
+    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeStateChanged:
+      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
+| \`{{episodeSeverity}}\` | Severity level of the incident |
+| \`{{episodeState}}\` | Current state of the incident (e.g., Investigating, Identified, Resolved) |
+| \`{{detailsUrl}}\` | URL to view incident details |`;
+      exampleSubject =
+        "{{statusPageName}}: {{episodeTitle}} - {{episodeState}}";
+      exampleEmailBody = `<h2>{{episodeTitle}}</h2>
+<p>Status changed to: <strong>{{episodeState}}</strong></p>
+<p><strong>Severity:</strong> {{episodeSeverity}}</p>
+<p><a href="{{detailsUrl}}">View Details</a></p>`;
+      exampleSMSBody = `{{statusPageName}}: {{episodeTitle}} is now {{episodeState}}. Details: {{detailsUrl}}`;
+      exampleSlackBody = `**{{episodeTitle}}**
+
+Status changed to: **{{episodeState}}**
+
+**Severity:** {{episodeSeverity}}
+
+[View Details]({{detailsUrl}})`;
+      exampleTeamsBody = `**{{episodeTitle}}**
+
+Status changed to: **{{episodeState}}**
+
+**Severity:** {{episodeSeverity}}
+
+[View Details]({{detailsUrl}})`;
+      break;
+
+    case StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated:
+      eventSpecificRows = `| \`{{episodeTitle}}\` | Title of the incident |
+| \`{{episodeSeverity}}\` | Severity level of the incident |
+| \`{{note}}\` | Content of the note |
+| \`{{detailsUrl}}\` | URL to view incident details |`;
+      exampleSubject = "{{statusPageName}}: Update on {{episodeTitle}}";
+      exampleEmailBody = `<h2>Update: {{episodeTitle}}</h2>
+<p>{{note}}</p>
+<p><a href="{{detailsUrl}}">View Details</a></p>`;
+      exampleSMSBody = `{{statusPageName}}: Update on {{episodeTitle}} - {{note}} Details: {{detailsUrl}}`;
+      exampleSlackBody = `**Update: {{episodeTitle}}**
+
+{{note}}
+
+[View Details]({{detailsUrl}})`;
+      exampleTeamsBody = `**Update: {{episodeTitle}}**
+
+{{note}}
+
+[View Details]({{detailsUrl}})`;
+      break;
+
     default:
       return `**Available Template Variables**
 
