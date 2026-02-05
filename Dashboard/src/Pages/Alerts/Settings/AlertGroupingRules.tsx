@@ -254,6 +254,10 @@ const AlertGroupingRulesPage: FunctionComponent<
             id: "episode-template",
           },
           {
+            title: "Episode Settings",
+            id: "episode-settings",
+          },
+          {
             title: "On-Call & Ownership",
             id: "on-call-ownership",
           },
@@ -651,6 +655,24 @@ const AlertGroupingRulesPage: FunctionComponent<
                 </p>
               </div>
             ),
+          },
+          // Episode Settings Fields
+          {
+            field: {
+              episodeLabels: true,
+            },
+            title: "Episode Labels",
+            stepId: "episode-settings",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "Labels to automatically attach to episodes created by this rule.",
+            placeholder: "Select Labels (optional)",
           },
           {
             field: {
