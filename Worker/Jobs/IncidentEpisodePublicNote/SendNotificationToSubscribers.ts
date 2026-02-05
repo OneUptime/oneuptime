@@ -50,6 +50,50 @@ RunCron(
   "IncidentEpisodePublicNote:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    // First, mark public notes as Skipped if they should not be notified
+    const notesToSkip: Array<IncidentEpisodePublicNote> =
+      await IncidentEpisodePublicNoteService.findBy({
+        query: {
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          shouldStatusPageSubscribersBeNotifiedOnNoteCreated: false,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        select: {
+          _id: true,
+        },
+      });
+
+    logger.debug(
+      `Found ${notesToSkip.length} episode public note(s) to mark as Skipped (subscribers should not be notified).`,
+    );
+
+    for (const note of notesToSkip) {
+      logger.debug(
+        `Marking episode public note ${note.id} as Skipped for subscriber notifications.`,
+      );
+      await IncidentEpisodePublicNoteService.updateOneById({
+        id: note.id!,
+        data: {
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage:
+            "Notifications skipped as subscribers are not to be notified for this note.",
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+      logger.debug(
+        `Episode public note ${note.id} marked as Skipped for subscriber notifications.`,
+      );
+    }
+
     // get all episode public notes that need notification
 
     const host: Hostname = await DatabaseConfig.getHost();

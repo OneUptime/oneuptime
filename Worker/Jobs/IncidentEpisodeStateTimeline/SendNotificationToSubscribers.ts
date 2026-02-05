@@ -50,6 +50,51 @@ RunCron(
   "IncidentEpisodeStateTimeline:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    // First, mark state timelines as Skipped if they should not be notified
+    const timelinesToSkip: Array<IncidentEpisodeStateTimeline> =
+      await IncidentEpisodeStateTimelineService.findBy({
+        query: {
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
+          shouldStatusPageSubscribersBeNotified: false,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        select: {
+          _id: true,
+        },
+      });
+
+    logger.debug(
+      `Found ${timelinesToSkip.length} episode state timeline(s) to mark as Skipped (subscribers should not be notified).`,
+    );
+
+    for (const timeline of timelinesToSkip) {
+      logger.debug(
+        `Marking episode state timeline ${timeline.id} as Skipped for subscriber notifications.`,
+      );
+      await IncidentEpisodeStateTimelineService.updateOneById({
+        id: timeline.id!,
+        data: {
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage:
+            "Notifications skipped as subscribers are not to be notified for this state change.",
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+      logger.debug(
+        `Episode state timeline ${timeline.id} marked as Skipped for subscriber notifications.`,
+      );
+    }
+
+    // Get all episode state timelines that need notification
     const episodeStateTimelines: Array<IncidentEpisodeStateTimeline> =
       await IncidentEpisodeStateTimelineService.findBy({
         query: {
