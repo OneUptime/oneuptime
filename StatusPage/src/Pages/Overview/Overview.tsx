@@ -7,8 +7,9 @@ import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import StatusPageUtil from "../../Utils/StatusPage";
 import { getAnnouncementEventItem } from "../Announcement/Detail";
-import { getIncidentEventItem } from "../Incidents/Detail";
+import { getIncidentEventItem, getEpisodeEventItem } from "../Incidents/Detail";
 import PageComponentProps from "../PageComponentProps";
+import EpisodeGroup from "../../Types/EpisodeGroup";
 import { getScheduledEventEventItem } from "../ScheduledEvent/Detail";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -34,6 +35,9 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
+import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -88,6 +92,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
     Array<IncidentPublicNote>
   >([]);
   const [activeIncidents, setActiveIncidents] = useState<Array<Incident>>([]);
+  const [activeEpisodes, setActiveEpisodes] = useState<Array<IncidentEpisode>>(
+    [],
+  );
+  const [episodePublicNotes, setEpisodePublicNotes] = useState<
+    Array<IncidentEpisodePublicNote>
+  >([]);
+  const [episodeStateTimelines, setEpisodeStateTimelines] = useState<
+    Array<IncidentEpisodeStateTimeline>
+  >([]);
   const [monitorStatusTimelines, setMonitorStatusTimelines] = useState<
     Array<MonitorStatusTimeline>
   >([]);
@@ -189,6 +202,35 @@ const Overview: FunctionComponent<PageComponentProps> = (
         (data["activeIncidents"] as JSONArray) || [],
         Incident,
       );
+
+      // Parse episodes data
+      const rawEpisodesArray: JSONArray =
+        (data["activeEpisodes"] as JSONArray) || [];
+      const activeEpisodes: Array<IncidentEpisode> = BaseModel.fromJSONArray(
+        rawEpisodesArray,
+        IncidentEpisode,
+      );
+
+      // Preserve monitors from raw JSON (not part of model schema)
+      for (let i: number = 0; i < activeEpisodes.length; i++) {
+        const rawEpisode: JSONObject = rawEpisodesArray[i] as JSONObject;
+        if (rawEpisode && rawEpisode["monitors"]) {
+          (activeEpisodes[i] as any).monitors = rawEpisode["monitors"];
+        }
+      }
+
+      const episodePublicNotes: Array<IncidentEpisodePublicNote> =
+        BaseModel.fromJSONArray(
+          (data["episodePublicNotes"] as JSONArray) || [],
+          IncidentEpisodePublicNote,
+        );
+
+      const episodeStateTimelines: Array<IncidentEpisodeStateTimeline> =
+        BaseModel.fromJSONArray(
+          (data["episodeStateTimelines"] as JSONArray) || [],
+          IncidentEpisodeStateTimeline,
+        );
+
       const monitorStatusTimelines: Array<MonitorStatusTimeline> =
         BaseModel.fromJSONArray(
           (data["monitorStatusTimelines"] as JSONArray) || [],
@@ -249,6 +291,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setActiveAnnouncements(activeAnnouncements);
       setIncidentPublicNotes(incidentPublicNotes);
       setActiveIncidents(activeIncidents);
+      setActiveEpisodes(activeEpisodes);
+      setEpisodePublicNotes(episodePublicNotes);
+      setEpisodeStateTimelines(episodeStateTimelines);
       setMonitorStatusTimelines(monitorStatusTimelines);
       setResourceGroups(resourceGroups);
       setMonitorStatuses(monitorStatuses);
@@ -557,6 +602,49 @@ const Overview: FunctionComponent<PageComponentProps> = (
       return groups;
     };
 
+  type GetActiveEpisodesFunction = () => Array<EpisodeGroup>;
+
+  const getActiveEpisodesGroups: GetActiveEpisodesFunction =
+    (): Array<EpisodeGroup> => {
+      const groups: Array<EpisodeGroup> = [];
+
+      for (const activeEpisode of activeEpisodes) {
+        if (!activeEpisode.currentIncidentState) {
+          // should not happen.
+          continue;
+        }
+
+        const timeline: IncidentEpisodeStateTimeline | undefined =
+          episodeStateTimelines.find(
+            (timeline: IncidentEpisodeStateTimeline) => {
+              return (
+                timeline.incidentEpisodeId?.toString() === activeEpisode._id
+              );
+            },
+          );
+
+        const group: EpisodeGroup = {
+          episode: activeEpisode,
+          incidentState: activeEpisode.currentIncidentState,
+          episodeResources: statusPageResources,
+          publicNotes: episodePublicNotes.filter(
+            (publicNote: IncidentEpisodePublicNote) => {
+              return (
+                publicNote.incidentEpisodeId?.toString() === activeEpisode._id
+              );
+            },
+          ),
+          incidentSeverity: activeEpisode.incidentSeverity!,
+          episodeStateTimelines: timeline ? [timeline] : [],
+          monitorsInGroup: monitorsInGroup,
+        };
+
+        groups.push(group);
+      }
+
+      return groups;
+    };
+
   type GetOngoingScheduledEventsFunction =
     () => Array<ScheduledMaintenanceGroup>;
 
@@ -604,6 +692,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   const activeIncidentsInIncidentGroup: Array<IncidentGroup> =
     getActiveIncidents();
+  const activeEpisodesInEpisodeGroup: Array<EpisodeGroup> =
+    getActiveEpisodesGroups();
   const activeScheduledMaintenanceEventsInScheduledMaintenanceGroup: Array<ScheduledMaintenanceGroup> =
     getOngoingScheduledEvents();
 
@@ -731,8 +821,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             </div>
           )}
 
-          {/* Load Active Incident */}
-          {activeIncidentsInIncidentGroup.length > 0 && (
+          {/* Load Active Incidents and Episodes */}
+          {(activeIncidentsInIncidentGroup.length > 0 ||
+            activeEpisodesInEpisodeGroup.length > 0) && (
             <div id="incidents-list mt-2">
               <Section title="Active Incidents" />
               {activeIncidentsInIncidentGroup.map(
@@ -750,7 +841,28 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         isSummary: true,
                       })}
                       isDetailItem={false}
-                      key={i}
+                      key={`incident-${i}`}
+                    />
+                  );
+                },
+              )}
+              {activeEpisodesInEpisodeGroup.map(
+                (episodeGroup: EpisodeGroup, i: number) => {
+                  return (
+                    <EventItem
+                      {...getEpisodeEventItem({
+                        episode: episodeGroup.episode,
+                        episodePublicNotes: episodeGroup.publicNotes || [],
+                        episodeStateTimelines:
+                          episodeGroup.episodeStateTimelines,
+                        statusPageResources: episodeGroup.episodeResources,
+                        monitorsInGroup: episodeGroup.monitorsInGroup,
+                        isPreviewPage: StatusPageUtil.isPreviewPage(),
+                        isSummary: true,
+                        statusPageId: statusPageId || undefined,
+                      })}
+                      isDetailItem={false}
+                      key={`episode-${i}`}
                     />
                   );
                 },
@@ -794,6 +906,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
           {activeIncidentsInIncidentGroup.length === 0 &&
+            activeEpisodesInEpisodeGroup.length === 0 &&
             activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length ===
               0 &&
             statusPageResources.length === 0 &&

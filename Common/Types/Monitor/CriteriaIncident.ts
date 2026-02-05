@@ -18,6 +18,7 @@ export interface CriteriaIncident {
   ownerTeamIds?: Array<ObjectID> | undefined;
   ownerUserIds?: Array<ObjectID> | undefined;
   incidentMemberRoles?: Array<IncidentMemberRoleAssignment> | undefined;
+  showIncidentOnStatusPage?: boolean | undefined;
 }
 
 export const CriteriaIncidentSchema: ZodSchema = Zod.object({
@@ -37,4 +38,5 @@ export const CriteriaIncidentSchema: ZodSchema = Zod.object({
       userId: Zod.any(),
     }),
   ).optional(),
+  showIncidentOnStatusPage: Zod.boolean().optional(),
 });

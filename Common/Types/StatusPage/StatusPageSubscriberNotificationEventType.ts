@@ -10,6 +10,11 @@ enum StatusPageSubscriberNotificationEventType {
   SubscriberIncidentNoteCreated = "Subscriber Incident Note Created",
   SubscriberIncidentPostmortemPublished = "Subscriber Incident Postmortem Published",
 
+  // Incident Episode related events
+  SubscriberEpisodeCreated = "Subscriber Episode Created",
+  SubscriberEpisodeStateChanged = "Subscriber Episode State Changed",
+  SubscriberEpisodeNoteCreated = "Subscriber Episode Note Created",
+
   // Announcement related events
   SubscriberAnnouncementCreated = "Subscriber Announcement Created",
 

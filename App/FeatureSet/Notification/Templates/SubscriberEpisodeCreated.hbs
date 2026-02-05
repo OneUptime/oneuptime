@@ -1,0 +1,36 @@
+{{> Start this}}
+
+{{> CustomLogo this}}
+
+{{> EmailTitle title=(concat "New Incident: " episodeTitle) }}
+
+{{> InfoBlock info="A new incident has been reported that may affect the services you're subscribed to."}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Incident" text=episodeTitle }}
+{{#if episodeSeverity}}
+{{> DetailBoxField title="Severity" text=episodeSeverity  }}
+{{/if}}
+{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{#if episodeDescription}}
+{{> DetailBoxField title="Description" text=episodeDescription  }}
+{{/if}}
+{{> DetailBoxEnd this }}
+
+{{#if detailsUrl}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Incident Details"}}
+{{else}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
+{{/if}}
+
+{{> VerticalSpace this}}
+
+{{#if subscriberEmailNotificationFooterText}}
+{{> InfoBlock info=subscriberEmailNotificationFooterText }}
+{{/if}}
+
+{{> UnsubscribeBlock this}}
+
+{{> Footer this}}
+
+{{> End this}}

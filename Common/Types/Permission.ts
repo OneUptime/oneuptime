@@ -810,6 +810,12 @@ enum Permission {
   EditIncidentEpisodeFeed = "EditIncidentEpisodeFeed",
   ReadIncidentEpisodeFeed = "ReadIncidentEpisodeFeed",
 
+  // Incident Episode Public Note Permissions
+  CreateIncidentEpisodePublicNote = "CreateIncidentEpisodePublicNote",
+  DeleteIncidentEpisodePublicNote = "DeleteIncidentEpisodePublicNote",
+  EditIncidentEpisodePublicNote = "EditIncidentEpisodePublicNote",
+  ReadIncidentEpisodePublicNote = "ReadIncidentEpisodePublicNote",
+
   // Incident Grouping Rule Permissions
   CreateIncidentGroupingRule = "CreateIncidentGroupingRule",
   DeleteIncidentGroupingRule = "DeleteIncidentGroupingRule",
@@ -5765,6 +5771,40 @@ export class PermissionHelper {
         title: "Read Incident Episode Feed",
         description:
           "This permission can read Incident Episode feed items of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      // Incident Episode Public Note Permissions
+      {
+        permission: Permission.CreateIncidentEpisodePublicNote,
+        title: "Create Incident Episode Public Note",
+        description:
+          "This permission can create Incident Episode public notes in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteIncidentEpisodePublicNote,
+        title: "Delete Incident Episode Public Note",
+        description:
+          "This permission can delete Incident Episode public notes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditIncidentEpisodePublicNote,
+        title: "Edit Incident Episode Public Note",
+        description:
+          "This permission can edit Incident Episode public notes of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadIncidentEpisodePublicNote,
+        title: "Read Incident Episode Public Note",
+        description:
+          "This permission can read Incident Episode public notes of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

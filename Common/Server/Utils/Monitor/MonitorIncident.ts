@@ -242,6 +242,12 @@ export default class MonitorIncident {
 
         incident.isCreatedAutomatically = true;
 
+        // Set status page visibility (defaults to true if not specified)
+        if (criteriaIncident.showIncidentOnStatusPage !== undefined) {
+          incident.isVisibleOnStatusPage =
+            criteriaIncident.showIncidentOnStatusPage;
+        }
+
         if (input.props.telemetryQuery) {
           incident.telemetryQuery = input.props.telemetryQuery;
         }

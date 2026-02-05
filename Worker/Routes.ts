@@ -43,6 +43,13 @@ import "./Jobs/AlertEpisodeOwners/SendStateChangeNotification";
 // Incident Episodes
 import "./Jobs/IncidentEpisode/AutoResolve";
 import "./Jobs/IncidentEpisode/ResolveInactiveEpisodes";
+import "./Jobs/IncidentEpisode/SendNotificationToSubscribers";
+
+// Incident Episode State Timeline
+import "./Jobs/IncidentEpisodeStateTimeline/SendNotificationToSubscribers";
+
+// Incident Episode Public Notes
+import "./Jobs/IncidentEpisodePublicNote/SendNotificationToSubscribers";
 
 // Incident Episode Owners
 import "./Jobs/IncidentEpisodeOwners/SendCreatedResourceNotification";

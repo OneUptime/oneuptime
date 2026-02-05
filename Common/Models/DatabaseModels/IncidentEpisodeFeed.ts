@@ -34,12 +34,14 @@ export enum IncidentEpisodeFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OwnerNotificationSent = "OwnerNotificationSent",
   PrivateNote = "PrivateNote",
+  PublicNote = "PublicNote",
   RootCause = "RootCause",
   RemediationNotes = "RemediationNotes",
   PostmortemNote = "PostmortemNote",
   OnCallPolicy = "OnCallPolicy",
   OnCallNotification = "OnCallNotification",
   SeverityChanged = "SeverityChanged",
+  SubscriberNotificationSent = "SubscriberNotificationSent",
 }
 
 @EnableDocumentation()

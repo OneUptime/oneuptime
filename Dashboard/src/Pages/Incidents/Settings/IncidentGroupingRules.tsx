@@ -260,6 +260,10 @@ const IncidentGroupingRulesPage: FunctionComponent<
             id: "episode-template",
           },
           {
+            title: "Episode Settings",
+            id: "episode-settings",
+          },
+          {
             title: "Episode Roles",
             id: "episode-roles",
           },
@@ -663,6 +667,35 @@ const IncidentGroupingRulesPage: FunctionComponent<
                 </p>
               </div>
             ),
+          },
+          // Episode Settings Fields
+          {
+            field: {
+              showEpisodeOnStatusPage: true,
+            },
+            title: "Show Episodes on Status Page",
+            stepId: "episode-settings",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, episodes created by this rule will be visible on public status pages.",
+          },
+          {
+            field: {
+              episodeLabels: true,
+            },
+            title: "Episode Labels",
+            stepId: "episode-settings",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "Labels to automatically attach to episodes created by this rule.",
+            placeholder: "Select Labels (optional)",
           },
           // Episode Roles Fields
           {

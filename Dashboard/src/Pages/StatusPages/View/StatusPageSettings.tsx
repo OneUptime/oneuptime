@@ -85,6 +85,74 @@ const StatusPageDelete: FunctionComponent<
       <CardModelDetail<StatusPage>
         name="Status Page > Settings"
         cardProps={{
+          title: "Episode Settings",
+          description: "Episode Settings for Status Page",
+        }}
+        editButtonText="Edit Settings"
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              showEpisodesOnStatusPage: true,
+            },
+            title: "Show Episodes",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              showEpisodeHistoryInDays: true,
+            },
+            title: "Show Episode History (in days)",
+            fieldType: FormFieldSchemaType.Number,
+            required: true,
+            placeholder: "14",
+          },
+          {
+            field: {
+              showEpisodeLabelsOnStatusPage: true,
+            },
+            title: "Show Episode Labels",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-status-page-episodes",
+          fields: [
+            {
+              field: {
+                showEpisodesOnStatusPage: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Show Episodes",
+              placeholder: "No",
+            },
+            {
+              field: {
+                showEpisodeHistoryInDays: true,
+              },
+              fieldType: FieldType.Number,
+              title: "Show Episode History (in days)",
+            },
+            {
+              field: {
+                showEpisodeLabelsOnStatusPage: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Show Episode Labels",
+              placeholder: "No",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Settings"
+        cardProps={{
           title: "Announcement Settings",
           description: "Announcement Settings for Status Page",
         }}

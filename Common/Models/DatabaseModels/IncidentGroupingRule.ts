@@ -1690,4 +1690,40 @@ export default class IncidentGroupingRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentGroupingRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Show Episodes on Status Page",
+    description:
+      "Should episodes created by this rule be shown on the status page?",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public showEpisodeOnStatusPage?: boolean = undefined;
 }

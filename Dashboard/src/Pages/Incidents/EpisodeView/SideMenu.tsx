@@ -135,9 +135,31 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Lock}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Public Notes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Public}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_EPISODE_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
+
         <SideMenuItem
           link={{
             title: "Delete Episode",

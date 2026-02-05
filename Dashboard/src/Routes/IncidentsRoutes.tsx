@@ -286,6 +286,18 @@ const IncidentEpisodeViewInternalNote: LazyExoticComponent<
   return import("../Pages/Incidents/EpisodeView/InternalNote");
 });
 
+const IncidentEpisodeViewPublicNote: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/PublicNote");
+});
+
+const IncidentEpisodeViewSettings: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/EpisodeView/Settings");
+});
+
 const IncidentEpisodeViewMembers: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -808,6 +820,22 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewPublicNote
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.INCIDENT_EPISODE_VIEW_MEMBERS,
           )}
           element={
@@ -816,6 +844,22 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_MEMBERS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_EPISODE_VIEW_SETTINGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentEpisodeViewSettings
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_SETTINGS] as Route
                 }
               />
             </Suspense>
