@@ -420,6 +420,20 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
+        ?.toString()}/incident-episode-public-note/attachment/:statusPageId/:episodeId/:noteId/:fileId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getIncidentEpisodePublicNoteAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
         ?.toString()}/incident/postmortem/attachment/:statusPageId/:incidentId/:fileId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -4623,6 +4637,182 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const attachment: File | undefined = incidentPublicNote.attachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    Response.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
+  }
+
+  private async getIncidentEpisodePublicNoteAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const episodeIdParam: string | undefined = req.params["episodeId"];
+    const noteIdParam: string | undefined = req.params["noteId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (
+      !statusPageIdParam ||
+      !episodeIdParam ||
+      !noteIdParam ||
+      !fileIdParam
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let episodeId: ObjectID;
+    let noteId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      episodeId = new ObjectID(episodeIdParam);
+      noteId = new ObjectID(noteIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showEpisodesOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage || !statusPage.projectId) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    if (!statusPage.showEpisodesOnStatusPage) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const { monitorsOnStatusPage } =
+      await StatusPageService.getMonitorIdsOnStatusPage({
+        statusPageId: statusPageId,
+      });
+
+    if (!monitorsOnStatusPage || monitorsOnStatusPage.length === 0) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    // Get episode members (incidents) that are linked to monitors on the status page
+    const episodeMembers: Array<IncidentEpisodeMember> =
+      await IncidentEpisodeMemberService.findBy({
+        query: {
+          incidentEpisodeId: episodeId,
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          incidentId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (episodeMembers.length === 0) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const incidentIds: Array<ObjectID> = episodeMembers
+      .map((member: IncidentEpisodeMember) => member.incidentId)
+      .filter((id: ObjectID | undefined): id is ObjectID => Boolean(id));
+
+    // Check if any of the incidents are linked to monitors on the status page
+    const incident: Incident | null = await IncidentService.findOneBy({
+      query: {
+        _id: QueryHelper.any(incidentIds),
+        projectId: statusPage.projectId!,
+        isVisibleOnStatusPage: true,
+        monitors: monitorsOnStatusPage as any,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    // Verify the episode exists and is visible
+    const episode: IncidentEpisode | null =
+      await IncidentEpisodeService.findOneBy({
+        query: {
+          _id: episodeId.toString(),
+          projectId: statusPage.projectId!,
+          isVisibleOnStatusPage: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!episode) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const episodePublicNote: IncidentEpisodePublicNote | null =
+      await IncidentEpisodePublicNoteService.findOneBy({
+        query: {
+          _id: noteId.toString(),
+          incidentEpisodeId: episodeId.toString(),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          attachments: {
+            _id: true,
+            file: true,
+            fileType: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!episodePublicNote) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment: File | undefined = episodePublicNote.attachments?.find(
       (file: File) => {
         const attachmentId: string | null = file._id
           ? file._id.toString()

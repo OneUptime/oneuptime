@@ -321,6 +321,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           monitorsInGroup,
           isPreviewPage: StatusPageUtil.isPreviewPage(),
           isSummary: true,
+          statusPageId: StatusPageUtil.getStatusPageId() || undefined,
         }),
         isResolved,
       });

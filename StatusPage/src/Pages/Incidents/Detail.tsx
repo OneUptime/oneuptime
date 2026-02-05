@@ -363,6 +363,7 @@ type GetEpisodeEventItemFunctionProps = {
   monitorsInGroup: Dictionary<Array<ObjectID>>;
   isPreviewPage: boolean;
   isSummary: boolean;
+  statusPageId?: ObjectID | undefined;
 };
 
 type GetEpisodeEventItemFunction = (
@@ -378,7 +379,17 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
     episodeStateTimelines,
     isPreviewPage,
     isSummary,
+    statusPageId,
   } = props;
+
+  const statusPageIdString: string | null = statusPageId
+    ? statusPageId.toString()
+    : null;
+  const episodeIdString: string | null = episode.id
+    ? episode.id.toString()
+    : episode._id
+      ? episode._id.toString()
+      : null;
 
   const timeline: Array<TimelineItem> = [];
 
@@ -410,12 +421,57 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
         episode.id?.toString() &&
       episodePublicNote?.note
     ) {
+      const noteIdString: string | null = episodePublicNote.id
+        ? episodePublicNote.id.toString()
+        : episodePublicNote._id
+          ? episodePublicNote._id.toString()
+          : null;
+
+      const attachments: Array<TimelineAttachment> =
+        statusPageIdString && episodeIdString && noteIdString
+          ? (episodePublicNote.attachments || [])
+              .map((attachment: FileModel) => {
+                const attachmentId: string | null = attachment.id
+                  ? attachment.id.toString()
+                  : attachment._id
+                    ? attachment._id.toString()
+                    : null;
+
+                if (!attachmentId) {
+                  return null;
+                }
+
+                const downloadRoute: Route = Route.fromString(
+                  StatusPageApiRoute.toString(),
+                ).addRoute(
+                  `/incident-episode-public-note/attachment/${statusPageIdString}/${episodeIdString}/${noteIdString}/${attachmentId}`,
+                );
+
+                return {
+                  name: attachment.name || "Attachment",
+                  downloadUrl: downloadRoute.toString(),
+                };
+              })
+              .filter(
+                (
+                  attachment: TimelineAttachment | null,
+                ): attachment is TimelineAttachment => {
+                  return Boolean(attachment);
+                },
+              )
+          : [];
+
       timeline.push({
         note: episodePublicNote?.note,
         date: episodePublicNote?.postedAt as Date,
         type: TimelineItemType.Note,
         icon: IconProp.Chat,
         iconColor: Gray500,
+        ...(attachments.length > 0
+          ? {
+              attachments,
+            }
+          : {}),
       });
 
       // If this episode is a summary then don't include all the notes.
@@ -719,6 +775,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           monitorsInGroup,
           isPreviewPage: StatusPageUtil.isPreviewPage(),
           isSummary: false,
+          statusPageId: StatusPageUtil.getStatusPageId() || undefined,
         }),
       );
     } else if (!isEpisode && incident) {
