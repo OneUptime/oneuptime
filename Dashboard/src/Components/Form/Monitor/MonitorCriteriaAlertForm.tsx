@@ -9,7 +9,7 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
-import Toggle from "Common/UI/Components/Toggle/Toggle";
+import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -294,7 +294,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
       >
         <div className="space-y-4">
           <div>
-            <Toggle
+            <Checkbox
               value={criteriaAlert.autoResolveAlert || false}
               title="Auto Resolve Alert"
               description="Automatically resolve this alert when this criteria is no longer met"
