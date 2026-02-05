@@ -181,7 +181,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       );
 
       // Parse episodes data
-      const rawEpisodesArray: JSONArray = (episodesData["episodes"] as JSONArray) || [];
+      const rawEpisodesArray: JSONArray =
+        (episodesData["episodes"] as JSONArray) || [];
       const episodes: Array<IncidentEpisode> = BaseModel.fromJSONArray(
         rawEpisodesArray,
         IncidentEpisode,

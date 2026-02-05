@@ -20,7 +20,12 @@ import User from "Common/Models/DatabaseModels/User";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
 
@@ -33,7 +38,9 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
 
   const handleResendNotification: (
     item: IncidentEpisodePublicNote,
-  ) => Promise<void> = async (item: IncidentEpisodePublicNote): Promise<void> => {
+  ) => Promise<void> = async (
+    item: IncidentEpisodePublicNote,
+  ): Promise<void> => {
     try {
       await ModelAPI.updateById({
         modelType: IncidentEpisodePublicNote,

@@ -394,12 +394,12 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
       : null;
 
   // Get monitor IDs from episode (computed by backend from member incidents)
-  const episodeMonitors: Array<{ _id?: string }> = (episode as any).monitors || [];
-  const monitorIdsInThisEpisode: Array<string | undefined> = episodeMonitors.map(
-    (monitor: { _id?: string }) => {
+  const episodeMonitors: Array<{ _id?: string }> =
+    (episode as any).monitors || [];
+  const monitorIdsInThisEpisode: Array<string | undefined> =
+    episodeMonitors.map((monitor: { _id?: string }) => {
       return monitor._id;
-    },
-  );
+    });
 
   // Get affected resources from status page resources
   let namesOfResources: Array<StatusPageResource> = statusPageResources.filter(
@@ -745,7 +745,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
               (data["episodes"] as JSONArray) || [];
 
             if (rawEpisodes.length > 0) {
-              const rawEpisode: JSONObject = (rawEpisodes[0] as JSONObject) || {};
+              const rawEpisode: JSONObject =
+                (rawEpisodes[0] as JSONObject) || {};
               const episode: IncidentEpisode = BaseModel.fromJSONObject(
                 rawEpisode,
                 IncidentEpisode,

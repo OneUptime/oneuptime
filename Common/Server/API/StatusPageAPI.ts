@@ -1608,26 +1608,31 @@ export default class StatusPageAPI extends BaseAPI<
           let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
           let episodeStateTimelines: Array<IncidentEpisodeStateTimeline> = [];
 
-          if (statusPage.showEpisodesOnStatusPage && monitorsOnStatusPage.length > 0) {
+          if (
+            statusPage.showEpisodesOnStatusPage &&
+            monitorsOnStatusPage.length > 0
+          ) {
             // First, get incidents that have monitors on status page
-            const incidentsForEpisodes: Array<Incident> = await IncidentService.findBy({
-              query: {
-                monitors: monitorsOnStatusPage as any,
-                projectId: statusPage.projectId!,
-              },
-              select: {
-                _id: true,
-              },
-              skip: 0,
-              limit: LIMIT_PER_PROJECT,
-              props: {
-                isRoot: true,
-              },
-            });
+            const incidentsForEpisodes: Array<Incident> =
+              await IncidentService.findBy({
+                query: {
+                  monitors: monitorsOnStatusPage as any,
+                  projectId: statusPage.projectId!,
+                },
+                select: {
+                  _id: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                  isRoot: true,
+                },
+              });
 
-            const incidentIdsForEpisodes: Array<ObjectID> = incidentsForEpisodes.map(
-              (incident: Incident) => incident.id!
-            );
+            const incidentIdsForEpisodes: Array<ObjectID> =
+              incidentsForEpisodes.map((incident: Incident) => {
+                return incident.id!;
+              });
 
             // Get episode members for these incidents
             let episodeMembers: Array<IncidentEpisodeMember> = [];
@@ -1666,7 +1671,9 @@ export default class StatusPageAPI extends BaseAPI<
                 );
 
               const unresolvedIncidentStateIds: Array<ObjectID> =
-                unresolvedIncidentStates.map((state: IncidentState) => state.id!);
+                unresolvedIncidentStates.map((state: IncidentState) => {
+                  return state.id!;
+                });
 
               let selectEpisodes: Select<IncidentEpisode> = {
                 createdAt: true,
@@ -1705,9 +1712,13 @@ export default class StatusPageAPI extends BaseAPI<
               activeEpisodes = await IncidentEpisodeService.findBy({
                 query: {
                   _id: QueryHelper.any(
-                    Array.from(episodeIdsFromMembers).map((id: string) => new ObjectID(id)),
+                    Array.from(episodeIdsFromMembers).map((id: string) => {
+                      return new ObjectID(id);
+                    }),
                   ),
-                  currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
+                  currentIncidentStateId: QueryHelper.any(
+                    unresolvedIncidentStateIds,
+                  ),
                   isVisibleOnStatusPage: true,
                   projectId: statusPage.projectId!,
                 },
@@ -1727,7 +1738,9 @@ export default class StatusPageAPI extends BaseAPI<
               if (activeEpisodes.length > 0) {
                 // Collect all incident IDs from episode members for active episodes
                 const activeEpisodeIds: Set<string> = new Set(
-                  activeEpisodes.map((e: IncidentEpisode) => e.id!.toString())
+                  activeEpisodes.map((e: IncidentEpisode) => {
+                    return e.id!.toString();
+                  }),
                 );
 
                 const memberIncidentIds: Array<ObjectID> = [];
@@ -1736,7 +1749,9 @@ export default class StatusPageAPI extends BaseAPI<
                     member.incidentEpisodeId &&
                     activeEpisodeIds.has(member.incidentEpisodeId.toString()) &&
                     member.incidentId &&
-                    !memberIncidentIds.some((id: ObjectID) => id.toString() === member.incidentId!.toString())
+                    !memberIncidentIds.some((id: ObjectID) => {
+                      return id.toString() === member.incidentId!.toString();
+                    })
                   ) {
                     memberIncidentIds.push(member.incidentId);
                   }
@@ -1765,31 +1780,54 @@ export default class StatusPageAPI extends BaseAPI<
                 }
 
                 // Build incident -> monitors map
-                const incidentMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+                const incidentMonitorsMap: Map<
+                  string,
+                  Array<ObjectID>
+                > = new Map();
                 for (const incident of memberIncidents) {
                   const incidentIdStr: string = incident.id!.toString();
                   const monitorIds: Array<ObjectID> = (incident.monitors || [])
-                    .map((m: Monitor) => new ObjectID(m._id?.toString() || m.id?.toString() || ""))
-                    .filter((id: ObjectID) => id.toString() !== "");
+                    .map((m: Monitor) => {
+                      return new ObjectID(
+                        m._id?.toString() || m.id?.toString() || "",
+                      );
+                    })
+                    .filter((id: ObjectID) => {
+                      return id.toString() !== "";
+                    });
                   incidentMonitorsMap.set(incidentIdStr, monitorIds);
                 }
 
                 // Build episode -> monitors map
-                const episodeMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+                const episodeMonitorsMap: Map<
+                  string,
+                  Array<ObjectID>
+                > = new Map();
                 for (const member of episodeMembers) {
-                  if (member.incidentEpisodeId && member.incidentId && activeEpisodeIds.has(member.incidentEpisodeId.toString())) {
-                    const episodeIdStr: string = member.incidentEpisodeId.toString();
+                  if (
+                    member.incidentEpisodeId &&
+                    member.incidentId &&
+                    activeEpisodeIds.has(member.incidentEpisodeId.toString())
+                  ) {
+                    const episodeIdStr: string =
+                      member.incidentEpisodeId.toString();
                     const incidentIdStr: string = member.incidentId.toString();
 
                     if (!episodeMonitorsMap.has(episodeIdStr)) {
                       episodeMonitorsMap.set(episodeIdStr, []);
                     }
 
-                    const episodeMonitors: Array<ObjectID> = episodeMonitorsMap.get(episodeIdStr)!;
-                    const incidentMonitors: Array<ObjectID> = incidentMonitorsMap.get(incidentIdStr) || [];
+                    const episodeMonitors: Array<ObjectID> =
+                      episodeMonitorsMap.get(episodeIdStr)!;
+                    const incidentMonitors: Array<ObjectID> =
+                      incidentMonitorsMap.get(incidentIdStr) || [];
 
                     for (const monitorId of incidentMonitors) {
-                      if (!episodeMonitors.some((m: ObjectID) => m.toString() === monitorId.toString())) {
+                      if (
+                        !episodeMonitors.some((m: ObjectID) => {
+                          return m.toString() === monitorId.toString();
+                        })
+                      ) {
                         episodeMonitors.push(monitorId);
                       }
                     }
@@ -1797,74 +1835,86 @@ export default class StatusPageAPI extends BaseAPI<
                 }
 
                 // Serialize episodes and add monitors
-                activeEpisodesJson = BaseModel.toJSONArray(activeEpisodes, IncidentEpisode);
+                activeEpisodesJson = BaseModel.toJSONArray(
+                  activeEpisodes,
+                  IncidentEpisode,
+                );
                 for (const episodeJson of activeEpisodesJson) {
                   const episodeObj: JSONObject = episodeJson as JSONObject;
-                  const episodeId: string | undefined = episodeObj["_id"]?.toString();
+                  const episodeId: string | undefined =
+                    episodeObj["_id"]?.toString();
                   if (episodeId) {
-                    const monitorIds: Array<ObjectID> = episodeMonitorsMap.get(episodeId) || [];
-                    episodeObj["monitors"] = monitorIds.map((id: ObjectID) => ({ _id: id.toString() }));
+                    const monitorIds: Array<ObjectID> =
+                      episodeMonitorsMap.get(episodeId) || [];
+                    episodeObj["monitors"] = monitorIds.map((id: ObjectID) => {
+                      return { _id: id.toString() };
+                    });
                   }
                 }
 
                 // Get episode public notes
-                const episodesOnStatusPage: Array<ObjectID> = activeEpisodes.map(
-                  (episode: IncidentEpisode) => episode.id!
-                );
+                const episodesOnStatusPage: Array<ObjectID> =
+                  activeEpisodes.map((episode: IncidentEpisode) => {
+                    return episode.id!;
+                  });
 
                 if (episodesOnStatusPage.length > 0) {
-                  episodePublicNotes = await IncidentEpisodePublicNoteService.findBy({
-                    query: {
-                      incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
-                      projectId: statusPage.projectId!,
-                    },
-                    select: {
-                      postedAt: true,
-                      note: true,
-                      incidentEpisodeId: true,
-                      attachments: {
-                        _id: true,
-                        name: true,
+                  episodePublicNotes =
+                    await IncidentEpisodePublicNoteService.findBy({
+                      query: {
+                        incidentEpisodeId:
+                          QueryHelper.any(episodesOnStatusPage),
+                        projectId: statusPage.projectId!,
                       },
-                    },
-                    sort: {
-                      postedAt: SortOrder.Descending,
-                    },
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
-                    props: {
-                      isRoot: true,
-                    },
-                  });
+                      select: {
+                        postedAt: true,
+                        note: true,
+                        incidentEpisodeId: true,
+                        attachments: {
+                          _id: true,
+                          name: true,
+                        },
+                      },
+                      sort: {
+                        postedAt: SortOrder.Descending,
+                      },
+                      skip: 0,
+                      limit: LIMIT_PER_PROJECT,
+                      props: {
+                        isRoot: true,
+                      },
+                    });
 
                   // Get episode state timelines
-                  episodeStateTimelines = await IncidentEpisodeStateTimelineService.findBy({
-                    query: {
-                      incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
-                      projectId: statusPage.projectId!,
-                    },
-                    select: {
-                      _id: true,
-                      createdAt: true,
-                      startsAt: true,
-                      incidentEpisodeId: true,
-                      incidentState: {
-                        name: true,
-                        color: true,
-                        isCreatedState: true,
-                        isAcknowledgedState: true,
-                        isResolvedState: true,
+                  episodeStateTimelines =
+                    await IncidentEpisodeStateTimelineService.findBy({
+                      query: {
+                        incidentEpisodeId:
+                          QueryHelper.any(episodesOnStatusPage),
+                        projectId: statusPage.projectId!,
                       },
-                    },
-                    sort: {
-                      startsAt: SortOrder.Descending,
-                    },
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
-                    props: {
-                      isRoot: true,
-                    },
-                  });
+                      select: {
+                        _id: true,
+                        createdAt: true,
+                        startsAt: true,
+                        incidentEpisodeId: true,
+                        incidentState: {
+                          name: true,
+                          color: true,
+                          isCreatedState: true,
+                          isAcknowledgedState: true,
+                          isResolvedState: true,
+                        },
+                      },
+                      sort: {
+                        startsAt: SortOrder.Descending,
+                      },
+                      skip: 0,
+                      limit: LIMIT_PER_PROJECT,
+                      props: {
+                        isRoot: true,
+                      },
+                    });
                 }
               }
             }
@@ -4039,10 +4089,15 @@ export default class StatusPageAPI extends BaseAPI<
 
       // Merge with existing episode members
       for (const member of episodeMembersForSpecificEpisode) {
-        if (!episodeMembers.some((m: IncidentEpisodeMember) =>
-          m.incidentEpisodeId?.toString() === member.incidentEpisodeId?.toString() &&
-          m.incidentId?.toString() === member.incidentId?.toString()
-        )) {
+        if (
+          !episodeMembers.some((m: IncidentEpisodeMember) => {
+            return (
+              m.incidentEpisodeId?.toString() ===
+                member.incidentEpisodeId?.toString() &&
+              m.incidentId?.toString() === member.incidentId?.toString()
+            );
+          })
+        ) {
           episodeMembers.push(member);
         }
       }
@@ -4150,11 +4205,18 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
-    // Build a map of episode ID -> monitor IDs from episode members
-    // Collect all unique incident IDs from episode members
+    /*
+     * Build a map of episode ID -> monitor IDs from episode members
+     * Collect all unique incident IDs from episode members
+     */
     const memberIncidentIds: Array<ObjectID> = [];
     for (const member of episodeMembers) {
-      if (member.incidentId && !memberIncidentIds.some((id: ObjectID) => id.toString() === member.incidentId!.toString())) {
+      if (
+        member.incidentId &&
+        !memberIncidentIds.some((id: ObjectID) => {
+          return id.toString() === member.incidentId!.toString();
+        })
+      ) {
         memberIncidentIds.push(member.incidentId);
       }
     }
@@ -4185,9 +4247,13 @@ export default class StatusPageAPI extends BaseAPI<
     const incidentMonitorsMap: Map<string, Array<ObjectID>> = new Map();
     for (const incident of memberIncidents) {
       const incidentIdStr: string = incident.id!.toString();
-      const monitorIds: Array<ObjectID> = (incident.monitors || []).map((m: Monitor) => {
-        return new ObjectID(m._id?.toString() || m.id?.toString() || "");
-      }).filter((id: ObjectID) => id.toString() !== "");
+      const monitorIds: Array<ObjectID> = (incident.monitors || [])
+        .map((m: Monitor) => {
+          return new ObjectID(m._id?.toString() || m.id?.toString() || "");
+        })
+        .filter((id: ObjectID) => {
+          return id.toString() !== "";
+        });
       incidentMonitorsMap.set(incidentIdStr, monitorIds);
     }
 
@@ -4202,11 +4268,17 @@ export default class StatusPageAPI extends BaseAPI<
           episodeMonitorsMap.set(episodeIdStr, []);
         }
 
-        const episodeMonitors: Array<ObjectID> = episodeMonitorsMap.get(episodeIdStr)!;
-        const incidentMonitors: Array<ObjectID> = incidentMonitorsMap.get(incidentIdStr) || [];
+        const episodeMonitors: Array<ObjectID> =
+          episodeMonitorsMap.get(episodeIdStr)!;
+        const incidentMonitors: Array<ObjectID> =
+          incidentMonitorsMap.get(incidentIdStr) || [];
 
         for (const monitorId of incidentMonitors) {
-          if (!episodeMonitors.some((m: ObjectID) => m.toString() === monitorId.toString())) {
+          if (
+            !episodeMonitors.some((m: ObjectID) => {
+              return m.toString() === monitorId.toString();
+            })
+          ) {
             episodeMonitors.push(monitorId);
           }
         }
@@ -4293,13 +4365,19 @@ export default class StatusPageAPI extends BaseAPI<
       });
 
     // Serialize episodes and add monitors to each
-    const episodesJson: JSONArray = BaseModel.toJSONArray(episodes, IncidentEpisode);
+    const episodesJson: JSONArray = BaseModel.toJSONArray(
+      episodes,
+      IncidentEpisode,
+    );
     for (const episodeJson of episodesJson) {
       const episodeObj: JSONObject = episodeJson as JSONObject;
       const episodeId: string | undefined = episodeObj["_id"]?.toString();
       if (episodeId) {
-        const monitorIds: Array<ObjectID> = episodeMonitorsMap.get(episodeId) || [];
-        episodeObj["monitors"] = monitorIds.map((id: ObjectID) => ({ _id: id.toString() }));
+        const monitorIds: Array<ObjectID> =
+          episodeMonitorsMap.get(episodeId) || [];
+        episodeObj["monitors"] = monitorIds.map((id: ObjectID) => {
+          return { _id: id.toString() };
+        });
       }
     }
 
@@ -5043,12 +5121,7 @@ export default class StatusPageAPI extends BaseAPI<
     const noteIdParam: string | undefined = req.params["noteId"];
     const fileIdParam: string | undefined = req.params["fileId"];
 
-    if (
-      !statusPageIdParam ||
-      !episodeIdParam ||
-      !noteIdParam ||
-      !fileIdParam
-    ) {
+    if (!statusPageIdParam || !episodeIdParam || !noteIdParam || !fileIdParam) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -5124,8 +5197,12 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const incidentIds: Array<ObjectID> = episodeMembers
-      .map((member: IncidentEpisodeMember) => member.incidentId)
-      .filter((id: ObjectID | undefined): id is ObjectID => Boolean(id));
+      .map((member: IncidentEpisodeMember) => {
+        return member.incidentId;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
 
     // Check if any of the incidents are linked to monitors on the status page
     const incident: Incident | null = await IncidentService.findOneBy({
