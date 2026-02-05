@@ -865,6 +865,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: false,
     type: TableColumnType.Date,
+    computed: true,
     title: "Schedule Next Event At",
     description: "When is the next event scheduled?",
     example: "2024-03-29T02:00:00.000Z",
