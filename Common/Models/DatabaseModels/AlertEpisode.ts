@@ -840,6 +840,7 @@ export default class AlertEpisode extends BaseModel {
     type: TableColumnType.Number,
     required: true,
     isDefaultValueColumn: true,
+    computed: true,
     title: "Alert Count",
     description: "Denormalized count of alerts in this episode",
     defaultValue: 0,

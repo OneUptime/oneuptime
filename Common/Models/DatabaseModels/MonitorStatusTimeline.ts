@@ -456,6 +456,7 @@ export default class MonitorStatusTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
+    computed: true,
     example: {
       previousStatus: "operational",
       newStatus: "degraded",

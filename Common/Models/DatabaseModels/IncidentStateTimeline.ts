@@ -560,6 +560,7 @@ export default class IncidentStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
+    computed: true,
     example: {
       previousState: "investigating",
       newState: "resolved",

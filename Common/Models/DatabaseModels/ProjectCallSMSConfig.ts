@@ -181,6 +181,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
     example: "production-twilio-config",

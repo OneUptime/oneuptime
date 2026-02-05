@@ -452,6 +452,7 @@ export default class AlertStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
+    computed: true,
     example: {
       previousState: "created",
       newState: "acknowledged",

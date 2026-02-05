@@ -439,6 +439,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
+    computed: true,
   })
   @Column({
     type: ColumnType.JSON,

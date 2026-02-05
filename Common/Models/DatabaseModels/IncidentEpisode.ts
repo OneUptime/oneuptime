@@ -761,6 +761,7 @@ export default class IncidentEpisode extends BaseModel {
     type: TableColumnType.Number,
     required: true,
     isDefaultValueColumn: true,
+    computed: true,
     title: "Incident Count",
     description: "Denormalized count of incidents in this episode",
     defaultValue: 0,

@@ -584,7 +584,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.SmallPositiveNumber })
+  @TableColumn({ type: TableColumnType.SmallPositiveNumber, computed: true })
   @Column({
     type: ColumnType.SmallPositiveNumber,
     nullable: true,
@@ -709,6 +709,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     type: TableColumnType.Number,
     hideColumnInDocumentation: true,
+    computed: true,
   })
   @Column({
     type: ColumnType.Number,
