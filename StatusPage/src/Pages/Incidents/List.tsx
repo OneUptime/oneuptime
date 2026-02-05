@@ -181,10 +181,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
       );
 
       // Parse episodes data
+      const rawEpisodesArray: JSONArray = (episodesData["episodes"] as JSONArray) || [];
       const episodes: Array<IncidentEpisode> = BaseModel.fromJSONArray(
-        (episodesData["episodes"] as JSONArray) || [],
+        rawEpisodesArray,
         IncidentEpisode,
       );
+
+      // Preserve monitors from raw JSON (not part of model schema)
+      for (let i: number = 0; i < episodes.length; i++) {
+        const rawEpisode: JSONObject = rawEpisodesArray[i] as JSONObject;
+        if (rawEpisode && rawEpisode["monitors"]) {
+          (episodes[i] as any).monitors = rawEpisode["monitors"];
+        }
+      }
+
       const episodePublicNotes: Array<IncidentEpisodePublicNote> =
         BaseModel.fromJSONArray(
           (episodesData["episodePublicNotes"] as JSONArray) || [],

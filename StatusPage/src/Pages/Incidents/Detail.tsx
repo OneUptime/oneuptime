@@ -394,10 +394,10 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
       : null;
 
   // Get monitor IDs from episode (computed by backend from member incidents)
-  const episodeMonitors: Array<Monitor> = (episode as any).monitors || [];
+  const episodeMonitors: Array<{ _id?: string }> = (episode as any).monitors || [];
   const monitorIdsInThisEpisode: Array<string | undefined> = episodeMonitors.map(
-    (monitor: Monitor) => {
-      return monitor._id?.toString() || monitor.id?.toString();
+    (monitor: { _id?: string }) => {
+      return monitor._id;
     },
   );
 
@@ -745,10 +745,16 @@ const Detail: FunctionComponent<PageComponentProps> = (
               (data["episodes"] as JSONArray) || [];
 
             if (rawEpisodes.length > 0) {
+              const rawEpisode: JSONObject = (rawEpisodes[0] as JSONObject) || {};
               const episode: IncidentEpisode = BaseModel.fromJSONObject(
-                (rawEpisodes[0] as JSONObject) || {},
+                rawEpisode,
                 IncidentEpisode,
               );
+
+              // Preserve monitors from raw JSON (not part of model schema)
+              if (rawEpisode["monitors"]) {
+                (episode as any).monitors = rawEpisode["monitors"];
+              }
 
               if (episode && episode.id) {
                 setIsEpisode(true);
