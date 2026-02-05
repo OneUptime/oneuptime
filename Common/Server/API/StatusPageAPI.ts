@@ -1602,6 +1602,274 @@ export default class StatusPageAPI extends BaseAPI<
             });
           }
 
+          // Fetch active episodes (similar to incidents)
+          let activeEpisodes: Array<IncidentEpisode> = [];
+          let activeEpisodesJson: JSONArray = [];
+          let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
+          let episodeStateTimelines: Array<IncidentEpisodeStateTimeline> = [];
+
+          if (statusPage.showEpisodesOnStatusPage && monitorsOnStatusPage.length > 0) {
+            // First, get incidents that have monitors on status page
+            const incidentsForEpisodes: Array<Incident> = await IncidentService.findBy({
+              query: {
+                monitors: monitorsOnStatusPage as any,
+                projectId: statusPage.projectId!,
+              },
+              select: {
+                _id: true,
+              },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              props: {
+                isRoot: true,
+              },
+            });
+
+            const incidentIdsForEpisodes: Array<ObjectID> = incidentsForEpisodes.map(
+              (incident: Incident) => incident.id!
+            );
+
+            // Get episode members for these incidents
+            let episodeMembers: Array<IncidentEpisodeMember> = [];
+            if (incidentIdsForEpisodes.length > 0) {
+              episodeMembers = await IncidentEpisodeMemberService.findBy({
+                query: {
+                  incidentId: QueryHelper.any(incidentIdsForEpisodes),
+                  projectId: statusPage.projectId!,
+                },
+                select: {
+                  incidentEpisodeId: true,
+                  incidentId: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                  isRoot: true,
+                },
+              });
+            }
+
+            // Get unique episode IDs
+            const episodeIdsFromMembers: Set<string> = new Set();
+            for (const member of episodeMembers) {
+              if (member.incidentEpisodeId) {
+                episodeIdsFromMembers.add(member.incidentEpisodeId.toString());
+              }
+            }
+
+            // Fetch active (unresolved) episodes
+            if (episodeIdsFromMembers.size > 0) {
+              const unresolvedIncidentStates: Array<IncidentState> =
+                await IncidentStateService.getUnresolvedIncidentStates(
+                  statusPage.projectId!,
+                  { isRoot: true },
+                );
+
+              const unresolvedIncidentStateIds: Array<ObjectID> =
+                unresolvedIncidentStates.map((state: IncidentState) => state.id!);
+
+              let selectEpisodes: Select<IncidentEpisode> = {
+                createdAt: true,
+                declaredAt: true,
+                updatedAt: true,
+                title: true,
+                description: true,
+                _id: true,
+                episodeNumber: true,
+                incidentSeverity: {
+                  name: true,
+                  color: true,
+                },
+                currentIncidentState: {
+                  name: true,
+                  color: true,
+                  _id: true,
+                  order: true,
+                  isCreatedState: true,
+                  isAcknowledgedState: true,
+                  isResolvedState: true,
+                },
+                incidentCount: true,
+              };
+
+              if (statusPage.showEpisodeLabelsOnStatusPage) {
+                selectEpisodes = {
+                  ...selectEpisodes,
+                  labels: {
+                    name: true,
+                    color: true,
+                  },
+                };
+              }
+
+              activeEpisodes = await IncidentEpisodeService.findBy({
+                query: {
+                  _id: QueryHelper.any(
+                    Array.from(episodeIdsFromMembers).map((id: string) => new ObjectID(id)),
+                  ),
+                  currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
+                  isVisibleOnStatusPage: true,
+                  projectId: statusPage.projectId!,
+                },
+                select: selectEpisodes,
+                sort: {
+                  declaredAt: SortOrder.Descending,
+                  createdAt: SortOrder.Descending,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+              // Build episode monitors map
+              if (activeEpisodes.length > 0) {
+                // Collect all incident IDs from episode members for active episodes
+                const activeEpisodeIds: Set<string> = new Set(
+                  activeEpisodes.map((e: IncidentEpisode) => e.id!.toString())
+                );
+
+                const memberIncidentIds: Array<ObjectID> = [];
+                for (const member of episodeMembers) {
+                  if (
+                    member.incidentEpisodeId &&
+                    activeEpisodeIds.has(member.incidentEpisodeId.toString()) &&
+                    member.incidentId &&
+                    !memberIncidentIds.some((id: ObjectID) => id.toString() === member.incidentId!.toString())
+                  ) {
+                    memberIncidentIds.push(member.incidentId);
+                  }
+                }
+
+                // Fetch incidents with monitors
+                let memberIncidents: Array<Incident> = [];
+                if (memberIncidentIds.length > 0) {
+                  memberIncidents = await IncidentService.findBy({
+                    query: {
+                      _id: QueryHelper.any(memberIncidentIds),
+                      projectId: statusPage.projectId!,
+                    },
+                    select: {
+                      _id: true,
+                      monitors: {
+                        _id: true,
+                      },
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    props: {
+                      isRoot: true,
+                    },
+                  });
+                }
+
+                // Build incident -> monitors map
+                const incidentMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+                for (const incident of memberIncidents) {
+                  const incidentIdStr: string = incident.id!.toString();
+                  const monitorIds: Array<ObjectID> = (incident.monitors || [])
+                    .map((m: Monitor) => new ObjectID(m._id?.toString() || m.id?.toString() || ""))
+                    .filter((id: ObjectID) => id.toString() !== "");
+                  incidentMonitorsMap.set(incidentIdStr, monitorIds);
+                }
+
+                // Build episode -> monitors map
+                const episodeMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+                for (const member of episodeMembers) {
+                  if (member.incidentEpisodeId && member.incidentId && activeEpisodeIds.has(member.incidentEpisodeId.toString())) {
+                    const episodeIdStr: string = member.incidentEpisodeId.toString();
+                    const incidentIdStr: string = member.incidentId.toString();
+
+                    if (!episodeMonitorsMap.has(episodeIdStr)) {
+                      episodeMonitorsMap.set(episodeIdStr, []);
+                    }
+
+                    const episodeMonitors: Array<ObjectID> = episodeMonitorsMap.get(episodeIdStr)!;
+                    const incidentMonitors: Array<ObjectID> = incidentMonitorsMap.get(incidentIdStr) || [];
+
+                    for (const monitorId of incidentMonitors) {
+                      if (!episodeMonitors.some((m: ObjectID) => m.toString() === monitorId.toString())) {
+                        episodeMonitors.push(monitorId);
+                      }
+                    }
+                  }
+                }
+
+                // Serialize episodes and add monitors
+                activeEpisodesJson = BaseModel.toJSONArray(activeEpisodes, IncidentEpisode);
+                for (const episodeJson of activeEpisodesJson) {
+                  const episodeObj: JSONObject = episodeJson as JSONObject;
+                  const episodeId: string | undefined = episodeObj["_id"]?.toString();
+                  if (episodeId) {
+                    const monitorIds: Array<ObjectID> = episodeMonitorsMap.get(episodeId) || [];
+                    episodeObj["monitors"] = monitorIds.map((id: ObjectID) => ({ _id: id.toString() }));
+                  }
+                }
+
+                // Get episode public notes
+                const episodesOnStatusPage: Array<ObjectID> = activeEpisodes.map(
+                  (episode: IncidentEpisode) => episode.id!
+                );
+
+                if (episodesOnStatusPage.length > 0) {
+                  episodePublicNotes = await IncidentEpisodePublicNoteService.findBy({
+                    query: {
+                      incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
+                      projectId: statusPage.projectId!,
+                    },
+                    select: {
+                      postedAt: true,
+                      note: true,
+                      incidentEpisodeId: true,
+                      attachments: {
+                        _id: true,
+                        name: true,
+                      },
+                    },
+                    sort: {
+                      postedAt: SortOrder.Descending,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    props: {
+                      isRoot: true,
+                    },
+                  });
+
+                  // Get episode state timelines
+                  episodeStateTimelines = await IncidentEpisodeStateTimelineService.findBy({
+                    query: {
+                      incidentEpisodeId: QueryHelper.any(episodesOnStatusPage),
+                      projectId: statusPage.projectId!,
+                    },
+                    select: {
+                      _id: true,
+                      createdAt: true,
+                      startsAt: true,
+                      incidentEpisodeId: true,
+                      incidentState: {
+                        name: true,
+                        color: true,
+                        isCreatedState: true,
+                        isAcknowledgedState: true,
+                        isResolvedState: true,
+                      },
+                    },
+                    sort: {
+                      startsAt: SortOrder.Descending,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    props: {
+                      isRoot: true,
+                    },
+                  });
+                }
+              }
+            }
+          }
+
           // check if status page has active announcement.
 
           const today: Date = OneUptimeDate.getCurrentDate();
@@ -1852,6 +2120,16 @@ export default class StatusPageAPI extends BaseAPI<
             ),
 
             activeIncidents: BaseModel.toJSONArray(activeIncidents, Incident),
+
+            activeEpisodes: activeEpisodesJson,
+            episodePublicNotes: BaseModel.toJSONArray(
+              episodePublicNotes,
+              IncidentEpisodePublicNote,
+            ),
+            episodeStateTimelines: BaseModel.toJSONArray(
+              episodeStateTimelines,
+              IncidentEpisodeStateTimeline,
+            ),
 
             monitorStatusTimelines: BaseModel.toJSONArray(
               monitorStatusTimelines,
@@ -4074,6 +4352,7 @@ export default class StatusPageAPI extends BaseAPI<
         overviewPageDescription: true,
         showIncidentLabelsOnStatusPage: true,
         showScheduledEventLabelsOnStatusPage: true,
+        showEpisodeLabelsOnStatusPage: true,
         downtimeMonitorStatuses: {
           _id: true,
         },
@@ -4082,6 +4361,7 @@ export default class StatusPageAPI extends BaseAPI<
         overallUptimePercentPrecision: true,
         showAnnouncementsOnStatusPage: true,
         showIncidentsOnStatusPage: true,
+        showEpisodesOnStatusPage: true,
         showScheduledMaintenanceEventsOnStatusPage: true,
       },
       props: {

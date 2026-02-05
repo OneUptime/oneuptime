@@ -537,7 +537,7 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
           (episodeStateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
         icon: episodeStateTimeline.incidentState.isCreatedState
-          ? IconProp.Layers
+          ? IconProp.Alert
           : episodeStateTimeline.incidentState.isAcknowledgedState
             ? IconProp.TransparentCube
             : episodeStateTimeline.incidentState.isResolvedState
