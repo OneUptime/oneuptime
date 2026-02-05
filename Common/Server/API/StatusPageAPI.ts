@@ -3847,6 +3847,33 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
+    // Build a map of episode ID -> monitor IDs from episode members
+    const episodeMonitorsMap: Map<string, Array<ObjectID>> = new Map();
+    for (const member of episodeMembers) {
+      if (member.incidentEpisodeId) {
+        const episodeIdStr: string = member.incidentEpisodeId.toString();
+        if (!episodeMonitorsMap.has(episodeIdStr)) {
+          episodeMonitorsMap.set(episodeIdStr, []);
+        }
+        const monitors: Array<ObjectID> = episodeMonitorsMap.get(episodeIdStr)!;
+        const memberMonitors: Array<any> = (member.incident as any)?.monitors || [];
+        for (const monitor of memberMonitors) {
+          const monitorId: string | undefined = monitor._id?.toString() || monitor.id?.toString();
+          if (monitorId && !monitors.some((m: ObjectID) => m.toString() === monitorId)) {
+            monitors.push(new ObjectID(monitorId));
+          }
+        }
+      }
+    }
+
+    // Add monitors to each episode
+    for (const episode of episodes) {
+      const episodeIdStr: string = episode.id!.toString();
+      const monitorIds: Array<ObjectID> = episodeMonitorsMap.get(episodeIdStr) || [];
+      // Set monitors as an array of objects with _id to match incident format
+      (episode as any).monitors = monitorIds.map((id: ObjectID) => ({ _id: id.toString() }));
+    }
+
     // Get public notes for episodes
     let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
 

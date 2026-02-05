@@ -377,6 +377,8 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
     episode,
     episodePublicNotes,
     episodeStateTimelines,
+    statusPageResources,
+    monitorsInGroup,
     isPreviewPage,
     isSummary,
     statusPageId,
@@ -390,6 +392,47 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
     : episode._id
       ? episode._id.toString()
       : null;
+
+  // Get monitor IDs from episode (computed by backend from member incidents)
+  const episodeMonitors: Array<Monitor> = (episode as any).monitors || [];
+  const monitorIdsInThisEpisode: Array<string | undefined> = episodeMonitors.map(
+    (monitor: Monitor) => {
+      return monitor._id?.toString() || monitor.id?.toString();
+    },
+  );
+
+  // Get affected resources from status page resources
+  let namesOfResources: Array<StatusPageResource> = statusPageResources.filter(
+    (resource: StatusPageResource) => {
+      return monitorIdsInThisEpisode.includes(resource.monitorId?.toString());
+    },
+  );
+
+  // Add names of the groups as well
+  namesOfResources = namesOfResources.concat(
+    statusPageResources.filter((resource: StatusPageResource) => {
+      if (!resource.monitorGroupId) {
+        return false;
+      }
+
+      const monitorGroupId: string = resource.monitorGroupId.toString();
+
+      const monitorIdsInThisGroup: Array<ObjectID> =
+        monitorsInGroup[monitorGroupId]! || [];
+
+      for (const monitorId of monitorIdsInThisGroup) {
+        if (
+          monitorIdsInThisEpisode.find((id: string | undefined) => {
+            return id?.toString() === monitorId.toString();
+          })
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    }),
+  );
 
   const timeline: Array<TimelineItem> = [];
 
@@ -525,12 +568,11 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
   const data: EventItemComponentProps = {
     eventTitle: episode.title || "",
     eventDescription: episode.description,
-    eventResourcesAffected:
-      episode.incidentCount !== undefined
-        ? [
-            `${episode.incidentCount} incident${episode.incidentCount !== 1 ? "s" : ""}`,
-          ]
-        : [],
+    eventResourcesAffected: namesOfResources.map((i: StatusPageResource) => {
+      const groupName: string = i.statusPageGroup?.name || "";
+      const displayName: string = i.displayName || "";
+      return groupName ? `${groupName}: ${displayName}` : displayName;
+    }),
     eventTimeline: timeline,
     eventType: "Incident",
     eventViewRoute: !isSummary
