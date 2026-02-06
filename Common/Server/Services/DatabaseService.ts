@@ -1680,6 +1680,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   @CaptureSpan()
+  protected async atomicIncrementColumnValueByOne(data: {
+    id: ObjectID;
+    columnName: keyof TBaseModel;
+  }): Promise<void> {
+    await this.getRepository().increment(
+      { _id: data.id.toString() } as any,
+      data.columnName as string,
+      1,
+    );
+  }
+
+  @CaptureSpan()
   public async searchBy({
     skip,
     limit,

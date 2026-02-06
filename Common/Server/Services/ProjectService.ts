@@ -1593,14 +1593,11 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetIncidentCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    // Atomic increment: SET incidentCounter = incidentCounter + 1
-    await this.getRepository().increment(
-      { _id: projectId.toString() } as any,
-      "incidentCounter" satisfies keyof Model,
-      1,
-    );
+    await this.atomicIncrementColumnValueByOne({
+      id: projectId,
+      columnName: "incidentCounter",
+    });
 
-    // Read back the new value
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -1624,14 +1621,11 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetAlertCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    // Atomic increment: SET alertCounter = alertCounter + 1
-    await this.getRepository().increment(
-      { _id: projectId.toString() } as any,
-      "alertCounter" satisfies keyof Model,
-      1,
-    );
+    await this.atomicIncrementColumnValueByOne({
+      id: projectId,
+      columnName: "alertCounter",
+    });
 
-    // Read back the new value
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -1655,14 +1649,11 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetScheduledMaintenanceCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    // Atomic increment: SET scheduledMaintenanceCounter = scheduledMaintenanceCounter + 1
-    await this.getRepository().increment(
-      { _id: projectId.toString() } as any,
-      "scheduledMaintenanceCounter" satisfies keyof Model,
-      1,
-    );
+    await this.atomicIncrementColumnValueByOne({
+      id: projectId,
+      columnName: "scheduledMaintenanceCounter",
+    });
 
-    // Read back the new value
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -1686,14 +1677,11 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetIncidentEpisodeCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    // Atomic increment: SET incidentEpisodeCounter = incidentEpisodeCounter + 1
-    await this.getRepository().increment(
-      { _id: projectId.toString() } as any,
-      "incidentEpisodeCounter" satisfies keyof Model,
-      1,
-    );
+    await this.atomicIncrementColumnValueByOne({
+      id: projectId,
+      columnName: "incidentEpisodeCounter",
+    });
 
-    // Read back the new value
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -1717,14 +1705,11 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetAlertEpisodeCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    // Atomic increment: SET alertEpisodeCounter = alertEpisodeCounter + 1
-    await this.getRepository().increment(
-      { _id: projectId.toString() } as any,
-      "alertEpisodeCounter" satisfies keyof Model,
-      1,
-    );
+    await this.atomicIncrementColumnValueByOne({
+      id: projectId,
+      columnName: "alertEpisodeCounter",
+    });
 
-    // Read back the new value
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
