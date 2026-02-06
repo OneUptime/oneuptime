@@ -61,6 +61,7 @@ const ActiveAlerts: FunctionComponent<
         }
         selectMoreFields={{
           projectId: true,
+          alertNumberWithPrefix: true,
         }}
         isEditable={false}
         showRefreshButton={true}

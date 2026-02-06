@@ -61,6 +61,7 @@ const ActiveIncidentEpisodes: FunctionComponent<
         }
         selectMoreFields={{
           projectId: true,
+          episodeNumberWithPrefix: true,
         }}
         isEditable={false}
         showRefreshButton={true}

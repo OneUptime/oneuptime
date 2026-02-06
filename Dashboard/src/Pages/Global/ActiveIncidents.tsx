@@ -61,6 +61,7 @@ const ActiveIncidents: FunctionComponent<
         }
         selectMoreFields={{
           projectId: true,
+          incidentNumberWithPrefix: true,
         }}
         isEditable={false}
         showRefreshButton={true}

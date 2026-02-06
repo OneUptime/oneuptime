@@ -285,6 +285,7 @@ const ScheduledMaintenanceView: FunctionComponent<
           modelType: ScheduledMaintenance,
           id: "model-detail-scheduledMaintenances",
           selectMoreFields: {
+            scheduledMaintenanceNumberWithPrefix: true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
               true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,

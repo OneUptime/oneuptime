@@ -353,11 +353,13 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        selectMoreFields={{
+          alertNumberWithPrefix: true,
+        }}
         columns={[
           {
             field: {
               alertNumber: true,
-              alertNumberWithPrefix: true,
             },
             title: "Alert Number",
             type: FieldType.Text,

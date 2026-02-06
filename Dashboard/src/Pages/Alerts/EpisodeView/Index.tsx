@@ -275,6 +275,7 @@ const AlertEpisodeView: FunctionComponent<
         ]}
         modelDetailProps={{
           selectMoreFields: {
+            episodeNumberWithPrefix: true,
             createdByUser: {
               _id: true,
               name: true,

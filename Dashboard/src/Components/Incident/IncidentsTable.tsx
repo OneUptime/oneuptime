@@ -418,11 +418,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        selectMoreFields={{
+          incidentNumberWithPrefix: true,
+        }}
         columns={[
           {
             field: {
               incidentNumber: true,
-              incidentNumberWithPrefix: true,
             },
             title: "Incident Number",
             type: FieldType.Text,

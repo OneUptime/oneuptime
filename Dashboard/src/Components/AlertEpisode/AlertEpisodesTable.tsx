@@ -352,11 +352,13 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        selectMoreFields={{
+          episodeNumberWithPrefix: true,
+        }}
         columns={[
           {
             field: {
               episodeNumber: true,
-              episodeNumberWithPrefix: true,
             },
             title: "Episode #",
             type: FieldType.Text,

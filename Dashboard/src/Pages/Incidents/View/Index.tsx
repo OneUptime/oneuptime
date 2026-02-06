@@ -387,6 +387,7 @@ const IncidentView: FunctionComponent<
         ]}
         modelDetailProps={{
           selectMoreFields: {
+            incidentNumberWithPrefix: true,
             createdByUser: {
               _id: true,
               name: true,

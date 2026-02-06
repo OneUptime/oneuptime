@@ -436,11 +436,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        selectMoreFields={{
+          scheduledMaintenanceNumberWithPrefix: true,
+        }}
         columns={[
           {
             field: {
               scheduledMaintenanceNumber: true,
-              scheduledMaintenanceNumberWithPrefix: true,
             },
             title: "Scheduled Maintenance Number",
             type: FieldType.Text,

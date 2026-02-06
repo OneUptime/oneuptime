@@ -314,6 +314,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ]}
         modelDetailProps={{
           selectMoreFields: {
+            alertNumberWithPrefix: true,
             createdByUser: {
               _id: true,
               name: true,
