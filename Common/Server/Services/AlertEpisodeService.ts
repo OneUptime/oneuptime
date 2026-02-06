@@ -40,7 +40,6 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import Typeof from "../../Types/Typeof";
 import AlertService from "./AlertService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
@@ -65,64 +64,40 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    let mutex: SemaphoreMutex | null = null;
+    // Get the created state for episodes
+    const alertState: AlertState | null = await AlertStateService.findOneBy({
+      query: {
+        projectId: projectId,
+        isCreatedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-    try {
-      // Acquire mutex to prevent race conditions when generating episode numbers
-      try {
-        mutex = await Semaphore.lock({
-          key: projectId.toString(),
-          namespace: "AlertEpisode.create",
-        });
-      } catch (err) {
-        logger.error(err);
-      }
-
-      // Get the created state for episodes
-      const alertState: AlertState | null = await AlertStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isCreatedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!alertState || !alertState.id) {
-        throw new BadDataException(
-          "Created alert state not found for this project. Please add created alert state from settings.",
-        );
-      }
-
-      createBy.data.currentAlertStateId = alertState.id;
-
-      // Auto-generate episode number
-      const episodeNumberForThisEpisode: number =
-        await ProjectService.incrementAndGetAlertEpisodeCounter(projectId);
-
-      createBy.data.episodeNumber = episodeNumberForThisEpisode;
-
-      // Set initial lastAlertAddedAt
-      if (!createBy.data.lastAlertAddedAt) {
-        createBy.data.lastAlertAddedAt = OneUptimeDate.getCurrentDate();
-      }
-
-      return { createBy, carryForward: { mutex } };
-    } catch (error) {
-      // Release the mutex if it was acquired and an error occurred
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err);
-        }
-      }
-      throw error;
+    if (!alertState || !alertState.id) {
+      throw new BadDataException(
+        "Created alert state not found for this project. Please add created alert state from settings.",
+      );
     }
+
+    createBy.data.currentAlertStateId = alertState.id;
+
+    // Auto-generate episode number
+    const episodeNumberForThisEpisode: number =
+      await ProjectService.incrementAndGetAlertEpisodeCounter(projectId);
+
+    createBy.data.episodeNumber = episodeNumberForThisEpisode;
+
+    // Set initial lastAlertAddedAt
+    if (!createBy.data.lastAlertAddedAt) {
+      createBy.data.lastAlertAddedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -130,16 +105,6 @@ export class Service extends DatabaseService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    // Release the mutex acquired in onBeforeCreate
-    const mutex: SemaphoreMutex | null = onCreate.carryForward?.mutex || null;
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
     }

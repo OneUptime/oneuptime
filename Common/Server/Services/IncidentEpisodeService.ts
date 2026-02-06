@@ -34,7 +34,6 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import IncidentService from "./IncidentService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
@@ -63,89 +62,65 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    let mutex: SemaphoreMutex | null = null;
+    // Get the created state for episodes
+    const incidentState: IncidentState | null =
+      await IncidentStateService.findOneBy({
+        query: {
+          projectId: projectId,
+          isCreatedState: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-    try {
-      // Acquire mutex to prevent race conditions when generating episode numbers
-      try {
-        mutex = await Semaphore.lock({
-          key: projectId.toString(),
-          namespace: "IncidentEpisode.create",
-        });
-      } catch (err) {
-        logger.error(err);
-      }
+    if (!incidentState || !incidentState.id) {
+      throw new BadDataException(
+        "Created incident state not found for this project. Please add created incident state from settings.",
+      );
+    }
 
-      // Get the created state for episodes
-      const incidentState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            projectId: projectId,
-            isCreatedState: true,
-          },
+    createBy.data.currentIncidentStateId = incidentState.id;
+
+    // Auto-generate episode number
+    const episodeNumberForThisEpisode: number =
+      await ProjectService.incrementAndGetIncidentEpisodeCounter(projectId);
+
+    createBy.data.episodeNumber = episodeNumberForThisEpisode;
+
+    // Set initial lastIncidentAddedAt
+    if (!createBy.data.lastIncidentAddedAt) {
+      createBy.data.lastIncidentAddedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    // Set declaredAt if not provided
+    if (!createBy.data.declaredAt) {
+      createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
+    }
+
+    // Copy showEpisodeOnStatusPage from grouping rule if available
+    if (createBy.data.incidentGroupingRuleId) {
+      const groupingRule: IncidentGroupingRule | null =
+        await IncidentGroupingRuleService.findOneById({
+          id: createBy.data.incidentGroupingRuleId,
           select: {
-            _id: true,
+            showEpisodeOnStatusPage: true,
           },
           props: {
             isRoot: true,
           },
         });
 
-      if (!incidentState || !incidentState.id) {
-        throw new BadDataException(
-          "Created incident state not found for this project. Please add created incident state from settings.",
-        );
+      if (groupingRule) {
+        createBy.data.isVisibleOnStatusPage =
+          groupingRule.showEpisodeOnStatusPage ?? true;
       }
-
-      createBy.data.currentIncidentStateId = incidentState.id;
-
-      // Auto-generate episode number
-      const episodeNumberForThisEpisode: number =
-        await ProjectService.incrementAndGetIncidentEpisodeCounter(projectId);
-
-      createBy.data.episodeNumber = episodeNumberForThisEpisode;
-
-      // Set initial lastIncidentAddedAt
-      if (!createBy.data.lastIncidentAddedAt) {
-        createBy.data.lastIncidentAddedAt = OneUptimeDate.getCurrentDate();
-      }
-
-      // Set declaredAt if not provided
-      if (!createBy.data.declaredAt) {
-        createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
-      }
-
-      // Copy showEpisodeOnStatusPage from grouping rule if available
-      if (createBy.data.incidentGroupingRuleId) {
-        const groupingRule: IncidentGroupingRule | null =
-          await IncidentGroupingRuleService.findOneById({
-            id: createBy.data.incidentGroupingRuleId,
-            select: {
-              showEpisodeOnStatusPage: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (groupingRule) {
-          createBy.data.isVisibleOnStatusPage =
-            groupingRule.showEpisodeOnStatusPage ?? true;
-        }
-      }
-
-      return { createBy, carryForward: { mutex } };
-    } catch (error) {
-      // Release the mutex if it was acquired and an error occurred
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err);
-        }
-      }
-      throw error;
     }
+
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -153,16 +128,6 @@ export class Service extends DatabaseService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    // Release the mutex acquired in onBeforeCreate
-    const mutex: SemaphoreMutex | null = onCreate.carryForward?.mutex || null;
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
     }
