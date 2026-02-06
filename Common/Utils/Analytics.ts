@@ -37,6 +37,17 @@ export default class Analytics {
       return;
     }
 
+    // PostHog tracking
     posthog.capture(eventName, data);
+    
+    // GA4 tracking via dataLayer (for Google Analytics conversion tracking)
+    if (typeof window !== 'undefined' && (window as any).dataLayer) {
+      (window as any).dataLayer.push({
+        event: eventName,
+        eventCategory: 'analytics',
+        eventAction: eventName,
+        ...(data || {})
+      });
+    }
   }
 }

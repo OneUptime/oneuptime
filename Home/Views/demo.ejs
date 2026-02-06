@@ -195,6 +195,7 @@
           action: "bookingSuccessful",
           callback: (e) => {
             const { data, type, namespace } = e.detail;
+            // PostHog tracking
             if (typeof posthog !== 'undefined' && posthog) {
               posthog.capture('home/demo-booked', {
                 'page': {
@@ -207,6 +208,25 @@
                 'data': data,
                 'type': type,
                 'namespace': namespace
+              });
+            }
+            
+            // GA4 tracking - for conversion tracking
+            if (typeof gtag !== 'undefined') {
+              gtag('event', 'demo_request', {
+                'event_category': 'conversion',
+                'event_label': 'demo_booked',
+                'value': 1
+              });
+            }
+            
+            // GTM dataLayer push (backup)
+            if (typeof dataLayer !== 'undefined') {
+              dataLayer.push({
+                'event': 'demo_booked',
+                'eventCategory': 'conversion',
+                'eventAction': 'demo_request',
+                'eventLabel': window.location.pathname
               });
             }
           }

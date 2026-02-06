@@ -77,6 +77,12 @@
                 'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
 <!-- End Google Tag Manager -->
+
+<!-- GA4 gtag helper (works with GTM) -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+</script>
 <% } %>
 
 
@@ -106,6 +112,33 @@
                 }
             });
         }
+        
+        // Track CTA clicks for conversion funnel analysis
+        document.querySelectorAll('a[href="/accounts/register"], a[href="/enterprise/demo"], a[href*="register"], a[href*="demo"]').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                var href = this.getAttribute('href');
+                var eventName = href.includes('register') ? 'cta_get_started' : 'cta_request_demo';
+                
+                // PostHog
+                if (typeof posthog !== 'undefined' && posthog) {
+                    posthog.capture('home/' + eventName, {
+                        'page': window.location.pathname,
+                        'href': href,
+                        'text': this.innerText.trim()
+                    });
+                }
+                
+                // GA4 via dataLayer
+                if (typeof dataLayer !== 'undefined') {
+                    dataLayer.push({
+                        'event': eventName,
+                        'eventCategory': 'cta_click',
+                        'eventAction': eventName,
+                        'eventLabel': window.location.pathname
+                    });
+                }
+            });
+        });
 
         var urlParams = new URLSearchParams(window.location.search);
         var utm_source = urlParams.get('utm_source');
