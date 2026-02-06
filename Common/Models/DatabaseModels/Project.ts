@@ -720,6 +720,106 @@ export default class Project extends TenantModel {
 
   @ColumnAccessControl({
     create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    hideColumnInDocumentation: true,
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public incidentCounter?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    hideColumnInDocumentation: true,
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public alertCounter?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    hideColumnInDocumentation: true,
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public scheduledMaintenanceCounter?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    hideColumnInDocumentation: true,
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public incidentEpisodeCounter?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    hideColumnInDocumentation: true,
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public alertEpisodeCounter?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

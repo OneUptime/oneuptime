@@ -59,6 +59,8 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import ScheduledMaintenanceWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProjectService from "./ProjectService";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "./StatusPageSubscriberNotificationTemplateService";
@@ -72,35 +74,6 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
-  }
-
-  @CaptureSpan()
-  public async getExistingScheduledMaintenanceNumberForProject(data: {
-    projectId: ObjectID;
-  }): Promise<number> {
-    // get last scheduledMaintenance number.
-    const lastScheduledMaintenance: Model | null = await this.findOneBy({
-      query: {
-        projectId: data.projectId,
-      },
-      select: {
-        scheduledMaintenanceNumber: true,
-      },
-      sort: {
-        createdAt: SortOrder.Descending,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!lastScheduledMaintenance) {
-      return 0;
-    }
-
-    return lastScheduledMaintenance.scheduledMaintenanceNumber
-      ? Number(lastScheduledMaintenance.scheduledMaintenanceNumber)
-      : 0;
   }
 
   @CaptureSpan()
@@ -751,10 +724,21 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     createBy.data.currentScheduledMaintenanceStateId =
       scheduledMaintenanceState.id;
 
+    let mutex: SemaphoreMutex | null = null;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: projectId.toString(),
+        namespace: "ScheduledMaintenanceService.create",
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+
     const scheduledMaintenanceNumberForThisScheduledMaintenance: number =
-      (await this.getExistingScheduledMaintenanceNumberForProject({
-        projectId: projectId,
-      })) + 1;
+      await ProjectService.incrementAndGetScheduledMaintenanceCounter(
+        projectId,
+      );
 
     createBy.data.scheduledMaintenanceNumber =
       scheduledMaintenanceNumberForThisScheduledMaintenance;
@@ -794,7 +778,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         StatusPageSubscriberNotificationStatus.Pending;
     }
 
-    return { createBy, carryForward: null };
+    return { createBy, carryForward: { mutex } };
   }
 
   @CaptureSpan()
@@ -802,6 +786,16 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    // Release the mutex acquired in onBeforeCreate
+    const mutex: SemaphoreMutex | null = onCreate.carryForward?.mutex || null;
+    if (mutex) {
+      try {
+        await Semaphore.release(mutex);
+      } catch (err) {
+        logger.error(err);
+      }
+    }
+
     // Get scheduled maintenance data for feed creation
     const scheduledMaintenance: Model | null = await this.findOneById({
       id: createdItem.id!,

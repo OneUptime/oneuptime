@@ -1590,6 +1590,161 @@ export class ProjectService extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async incrementAndGetIncidentCounter(
+    projectId: ObjectID,
+  ): Promise<number> {
+    // Atomic increment: SET incidentCounter = incidentCounter + 1
+    await this.getRepository().increment(
+      { _id: projectId.toString() } as any,
+      "incidentCounter" satisfies keyof Model,
+      1,
+    );
+
+    // Read back the new value
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: {
+        incidentCounter: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project || project.incidentCounter === undefined) {
+      throw new BadDataException(
+        `Could not read incidentCounter for project ${projectId.toString()}`,
+      );
+    }
+
+    return project.incidentCounter;
+  }
+
+  @CaptureSpan()
+  public async incrementAndGetAlertCounter(
+    projectId: ObjectID,
+  ): Promise<number> {
+    // Atomic increment: SET alertCounter = alertCounter + 1
+    await this.getRepository().increment(
+      { _id: projectId.toString() } as any,
+      "alertCounter" satisfies keyof Model,
+      1,
+    );
+
+    // Read back the new value
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: {
+        alertCounter: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project || project.alertCounter === undefined) {
+      throw new BadDataException(
+        `Could not read alertCounter for project ${projectId.toString()}`,
+      );
+    }
+
+    return project.alertCounter;
+  }
+
+  @CaptureSpan()
+  public async incrementAndGetScheduledMaintenanceCounter(
+    projectId: ObjectID,
+  ): Promise<number> {
+    // Atomic increment: SET scheduledMaintenanceCounter = scheduledMaintenanceCounter + 1
+    await this.getRepository().increment(
+      { _id: projectId.toString() } as any,
+      "scheduledMaintenanceCounter" satisfies keyof Model,
+      1,
+    );
+
+    // Read back the new value
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: {
+        scheduledMaintenanceCounter: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project || project.scheduledMaintenanceCounter === undefined) {
+      throw new BadDataException(
+        `Could not read scheduledMaintenanceCounter for project ${projectId.toString()}`,
+      );
+    }
+
+    return project.scheduledMaintenanceCounter;
+  }
+
+  @CaptureSpan()
+  public async incrementAndGetIncidentEpisodeCounter(
+    projectId: ObjectID,
+  ): Promise<number> {
+    // Atomic increment: SET incidentEpisodeCounter = incidentEpisodeCounter + 1
+    await this.getRepository().increment(
+      { _id: projectId.toString() } as any,
+      "incidentEpisodeCounter" satisfies keyof Model,
+      1,
+    );
+
+    // Read back the new value
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: {
+        incidentEpisodeCounter: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project || project.incidentEpisodeCounter === undefined) {
+      throw new BadDataException(
+        `Could not read incidentEpisodeCounter for project ${projectId.toString()}`,
+      );
+    }
+
+    return project.incidentEpisodeCounter;
+  }
+
+  @CaptureSpan()
+  public async incrementAndGetAlertEpisodeCounter(
+    projectId: ObjectID,
+  ): Promise<number> {
+    // Atomic increment: SET alertEpisodeCounter = alertEpisodeCounter + 1
+    await this.getRepository().increment(
+      { _id: projectId.toString() } as any,
+      "alertEpisodeCounter" satisfies keyof Model,
+      1,
+    );
+
+    // Read back the new value
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: {
+        alertEpisodeCounter: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project || project.alertEpisodeCounter === undefined) {
+      throw new BadDataException(
+        `Could not read alertEpisodeCounter for project ${projectId.toString()}`,
+      );
+    }
+
+    return project.alertEpisodeCounter;
+  }
+
+  @CaptureSpan()
   public async isSMSNotificationsEnabled(
     projectId: ObjectID,
   ): Promise<boolean> {

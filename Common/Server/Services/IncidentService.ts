@@ -65,6 +65,7 @@ import MetricType from "../../Models/DatabaseModels/MetricType";
 import UpdateBy from "../Types/Database/UpdateBy";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import Dictionary from "../../Types/Dictionary";
+import ProjectService from "./ProjectService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import LLMService, {
@@ -333,35 +334,6 @@ export class Service extends DatabaseService<Model> {
     return incident;
   }
 
-  @CaptureSpan()
-  public async getExistingIncidentNumberForProject(data: {
-    projectId: ObjectID;
-  }): Promise<number> {
-    // get last incident number.
-    const lastIncident: Model | null = await this.findOneBy({
-      query: {
-        projectId: data.projectId,
-      },
-      select: {
-        incidentNumber: true,
-      },
-      sort: {
-        createdAt: SortOrder.Descending,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!lastIncident) {
-      return 0;
-    }
-
-    return lastIncident.incidentNumber
-      ? Number(lastIncident.incidentNumber)
-      : 0;
-  }
-
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
@@ -620,9 +592,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     const incidentNumberForThisIncident: number =
-      (await this.getExistingIncidentNumberForProject({
-        projectId: projectId,
-      })) + 1;
+      await ProjectService.incrementAndGetIncidentCounter(projectId);
 
     createBy.data.currentIncidentStateId = initialIncidentStateId;
     createBy.data.incidentNumber = incidentNumberForThisIncident;

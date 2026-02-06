@@ -39,6 +39,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
+import ProjectService from "./ProjectService";
 import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
 
 export class Service extends DatabaseService<Model> {
@@ -47,32 +48,6 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
-  }
-
-  @CaptureSpan()
-  public async getExistingEpisodeNumberForProject(data: {
-    projectId: ObjectID;
-  }): Promise<number> {
-    const lastEpisode: Model | null = await this.findOneBy({
-      query: {
-        projectId: data.projectId,
-      },
-      select: {
-        episodeNumber: true,
-      },
-      sort: {
-        episodeNumber: SortOrder.Descending,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!lastEpisode) {
-      return 0;
-    }
-
-    return lastEpisode.episodeNumber ? Number(lastEpisode.episodeNumber) : 0;
   }
 
   @CaptureSpan()
@@ -126,9 +101,7 @@ export class Service extends DatabaseService<Model> {
 
       // Auto-generate episode number
       const episodeNumberForThisEpisode: number =
-        (await this.getExistingEpisodeNumberForProject({
-          projectId: projectId,
-        })) + 1;
+        await ProjectService.incrementAndGetIncidentEpisodeCounter(projectId);
 
       createBy.data.episodeNumber = episodeNumberForThisEpisode;
 
