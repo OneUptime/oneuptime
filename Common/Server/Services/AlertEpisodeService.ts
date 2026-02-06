@@ -107,7 +107,7 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    onCreate: OnCreate<Model>,
+    _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
