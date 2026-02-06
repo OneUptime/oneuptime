@@ -120,6 +120,7 @@ export class Service extends DatabaseService<Model> {
       id: createdItem.alertId,
       select: {
         alertNumber: true,
+        alertNumberWithPrefix: true,
         title: true,
       },
       props: {
@@ -146,7 +147,7 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId,
       alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertAdded,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `**Alert #${alert?.alertNumber || "N/A"}** added to episode: ${alert?.title || "No title"}`,
+      feedInfoInMarkdown: `**Alert ${alert?.alertNumberWithPrefix || '#' + (alert?.alertNumber || 'N/A')}** added to episode: ${alert?.title || "No title"}`,
       userId: createdItem.addedByUserId || undefined,
     });
 

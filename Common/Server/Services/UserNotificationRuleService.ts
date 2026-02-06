@@ -287,6 +287,7 @@ export class Service extends DatabaseService<Model> {
             name: true,
           },
           alertNumber: true,
+          alertNumberWithPrefix: true,
         },
       });
     }
@@ -1501,7 +1502,7 @@ export class Service extends DatabaseService<Model> {
 
     const alertIdentifier: string =
       alert.alertNumber !== undefined
-        ? `#${alert.alertNumber} (${alert.title || "Alert"})`
+        ? `${alert.alertNumberWithPrefix || '#' + alert.alertNumber} (${alert.title || "Alert"})`
         : alert.title || "Alert";
 
     const sms: SMS = {
@@ -1763,9 +1764,8 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    const alertNumber: string = alert.alertNumber
-      ? `#${alert.alertNumber}`
-      : "";
+    const alertNumber: string = alert.alertNumberWithPrefix
+      || (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
     const vars: Dictionary<string> = {
       alertTitle: alert.title!,
@@ -1893,6 +1893,7 @@ export class Service extends DatabaseService<Model> {
               _id: true,
               title: true,
               alertNumber: true,
+              alertNumberWithPrefix: true,
               monitor: {
                 _id: true,
                 name: true,
@@ -1925,9 +1926,8 @@ export class Service extends DatabaseService<Model> {
       const alertRows: string[] = [];
       for (const alert of alerts) {
         const alertTitle: string = alert.title || "Untitled Alert";
-        const alertNumber: string = alert.alertNumber
-          ? `#${alert.alertNumber}`
-          : "";
+        const alertNumber: string = alert.alertNumberWithPrefix
+          || (alert.alertNumber ? `#${alert.alertNumber}` : "");
         const alertLink: string = (
           await AlertService.getAlertLinkInDashboard(
             alertEpisode.projectId!,
