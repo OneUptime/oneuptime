@@ -118,7 +118,10 @@ export class Service extends DatabaseService<Model> {
 
     const incidentEpisodeId: ObjectID = createdItem.incidentEpisodeId!;
     const projectId: ObjectID = createdItem.projectId!;
-    const episodeNumberResult = await IncidentEpisodeService.getEpisodeNumber({
+    const episodeNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await IncidentEpisodeService.getEpisodeNumber({
       episodeId: incidentEpisodeId,
     });
 

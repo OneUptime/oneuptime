@@ -73,7 +73,10 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        const incidentNumberResult = await IncidentService.getIncidentNumber({
+        const incidentNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await IncidentService.getIncidentNumber({
           incidentId: incidentId,
         });
         const incidentNumberDisplay: string =
@@ -114,7 +117,10 @@ export class Service extends DatabaseService<Model> {
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (incidentId && userId && projectId) {
-      const incidentNumberResult = await IncidentService.getIncidentNumber({
+      const incidentNumberResult: {
+        number: number | null;
+        numberWithPrefix: string | null;
+      } = await IncidentService.getIncidentNumber({
         incidentId: incidentId,
       });
       const incidentNumberDisplay: string =

@@ -426,7 +426,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       stateEmoji = "🔴";
     }
 
-    const incidentNumberResult = await IncidentService.getIncidentNumber({
+    const incidentNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await IncidentService.getIncidentNumber({
       incidentId: createdItem.incidentId,
     });
     const incidentNumberDisplay: string =

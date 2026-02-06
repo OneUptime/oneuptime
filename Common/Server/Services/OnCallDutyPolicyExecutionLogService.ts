@@ -87,7 +87,10 @@ export class Service extends DatabaseService<Model> {
           const projectId: ObjectID | undefined = createdItem.projectId;
           const incidentId: ObjectID | undefined =
             createdItem.triggeredByIncidentId;
-          const incidentNumberResult = await IncidentService.getIncidentNumber({
+          const incidentNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await IncidentService.getIncidentNumber({
             incidentId: incidentId,
           });
           const incidentNumberDisplay: string =
@@ -97,25 +100,32 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (createdItem.triggeredByAlertId) {
-          const alertNumberResult = await AlertService.getAlertNumber({
+          const alertNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await AlertService.getAlertNumber({
             alertId: createdItem.triggeredByAlertId,
           });
           incidentOrAlertLink = `[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertId)).toString()})`;
         }
 
         if (createdItem.triggeredByAlertEpisodeId) {
-          const alertEpisodeNumberResult =
-            await AlertEpisodeService.getEpisodeNumber({
-              episodeId: createdItem.triggeredByAlertEpisodeId,
-            });
+          const alertEpisodeNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await AlertEpisodeService.getEpisodeNumber({
+            episodeId: createdItem.triggeredByAlertEpisodeId,
+          });
           incidentOrAlertLink = `[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertEpisodeId)).toString()})`;
         }
 
         if (createdItem.triggeredByIncidentEpisodeId) {
-          const incidentEpisodeNumberResult =
-            await IncidentEpisodeService.getEpisodeNumber({
-              episodeId: createdItem.triggeredByIncidentEpisodeId,
-            });
+          const incidentEpisodeNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await IncidentEpisodeService.getEpisodeNumber({
+            episodeId: createdItem.triggeredByIncidentEpisodeId,
+          });
           incidentOrAlertLink = `[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
@@ -368,10 +378,12 @@ export class Service extends DatabaseService<Model> {
               onCalldutyPolicyExecutionLog.projectId;
             const incidentId: ObjectID | undefined =
               onCalldutyPolicyExecutionLog.triggeredByIncidentId;
-            const incidentNumberResult =
-              await IncidentService.getIncidentNumber({
-                incidentId: incidentId,
-              });
+            const incidentNumberResult: {
+              number: number | null;
+              numberWithPrefix: string | null;
+            } = await IncidentService.getIncidentNumber({
+              incidentId: incidentId,
+            });
             const incidentNumberDisplay: string =
               incidentNumberResult.numberWithPrefix ||
               "#" + incidentNumberResult.number;
@@ -379,27 +391,33 @@ export class Service extends DatabaseService<Model> {
           }
 
           if (onCalldutyPolicyExecutionLog.triggeredByAlertId) {
-            const alertNumberResult = await AlertService.getAlertNumber({
+            const alertNumberResult: {
+              number: number | null;
+              numberWithPrefix: string | null;
+            } = await AlertService.getAlertNumber({
               alertId: onCalldutyPolicyExecutionLog.triggeredByAlertId,
             });
             incidentOrAlertLink = `[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertId)).toString()})`;
           }
 
           if (onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId) {
-            const alertEpisodeNumberResult =
-              await AlertEpisodeService.getEpisodeNumber({
-                episodeId:
-                  onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId,
-              });
+            const alertEpisodeNumberResult: {
+              number: number | null;
+              numberWithPrefix: string | null;
+            } = await AlertEpisodeService.getEpisodeNumber({
+              episodeId: onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId,
+            });
             incidentOrAlertLink = `[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId)).toString()})`;
           }
 
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId) {
-            const incidentEpisodeNumberResult =
-              await IncidentEpisodeService.getEpisodeNumber({
-                episodeId:
-                  onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId,
-              });
+            const incidentEpisodeNumberResult: {
+              number: number | null;
+              numberWithPrefix: string | null;
+            } = await IncidentEpisodeService.getEpisodeNumber({
+              episodeId:
+                onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId,
+            });
             incidentOrAlertLink = `[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId)).toString()})`;
           }
 

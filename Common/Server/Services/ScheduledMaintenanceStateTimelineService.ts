@@ -429,10 +429,12 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       stateEmoji = "🕒";
     }
 
-    const scheduledMaintenanceNumberResult =
-      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-        scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
-      });
+    const scheduledMaintenanceNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+      scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
+    });
 
     const projectId: ObjectID = createdItem.projectId!;
     const scheduledMaintenanceId: ObjectID =

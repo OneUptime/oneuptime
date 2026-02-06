@@ -85,7 +85,10 @@ export class Service extends DatabaseService<Model> {
 
     const alertId: ObjectID = createdItem.alertId!;
 
-    const alertNumberResult = await AlertService.getAlertNumber({
+    const alertNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await AlertService.getAlertNumber({
       alertId: alertId,
     });
 

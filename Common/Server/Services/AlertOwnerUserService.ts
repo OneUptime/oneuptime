@@ -74,7 +74,10 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (user && user.name) {
-          const alertNumberResult = await AlertService.getAlertNumber({
+          const alertNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await AlertService.getAlertNumber({
             alertId: alertId,
           });
 
@@ -123,7 +126,10 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (user && user.name) {
-        const alertNumberResult = await AlertService.getAlertNumber({
+        const alertNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await AlertService.getAlertNumber({
           alertId: alertId,
         });
         await AlertFeedService.createAlertFeedItem({

@@ -563,7 +563,10 @@ export default class SlackIncidentActions {
         });
 
       if (isAlreadyAcknowledged) {
-        const incidentNumberResult = await IncidentService.getIncidentNumber({
+        const incidentNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await IncidentService.getIncidentNumber({
           incidentId: incidentId,
         });
         const incidentNumberDisplay: string =
@@ -689,7 +692,10 @@ export default class SlackIncidentActions {
         });
 
       if (isAlreadyResolved) {
-        const incidentNumberResult = await IncidentService.getIncidentNumber({
+        const incidentNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await IncidentService.getIncidentNumber({
           incidentId: incidentId,
         });
         const incidentNumberDisplay: string =
@@ -1030,7 +1036,10 @@ export default class SlackIncidentActions {
         });
 
       if (isAlreadyResolved) {
-        const incidentNumberResult = await IncidentService.getIncidentNumber({
+        const incidentNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await IncidentService.getIncidentNumber({
           incidentId: incidentId,
         });
         const incidentNumberDisplay: string =
@@ -1375,7 +1384,10 @@ export default class SlackIncidentActions {
     const incidentId: ObjectID = workspaceLog.incidentId;
 
     // Get the incident number for the confirmation message
-    const incidentNumberResult = await IncidentService.getIncidentNumber({
+    const incidentNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await IncidentService.getIncidentNumber({
       incidentId: incidentId,
     });
     const incidentNumberDisplay: string =

@@ -110,7 +110,10 @@ export default class SlackAlertActions {
         });
 
       if (isAlreadyAcknowledged) {
-        const alertNumberResult = await AlertService.getAlertNumber({
+        const alertNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await AlertService.getAlertNumber({
           alertId: alertId,
         });
 
@@ -232,7 +235,10 @@ export default class SlackAlertActions {
       });
 
       if (isAlreadyResolved) {
-        const alertNumberResult = await AlertService.getAlertNumber({
+        const alertNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await AlertService.getAlertNumber({
           alertId: alertId,
         });
         // send a message to the channel visible to user, that the alert has already been Resolved.
@@ -568,7 +574,10 @@ export default class SlackAlertActions {
       });
 
       if (isAlreadyResolved) {
-        const alertNumberResult = await AlertService.getAlertNumber({
+        const alertNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await AlertService.getAlertNumber({
           alertId: alertId,
         });
         // send a message to the channel visible to user, that the alert has already been Resolved.
@@ -853,7 +862,10 @@ export default class SlackAlertActions {
     const alertId: ObjectID = workspaceLog.alertId;
 
     // Get the alert number for the confirmation message
-    const alertNumberResult = await AlertService.getAlertNumber({
+    const alertNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await AlertService.getAlertNumber({
       alertId: alertId,
     });
 

@@ -569,10 +569,12 @@ export default class SlackScheduledMaintenanceActions {
         });
 
       if (isAlreadyOngoing) {
-        const scheduledMaintenanceNumberResult =
-          await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-          });
+        const scheduledMaintenanceNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        });
 
         // send a message to the channel visible to user, that the scheduledMaintenance has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
@@ -699,10 +701,12 @@ export default class SlackScheduledMaintenanceActions {
         });
 
       if (isAlreadyResolved) {
-        const scheduledMaintenanceNumberResult =
-          await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-          });
+        const scheduledMaintenanceNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        });
         // send a message to the channel visible to user, that the scheduledMaintenance has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
@@ -1197,10 +1201,12 @@ export default class SlackScheduledMaintenanceActions {
       workspaceLog.scheduledMaintenanceId;
 
     // Get the scheduled maintenance number for the confirmation message
-    const scheduledMaintenanceNumberResult =
-      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-        scheduledMaintenanceId: scheduledMaintenanceId,
-      });
+    const scheduledMaintenanceNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+      scheduledMaintenanceId: scheduledMaintenanceId,
+    });
 
     // Get the user ID in OneUptime based on Slack user ID
     const userAuth: WorkspaceUserAuthToken | null =

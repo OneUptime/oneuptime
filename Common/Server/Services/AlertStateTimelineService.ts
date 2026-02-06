@@ -400,7 +400,10 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       stateEmoji = "🔴";
     }
 
-    const alertNumberResult = await AlertService.getAlertNumber({
+    const alertNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await AlertService.getAlertNumber({
       alertId: createdItem.alertId,
     });
 
