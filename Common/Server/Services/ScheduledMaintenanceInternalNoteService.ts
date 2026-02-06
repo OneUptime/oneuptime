@@ -86,7 +86,7 @@ export class Service extends DatabaseService<Model> {
     const scheduledMaintenanceId: ObjectID =
       createdItem.scheduledMaintenanceId!;
 
-    const scheduledMaintenanceNumber: number | null =
+    const scheduledMaintenanceNumberResult =
       await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
         scheduledMaintenanceId: scheduledMaintenanceId,
       });
@@ -104,7 +104,7 @@ export class Service extends DatabaseService<Model> {
       displayColor: Blue500,
       userId: userId || undefined,
 
-      feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
+      feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || '#' + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
     
     ${(createdItem.note || "") + attachmentsMarkdown}
               `,
@@ -140,6 +140,7 @@ export class Service extends DatabaseService<Model> {
           },
           scheduledMaintenance: {
             scheduledMaintenanceNumber: true,
+            scheduledMaintenanceNumberWithPrefix: true,
             projectId: true,
             _id: true,
           },
@@ -167,7 +168,7 @@ export class Service extends DatabaseService<Model> {
             displayColor: Blue500,
             userId: userId || undefined,
 
-            feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
+            feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || '#' + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
         
 ${(updatedItem.note || "") + attachmentsMarkdown}
                   `,

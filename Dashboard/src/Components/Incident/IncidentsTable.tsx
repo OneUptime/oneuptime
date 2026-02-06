@@ -422,6 +422,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               incidentNumber: true,
+              incidentNumberWithPrefix: true,
             },
             title: "Incident Number",
             type: FieldType.Text,
@@ -430,7 +431,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>#{item.incidentNumber}</>;
+              return <>{item.incidentNumberWithPrefix || `#${item.incidentNumber}`}</>;
             },
           },
           {

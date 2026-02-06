@@ -71,6 +71,7 @@ RunCron(
           name: true,
         },
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
         postmortemNote: true,
       },
     });
@@ -127,9 +128,9 @@ RunCron(
           continue;
         }
 
-        const incidentNumber: string =
-          incident.incidentNumber?.toString() || " - ";
-        const incidentFeedText: string = `📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**:
+        const incidentNumberDisplay: string =
+          incident.incidentNumberWithPrefix || '#' + (incident.incidentNumber?.toString() || " - ");
+        const incidentFeedText: string = `📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**:
       Notification sent to status page subscribers because postmortem was published for this incident.`;
 
         if (!incident.monitors || incident.monitors.length === 0) {

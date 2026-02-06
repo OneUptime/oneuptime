@@ -89,6 +89,7 @@ RunCron(
             name: true,
           },
           incidentNumber: true,
+          incidentNumberWithPrefix: true,
         },
       });
 
@@ -212,9 +213,8 @@ RunCron(
           })
           .join(", ") || "";
 
-      const incidentNumberStr: string = incident.incidentNumber
-        ? `#${incident.incidentNumber}`
-        : "";
+      const incidentNumberStr: string = incident.incidentNumberWithPrefix
+        || (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
       for (const user of owners) {
         // Build the "Was X for Y" string
@@ -259,7 +259,7 @@ RunCron(
 
         const incidentIdentifier: string =
           incident.incidentNumber !== undefined
-            ? `#${incident.incidentNumber} (${incident.title})`
+            ? `${incident.incidentNumberWithPrefix || '#' + incident.incidentNumber} (${incident.title})`
             : incident.title!;
 
         const emailMessage: EmailEnvelope = {
@@ -347,7 +347,7 @@ RunCron(
         )})\n`;
       }
 
-      const incidentNumberValue: number = incident.incidentNumber!;
+      const incidentNumberDisplayValue: string = incident.incidentNumberWithPrefix || '#' + incident.incidentNumber!;
       const projectId: ObjectID = incident.projectId!;
 
       await IncidentFeedService.createIncidentFeedItem({
@@ -355,7 +355,7 @@ RunCron(
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident ${incidentNumberValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident ${incidentNumberDisplayValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`,
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,

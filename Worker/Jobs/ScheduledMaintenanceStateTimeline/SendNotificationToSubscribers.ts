@@ -159,6 +159,7 @@ RunCron(
               },
               isVisibleOnStatusPage: true,
               scheduledMaintenanceNumber: true,
+              scheduledMaintenanceNumberWithPrefix: true,
             },
           });
 
@@ -563,7 +564,7 @@ RunCron(
         }
 
         const scheduledMaintenanceNumber: string =
-          event.scheduledMaintenanceNumber?.toString() || " - ";
+          event.scheduledMaintenanceNumberWithPrefix || event.scheduledMaintenanceNumber?.toString() || " - ";
         const projectId: ObjectID = event.projectId!;
         const scheduledMaintenanceId: ObjectID = event.id!;
 

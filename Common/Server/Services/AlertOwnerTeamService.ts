@@ -73,7 +73,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (team && team.name) {
-          const alertNumber: number | null = await AlertService.getAlertNumber({
+          const alertNumberResult = await AlertService.getAlertNumber({
             alertId: alertId,
           });
           await AlertFeedService.createAlertFeedItem({
@@ -81,7 +81,7 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             alertFeedEventType: AlertFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [Alert ${alertNumberResult.numberWithPrefix || '#' + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -120,7 +120,7 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
-        const alertNumber: number | null = await AlertService.getAlertNumber({
+        const alertNumberResult = await AlertService.getAlertNumber({
           alertId: alertId,
         });
 
@@ -129,7 +129,7 @@ export class Service extends DatabaseService<Model> {
           projectId: projectId,
           alertFeedEventType: AlertFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
+          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [Alert ${alertNumberResult.numberWithPrefix || '#' + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

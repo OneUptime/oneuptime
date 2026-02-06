@@ -85,7 +85,7 @@ export class Service extends DatabaseService<Model> {
 
     const alertId: ObjectID = createdItem.alertId!;
 
-    const alertNumber: number | null = await AlertService.getAlertNumber({
+    const alertNumberResult = await AlertService.getAlertNumber({
       alertId: alertId,
     });
 
@@ -101,7 +101,7 @@ export class Service extends DatabaseService<Model> {
       displayColor: Blue500,
       userId: userId || undefined,
 
-      feedInfoInMarkdown: `📄 posted **private note** for this [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, alertId)).toString()}):
+      feedInfoInMarkdown: `📄 posted **private note** for this [Alert ${alertNumberResult.numberWithPrefix || '#' + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, alertId)).toString()}):
       
 ${(createdItem.note || "") + attachmentsMarkdown}
                 `,

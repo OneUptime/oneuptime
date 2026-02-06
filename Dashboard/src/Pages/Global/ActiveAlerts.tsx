@@ -169,9 +169,16 @@ const ActiveAlerts: FunctionComponent<
           {
             field: {
               alertNumber: true,
+              alertNumberWithPrefix: true,
             },
             title: "Alert Number",
-            type: FieldType.Number,
+            type: FieldType.Text,
+            getElement: (item: Alert): ReactElement => {
+              if (!item.alertNumber) {
+                return <>-</>;
+              }
+              return <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>;
+            },
           },
           {
             field: {

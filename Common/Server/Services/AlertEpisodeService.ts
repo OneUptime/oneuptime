@@ -87,10 +87,15 @@ export class Service extends DatabaseService<Model> {
     createBy.data.currentAlertStateId = alertState.id;
 
     // Auto-generate episode number
-    const episodeNumberForThisEpisode: number =
-      await ProjectService.incrementAndGetAlertEpisodeCounter(projectId);
+    const episodeCounterResult: {
+      counter: number;
+      prefix: string | undefined;
+    } = await ProjectService.incrementAndGetAlertEpisodeCounter(projectId);
 
-    createBy.data.episodeNumber = episodeNumberForThisEpisode;
+    createBy.data.episodeNumber = episodeCounterResult.counter;
+    createBy.data.episodeNumberWithPrefix = episodeCounterResult.prefix
+      ? `${episodeCounterResult.prefix}${episodeCounterResult.counter}`
+      : `#${episodeCounterResult.counter}`;
 
     // Set initial lastAlertAddedAt
     if (!createBy.data.lastAlertAddedAt) {
@@ -171,7 +176,7 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumber?.toString()} Created
+    let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || '#' + episode.episodeNumber?.toString()} Created
 
 **${episode.title || "No title provided."}**
 
@@ -837,11 +842,15 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async getEpisodeNumber(data: {
     episodeId: ObjectID;
-  }): Promise<number | null> {
+  }): Promise<{
+    number: number | null;
+    numberWithPrefix: string | null;
+  }> {
     const episode: Model | null = await this.findOneById({
       id: data.episodeId,
       select: {
         episodeNumber: true,
+        episodeNumberWithPrefix: true,
       },
       props: {
         isRoot: true,
@@ -852,7 +861,10 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    return episode.episodeNumber ? Number(episode.episodeNumber) : null;
+    return {
+      number: episode.episodeNumber ? Number(episode.episodeNumber) : null,
+      numberWithPrefix: episode.episodeNumberWithPrefix || null,
+    };
   }
 
   @CaptureSpan()

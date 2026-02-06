@@ -126,6 +126,7 @@ RunCron(
             name: true,
           },
           incidentNumber: true,
+          incidentNumberWithPrefix: true,
         },
       });
 
@@ -154,9 +155,8 @@ RunCron(
         continue;
       }
 
-      const incidentNumberStr: string = incident.incidentNumber
-        ? `#${incident.incidentNumber}`
-        : "";
+      const incidentNumberStr: string = incident.incidentNumberWithPrefix
+        || (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
       const vars: Dictionary<string> = {
         incidentTitle: incident.title!,
@@ -192,7 +192,7 @@ RunCron(
 
       const incidentIdentifier: string =
         incident.incidentNumber !== undefined
-          ? `#${incident.incidentNumber} (${incident.title})`
+          ? `${incident.incidentNumberWithPrefix || '#' + incident.incidentNumber} (${incident.title})`
           : incident.title!;
 
       for (const user of owners) {
@@ -267,9 +267,9 @@ RunCron(
 
       const projectId: ObjectID = incident.projectId!;
       const incidentId: ObjectID = incident.id!;
-      const incidentNumber: number = incident.incidentNumber!; // incident number is not null here.
+      const incidentNumberDisplayValue: string = incident.incidentNumberWithPrefix || '#' + incident.incidentNumber!; // incident number is not null here.
 
-      const incidentFeedText: string = `🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).`;
+      const incidentFeedText: string = `🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the [Incident ${incidentNumberDisplayValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).`;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,

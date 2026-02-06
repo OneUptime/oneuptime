@@ -132,6 +132,7 @@ export class Service extends DatabaseService<Model> {
       id: createdItem.alertEpisodeId,
       select: {
         episodeNumber: true,
+        episodeNumberWithPrefix: true,
         title: true,
       },
       props: {
@@ -155,7 +156,7 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId,
       alertFeedEventType: AlertFeedEventType.AddedToEpisode,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `Added to **Episode #${episode?.episodeNumber || "N/A"}**: ${episode?.title || "No title"}`,
+      feedInfoInMarkdown: `Added to **Episode ${episode?.episodeNumberWithPrefix || '#' + (episode?.episodeNumber || 'N/A')}**: ${episode?.title || "No title"}`,
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -228,6 +229,7 @@ export class Service extends DatabaseService<Model> {
                 id: member.alertEpisodeId,
                 select: {
                   episodeNumber: true,
+                  episodeNumberWithPrefix: true,
                   title: true,
                 },
                 props: {
@@ -250,7 +252,7 @@ export class Service extends DatabaseService<Model> {
               projectId: member.projectId,
               alertFeedEventType: AlertFeedEventType.RemovedFromEpisode,
               displayColor: Green500,
-              feedInfoInMarkdown: `Removed from **Episode #${episode?.episodeNumber || "N/A"}**: ${episode?.title || "No title"}`,
+              feedInfoInMarkdown: `Removed from **Episode ${episode?.episodeNumberWithPrefix || '#' + (episode?.episodeNumber || 'N/A')}**: ${episode?.title || "No title"}`,
             });
           }
         }

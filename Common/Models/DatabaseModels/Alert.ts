@@ -1086,6 +1086,34 @@ export default class Alert extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadAlert,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Alert Number With Prefix",
+    description:
+      "Alert number with prefix (e.g., 'ALT-42' or '#42')",
+    computed: true,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public alertNumberWithPrefix?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
     read: [],
     update: [],
   })

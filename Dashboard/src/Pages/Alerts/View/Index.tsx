@@ -359,6 +359,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             {
               field: {
                 alertNumber: true,
+                alertNumberWithPrefix: true,
               },
               title: "Alert Number",
               fieldType: FieldType.Element,
@@ -385,7 +386,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       </svg>
                     </div>
                     <span className="text-lg font-semibold text-gray-700">
-                      #{item.alertNumber}
+                      {item.alertNumberWithPrefix || `#${item.alertNumber}`}
                     </span>
                   </div>
                 );

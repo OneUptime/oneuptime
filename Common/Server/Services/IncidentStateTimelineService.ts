@@ -426,10 +426,11 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       stateEmoji = "🔴";
     }
 
-    const incidentNumber: number | null =
+    const incidentNumberResult =
       await IncidentService.getIncidentNumber({
         incidentId: createdItem.incidentId,
       });
+    const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
 
     const projectId: ObjectID = createdItem.projectId!;
     const incidentId: ObjectID = createdItem.incidentId!;
@@ -441,7 +442,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
+        ` Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
         stateName +
         "**",
       moreInformationInMarkdown: `**Cause:**
@@ -549,7 +550,7 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Incident ${incidentNumber}](${(
+          text: `**[Incident ${incidentNumberDisplay}](${(
             await IncidentService.getIncidentLinkInDashboard(
               createdItem.projectId!,
               createdItem.incidentId!,

@@ -162,6 +162,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Filter,
         },
+        {
+          link: {
+            title: "More Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
       ],
     },
   ];

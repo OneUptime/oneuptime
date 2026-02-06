@@ -47,6 +47,7 @@ RunCron(
             name: true,
           },
           scheduledMaintenanceNumber: true,
+          scheduledMaintenanceNumberWithPrefix: true,
         },
       });
 
@@ -85,9 +86,10 @@ RunCron(
       }
 
       const scheduledMaintenanceNumberStr: string =
-        scheduledMaintenance.scheduledMaintenanceNumber
-          ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-          : "";
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix
+          || (scheduledMaintenance.scheduledMaintenanceNumber
+            ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+            : "");
 
       const vars: Dictionary<string> = {
         scheduledMaintenanceTitle: scheduledMaintenance.title!,
@@ -160,8 +162,9 @@ RunCron(
               event_title: scheduledMaintenance.title!,
               maintenance_link: vars["scheduledMaintenanceViewLink"] || "",
               event_number:
-                scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
-                "N/A",
+                scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+                (scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
+                "N/A"),
             },
           });
 
@@ -182,11 +185,11 @@ RunCron(
 
       const projectId: ObjectID = scheduledMaintenance.projectId!;
       const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
-      const scheduledMaintenanceNumber: number =
-        scheduledMaintenance.scheduledMaintenanceNumber!;
+      const scheduledMaintenanceDisplayNumber: string =
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || '#' + scheduledMaintenance.scheduledMaintenanceNumber;
 
       const scheduledMaintenanceFeedText: string = `🔔 **Owner Scheduled Maintenance Created Notification Sent**:
-      Notification sent to owners because [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) was created.`;
+      Notification sent to owners because [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) was created.`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,

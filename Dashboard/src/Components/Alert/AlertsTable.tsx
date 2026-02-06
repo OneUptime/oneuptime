@@ -357,6 +357,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               alertNumber: true,
+              alertNumberWithPrefix: true,
             },
             title: "Alert Number",
             type: FieldType.Text,
@@ -365,7 +366,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>#{item.alertNumber}</>;
+              return <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>;
             },
           },
           {

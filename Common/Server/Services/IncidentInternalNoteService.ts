@@ -85,10 +85,11 @@ export class Service extends DatabaseService<Model> {
 
     const incidentId: ObjectID = createdItem.incidentId!;
 
-    const incidentNumber: number | null =
+    const incidentNumberResult =
       await IncidentService.getIncidentNumber({
         incidentId: incidentId,
       });
+    const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
 
     const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
       createdItem.id!,
@@ -102,7 +103,7 @@ export class Service extends DatabaseService<Model> {
       displayColor: Blue500,
       userId: userId || undefined,
 
-      feedInfoInMarkdown: `📄 posted **private note** for this [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(createdItem.projectId!, incidentId)).toString()}):
+      feedInfoInMarkdown: `📄 posted **private note** for this [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(createdItem.projectId!, incidentId)).toString()}):
 
 ${(createdItem.note || "") + attachmentsMarkdown}
           `,

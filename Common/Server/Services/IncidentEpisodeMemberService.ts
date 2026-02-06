@@ -122,6 +122,7 @@ export class Service extends DatabaseService<Model> {
       id: createdItem.incidentId,
       select: {
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
         title: true,
       },
       props: {
@@ -135,6 +136,7 @@ export class Service extends DatabaseService<Model> {
         id: createdItem.incidentEpisodeId,
         select: {
           episodeNumber: true,
+          episodeNumberWithPrefix: true,
           title: true,
         },
         props: {
@@ -148,7 +150,7 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId,
       incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.IncidentAdded,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `**Incident #${incident?.incidentNumber || "N/A"}** added to episode: ${incident?.title || "No title"}`,
+      feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || '#' + (incident?.incidentNumber || 'N/A')}** added to episode: ${incident?.title || "No title"}`,
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -158,7 +160,7 @@ export class Service extends DatabaseService<Model> {
       projectId: createdItem.projectId,
       incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `Added to **Episode #${episode?.episodeNumber || "N/A"}**: ${episode?.title || "No title"}`,
+      feedInfoInMarkdown: `Added to **Episode ${episode?.episodeNumberWithPrefix || '#' + (episode?.episodeNumber || 'N/A')}**: ${episode?.title || "No title"}`,
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -216,6 +218,7 @@ export class Service extends DatabaseService<Model> {
             id: member.incidentId,
             select: {
               incidentNumber: true,
+              incidentNumberWithPrefix: true,
               title: true,
             },
             props: {
@@ -231,6 +234,7 @@ export class Service extends DatabaseService<Model> {
                 id: member.incidentEpisodeId,
                 select: {
                   episodeNumber: true,
+                  episodeNumberWithPrefix: true,
                   title: true,
                 },
                 props: {
@@ -245,7 +249,7 @@ export class Service extends DatabaseService<Model> {
               incidentEpisodeFeedEventType:
                 IncidentEpisodeFeedEventType.IncidentRemoved,
               displayColor: Green500,
-              feedInfoInMarkdown: `**Incident #${incident?.incidentNumber || "N/A"}** removed from episode: ${incident?.title || "No title"}`,
+              feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || '#' + (incident?.incidentNumber || 'N/A')}** removed from episode: ${incident?.title || "No title"}`,
             });
 
             // Create feed item on incident
@@ -254,7 +258,7 @@ export class Service extends DatabaseService<Model> {
               projectId: member.projectId,
               incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
               displayColor: Green500,
-              feedInfoInMarkdown: `Removed from **Episode #${episode?.episodeNumber || "N/A"}**: ${episode?.title || "No title"}`,
+              feedInfoInMarkdown: `Removed from **Episode ${episode?.episodeNumberWithPrefix || '#' + (episode?.episodeNumber || 'N/A')}**: ${episode?.title || "No title"}`,
             });
           }
         }

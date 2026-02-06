@@ -2003,6 +2003,7 @@ Just type any of these commands to get the information you need!`;
         select: {
           _id: true,
           incidentNumber: true,
+          incidentNumberWithPrefix: true,
           title: true,
           description: true,
           currentIncidentState: {
@@ -2063,7 +2064,7 @@ If you need to report an incident or check historical incidents, please visit th
             incident.id!,
           );
 
-        message += `${severityIcon} **[Incident #${incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
+        message += `${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || '#' + incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
 • **Severity:** ${severity}
 • **Status:** ${state}
 • **Declared:** ${declaredAtText}
@@ -2124,6 +2125,7 @@ If you need to report an incident or check historical incidents, please visit th
               name: true,
             },
             scheduledMaintenanceNumber: true,
+            scheduledMaintenanceNumberWithPrefix: true,
           },
           sort: {
             startsAt: SortOrder.Ascending,
@@ -2169,7 +2171,7 @@ Check back later for upcoming maintenance windows.`;
             event.id!,
           );
 
-        message += `🛠️ **[Scheduled Maintenance #${event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
+        message += `🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || '#' + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
 • **Status:** ${state}
 • **Starts:** ${startTime}
 • **Ends:** ${endTime}
@@ -2229,6 +2231,7 @@ Check back later for upcoming maintenance windows.`;
               name: true,
             },
             scheduledMaintenanceNumber: true,
+            scheduledMaintenanceNumberWithPrefix: true,
           },
           sort: {
             startsAt: SortOrder.Descending,
@@ -2274,7 +2277,7 @@ All systems are currently operating normally.`;
             event.id!,
           );
 
-        message += `🔧 **[Scheduled Maintenance #${event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
+        message += `🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || '#' + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
 • **Status:** ${state}
 • **Started:** ${startTime}
 • **Expected End:** ${endTime}
@@ -2331,6 +2334,7 @@ All systems are currently operating normally.`;
         select: {
           _id: true,
           alertNumber: true,
+          alertNumberWithPrefix: true,
           title: true,
           description: true,
           currentAlertState: {
@@ -2387,7 +2391,7 @@ All monitoring checks are passing normally.`;
           alert.id!,
         );
 
-        message += `⚠️ **[Alert #${alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
+        message += `⚠️ **[Alert ${alert.alertNumberWithPrefix || '#' + alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
 • **Severity:** ${severity}
 • **Status:** ${state}
 • **Triggered:** ${createdAt}

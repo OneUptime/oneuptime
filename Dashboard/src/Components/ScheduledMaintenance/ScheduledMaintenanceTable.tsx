@@ -440,6 +440,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               scheduledMaintenanceNumber: true,
+              scheduledMaintenanceNumberWithPrefix: true,
             },
             title: "Scheduled Maintenance Number",
             type: FieldType.Text,
@@ -448,7 +449,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>#{item.scheduledMaintenanceNumber}</>;
+              return <>{item.scheduledMaintenanceNumberWithPrefix || `#${item.scheduledMaintenanceNumber}`}</>;
             },
           },
           {

@@ -200,6 +200,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.User,
         },
+        {
+          link: {
+            title: "More Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
       ],
     },
   ];

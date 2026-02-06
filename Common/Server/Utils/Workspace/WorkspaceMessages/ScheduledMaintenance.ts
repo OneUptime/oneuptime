@@ -16,6 +16,7 @@ export default class ScheduledMaintenanceWorkspaceMessages {
     projectId: ObjectID;
     scheduledMaintenanceId: ObjectID;
     scheduledMaintenanceNumber: number;
+    scheduledMaintenanceNumberWithPrefix?: string;
   }): Promise<{
     channelsCreated: NotificationRuleWorkspaceChannel[];
   } | null> {

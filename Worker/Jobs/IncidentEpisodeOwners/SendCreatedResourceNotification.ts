@@ -59,6 +59,7 @@ RunCron(
             email: true,
           },
           episodeNumber: true,
+          episodeNumberWithPrefix: true,
           createdAt: true,
         },
       });
@@ -66,10 +67,10 @@ RunCron(
     for (const episode of episodes) {
       const projectId: ObjectID = episode.projectId!;
       const episodeId: ObjectID = episode.id!;
-      const episodeNumber: number = episode.episodeNumber!;
+      const episodeDisplayNumber: string = episode.episodeNumberWithPrefix || '#' + episode.episodeNumber;
 
       const episodeFeedText: string = `🔔 **Owner Incident Episode Created Notification Sent**:
-      Notification sent to owners because [Incident Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`;
+      Notification sent to owners because [Incident Episode ${episodeDisplayNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`;
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       const episodeCreatedDate: Date = episode.createdAt!;
@@ -110,9 +111,10 @@ RunCron(
         declaredBy = `${episode.createdByUser.name.toString()} (${episode.createdByUser.email.toString()})`;
       }
 
-      const episodeNumberStr: string = episode.episodeNumber
-        ? `#${episode.episodeNumber}`
-        : "";
+      const episodeNumberStr: string = episode.episodeNumberWithPrefix
+        || (episode.episodeNumber
+          ? `#${episode.episodeNumber}`
+          : "");
 
       for (const user of owners) {
         try {
@@ -187,7 +189,7 @@ RunCron(
                 episode_title: episode.title!,
                 project_name: episode.project!.name!,
                 episode_link: vars["episodeViewLink"] || "",
-                episode_number: episodeNumber.toString(),
+                episode_number: episodeDisplayNumber,
               },
             });
 

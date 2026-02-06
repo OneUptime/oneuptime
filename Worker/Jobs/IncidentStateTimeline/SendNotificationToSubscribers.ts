@@ -161,6 +161,7 @@ RunCron(
           },
           isVisibleOnStatusPage: true,
           incidentNumber: true,
+          incidentNumberWithPrefix: true,
         },
       });
 
@@ -627,8 +628,8 @@ RunCron(
         "Notification sent to subscribers for incident state change",
       );
 
-      const incidentNumber: string =
-        incident.incidentNumber?.toString() || " - ";
+      const incidentNumberDisplay: string =
+        incident.incidentNumberWithPrefix || '#' + (incident.incidentNumber?.toString() || " - ");
       const projectId: ObjectID = incident.projectId!;
       const incidentId: ObjectID = incident.id!;
 
@@ -637,7 +638,7 @@ RunCron(
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`,
+        feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`,
         workspaceNotification: {
           sendWorkspaceNotification: true,
         },

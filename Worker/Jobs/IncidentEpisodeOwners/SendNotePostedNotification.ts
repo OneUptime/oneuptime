@@ -90,6 +90,7 @@ RunCron(
               name: true,
             },
             episodeNumber: true,
+            episodeNumberWithPrefix: true,
           },
         });
 
@@ -115,9 +116,10 @@ RunCron(
         continue;
       }
 
-      const episodeNumberStr: string = episode.episodeNumber
-        ? `#${episode.episodeNumber}`
-        : "";
+      const episodeNumberStr: string = episode.episodeNumberWithPrefix
+        || (episode.episodeNumber
+          ? `#${episode.episodeNumber}`
+          : "");
 
       const episodeIdentifier: string =
         episode.episodeNumber !== undefined
@@ -195,9 +197,10 @@ RunCron(
               episode_title: episode.title!,
               episode_link: vars["episodeViewLink"] || "",
               episode_number:
-                episode.episodeNumber !== undefined
+                episode.episodeNumberWithPrefix ||
+                (episode.episodeNumber !== undefined
                   ? episode.episodeNumber.toString()
-                  : "",
+                  : ""),
             },
           });
 
@@ -218,9 +221,9 @@ RunCron(
 
       const projectId: ObjectID = episode.projectId!;
       const episodeId: ObjectID = episode.id!;
-      const episodeNumber: number = episode.episodeNumber!;
+      const episodeDisplayNumber: string = episode.episodeNumberWithPrefix || '#' + episode.episodeNumber;
 
-      const episodeFeedText: string = `🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Incident Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`;
+      const episodeFeedText: string = `🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Incident Episode ${episodeDisplayNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`;
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
         incidentEpisodeId: episode.id!,

@@ -136,10 +136,11 @@ export class Service extends DatabaseService<Model> {
           }
         }
 
-        const incidentNumber: number | null =
+        const incidentNumberResult =
           await IncidentService.getIncidentNumber({
             incidentId: incidentId,
           });
+        const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
 
         if (user && user.name) {
           await IncidentFeedService.createIncidentFeedItem({
@@ -147,7 +148,7 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.IncidentMemberRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👤 Removed **${user.name.toString()}** (${user.email?.toString()}) as **${roleName}** from [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
+            feedInfoInMarkdown: `👤 Removed **${user.name.toString()}** (${user.email?.toString()}) as **${roleName}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -192,10 +193,11 @@ export class Service extends DatabaseService<Model> {
         }
       }
 
-      const incidentNumber: number | null =
+      const incidentNumberResult =
         await IncidentService.getIncidentNumber({
           incidentId: incidentId,
         });
+      const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
 
       if (userId) {
         await IncidentFeedService.createIncidentFeedItem({
@@ -208,7 +210,7 @@ export class Service extends DatabaseService<Model> {
               userId: userId,
               projectId: projectId,
             },
-          )}** as **${roleName}** to [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
+          )}** as **${roleName}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

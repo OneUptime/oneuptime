@@ -20,14 +20,16 @@ export default class PushNotificationUtil {
     projectName: string;
     incidentViewLink: string;
     incidentNumber?: number;
+    incidentNumberWithPrefix?: string;
   }): PushNotificationMessage {
-    const { incidentTitle, projectName, incidentViewLink, incidentNumber } =
+    const { incidentTitle, projectName, incidentViewLink, incidentNumber, incidentNumberWithPrefix } =
       params;
-    const incidentIdentifier: string = incidentNumber
-      ? `#${incidentNumber} (${incidentTitle})`
+    const displayNumber: string = incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
+    const incidentIdentifier: string = displayNumber
+      ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `New Incident${incidentNumber ? ` #${incidentNumber}` : ""}: ${incidentTitle}`,
+      title: `New Incident${displayNumber ? ` ${displayNumber}` : ""}: ${incidentTitle}`,
       body: `A new incident has been created: ${incidentIdentifier} in ${projectName}. Click to view details.`,
       clickAction: incidentViewLink,
       url: incidentViewLink,
@@ -49,6 +51,7 @@ export default class PushNotificationUtil {
     previousState?: string;
     incidentViewLink: string;
     incidentNumber?: number;
+    incidentNumberWithPrefix?: string;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -57,15 +60,17 @@ export default class PushNotificationUtil {
       previousState,
       incidentViewLink,
       incidentNumber,
+      incidentNumberWithPrefix,
     } = params;
-    const incidentIdentifier: string = incidentNumber
-      ? `#${incidentNumber} (${incidentTitle})`
+    const displayNumber: string = incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
+    const incidentIdentifier: string = displayNumber
+      ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
     const stateChangeText: string = previousState
       ? `Incident ${incidentIdentifier} state changed from ${previousState} to ${newState}`
       : `Incident ${incidentIdentifier} state changed to ${newState}`;
     return PushNotificationUtil.applyDefaults({
-      title: `Incident${incidentNumber ? ` #${incidentNumber}` : ""} Updated: ${incidentTitle}`,
+      title: `Incident${displayNumber ? ` ${displayNumber}` : ""} Updated: ${incidentTitle}`,
       body: `${stateChangeText} in ${projectName}. Click to view details.`,
       clickAction: incidentViewLink,
       url: incidentViewLink,
@@ -88,6 +93,7 @@ export default class PushNotificationUtil {
     isPrivateNote: boolean;
     incidentViewLink: string;
     incidentNumber?: number;
+    incidentNumberWithPrefix?: string;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -95,13 +101,15 @@ export default class PushNotificationUtil {
       isPrivateNote,
       incidentViewLink,
       incidentNumber,
+      incidentNumberWithPrefix,
     } = params;
     const noteType: string = isPrivateNote ? "Private" : "Public";
-    const incidentIdentifier: string = incidentNumber
-      ? `#${incidentNumber} (${incidentTitle})`
+    const displayNumber: string = incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
+    const incidentIdentifier: string = displayNumber
+      ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `${noteType} Note Added: Incident${incidentNumber ? ` #${incidentNumber}` : ""} - ${incidentTitle}`,
+      title: `${noteType} Note Added: Incident${displayNumber ? ` ${displayNumber}` : ""} - ${incidentTitle}`,
       body: `A ${noteType.toLowerCase()} note has been posted on incident ${incidentIdentifier} in ${projectName}. Click to view details.`,
       clickAction: incidentViewLink,
       url: incidentViewLink,
@@ -122,13 +130,15 @@ export default class PushNotificationUtil {
     projectName: string;
     alertViewLink: string;
     alertNumber?: number;
+    alertNumberWithPrefix?: string;
   }): PushNotificationMessage {
-    const { alertTitle, projectName, alertViewLink, alertNumber } = params;
-    const alertIdentifier: string = alertNumber
-      ? `#${alertNumber} (${alertTitle})`
+    const { alertTitle, projectName, alertViewLink, alertNumber, alertNumberWithPrefix } = params;
+    const displayNumber: string = alertNumberWithPrefix || (alertNumber ? `#${alertNumber}` : "");
+    const alertIdentifier: string = displayNumber
+      ? `${displayNumber} (${alertTitle})`
       : alertTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `New Alert${alertNumber ? ` #${alertNumber}` : ""}: ${alertTitle}`,
+      title: `New Alert${displayNumber ? ` ${displayNumber}` : ""}: ${alertTitle}`,
       body: `A new alert has been created: ${alertIdentifier} in ${projectName}. Click to view details.`,
       clickAction: alertViewLink,
       url: alertViewLink,
@@ -148,18 +158,21 @@ export default class PushNotificationUtil {
     projectName: string;
     alertEpisodeViewLink: string;
     episodeNumber?: number;
+    episodeNumberWithPrefix?: string;
   }): PushNotificationMessage {
     const {
       alertEpisodeTitle,
       projectName,
       alertEpisodeViewLink,
       episodeNumber,
+      episodeNumberWithPrefix,
     } = params;
-    const episodeIdentifier: string = episodeNumber
-      ? `#${episodeNumber} (${alertEpisodeTitle})`
+    const displayNumber: string = episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
+    const episodeIdentifier: string = displayNumber
+      ? `${displayNumber} (${alertEpisodeTitle})`
       : alertEpisodeTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `New Alert Episode${episodeNumber ? ` #${episodeNumber}` : ""}: ${alertEpisodeTitle}`,
+      title: `New Alert Episode${displayNumber ? ` ${displayNumber}` : ""}: ${alertEpisodeTitle}`,
       body: `A new alert episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
       clickAction: alertEpisodeViewLink,
       url: alertEpisodeViewLink,
@@ -179,18 +192,21 @@ export default class PushNotificationUtil {
     projectName: string;
     incidentEpisodeViewLink: string;
     episodeNumber?: number;
+    episodeNumberWithPrefix?: string;
   }): PushNotificationMessage {
     const {
       incidentEpisodeTitle,
       projectName,
       incidentEpisodeViewLink,
       episodeNumber,
+      episodeNumberWithPrefix,
     } = params;
-    const episodeIdentifier: string = episodeNumber
-      ? `#${episodeNumber} (${incidentEpisodeTitle})`
+    const displayNumber: string = episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
+    const episodeIdentifier: string = displayNumber
+      ? `${displayNumber} (${incidentEpisodeTitle})`
       : incidentEpisodeTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `New Incident Episode${episodeNumber ? ` #${episodeNumber}` : ""}: ${incidentEpisodeTitle}`,
+      title: `New Incident Episode${displayNumber ? ` ${displayNumber}` : ""}: ${incidentEpisodeTitle}`,
       body: `A new incident episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
       clickAction: incidentEpisodeViewLink,
       url: incidentEpisodeViewLink,
@@ -246,14 +262,16 @@ export default class PushNotificationUtil {
     state: string;
     viewLink: string;
     scheduledMaintenanceNumber?: number;
+    scheduledMaintenanceNumberWithPrefix?: string;
   }): PushNotificationMessage {
-    const { title, projectName, state, viewLink, scheduledMaintenanceNumber } =
+    const { title, projectName, state, viewLink, scheduledMaintenanceNumber, scheduledMaintenanceNumberWithPrefix } =
       params;
-    const maintenanceIdentifier: string = scheduledMaintenanceNumber
-      ? `#${scheduledMaintenanceNumber} (${title})`
+    const displayNumber: string = scheduledMaintenanceNumberWithPrefix || (scheduledMaintenanceNumber ? `#${scheduledMaintenanceNumber}` : "");
+    const maintenanceIdentifier: string = displayNumber
+      ? `${displayNumber} (${title})`
       : title;
     return PushNotificationUtil.applyDefaults({
-      title: `Scheduled Maintenance${scheduledMaintenanceNumber ? ` #${scheduledMaintenanceNumber}` : ""} ${state}: ${title}`,
+      title: `Scheduled Maintenance${displayNumber ? ` ${displayNumber}` : ""} ${state}: ${title}`,
       body: `Scheduled maintenance ${maintenanceIdentifier} ${state.toLowerCase()} in ${projectName}. Click to view details.`,
       clickAction: viewLink,
       url: viewLink,

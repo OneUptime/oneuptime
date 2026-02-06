@@ -169,6 +169,7 @@ const ActiveAlertEpisodes: FunctionComponent<
           {
             field: {
               episodeNumber: true,
+              episodeNumberWithPrefix: true,
             },
             title: "Episode #",
             type: FieldType.Text,
@@ -176,7 +177,7 @@ const ActiveAlertEpisodes: FunctionComponent<
               if (!item.episodeNumber) {
                 return <>-</>;
               }
-              return <>#{item.episodeNumber}</>;
+              return <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>;
             },
           },
           {
