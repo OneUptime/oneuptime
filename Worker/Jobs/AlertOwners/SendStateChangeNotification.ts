@@ -85,6 +85,7 @@ RunCron(
             name: true,
           },
           alertNumber: true,
+          alertNumberWithPrefix: true,
         },
       });
 
@@ -200,9 +201,8 @@ RunCron(
 
       let moreAlertFeedInformationInMarkdown: string = "";
 
-      const alertNumberStr: string = alert.alertNumber
-        ? `#${alert.alertNumber}`
-        : "";
+      const alertNumberStr: string = alert.alertNumberWithPrefix
+        || (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
       for (const user of owners) {
         const alertIdentifier: string =
@@ -323,7 +323,7 @@ RunCron(
         )})\n`;
       }
 
-      const alertNumber: number = alert.alertNumber!;
+      const alertDisplayNumber: string = alert.alertNumberWithPrefix || '#' + alert.alertNumber!;
       const projectId: ObjectID = alert.projectId!;
 
       await AlertFeedService.createAlertFeedItem({
@@ -331,7 +331,7 @@ RunCron(
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`,
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,
