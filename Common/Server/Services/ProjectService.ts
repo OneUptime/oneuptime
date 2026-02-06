@@ -81,7 +81,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseConfig from "../DatabaseConfig";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Semaphore from "../Infrastructure/Semaphore";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -1594,7 +1594,7 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetIncidentCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    const mutex = await Semaphore.lock({
+    const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.incidentCounter",
     });
@@ -1631,7 +1631,7 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetAlertCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    const mutex = await Semaphore.lock({
+    const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.alertCounter",
     });
@@ -1668,7 +1668,7 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetScheduledMaintenanceCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    const mutex = await Semaphore.lock({
+    const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.scheduledMaintenanceCounter",
     });
@@ -1705,7 +1705,7 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetIncidentEpisodeCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    const mutex = await Semaphore.lock({
+    const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.incidentEpisodeCounter",
     });
@@ -1742,7 +1742,7 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetAlertEpisodeCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    const mutex = await Semaphore.lock({
+    const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.alertEpisodeCounter",
     });

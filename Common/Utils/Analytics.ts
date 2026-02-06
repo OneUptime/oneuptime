@@ -39,14 +39,14 @@ export default class Analytics {
 
     // PostHog tracking
     posthog.capture(eventName, data);
-    
+
     // GA4 tracking via dataLayer (for Google Analytics conversion tracking)
-    if (typeof window !== 'undefined' && (window as any).dataLayer) {
+    if (typeof window !== "undefined" && (window as any).dataLayer) {
       (window as any).dataLayer.push({
         event: eventName,
-        eventCategory: 'analytics',
+        eventCategory: "analytics",
         eventAction: eventName,
-        ...(data || {})
+        ...(data || {}),
       });
     }
   }
