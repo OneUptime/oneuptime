@@ -50,6 +50,7 @@ export default class MonitorAlert {
         createdCriteriaId: true,
         projectId: true,
         alertNumber: true,
+        alertNumberWithPrefix: true,
       },
       props: {
         isRoot: true,
@@ -81,6 +82,7 @@ export default class MonitorAlert {
             "Alert auto-resolved because autoresolve is enabled for this criteria.",
           relatedAlertId: openAlert.id?.toString(),
           relatedAlertNumber: openAlert.alertNumber,
+          relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
           relatedCriteriaId: input.criteriaInstance?.data?.id,
           at: OneUptimeDate.getCurrentDate(),
         });
@@ -150,6 +152,7 @@ export default class MonitorAlert {
             relatedCriteriaId: input.criteriaInstance.data?.id,
             relatedAlertId: alreadyOpenAlert?.id?.toString(),
             relatedAlertNumber: alreadyOpenAlert?.alertNumber,
+            relatedAlertNumberWithPrefix: alreadyOpenAlert?.alertNumberWithPrefix,
             at: OneUptimeDate.getCurrentDate(),
           });
           continue;
@@ -292,6 +295,7 @@ export default class MonitorAlert {
           relatedCriteriaId: input.criteriaInstance.data?.id,
           relatedAlertId: createdAlert.id?.toString(),
           relatedAlertNumber: createdAlert.alertNumber,
+          relatedAlertNumberWithPrefix: createdAlert.alertNumberWithPrefix,
           at: OneUptimeDate.getCurrentDate(),
         });
       }

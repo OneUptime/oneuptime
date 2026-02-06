@@ -335,14 +335,14 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         event.relatedIncidentNumber !== undefined &&
         event.relatedIncidentNumber !== null
       ) {
-        return `Incident #${event.relatedIncidentNumber}`;
+        return `Incident ${event.relatedIncidentNumberWithPrefix || '#' + event.relatedIncidentNumber}`;
       }
 
       if (
         event.relatedAlertNumber !== undefined &&
         event.relatedAlertNumber !== null
       ) {
-        return `Alert #${event.relatedAlertNumber}`;
+        return `Alert ${event.relatedAlertNumberWithPrefix || '#' + event.relatedAlertNumber}`;
       }
 
       return null;

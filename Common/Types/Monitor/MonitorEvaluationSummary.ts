@@ -37,8 +37,10 @@ export interface MonitorEvaluationEvent {
   relatedCriteriaId?: string | undefined;
   relatedIncidentId?: string | undefined;
   relatedIncidentNumber?: number | undefined;
+  relatedIncidentNumberWithPrefix?: string | undefined;
   relatedAlertId?: string | undefined;
   relatedAlertNumber?: number | undefined;
+  relatedAlertNumberWithPrefix?: string | undefined;
   at?: Date | undefined;
 }
 
