@@ -81,6 +81,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseConfig from "../DatabaseConfig";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PositiveNumber from "../../Types/PositiveNumber";
+import Semaphore from "../Infrastructure/Semaphore";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -1593,140 +1594,185 @@ export class ProjectService extends DatabaseService<Model> {
   public async incrementAndGetIncidentCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    await this.atomicIncrementColumnValueByOne({
-      id: projectId,
-      columnName: "incidentCounter",
+    const mutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "ProjectService.incidentCounter",
     });
 
-    const project: Model | null = await this.findOneById({
-      id: projectId,
-      select: {
-        incidentCounter: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await this.atomicIncrementColumnValueByOne({
+        id: projectId,
+        columnName: "incidentCounter",
+      });
 
-    if (!project || project.incidentCounter === undefined) {
-      throw new BadDataException(
-        `Could not read incidentCounter for project ${projectId.toString()}`,
-      );
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: {
+          incidentCounter: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project || project.incidentCounter === undefined) {
+        throw new BadDataException(
+          `Could not read incidentCounter for project ${projectId.toString()}`,
+        );
+      }
+
+      return project.incidentCounter;
+    } finally {
+      await Semaphore.release(mutex);
     }
-
-    return project.incidentCounter;
   }
 
   @CaptureSpan()
   public async incrementAndGetAlertCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    await this.atomicIncrementColumnValueByOne({
-      id: projectId,
-      columnName: "alertCounter",
+    const mutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "ProjectService.alertCounter",
     });
 
-    const project: Model | null = await this.findOneById({
-      id: projectId,
-      select: {
-        alertCounter: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await this.atomicIncrementColumnValueByOne({
+        id: projectId,
+        columnName: "alertCounter",
+      });
 
-    if (!project || project.alertCounter === undefined) {
-      throw new BadDataException(
-        `Could not read alertCounter for project ${projectId.toString()}`,
-      );
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: {
+          alertCounter: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project || project.alertCounter === undefined) {
+        throw new BadDataException(
+          `Could not read alertCounter for project ${projectId.toString()}`,
+        );
+      }
+
+      return project.alertCounter;
+    } finally {
+      await Semaphore.release(mutex);
     }
-
-    return project.alertCounter;
   }
 
   @CaptureSpan()
   public async incrementAndGetScheduledMaintenanceCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    await this.atomicIncrementColumnValueByOne({
-      id: projectId,
-      columnName: "scheduledMaintenanceCounter",
+    const mutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "ProjectService.scheduledMaintenanceCounter",
     });
 
-    const project: Model | null = await this.findOneById({
-      id: projectId,
-      select: {
-        scheduledMaintenanceCounter: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await this.atomicIncrementColumnValueByOne({
+        id: projectId,
+        columnName: "scheduledMaintenanceCounter",
+      });
 
-    if (!project || project.scheduledMaintenanceCounter === undefined) {
-      throw new BadDataException(
-        `Could not read scheduledMaintenanceCounter for project ${projectId.toString()}`,
-      );
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: {
+          scheduledMaintenanceCounter: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project || project.scheduledMaintenanceCounter === undefined) {
+        throw new BadDataException(
+          `Could not read scheduledMaintenanceCounter for project ${projectId.toString()}`,
+        );
+      }
+
+      return project.scheduledMaintenanceCounter;
+    } finally {
+      await Semaphore.release(mutex);
     }
-
-    return project.scheduledMaintenanceCounter;
   }
 
   @CaptureSpan()
   public async incrementAndGetIncidentEpisodeCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    await this.atomicIncrementColumnValueByOne({
-      id: projectId,
-      columnName: "incidentEpisodeCounter",
+    const mutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "ProjectService.incidentEpisodeCounter",
     });
 
-    const project: Model | null = await this.findOneById({
-      id: projectId,
-      select: {
-        incidentEpisodeCounter: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await this.atomicIncrementColumnValueByOne({
+        id: projectId,
+        columnName: "incidentEpisodeCounter",
+      });
 
-    if (!project || project.incidentEpisodeCounter === undefined) {
-      throw new BadDataException(
-        `Could not read incidentEpisodeCounter for project ${projectId.toString()}`,
-      );
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: {
+          incidentEpisodeCounter: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project || project.incidentEpisodeCounter === undefined) {
+        throw new BadDataException(
+          `Could not read incidentEpisodeCounter for project ${projectId.toString()}`,
+        );
+      }
+
+      return project.incidentEpisodeCounter;
+    } finally {
+      await Semaphore.release(mutex);
     }
-
-    return project.incidentEpisodeCounter;
   }
 
   @CaptureSpan()
   public async incrementAndGetAlertEpisodeCounter(
     projectId: ObjectID,
   ): Promise<number> {
-    await this.atomicIncrementColumnValueByOne({
-      id: projectId,
-      columnName: "alertEpisodeCounter",
+    const mutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "ProjectService.alertEpisodeCounter",
     });
 
-    const project: Model | null = await this.findOneById({
-      id: projectId,
-      select: {
-        alertEpisodeCounter: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    try {
+      await this.atomicIncrementColumnValueByOne({
+        id: projectId,
+        columnName: "alertEpisodeCounter",
+      });
 
-    if (!project || project.alertEpisodeCounter === undefined) {
-      throw new BadDataException(
-        `Could not read alertEpisodeCounter for project ${projectId.toString()}`,
-      );
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: {
+          alertEpisodeCounter: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project || project.alertEpisodeCounter === undefined) {
+        throw new BadDataException(
+          `Could not read alertEpisodeCounter for project ${projectId.toString()}`,
+        );
+      }
+
+      return project.alertEpisodeCounter;
+    } finally {
+      await Semaphore.release(mutex);
     }
-
-    return project.alertEpisodeCounter;
   }
 
   @CaptureSpan()

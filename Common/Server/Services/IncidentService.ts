@@ -44,9 +44,6 @@ import Metric, {
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import logger from "../Utils/Logger";
-import Semaphore, {
-  SemaphoreMutex,
-} from "../../Server/Infrastructure/Semaphore";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -565,32 +562,6 @@ export class Service extends DatabaseService<Model> {
       initialIncidentStateId = incidentState.id;
     }
 
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: projectId.toString(),
-        namespace: "IncidentService.incident-create",
-        lockTimeout: 15000,
-        acquireTimeout: 20000,
-      });
-
-      logger.debug(
-        "Mutex acquired - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
-      );
-    } catch (err) {
-      logger.debug(
-        "Mutex acquire failed - IncidentService.incident-create " +
-          projectId.toString() +
-          " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
-      );
-      logger.error(err);
-    }
-
     const incidentNumberForThisIncident: number =
       await ProjectService.incrementAndGetIncidentCounter(projectId);
 
@@ -642,9 +613,7 @@ export class Service extends DatabaseService<Model> {
 
     return {
       createBy,
-      carryForward: {
-        mutex: mutex,
-      },
+      carryForward: null,
     };
   }
 
@@ -700,9 +669,6 @@ export class Service extends DatabaseService<Model> {
     if (!incident) {
       throw new BadDataException("Incident not found");
     }
-
-    // Release mutex immediately
-    this.releaseMutexAsync(onCreate, createdItem.projectId!);
 
     // Execute operations sequentially with error handling
     Promise.resolve()
@@ -1062,37 +1028,6 @@ ${incident.remediationNotes || "No remediation notes provided."}
     } catch (error) {
       logger.error(`Error in handleMonitorStatusChangeAsync: ${error}`);
       throw error;
-    }
-  }
-
-  @CaptureSpan()
-  private releaseMutexAsync(
-    onCreate: OnCreate<Model>,
-    projectId: ObjectID,
-  ): void {
-    // Release mutex in background without blocking
-    if (onCreate.carryForward && onCreate.carryForward.mutex) {
-      const mutex: SemaphoreMutex = onCreate.carryForward.mutex;
-
-      setImmediate(async () => {
-        try {
-          await Semaphore.release(mutex);
-          logger.debug(
-            "Mutex released - IncidentService.incident-create " +
-              projectId.toString() +
-              " at " +
-              OneUptimeDate.getCurrentDateAsFormattedString(),
-          );
-        } catch (err) {
-          logger.debug(
-            "Mutex release failed - IncidentService.incident-create " +
-              projectId.toString() +
-              " at " +
-              OneUptimeDate.getCurrentDateAsFormattedString(),
-          );
-          logger.error(err);
-        }
-      });
     }
   }
 

@@ -60,7 +60,6 @@ import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService
 import ScheduledMaintenanceWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ProjectService from "./ProjectService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "./StatusPageSubscriberNotificationTemplateService";
@@ -724,17 +723,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     createBy.data.currentScheduledMaintenanceStateId =
       scheduledMaintenanceState.id;
 
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: projectId.toString(),
-        namespace: "ScheduledMaintenanceService.create",
-      });
-    } catch (err) {
-      logger.error(err);
-    }
-
     const scheduledMaintenanceNumberForThisScheduledMaintenance: number =
       await ProjectService.incrementAndGetScheduledMaintenanceCounter(
         projectId,
@@ -778,7 +766,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         StatusPageSubscriberNotificationStatus.Pending;
     }
 
-    return { createBy, carryForward: { mutex } };
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -786,16 +774,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    // Release the mutex acquired in onBeforeCreate
-    const mutex: SemaphoreMutex | null = onCreate.carryForward?.mutex || null;
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
     // Get scheduled maintenance data for feed creation
     const scheduledMaintenance: Model | null = await this.findOneById({
       id: createdItem.id!,

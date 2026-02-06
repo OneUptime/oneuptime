@@ -56,7 +56,6 @@ import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertGroupingEngineService from "./AlertGroupingEngineService";
 import ProjectService from "./ProjectService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -195,17 +194,6 @@ export class Service extends DatabaseService<Model> {
 
     createBy.data.currentAlertStateId = alertState.id;
 
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: projectId.toString(),
-        namespace: "AlertService.alert-create",
-      });
-    } catch (err) {
-      logger.error(err);
-    }
-
     const alertNumberForThisAlert: number =
       await ProjectService.incrementAndGetAlertCounter(projectId);
 
@@ -237,7 +225,7 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return { createBy, carryForward: { mutex } };
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -245,16 +233,6 @@ export class Service extends DatabaseService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    // Release the mutex acquired in onBeforeCreate
-    const mutex: SemaphoreMutex | null = onCreate.carryForward?.mutex || null;
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
     }
