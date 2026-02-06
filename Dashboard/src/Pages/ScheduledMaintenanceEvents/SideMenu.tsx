@@ -125,6 +125,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.TableCells,
         },
+        {
+          link: {
+            title: "More Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
       ],
     },
   ];

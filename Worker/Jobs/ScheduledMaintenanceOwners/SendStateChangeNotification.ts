@@ -60,6 +60,7 @@ RunCron(
             description: true,
             projectId: true,
             scheduledMaintenanceNumber: true,
+            scheduledMaintenanceNumberWithPrefix: true,
           },
           scheduledMaintenanceStateId: true,
           scheduledMaintenanceState: {
@@ -175,9 +176,10 @@ RunCron(
       }
 
       const scheduledMaintenanceNumberStr: string =
-        scheduledMaintenance.scheduledMaintenanceNumber
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        (scheduledMaintenance.scheduledMaintenanceNumber
           ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-          : "";
+          : "");
 
       for (const user of owners) {
         // Build the "Was X for Y" string
@@ -269,8 +271,9 @@ RunCron(
               event_state: scheduledMaintenanceState!.name!,
               maintenance_link: vars["scheduledMaintenanceViewLink"] || "",
               event_number:
-                scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
-                "N/A",
+                scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+                (scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
+                  "N/A"),
             },
           });
 
@@ -294,8 +297,9 @@ RunCron(
         )})\n`;
       }
 
-      const scheduledMaintenanceNumber: number =
-        scheduledMaintenance.scheduledMaintenanceNumber!;
+      const scheduledMaintenanceDisplayNumber: string =
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        "#" + scheduledMaintenance.scheduledMaintenanceNumber;
       const projectId: ObjectID = scheduledMaintenance.projectId!;
       const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
 
@@ -305,7 +309,7 @@ RunCron(
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`,
         moreInformationInMarkdown:
           moreScheduledMaintenanceFeedInformationInMarkdown,
         workspaceNotification: {

@@ -387,6 +387,7 @@ const IncidentView: FunctionComponent<
         ]}
         modelDetailProps={{
           selectMoreFields: {
+            incidentNumberWithPrefix: true,
             createdByUser: {
               _id: true,
               name: true,
@@ -433,6 +434,7 @@ const IncidentView: FunctionComponent<
             {
               field: {
                 incidentNumber: true,
+                incidentNumberWithPrefix: true,
               },
               title: "Incident Number",
               fieldType: FieldType.Element,
@@ -459,7 +461,8 @@ const IncidentView: FunctionComponent<
                       </svg>
                     </div>
                     <span className="text-lg font-semibold text-gray-700">
-                      #{item.incidentNumber}
+                      {item.incidentNumberWithPrefix ||
+                        `#${item.incidentNumber}`}
                     </span>
                   </div>
                 );

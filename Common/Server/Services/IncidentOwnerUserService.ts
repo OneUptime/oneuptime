@@ -73,10 +73,15 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        const incidentNumber: number | null =
-          await IncidentService.getIncidentNumber({
-            incidentId: incidentId,
-          });
+        const incidentNumberResult: {
+          number: number | null;
+          numberWithPrefix: string | null;
+        } = await IncidentService.getIncidentNumber({
+          incidentId: incidentId,
+        });
+        const incidentNumberDisplay: string =
+          incidentNumberResult.numberWithPrefix ||
+          "#" + incidentNumberResult.number;
 
         if (user && user.name) {
           await IncidentFeedService.createIncidentFeedItem({
@@ -84,7 +89,7 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -112,10 +117,15 @@ export class Service extends DatabaseService<Model> {
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (incidentId && userId && projectId) {
-      const incidentNumber: number | null =
-        await IncidentService.getIncidentNumber({
-          incidentId: incidentId,
-        });
+      const incidentNumberResult: {
+        number: number | null;
+        numberWithPrefix: string | null;
+      } = await IncidentService.getIncidentNumber({
+        incidentId: incidentId,
+      });
+      const incidentNumberDisplay: string =
+        incidentNumberResult.numberWithPrefix ||
+        "#" + incidentNumberResult.number;
 
       if (userId) {
         await IncidentFeedService.createIncidentFeedItem({
@@ -128,7 +138,7 @@ export class Service extends DatabaseService<Model> {
               userId: userId,
               projectId: projectId,
             },
-          )}** to the [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
+          )}** to the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

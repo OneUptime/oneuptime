@@ -138,6 +138,12 @@ const AlertSettingsGroupingRules: LazyExoticComponent<
   return import("../Pages/Alerts/Settings/AlertGroupingRules");
 });
 
+const AlertSettingsMore: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/Settings/AlertMoreSettings");
+});
+
 // Episode Pages
 const Episodes: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
   () => {
@@ -365,6 +371,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.ALERTS_SETTINGS_GROUPING_RULES] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertSettingsMore
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route}
               />
             </Suspense>
           }

@@ -167,36 +167,48 @@ export class Service extends DatabaseService<Model> {
             onCallDutyPolicyExecutionLogTimeline.projectId;
           const incidentId: ObjectID | undefined =
             onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId;
-          const incidentNumber: number | null =
-            await IncidentService.getIncidentNumber({
-              incidentId: incidentId,
-            });
-          incidentOrAlertLink = `[Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
+          const incidentNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await IncidentService.getIncidentNumber({
+            incidentId: incidentId,
+          });
+          const incidentNumberDisplay: string =
+            incidentNumberResult.numberWithPrefix ||
+            "#" + incidentNumberResult.number;
+          incidentOrAlertLink = `[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
-          const alertNumber: number | null = await AlertService.getAlertNumber({
+          const alertNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await AlertService.getAlertNumber({
             alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
           });
-          incidentOrAlertLink = `[Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId)).toString()})`;
+          incidentOrAlertLink = `[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId) {
-          const episodeNumber: number | null =
-            await AlertEpisodeService.getEpisodeNumber({
-              episodeId:
-                onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId,
-            });
-          incidentOrAlertLink = `[Alert Episode ${episodeNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId)).toString()})`;
+          const alertEpisodeNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await AlertEpisodeService.getEpisodeNumber({
+            episodeId:
+              onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId,
+          });
+          incidentOrAlertLink = `[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId) {
-          const episodeNumber: number | null =
-            await IncidentEpisodeService.getEpisodeNumber({
-              episodeId:
-                onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId,
-            });
-          incidentOrAlertLink = `[Incident Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
+          const incidentEpisodeNumberResult: {
+            number: number | null;
+            numberWithPrefix: string | null;
+          } = await IncidentEpisodeService.getEpisodeNumber({
+            episodeId:
+              onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId,
+          });
+          incidentOrAlertLink = `[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
         let feedInfoInMarkdown: string = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} to ${await UserService.getUserMarkdownString(

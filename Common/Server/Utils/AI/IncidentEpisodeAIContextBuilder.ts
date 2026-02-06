@@ -48,6 +48,7 @@ export default class IncidentEpisodeAIContextBuilder {
           rootCause: true,
           projectId: true,
           episodeNumber: true,
+          episodeNumberWithPrefix: true,
           incidentSeverity: {
             name: true,
             color: true,
@@ -141,6 +142,7 @@ export default class IncidentEpisodeAIContextBuilder {
             title: true,
             description: true,
             incidentNumber: true,
+            incidentNumberWithPrefix: true,
             createdAt: true,
             rootCause: true,
             remediationNotes: true,
@@ -230,7 +232,7 @@ export default class IncidentEpisodeAIContextBuilder {
 
     // Basic episode information
     contextText += "# Incident Episode Information\n\n";
-    contextText += `**Episode Number:** #${episode.episodeNumber || "N/A"}\n\n`;
+    contextText += `**Episode Number:** ${episode.episodeNumberWithPrefix || "#" + (episode.episodeNumber || "N/A")}\n\n`;
     contextText += `**Title:** ${episode.title || "N/A"}\n\n`;
     contextText += `**Description:** ${episode.description || "N/A"}\n\n`;
     contextText += `**Severity:** ${episode.incidentSeverity?.name || "N/A"}\n\n`;
@@ -269,7 +271,7 @@ export default class IncidentEpisodeAIContextBuilder {
           continue;
         }
 
-        contextText += `## Incident #${incident.incidentNumber || "N/A"}: ${incident.title || "Untitled"}\n\n`;
+        contextText += `## Incident ${incident.incidentNumberWithPrefix || "#" + (incident.incidentNumber || "N/A")}: ${incident.title || "Untitled"}\n\n`;
         contextText += `- **Severity:** ${incident.incidentSeverity?.name || "N/A"}\n`;
         contextText += `- **State:** ${incident.currentIncidentState?.name || "N/A"}\n`;
         contextText += `- **Created:** ${incident.createdAt ? OneUptimeDate.getDateAsFormattedString(incident.createdAt) : "N/A"}\n`;

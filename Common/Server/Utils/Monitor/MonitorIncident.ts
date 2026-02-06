@@ -56,6 +56,7 @@ export default class MonitorIncident {
         createdIncidentTemplateId: true,
         projectId: true,
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
       },
       props: {
         isRoot: true,
@@ -87,6 +88,8 @@ export default class MonitorIncident {
             "Incident auto-resolved because autoresolve is enabled for this criteria.",
           relatedIncidentId: openIncident.id?.toString(),
           relatedIncidentNumber: openIncident.incidentNumber,
+          relatedIncidentNumberWithPrefix:
+            openIncident.incidentNumberWithPrefix,
           relatedCriteriaId: input.criteriaInstance?.data?.id,
           at: OneUptimeDate.getCurrentDate(),
         });
@@ -161,6 +164,8 @@ export default class MonitorIncident {
             relatedCriteriaId: input.criteriaInstance.data?.id,
             relatedIncidentId: alreadyOpenIncident?.id?.toString(),
             relatedIncidentNumber: alreadyOpenIncident?.incidentNumber,
+            relatedIncidentNumberWithPrefix:
+              alreadyOpenIncident?.incidentNumberWithPrefix,
             at: OneUptimeDate.getCurrentDate(),
           });
           continue;
@@ -353,6 +358,8 @@ export default class MonitorIncident {
           relatedCriteriaId: input.criteriaInstance.data?.id,
           relatedIncidentId: createdIncident.id?.toString(),
           relatedIncidentNumber: createdIncident.incidentNumber,
+          relatedIncidentNumberWithPrefix:
+            createdIncident.incidentNumberWithPrefix,
           at: OneUptimeDate.getCurrentDate(),
         });
       }

@@ -150,6 +150,7 @@ const EpisodeIncidents: FunctionComponent<
           field: {
             incident: {
               incidentNumber: true,
+              incidentNumberWithPrefix: true,
             },
           },
           title: "Incident #",
@@ -158,7 +159,12 @@ const EpisodeIncidents: FunctionComponent<
             if (!item.incident?.incidentNumber) {
               return <>-</>;
             }
-            return <>#{item.incident.incidentNumber}</>;
+            return (
+              <>
+                {item.incident.incidentNumberWithPrefix ||
+                  `#${item.incident.incidentNumber}`}
+              </>
+            );
           },
         },
         {

@@ -400,7 +400,10 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       stateEmoji = "🔴";
     }
 
-    const alertNumber: number | null = await AlertService.getAlertNumber({
+    const alertNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await AlertService.getAlertNumber({
       alertId: createdItem.alertId,
     });
 
@@ -414,7 +417,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       displayColor: alertState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
+        ` Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
         stateName +
         "**",
       moreInformationInMarkdown: `**Cause:** 
@@ -464,7 +467,7 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Alert ${alertNumber}](${(
+          text: `**[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(
             await AlertService.getAlertLinkInDashboard(
               createdItem.projectId!,
               createdItem.alertId!,

@@ -436,6 +436,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        selectMoreFields={{
+          scheduledMaintenanceNumberWithPrefix: true,
+        }}
         columns={[
           {
             field: {
@@ -448,7 +451,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>#{item.scheduledMaintenanceNumber}</>;
+              return (
+                <>
+                  {item.scheduledMaintenanceNumberWithPrefix ||
+                    `#${item.scheduledMaintenanceNumber}`}
+                </>
+              );
             },
           },
           {

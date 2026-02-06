@@ -61,6 +61,7 @@ const ActiveIncidentEpisodes: FunctionComponent<
         }
         selectMoreFields={{
           projectId: true,
+          episodeNumberWithPrefix: true,
         }}
         isEditable={false}
         showRefreshButton={true}
@@ -169,6 +170,7 @@ const ActiveIncidentEpisodes: FunctionComponent<
           {
             field: {
               episodeNumber: true,
+              episodeNumberWithPrefix: true,
             },
             title: "Episode #",
             type: FieldType.Text,
@@ -176,7 +178,9 @@ const ActiveIncidentEpisodes: FunctionComponent<
               if (!item.episodeNumber) {
                 return <>-</>;
               }
-              return <>#{item.episodeNumber}</>;
+              return (
+                <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>
+              );
             },
           },
           {

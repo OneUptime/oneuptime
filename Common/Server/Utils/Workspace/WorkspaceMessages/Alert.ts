@@ -16,6 +16,7 @@ export default class AlertWorkspaceMessages {
     projectId: ObjectID;
     alertId: ObjectID;
     alertNumber: number;
+    alertNumberWithPrefix?: string;
   }): Promise<{
     channelsCreated: NotificationRuleWorkspaceChannel[];
   } | null> {

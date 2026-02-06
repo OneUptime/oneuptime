@@ -61,6 +61,7 @@ const ActiveAlerts: FunctionComponent<
         }
         selectMoreFields={{
           projectId: true,
+          alertNumberWithPrefix: true,
         }}
         isEditable={false}
         showRefreshButton={true}
@@ -169,9 +170,18 @@ const ActiveAlerts: FunctionComponent<
           {
             field: {
               alertNumber: true,
+              alertNumberWithPrefix: true,
             },
             title: "Alert Number",
-            type: FieldType.Number,
+            type: FieldType.Text,
+            getElement: (item: Alert): ReactElement => {
+              if (!item.alertNumber) {
+                return <>-</>;
+              }
+              return (
+                <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>
+              );
+            },
           },
           {
             field: {

@@ -352,6 +352,9 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        selectMoreFields={{
+          episodeNumberWithPrefix: true,
+        }}
         columns={[
           {
             field: {
@@ -364,7 +367,9 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>#{item.episodeNumber}</>;
+              return (
+                <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>
+              );
             },
           },
           {

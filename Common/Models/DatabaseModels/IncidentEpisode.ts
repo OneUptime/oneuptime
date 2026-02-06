@@ -260,6 +260,32 @@ export default class IncidentEpisode extends BaseModel {
   public episodeNumber?: number = undefined;
 
   @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentEpisode,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Episode Number With Prefix",
+    description: "Episode number with prefix (e.g., 'IE-42' or '#42')",
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public episodeNumberWithPrefix?: string = undefined;
+
+  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

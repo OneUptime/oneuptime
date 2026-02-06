@@ -163,6 +163,14 @@ const ScheduledMaintenanceSettingsCustomFields: LazyExoticComponent<
   );
 });
 
+const ScheduledMaintenanceSettingsMore: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import(
+    "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMoreSettings"
+  );
+});
+
 const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -393,6 +401,26 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceSettingsMore
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
                   ] as Route
                 }
               />

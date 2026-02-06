@@ -66,16 +66,18 @@ RunCron(
           email: true,
         },
         alertNumber: true,
+        alertNumberWithPrefix: true,
       },
     });
 
     for (const alert of alerts) {
       const projectId: ObjectID = alert.projectId!;
       const alertId: ObjectID = alert.id!;
-      const alertNumber: number = alert.alertNumber!;
+      const alertDisplayNumber: string =
+        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
 
       const alertFeedText: string = `🔔 **Owner Alert Created Notification Sent**:
-      Notification sent to owners because [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`;
+      Notification sent to owners because [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`;
       let moreAlertFeedInformationInMarkdown: string = "";
 
       const alertIdentifiedDate: Date =
@@ -122,15 +124,15 @@ RunCron(
         declaredBy = `${alert.createdByUser.name.toString()} (${alert.createdByUser.email.toString()})`;
       }
 
-      const alertNumberStr: string = alert.alertNumber
-        ? `#${alert.alertNumber}`
-        : "";
+      const alertNumberStr: string =
+        alert.alertNumberWithPrefix ||
+        (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
       for (const user of owners) {
         try {
           const alertIdentifier: string =
             alert.alertNumber !== undefined
-              ? `#${alert.alertNumber} (${alert.title})`
+              ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title})`
               : alert.title!;
 
           const vars: Dictionary<string> = {
@@ -211,7 +213,7 @@ RunCron(
                 alert_title: alert.title!,
                 project_name: alert.project!.name!,
                 alert_link: vars["alertViewLink"] || "",
-                alert_number: alertNumber.toString(),
+                alert_number: alert.alertNumber!.toString(),
               },
             });
 

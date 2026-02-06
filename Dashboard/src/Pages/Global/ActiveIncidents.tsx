@@ -61,6 +61,7 @@ const ActiveIncidents: FunctionComponent<
         }
         selectMoreFields={{
           projectId: true,
+          incidentNumberWithPrefix: true,
         }}
         isEditable={false}
         showRefreshButton={true}
@@ -169,9 +170,20 @@ const ActiveIncidents: FunctionComponent<
           {
             field: {
               incidentNumber: true,
+              incidentNumberWithPrefix: true,
             },
             title: "Incident Number",
-            type: FieldType.Number,
+            type: FieldType.Text,
+            getElement: (item: Incident): ReactElement => {
+              if (!item.incidentNumber) {
+                return <>-</>;
+              }
+              return (
+                <>
+                  {item.incidentNumberWithPrefix || `#${item.incidentNumber}`}
+                </>
+              );
+            },
           },
           {
             field: {

@@ -1075,6 +1075,33 @@ export default class ScheduledMaintenance extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectScheduledMaintenance,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Scheduled Maintenance Number With Prefix",
+    description:
+      "Scheduled maintenance number with prefix (e.g., 'SM-42' or '#42')",
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public scheduledMaintenanceNumberWithPrefix?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
     read: [],
     update: [],
   })

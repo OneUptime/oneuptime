@@ -60,10 +60,12 @@ export class Service extends DatabaseService<Model> {
     const scheduledMaintenanceId: ObjectID =
       createdItem.scheduledMaintenanceId!;
     const projectId: ObjectID = createdItem.projectId!;
-    const scheduledMaintenanceNumber: number | null =
-      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-        scheduledMaintenanceId: scheduledMaintenanceId,
-      });
+    const scheduledMaintenanceNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+      scheduledMaintenanceId: scheduledMaintenanceId,
+    });
 
     const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
       createdItem.id!,
@@ -77,7 +79,7 @@ export class Service extends DatabaseService<Model> {
         ScheduledMaintenanceFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `📄 posted **public note** for this [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) on status page:
+      feedInfoInMarkdown: `📄 posted **public note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) on status page:
     
 ${(createdItem.note || "") + attachmentsMarkdown}
               `,
@@ -108,6 +110,7 @@ ${(createdItem.note || "") + attachmentsMarkdown}
           scheduledMaintenance: {
             _id: true,
             scheduledMaintenanceNumber: true,
+            scheduledMaintenanceNumberWithPrefix: true,
             projectId: true,
           },
           projectId: true,
@@ -140,7 +143,7 @@ ${(createdItem.note || "") + attachmentsMarkdown}
             displayColor: Blue500,
             userId: userId || undefined,
 
-            feedInfoInMarkdown: `📄 updated **Public Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
+            feedInfoInMarkdown: `📄 updated **Public Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
         
 ${(updatedItem.note || "") + attachmentsMarkdown}
                   `,

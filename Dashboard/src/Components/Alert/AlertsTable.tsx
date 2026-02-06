@@ -353,6 +353,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        selectMoreFields={{
+          alertNumberWithPrefix: true,
+        }}
         columns={[
           {
             field: {
@@ -365,7 +368,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>#{item.alertNumber}</>;
+              return (
+                <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>
+              );
             },
           },
           {

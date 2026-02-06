@@ -1514,6 +1514,33 @@ export default class Incident extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Incident Number With Prefix",
+    description: "Incident number with prefix (e.g., 'INC-42' or '#42')",
+    computed: true,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public incidentNumberWithPrefix?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
     read: [],
     update: [],
   })

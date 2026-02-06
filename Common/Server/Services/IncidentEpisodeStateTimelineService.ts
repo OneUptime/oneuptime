@@ -358,13 +358,15 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
         id: createdItem.incidentEpisodeId,
         select: {
           episodeNumber: true,
+          episodeNumberWithPrefix: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-    const episodeNumber: number = episode?.episodeNumber || 0;
+    const episodeDisplayNumber: string =
+      episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || 0);
 
     await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
       incidentEpisodeId: createdItem.incidentEpisodeId!,
@@ -374,7 +376,7 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **Episode ${episodeNumber} State** to **` +
+        ` Changed **Episode ${episodeDisplayNumber} State** to **` +
         stateName +
         "**",
       moreInformationInMarkdown: createdItem.rootCause

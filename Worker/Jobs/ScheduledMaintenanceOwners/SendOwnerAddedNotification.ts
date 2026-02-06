@@ -168,6 +168,7 @@ RunCron(
               name: true,
             },
             scheduledMaintenanceNumber: true,
+            scheduledMaintenanceNumberWithPrefix: true,
           },
         });
 
@@ -176,9 +177,10 @@ RunCron(
       }
 
       const scheduledMaintenanceNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumber
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        (scheduledMaintenance.scheduledMaintenanceNumber
           ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-          : "";
+          : "");
 
       const vars: Dictionary<string> = {
         scheduledMaintenanceTitle: scheduledMaintenance.title!,
@@ -246,8 +248,9 @@ RunCron(
               event_title: scheduledMaintenance.title!,
               maintenance_link: vars["scheduledMaintenanceViewLink"] || "",
               event_number:
-                scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
-                "N/A",
+                scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+                (scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
+                  "N/A"),
             },
           });
 

@@ -285,6 +285,7 @@ const ScheduledMaintenanceView: FunctionComponent<
           modelType: ScheduledMaintenance,
           id: "model-detail-scheduledMaintenances",
           selectMoreFields: {
+            scheduledMaintenanceNumberWithPrefix: true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
               true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
@@ -295,6 +296,7 @@ const ScheduledMaintenanceView: FunctionComponent<
             {
               field: {
                 scheduledMaintenanceNumber: true,
+                scheduledMaintenanceNumberWithPrefix: true,
               },
               title: "Scheduled Maintenance Number",
               fieldType: FieldType.Element,
@@ -321,7 +323,8 @@ const ScheduledMaintenanceView: FunctionComponent<
                       </svg>
                     </div>
                     <span className="text-lg font-semibold text-gray-700">
-                      #{item.scheduledMaintenanceNumber}
+                      {item.scheduledMaintenanceNumberWithPrefix ||
+                        `#${item.scheduledMaintenanceNumber}`}
                     </span>
                   </div>
                 );

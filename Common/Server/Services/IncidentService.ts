@@ -562,11 +562,16 @@ export class Service extends DatabaseService<Model> {
       initialIncidentStateId = incidentState.id;
     }
 
-    const incidentNumberForThisIncident: number =
-      await ProjectService.incrementAndGetIncidentCounter(projectId);
+    const incidentCounterResult: {
+      counter: number;
+      prefix: string | undefined;
+    } = await ProjectService.incrementAndGetIncidentCounter(projectId);
 
     createBy.data.currentIncidentStateId = initialIncidentStateId;
-    createBy.data.incidentNumber = incidentNumberForThisIncident;
+    createBy.data.incidentNumber = incidentCounterResult.counter;
+    createBy.data.incidentNumberWithPrefix = incidentCounterResult.prefix
+      ? `${incidentCounterResult.prefix}${incidentCounterResult.counter}`
+      : `#${incidentCounterResult.counter}`;
 
     if (
       (createBy.data.createdByUserId ||
@@ -637,6 +642,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         projectId: true,
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
         title: true,
         description: true,
         incidentSeverity: {
@@ -864,7 +870,11 @@ export class Service extends DatabaseService<Model> {
       const createdByUserId: ObjectID | undefined | null =
         incident.createdByUserId || incident.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🚨 Incident ${incident.incidentNumber?.toString()} Created: 
+      const incidentNumberDisplay: string =
+        incident.incidentNumberWithPrefix ||
+        "#" + incident.incidentNumber?.toString();
+
+      let feedInfoInMarkdown: string = `#### 🚨 Incident ${incidentNumberDisplay} Created:
         
 **${incident.title || "No title provided."}**:
 
@@ -1018,8 +1028,9 @@ ${incident.remediationNotes || "No remediation notes provided."}
           createdItem.changeMonitorStatusToId,
           true, // notifyMonitorOwners
           createdItem.rootCause ||
-            "Status was changed because Incident #" +
-              createdItem.incidentNumber?.toString() +
+            "Status was changed because Incident " +
+              (createdItem.incidentNumberWithPrefix ||
+                "#" + createdItem.incidentNumber?.toString()) +
               " was created.",
           createdItem.createdStateLog,
           onCreate.createBy.props,
@@ -1256,6 +1267,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
           select: {
             projectId: true,
             incidentNumber: true,
+            incidentNumberWithPrefix: true,
           },
           props: {
             isRoot: true,
@@ -1264,7 +1276,9 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
         const projectId: ObjectID = incident!.projectId!;
         const incidentNumber: number = incident!.incidentNumber!;
-        const incidentLabel: string = `Incident ${incidentNumber}`;
+        const incidentNumberDisplay: string =
+          incident!.incidentNumberWithPrefix || "#" + incidentNumber;
+        const incidentLabel: string = `Incident ${incidentNumberDisplay}`;
         const incidentLink: URL = await this.getIncidentLinkInDashboard(
           projectId,
           incidentId,
@@ -1605,8 +1619,8 @@ ${incidentSeverity.name}
                 }),
                 changeNewMonitorStatusTo,
                 true, // notifyMonitorOwners
-                "Status was changed because Incident #" +
-                  incidentNumber?.toString() +
+                "Status was changed because Incident " +
+                  incidentNumberDisplay +
                   " was updated.",
                 undefined,
                 onUpdate.updateBy.props,
@@ -2274,13 +2288,15 @@ ${incidentSeverity.name}
   }
 
   @CaptureSpan()
-  public async getIncidentNumber(data: {
-    incidentId: ObjectID;
-  }): Promise<number | null> {
+  public async getIncidentNumber(data: { incidentId: ObjectID }): Promise<{
+    number: number | null;
+    numberWithPrefix: string | null;
+  }> {
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
       select: {
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
       },
       props: {
         isRoot: true,
@@ -2291,7 +2307,10 @@ ${incidentSeverity.name}
       throw new BadDataException("Incident not found.");
     }
 
-    return incident.incidentNumber ? Number(incident.incidentNumber) : null;
+    return {
+      number: incident.incidentNumber ? Number(incident.incidentNumber) : null,
+      numberWithPrefix: incident.incidentNumberWithPrefix || null,
+    };
   }
 
   /**

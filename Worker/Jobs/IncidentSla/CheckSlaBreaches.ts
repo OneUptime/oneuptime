@@ -185,6 +185,7 @@ async function sendBreachNotification(data: {
         _id: true,
         title: true,
         incidentNumber: true,
+        incidentNumberWithPrefix: true,
         projectId: true,
         project: {
           name: true,
@@ -217,9 +218,9 @@ async function sendBreachNotification(data: {
       return;
     }
 
-    const incidentNumberStr: string = incident.incidentNumber
-      ? `#${incident.incidentNumber}`
-      : "";
+    const incidentNumberStr: string =
+      incident.incidentNumberWithPrefix ||
+      (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
     const incidentViewLink: string = (
       await IncidentService.getIncidentLinkInDashboard(

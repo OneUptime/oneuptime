@@ -10,6 +10,7 @@ import logger from "Common/Server/Utils/Logger";
 import VMRunner from "Common/Server/Utils/VM/VMRunner";
 import { Browser, BrowserContext, Page, chromium, firefox } from "playwright";
 import LocalFile from "Common/Server/Utils/LocalFile";
+import os from "os";
 
 export interface SyntheticMonitorOptions {
   monitorId?: ObjectID | undefined;
@@ -246,18 +247,25 @@ export default class SyntheticMonitor {
     return { height: viewPortHeight, width: viewPortWidth };
   }
 
-  public static async getChromeExecutablePath(): Promise<string> {
-    const doesDirectoryExist: boolean = await LocalFile.doesDirectoryExist(
-      "/root/.cache/ms-playwright",
+  private static getPlaywrightBrowsersPath(): string {
+    return (
+      process.env["PLAYWRIGHT_BROWSERS_PATH"] ||
+      `${os.homedir()}/.cache/ms-playwright`
     );
+  }
+
+  public static async getChromeExecutablePath(): Promise<string> {
+    const browsersPath: string = this.getPlaywrightBrowsersPath();
+
+    const doesDirectoryExist: boolean =
+      await LocalFile.doesDirectoryExist(browsersPath);
     if (!doesDirectoryExist) {
       throw new BadDataException("Chrome executable path not found.");
     }
 
     // get list of files in the directory
-    const directories: string[] = await LocalFile.getListOfDirectories(
-      "/root/.cache/ms-playwright",
-    );
+    const directories: string[] =
+      await LocalFile.getListOfDirectories(browsersPath);
 
     if (directories.length === 0) {
       throw new BadDataException("Chrome executable path not found.");
@@ -274,10 +282,10 @@ export default class SyntheticMonitor {
     }
 
     const chromeExecutableCandidates: Array<string> = [
-      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux/chrome`,
-      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux64/chrome`,
-      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome64/chrome`,
-      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome/chrome`,
+      `${browsersPath}/${chromeInstallationName}/chrome-linux/chrome`,
+      `${browsersPath}/${chromeInstallationName}/chrome-linux64/chrome`,
+      `${browsersPath}/${chromeInstallationName}/chrome64/chrome`,
+      `${browsersPath}/${chromeInstallationName}/chrome/chrome`,
     ];
 
     for (const executablePath of chromeExecutableCandidates) {
@@ -290,17 +298,17 @@ export default class SyntheticMonitor {
   }
 
   public static async getFirefoxExecutablePath(): Promise<string> {
-    const doesDirectoryExist: boolean = await LocalFile.doesDirectoryExist(
-      "/root/.cache/ms-playwright",
-    );
+    const browsersPath: string = this.getPlaywrightBrowsersPath();
+
+    const doesDirectoryExist: boolean =
+      await LocalFile.doesDirectoryExist(browsersPath);
     if (!doesDirectoryExist) {
       throw new BadDataException("Firefox executable path not found.");
     }
 
     // get list of files in the directory
-    const directories: string[] = await LocalFile.getListOfDirectories(
-      "/root/.cache/ms-playwright",
-    );
+    const directories: string[] =
+      await LocalFile.getListOfDirectories(browsersPath);
 
     if (directories.length === 0) {
       throw new BadDataException("Firefox executable path not found.");
@@ -317,10 +325,10 @@ export default class SyntheticMonitor {
     }
 
     const firefoxExecutableCandidates: Array<string> = [
-      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox/firefox`,
-      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox-linux64/firefox`,
-      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox64/firefox`,
-      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox-64/firefox`,
+      `${browsersPath}/${firefoxInstallationName}/firefox/firefox`,
+      `${browsersPath}/${firefoxInstallationName}/firefox-linux64/firefox`,
+      `${browsersPath}/${firefoxInstallationName}/firefox64/firefox`,
+      `${browsersPath}/${firefoxInstallationName}/firefox-64/firefox`,
     ];
 
     for (const executablePath of firefoxExecutableCandidates) {

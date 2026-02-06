@@ -278,6 +278,27 @@ export class ProjectService extends DatabaseService<Model> {
     data.data.utmContent = user.utmContent!;
     data.data.utmUrl = user.utmUrl!;
 
+    // Set default number prefixes.
+    if (!data.data.incidentNumberPrefix) {
+      data.data.incidentNumberPrefix = "INC-";
+    }
+
+    if (!data.data.alertNumberPrefix) {
+      data.data.alertNumberPrefix = "ALT-";
+    }
+
+    if (!data.data.scheduledMaintenanceNumberPrefix) {
+      data.data.scheduledMaintenanceNumberPrefix = "SM-";
+    }
+
+    if (!data.data.incidentEpisodeNumberPrefix) {
+      data.data.incidentEpisodeNumberPrefix = "IE-";
+    }
+
+    if (!data.data.alertEpisodeNumberPrefix) {
+      data.data.alertEpisodeNumberPrefix = "AE-";
+    }
+
     return Promise.resolve({ createBy: data, carryForward: null });
   }
 
@@ -1593,7 +1614,7 @@ export class ProjectService extends DatabaseService<Model> {
   @CaptureSpan()
   public async incrementAndGetIncidentCounter(
     projectId: ObjectID,
-  ): Promise<number> {
+  ): Promise<{ counter: number; prefix: string | undefined }> {
     const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.incidentCounter",
@@ -1609,6 +1630,7 @@ export class ProjectService extends DatabaseService<Model> {
         id: projectId,
         select: {
           incidentCounter: true,
+          incidentNumberPrefix: true,
         },
         props: {
           isRoot: true,
@@ -1621,7 +1643,10 @@ export class ProjectService extends DatabaseService<Model> {
         );
       }
 
-      return project.incidentCounter;
+      return {
+        counter: project.incidentCounter,
+        prefix: project.incidentNumberPrefix,
+      };
     } finally {
       await Semaphore.release(mutex);
     }
@@ -1630,7 +1655,7 @@ export class ProjectService extends DatabaseService<Model> {
   @CaptureSpan()
   public async incrementAndGetAlertCounter(
     projectId: ObjectID,
-  ): Promise<number> {
+  ): Promise<{ counter: number; prefix: string | undefined }> {
     const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.alertCounter",
@@ -1646,6 +1671,7 @@ export class ProjectService extends DatabaseService<Model> {
         id: projectId,
         select: {
           alertCounter: true,
+          alertNumberPrefix: true,
         },
         props: {
           isRoot: true,
@@ -1658,7 +1684,10 @@ export class ProjectService extends DatabaseService<Model> {
         );
       }
 
-      return project.alertCounter;
+      return {
+        counter: project.alertCounter,
+        prefix: project.alertNumberPrefix,
+      };
     } finally {
       await Semaphore.release(mutex);
     }
@@ -1667,7 +1696,7 @@ export class ProjectService extends DatabaseService<Model> {
   @CaptureSpan()
   public async incrementAndGetScheduledMaintenanceCounter(
     projectId: ObjectID,
-  ): Promise<number> {
+  ): Promise<{ counter: number; prefix: string | undefined }> {
     const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.scheduledMaintenanceCounter",
@@ -1683,6 +1712,7 @@ export class ProjectService extends DatabaseService<Model> {
         id: projectId,
         select: {
           scheduledMaintenanceCounter: true,
+          scheduledMaintenanceNumberPrefix: true,
         },
         props: {
           isRoot: true,
@@ -1695,7 +1725,10 @@ export class ProjectService extends DatabaseService<Model> {
         );
       }
 
-      return project.scheduledMaintenanceCounter;
+      return {
+        counter: project.scheduledMaintenanceCounter,
+        prefix: project.scheduledMaintenanceNumberPrefix,
+      };
     } finally {
       await Semaphore.release(mutex);
     }
@@ -1704,7 +1737,7 @@ export class ProjectService extends DatabaseService<Model> {
   @CaptureSpan()
   public async incrementAndGetIncidentEpisodeCounter(
     projectId: ObjectID,
-  ): Promise<number> {
+  ): Promise<{ counter: number; prefix: string | undefined }> {
     const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.incidentEpisodeCounter",
@@ -1720,6 +1753,7 @@ export class ProjectService extends DatabaseService<Model> {
         id: projectId,
         select: {
           incidentEpisodeCounter: true,
+          incidentEpisodeNumberPrefix: true,
         },
         props: {
           isRoot: true,
@@ -1732,7 +1766,10 @@ export class ProjectService extends DatabaseService<Model> {
         );
       }
 
-      return project.incidentEpisodeCounter;
+      return {
+        counter: project.incidentEpisodeCounter,
+        prefix: project.incidentEpisodeNumberPrefix,
+      };
     } finally {
       await Semaphore.release(mutex);
     }
@@ -1741,7 +1778,7 @@ export class ProjectService extends DatabaseService<Model> {
   @CaptureSpan()
   public async incrementAndGetAlertEpisodeCounter(
     projectId: ObjectID,
-  ): Promise<number> {
+  ): Promise<{ counter: number; prefix: string | undefined }> {
     const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "ProjectService.alertEpisodeCounter",
@@ -1757,6 +1794,7 @@ export class ProjectService extends DatabaseService<Model> {
         id: projectId,
         select: {
           alertEpisodeCounter: true,
+          alertEpisodeNumberPrefix: true,
         },
         props: {
           isRoot: true,
@@ -1769,7 +1807,10 @@ export class ProjectService extends DatabaseService<Model> {
         );
       }
 
-      return project.alertEpisodeCounter;
+      return {
+        counter: project.alertEpisodeCounter,
+        prefix: project.alertEpisodeNumberPrefix,
+      };
     } finally {
       await Semaphore.release(mutex);
     }

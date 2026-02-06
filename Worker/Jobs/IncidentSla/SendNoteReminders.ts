@@ -66,6 +66,7 @@ async function processInternalNoteReminders(): Promise<void> {
             _id: true,
             title: true,
             incidentNumber: true,
+            incidentNumberWithPrefix: true,
           },
           props: {
             isRoot: true,
@@ -241,7 +242,9 @@ function processTemplate(
   result = result.replace(/\{\{incidentTitle\}\}/g, incident.title || "");
   result = result.replace(
     /\{\{incidentNumber\}\}/g,
-    incident.incidentNumber?.toString() || "",
+    incident.incidentNumberWithPrefix ||
+      incident.incidentNumber?.toString() ||
+      "",
   );
   result = result.replace(/\{\{elapsedTime\}\}/g, elapsedTime);
   result = result.replace(/\{\{responseDeadline\}\}/g, responseDeadline);

@@ -275,6 +275,7 @@ const AlertEpisodeView: FunctionComponent<
         ]}
         modelDetailProps={{
           selectMoreFields: {
+            episodeNumberWithPrefix: true,
             createdByUser: {
               _id: true,
               name: true,
@@ -289,6 +290,7 @@ const AlertEpisodeView: FunctionComponent<
             {
               field: {
                 episodeNumber: true,
+                episodeNumberWithPrefix: true,
               },
               title: "Episode Number",
               fieldType: FieldType.Element,
@@ -315,7 +317,7 @@ const AlertEpisodeView: FunctionComponent<
                       </svg>
                     </div>
                     <span className="text-lg font-semibold text-gray-700">
-                      #{item.episodeNumber}
+                      {item.episodeNumberWithPrefix || `#${item.episodeNumber}`}
                     </span>
                   </div>
                 );

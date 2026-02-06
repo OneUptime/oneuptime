@@ -81,6 +81,7 @@ RunCron(
             projectId: true,
             description: true,
             episodeNumber: true,
+            episodeNumberWithPrefix: true,
             incidentSeverity: {
               name: true,
             },
@@ -180,9 +181,9 @@ RunCron(
 
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
-      const episodeNumberStr: string = episode.episodeNumber
-        ? `#${episode.episodeNumber}`
-        : "";
+      const episodeNumberStr: string =
+        episode.episodeNumberWithPrefix ||
+        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
 
       for (const user of owners) {
         const episodeIdentifier: string =
@@ -276,9 +277,10 @@ RunCron(
               episode_state: incidentState!.name!,
               episode_link: vars["episodeViewLink"] || "",
               episode_number:
-                episode.episodeNumber !== undefined
+                episode.episodeNumberWithPrefix ||
+                (episode.episodeNumber !== undefined
                   ? episode.episodeNumber.toString()
-                  : "",
+                  : ""),
             },
           });
 
@@ -302,7 +304,8 @@ RunCron(
         )}\n`;
       }
 
-      const episodeNumber: number = episode.episodeNumber!;
+      const episodeDisplayNumber: string =
+        episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
       const projectId: ObjectID = episode.projectId!;
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -311,7 +314,7 @@ RunCron(
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the incident episode because the episode state changed to **${incidentState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident Episode ${episodeDisplayNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the incident episode because the episode state changed to **${incidentState.name}**.`,
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
       });
     }

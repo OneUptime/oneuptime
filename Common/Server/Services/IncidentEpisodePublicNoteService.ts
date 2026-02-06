@@ -118,10 +118,12 @@ export class Service extends DatabaseService<Model> {
 
     const incidentEpisodeId: ObjectID = createdItem.incidentEpisodeId!;
     const projectId: ObjectID = createdItem.projectId!;
-    const episodeNumber: number | null =
-      await IncidentEpisodeService.getEpisodeNumber({
-        episodeId: incidentEpisodeId,
-      });
+    const episodeNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await IncidentEpisodeService.getEpisodeNumber({
+      episodeId: incidentEpisodeId,
+    });
 
     const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
       createdItem.id!,
@@ -134,7 +136,7 @@ export class Service extends DatabaseService<Model> {
       incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown: `📄 posted **public note** for this [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId!, incidentEpisodeId!)).toString()}) on status page:
+      feedInfoInMarkdown: `📄 posted **public note** for this [Episode ${episodeNumberResult.numberWithPrefix || "#" + episodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId!, incidentEpisodeId!)).toString()}) on status page:
 
 ${(createdItem.note || "") + attachmentsMarkdown}
           `,
@@ -162,6 +164,7 @@ ${(createdItem.note || "") + attachmentsMarkdown}
           incidentEpisode: {
             _id: true,
             episodeNumber: true,
+            episodeNumberWithPrefix: true,
             projectId: true,
           },
           note: true,
@@ -189,7 +192,7 @@ ${(createdItem.note || "") + attachmentsMarkdown}
           incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.PublicNote,
           displayColor: Blue500,
           userId: userId || undefined,
-          feedInfoInMarkdown: `📄 updated **Public Note** for this [Episode ${episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()})
+          feedInfoInMarkdown: `📄 updated **Public Note** for this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()})
 
 ${(updatedItem.note || "") + attachmentsMarkdown}
                   `,

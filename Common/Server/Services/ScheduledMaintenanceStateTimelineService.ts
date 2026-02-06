@@ -429,10 +429,12 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       stateEmoji = "🕒";
     }
 
-    const scheduledMaintenanceNumber: number | null =
-      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-        scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
-      });
+    const scheduledMaintenanceNumberResult: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+      scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
+    });
 
     const projectId: ObjectID = createdItem.projectId!;
     const scheduledMaintenanceId: ObjectID =
@@ -446,7 +448,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
+        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
         stateName +
         "**",
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
@@ -573,7 +575,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Scheduled Event ${scheduledMaintenanceNumber}](${(
+          text: `**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               createdItem.projectId!,
               createdItem.scheduledMaintenanceId!,

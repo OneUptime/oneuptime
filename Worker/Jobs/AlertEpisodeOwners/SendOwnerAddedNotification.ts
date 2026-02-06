@@ -148,6 +148,7 @@ RunCron(
               name: true,
             },
             episodeNumber: true,
+            episodeNumberWithPrefix: true,
           },
         });
 
@@ -155,9 +156,9 @@ RunCron(
         continue;
       }
 
-      const episodeNumber: string = episode.episodeNumber
-        ? `#${episode.episodeNumber}`
-        : "";
+      const episodeNumber: string =
+        episode.episodeNumberWithPrefix ||
+        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
 
       const vars: Dictionary<string> = {
         episodeTitle: episode.title!,
@@ -225,9 +226,10 @@ RunCron(
               episode_title: episode.title!,
               episode_link: vars["episodeViewLink"] || "",
               episode_number:
-                episode.episodeNumber !== undefined
+                episode.episodeNumberWithPrefix ||
+                (episode.episodeNumber !== undefined
                   ? episode.episodeNumber.toString()
-                  : "",
+                  : ""),
             },
           });
 

@@ -418,6 +418,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
+        selectMoreFields={{
+          incidentNumberWithPrefix: true,
+        }}
         columns={[
           {
             field: {
@@ -430,7 +433,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>#{item.incidentNumber}</>;
+              return (
+                <>
+                  {item.incidentNumberWithPrefix || `#${item.incidentNumber}`}
+                </>
+              );
             },
           },
           {
