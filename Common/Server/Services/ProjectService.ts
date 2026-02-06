@@ -278,6 +278,27 @@ export class ProjectService extends DatabaseService<Model> {
     data.data.utmContent = user.utmContent!;
     data.data.utmUrl = user.utmUrl!;
 
+    // Set default number prefixes.
+    if (!data.data.incidentNumberPrefix) {
+      data.data.incidentNumberPrefix = "INC-";
+    }
+
+    if (!data.data.alertNumberPrefix) {
+      data.data.alertNumberPrefix = "ALT-";
+    }
+
+    if (!data.data.scheduledMaintenanceNumberPrefix) {
+      data.data.scheduledMaintenanceNumberPrefix = "SM-";
+    }
+
+    if (!data.data.incidentEpisodeNumberPrefix) {
+      data.data.incidentEpisodeNumberPrefix = "IE-";
+    }
+
+    if (!data.data.alertEpisodeNumberPrefix) {
+      data.data.alertEpisodeNumberPrefix = "AE-";
+    }
+
     return Promise.resolve({ createBy: data, carryForward: null });
   }
 

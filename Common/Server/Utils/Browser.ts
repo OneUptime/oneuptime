@@ -10,6 +10,7 @@ import ScreenSizeType from "../../Types/ScreenSizeType";
 import BrowserType from "../../Types/BrowserType";
 import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import os from "os";
 
 export type Page = PlaywrightPage;
 export type Browser = PlaywrightBrowser;
@@ -138,19 +139,26 @@ export default class BrowserUtil {
     return { height: viewPortHeight, width: viewPortWidth };
   }
 
+  private static getPlaywrightBrowsersPath(): string {
+    return (
+      process.env["PLAYWRIGHT_BROWSERS_PATH"] ||
+      `${os.homedir()}/.cache/ms-playwright`
+    );
+  }
+
   @CaptureSpan()
   public static async getChromeExecutablePath(): Promise<string> {
-    const doesDirectoryExist: boolean = await LocalFile.doesDirectoryExist(
-      "/root/.cache/ms-playwright",
-    );
+    const browsersPath: string = this.getPlaywrightBrowsersPath();
+
+    const doesDirectoryExist: boolean =
+      await LocalFile.doesDirectoryExist(browsersPath);
     if (!doesDirectoryExist) {
       throw new BadDataException("Chrome executable path not found.");
     }
 
     // get list of files in the directory
-    const directories: string[] = await LocalFile.getListOfDirectories(
-      "/root/.cache/ms-playwright",
-    );
+    const directories: string[] =
+      await LocalFile.getListOfDirectories(browsersPath);
 
     if (directories.length === 0) {
       throw new BadDataException("Chrome executable path not found.");
@@ -167,10 +175,10 @@ export default class BrowserUtil {
     }
 
     const chromeExecutableCandidates: Array<string> = [
-      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux/chrome`,
-      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux64/chrome`,
-      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome64/chrome`,
-      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome/chrome`,
+      `${browsersPath}/${chromeInstallationName}/chrome-linux/chrome`,
+      `${browsersPath}/${chromeInstallationName}/chrome-linux64/chrome`,
+      `${browsersPath}/${chromeInstallationName}/chrome64/chrome`,
+      `${browsersPath}/${chromeInstallationName}/chrome/chrome`,
     ];
 
     for (const executablePath of chromeExecutableCandidates) {
@@ -184,17 +192,17 @@ export default class BrowserUtil {
 
   @CaptureSpan()
   public static async getFirefoxExecutablePath(): Promise<string> {
-    const doesDirectoryExist: boolean = await LocalFile.doesDirectoryExist(
-      "/root/.cache/ms-playwright",
-    );
+    const browsersPath: string = this.getPlaywrightBrowsersPath();
+
+    const doesDirectoryExist: boolean =
+      await LocalFile.doesDirectoryExist(browsersPath);
     if (!doesDirectoryExist) {
       throw new BadDataException("Firefox executable path not found.");
     }
 
     // get list of files in the directory
-    const directories: string[] = await LocalFile.getListOfDirectories(
-      "/root/.cache/ms-playwright",
-    );
+    const directories: string[] =
+      await LocalFile.getListOfDirectories(browsersPath);
 
     if (directories.length === 0) {
       throw new BadDataException("Firefox executable path not found.");
@@ -211,10 +219,10 @@ export default class BrowserUtil {
     }
 
     const firefoxExecutableCandidates: Array<string> = [
-      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox/firefox`,
-      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox-linux64/firefox`,
-      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox64/firefox`,
-      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox-64/firefox`,
+      `${browsersPath}/${firefoxInstallationName}/firefox/firefox`,
+      `${browsersPath}/${firefoxInstallationName}/firefox-linux64/firefox`,
+      `${browsersPath}/${firefoxInstallationName}/firefox64/firefox`,
+      `${browsersPath}/${firefoxInstallationName}/firefox-64/firefox`,
     ];
 
     for (const executablePath of firefoxExecutableCandidates) {
