@@ -86,10 +86,10 @@ RunCron(
       }
 
       const scheduledMaintenanceNumberStr: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix
-          || (scheduledMaintenance.scheduledMaintenanceNumber
-            ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-            : "");
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        (scheduledMaintenance.scheduledMaintenanceNumber
+          ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+          : "");
 
       const vars: Dictionary<string> = {
         scheduledMaintenanceTitle: scheduledMaintenance.title!,
@@ -164,7 +164,7 @@ RunCron(
               event_number:
                 scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
                 (scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
-                "N/A"),
+                  "N/A"),
             },
           });
 
@@ -186,7 +186,8 @@ RunCron(
       const projectId: ObjectID = scheduledMaintenance.projectId!;
       const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
       const scheduledMaintenanceDisplayNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || '#' + scheduledMaintenance.scheduledMaintenanceNumber;
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        "#" + scheduledMaintenance.scheduledMaintenanceNumber;
 
       const scheduledMaintenanceFeedText: string = `🔔 **Owner Scheduled Maintenance Created Notification Sent**:
       Notification sent to owners because [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) was created.`;

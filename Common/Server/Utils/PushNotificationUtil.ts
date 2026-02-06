@@ -22,9 +22,15 @@ export default class PushNotificationUtil {
     incidentNumber?: number;
     incidentNumberWithPrefix?: string;
   }): PushNotificationMessage {
-    const { incidentTitle, projectName, incidentViewLink, incidentNumber, incidentNumberWithPrefix } =
-      params;
-    const displayNumber: string = incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
+    const {
+      incidentTitle,
+      projectName,
+      incidentViewLink,
+      incidentNumber,
+      incidentNumberWithPrefix,
+    } = params;
+    const displayNumber: string =
+      incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
     const incidentIdentifier: string = displayNumber
       ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
@@ -62,7 +68,8 @@ export default class PushNotificationUtil {
       incidentNumber,
       incidentNumberWithPrefix,
     } = params;
-    const displayNumber: string = incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
+    const displayNumber: string =
+      incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
     const incidentIdentifier: string = displayNumber
       ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
@@ -104,7 +111,8 @@ export default class PushNotificationUtil {
       incidentNumberWithPrefix,
     } = params;
     const noteType: string = isPrivateNote ? "Private" : "Public";
-    const displayNumber: string = incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
+    const displayNumber: string =
+      incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
     const incidentIdentifier: string = displayNumber
       ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
@@ -132,8 +140,15 @@ export default class PushNotificationUtil {
     alertNumber?: number;
     alertNumberWithPrefix?: string;
   }): PushNotificationMessage {
-    const { alertTitle, projectName, alertViewLink, alertNumber, alertNumberWithPrefix } = params;
-    const displayNumber: string = alertNumberWithPrefix || (alertNumber ? `#${alertNumber}` : "");
+    const {
+      alertTitle,
+      projectName,
+      alertViewLink,
+      alertNumber,
+      alertNumberWithPrefix,
+    } = params;
+    const displayNumber: string =
+      alertNumberWithPrefix || (alertNumber ? `#${alertNumber}` : "");
     const alertIdentifier: string = displayNumber
       ? `${displayNumber} (${alertTitle})`
       : alertTitle;
@@ -167,7 +182,8 @@ export default class PushNotificationUtil {
       episodeNumber,
       episodeNumberWithPrefix,
     } = params;
-    const displayNumber: string = episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
+    const displayNumber: string =
+      episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
     const episodeIdentifier: string = displayNumber
       ? `${displayNumber} (${alertEpisodeTitle})`
       : alertEpisodeTitle;
@@ -201,7 +217,8 @@ export default class PushNotificationUtil {
       episodeNumber,
       episodeNumberWithPrefix,
     } = params;
-    const displayNumber: string = episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
+    const displayNumber: string =
+      episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
     const episodeIdentifier: string = displayNumber
       ? `${displayNumber} (${incidentEpisodeTitle})`
       : incidentEpisodeTitle;
@@ -264,9 +281,17 @@ export default class PushNotificationUtil {
     scheduledMaintenanceNumber?: number;
     scheduledMaintenanceNumberWithPrefix?: string;
   }): PushNotificationMessage {
-    const { title, projectName, state, viewLink, scheduledMaintenanceNumber, scheduledMaintenanceNumberWithPrefix } =
-      params;
-    const displayNumber: string = scheduledMaintenanceNumberWithPrefix || (scheduledMaintenanceNumber ? `#${scheduledMaintenanceNumber}` : "");
+    const {
+      title,
+      projectName,
+      state,
+      viewLink,
+      scheduledMaintenanceNumber,
+      scheduledMaintenanceNumberWithPrefix,
+    } = params;
+    const displayNumber: string =
+      scheduledMaintenanceNumberWithPrefix ||
+      (scheduledMaintenanceNumber ? `#${scheduledMaintenanceNumber}` : "");
     const maintenanceIdentifier: string = displayNumber
       ? `${displayNumber} (${title})`
       : title;

@@ -177,10 +177,10 @@ RunCron(
       }
 
       const scheduledMaintenanceNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix
-          || (scheduledMaintenance.scheduledMaintenanceNumber
-            ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-            : "");
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        (scheduledMaintenance.scheduledMaintenanceNumber
+          ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+          : "");
 
       const vars: Dictionary<string> = {
         scheduledMaintenanceTitle: scheduledMaintenance.title!,
@@ -250,7 +250,7 @@ RunCron(
               event_number:
                 scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
                 (scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
-                "N/A"),
+                  "N/A"),
             },
           });
 

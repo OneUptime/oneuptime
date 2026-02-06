@@ -101,7 +101,7 @@ export class Service extends DatabaseService<Model> {
       displayColor: Blue500,
       userId: userId || undefined,
 
-      feedInfoInMarkdown: `📄 posted **private note** for this [Alert ${alertNumberResult.numberWithPrefix || '#' + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, alertId)).toString()}):
+      feedInfoInMarkdown: `📄 posted **private note** for this [Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, alertId)).toString()}):
       
 ${(createdItem.note || "") + attachmentsMarkdown}
                 `,

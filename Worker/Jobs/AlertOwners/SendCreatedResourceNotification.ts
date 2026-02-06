@@ -73,7 +73,8 @@ RunCron(
     for (const alert of alerts) {
       const projectId: ObjectID = alert.projectId!;
       const alertId: ObjectID = alert.id!;
-      const alertDisplayNumber: string = alert.alertNumberWithPrefix || '#' + alert.alertNumber!;
+      const alertDisplayNumber: string =
+        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
 
       const alertFeedText: string = `🔔 **Owner Alert Created Notification Sent**:
       Notification sent to owners because [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`;
@@ -123,14 +124,15 @@ RunCron(
         declaredBy = `${alert.createdByUser.name.toString()} (${alert.createdByUser.email.toString()})`;
       }
 
-      const alertNumberStr: string = alert.alertNumberWithPrefix
-        || (alert.alertNumber ? `#${alert.alertNumber}` : "");
+      const alertNumberStr: string =
+        alert.alertNumberWithPrefix ||
+        (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
       for (const user of owners) {
         try {
           const alertIdentifier: string =
             alert.alertNumber !== undefined
-              ? `${alert.alertNumberWithPrefix || '#' + alert.alertNumber} (${alert.title})`
+              ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title})`
               : alert.title!;
 
           const vars: Dictionary<string> = {

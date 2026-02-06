@@ -152,7 +152,8 @@ export default class MonitorAlert {
             relatedCriteriaId: input.criteriaInstance.data?.id,
             relatedAlertId: alreadyOpenAlert?.id?.toString(),
             relatedAlertNumber: alreadyOpenAlert?.alertNumber,
-            relatedAlertNumberWithPrefix: alreadyOpenAlert?.alertNumberWithPrefix,
+            relatedAlertNumberWithPrefix:
+              alreadyOpenAlert?.alertNumberWithPrefix,
             at: OneUptimeDate.getCurrentDate(),
           });
           continue;

@@ -438,7 +438,7 @@ export class Service extends DatabaseService<Model> {
       const createdByUserId: ObjectID | undefined | null =
         alert.createdByUserId || alert.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🚨 Alert ${alert.alertNumberWithPrefix || '#' + alert.alertNumber?.toString()} Created:
+      let feedInfoInMarkdown: string = `#### 🚨 Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber?.toString()} Created:
            
 **${alert.title || "No title provided."}**:
      
@@ -787,9 +787,10 @@ ${alert.remediationNotes || "No remediation notes provided."}
 
         const projectId: ObjectID = alert!.projectId!;
         const alertNumber: number = alert!.alertNumber!;
-        const alertNumberWithPrefix: string | undefined = alert!.alertNumberWithPrefix || undefined;
+        const alertNumberWithPrefix: string | undefined =
+          alert!.alertNumberWithPrefix || undefined;
 
-        let feedInfoInMarkdown: string = `**[Alert ${alertNumberWithPrefix || '#' + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) was updated.**`;
+        let feedInfoInMarkdown: string = `**[Alert ${alertNumberWithPrefix || "#" + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) was updated.**`;
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
@@ -1384,9 +1385,7 @@ ${alertSeverity.name}
   }
 
   @CaptureSpan()
-  public async getAlertNumber(data: {
-    alertId: ObjectID;
-  }): Promise<{
+  public async getAlertNumber(data: { alertId: ObjectID }): Promise<{
     number: number | null;
     numberWithPrefix: string | null;
   }> {

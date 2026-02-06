@@ -104,7 +104,7 @@ export class Service extends DatabaseService<Model> {
       displayColor: Blue500,
       userId: userId || undefined,
 
-      feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || '#' + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
+      feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
     
     ${(createdItem.note || "") + attachmentsMarkdown}
               `,
@@ -168,7 +168,7 @@ export class Service extends DatabaseService<Model> {
             displayColor: Blue500,
             userId: userId || undefined,
 
-            feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || '#' + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
+            feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
         
 ${(updatedItem.note || "") + attachmentsMarkdown}
                   `,

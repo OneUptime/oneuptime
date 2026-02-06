@@ -629,7 +629,8 @@ RunCron(
       );
 
       const incidentNumberDisplay: string =
-        incident.incidentNumberWithPrefix || '#' + (incident.incidentNumber?.toString() || " - ");
+        incident.incidentNumberWithPrefix ||
+        "#" + (incident.incidentNumber?.toString() || " - ");
       const projectId: ObjectID = incident.projectId!;
       const incidentId: ObjectID = incident.id!;
 

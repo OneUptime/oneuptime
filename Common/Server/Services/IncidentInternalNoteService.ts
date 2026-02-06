@@ -85,11 +85,12 @@ export class Service extends DatabaseService<Model> {
 
     const incidentId: ObjectID = createdItem.incidentId!;
 
-    const incidentNumberResult =
-      await IncidentService.getIncidentNumber({
-        incidentId: incidentId,
-      });
-    const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
+    const incidentNumberResult = await IncidentService.getIncidentNumber({
+      incidentId: incidentId,
+    });
+    const incidentNumberDisplay: string =
+      incidentNumberResult.numberWithPrefix ||
+      "#" + incidentNumberResult.number;
 
     const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
       createdItem.id!,

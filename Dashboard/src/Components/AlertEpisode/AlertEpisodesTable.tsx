@@ -367,7 +367,9 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>;
+              return (
+                <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>
+              );
             },
           },
           {

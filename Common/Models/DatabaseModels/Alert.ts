@@ -1100,8 +1100,7 @@ export default class Alert extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "Alert Number With Prefix",
-    description:
-      "Alert number with prefix (e.g., 'ALT-42' or '#42')",
+    description: "Alert number with prefix (e.g., 'ALT-42' or '#42')",
     computed: true,
     canReadOnRelationQuery: true,
   })

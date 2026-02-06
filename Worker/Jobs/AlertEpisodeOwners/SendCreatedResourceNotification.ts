@@ -66,7 +66,8 @@ RunCron(
     for (const episode of episodes) {
       const projectId: ObjectID = episode.projectId!;
       const episodeId: ObjectID = episode.id!;
-      const episodeDisplayNumber: string = episode.episodeNumberWithPrefix || '#' + episode.episodeNumber;
+      const episodeDisplayNumber: string =
+        episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
       const episodeFeedText: string = `🔔 **Owner Alert Episode Created Notification Sent**:
       Notification sent to owners because [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`;
@@ -110,10 +111,9 @@ RunCron(
         declaredBy = `${episode.createdByUser.name.toString()} (${episode.createdByUser.email.toString()})`;
       }
 
-      const episodeNumberStr: string = episode.episodeNumberWithPrefix
-        || (episode.episodeNumber
-          ? `#${episode.episodeNumber}`
-          : "");
+      const episodeNumberStr: string =
+        episode.episodeNumberWithPrefix ||
+        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
 
       for (const user of owners) {
         try {

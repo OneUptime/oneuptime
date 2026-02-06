@@ -150,10 +150,10 @@ RunCron(
       }
 
       const scheduledMaintenanceNumberStr: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix
-          || (scheduledMaintenance.scheduledMaintenanceNumber
-            ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-            : "");
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        (scheduledMaintenance.scheduledMaintenanceNumber
+          ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+          : "");
 
       const vars: Dictionary<string> = {
         scheduledMaintenanceTitle: scheduledMaintenance.title!,
@@ -231,7 +231,7 @@ RunCron(
               event_number:
                 scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
                 (scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
-                "N/A"),
+                  "N/A"),
             },
           });
 
@@ -257,7 +257,8 @@ RunCron(
       const projectId: ObjectID = scheduledMaintenance.projectId!;
       const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
       const scheduledMaintenanceDisplayNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || '#' + scheduledMaintenance.scheduledMaintenanceNumber;
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        "#" + scheduledMaintenance.scheduledMaintenanceNumber;
 
       const scheduledMaintenanceFeedText: string = `🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).`;
 

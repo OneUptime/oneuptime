@@ -178,7 +178,11 @@ const ActiveIncidents: FunctionComponent<
               if (!item.incidentNumber) {
                 return <>-</>;
               }
-              return <>{item.incidentNumberWithPrefix || `#${item.incidentNumber}`}</>;
+              return (
+                <>
+                  {item.incidentNumberWithPrefix || `#${item.incidentNumber}`}
+                </>
+              );
             },
           },
           {

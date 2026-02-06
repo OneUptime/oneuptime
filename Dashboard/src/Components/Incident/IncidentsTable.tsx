@@ -433,7 +433,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>{item.incidentNumberWithPrefix || `#${item.incidentNumber}`}</>;
+              return (
+                <>
+                  {item.incidentNumberWithPrefix || `#${item.incidentNumber}`}
+                </>
+              );
             },
           },
           {

@@ -134,7 +134,8 @@ RunCron(
         const incidentId: ObjectID = incident.id!;
         const projectId: ObjectID = incident.projectId!;
         const incidentNumberDisplay: string =
-          incident.incidentNumberWithPrefix || '#' + (incident.incidentNumber?.toString() || " - ");
+          incident.incidentNumberWithPrefix ||
+          "#" + (incident.incidentNumber?.toString() || " - ");
         const incidentFeedText: string = `📧 **Subscriber Incident Created Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
       Notification sent to status page subscribers because this incident was created.`;
 

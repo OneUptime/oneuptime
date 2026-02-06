@@ -116,10 +116,9 @@ RunCron(
         continue;
       }
 
-      const episodeNumberStr: string = episode.episodeNumberWithPrefix
-        || (episode.episodeNumber
-          ? `#${episode.episodeNumber}`
-          : "");
+      const episodeNumberStr: string =
+        episode.episodeNumberWithPrefix ||
+        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
 
       const episodeIdentifier: string =
         episode.episodeNumber !== undefined
@@ -221,7 +220,8 @@ RunCron(
 
       const projectId: ObjectID = episode.projectId!;
       const episodeId: ObjectID = episode.id!;
-      const episodeDisplayNumber: string = episode.episodeNumberWithPrefix || '#' + episode.episodeNumber;
+      const episodeDisplayNumber: string =
+        episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
       const episodeFeedText: string = `🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`;
 

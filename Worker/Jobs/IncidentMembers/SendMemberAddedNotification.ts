@@ -155,8 +155,9 @@ RunCron(
         continue;
       }
 
-      const incidentNumber: string = incident.incidentNumberWithPrefix
-        || (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+      const incidentNumber: string =
+        incident.incidentNumberWithPrefix ||
+        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
       for (const member of members) {
         const user: User = member.user;
@@ -189,7 +190,7 @@ RunCron(
 
         const incidentIdentifier: string =
           incident.incidentNumber !== undefined
-            ? `${incident.incidentNumberWithPrefix || '#' + incident.incidentNumber} (${incident.title})`
+            ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
             : incident.title!;
 
         const emailMessage: EmailEnvelope = {

@@ -159,7 +159,12 @@ const EpisodeIncidents: FunctionComponent<
             if (!item.incident?.incidentNumber) {
               return <>-</>;
             }
-            return <>{item.incident.incidentNumberWithPrefix || `#${item.incident.incidentNumber}`}</>;
+            return (
+              <>
+                {item.incident.incidentNumberWithPrefix ||
+                  `#${item.incident.incidentNumber}`}
+              </>
+            );
           },
         },
         {

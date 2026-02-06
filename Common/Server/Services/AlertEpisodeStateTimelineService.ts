@@ -357,7 +357,8 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       },
     });
 
-    const episodeDisplayNumber: string = episode?.episodeNumberWithPrefix || '#' + (episode?.episodeNumber || 0);
+    const episodeDisplayNumber: string =
+      episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || 0);
 
     await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
       alertEpisodeId: createdItem.alertEpisodeId!,

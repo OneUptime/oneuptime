@@ -451,7 +451,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>{item.scheduledMaintenanceNumberWithPrefix || `#${item.scheduledMaintenanceNumber}`}</>;
+              return (
+                <>
+                  {item.scheduledMaintenanceNumberWithPrefix ||
+                    `#${item.scheduledMaintenanceNumber}`}
+                </>
+              );
             },
           },
           {

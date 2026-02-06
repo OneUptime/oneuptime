@@ -72,11 +72,12 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        const incidentNumberResult =
-          await IncidentService.getIncidentNumber({
-            incidentId: incidentId,
-          });
-        const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
+        const incidentNumberResult = await IncidentService.getIncidentNumber({
+          incidentId: incidentId,
+        });
+        const incidentNumberDisplay: string =
+          incidentNumberResult.numberWithPrefix ||
+          "#" + incidentNumberResult.number;
 
         if (team && team.name) {
           await IncidentFeedService.createIncidentFeedItem({
@@ -123,11 +124,12 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
-        const incidentNumberResult =
-          await IncidentService.getIncidentNumber({
-            incidentId: incidentId,
-          });
-        const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
+        const incidentNumberResult = await IncidentService.getIncidentNumber({
+          incidentId: incidentId,
+        });
+        const incidentNumberDisplay: string =
+          incidentNumberResult.numberWithPrefix ||
+          "#" + incidentNumberResult.number;
 
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incidentId,

@@ -213,8 +213,9 @@ RunCron(
           })
           .join(", ") || "";
 
-      const incidentNumberStr: string = incident.incidentNumberWithPrefix
-        || (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+      const incidentNumberStr: string =
+        incident.incidentNumberWithPrefix ||
+        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
       for (const user of owners) {
         // Build the "Was X for Y" string
@@ -259,7 +260,7 @@ RunCron(
 
         const incidentIdentifier: string =
           incident.incidentNumber !== undefined
-            ? `${incident.incidentNumberWithPrefix || '#' + incident.incidentNumber} (${incident.title})`
+            ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
             : incident.title!;
 
         const emailMessage: EmailEnvelope = {
@@ -347,7 +348,8 @@ RunCron(
         )})\n`;
       }
 
-      const incidentNumberDisplayValue: string = incident.incidentNumberWithPrefix || '#' + incident.incidentNumber!;
+      const incidentNumberDisplayValue: string =
+        incident.incidentNumberWithPrefix || "#" + incident.incidentNumber!;
       const projectId: ObjectID = incident.projectId!;
 
       await IncidentFeedService.createIncidentFeedItem({

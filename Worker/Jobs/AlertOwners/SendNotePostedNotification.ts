@@ -123,11 +123,12 @@ RunCron(
 
       const alertIdentifier: string =
         alert.alertNumber !== undefined
-          ? `${alert.alertNumberWithPrefix || '#' + alert.alertNumber} (${alert.title})`
+          ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title})`
           : alert.title!;
 
-      const alertNumberStr: string = alert.alertNumberWithPrefix
-        || (alert.alertNumber ? `#${alert.alertNumber}` : "");
+      const alertNumberStr: string =
+        alert.alertNumberWithPrefix ||
+        (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
       const vars: Dictionary<string> = {
         alertTitle: alert.title!,
@@ -224,7 +225,8 @@ RunCron(
 
       const projectId: ObjectID = alert.projectId!;
       const alertId: ObjectID = alert.id!;
-      const alertDisplayNumber: string = alert.alertNumberWithPrefix || '#' + alert.alertNumber!;
+      const alertDisplayNumber: string =
+        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
 
       const alertFeedText: string = `🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).`;
 

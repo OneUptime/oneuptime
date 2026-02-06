@@ -242,7 +242,9 @@ function processTemplate(
   result = result.replace(/\{\{incidentTitle\}\}/g, incident.title || "");
   result = result.replace(
     /\{\{incidentNumber\}\}/g,
-    incident.incidentNumberWithPrefix || incident.incidentNumber?.toString() || "",
+    incident.incidentNumberWithPrefix ||
+      incident.incidentNumber?.toString() ||
+      "",
   );
   result = result.replace(/\{\{elapsedTime\}\}/g, elapsedTime);
   result = result.replace(/\{\{responseDeadline\}\}/g, responseDeadline);

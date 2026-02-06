@@ -564,7 +564,9 @@ RunCron(
         }
 
         const scheduledMaintenanceNumber: string =
-          event.scheduledMaintenanceNumberWithPrefix || event.scheduledMaintenanceNumber?.toString() || " - ";
+          event.scheduledMaintenanceNumberWithPrefix ||
+          event.scheduledMaintenanceNumber?.toString() ||
+          " - ";
         const projectId: ObjectID = event.projectId!;
         const scheduledMaintenanceId: ObjectID = event.id!;
 

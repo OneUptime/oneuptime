@@ -446,7 +446,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || '#' + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
+        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
         stateName +
         "**",
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
@@ -573,7 +573,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || '#' + scheduledMaintenanceNumberResult.number}](${(
+          text: `**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               createdItem.projectId!,
               createdItem.scheduledMaintenanceId!,

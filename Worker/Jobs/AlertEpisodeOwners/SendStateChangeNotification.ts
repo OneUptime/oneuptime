@@ -181,10 +181,9 @@ RunCron(
 
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
-      const episodeNumberStr: string = episode.episodeNumberWithPrefix
-        || (episode.episodeNumber
-          ? `#${episode.episodeNumber}`
-          : "");
+      const episodeNumberStr: string =
+        episode.episodeNumberWithPrefix ||
+        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
 
       for (const user of owners) {
         const episodeIdentifier: string =
@@ -305,7 +304,8 @@ RunCron(
         )}\n`;
       }
 
-      const episodeDisplayNumber: string = episode.episodeNumberWithPrefix || '#' + episode.episodeNumber;
+      const episodeDisplayNumber: string =
+        episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
       const projectId: ObjectID = episode.projectId!;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({

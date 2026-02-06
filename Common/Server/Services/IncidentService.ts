@@ -870,7 +870,9 @@ export class Service extends DatabaseService<Model> {
       const createdByUserId: ObjectID | undefined | null =
         incident.createdByUserId || incident.createdByUser?.id;
 
-      const incidentNumberDisplay: string = incident.incidentNumberWithPrefix || '#' + incident.incidentNumber?.toString();
+      const incidentNumberDisplay: string =
+        incident.incidentNumberWithPrefix ||
+        "#" + incident.incidentNumber?.toString();
 
       let feedInfoInMarkdown: string = `#### 🚨 Incident ${incidentNumberDisplay} Created:
         
@@ -1027,7 +1029,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
           true, // notifyMonitorOwners
           createdItem.rootCause ||
             "Status was changed because Incident " +
-              (createdItem.incidentNumberWithPrefix || '#' + createdItem.incidentNumber?.toString()) +
+              (createdItem.incidentNumberWithPrefix ||
+                "#" + createdItem.incidentNumber?.toString()) +
               " was created.",
           createdItem.createdStateLog,
           onCreate.createBy.props,
@@ -1273,7 +1276,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
         const projectId: ObjectID = incident!.projectId!;
         const incidentNumber: number = incident!.incidentNumber!;
-        const incidentNumberDisplay: string = incident!.incidentNumberWithPrefix || '#' + incidentNumber;
+        const incidentNumberDisplay: string =
+          incident!.incidentNumberWithPrefix || "#" + incidentNumber;
         const incidentLabel: string = `Incident ${incidentNumberDisplay}`;
         const incidentLink: URL = await this.getIncidentLinkInDashboard(
           projectId,
@@ -2284,9 +2288,7 @@ ${incidentSeverity.name}
   }
 
   @CaptureSpan()
-  public async getIncidentNumber(data: {
-    incidentId: ObjectID;
-  }): Promise<{
+  public async getIncidentNumber(data: { incidentId: ObjectID }): Promise<{
     number: number | null;
     numberWithPrefix: string | null;
   }> {
@@ -2306,9 +2308,7 @@ ${incidentSeverity.name}
     }
 
     return {
-      number: incident.incidentNumber
-        ? Number(incident.incidentNumber)
-        : null,
+      number: incident.incidentNumber ? Number(incident.incidentNumber) : null,
       numberWithPrefix: incident.incidentNumberWithPrefix || null,
     };
   }

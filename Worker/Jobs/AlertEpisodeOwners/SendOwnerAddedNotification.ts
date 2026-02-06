@@ -156,10 +156,9 @@ RunCron(
         continue;
       }
 
-      const episodeNumber: string = episode.episodeNumberWithPrefix
-        || (episode.episodeNumber
-          ? `#${episode.episodeNumber}`
-          : "");
+      const episodeNumber: string =
+        episode.episodeNumberWithPrefix ||
+        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
 
       const vars: Dictionary<string> = {
         episodeTitle: episode.title!,

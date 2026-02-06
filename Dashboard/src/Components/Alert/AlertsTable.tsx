@@ -368,7 +368,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 return <>-</>;
               }
 
-              return <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>;
+              return (
+                <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>
+              );
             },
           },
           {

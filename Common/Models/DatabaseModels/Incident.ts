@@ -1528,8 +1528,7 @@ export default class Incident extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "Incident Number With Prefix",
-    description:
-      "Incident number with prefix (e.g., 'INC-42' or '#42')",
+    description: "Incident number with prefix (e.g., 'INC-42' or '#42')",
     computed: true,
     canReadOnRelationQuery: true,
   })

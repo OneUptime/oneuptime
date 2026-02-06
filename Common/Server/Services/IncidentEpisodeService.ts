@@ -199,7 +199,7 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || '#' + episode.episodeNumber?.toString()} Created
+    let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
 
 **${episode.title || "No title provided."}**
 
@@ -990,9 +990,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  public async getEpisodeNumber(data: {
-    episodeId: ObjectID;
-  }): Promise<{
+  public async getEpisodeNumber(data: { episodeId: ObjectID }): Promise<{
     number: number | null;
     numberWithPrefix: string | null;
   }> {

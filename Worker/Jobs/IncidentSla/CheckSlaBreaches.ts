@@ -218,8 +218,9 @@ async function sendBreachNotification(data: {
       return;
     }
 
-    const incidentNumberStr: string = incident.incidentNumberWithPrefix
-      || (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+    const incidentNumberStr: string =
+      incident.incidentNumberWithPrefix ||
+      (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
     const incidentViewLink: string = (
       await IncidentService.getIncidentLinkInDashboard(

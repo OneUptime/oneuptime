@@ -178,7 +178,9 @@ const ActiveAlerts: FunctionComponent<
               if (!item.alertNumber) {
                 return <>-</>;
               }
-              return <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>;
+              return (
+                <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>
+              );
             },
           },
           {

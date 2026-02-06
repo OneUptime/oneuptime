@@ -161,8 +161,9 @@ RunCron(
         continue;
       }
 
-      const incidentNumber: string = incident.incidentNumberWithPrefix
-        || (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+      const incidentNumber: string =
+        incident.incidentNumberWithPrefix ||
+        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
       const vars: Dictionary<string> = {
         incidentTitle: incident.title!,
@@ -191,7 +192,7 @@ RunCron(
       for (const user of users) {
         const incidentIdentifier: string =
           incident.incidentNumber !== undefined
-            ? `${incident.incidentNumberWithPrefix || '#' + incident.incidentNumber} (${incident.title})`
+            ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
             : incident.title!;
 
         const emailMessage: EmailEnvelope = {

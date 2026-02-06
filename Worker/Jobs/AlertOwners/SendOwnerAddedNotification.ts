@@ -160,8 +160,9 @@ RunCron(
         continue;
       }
 
-      const alertNumber: string = alert.alertNumberWithPrefix
-        || (alert.alertNumber ? `#${alert.alertNumber}` : "");
+      const alertNumber: string =
+        alert.alertNumberWithPrefix ||
+        (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
       const vars: Dictionary<string> = {
         alertTitle: alert.title!,
@@ -185,7 +186,7 @@ RunCron(
       for (const user of users) {
         const alertIdentifier: string =
           alert.alertNumber !== undefined
-            ? `${alert.alertNumberWithPrefix || '#' + alert.alertNumber} (${alert.title})`
+            ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title})`
             : alert.title!;
 
         const emailMessage: EmailEnvelope = {

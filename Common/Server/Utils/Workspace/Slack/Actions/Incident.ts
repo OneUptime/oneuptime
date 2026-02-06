@@ -242,7 +242,7 @@ export default class SlackIncidentActions {
             messageBlocks: [
               {
                 _type: "WorkspacePayloadMarkdown",
-                text: `**Incident ${createdIncident.incidentNumberWithPrefix || '#' + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
+                text: `**Incident ${createdIncident.incidentNumberWithPrefix || "#" + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
                   slackRequest.projectId!,
                   createdIncident.id!,
                 )})`,
@@ -563,11 +563,12 @@ export default class SlackIncidentActions {
         });
 
       if (isAlreadyAcknowledged) {
-        const incidentNumberResult =
-          await IncidentService.getIncidentNumber({
-            incidentId: incidentId,
-          });
-        const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
+        const incidentNumberResult = await IncidentService.getIncidentNumber({
+          incidentId: incidentId,
+        });
+        const incidentNumberDisplay: string =
+          incidentNumberResult.numberWithPrefix ||
+          "#" + incidentNumberResult.number;
 
         // send a message to the channel visible to user, that the incident has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
@@ -688,11 +689,12 @@ export default class SlackIncidentActions {
         });
 
       if (isAlreadyResolved) {
-        const incidentNumberResult =
-          await IncidentService.getIncidentNumber({
-            incidentId: incidentId,
-          });
-        const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
+        const incidentNumberResult = await IncidentService.getIncidentNumber({
+          incidentId: incidentId,
+        });
+        const incidentNumberDisplay: string =
+          incidentNumberResult.numberWithPrefix ||
+          "#" + incidentNumberResult.number;
         // send a message to the channel visible to user, that the incident has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
@@ -1028,11 +1030,12 @@ export default class SlackIncidentActions {
         });
 
       if (isAlreadyResolved) {
-        const incidentNumberResult =
-          await IncidentService.getIncidentNumber({
-            incidentId: incidentId,
-          });
-        const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
+        const incidentNumberResult = await IncidentService.getIncidentNumber({
+          incidentId: incidentId,
+        });
+        const incidentNumberDisplay: string =
+          incidentNumberResult.numberWithPrefix ||
+          "#" + incidentNumberResult.number;
         // send a message to the channel visible to user, that the incident has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
@@ -1372,11 +1375,12 @@ export default class SlackIncidentActions {
     const incidentId: ObjectID = workspaceLog.incidentId;
 
     // Get the incident number for the confirmation message
-    const incidentNumberResult =
-      await IncidentService.getIncidentNumber({
-        incidentId: incidentId,
-      });
-    const incidentNumberDisplay: string = incidentNumberResult.numberWithPrefix || '#' + incidentNumberResult.number;
+    const incidentNumberResult = await IncidentService.getIncidentNumber({
+      incidentId: incidentId,
+    });
+    const incidentNumberDisplay: string =
+      incidentNumberResult.numberWithPrefix ||
+      "#" + incidentNumberResult.number;
 
     // Get the user ID in OneUptime based on Slack user ID
     const userAuth: WorkspaceUserAuthToken | null =

@@ -1432,12 +1432,11 @@ export class Service extends DatabaseService<Model> {
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    const episodeIdentifier: string =
-      alertEpisode.episodeNumberWithPrefix
-        ? `Alert episode ${alertEpisode.episodeNumberWithPrefix}, ${alertEpisode.title || "Alert Episode"}`
-        : alertEpisode.episodeNumber !== undefined
-          ? `Alert episode number ${alertEpisode.episodeNumber}, ${alertEpisode.title || "Alert Episode"}`
-          : alertEpisode.title || "Alert Episode";
+    const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
+      ? `Alert episode ${alertEpisode.episodeNumberWithPrefix}, ${alertEpisode.title || "Alert Episode"}`
+      : alertEpisode.episodeNumber !== undefined
+        ? `Alert episode number ${alertEpisode.episodeNumber}, ${alertEpisode.title || "Alert Episode"}`
+        : alertEpisode.title || "Alert Episode";
 
     const callRequest: CallRequest = {
       to: to,
@@ -1502,7 +1501,7 @@ export class Service extends DatabaseService<Model> {
 
     const alertIdentifier: string =
       alert.alertNumber !== undefined
-        ? `${alert.alertNumberWithPrefix || '#' + alert.alertNumber} (${alert.title || "Alert"})`
+        ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title || "Alert"})`
         : alert.title || "Alert";
 
     const sms: SMS = {
@@ -1535,7 +1534,7 @@ export class Service extends DatabaseService<Model> {
 
     const incidentIdentifier: string =
       incident.incidentNumber !== undefined
-        ? `${incident.incidentNumberWithPrefix || '#' + incident.incidentNumber} (${incident.title || "Incident"})`
+        ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title || "Incident"})`
         : incident.title || "Incident";
 
     const sms: SMS = {
@@ -1566,12 +1565,11 @@ export class Service extends DatabaseService<Model> {
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
-    const episodeIdentifier: string =
-      alertEpisode.episodeNumberWithPrefix
-        ? `${alertEpisode.episodeNumberWithPrefix} (${alertEpisode.title || "Alert Episode"})`
-        : alertEpisode.episodeNumber !== undefined
-          ? `#${alertEpisode.episodeNumber} (${alertEpisode.title || "Alert Episode"})`
-          : alertEpisode.title || "Alert Episode";
+    const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
+      ? `${alertEpisode.episodeNumberWithPrefix} (${alertEpisode.title || "Alert Episode"})`
+      : alertEpisode.episodeNumber !== undefined
+        ? `#${alertEpisode.episodeNumber} (${alertEpisode.title || "Alert Episode"})`
+        : alertEpisode.title || "Alert Episode";
 
     const sms: SMS = {
       to,
@@ -1764,8 +1762,9 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    const alertNumber: string = alert.alertNumberWithPrefix
-      || (alert.alertNumber ? `#${alert.alertNumber}` : "");
+    const alertNumber: string =
+      alert.alertNumberWithPrefix ||
+      (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
     const vars: Dictionary<string> = {
       alertTitle: alert.title!,
@@ -1808,8 +1807,9 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    const incidentNumber: string = incident.incidentNumberWithPrefix
-      || (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+    const incidentNumber: string =
+      incident.incidentNumberWithPrefix ||
+      (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
     const vars: Dictionary<string> = {
       incidentTitle: incident.title!,
@@ -1926,8 +1926,9 @@ export class Service extends DatabaseService<Model> {
       const alertRows: string[] = [];
       for (const alert of alerts) {
         const alertTitle: string = alert.title || "Untitled Alert";
-        const alertNumber: string = alert.alertNumberWithPrefix
-          || (alert.alertNumber ? `#${alert.alertNumber}` : "");
+        const alertNumber: string =
+          alert.alertNumberWithPrefix ||
+          (alert.alertNumber ? `#${alert.alertNumber}` : "");
         const alertLink: string = (
           await AlertService.getAlertLinkInDashboard(
             alertEpisode.projectId!,
@@ -1966,10 +1967,9 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    const episodeNumber: string = alertEpisode.episodeNumberWithPrefix
-      || (alertEpisode.episodeNumber
-        ? `#${alertEpisode.episodeNumber}`
-        : "");
+    const episodeNumber: string =
+      alertEpisode.episodeNumberWithPrefix ||
+      (alertEpisode.episodeNumber ? `#${alertEpisode.episodeNumber}` : "");
 
     const vars: Dictionary<string> = {
       alertEpisodeTitle: alertEpisode.title!,

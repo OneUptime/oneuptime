@@ -176,10 +176,10 @@ RunCron(
       }
 
       const scheduledMaintenanceNumberStr: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix
-          || (scheduledMaintenance.scheduledMaintenanceNumber
-            ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-            : "");
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        (scheduledMaintenance.scheduledMaintenanceNumber
+          ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+          : "");
 
       for (const user of owners) {
         // Build the "Was X for Y" string
@@ -273,7 +273,7 @@ RunCron(
               event_number:
                 scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
                 (scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
-                "N/A"),
+                  "N/A"),
             },
           });
 
@@ -298,7 +298,8 @@ RunCron(
       }
 
       const scheduledMaintenanceDisplayNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || '#' + scheduledMaintenance.scheduledMaintenanceNumber;
+        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+        "#" + scheduledMaintenance.scheduledMaintenanceNumber;
       const projectId: ObjectID = scheduledMaintenance.projectId!;
       const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
 

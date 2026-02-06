@@ -178,7 +178,9 @@ const ActiveIncidentEpisodes: FunctionComponent<
               if (!item.episodeNumber) {
                 return <>-</>;
               }
-              return <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>;
+              return (
+                <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>
+              );
             },
           },
           {

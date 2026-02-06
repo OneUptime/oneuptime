@@ -129,7 +129,8 @@ RunCron(
         }
 
         const incidentNumberDisplay: string =
-          incident.incidentNumberWithPrefix || '#' + (incident.incidentNumber?.toString() || " - ");
+          incident.incidentNumberWithPrefix ||
+          "#" + (incident.incidentNumber?.toString() || " - ");
         const incidentFeedText: string = `📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**:
       Notification sent to status page subscribers because postmortem was published for this incident.`;
 

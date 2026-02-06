@@ -365,7 +365,8 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
         },
       });
 
-    const episodeDisplayNumber: string = episode?.episodeNumberWithPrefix || '#' + (episode?.episodeNumber || 0);
+    const episodeDisplayNumber: string =
+      episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || 0);
 
     await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
       incidentEpisodeId: createdItem.incidentEpisodeId!,

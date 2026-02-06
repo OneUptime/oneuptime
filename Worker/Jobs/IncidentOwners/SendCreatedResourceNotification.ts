@@ -75,7 +75,8 @@ RunCron(
       const projectId: ObjectID = incident.projectId!;
       const incidentId: ObjectID = incident.id!;
       const incidentNumber: number = incident.incidentNumber!;
-      const incidentNumberDisplay: string = incident.incidentNumberWithPrefix || '#' + incidentNumber;
+      const incidentNumberDisplay: string =
+        incident.incidentNumberWithPrefix || "#" + incidentNumber;
 
       const incidentFeedText: string = `🔔 **Owner Incident Created Notification Sent**:
 Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) was created.`;
@@ -125,8 +126,9 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
         declaredBy = `${incident.createdByUser.name.toString()} (${incident.createdByUser.email.toString()})`;
       }
 
-      const incidentNumberStr: string = incident.incidentNumberWithPrefix
-        || (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+      const incidentNumberStr: string =
+        incident.incidentNumberWithPrefix ||
+        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
       for (const user of owners) {
         try {
@@ -178,7 +180,7 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
 
           const incidentIdentifier: string =
             incident.incidentNumber !== undefined
-              ? `${incident.incidentNumberWithPrefix || '#' + incident.incidentNumber} (${incident.title})`
+              ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
               : incident.title!;
 
           const emailMessage: EmailEnvelope = {

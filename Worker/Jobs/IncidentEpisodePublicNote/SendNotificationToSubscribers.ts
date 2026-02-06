@@ -696,7 +696,7 @@ ${episodePublicNote.note || ""}
           incidentEpisodeFeedEventType:
             IncidentEpisodeFeedEventType.SubscriberNotificationSent,
           displayColor: Blue500,
-          feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Episode ${episode.episodeNumberWithPrefix || '#' + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`,
+          feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`,
           moreInformationInMarkdown: `**Public Note:**
 
 ${episodePublicNote.note}`,

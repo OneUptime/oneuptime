@@ -275,8 +275,7 @@ export default class IncidentEpisode extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "Episode Number With Prefix",
-    description:
-      "Episode number with prefix (e.g., 'IE-42' or '#42')",
+    description: "Episode number with prefix (e.g., 'IE-42' or '#42')",
     computed: true,
   })
   @Column({

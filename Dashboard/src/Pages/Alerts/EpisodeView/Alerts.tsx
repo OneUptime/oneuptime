@@ -156,7 +156,12 @@ const EpisodeAlerts: FunctionComponent<
             if (!item.alert?.alertNumber) {
               return <>-</>;
             }
-            return <>{item.alert.alertNumberWithPrefix || `#${item.alert.alertNumber}`}</>;
+            return (
+              <>
+                {item.alert.alertNumberWithPrefix ||
+                  `#${item.alert.alertNumber}`}
+              </>
+            );
           },
         },
         {

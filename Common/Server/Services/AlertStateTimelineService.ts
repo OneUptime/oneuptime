@@ -414,7 +414,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       displayColor: alertState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Alert ${alertNumberResult.numberWithPrefix || '#' + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
+        ` Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
         stateName +
         "**",
       moreInformationInMarkdown: `**Cause:** 
@@ -464,7 +464,7 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Alert ${alertNumberResult.numberWithPrefix || '#' + alertNumberResult.number}](${(
+          text: `**[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(
             await AlertService.getAlertLinkInDashboard(
               createdItem.projectId!,
               createdItem.alertId!,

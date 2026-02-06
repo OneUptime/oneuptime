@@ -726,9 +726,10 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     const scheduledMaintenanceCounterResult: {
       counter: number;
       prefix: string | undefined;
-    } = await ProjectService.incrementAndGetScheduledMaintenanceCounter(
-      projectId,
-    );
+    } =
+      await ProjectService.incrementAndGetScheduledMaintenanceCounter(
+        projectId,
+      );
 
     createBy.data.scheduledMaintenanceNumber =
       scheduledMaintenanceCounterResult.counter;
@@ -950,7 +951,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         scheduledMaintenance.createdByUserId ||
         scheduledMaintenance.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || '#' + scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created:
+      let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created:
             
 **${scheduledMaintenance.title || "No title provided."}**:
       
