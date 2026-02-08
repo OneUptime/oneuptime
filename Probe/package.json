@@ -27,7 +27,7 @@
     "ejs": "^3.1.10",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.5",
-    "net-snmp": "^3.14.1",
+    "net-snmp": "^3.26.1",
     "ping": "^0.4.4",
     "playwright": "^1.57.0",
     "ts-node": "^10.9.1"
