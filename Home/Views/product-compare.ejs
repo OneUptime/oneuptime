@@ -7,6 +7,26 @@
     <title><%= productConfig.productName %> Alternative - OneUptime | Open Source | 2026 Comparison</title>
     <meta name="description"
         content="Compare <%= productConfig.productName %> vs OneUptime. Free open-source alternative with unlimited monitors, status pages & on-call. See pricing, features & migration guide.">
+    
+    <!-- FAQ Schema for rich snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        <% for(var faqIdx=0; faqIdx < productConfig.faq.length; faqIdx++) { %>
+        {
+          "@type": "Question",
+          "name": "<%= productConfig.faq[faqIdx].question.replace(/"/g, '\\"') %>",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "<%= productConfig.faq[faqIdx].answer.replace(/"/g, '\\"') %>"
+          }
+        }<%= faqIdx < productConfig.faq.length - 1 ? ',' : '' %>
+        <% } %>
+      ]
+    }
+    </script>
     <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
