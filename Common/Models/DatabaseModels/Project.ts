@@ -819,7 +819,7 @@ export default class Project extends TenantModel {
   public alertEpisodeCounter?: number = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -849,7 +849,7 @@ export default class Project extends TenantModel {
   public incidentNumberPrefix?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -879,7 +879,7 @@ export default class Project extends TenantModel {
   public alertNumberPrefix?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -909,7 +909,7 @@ export default class Project extends TenantModel {
   public scheduledMaintenanceNumberPrefix?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -939,7 +939,7 @@ export default class Project extends TenantModel {
   public incidentEpisodeNumberPrefix?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [Permission.User],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
