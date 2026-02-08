@@ -75,8 +75,9 @@ WORKDIR /usr/src/app
 COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
 
-# Install browsers with the same Playwright version we just installed
-RUN npx playwright install --with-deps
+# Install browsers to a fixed path accessible by any runtime user (root or non-root)
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
+RUN npx playwright install --with-deps && chmod -R 755 /ms-playwright-browsers
 
 # Use tini as init to properly reap zombie processes (like Chrome/Chromium)
 ENTRYPOINT ["/usr/bin/tini", "--"]
