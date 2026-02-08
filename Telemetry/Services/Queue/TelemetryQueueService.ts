@@ -3,6 +3,7 @@ import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
+import Text from "Common/Types/Text";
 
 export enum TelemetryType {
   Logs = "logs",
@@ -51,7 +52,7 @@ export default class TelemetryQueueService {
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
 
-      const jobId: string = `${type}-${req.projectId?.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+      const jobId: string = `${type}-${req.projectId?.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${Text.generateRandomNumber(6)}`;
 
       await Queue.addJob(
         QueueName.Telemetry,
