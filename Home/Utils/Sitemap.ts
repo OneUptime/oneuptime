@@ -327,14 +327,8 @@ export async function generateSitemapIndexXml(): Promise<string> {
     lastmod: timestamp,
   });
 
-  // Blog tags sitemaps (paginated)
-  const tagsPageCount: number = await getTagsSitemapPageCount();
-  for (let i: number = 1; i <= tagsPageCount; i++) {
-    sitemaps.push({
-      loc: `${baseUrlString}/sitemap-tags-${i}.xml`,
-      lastmod: timestamp,
-    });
-  }
+  // Note: Blog tag sitemaps removed - tag pages are noindex to improve
+  // site quality signals and crawl budget efficiency
 
   // Blog post sitemaps (paginated)
   const blogPageCount: number = await getBlogSitemapPageCount();
