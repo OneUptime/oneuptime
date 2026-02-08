@@ -327,8 +327,10 @@ export async function generateSitemapIndexXml(): Promise<string> {
     lastmod: timestamp,
   });
 
-  // Note: Blog tag sitemaps removed - tag pages are noindex to improve
-  // site quality signals and crawl budget efficiency
+  /*
+   * Note: Blog tag sitemaps removed - tag pages are noindex to improve
+   * site quality signals and crawl budget efficiency
+   */
 
   // Blog post sitemaps (paginated)
   const blogPageCount: number = await getBlogSitemapPageCount();
