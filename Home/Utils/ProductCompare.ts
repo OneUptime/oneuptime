@@ -2299,24 +2299,44 @@ const products: Dictionary<Product> = {
     ],
     faq: [
       {
-        question: "How does OneUptime compare to Better Stack?",
+        question: "How does OneUptime compare to Better Stack (Better Uptime)?",
         answer:
-          "Better Stack and OneUptime have similar visions - providing monitoring, status pages, and incident management in one platform. The key difference is pricing: Better Stack charges per 50 monitors ($21/month) and per responder ($29/month), while OneUptime offers unlimited monitors and users. For teams with growing monitoring needs, OneUptime's flat pricing is more predictable.",
+          "Better Stack (formerly Better Uptime) and OneUptime share a similar vision of unified observability. Both provide monitoring, status pages, and incident management in one platform. The key differences are pricing and openness: Better Stack charges per 50 monitors ($21/month) and per responder ($29/month), while OneUptime offers unlimited monitors and users with flat pricing. OneUptime is also fully open source (Apache 2.0) with self-hosting options, giving you complete control over your data and infrastructure.",
       },
       {
-        question: "What about Better Stack's incident management?",
+        question: "What is Better Uptime and why did it become Better Stack?",
         answer:
-          "Both platforms offer incident management with timelines, Slack integration, and status page updates. Better Stack requires a Responder license ($29/month) for full on-call and incident features. OneUptime includes all incident management features in every plan.",
+          "Better Uptime was a popular monitoring and status page tool that rebranded to Better Stack in 2023 to reflect their expanded product suite including logs, metrics, and observability features. The core uptime monitoring product remains similar, but the pricing model changed to include separate charges for monitors, responders, and telemetry data. OneUptime offers a simpler all-inclusive pricing model.",
       },
       {
-        question: "How do monitoring capabilities compare?",
+        question: "What about Better Stack's incident management vs OneUptime?",
         answer:
-          "Both offer HTTP monitoring, API checks, SSL monitoring, and status pages. OneUptime offers faster check frequencies (1 second minimum vs 30 seconds) and includes server monitoring. Better Stack has a strong focus on logs and observability data, while OneUptime focuses on the complete incident lifecycle.",
+          "Both platforms offer incident management with timelines, Slack integration, and automatic status page updates. The difference is access: Better Stack requires a Responder license ($29/month per person) for full on-call and incident features. OneUptime includes all incident management, on-call scheduling, and escalation policies in every plan at no extra cost.",
+      },
+      {
+        question: "How do monitoring capabilities compare between Better Stack and OneUptime?",
+        answer:
+          "Both offer HTTP monitoring, API checks, SSL certificate monitoring, and status pages. OneUptime provides faster minimum check frequencies (1 second vs 30 seconds on Better Stack) and includes server monitoring for CPU, memory, and disk metrics. Better Stack focuses heavily on logs and telemetry, while OneUptime focuses on the complete incident lifecycle from detection to postmortem.",
       },
       {
         question: "Is Better Stack or OneUptime better for startups?",
         answer:
-          "Both have free tiers. Better Stack's free tier includes 10 monitors while OneUptime's includes more generous limits. As you grow, OneUptime's unlimited monitoring becomes more cost-effective. If you need extensive log management, Better Stack's telemetry features may be valuable. For pure reliability monitoring with status pages and on-call, OneUptime offers better value.",
+          "Both have free tiers, but they differ significantly. Better Stack's free tier includes 10 monitors with basic features. OneUptime's free tier includes more monitors, plus on-call scheduling and incident management features that Better Stack charges extra for. As you scale, OneUptime's unlimited monitoring becomes much more cost-effective. For startups that need the complete incident lifecycle without surprise costs, OneUptime is typically the better choice.",
+      },
+      {
+        question: "Can I self-host OneUptime like Better Stack?",
+        answer:
+          "Yes, and this is a major differentiator. OneUptime is fully open source under the Apache 2.0 license and can be self-hosted on your own infrastructure using Docker or Kubernetes. Better Stack is a closed-source SaaS product with no self-hosting option. Self-hosting gives you complete control over your data, helps meet compliance requirements, and eliminates vendor lock-in.",
+      },
+      {
+        question: "How does pricing compare between Better Stack and OneUptime?",
+        answer:
+          "Better Stack uses a component-based pricing model: $21/month per 50 monitors, $29/month per responder for on-call features, plus additional charges for telemetry data. A team with 100 monitors and 3 on-call responders would pay approximately $129/month minimum. OneUptime offers unlimited monitors and users with simpler flat pricing, making costs predictable as you scale.",
+      },
+      {
+        question: "What features does OneUptime have that Better Stack doesn't?",
+        answer:
+          "OneUptime offers several unique capabilities: 1-second minimum check intervals (vs 30 seconds), open source codebase you can audit and extend, self-hosting on your infrastructure, unlimited monitors without per-check fees, and all on-call features included without responder licenses. OneUptime also provides a more complete incident management workflow with built-in postmortem templates and action item tracking.",
       },
     ],
     keyDifferences: [

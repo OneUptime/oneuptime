@@ -7,6 +7,27 @@
     <title>OneUptime vs <%= productConfig.productName %>: Open-Source Alternative | 2026 Comparison</title>
     <meta name="description"
         content="Looking for a <%= productConfig.productName %> alternative? OneUptime is the open-source observability platform with monitoring, status pages, incident management & APM in one. Compare features and pricing.">
+    
+    <!-- FAQ Schema for rich snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        <% for(var faqIdx=0; faqIdx < productConfig.faq.length; faqIdx++) { %>
+        {
+          "@type": "Question",
+          "name": "<%= productConfig.faq[faqIdx].question.replace(/"/g, '\\"') %>",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "<%= productConfig.faq[faqIdx].answer.replace(/"/g, '\\"') %>"
+          }
+        }<%= faqIdx < productConfig.faq.length - 1 ? ',' : '' %>
+        <% } %>
+      ]
+    }
+    </script>
+    
     <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
