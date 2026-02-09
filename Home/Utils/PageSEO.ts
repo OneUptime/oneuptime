@@ -65,9 +65,9 @@ export const createDefaultSEO: (
 export const PageSEOConfig: Record<string, PageSEOData> = {
   // Homepage
   "/": {
-    title: "OneUptime | Complete Monitoring & Observability Platform",
+    title: "Open Source Uptime Monitoring & Observability Platform | OneUptime",
     description:
-      "OneUptime is an open-source complete observability platform. Monitor websites, APIs, and servers. Get alerts, manage incidents, and keep customers informed with status pages. Free tier available.",
+      "Open source uptime monitoring platform with infrastructure monitoring, incident management, status pages, and APM. Self-hostable observability platform trusted by thousands of teams. Free tier available.",
     canonicalPath: "/",
     ogType: "website",
     twitterCard: "summary_large_image",
