@@ -146,6 +146,15 @@ spec:
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 
+{{- if and (not $val.disableAutoscaler) (not (and $.Values.keda.enabled (and $val.keda $val.keda.enabled))) }}
+# OneUptime probe autoscaler
+{{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
+{{- end }}
+---
+
+{{- end }}
+
 # OneUptime probe Service
 {{- $probePort := 3874 }}
 {{- if and $val.ports $val.ports.http }}
@@ -156,14 +165,4 @@ spec:
 {{- include "oneuptime.service" $probeServiceArgs }}
 ---
 
-{{- if and (not $val.disableAutoscaler) (not (and $.Values.keda.enabled (and $val.keda $val.keda.enabled))) }}
-# OneUptime probe autoscaler
-{{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
 {{- end }}
----
-
-{{- end }}
-
-{{- end }}
-

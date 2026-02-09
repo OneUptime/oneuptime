@@ -107,7 +107,7 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.serverMonitorIngest.ports.http | quote }} 
+              value: {{ $.Values.serverMonitorIngest.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.serverMonitorIngest.disableTelemetryCollection | quote }}
             - name: SERVER_MONITOR_INGEST_CONCURRENCY
@@ -124,12 +124,6 @@ spec:
 
 ---
 
-# OneUptime server-monitor-ingest Service
-{{- $serverMonitorIngestPorts := dict "port" $.Values.serverMonitorIngest.ports.http -}}
-{{- $serverMonitorIngestServiceArgs := dict "ServiceName" "server-monitor-ingest" "Ports" $serverMonitorIngestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $serverMonitorIngestServiceArgs }}
----
-
 # OneUptime server-monitor-ingest autoscaler
 {{- if and (not $.Values.serverMonitorIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.serverMonitorIngest.keda.enabled)) }}
 {{- $serverMonitorIngestAutoScalerArgs := dict "ServiceName" "server-monitor-ingest" "Release" $.Release "Values" $.Values -}}
@@ -138,3 +132,9 @@ spec:
 ---
 
 {{- end }}
+
+# OneUptime server-monitor-ingest Service
+{{- $serverMonitorIngestPorts := dict "port" $.Values.serverMonitorIngest.ports.http -}}
+{{- $serverMonitorIngestServiceArgs := dict "ServiceName" "server-monitor-ingest" "Ports" $serverMonitorIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $serverMonitorIngestServiceArgs }}
+---

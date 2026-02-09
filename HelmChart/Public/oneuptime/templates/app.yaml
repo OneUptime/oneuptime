@@ -116,7 +116,7 @@ spec:
               value: {{ $.Values.billing.callDefaultValueInCentsPerMinute | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.app.disableTelemetryCollection | quote }}
-        
+
           ports:
             - containerPort: {{ $.Values.app.ports.http }}
               protocol: TCP
@@ -129,12 +129,6 @@ spec:
 
 ---
 
-# OneUptime app Service
-{{- $appPorts := dict "port" $.Values.app.ports.http -}}
-{{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $appServiceArgs }}
----
-
 # OneUptime app autoscaler
 {{- if not $.Values.app.disableAutoscaler }}
 {{- $appAutoScalerArgs := dict "ServiceName" "app" "Release" $.Release "Values" $.Values -}}
@@ -142,3 +136,9 @@ spec:
 {{- end }}
 ---
 {{- end }}
+
+# OneUptime app Service
+{{- $appPorts := dict "port" $.Values.app.ports.http -}}
+{{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $appServiceArgs }}
+---

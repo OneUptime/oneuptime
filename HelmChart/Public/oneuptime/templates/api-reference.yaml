@@ -117,17 +117,16 @@ spec:
 
 ---
 
-# OneUptime app Service
-# OneUptime apiReference Service
-{{- $apiReferencePorts := dict "port" $.Values.apiReference.ports.http -}}
-{{- $apiReferenceServiceArgs := dict "ServiceName" "api-reference" "Ports" $apiReferencePorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $apiReferenceServiceArgs }}
----
-
-# OneUptime app autoscaler
+# OneUptime apiReference autoscaler
 {{- if not $.Values.apiReference.disableAutoscaler }}
 {{- $apiReferenceAutoScalerArgs := dict "ServiceName" "api-reference" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $apiReferenceAutoScalerArgs }}
 {{- end }}
 ---
 {{- end }}
+
+# OneUptime apiReference Service
+{{- $apiReferencePorts := dict "port" $.Values.apiReference.ports.http -}}
+{{- $apiReferenceServiceArgs := dict "ServiceName" "api-reference" "Ports" $apiReferencePorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $apiReferenceServiceArgs }}
+---

@@ -119,15 +119,17 @@ spec:
 
 ---
 
-# OneUptime app Service
-{{- $workerPorts := $.Values.worker.ports -}}
-{{- $workerServiceArgs := dict "ServiceName" "worker" "Ports" $workerPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $workerServiceArgs }}
----
-
-# OneUptime app autoscaler
+# OneUptime worker autoscaler
 {{- if and (not $.Values.worker.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.worker.keda.enabled)) }}
 {{- $workerAutoScalerArgs := dict "ServiceName" "worker" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $workerAutoScalerArgs }}
 {{- end }}
 {{- end }}
+
+---
+
+# OneUptime worker Service
+{{- $workerPorts := $.Values.worker.ports -}}
+{{- $workerServiceArgs := dict "ServiceName" "worker" "Ports" $workerPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $workerServiceArgs }}
+---

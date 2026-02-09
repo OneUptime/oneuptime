@@ -106,13 +106,6 @@ spec:
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 
-# OneUptime AI Agent Service
-{{- $aiAgentPort := $.Values.aiAgent.ports.http }}
-{{- $aiAgentPorts := dict "port" $aiAgentPort -}}
-{{- $aiAgentServiceArgs := dict "ServiceName" "ai-agent" "Ports" $aiAgentPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $aiAgentServiceArgs }}
----
-
 {{- if and (not $.Values.aiAgent.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.aiAgent.keda.enabled)) }}
 # OneUptime AI Agent autoscaler (only when KEDA is not enabled, as KEDA manages its own HPA)
 {{- $aiAgentAutoScalerArgs := dict "ServiceName" "ai-agent" "Release" $.Release "Values" $.Values -}}
@@ -120,3 +113,12 @@ spec:
 {{- end }}
 
 {{- end }}
+
+---
+
+# OneUptime AI Agent Service
+{{- $aiAgentPort := $.Values.aiAgent.ports.http }}
+{{- $aiAgentPorts := dict "port" $aiAgentPort -}}
+{{- $aiAgentServiceArgs := dict "ServiceName" "ai-agent" "Ports" $aiAgentPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $aiAgentServiceArgs }}
+---

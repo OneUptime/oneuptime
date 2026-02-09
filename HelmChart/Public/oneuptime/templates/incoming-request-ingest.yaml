@@ -110,7 +110,7 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.incomingRequestIngest.ports.http | quote }} 
+              value: {{ $.Values.incomingRequestIngest.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.incomingRequestIngest.disableTelemetryCollection | quote }}
             - name: INCOMING_REQUEST_INGEST_CONCURRENCY
@@ -127,12 +127,6 @@ spec:
 
 ---
 
-# OneUptime incoming-request-ingest Service
-{{- $incomingRequestIngestPorts := dict "port" $.Values.incomingRequestIngest.ports.http -}}
-{{- $incomingRequestIngestServiceArgs := dict "ServiceName" "incoming-request-ingest" "Ports" $incomingRequestIngestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $incomingRequestIngestServiceArgs }}
----
-
 # OneUptime incoming-request-ingest autoscaler
 {{- if and (not $.Values.incomingRequestIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.incomingRequestIngest.keda.enabled)) }}
 {{- $incomingRequestIngestAutoScalerArgs := dict "ServiceName" "incoming-request-ingest" "Release" $.Release "Values" $.Values -}}
@@ -141,3 +135,9 @@ spec:
 ---
 
 {{- end }}
+
+# OneUptime incoming-request-ingest Service
+{{- $incomingRequestIngestPorts := dict "port" $.Values.incomingRequestIngest.ports.http -}}
+{{- $incomingRequestIngestServiceArgs := dict "ServiceName" "incoming-request-ingest" "Ports" $incomingRequestIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $incomingRequestIngestServiceArgs }}
+---

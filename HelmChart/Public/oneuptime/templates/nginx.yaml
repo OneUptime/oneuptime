@@ -163,6 +163,15 @@ spec:
 
 ---
 
+# OneUptime nginx autoscaler
+{{- if not $.Values.nginx.disableAutoscaler }}
+{{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
+{{- end }}
+---
+
+{{- end }}
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -208,12 +217,3 @@ spec:
   type: ClusterIP
   {{- end }}
 ---
-
-# OneUptime nginx autoscaler
-{{- if not $.Values.nginx.disableAutoscaler }}
-{{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
-{{- end }}
----
-
-{{- end }}

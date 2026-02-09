@@ -107,7 +107,7 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.telemetry.ports.http | quote }} 
+              value: {{ $.Values.telemetry.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.telemetry.disableTelemetryCollection | quote }}
             - name: TELEMETRY_CONCURRENCY
@@ -124,15 +124,17 @@ spec:
 
 ---
 
-# OneUptime telemetry Service
-{{- $telemetryPorts := dict "port" $.Values.telemetry.ports.http -}}
-{{- $telemetryServiceArgs := dict "ServiceName" "telemetry" "Ports" $telemetryPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $telemetryServiceArgs }}
----
-
 # OneUptime telemetry autoscaler
 {{- if and (not $.Values.telemetry.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.telemetry.keda.enabled)) }}
 {{- $telemetryAutoScalerArgs := dict "ServiceName" "telemetry" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $telemetryAutoScalerArgs }}
 {{- end }}
 {{- end }}
+
+---
+
+# OneUptime telemetry Service
+{{- $telemetryPorts := dict "port" $.Values.telemetry.ports.http -}}
+{{- $telemetryServiceArgs := dict "ServiceName" "telemetry" "Ports" $telemetryPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $telemetryServiceArgs }}
+---

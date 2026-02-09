@@ -117,14 +117,7 @@ spec:
 
 ---
 
-# OneUptime app Service
-# OneUptime docs Service
-{{- $docsPorts := dict "port" $.Values.docs.ports.http -}}
-{{- $docsServiceArgs := dict "ServiceName" "docs" "Ports" $docsPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $docsServiceArgs }}
----
-
-# OneUptime app autoscaler
+# OneUptime docs autoscaler
 {{- if not $.Values.docs.disableAutoscaler }}
 {{- $docsAutoScalerArgs := dict "ServiceName" "docs" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $docsAutoScalerArgs }}
@@ -132,3 +125,9 @@ spec:
 ---
 
 {{- end }}
+
+# OneUptime docs Service
+{{- $docsPorts := dict "port" $.Values.docs.ports.http -}}
+{{- $docsServiceArgs := dict "ServiceName" "docs" "Ports" $docsPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $docsServiceArgs }}
+---

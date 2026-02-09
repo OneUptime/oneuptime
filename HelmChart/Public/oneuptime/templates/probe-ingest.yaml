@@ -107,7 +107,7 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.probeIngest.ports.http | quote }} 
+              value: {{ $.Values.probeIngest.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.probeIngest.disableTelemetryCollection | quote }}
             - name: PROBE_INGEST_CONCURRENCY
@@ -124,12 +124,6 @@ spec:
 
 ---
 
-# OneUptime probe-ingest Service
-{{- $probeIngestPorts := dict "port" $.Values.probeIngest.ports.http -}}
-{{- $probeIngestServiceArgs := dict "ServiceName" "probe-ingest" "Ports" $probeIngestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $probeIngestServiceArgs }}
----
-
 # OneUptime probe-ingest autoscaler
 {{- if and (not $.Values.probeIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.probeIngest.keda.enabled)) }}
 {{- $probeIngestAutoScalerArgs := dict "ServiceName" "probe-ingest" "Release" $.Release "Values" $.Values -}}
@@ -138,3 +132,9 @@ spec:
 ---
 
 {{- end }}
+
+# OneUptime probe-ingest Service
+{{- $probeIngestPorts := dict "port" $.Values.probeIngest.ports.http -}}
+{{- $probeIngestServiceArgs := dict "ServiceName" "probe-ingest" "Ports" $probeIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $probeIngestServiceArgs }}
+---

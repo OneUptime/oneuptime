@@ -6,14 +6,14 @@
 {{- include "oneuptime.deployment" $dashboardDeploymentArgs }}
 ---
 
-# OneUptime dashboard Service
-{{- $dashboardPorts := $.Values.dashboard.ports -}}
-{{- $dashboardServiceArgs := dict "ServiceName" "dashboard" "Ports" $dashboardPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $dashboardServiceArgs }}
----
-
 # OneUptime dashboard autoscaler
 {{- $dashboardAutoScalerArgs := dict "ServiceName" "dashboard" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.dashboard.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $dashboardAutoScalerArgs }}
 ---
 {{- end }}
+
+# OneUptime dashboard Service
+{{- $dashboardPorts := $.Values.dashboard.ports -}}
+{{- $dashboardServiceArgs := dict "ServiceName" "dashboard" "Ports" $dashboardPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $dashboardServiceArgs }}
+---

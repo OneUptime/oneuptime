@@ -117,13 +117,7 @@ spec:
 
 ---
 
-# OneUptime app Service
-{{- $homePorts := $.Values.home.ports -}}
-{{- $homeServiceArgs := dict "ServiceName" "home" "Ports" $homePorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $homeServiceArgs }}
----
-
-# OneUptime app autoscaler
+# OneUptime home autoscaler
 {{- if not $.Values.home.disableAutoscaler }}
 {{- $homeAutoScalerArgs := dict "ServiceName" "home" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $homeAutoScalerArgs }}
@@ -131,3 +125,9 @@ spec:
 ---
 
 {{- end }}
+
+# OneUptime home Service
+{{- $homePorts := $.Values.home.ports -}}
+{{- $homeServiceArgs := dict "ServiceName" "home" "Ports" $homePorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $homeServiceArgs }}
+---

@@ -76,10 +76,10 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.isolatedVM.ports.http | quote }} 
+              value: {{ $.Values.isolatedVM.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.isolatedVM.disableTelemetryCollection | quote }}
-        
+
           ports:
             - containerPort: {{ $.Values.isolatedVM.ports.http }}
               protocol: TCP
@@ -92,12 +92,6 @@ spec:
 
 ---
 
-# OneUptime isolatedVM Service
-{{- $isolatedVMPorts := $.Values.isolatedVM.ports -}}
-{{- $isolatedVMServiceArgs := dict "ServiceName" "isolated-vm" "Ports" $isolatedVMPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $isolatedVMServiceArgs }}
----
-
 
 # OneUptime isolatedVM autoscaler
 {{- if not $.Values.isolatedVM.disableAutoscaler }}
@@ -107,3 +101,9 @@ spec:
 ---
 
 {{- end }}
+
+# OneUptime isolatedVM Service
+{{- $isolatedVMPorts := $.Values.isolatedVM.ports -}}
+{{- $isolatedVMServiceArgs := dict "ServiceName" "isolated-vm" "Ports" $isolatedVMPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $isolatedVMServiceArgs }}
+---

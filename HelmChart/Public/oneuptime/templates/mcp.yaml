@@ -6,14 +6,14 @@
 {{- include "oneuptime.deployment" $mcpDeploymentArgs }}
 ---
 
-# OneUptime MCP Service
-{{- $mcpPorts := $.Values.mcp.ports -}}
-{{- $mcpServiceArgs := dict "ServiceName" "mcp" "Ports" $mcpPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $mcpServiceArgs }}
----
-
 # OneUptime MCP autoscaler
 {{- $mcpAutoScalerArgs := dict "ServiceName" "mcp" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.mcp.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $mcpAutoScalerArgs }}
 ---
 {{- end }}
+
+# OneUptime MCP Service
+{{- $mcpPorts := $.Values.mcp.ports -}}
+{{- $mcpServiceArgs := dict "ServiceName" "mcp" "Ports" $mcpPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $mcpServiceArgs }}
+---

@@ -6,14 +6,14 @@
 {{- include "oneuptime.deployment" $accountsDeploymentArgs }}
 ---
 
-# OneUptime accounts Service
-{{- $accountsPorts := $.Values.accounts.ports -}}
-{{- $accountsServiceArgs := dict "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $accountsServiceArgs }}
----
-
 # OneUptime accounts autoscaler
 {{- $accountsAutoScalerArgs := dict "ServiceName" "accounts" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.accounts.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $accountsAutoScalerArgs }}
 ---
 {{- end }}
+
+# OneUptime accounts Service
+{{- $accountsPorts := $.Values.accounts.ports -}}
+{{- $accountsServiceArgs := dict "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $accountsServiceArgs }}
+---

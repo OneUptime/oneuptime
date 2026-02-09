@@ -118,13 +118,7 @@ spec:
 
 ---
 
-# OneUptime app Service
-{{- $workflowPorts := $.Values.workflow.ports -}}
-{{- $workflowServiceArgs := dict "ServiceName" "workflow" "Ports" $workflowPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $workflowServiceArgs }}
----
-
-# OneUptime app autoscaler
+# OneUptime workflow autoscaler
 {{- if not $.Values.workflow.disableAutoscaler }}
 {{- $workflowAutoScalerArgs := dict "ServiceName" "workflow" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $workflowAutoScalerArgs }}
@@ -132,3 +126,9 @@ spec:
 ---
 
 {{- end }}
+
+# OneUptime workflow Service
+{{- $workflowPorts := $.Values.workflow.ports -}}
+{{- $workflowServiceArgs := dict "ServiceName" "workflow" "Ports" $workflowPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $workflowServiceArgs }}
+---

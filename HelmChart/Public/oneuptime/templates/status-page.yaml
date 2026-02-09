@@ -6,14 +6,14 @@
 {{- include "oneuptime.deployment" $statusPageDeploymentArgs }}
 ---
 
-# OneUptime statusPage Service
-{{- $statusPagePorts := dict "port" $.Values.statusPage.ports.http -}}
-{{- $statusPageServiceArgs := dict "ServiceName" "status-page" "Ports" $statusPagePorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $statusPageServiceArgs }}
----
-
 # OneUptime statusPage autoscaler
 {{- $statusPageAutoScalerArgs := dict "ServiceName" "status-page" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.statusPage.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $statusPageAutoScalerArgs }}
 ---
 {{- end }}
+
+# OneUptime statusPage Service
+{{- $statusPagePorts := dict "port" $.Values.statusPage.ports.http -}}
+{{- $statusPageServiceArgs := dict "ServiceName" "status-page" "Ports" $statusPagePorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $statusPageServiceArgs }}
+---
