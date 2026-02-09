@@ -712,15 +712,68 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    await this.updateOneById({
+    const incidentCount: number = count.toNumber();
+
+    // Get the episode to check for templates
+    const episode: Model | null = await this.findOneById({
       id: episodeId,
-      data: {
-        incidentCount: count.toNumber(),
+      select: {
+        titleTemplate: true,
+        descriptionTemplate: true,
+        title: true,
+        description: true,
       },
       props: {
         isRoot: true,
       },
     });
+
+    const updateData: {
+      incidentCount: number;
+      title?: string;
+      description?: string;
+    } = {
+      incidentCount: incidentCount,
+    };
+
+    // Update title with dynamic variables if template exists
+    if (episode?.titleTemplate) {
+      updateData.title = this.renderTemplateWithDynamicValues(
+        episode.titleTemplate,
+        incidentCount,
+      );
+    }
+
+    // Update description with dynamic variables if template exists
+    if (episode?.descriptionTemplate) {
+      updateData.description = this.renderTemplateWithDynamicValues(
+        episode.descriptionTemplate,
+        incidentCount,
+      );
+    }
+
+    await this.updateOneById({
+      id: episodeId,
+      data: updateData,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  private renderTemplateWithDynamicValues(
+    template: string,
+    incidentCount: number,
+  ): string {
+    let result: string = template;
+
+    // Replace dynamic variables
+    result = result.replace(
+      /\{\{incidentCount\}\}/g,
+      incidentCount.toString(),
+    );
+
+    return result;
   }
 
   @CaptureSpan()
