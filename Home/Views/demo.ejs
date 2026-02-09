@@ -191,6 +191,17 @@
           layout: "month_view"
         });
         Cal("ui", { "styles": { "branding": { "brandColor": "#4f46e5" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+        
+        // GA4: Track demo page view as key event
+        if (typeof dataLayer !== 'undefined') {
+          dataLayer.push({
+            'event': 'page_view_demo',
+            'eventCategory': 'page_view',
+            'eventAction': 'page_view_demo',
+            'eventLabel': window.location.pathname
+          });
+        }
+        
         Cal("on", {
           action: "bookingSuccessful",
           callback: (e) => {
