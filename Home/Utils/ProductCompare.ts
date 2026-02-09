@@ -2314,7 +2314,8 @@ const products: Dictionary<Product> = {
           "Both platforms offer incident management with timelines, Slack integration, and automatic status page updates. The difference is access: Better Stack requires a Responder license ($29/month per person) for full on-call and incident features. OneUptime includes all incident management, on-call scheduling, and escalation policies in every plan at no extra cost.",
       },
       {
-        question: "How do monitoring capabilities compare between Better Stack and OneUptime?",
+        question:
+          "How do monitoring capabilities compare between Better Stack and OneUptime?",
         answer:
           "Both offer HTTP monitoring, API checks, SSL certificate monitoring, and status pages. OneUptime provides faster minimum check frequencies (1 second vs 30 seconds on Better Stack) and includes server monitoring for CPU, memory, and disk metrics. Better Stack focuses heavily on logs and telemetry, while OneUptime focuses on the complete incident lifecycle from detection to postmortem.",
       },
@@ -2329,12 +2330,14 @@ const products: Dictionary<Product> = {
           "Yes, and this is a major differentiator. OneUptime is fully open source under the Apache 2.0 license and can be self-hosted on your own infrastructure using Docker or Kubernetes. Better Stack is a closed-source SaaS product with no self-hosting option. Self-hosting gives you complete control over your data, helps meet compliance requirements, and eliminates vendor lock-in.",
       },
       {
-        question: "How does pricing compare between Better Stack and OneUptime?",
+        question:
+          "How does pricing compare between Better Stack and OneUptime?",
         answer:
           "Better Stack uses a component-based pricing model: $21/month per 50 monitors, $29/month per responder for on-call features, plus additional charges for telemetry data. A team with 100 monitors and 3 on-call responders would pay approximately $129/month minimum. OneUptime offers unlimited monitors and users with simpler flat pricing, making costs predictable as you scale.",
       },
       {
-        question: "What features does OneUptime have that Better Stack doesn't?",
+        question:
+          "What features does OneUptime have that Better Stack doesn't?",
         answer:
           "OneUptime offers several unique capabilities: 1-second minimum check intervals (vs 30 seconds), open source codebase you can audit and extend, self-hosting on your infrastructure, unlimited monitors without per-check fees, and all on-call features included without responder licenses. OneUptime also provides a more complete incident management workflow with built-in postmortem templates and action item tracking.",
       },
