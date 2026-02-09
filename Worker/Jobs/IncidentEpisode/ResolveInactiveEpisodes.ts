@@ -2,12 +2,11 @@ import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
+import IncidentGroupingRuleService from "Common/Server/Services/IncidentGroupingRuleService";
 import logger from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-
-// Default inactivity timeout in minutes (24 hours)
-const DEFAULT_INACTIVITY_TIMEOUT_MINUTES: number = 1440;
 
 RunCron(
   "IncidentEpisode:ResolveInactiveEpisodes",
@@ -31,6 +30,7 @@ RunCron(
           select: {
             _id: true,
             projectId: true,
+            incidentGroupingRuleId: true,
             lastIncidentAddedAt: true,
           },
           props: {
@@ -68,9 +68,38 @@ const checkAndResolveInactiveEpisode: CheckAndResolveInactiveEpisodeFunction =
         return;
       }
 
-      // Use default inactivity timeout since there's no grouping rule for incidents
-      const inactivityTimeoutMinutes: number =
-        DEFAULT_INACTIVITY_TIMEOUT_MINUTES;
+      // Get inactivity timeout from the grouping rule (only if enabled)
+      let inactivityTimeoutMinutes: number = 0;
+      let enableInactivityTimeout: boolean = false;
+
+      if (episode.incidentGroupingRuleId) {
+        const rule: IncidentGroupingRule | null =
+          await IncidentGroupingRuleService.findOneById({
+            id: episode.incidentGroupingRuleId,
+            select: {
+              enableInactivityTimeout: true,
+              inactivityTimeoutMinutes: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (rule) {
+          enableInactivityTimeout = rule.enableInactivityTimeout || false;
+          if (
+            enableInactivityTimeout &&
+            rule.inactivityTimeoutMinutes !== undefined
+          ) {
+            inactivityTimeoutMinutes = rule.inactivityTimeoutMinutes;
+          }
+        }
+      }
+
+      // If inactivity timeout is not enabled or is 0, don't resolve inactive episodes
+      if (!enableInactivityTimeout || inactivityTimeoutMinutes <= 0) {
+        return;
+      }
 
       // Check if episode has been inactive for too long
       const lastIncidentAddedAt: Date =
