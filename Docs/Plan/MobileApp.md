@@ -8,18 +8,19 @@ This document outlines the design for a native mobile app (iOS & Android) for On
 
 1. [Goals & Non-Goals](#goals--non-goals)
 2. [Tech Stack](#tech-stack)
-3. [Architecture Overview](#architecture-overview)
-4. [Backend Changes](#backend-changes)
-5. [Mobile App Screens](#mobile-app-screens)
-6. [Push Notifications](#push-notifications)
-7. [Authentication Flow](#authentication-flow)
-8. [API Integration](#api-integration)
-9. [Deep Linking](#deep-linking)
-10. [Offline Support](#offline-support)
-11. [Project Structure](#project-structure)
-12. [Implementation Phases](#implementation-phases)
-13. [Testing Strategy](#testing-strategy)
-14. [App Store Distribution](#app-store-distribution)
+3. [UI/UX Design Philosophy](#uiux-design-philosophy)
+4. [Architecture Overview](#architecture-overview)
+5. [Backend Changes](#backend-changes)
+6. [Mobile App Screens](#mobile-app-screens)
+7. [Push Notifications](#push-notifications)
+8. [Authentication Flow](#authentication-flow)
+9. [API Integration](#api-integration)
+10. [Deep Linking](#deep-linking)
+11. [Offline Support](#offline-support)
+12. [Project Structure](#project-structure)
+13. [Implementation Phases](#implementation-phases)
+14. [Testing Strategy](#testing-strategy)
+15. [App Store Distribution](#app-store-distribution)
 
 ---
 
@@ -60,6 +61,265 @@ This document outlines the design for a native mobile app (iOS & Android) for On
 | **Icons** | React Native Vector Icons | Consistent icon set across platforms |
 | **Testing** | Jest + React Native Testing Library | Unit and integration testing |
 | **E2E Testing** | Detox | Native E2E testing framework |
+
+---
+
+## UI/UX Design Philosophy
+
+> Engineers will be woken up at 3 AM by this app. Every design decision must respect that reality. The UI must be instantly legible, require zero cognitive effort to parse, and make the critical action (acknowledge) reachable in under 2 seconds.
+
+### Core Design Principles
+
+**1. Dark-first, always.**
+- The app ships with a dark theme as the default and primary experience. No blinding white screens at 3 AM.
+- Deep, muted background (`#0D1117` — near-black with a cool undertone) that's easy on dark-adapted eyes.
+- Light theme available as an option, but dark is the default and the hero experience.
+- Respects system appearance setting — auto-switches if the user prefers, but defaults to dark if no system preference is set.
+
+**2. Glanceable hierarchy.**
+- Every screen must answer its core question within 1 second of looking at it:
+  - Home: "Am I on-call? Is anything on fire?"
+  - Incident list: "How many active incidents? Which is most severe?"
+  - Detail: "What happened? What do I need to do?"
+- Use **size, weight, and color** to create hierarchy — not clutter.
+- Critical information (severity, state, time) uses bold type and color. Secondary metadata uses muted text.
+
+**3. Severity drives color.**
+- Color is reserved almost exclusively for severity and state. The rest of the UI is neutral.
+- This means when a red critical badge appears, it _pops_ — it's not competing with decorative colors elsewhere.
+
+**4. Big touch targets, generous spacing.**
+- Minimum 48x48pt touch targets (Apple HIG + Material guidelines).
+- Action buttons (Acknowledge, Resolve) are full-width, 56pt tall, with generous vertical margin.
+- No tiny icons or links that require precise tapping from a groggy user.
+
+**5. Minimal, purposeful animation.**
+- No gratuitous transitions or loading choreography.
+- Subtle haptic feedback on acknowledge/resolve (success confirmation).
+- Skeleton screens for loading states — never a blank screen or a spinner in the center of an empty page.
+
+### Color System
+
+#### Dark Theme (Default)
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `background.primary` | `#0D1117` | Main screen background |
+| `background.secondary` | `#161B22` | Cards, elevated surfaces |
+| `background.tertiary` | `#21262D` | Input fields, pressed states |
+| `border.default` | `#30363D` | Card borders, dividers |
+| `border.subtle` | `#21262D` | Subtle separators |
+| `text.primary` | `#F0F6FC` | Headings, primary content |
+| `text.secondary` | `#8B949E` | Timestamps, metadata, labels |
+| `text.tertiary` | `#6E7681` | Placeholders, disabled text |
+
+#### Light Theme
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `background.primary` | `#FFFFFF` | Main screen background |
+| `background.secondary` | `#F6F8FA` | Cards, elevated surfaces |
+| `background.tertiary` | `#EAEEF2` | Input fields, pressed states |
+| `border.default` | `#D0D7DE` | Card borders, dividers |
+| `text.primary` | `#1F2328` | Headings, primary content |
+| `text.secondary` | `#656D76` | Timestamps, metadata |
+| `text.tertiary` | `#8C959F` | Placeholders, disabled text |
+
+#### Semantic Colors (Same in Both Themes)
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `severity.critical` | `#FF6B6B` | Critical severity badge, borders |
+| `severity.critical.bg` | `#FF6B6B15` | Critical badge background (translucent) |
+| `severity.high` | `#FFA657` | High severity |
+| `severity.high.bg` | `#FFA65715` | High badge background |
+| `severity.medium` | `#D2A8FF` | Medium severity |
+| `severity.medium.bg` | `#D2A8FF15` | Medium badge background |
+| `severity.low` | `#79C0FF` | Low severity |
+| `severity.low.bg` | `#79C0FF15` | Low badge background |
+| `state.created` | `#FF6B6B` | Created / triggered state |
+| `state.acknowledged` | `#FFA657` | Acknowledged state |
+| `state.resolved` | `#56D364` | Resolved state |
+| `oncall.active` | `#56D364` | On-call active indicator |
+| `oncall.inactive` | `#8B949E` | Not on-call |
+| `action.primary` | `#58A6FF` | Primary action buttons |
+| `action.danger` | `#F85149` | Destructive actions |
+| `action.success` | `#56D364` | Resolve button |
+
+### Typography
+
+Use **SF Pro** (iOS) / **Roboto** (Android) — the platform defaults. No custom fonts. This ensures readability, fast rendering, and platform-native feel.
+
+| Style | Size | Weight | Usage |
+|-------|------|--------|-------|
+| `title.large` | 28pt | Bold (700) | Screen titles |
+| `title.medium` | 22pt | Semibold (600) | Section headers |
+| `title.small` | 18pt | Semibold (600) | Card titles, incident names |
+| `body.large` | 16pt | Regular (400) | Primary body text, descriptions |
+| `body.medium` | 14pt | Regular (400) | Secondary text, metadata |
+| `body.small` | 12pt | Medium (500) | Badges, timestamps, labels |
+| `mono` | 14pt | Monospace | Incident/episode numbers (#42) |
+
+**Key rules:**
+- Never go below 12pt for any text — even tertiary labels.
+- Incident/alert titles use `title.small` (18pt semibold) — readable at arm's length.
+- Timestamps always use relative format ("3m ago", "2h ago") with `body.medium` in `text.secondary` color.
+
+### Spacing & Layout
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `space.xs` | 4pt | Inline spacing (badge padding) |
+| `space.sm` | 8pt | Tight spacing (between badge and text) |
+| `space.md` | 16pt | Standard spacing (between cards, section gaps) |
+| `space.lg` | 24pt | Section separators |
+| `space.xl` | 32pt | Screen top/bottom padding |
+| `radius.sm` | 6pt | Small badges, chips |
+| `radius.md` | 12pt | Cards, buttons |
+| `radius.lg` | 16pt | Modals, bottom sheets |
+
+**Card anatomy:**
+```
+┌─────────────────────────────────────────────────┐
+│  16pt padding                                    │
+│                                                  │
+│  [ProjectBadge]  12pt gap  [SeverityBadge]      │
+│                                                  │
+│  8pt gap                                         │
+│                                                  │
+│  Incident Title (18pt semibold, text.primary)    │
+│                                                  │
+│  4pt gap                                         │
+│                                                  │
+│  State Badge  ·  3m ago (14pt, text.secondary)  │
+│                                                  │
+│  16pt padding                                    │
+└─────────────────────────────────────────────────┘
+   16pt gap to next card
+```
+
+### Component Design Specs
+
+#### Severity Badge
+- Pill shape (`radius.sm`), translucent background + solid text
+- Example: `Critical` → `#FF6B6B` text on `#FF6B6B15` background
+- All caps, `body.small` (12pt medium)
+- No border — the translucent fill provides enough contrast on dark backgrounds
+
+#### State Badge
+- Same pill shape as severity
+- Color matches state: red (Created), amber (Acknowledged), green (Resolved)
+- Includes a small circle indicator dot before the text
+
+#### Project Badge
+- Small colored circle (8pt diameter, color auto-assigned per project) + project name in `body.small`
+- Appears on every card in "All Projects" mode
+- Compact: designed to not compete with severity/state for attention
+
+#### Action Buttons (Acknowledge / Resolve)
+
+The most critical interactive elements in the app. Designed for a half-awake user:
+
+```
+┌─────────────────────────────────────────────────┐
+│                                                  │
+│  ┌─────────────────────────────────────────────┐│
+│  │          ACKNOWLEDGE                        ││
+│  │     (full-width, 56pt tall, rounded)        ││
+│  └─────────────────────────────────────────────┘│
+│                                                  │
+│  ┌──────────────────┐  ┌──────────────────────┐│
+│  │    RESOLVE        │  │    ADD NOTE          ││
+│  │  (half-width)     │  │  (half-width)        ││
+│  └──────────────────┘  └──────────────────────┘│
+│                                                  │
+└─────────────────────────────────────────────────┘
+```
+
+- **Acknowledge**: Full-width, `action.primary` background, white text, 56pt tall. This is THE button at 3 AM. It's impossible to miss.
+- **Resolve**: Half-width, `action.success` background, left-aligned.
+- **Add Note**: Half-width, outlined style (`border.default`), right-aligned.
+- After tapping Acknowledge/Resolve: button transitions to a checkmark with haptic feedback (success). No modal confirmation — the action is optimistic and reversible.
+
+#### On-Call Status Banner (Home Screen)
+
+**Active state:**
+```
+┌─────────────────────────────────────────────────┐
+│  ●  YOU ARE ON-CALL                              │
+│                                                  │
+│  Production On-Call · Primary Rotation           │
+│  Project: MyProject                              │
+│  Until: Jan 22, 9:00 AM                         │
+│                                                  │
+│  [View Schedule →]                               │
+└─────────────────────────────────────────────────┘
+```
+- Left border accent in `oncall.active` green
+- Subtle green-tinted background (`#56D36408`)
+- Pulsing green dot next to "YOU ARE ON-CALL"
+
+**Inactive state:**
+```
+┌─────────────────────────────────────────────────┐
+│  ○  You are not on-call                          │
+│                                                  │
+│  Next shift: Staging On-Call                     │
+│  Starts: Jan 29, 9:00 AM (in 7 days)           │
+└─────────────────────────────────────────────────┘
+```
+- Neutral border, muted text, no accent color
+- Compact — takes less vertical space than active state
+
+#### Skeleton Loading States
+
+Every screen shows content-shaped skeleton placeholders while loading:
+- Rounded rectangles matching the layout of real content
+- Subtle shimmer animation (left-to-right, 1.5s cycle)
+- Matches the exact card anatomy — so the transition from skeleton to real data is seamless with no layout shift
+- Never show a centered spinner on an empty screen
+
+#### Empty States
+
+When a list has no items, show a centered illustration + message:
+- Illustration: Simple, monochrome line art (not cartoon/playful — this is an ops tool)
+- Message: Clear and actionable. E.g., "No active incidents" (not "Nothing here!" or "All clear!")
+- Secondary text in `text.secondary` with context: "Incidents assigned to you will appear here."
+
+#### Pull-to-Refresh
+
+- Custom refresh indicator that matches the dark theme
+- Subtle haptic on pull threshold
+- Refresh indicator color matches `action.primary`
+
+### Notification Sound Design
+
+Push notifications at 3 AM need to be urgent but not jarring:
+
+| Priority | Sound | Behavior |
+|----------|-------|----------|
+| Critical (On-Call Escalation) | Escalating tone — starts quiet, gets louder over 5 seconds. Repeats until dismissed. | iOS Critical Alert (bypasses DnD + silent mode) |
+| High (Incident/Alert Created) | Two-tone chime — firm but brief. Plays once. | Default notification sound |
+| Normal (State change, note) | Soft single tone. Plays once. | Default notification sound |
+| Low (Informational) | No sound. Vibration only. | Silent notification |
+
+### Swipe Gestures
+
+| Gesture | Location | Action |
+|---------|----------|--------|
+| Swipe left on card | Incident/Alert list | Reveal "Acknowledge" action (green) |
+| Swipe right on card | Incident/Alert list | Reveal "View Details" action (blue) |
+| Pull down | Any list screen | Refresh |
+
+Swipe actions use iOS-native feel (spring animation, haptic on threshold).
+
+### Accessibility
+
+- **Dynamic Type** (iOS) / **Font Scale** (Android): All text sizes scale with system accessibility settings
+- **VoiceOver / TalkBack**: All interactive elements have semantic labels. Severity badges read as "Critical severity". Action buttons read as "Acknowledge incident [title]".
+- **Minimum contrast ratio**: 4.5:1 for body text, 3:1 for large text (WCAG AA)
+- **Reduce Motion**: Respect system setting — disable shimmer animations, transitions
+- **Color-blind safe**: Severity levels use distinct hues (red, orange, purple, blue) that remain distinguishable under all common color vision deficiencies. Badges also include text labels — never color-only.
 
 ---
 
@@ -880,9 +1140,9 @@ MobileApp/
 │   │   ├── ActionBar.tsx
 │   │   ├── NotesList.tsx
 │   │   ├── Timeline.tsx
-│   │   ├── EmptyState.tsx
+│   │   ├── SkeletonCard.tsx          # Shimmer loading placeholder
+│   │   ├── EmptyState.tsx            # Monochrome illustration + message
 │   │   ├── ErrorState.tsx
-│   │   ├── LoadingState.tsx
 │   │   ├── OfflineBanner.tsx
 │   │   └── PullToRefresh.tsx
 │   │
@@ -919,10 +1179,12 @@ MobileApp/
 │   │   ├── preferences.ts          # App preferences (AsyncStorage)
 │   │   └── queryPersister.ts       # React Query cache persistence
 │   │
-│   ├── theme/                        # Styling
-│   │   ├── colors.ts
-│   │   ├── typography.ts
-│   │   ├── spacing.ts
+│   ├── theme/                        # Design system
+│   │   ├── colors.ts               # Dark/light semantic color tokens
+│   │   ├── typography.ts           # Type scale (title, body, mono)
+│   │   ├── spacing.ts             # Spacing + border radius tokens
+│   │   ├── shadows.ts             # Elevation / card shadows
+│   │   ├── ThemeContext.tsx        # Dark/light theme provider
 │   │   └── index.ts
 │   │
 │   ├── types/                        # TypeScript types
@@ -971,7 +1233,8 @@ MobileApp/
 **Mobile:**
 - [ ] Initialize Expo project in `MobileApp/` directory
 - [ ] Set up TypeScript, ESLint, Prettier
-- [ ] Configure React Navigation (auth stack + main tab navigator)
+- [ ] Implement design system foundation: color tokens (dark/light), typography scale, spacing tokens, ThemeContext provider
+- [ ] Configure React Navigation (auth stack + main tab navigator) with dark theme
 - [ ] Build API client with Axios + dynamic server URL interceptor
 - [ ] Implement Server URL screen (pre-auth, default: `https://oneuptime.com`)
 - [ ] Implement server URL validation (health check on connect)
@@ -979,8 +1242,9 @@ MobileApp/
 - [ ] Implement secure token storage with react-native-keychain
 - [ ] Implement token refresh interceptor
 - [ ] Implement app launch flow (skip Server URL screen if URL already stored)
+- [ ] Build foundational components: SeverityBadge, StateBadge, ProjectBadge, skeleton loading primitives
 
-**Deliverable:** User can enter their OneUptime server URL, log in, and see a placeholder home screen.
+**Deliverable:** User can enter their OneUptime server URL, log in, and see a placeholder home screen. Dark theme and design tokens are in place from day one.
 
 ### Phase 2: Core Screens (Weeks 3-4)
 
@@ -1040,16 +1304,20 @@ MobileApp/
 **Mobile:**
 - [ ] Build Settings screen
 - [ ] Build Notification Preferences screen
-- [ ] Build Project Switcher
 - [ ] Implement biometric unlock (Face ID / fingerprint)
 - [ ] Add offline support with network status banner
 - [ ] Add deep linking support (URL scheme + universal links)
 - [ ] Design and implement app icon and splash screen
-- [ ] Add haptic feedback for actions
+- [ ] Implement dark/light theme toggle (dark default) with system appearance support
+- [ ] Add haptic feedback on acknowledge, resolve, swipe actions, pull-to-refresh
+- [ ] Implement swipe-to-acknowledge gesture on list cards
+- [ ] Add skeleton loading states for all screens (shimmer placeholders matching card anatomy)
+- [ ] Design empty states with monochrome illustrations and actionable messaging
+- [ ] Custom notification sounds (escalating tone for critical, chime for high, soft for normal)
 - [ ] Performance optimization (list virtualization, image caching)
-- [ ] Accessibility audit (screen reader, contrast, touch targets)
+- [ ] Accessibility audit: Dynamic Type scaling, VoiceOver/TalkBack labels, WCAG AA contrast, Reduce Motion support, color-blind safe severity palette
 
-**Deliverable:** Polished app with all settings and offline support.
+**Deliverable:** Polished, dark-first app with all settings, offline support, and 3 AM-ready UI.
 
 ### Phase 6: Testing & Release (Weeks 11-12)
 
@@ -1164,5 +1432,4 @@ Use **Expo Application Services (EAS)** for builds and submissions:
 - **Team Chat:** In-app messaging for incident response
 - **Runbooks:** View linked runbooks from incident detail
 - **AI Suggestions:** Surface AI-generated root cause analysis
-- **Dark Mode:** Full dark mode theme support
 - **Localization:** Multi-language support
