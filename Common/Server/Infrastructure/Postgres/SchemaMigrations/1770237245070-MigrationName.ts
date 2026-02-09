@@ -22,23 +22,23 @@ export class MigrationName1770237245070 implements MigrationInterface {
     );
 
     /*
-     * Backfill counters from COUNT of each entity table (including soft-deleted rows)
-     * Using JOIN-based updates instead of correlated subqueries for performance
+     * Backfill counters from MAX number of each entity table (per project)
+     * Using MAX instead of COUNT to correctly handle deleted rows
      */
     await queryRunner.query(
-      `UPDATE "Project" SET "incidentCounter" = sub.cnt FROM (SELECT "projectId", COUNT(*) as cnt FROM "Incident" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
+      `UPDATE "Project" SET "incidentCounter" = sub.max_num FROM (SELECT "projectId", COALESCE(MAX("incidentNumber"), 0) as max_num FROM "Incident" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
     );
     await queryRunner.query(
-      `UPDATE "Project" SET "alertCounter" = sub.cnt FROM (SELECT "projectId", COUNT(*) as cnt FROM "Alert" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
+      `UPDATE "Project" SET "alertCounter" = sub.max_num FROM (SELECT "projectId", COALESCE(MAX("alertNumber"), 0) as max_num FROM "Alert" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
     );
     await queryRunner.query(
-      `UPDATE "Project" SET "scheduledMaintenanceCounter" = sub.cnt FROM (SELECT "projectId", COUNT(*) as cnt FROM "ScheduledMaintenance" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
+      `UPDATE "Project" SET "scheduledMaintenanceCounter" = sub.max_num FROM (SELECT "projectId", COALESCE(MAX("scheduledMaintenanceNumber"), 0) as max_num FROM "ScheduledMaintenance" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
     );
     await queryRunner.query(
-      `UPDATE "Project" SET "incidentEpisodeCounter" = sub.cnt FROM (SELECT "projectId", COUNT(*) as cnt FROM "IncidentEpisode" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
+      `UPDATE "Project" SET "incidentEpisodeCounter" = sub.max_num FROM (SELECT "projectId", COALESCE(MAX("episodeNumber"), 0) as max_num FROM "IncidentEpisode" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
     );
     await queryRunner.query(
-      `UPDATE "Project" SET "alertEpisodeCounter" = sub.cnt FROM (SELECT "projectId", COUNT(*) as cnt FROM "AlertEpisode" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
+      `UPDATE "Project" SET "alertEpisodeCounter" = sub.max_num FROM (SELECT "projectId", COALESCE(MAX("episodeNumber"), 0) as max_num FROM "AlertEpisode" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
     );
   }
 
