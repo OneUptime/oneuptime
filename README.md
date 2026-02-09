@@ -90,6 +90,15 @@ Measure and optimize the performance of your online apps and services. Track key
 
 Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback.
 
+### 🤖 AI Copilot
+
+OneUptime's AI agent monitors your services 24/7, detects anomalies across logs, traces, and metrics, identifies root causes, and opens pull requests with code fixes — automatically. Like having an SRE that never sleeps.
+
+- **Auto-instrument** — Add tracing, metrics, and logging with one click
+- **Fix exceptions** — AI catches errors in production and generates fixes before users notice
+- **Optimize performance** — Identifies slow traces and submits optimized code
+- **Security patches** — Detects vulnerable dependencies and creates PRs with safe upgrades
+
 ---
 
 ## 🚀 Get Started
