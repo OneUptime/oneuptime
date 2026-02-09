@@ -27,6 +27,83 @@ import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 export default class FluentLogsIngestService extends OtelIngestBaseService {
   private static readonly DEFAULT_SERVICE_NAME: string = "Fluentd";
 
+  // Fields to check for the log body (in priority order)
+  private static readonly BODY_FIELDS: Array<string> = [
+    "message",
+    "log",
+    "msg",
+    "body",
+    "text",
+  ];
+
+  // Fields to check for severity
+  private static readonly SEVERITY_FIELDS: Array<string> = [
+    "level",
+    "severity",
+    "loglevel",
+    "log_level",
+    "priority",
+    "severityText",
+    "severity_text",
+  ];
+
+  // Fields to check for trace ID
+  private static readonly TRACE_ID_FIELDS: Array<string> = [
+    "trace_id",
+    "traceId",
+    "traceid",
+  ];
+
+  // Fields to check for span ID
+  private static readonly SPAN_ID_FIELDS: Array<string> = [
+    "span_id",
+    "spanId",
+    "spanid",
+  ];
+
+  // Severity text to OTel severity mapping
+  private static readonly SEVERITY_TEXT_MAP: Dictionary<{
+    number: number;
+    text: LogSeverity;
+  }> = {
+    trace: { number: 1, text: LogSeverity.Trace },
+    debug: { number: 5, text: LogSeverity.Debug },
+    info: { number: 9, text: LogSeverity.Information },
+    information: { number: 9, text: LogSeverity.Information },
+    informational: { number: 9, text: LogSeverity.Information },
+    notice: { number: 9, text: LogSeverity.Information },
+    warn: { number: 13, text: LogSeverity.Warning },
+    warning: { number: 13, text: LogSeverity.Warning },
+    error: { number: 17, text: LogSeverity.Error },
+    err: { number: 17, text: LogSeverity.Error },
+    critical: { number: 21, text: LogSeverity.Fatal },
+    fatal: { number: 23, text: LogSeverity.Fatal },
+    emergency: { number: 23, text: LogSeverity.Fatal },
+    emerg: { number: 23, text: LogSeverity.Fatal },
+  };
+
+  // Fields that are extracted separately and should not be duplicated as attributes
+  private static readonly EXCLUDED_ATTRIBUTE_FIELDS: Set<string> = new Set([
+    "message",
+    "log",
+    "msg",
+    "body",
+    "text",
+    "level",
+    "severity",
+    "loglevel",
+    "log_level",
+    "priority",
+    "severityText",
+    "severity_text",
+    "trace_id",
+    "traceId",
+    "traceid",
+    "span_id",
+    "spanId",
+    "spanid",
+  ]);
+
   @CaptureSpan()
   public static async ingestFluentLogs(
     req: ExpressRequest,
@@ -42,7 +119,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
 
       req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
 
-      const entries: Array<string> = this.normalizeLogEntries(req.body);
+      const entries: Array<JSONObject> = this.normalizeLogEntries(req.body);
 
       if (entries.length === 0) {
         throw new BadRequestException(
@@ -79,7 +156,9 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
   ): Promise<void> {
     try {
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
-      const entries: Array<string> = this.extractEntriesFromRequest(req.body);
+      const entries: Array<JSONObject> = this.extractEntriesFromRequest(
+        req.body,
+      );
 
       if (entries.length === 0) {
         logger.warn("Fluent logs ingest: no entries to process.");
@@ -111,9 +190,6 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           serviceName,
         });
 
-      const baseAttributeKeys: Array<string> =
-        TelemetryUtil.getAttributeKeys(baseAttributes);
-
       const dbLogs: Array<JSONObject> = [];
       let processed: number = 0;
 
@@ -126,8 +202,21 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             OneUptimeDate.toUnixNano(ingestionDate),
           ).toString();
 
+          const body: string = this.extractBodyFromEntry(entry);
+          const severityInfo: { number: number; text: LogSeverity } =
+            this.extractSeverityFromEntry(entry);
+          const traceId: string =
+            this.extractStringField(entry, this.TRACE_ID_FIELDS) || "";
+          const spanId: string =
+            this.extractStringField(entry, this.SPAN_ID_FIELDS) || "";
+
+          const entryAttributes: Dictionary<
+            AttributeType | Array<AttributeType>
+          > = this.buildFluentAttributes(entry);
+
           const attributes: Dictionary<AttributeType | Array<AttributeType>> = {
             ...baseAttributes,
+            ...entryAttributes,
           };
 
           const logRow: JSONObject = {
@@ -138,13 +227,13 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             serviceId: serviceMetadata.serviceId.toString(),
             time: ingestionDateTime,
             timeUnixNano,
-            severityNumber: 0,
-            severityText: LogSeverity.Unspecified,
+            severityNumber: severityInfo.number,
+            severityText: severityInfo.text,
             attributes,
-            attributeKeys: [...baseAttributeKeys],
-            traceId: "",
-            spanId: "",
-            body: entry,
+            attributeKeys: TelemetryUtil.getAttributeKeys(attributes),
+            traceId,
+            spanId,
+            body,
           } satisfies JSONObject;
 
           dbLogs.push(logRow);
@@ -156,7 +245,6 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         } catch (processingError) {
           logger.error("Fluent logs ingest: error processing entry");
           logger.error(processingError);
-          logger.error(`Fluent log entry: ${entry}`);
         }
       }
 
@@ -187,7 +275,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     }
   }
 
-  private static extractEntriesFromRequest(body: unknown): Array<string> {
+  private static extractEntriesFromRequest(body: unknown): Array<JSONObject> {
     if (!body || typeof body !== "object") {
       return [];
     }
@@ -202,33 +290,29 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     if (Array.isArray(entries)) {
       return entries
         .map((item: unknown) => {
-          if (typeof item === "string") {
-            return item;
-          }
-
           if (item === null || item === undefined) {
             return undefined;
           }
 
-          if (typeof item === "object") {
-            try {
-              return JSON.stringify(item);
-            } catch {
-              return undefined;
-            }
+          if (typeof item === "object" && !Array.isArray(item)) {
+            return item as JSONObject;
           }
 
-          return String(item);
+          if (typeof item === "string") {
+            return { message: item } as JSONObject;
+          }
+
+          return { message: String(item) } as JSONObject;
         })
-        .filter((item: string | undefined): item is string => {
-          return Boolean(item && item.length > 0);
+        .filter((item: JSONObject | undefined): item is JSONObject => {
+          return item !== undefined;
         });
     }
 
     return this.normalizeLogEntries(entries);
   }
 
-  private static normalizeLogEntries(payload: unknown): Array<string> {
+  private static normalizeLogEntries(payload: unknown): Array<JSONObject> {
     if (payload === undefined || payload === null) {
       return [];
     }
@@ -248,10 +332,13 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           })
           .filter((line: string) => {
             return line.length > 0;
+          })
+          .map((line: string) => {
+            return { message: line } as JSONObject;
           });
       }
 
-      return [trimmed];
+      return [{ message: trimmed } as JSONObject];
     }
 
     if (Buffer.isBuffer(payload)) {
@@ -259,7 +346,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     }
 
     if (Array.isArray(payload)) {
-      const results: Array<string> = [];
+      const results: Array<JSONObject> = [];
 
       for (const item of payload) {
         results.push(...this.normalizeLogEntries(item));
@@ -271,6 +358,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     if (typeof payload === "object") {
       const obj: JSONObject = payload as JSONObject;
 
+      // Unwrap container fields
       if (obj["json"] !== undefined) {
         return this.normalizeLogEntries(obj["json"]);
       }
@@ -279,22 +367,155 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         return this.normalizeLogEntries(obj["entries"]);
       }
 
-      if (obj["message"] !== undefined) {
-        return this.normalizeLogEntries(obj["message"]);
-      }
+      // This object IS a log entry - preserve it with all its fields
+      return [obj];
+    }
 
-      if (obj["log"] !== undefined) {
-        return this.normalizeLogEntries(obj["log"]);
-      }
+    return [{ message: String(payload) } as JSONObject];
+  }
 
-      try {
-        return [JSON.stringify(obj)];
-      } catch {
-        return [];
+  private static extractBodyFromEntry(entry: JSONObject): string {
+    for (const field of this.BODY_FIELDS) {
+      const value: unknown = entry[field];
+
+      if (value !== undefined && value !== null) {
+        if (typeof value === "string") {
+          return value;
+        }
+
+        try {
+          return JSON.stringify(value);
+        } catch {
+          continue;
+        }
       }
     }
 
-    return [String(payload)];
+    // Fallback: stringify the entire entry
+    try {
+      return JSON.stringify(entry);
+    } catch {
+      return "";
+    }
+  }
+
+  private static extractSeverityFromEntry(entry: JSONObject): {
+    number: number;
+    text: LogSeverity;
+  } {
+    const severityValue: string | undefined = this.extractStringField(
+      entry,
+      this.SEVERITY_FIELDS,
+    );
+
+    if (!severityValue) {
+      return { number: 0, text: LogSeverity.Unspecified };
+    }
+
+    const normalized: string = severityValue.toLowerCase().trim();
+    const mapped: { number: number; text: LogSeverity } | undefined =
+      this.SEVERITY_TEXT_MAP[normalized];
+
+    if (mapped) {
+      return mapped;
+    }
+
+    return { number: 0, text: LogSeverity.Unspecified };
+  }
+
+  private static extractStringField(
+    entry: JSONObject,
+    fields: Array<string>,
+  ): string | undefined {
+    for (const field of fields) {
+      const value: unknown = entry[field];
+
+      if (value !== undefined && value !== null) {
+        if (typeof value === "string" && value.trim()) {
+          return value.trim();
+        }
+
+        if (typeof value === "number") {
+          return value.toString();
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private static buildFluentAttributes(
+    entry: JSONObject,
+  ): Dictionary<AttributeType | Array<AttributeType>> {
+    const attributes: Dictionary<AttributeType | Array<AttributeType>> = {};
+
+    for (const [key, value] of Object.entries(entry)) {
+      if (this.EXCLUDED_ATTRIBUTE_FIELDS.has(key)) {
+        continue;
+      }
+
+      if (value === null || value === undefined) {
+        continue;
+      }
+
+      const attributeKey: string = `fluentd.${key}`;
+
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        attributes[attributeKey] = value;
+      } else if (Array.isArray(value)) {
+        try {
+          attributes[attributeKey] = JSON.stringify(value);
+        } catch {
+          // skip
+        }
+      } else if (typeof value === "object") {
+        const nested: Dictionary<AttributeType | Array<AttributeType>> =
+          this.flattenToAttributes(value as JSONObject, attributeKey);
+        Object.assign(attributes, nested);
+      }
+    }
+
+    return attributes;
+  }
+
+  private static flattenToAttributes(
+    obj: JSONObject,
+    prefix: string,
+  ): Dictionary<AttributeType | Array<AttributeType>> {
+    const result: Dictionary<AttributeType | Array<AttributeType>> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (value === null || value === undefined) {
+        continue;
+      }
+
+      const fullKey: string = `${prefix}.${key}`;
+
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        result[fullKey] = value;
+      } else if (Array.isArray(value)) {
+        try {
+          result[fullKey] = JSON.stringify(value);
+        } catch {
+          // skip
+        }
+      } else if (typeof value === "object") {
+        Object.assign(
+          result,
+          this.flattenToAttributes(value as JSONObject, fullKey),
+        );
+      }
+    }
+
+    return result;
   }
 
   private static async flushLogsBuffer(
