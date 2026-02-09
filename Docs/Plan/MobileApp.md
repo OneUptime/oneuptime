@@ -66,7 +66,7 @@ This document outlines the design for a native mobile app (iOS & Android) for On
 
 ## UI/UX Design Philosophy
 
-> Engineers will be woken up at 3 AM by this app. Every design decision must respect that reality. The UI must be instantly legible, require zero cognitive effort to parse, and make the critical action (acknowledge) reachable in under 2 seconds.
+> Engineers will be woken up at 3 AM by this app. Every design decision must respect that reality. The UI must be instantly legible, require zero cognitive effort to parse, and make the critical action (acknowledge) reachable in under 2 seconds. The UI should be modern, polished, and pleasant to use. Implement pleasent animations and haptic feedback, but never at the cost of speed or clarity. The app should feel like a native extension of the phone's OS, not a clunky cross-platform afterthought.
 
 ### Core Design Principles
 
