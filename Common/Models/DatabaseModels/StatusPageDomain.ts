@@ -294,7 +294,7 @@ export default class StatusPageDomain extends BaseModel {
     ],
   })
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     title: "Subdomain",
     description:
