@@ -59,12 +59,6 @@ You can also use `{{random}}` for a unique string on every request:
 https://example.com/health?nocache={{random}}
 ```
 
-Placeholders can appear anywhere in the URL, including the path:
-
-```
-https://example.com/{{timestamp}}/status
-```
-
 ### Advanced Options
 
 #### Do Not Follow Redirects

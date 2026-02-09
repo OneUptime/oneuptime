@@ -60,12 +60,6 @@ You can also use `{{random}}` for a unique string on every request:
 https://api.example.com/health?nocache={{random}}
 ```
 
-Placeholders can appear anywhere in the URL, including the path:
-
-```
-https://api.example.com/{{timestamp}}/status
-```
-
 ### API Request Type
 
 Select the HTTP method for the request:

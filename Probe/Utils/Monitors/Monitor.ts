@@ -39,7 +39,7 @@ import ProxyConfig from "../ProxyConfig";
 
 export default class MonitorUtil {
   // Replace dynamic URL placeholders like {{timestamp}} and {{random}} with actual values.
-  private static resolveUrlPlaceholders(url: URL): URL {
+  public static resolveUrlPlaceholders(url: URL): URL {
     let urlString: string = url.toString();
 
     if (
