@@ -656,8 +656,8 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             <strong>**bold**</strong> or <em>*italic*</em>
           </div>
           <div>
-            <code className="bg-gray-100 px-1 rounded">`code`</code> or
-            ```code block```
+            <code className="bg-gray-100 px-1 rounded">`code`</code> or ```code
+            block```
           </div>
           <div># Heading 1, ## Heading 2, ### Heading 3</div>
           <div>- Bullet list or 1. Numbered list</div>

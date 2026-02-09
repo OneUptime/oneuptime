@@ -448,18 +448,15 @@ export default class MonitorUtil {
         );
       }
 
-      const response: APIResponse | null = await ApiMonitor.ping(
-        apiUrl,
-        {
-          requestHeaders: monitorStep.data?.requestHeaders || {},
-          requestBody: requestBody || undefined,
-          monitorId: monitorId,
-          requestType: monitorStep.data?.requestType || HTTPMethod.GET,
-          retry: PROBE_MONITOR_RETRY_LIMIT,
-          timeout: new PositiveNumber(60000), // 60 seconds
-          doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
-        },
-      );
+      const response: APIResponse | null = await ApiMonitor.ping(apiUrl, {
+        requestHeaders: monitorStep.data?.requestHeaders || {},
+        requestBody: requestBody || undefined,
+        monitorId: monitorId,
+        requestType: monitorStep.data?.requestType || HTTPMethod.GET,
+        retry: PROBE_MONITOR_RETRY_LIMIT,
+        timeout: new PositiveNumber(60000), // 60 seconds
+        doNotFollowRedirects: monitorStep.data?.doNotFollowRedirects || false,
+      });
 
       if (!response) {
         return null;

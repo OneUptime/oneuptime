@@ -21,8 +21,10 @@ export class MigrationName1770237245070 implements MigrationInterface {
       `ALTER TABLE "Project" ADD "alertEpisodeCounter" integer NOT NULL DEFAULT '0'`,
     );
 
-    // Backfill counters from COUNT of each entity table (including soft-deleted rows)
-    // Using JOIN-based updates instead of correlated subqueries for performance
+    /*
+     * Backfill counters from COUNT of each entity table (including soft-deleted rows)
+     * Using JOIN-based updates instead of correlated subqueries for performance
+     */
     await queryRunner.query(
       `UPDATE "Project" SET "incidentCounter" = sub.cnt FROM (SELECT "projectId", COUNT(*) as cnt FROM "Incident" GROUP BY "projectId") sub WHERE "Project"."_id" = sub."projectId"`,
     );

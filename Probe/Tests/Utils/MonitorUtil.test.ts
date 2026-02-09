@@ -109,9 +109,7 @@ describe("MonitorUtil.resolveUrlPlaceholders", () => {
     );
     const result: URL = MonitorUtil.resolveUrlPlaceholders(url);
 
-    expect(result.toString()).toBe(
-      "https://example.com/health?cb={timestamp}",
-    );
+    expect(result.toString()).toBe("https://example.com/health?cb={timestamp}");
   });
 
   it("should not modify URLs with monitor secret placeholders", () => {
