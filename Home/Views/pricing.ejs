@@ -1665,6 +1665,15 @@
       </div>
 
       <script>
+        // GA4: Track pricing page view as key event
+        if (typeof dataLayer !== 'undefined') {
+          dataLayer.push({
+            'event': 'page_view_pricing',
+            'eventCategory': 'page_view',
+            'eventAction': 'page_view_pricing',
+            'eventLabel': window.location.pathname
+          });
+        }
 
         function switchToYearlyBilling() {
           document.getElementById("yearly-billing-btn").classList = "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto sm:px-8"

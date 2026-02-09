@@ -330,6 +330,7 @@ const RegisterPage: () => JSX.Element = () => {
               if (value && value.email) {
                 UiAnalytics.userAuth(value.email);
                 UiAnalytics.capture("accounts/register");
+                UiAnalytics.capture("sign_up");
               }
 
               LoginUtil.login({
