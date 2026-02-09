@@ -87,6 +87,11 @@ export default class VMUtil {
           variable as any,
         );
 
+        // Skip replacement if the variable is not found in the storageMap.
+        if (foundValue === undefined) {
+          continue;
+        }
+
         let valueToReplaceInPlace: string;
 
         // Properly serialize objects to JSON strings
