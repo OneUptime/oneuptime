@@ -156,8 +156,9 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
   ): Promise<void> {
     try {
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
-      const entries: Array<JSONObject> =
-        this.extractEntriesFromRequest(req.body);
+      const entries: Array<JSONObject> = this.extractEntriesFromRequest(
+        req.body,
+      );
 
       if (entries.length === 0) {
         logger.warn("Fluent logs ingest: no entries to process.");
@@ -213,9 +214,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             AttributeType | Array<AttributeType>
           > = this.buildFluentAttributes(entry);
 
-          const attributes: Dictionary<
-            AttributeType | Array<AttributeType>
-          > = {
+          const attributes: Dictionary<AttributeType | Array<AttributeType>> = {
             ...baseAttributes,
             ...entryAttributes,
           };
@@ -276,9 +275,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     }
   }
 
-  private static extractEntriesFromRequest(
-    body: unknown,
-  ): Array<JSONObject> {
+  private static extractEntriesFromRequest(body: unknown): Array<JSONObject> {
     if (!body || typeof body !== "object") {
       return [];
     }
@@ -307,11 +304,9 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
 
           return { message: String(item) } as JSONObject;
         })
-        .filter(
-          (item: JSONObject | undefined): item is JSONObject => {
-            return item !== undefined;
-          },
-        );
+        .filter((item: JSONObject | undefined): item is JSONObject => {
+          return item !== undefined;
+        });
     }
 
     return this.normalizeLogEntries(entries);

@@ -18,9 +18,9 @@ describe("FluentLogsIngestService", () => {
         },
       };
 
-      const entries: Array<JSONObject> = service[
-        "normalizeLogEntries"
-      ](payload) as Array<JSONObject>;
+      const entries: Array<JSONObject> = service["normalizeLogEntries"](
+        payload,
+      ) as Array<JSONObject>;
 
       expect(entries).toHaveLength(1);
       expect(entries[0]).toEqual(payload);
@@ -32,9 +32,9 @@ describe("FluentLogsIngestService", () => {
         { message: "log 2", stream: "stderr" },
       ];
 
-      const entries: Array<JSONObject> = service[
-        "normalizeLogEntries"
-      ](payload) as Array<JSONObject>;
+      const entries: Array<JSONObject> = service["normalizeLogEntries"](
+        payload,
+      ) as Array<JSONObject>;
 
       expect(entries).toHaveLength(2);
       expect(entries[0]!["message"]).toBe("log 1");
@@ -51,9 +51,9 @@ describe("FluentLogsIngestService", () => {
         },
       };
 
-      const entries: Array<JSONObject> = service[
-        "normalizeLogEntries"
-      ](payload) as Array<JSONObject>;
+      const entries: Array<JSONObject> = service["normalizeLogEntries"](
+        payload,
+      ) as Array<JSONObject>;
 
       expect(entries).toHaveLength(1);
       expect(entries[0]!["message"]).toBe("inner log");
@@ -70,9 +70,9 @@ describe("FluentLogsIngestService", () => {
         ],
       };
 
-      const entries: Array<JSONObject> = service[
-        "normalizeLogEntries"
-      ](payload) as Array<JSONObject>;
+      const entries: Array<JSONObject> = service["normalizeLogEntries"](
+        payload,
+      ) as Array<JSONObject>;
 
       expect(entries).toHaveLength(2);
       expect(entries[0]!["host"]).toBe("node-1");
@@ -481,9 +481,9 @@ describe("FluentLogsIngestService", () => {
         "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       );
       expect(attrs["fluentd.kubernetes.labels.app"]).toBe("api-server");
-      expect(
-        attrs["fluentd.kubernetes.labels.app.kubernetes.io/version"],
-      ).toBe("2.1.0");
+      expect(attrs["fluentd.kubernetes.labels.app.kubernetes.io/version"]).toBe(
+        "2.1.0",
+      );
       expect(attrs["fluentd.kubernetes.labels.team"]).toBe("platform");
       expect(attrs["fluentd.kubernetes.host"]).toBe("node-pool-1-abc");
     });
@@ -506,9 +506,9 @@ describe("FluentLogsIngestService", () => {
       ) as Array<JSONObject>;
       expect(entries).toHaveLength(1);
       expect(entries[0]!["log"]).toBe("Application started successfully");
-      expect(
-        (entries[0]!["kubernetes"] as JSONObject)["namespace_name"],
-      ).toBe("staging");
+      expect((entries[0]!["kubernetes"] as JSONObject)["namespace_name"]).toBe(
+        "staging",
+      );
     });
 
     test("handles batch of Fluentd log entries", () => {
