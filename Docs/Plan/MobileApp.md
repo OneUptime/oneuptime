@@ -282,48 +282,54 @@ These endpoints change the entity state to "Acknowledged" with minimal payload, 
 
 ### Screen 1: Home (On-Call Dashboard)
 
-**Purpose:** At-a-glance view of on-call status and pending items.
+**Purpose:** At-a-glance view of on-call status and pending items across **all projects**.
 
 **Sections:**
 1. **On-Call Status Banner**
-   - Green: "You are on-call" with schedule details
+   - Green: "You are on-call" with schedule details and project name
    - Gray: "You are not on-call" with next shift info
+   - If on-call for multiple projects, show a stacked list
 2. **Pending Acknowledgments** (cards with swipe-to-acknowledge)
-   - Unacknowledged incidents/alerts assigned to the user
-   - Each card shows: title, severity badge, time since creation
+   - Unacknowledged incidents/alerts assigned to the user across all projects
+   - Each card shows: **project badge**, title, severity badge, time since creation
 3. **Recent Activity Feed**
-   - Last 10 events (new incidents, state changes, notes)
-4. **Quick Stats**
+   - Last 10 events across all projects (new incidents, state changes, notes)
+   - Each item prefixed with project badge
+4. **Quick Stats** (aggregated across all projects)
    - Active incidents count
    - Active alerts count
    - Open episodes count
 
-**API calls:**
-- `GET /api/on-call-duty-policy/my-on-call-status`
-- `POST /api/incident/get-list` (filter: active, assigned to user)
-- `POST /api/alert/get-list` (filter: active, assigned to user)
+**Note:** Home screen always shows all projects (no project filter) to ensure nothing is missed.
+
+**API calls (per project, in parallel):**
+- `GET /api/on-call-duty-policy/my-on-call-status` (per project)
+- `POST /api/incident/get-list` (filter: active, assigned to user) (per project)
+- `POST /api/alert/get-list` (filter: active, assigned to user) (per project)
 
 ### Screen 2: Incidents List
 
-**Purpose:** Browse and filter all incidents.
+**Purpose:** Browse and filter incidents across projects.
 
 **Features:**
+- **Project filter chip** at top: `[All Projects ▼]` — tap to filter to one project
 - Tab filters: Active | Acknowledged | Resolved
-- Each row shows: incident number, title, severity badge, state, time
+- Each row shows: **project badge**, incident number, title, severity badge, state, time
 - Pull-to-refresh
 - Infinite scroll pagination
 - Search by title
 - Tap to open Incident Detail
 
 **API calls:**
-- `POST /api/incident/get-list` with filters and pagination
+- All Projects mode: `POST /api/incident/get-list` per project (parallel), merged client-side
+- Single Project mode: `POST /api/incident/get-list` with single `tenantid`
 
 ### Screen 3: Incident Detail
 
 **Purpose:** View full incident details and take actions.
 
 **Sections:**
-1. **Header:** Title, severity, current state, created/updated times
+1. **Header:** **Project badge**, title, severity, current state, created/updated times
 2. **Monitors:** Affected monitors list
 3. **Owners:** Assigned users and teams
 4. **Timeline:** State change history
@@ -343,10 +349,11 @@ These endpoints change the entity state to "Acknowledged" with minimal payload, 
 
 ### Screen 4: Alerts List
 
-**Purpose:** Same pattern as Incidents List but for alerts.
+**Purpose:** Same pattern as Incidents List but for alerts. Includes project filter chip and project badges on each row.
 
 **API calls:**
-- `POST /api/alert/get-list`
+- All Projects mode: `POST /api/alert/get-list` per project (parallel), merged client-side
+- Single Project mode: `POST /api/alert/get-list` with single `tenantid`
 
 ### Screen 5: Alert Detail
 
@@ -354,15 +361,17 @@ These endpoints change the entity state to "Acknowledged" with minimal payload, 
 
 ### Screen 6: Incident Episodes List
 
-**Purpose:** View grouped incident episodes.
+**Purpose:** View grouped incident episodes across projects.
 
 **Features:**
-- Shows: episode number, title, incident count, state, severity
+- **Project filter chip** at top: `[All Projects ▼]`
+- Shows: **project badge**, episode number, title, incident count, state, severity
 - Filter by: Active | Resolved
 - Tap to open Episode Detail
 
 **API calls:**
-- `POST /api/incident-episode/get-list`
+- All Projects mode: `POST /api/incident-episode/get-list` per project (parallel), merged client-side
+- Single Project mode: `POST /api/incident-episode/get-list` with single `tenantid`
 
 ### Screen 7: Incident Episode Detail
 
@@ -385,7 +394,7 @@ These endpoints change the entity state to "Acknowledged" with minimal payload, 
 
 ### Screen 8: Alert Episodes List & Detail
 
-**Purpose:** Same pattern as Incident Episodes but for alerts.
+**Purpose:** Same pattern as Incident Episodes but for alerts. Includes project filter chip and project badges.
 
 ### Screen 9: Settings
 
@@ -393,7 +402,7 @@ These endpoints change the entity state to "Acknowledged" with minimal payload, 
 
 **Sections:**
 1. **Profile:** Name, email (read-only)
-2. **Active Project:** Project switcher dropdown
+2. **Projects:** List of projects the user belongs to (read-only, informational)
 3. **Notification Preferences:**
    - Toggle push notifications on/off per event type
    - Maps to existing `UserNotificationSetting` model
@@ -580,12 +589,44 @@ App Opens
 3. If biometric succeeds, retrieve refresh token and get new access token
 4. If biometric fails, fall back to email/password login
 
-### Multi-Project Support
+### Multi-Project Support (Hybrid Approach)
 
-- After login, fetch user's project list via `POST /api/project/get-list`
-- Store selected project ID in app state
-- All API calls include `tenantid` header with selected project ID
-- Project switcher in Settings screen
+The mobile app uses a hybrid "all projects by default, filter to one" approach so on-call engineers never miss incidents from any project.
+
+**How it works:**
+
+1. After login, fetch the user's project list via `POST /api/project/get-list`
+2. By default, the app is in **"All Projects"** mode:
+   - For each project the user belongs to, make parallel API calls (one per project with its `tenantid`)
+   - Merge results client-side, sorted by creation time (newest first)
+   - Each card/row shows a **project badge** (colored dot + project name) so the user can tell which project an item belongs to
+3. A **filter chip** at the top of every list screen allows narrowing to a single project:
+   - `[All Projects ▼]` → tap to see dropdown of projects
+   - Selecting a project switches to single-project mode (only one `tenantid` per request)
+   - Selecting "All Projects" returns to merged mode
+4. The selected filter is persisted in memory (resets to "All Projects" on app restart)
+5. The Home screen always shows all projects (no filter) to ensure nothing is missed
+
+**API call pattern (All Projects mode):**
+```typescript
+// Fetch incidents from all projects in parallel
+const projects = await getProjects();
+const results = await Promise.all(
+    projects.map((project) =>
+        api.incidents.getList(filters, { tenantid: project.id })
+    )
+);
+// Merge and sort by createdAt descending
+const merged = results
+    .flat()
+    .sort((a, b) => b.createdAt - a.createdAt);
+```
+
+**Performance considerations:**
+- Parallel requests keep latency close to a single-project call
+- React Query caches each project's data independently, so switching filters is instant
+- Pagination: in "All Projects" mode, fetch first page from each project, then interleave. Subsequent pages are loaded per-project as the user scrolls.
+- If user has many projects (10+), consider lazy-loading: fetch from the most recent 5 projects first, load others on demand
 
 ---
 
@@ -612,10 +653,10 @@ apiClient.interceptors.request.use(async (config) => {
     return config;
 });
 
-// Request interceptor: attach JWT + project ID
+// Request interceptor: attach JWT
+// Note: tenantid is set per-request by useMultiProjectQuery (not globally)
 apiClient.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${getAccessToken()}`;
-    config.headers.tenantid = getSelectedProjectId();
     return config;
 });
 
@@ -636,14 +677,40 @@ apiClient.interceptors.response.use(
 ### React Query Hooks
 
 ```typescript
+// hooks/useMultiProjectQuery.ts
+// Core hook that handles "All Projects" vs "Single Project" fetching
+export function useMultiProjectQuery<T>(
+    queryKey: string,
+    fetchFn: (tenantId: string, filters: any) => Promise<T[]>,
+    filters: any,
+) {
+    const { projects } = useProjects();
+    const { selectedProjectId } = useProjectFilter(); // null = "All Projects"
+
+    const projectsToQuery = selectedProjectId
+        ? [selectedProjectId]
+        : projects.map((p) => p.id);
+
+    return useQueries({
+        queries: projectsToQuery.map((projectId) => ({
+            queryKey: [queryKey, projectId, filters],
+            queryFn: () => fetchFn(projectId, filters),
+            staleTime: 30_000,
+            refetchInterval: 60_000,
+        })),
+        combine: (results) => ({
+            data: results
+                .flatMap((r) => r.data ?? [])
+                .sort((a, b) => b.createdAt - a.createdAt),
+            isLoading: results.some((r) => r.isLoading),
+            isError: results.some((r) => r.isError),
+        }),
+    });
+}
+
 // hooks/useIncidents.ts
 export function useIncidents(filters: IncidentFilters) {
-    return useQuery({
-        queryKey: ["incidents", filters],
-        queryFn: () => api.incidents.getList(filters),
-        staleTime: 30_000, // 30 seconds
-        refetchInterval: 60_000, // auto-refresh every minute
-    });
+    return useMultiProjectQuery("incidents", api.incidents.getList, filters);
 }
 
 // hooks/useAcknowledgeIncident.ts
@@ -800,10 +867,11 @@ MobileApp/
 │   │   │   └── AlertEpisodeDetailScreen.tsx
 │   │   └── settings/
 │   │       ├── SettingsScreen.tsx
-│   │       ├── NotificationSettingsScreen.tsx
-│   │       └── ProjectSwitcherScreen.tsx
+│   │       └── NotificationSettingsScreen.tsx
 │   │
 │   ├── components/                   # Shared UI components
+│   │   ├── ProjectFilterChip.tsx    # "All Projects ▼" filter dropdown
+│   │   ├── ProjectBadge.tsx         # Colored dot + project name label
 │   │   ├── SeverityBadge.tsx
 │   │   ├── StateBadge.tsx
 │   │   ├── TimeAgo.tsx
@@ -828,6 +896,9 @@ MobileApp/
 │   ├── hooks/                        # Custom React hooks
 │   │   ├── useServerUrl.ts          # Server URL management
 │   │   ├── useAuth.ts
+│   │   ├── useProjects.ts           # Fetch user's project list
+│   │   ├── useProjectFilter.ts      # All Projects / single project filter state
+│   │   ├── useMultiProjectQuery.ts  # Parallel fetch + merge across projects
 │   │   ├── useOnCallStatus.ts
 │   │   ├── useIncidents.ts
 │   │   ├── useAlerts.ts
