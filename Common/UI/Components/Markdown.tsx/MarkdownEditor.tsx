@@ -1,5 +1,6 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentation";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -649,23 +650,20 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Help Text */}
-      <div className="mt-2 text-xs text-gray-500">
-        <details className="cursor-pointer">
-          <summary className="hover:text-gray-700">Markdown help</summary>
-          <div className="mt-2 space-y-1">
-            <div>
-              <strong>**bold**</strong> or <em>*italic*</em>
-            </div>
-            <div>
-              <code className="bg-gray-100 px-1 rounded">`code`</code> or
-              ```code block```
-            </div>
-            <div># Heading 1, ## Heading 2, ### Heading 3</div>
-            <div>- Bullet list or 1. Numbered list</div>
-            <div>[Link text](url) or &gt; Quote</div>
+      <TinyFormDocumentation title="Markdown help">
+        <>
+          <div>
+            <strong>**bold**</strong> or <em>*italic*</em>
           </div>
-        </details>
-      </div>
+          <div>
+            <code className="bg-gray-100 px-1 rounded">`code`</code> or
+            ```code block```
+          </div>
+          <div># Heading 1, ## Heading 2, ### Heading 3</div>
+          <div>- Bullet list or 1. Numbered list</div>
+          <div>[Link text](url) or &gt; Quote</div>
+        </>
+      </TinyFormDocumentation>
     </div>
   );
 };

@@ -66,6 +66,7 @@ import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import Link from "Common/UI/Components/Link/Link";
+import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
@@ -436,6 +437,47 @@ return {
                 }}
               />
             </div>
+
+            {(props.monitorType === MonitorType.API ||
+              props.monitorType === MonitorType.Website) && (
+              <TinyFormDocumentation title="URL placeholder help">
+                <>
+                  <div>
+                    <code className="bg-gray-100 px-1 rounded">
+                      {"{{timestamp}}"}
+                    </code>{" "}
+                    — replaced with current Unix timestamp
+                  </div>
+                  <div>
+                    <code className="bg-gray-100 px-1 rounded">
+                      {"{{random}}"}
+                    </code>{" "}
+                    — replaced with a random unique string
+                  </div>
+                  <div>
+                    Example:{" "}
+                    <code className="bg-gray-100 px-1 rounded">
+                      {"https://example.com?cb={{timestamp}}"}
+                    </code>
+                  </div>
+                  <div>
+                    Useful for busting CDN or proxy caches on each check.{" "}
+                    <Link
+                      className="underline"
+                      openInNewTab={true}
+                      to={URL.fromString(
+                        DOCS_URL.toString() +
+                          (props.monitorType === MonitorType.API
+                            ? "/monitor/api-monitor"
+                            : "/monitor/website-monitor"),
+                      )}
+                    >
+                      Learn more.
+                    </Link>
+                  </div>
+                </>
+              </TinyFormDocumentation>
+            )}
 
             {props.monitorType === MonitorType.Port && (
               <div>
