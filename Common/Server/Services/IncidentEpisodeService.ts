@@ -768,10 +768,7 @@ export class Service extends DatabaseService<Model> {
     let result: string = template;
 
     // Replace dynamic variables
-    result = result.replace(
-      /\{\{incidentCount\}\}/g,
-      incidentCount.toString(),
-    );
+    result = result.replace(/\{\{incidentCount\}\}/g, incidentCount.toString());
 
     return result;
   }
