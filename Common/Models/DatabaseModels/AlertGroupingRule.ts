@@ -674,13 +674,13 @@ export default class AlertGroupingRule extends BaseModel {
     title: "Group By Monitor",
     description:
       "When enabled, alerts from different monitors will be grouped into separate episodes. When disabled, alerts from any monitor can be grouped together.",
-    defaultValue: true,
+    defaultValue: false,
     isDefaultValueColumn: true,
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
-    default: true,
+    default: false,
   })
   public groupByMonitor?: boolean = undefined;
 

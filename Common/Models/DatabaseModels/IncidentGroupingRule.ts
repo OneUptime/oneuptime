@@ -678,13 +678,13 @@ export default class IncidentGroupingRule extends BaseModel {
     title: "Group By Monitor",
     description:
       "When enabled, incidents from different monitors will be grouped into separate episodes. When disabled, incidents from any monitor can be grouped together.",
-    defaultValue: true,
+    defaultValue: false,
     isDefaultValueColumn: true,
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
-    default: true,
+    default: false,
   })
   public groupByMonitor?: boolean = undefined;
 
