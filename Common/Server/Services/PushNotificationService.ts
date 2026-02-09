@@ -1,5 +1,6 @@
 import PushNotificationRequest from "../../Types/PushNotification/PushNotificationRequest";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import UserPushService from "./UserPushService";
@@ -9,8 +10,12 @@ import {
   VapidPublicKey,
   VapidPrivateKey,
   VapidSubject,
+  FirebaseProjectId,
+  FirebaseClientEmail,
+  FirebasePrivateKey,
 } from "../EnvironmentConfig";
 import webpush from "web-push";
+import * as firebaseAdmin from "firebase-admin";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import UserPush from "../../Models/DatabaseModels/UserPush";
@@ -41,6 +46,34 @@ export interface PushNotificationOptions {
 
 export default class PushNotificationService {
   public static isWebPushInitialized = false;
+  public static isFirebaseInitialized = false;
+
+  public static initializeFirebase(): void {
+    if (this.isFirebaseInitialized) {
+      return;
+    }
+
+    if (!FirebaseProjectId || !FirebaseClientEmail || !FirebasePrivateKey) {
+      logger.warn(
+        "Firebase credentials not configured. Native push notifications (iOS/Android) will not work.",
+      );
+      return;
+    }
+
+    try {
+      firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.credential.cert({
+          projectId: FirebaseProjectId,
+          clientEmail: FirebaseClientEmail,
+          privateKey: FirebasePrivateKey,
+        }),
+      });
+      this.isFirebaseInitialized = true;
+      logger.info("Firebase Admin SDK initialized successfully");
+    } catch (error: any) {
+      logger.error(`Failed to initialize Firebase Admin SDK: ${error.message}`);
+    }
+  }
 
   public static initializeWebPush(): void {
     if (this.isWebPushInitialized) {
@@ -76,13 +109,8 @@ export default class PushNotificationService {
       throw new Error("No devices provided");
     }
 
-    if (request.deviceType !== "web") {
-      logger.error(`Unsupported device type: ${request.deviceType}`);
-      throw new Error("Only web push notifications are supported");
-    }
-
     logger.info(
-      `Sending web push notifications to ${request.devices.length} devices`,
+      `Sending ${request.deviceType} push notifications to ${request.devices.length} devices`,
     );
     logger.info(`Notification message: ${JSON.stringify(request.message)}`);
 
@@ -98,9 +126,25 @@ export default class PushNotificationService {
     const promises: Promise<void>[] = [];
 
     for (const device of request.devices) {
-      promises.push(
-        this.sendWebPushNotification(device.token, request.message, options),
-      );
+      if (request.deviceType === PushDeviceType.Web) {
+        promises.push(
+          this.sendWebPushNotification(device.token, request.message, options),
+        );
+      } else if (
+        request.deviceType === PushDeviceType.iOS ||
+        request.deviceType === PushDeviceType.Android
+      ) {
+        promises.push(
+          this.sendFcmPushNotification(
+            device.token,
+            request.message,
+            request.deviceType,
+            options,
+          ),
+        );
+      } else {
+        logger.error(`Unsupported device type: ${request.deviceType}`);
+      }
     }
 
     const results: Array<any> = await Promise.allSettled(promises);
@@ -314,6 +358,77 @@ export default class PushNotificationService {
     }
   }
 
+  private static async sendFcmPushNotification(
+    fcmToken: string,
+    message: PushNotificationMessage,
+    deviceType: PushDeviceType,
+    _options: PushNotificationOptions,
+  ): Promise<void> {
+    if (!this.isFirebaseInitialized) {
+      this.initializeFirebase();
+    }
+
+    if (!this.isFirebaseInitialized) {
+      throw new Error("Firebase Admin SDK not configured");
+    }
+
+    try {
+      const dataPayload: { [key: string]: string } = {};
+      if (message.data) {
+        for (const key of Object.keys(message.data)) {
+          dataPayload[key] = String(message.data[key]);
+        }
+      }
+      if (message.url || message.clickAction) {
+        dataPayload["url"] = message.url || message.clickAction || "";
+      }
+
+      const fcmMessage: firebaseAdmin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: message.title,
+          body: message.body,
+        },
+        data: dataPayload,
+        android: {
+          priority: "high" as const,
+          notification: {
+            sound: "default",
+            channelId: "oncall_high",
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+              badge: 1,
+            },
+          },
+        },
+      };
+
+      await firebaseAdmin.messaging().send(fcmMessage);
+
+      logger.info(
+        `FCM push notification sent successfully to ${deviceType} device`,
+      );
+    } catch (error: any) {
+      logger.error(
+        `Failed to send FCM push notification to ${deviceType} device: ${error.message}`,
+      );
+
+      // If the token is invalid, log it
+      if (
+        error.code === "messaging/invalid-registration-token" ||
+        error.code === "messaging/registration-token-not-registered"
+      ) {
+        logger.info("FCM token is invalid or unregistered");
+      }
+
+      throw error;
+    }
+  }
+
   public static async sendPushNotificationToUser(
     userId: ObjectID,
     projectId: ObjectID,
@@ -342,33 +457,46 @@ export default class PushNotificationService {
 
     if (userPushDevices.length === 0) {
       logger.info(
-        `No verified web push devices found for user ${userId.toString()}`,
+        `No verified push devices found for user ${userId.toString()}`,
       );
       return;
     }
 
-    // Get web devices with tokens and names
-    const webDevices: Array<{ token: string; name?: string }> = [];
+    // Group devices by type
+    const devicesByType: Map<
+      string,
+      Array<{ token: string; name?: string }>
+    > = new Map();
 
     for (const device of userPushDevices) {
-      if (device.deviceType === "web") {
-        webDevices.push({
-          token: device.deviceToken!,
-          name: device.deviceName || "Unknown Device",
-        });
+      const type: string = device.deviceType || PushDeviceType.Web;
+      if (!devicesByType.has(type)) {
+        devicesByType.set(type, []);
+      }
+      devicesByType.get(type)!.push({
+        token: device.deviceToken!,
+        name: device.deviceName || "Unknown Device",
+      });
+    }
+
+    // Send notifications to each device type group
+    const sendPromises: Promise<void>[] = [];
+
+    for (const [deviceType, devices] of devicesByType.entries()) {
+      if (devices.length > 0) {
+        sendPromises.push(
+          this.sendPushNotification(
+            {
+              devices: devices,
+              message: message,
+              deviceType: deviceType as PushDeviceType,
+            },
+            options,
+          ),
+        );
       }
     }
 
-    // Send notifications to web devices
-    if (webDevices.length > 0) {
-      await this.sendPushNotification(
-        {
-          devices: webDevices,
-          message: message,
-          deviceType: "web",
-        },
-        options,
-      );
-    }
+    await Promise.allSettled(sendPromises);
   }
 }
