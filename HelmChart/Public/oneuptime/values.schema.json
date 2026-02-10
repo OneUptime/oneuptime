@@ -2132,6 +2132,15 @@
       },
       "additionalProperties": true
     },
+    "openSourceDeployment": {
+      "type": "object",
+      "properties": {
+        "webhookUrl": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
     "aiAgent": {
       "type": "object",
       "properties": {
