@@ -1,11 +1,14 @@
 import RunCron from "../../Utils/Cron";
+import OneUptimeDate from "Common/Types/Date";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import IncidentEpisodeMemberService from "Common/Server/Services/IncidentEpisodeMemberService";
 import IncidentStateService from "Common/Server/Services/IncidentStateService";
+import IncidentGroupingRuleService from "Common/Server/Services/IncidentGroupingRuleService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import logger from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import ObjectID from "Common/Types/ObjectID";
@@ -33,7 +36,9 @@ RunCron(
           select: {
             _id: true,
             projectId: true,
+            incidentGroupingRuleId: true,
             lastIncidentAddedAt: true,
+            allIncidentsResolvedAt: true,
           },
           props: {
             isRoot: true,
@@ -69,6 +74,31 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
   try {
     if (!episode.id || !episode.projectId) {
       return;
+    }
+
+    // Get resolve delay from the grouping rule if exists and enabled
+    let resolveDelayMinutes: number = 0;
+    let enableResolveDelay: boolean = false;
+
+    if (episode.incidentGroupingRuleId) {
+      const rule: IncidentGroupingRule | null =
+        await IncidentGroupingRuleService.findOneById({
+          id: episode.incidentGroupingRuleId,
+          select: {
+            enableResolveDelay: true,
+            resolveDelayMinutes: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (rule) {
+        enableResolveDelay = rule.enableResolveDelay || false;
+        if (enableResolveDelay && rule.resolveDelayMinutes) {
+          resolveDelayMinutes = rule.resolveDelayMinutes;
+        }
+      }
     }
 
     // Get all incidents in this episode
@@ -116,7 +146,6 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
           currentIncidentState: {
             order: true,
           },
-          updatedAt: true,
         },
         props: {
           isRoot: true,
@@ -136,10 +165,63 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     }
 
     if (!allResolved) {
+      // If any incident is unresolved, clear allIncidentsResolvedAt
+      if (episode.allIncidentsResolvedAt) {
+        await IncidentEpisodeService.updateOneById({
+          id: episode.id,
+          data: {
+            allIncidentsResolvedAt: null,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
       logger.debug(
         `IncidentEpisode:AutoResolve - Episode ${episode.id} has unresolved incidents`,
       );
       return;
+    }
+
+    // All incidents are resolved. Set allIncidentsResolvedAt if not already set.
+    if (!episode.allIncidentsResolvedAt) {
+      await IncidentEpisodeService.updateOneById({
+        id: episode.id,
+        data: {
+          allIncidentsResolvedAt: OneUptimeDate.getCurrentDate(),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      // If resolve delay is enabled, return and wait for the delay
+      if (enableResolveDelay && resolveDelayMinutes > 0) {
+        logger.debug(
+          `IncidentEpisode:AutoResolve - Episode ${episode.id} all incidents resolved, starting resolve delay (${resolveDelayMinutes} minutes)`,
+        );
+        return;
+      }
+    }
+
+    // Check if resolve delay has passed (only if enabled)
+    if (
+      enableResolveDelay &&
+      resolveDelayMinutes > 0 &&
+      episode.allIncidentsResolvedAt
+    ) {
+      const timeSinceAllResolved: number = OneUptimeDate.getDifferenceInMinutes(
+        episode.allIncidentsResolvedAt,
+        OneUptimeDate.getCurrentDate(),
+      );
+
+      if (timeSinceAllResolved < resolveDelayMinutes) {
+        logger.debug(
+          `IncidentEpisode:AutoResolve - Episode ${episode.id} waiting for resolve delay (${resolveDelayMinutes} minutes)`,
+        );
+        return;
+      }
     }
 
     // Resolve the episode

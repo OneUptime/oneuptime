@@ -32,6 +32,7 @@ import Reseller from "Common/Models/DatabaseModels/Reseller";
 import User from "Common/Models/DatabaseModels/User";
 import React, { useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 const RegisterPage: () => JSX.Element = () => {
   const apiUrl: URL = SIGNUP_API_URL;
@@ -172,6 +173,36 @@ const RegisterPage: () => JSX.Element = () => {
     }
   }
 
+  if (!BILLING_ENABLED) {
+    formFields = formFields.concat([
+      {
+        overrideField: {
+          selfHostedCompanyName: true,
+        },
+        overrideFieldKey: "selfHostedCompanyName",
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: "Acme, Inc.",
+        required: false,
+        title: "Company Name",
+        dataTestId: "selfHostedCompanyName",
+        showEvenIfPermissionDoesNotExist: true,
+        disableSpellCheck: true,
+      },
+      {
+        overrideField: {
+          selfHostedPhoneNumber: true,
+        },
+        overrideFieldKey: "selfHostedPhoneNumber",
+        fieldType: FormFieldSchemaType.Phone,
+        required: false,
+        placeholder: "+11234567890",
+        title: "Phone Number",
+        dataTestId: "selfHostedPhoneNumber",
+        showEvenIfPermissionDoesNotExist: true,
+      },
+    ]);
+  }
+
   formFields = formFields.concat([
     {
       field: {
@@ -205,6 +236,25 @@ const RegisterPage: () => JSX.Element = () => {
       disableSpellCheck: true,
     },
   ]);
+
+  if (!IsBillingEnabled) {
+    formFields = formFields.concat([
+      {
+        overrideField: {
+          notifySelfHosted: true,
+        },
+        overrideFieldKey: "notifySelfHosted",
+
+        fieldType: FormFieldSchemaType.Checkbox,
+        required: false,
+        defaultValue: true,
+        title: "Notify me about security patches and new releases",
+        dataTestId: "notifySelfHosted",
+        showEvenIfPermissionDoesNotExist: true,
+        spanFullRow: true,
+      },
+    ]);
+  }
 
   if (isCaptchaEnabled) {
     formFields = formFields.concat([

@@ -124,4 +124,7 @@ export default interface Field<TEntity> {
   disableSpellCheck?: boolean | undefined;
 
   getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
+
+  // If true, this field will span the full row in multi-column layouts.
+  spanFullRow?: boolean | undefined;
 }

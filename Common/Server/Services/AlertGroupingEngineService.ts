@@ -688,6 +688,7 @@ class AlertGroupingEngineServiceClass {
     newEpisode.alertGroupingRuleId = rule.id!;
     newEpisode.groupingKey = groupingKey;
     newEpisode.isManuallyCreated = false;
+    newEpisode.lastAlertAddedAt = OneUptimeDate.getCurrentDate();
 
     // Set severity from alert
     if (alert.alertSeverityId) {

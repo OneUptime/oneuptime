@@ -96,26 +96,18 @@ export class Service extends DatabaseService<Model> {
     });
 
     // Update episode's incidentCount and lastIncidentAddedAt
-    Promise.resolve()
-      .then(async () => {
-        try {
-          await IncidentEpisodeService.updateIncidentCount(
-            createdItem.incidentEpisodeId!,
-          );
-          await IncidentEpisodeService.updateLastIncidentAddedAt(
-            createdItem.incidentEpisodeId!,
-          );
-        } catch (error) {
-          logger.error(
-            `Error updating episode counts in IncidentEpisodeMemberService.onCreateSuccess: ${error}`,
-          );
-        }
-      })
-      .catch((error: Error) => {
-        logger.error(
-          `Critical error in IncidentEpisodeMemberService.onCreateSuccess: ${error}`,
-        );
-      });
+    try {
+      await IncidentEpisodeService.updateIncidentCount(
+        createdItem.incidentEpisodeId!,
+      );
+      await IncidentEpisodeService.updateLastIncidentAddedAt(
+        createdItem.incidentEpisodeId!,
+      );
+    } catch (error) {
+      logger.error(
+        `Error updating episode counts in IncidentEpisodeMemberService.onCreateSuccess: ${error}`,
+      );
+    }
 
     // Get incident details for feed
     const incident: Incident | null = await IncidentService.findOneById({
