@@ -14,7 +14,7 @@ import {
   LoginResponse,
 } from "../api/auth";
 import { setOnAuthFailure } from "../api/client";
-import { unregisterPushToken } from "./usePushNotifications";
+import { unregisterPushToken } from "./pushTokenUtils";
 
 interface AuthContextValue {
   isAuthenticated: boolean;

@@ -11,11 +11,10 @@ import {
   setNavigationRef,
   handleNotificationResponse,
 } from "../notifications/handlers";
-import { registerPushDevice, unregisterPushDevice } from "../api/pushDevice";
+import { registerPushDevice } from "../api/pushDevice";
 import { useAuth } from "./useAuth";
 import { useProject } from "./useProject";
-
-const PUSH_TOKEN_KEY: string = "oneuptime_expo_push_token";
+import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
 
 export function usePushNotifications(navigationRef: unknown): void {
   const { isAuthenticated }: { isAuthenticated: boolean } = useAuth();
@@ -108,16 +107,4 @@ export function usePushNotifications(navigationRef: unknown): void {
       }
     };
   }, []);
-}
-
-export async function unregisterPushToken(): Promise<void> {
-  try {
-    const token: string | null = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
-    if (token) {
-      await unregisterPushDevice(token);
-      await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
-    }
-  } catch {
-    // Best-effort: don't block logout
-  }
 }
