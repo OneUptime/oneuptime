@@ -2200,6 +2200,8 @@ jobs:
           tag_name: ${{needs.read-version.outputs.major_minor}}
 
 
+  # Build Android release APK and attach to GitHub Release.
+  # Required secrets setup guide: MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-android-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
     runs-on: ubuntu-latest
@@ -2246,6 +2248,8 @@ jobs:
           prerelease: false
           tag_name: ${{ needs.read-version.outputs.major_minor }}
 
+  # Build iOS release IPA and attach to GitHub Release.
+  # Required secrets setup guide: MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-ios-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
     runs-on: macos-latest
