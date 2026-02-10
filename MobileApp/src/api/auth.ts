@@ -57,8 +57,8 @@ export async function login(
 
   // Check if 2FA is required
   if (
-    responseData.miscData?.totpAuthList ||
-    responseData.miscData?.webAuthnList
+    responseData._miscData?.totpAuthList ||
+    responseData._miscData?.webAuthnList
   ) {
     return {
       ...responseData,
@@ -71,7 +71,7 @@ export async function login(
   }
 
   const { accessToken, refreshToken, refreshTokenExpiresAt } =
-    responseData.miscData || {};
+    responseData._miscData || {};
 
   if (accessToken && refreshToken) {
     await storeTokens({
