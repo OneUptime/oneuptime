@@ -167,7 +167,7 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
         await AlertEpisodeService.updateOneById({
           id: episode.id,
           data: {
-            allAlertsResolvedAt: undefined as any,
+            allAlertsResolvedAt: null,
           },
           props: {
             isRoot: true,
@@ -203,12 +203,15 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     }
 
     // Check if resolve delay has passed (only if enabled)
-    if (enableResolveDelay && resolveDelayMinutes > 0 && episode.allAlertsResolvedAt) {
-      const timeSinceAllResolved: number =
-        OneUptimeDate.getDifferenceInMinutes(
-          episode.allAlertsResolvedAt,
-          OneUptimeDate.getCurrentDate(),
-        );
+    if (
+      enableResolveDelay &&
+      resolveDelayMinutes > 0 &&
+      episode.allAlertsResolvedAt
+    ) {
+      const timeSinceAllResolved: number = OneUptimeDate.getDifferenceInMinutes(
+        episode.allAlertsResolvedAt,
+        OneUptimeDate.getCurrentDate(),
+      );
 
       if (timeSinceAllResolved < resolveDelayMinutes) {
         logger.debug(

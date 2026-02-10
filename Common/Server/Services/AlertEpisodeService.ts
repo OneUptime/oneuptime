@@ -819,8 +819,8 @@ export class Service extends DatabaseService<Model> {
     await this.updateOneById({
       id: episodeId,
       data: {
-        resolvedAt: undefined as any,
-        allAlertsResolvedAt: undefined as any,
+        resolvedAt: null,
+        allAlertsResolvedAt: null,
       },
       props: {
         isRoot: true,

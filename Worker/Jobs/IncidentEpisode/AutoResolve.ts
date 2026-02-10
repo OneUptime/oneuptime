@@ -170,7 +170,7 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
         await IncidentEpisodeService.updateOneById({
           id: episode.id,
           data: {
-            allIncidentsResolvedAt: undefined as any,
+            allIncidentsResolvedAt: null,
           },
           props: {
             isRoot: true,
@@ -206,12 +206,15 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     }
 
     // Check if resolve delay has passed (only if enabled)
-    if (enableResolveDelay && resolveDelayMinutes > 0 && episode.allIncidentsResolvedAt) {
-      const timeSinceAllResolved: number =
-        OneUptimeDate.getDifferenceInMinutes(
-          episode.allIncidentsResolvedAt,
-          OneUptimeDate.getCurrentDate(),
-        );
+    if (
+      enableResolveDelay &&
+      resolveDelayMinutes > 0 &&
+      episode.allIncidentsResolvedAt
+    ) {
+      const timeSinceAllResolved: number = OneUptimeDate.getDifferenceInMinutes(
+        episode.allIncidentsResolvedAt,
+        OneUptimeDate.getCurrentDate(),
+      );
 
       if (timeSinceAllResolved < resolveDelayMinutes) {
         logger.debug(
