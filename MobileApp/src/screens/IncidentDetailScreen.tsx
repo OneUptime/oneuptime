@@ -331,6 +331,8 @@ export default function IncidentDetailScreen({
                   )
                 }
                 disabled={changingState}
+                accessibilityRole="button"
+                accessibilityLabel="Acknowledge incident"
               >
                 {changingState ? (
                   <ActivityIndicator size="small" color={theme.colors.textInverse} />
@@ -357,6 +359,8 @@ export default function IncidentDetailScreen({
                   handleStateChange(resolveState._id, resolveState.name)
                 }
                 disabled={changingState}
+                accessibilityRole="button"
+                accessibilityLabel="Resolve incident"
               >
                 {changingState ? (
                   <ActivityIndicator size="small" color={theme.colors.textInverse} />

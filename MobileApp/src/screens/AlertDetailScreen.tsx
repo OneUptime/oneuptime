@@ -305,6 +305,8 @@ export default function AlertDetailScreen({
                   )
                 }
                 disabled={changingState}
+                accessibilityRole="button"
+                accessibilityLabel="Acknowledge alert"
               >
                 {changingState ? (
                   <ActivityIndicator size="small" color={theme.colors.textInverse} />
@@ -331,6 +333,8 @@ export default function AlertDetailScreen({
                   handleStateChange(resolveState._id, resolveState.name)
                 }
                 disabled={changingState}
+                accessibilityRole="button"
+                accessibilityLabel="Resolve alert"
               >
                 {changingState ? (
                   <ActivityIndicator size="small" color={theme.colors.textInverse} />

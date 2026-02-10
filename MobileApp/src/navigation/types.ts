@@ -12,6 +12,11 @@ export type MainTabParamList = {
   Settings: undefined;
 };
 
+export type SettingsStackParamList = {
+  SettingsList: undefined;
+  NotificationPreferences: undefined;
+};
+
 export type IncidentsStackParamList = {
   IncidentsList: undefined;
   IncidentDetail: { incidentId: string };

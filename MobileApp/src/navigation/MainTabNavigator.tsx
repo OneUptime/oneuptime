@@ -6,7 +6,7 @@ import IncidentsStackNavigator from "./IncidentsStackNavigator";
 import AlertsStackNavigator from "./AlertsStackNavigator";
 import IncidentEpisodesStackNavigator from "./IncidentEpisodesStackNavigator";
 import AlertEpisodesStackNavigator from "./AlertEpisodesStackNavigator";
-import SettingsScreen from "../screens/SettingsScreen";
+import SettingsStackNavigator from "./SettingsStackNavigator";
 import { useTheme } from "../theme";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -50,7 +50,11 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={AlertEpisodesStackNavigator}
         options={{ headerShown: false, title: "Alert Episodes" }}
       />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsStackNavigator}
+        options={{ headerShown: false }}
+      />
     </Tab.Navigator>
   );
 }

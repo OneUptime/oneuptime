@@ -131,7 +131,6 @@ const styles = StyleSheet.create({
   container: {
     overflow: "hidden",
     borderRadius: 12,
-    marginBottom: 12,
   },
   actionsContainer: {
     ...StyleSheet.absoluteFillObject,

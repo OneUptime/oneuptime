@@ -12,6 +12,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import { useIncidentEpisodes } from "../hooks/useIncidentEpisodes";
+import { useHaptics } from "../hooks/useHaptics";
 import EpisodeCard from "../components/EpisodeCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
@@ -31,6 +32,7 @@ export default function IncidentEpisodesScreen(): React.JSX.Element {
   const projectId = selectedProject?._id ?? "";
   const navigation = useNavigation<NavProp>();
 
+  const { lightImpact } = useHaptics();
   const [page, setPage] = useState(0);
   const skip = page * PAGE_SIZE;
 
@@ -45,9 +47,10 @@ export default function IncidentEpisodesScreen(): React.JSX.Element {
   const hasMore = skip + PAGE_SIZE < totalCount;
 
   const onRefresh = useCallback(async () => {
+    lightImpact();
     setPage(0);
     await refetch();
-  }, [refetch]);
+  }, [refetch, lightImpact]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !isLoading) {

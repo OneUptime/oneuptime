@@ -8,11 +8,16 @@ import {
   StyleSheet,
 } from "react-native";
 import { useTheme, ThemeMode } from "../theme";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../hooks/useAuth";
 import { useProject } from "../hooks/useProject";
 import { useBiometric } from "../hooks/useBiometric";
 import { useHaptics } from "../hooks/useHaptics";
 import { getServerUrl } from "../storage/serverUrl";
+import type { SettingsStackParamList } from "../navigation/types";
+
+type SettingsNavProp = NativeStackNavigationProp<SettingsStackParamList, "SettingsList">;
 
 const APP_VERSION = "1.0.0";
 
@@ -87,6 +92,7 @@ export default function SettingsScreen(): React.JSX.Element {
   const { selectedProject, clearProject } = useProject();
   const biometric = useBiometric();
   const { selectionFeedback } = useHaptics();
+  const navigation = useNavigation<SettingsNavProp>();
   const [serverUrl, setServerUrlState] = useState("");
 
   useEffect(() => {
@@ -172,6 +178,19 @@ export default function SettingsScreen(): React.JSX.Element {
             );
           })}
         </View>
+      </View>
+
+      {/* Notifications */}
+      <View style={styles.section}>
+        <Text
+          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
+        >
+          Notifications
+        </Text>
+        <SettingsRow
+          label="Notification Preferences"
+          onPress={() => navigation.navigate("NotificationPreferences")}
+        />
       </View>
 
       {/* Security */}

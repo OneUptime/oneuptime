@@ -12,11 +12,16 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import { useAlerts } from "../hooks/useAlerts";
+import { useAlertStates } from "../hooks/useAlertDetail";
+import { changeAlertState } from "../api/alerts";
+import { useHaptics } from "../hooks/useHaptics";
 import AlertCard from "../components/AlertCard";
+import SwipeableCard from "../components/SwipeableCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import type { AlertsStackParamList } from "../navigation/types";
 import type { AlertItem } from "../api/types";
+import { useQueryClient } from "@tanstack/react-query";
 
 const PAGE_SIZE = 20;
 
@@ -36,15 +41,21 @@ export default function AlertsScreen(): React.JSX.Element {
     skip,
     PAGE_SIZE,
   );
+  const { data: states } = useAlertStates(projectId);
+  const { successFeedback, errorFeedback, lightImpact } = useHaptics();
+  const queryClient = useQueryClient();
+
+  const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
 
   const alerts = data?.data ?? [];
   const totalCount = data?.count ?? 0;
   const hasMore = skip + PAGE_SIZE < totalCount;
 
   const onRefresh = useCallback(async () => {
+    lightImpact();
     setPage(0);
     await refetch();
-  }, [refetch]);
+  }, [refetch, lightImpact]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !isLoading) {
@@ -57,6 +68,23 @@ export default function AlertsScreen(): React.JSX.Element {
       navigation.navigate("AlertDetail", { alertId: alert._id });
     },
     [navigation],
+  );
+
+  const handleAcknowledge = useCallback(
+    async (alert: AlertItem) => {
+      if (!acknowledgeState) {
+        return;
+      }
+      try {
+        await changeAlertState(projectId, alert._id, acknowledgeState._id);
+        await successFeedback();
+        await refetch();
+        await queryClient.invalidateQueries({ queryKey: ["alerts"] });
+      } catch {
+        await errorFeedback();
+      }
+    },
+    [projectId, acknowledgeState, successFeedback, errorFeedback, refetch, queryClient],
   );
 
   if (isLoading && alerts.length === 0) {
@@ -126,7 +154,20 @@ export default function AlertsScreen(): React.JSX.Element {
           alerts.length === 0 ? styles.emptyContainer : styles.list
         }
         renderItem={({ item }) => (
-          <AlertCard alert={item} onPress={() => handlePress(item)} />
+          <SwipeableCard
+            rightAction={
+              acknowledgeState &&
+              item.currentAlertState?._id !== acknowledgeState._id
+                ? {
+                    label: "Acknowledge",
+                    color: "#2EA043",
+                    onAction: () => handleAcknowledge(item),
+                  }
+                : undefined
+            }
+          >
+            <AlertCard alert={item} onPress={() => handlePress(item)} />
+          </SwipeableCard>
         )}
         ListEmptyComponent={
           <EmptyState

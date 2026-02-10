@@ -12,11 +12,16 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import { useIncidents } from "../hooks/useIncidents";
+import { useIncidentStates } from "../hooks/useIncidentDetail";
+import { changeIncidentState } from "../api/incidents";
+import { useHaptics } from "../hooks/useHaptics";
 import IncidentCard from "../components/IncidentCard";
+import SwipeableCard from "../components/SwipeableCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import type { IncidentsStackParamList } from "../navigation/types";
 import type { IncidentItem } from "../api/types";
+import { useQueryClient } from "@tanstack/react-query";
 
 const PAGE_SIZE = 20;
 
@@ -36,15 +41,21 @@ export default function IncidentsScreen(): React.JSX.Element {
     skip,
     PAGE_SIZE,
   );
+  const { data: states } = useIncidentStates(projectId);
+  const { successFeedback, errorFeedback, lightImpact } = useHaptics();
+  const queryClient = useQueryClient();
+
+  const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
 
   const incidents = data?.data ?? [];
   const totalCount = data?.count ?? 0;
   const hasMore = skip + PAGE_SIZE < totalCount;
 
   const onRefresh = useCallback(async () => {
+    lightImpact();
     setPage(0);
     await refetch();
-  }, [refetch]);
+  }, [refetch, lightImpact]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !isLoading) {
@@ -57,6 +68,23 @@ export default function IncidentsScreen(): React.JSX.Element {
       navigation.navigate("IncidentDetail", { incidentId: incident._id });
     },
     [navigation],
+  );
+
+  const handleAcknowledge = useCallback(
+    async (incident: IncidentItem) => {
+      if (!acknowledgeState) {
+        return;
+      }
+      try {
+        await changeIncidentState(projectId, incident._id, acknowledgeState._id);
+        await successFeedback();
+        await refetch();
+        await queryClient.invalidateQueries({ queryKey: ["incidents"] });
+      } catch {
+        await errorFeedback();
+      }
+    },
+    [projectId, acknowledgeState, successFeedback, errorFeedback, refetch, queryClient],
   );
 
   if (isLoading && incidents.length === 0) {
@@ -126,7 +154,20 @@ export default function IncidentsScreen(): React.JSX.Element {
           incidents.length === 0 ? styles.emptyContainer : styles.list
         }
         renderItem={({ item }) => (
-          <IncidentCard incident={item} onPress={() => handlePress(item)} />
+          <SwipeableCard
+            rightAction={
+              acknowledgeState &&
+              item.currentIncidentState?._id !== acknowledgeState._id
+                ? {
+                    label: "Acknowledge",
+                    color: "#2EA043",
+                    onAction: () => handleAcknowledge(item),
+                  }
+                : undefined
+            }
+          >
+            <IncidentCard incident={item} onPress={() => handlePress(item)} />
+          </SwipeableCard>
         )}
         ListEmptyComponent={
           <EmptyState

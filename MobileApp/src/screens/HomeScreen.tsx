@@ -133,7 +133,10 @@ export default function HomeScreen(): React.JSX.Element {
     refetch: refetchAlertEpisodes,
   } = useUnresolvedAlertEpisodeCount(projectId);
 
+  const { lightImpact } = useHaptics();
+
   const onRefresh = async (): Promise<void> => {
+    lightImpact();
     await Promise.all([
       refetchIncidents(),
       refetchAlerts(),
