@@ -52,9 +52,9 @@ function navigateToEntity(data: NotificationData): void {
 export function handleNotificationResponse(
   response: NotificationResponse,
 ): void {
-  const data =
+  const data: NotificationData =
     (response.notification.request.content.data as NotificationData) || {};
-  const actionId = response.actionIdentifier;
+  const actionId: string = response.actionIdentifier;
 
   if (actionId === "ACKNOWLEDGE") {
     // Background acknowledge — could call API here in the future

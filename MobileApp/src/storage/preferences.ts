@@ -40,7 +40,9 @@ export async function setThemeMode(mode: ThemeMode): Promise<void> {
 }
 
 export async function getBiometricEnabled(): Promise<boolean> {
-  const stored: string | null = await AsyncStorage.getItem(KEYS.BIOMETRIC_ENABLED);
+  const stored: string | null = await AsyncStorage.getItem(
+    KEYS.BIOMETRIC_ENABLED,
+  );
   return stored === "true";
 }
 
@@ -49,7 +51,9 @@ export async function setBiometricEnabled(enabled: boolean): Promise<void> {
 }
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
-  const stored: string | null = await AsyncStorage.getItem(KEYS.NOTIFICATION_PREFS);
+  const stored: string | null = await AsyncStorage.getItem(
+    KEYS.NOTIFICATION_PREFS,
+  );
   if (stored) {
     try {
       return { ...DEFAULT_NOTIFICATION_PREFS, ...JSON.parse(stored) };

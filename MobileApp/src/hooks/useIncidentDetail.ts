@@ -1,11 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   fetchIncidentById,
   fetchIncidentStates,
   fetchIncidentStateTimeline,
 } from "../api/incidents";
+import type {
+  IncidentItem,
+  IncidentState,
+  StateTimelineItem,
+} from "../api/types";
 
-export function useIncidentDetail(projectId: string, incidentId: string) {
+export function useIncidentDetail(
+  projectId: string,
+  incidentId: string,
+): UseQueryResult<IncidentItem, Error> {
   return useQuery({
     queryKey: ["incident", projectId, incidentId],
     queryFn: () => {
@@ -15,7 +23,9 @@ export function useIncidentDetail(projectId: string, incidentId: string) {
   });
 }
 
-export function useIncidentStates(projectId: string) {
+export function useIncidentStates(
+  projectId: string,
+): UseQueryResult<IncidentState[], Error> {
   return useQuery({
     queryKey: ["incident-states", projectId],
     queryFn: () => {
@@ -28,7 +38,7 @@ export function useIncidentStates(projectId: string) {
 export function useIncidentStateTimeline(
   projectId: string,
   incidentId: string,
-) {
+): UseQueryResult<StateTimelineItem[], Error> {
   return useQuery({
     queryKey: ["incident-state-timeline", projectId, incidentId],
     queryFn: () => {

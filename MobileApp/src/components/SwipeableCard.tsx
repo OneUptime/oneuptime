@@ -36,15 +36,21 @@ export default function SwipeableCard({
   const translateX: Animated.Value = useRef(new Animated.Value(0)).current;
   const hasTriggeredHaptic: React.MutableRefObject<boolean> = useRef(false);
 
-  const panResponder = useRef(
+  const panResponder: PanResponderInstance = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
+      onMoveShouldSetPanResponder: (
+        _: GestureResponderEvent,
+        gestureState: PanResponderGestureState,
+      ) => {
         return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dy) < 20;
       },
-      onPanResponderMove: (_, gestureState) => {
+      onPanResponderMove: (
+        _: GestureResponderEvent,
+        gestureState: PanResponderGestureState,
+      ) => {
         // Limit swipe range
-        const maxSwipe = 120;
-        let dx = gestureState.dx;
+        const maxSwipe: number = 120;
+        let dx: number = gestureState.dx;
         if (!rightAction && dx < 0) {
           dx = 0;
         }
@@ -62,7 +68,10 @@ export default function SwipeableCard({
           hasTriggeredHaptic.current = false;
         }
       },
-      onPanResponderRelease: (_, gestureState) => {
+      onPanResponderRelease: (
+        _: GestureResponderEvent,
+        gestureState: PanResponderGestureState,
+      ) => {
         if (gestureState.dx > SWIPE_THRESHOLD && leftAction) {
           leftAction.onAction();
         } else if (gestureState.dx < -SWIPE_THRESHOLD && rightAction) {
@@ -124,7 +133,7 @@ export default function SwipeableCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     overflow: "hidden",
     borderRadius: 12,

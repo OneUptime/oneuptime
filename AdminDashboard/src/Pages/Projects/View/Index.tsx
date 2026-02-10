@@ -1,3 +1,4 @@
+import AdminModelAPI from "../../../Utils/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -19,6 +20,7 @@ const Projects: FunctionComponent = (): ReactElement => {
       modelId={modelId}
       modelNameField="name"
       modelType={Project}
+      modelAPI={AdminModelAPI}
       title={"Project"}
       breadcrumbLinks={[
         {
@@ -43,6 +45,7 @@ const Projects: FunctionComponent = (): ReactElement => {
       <div>
         <CardModelDetail<Project>
           name="Project"
+          modelAPI={AdminModelAPI}
           cardProps={{
             title: "Project",
             description: "Project details",

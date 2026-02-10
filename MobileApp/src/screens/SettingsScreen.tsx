@@ -22,7 +22,7 @@ type SettingsNavProp = NativeStackNavigationProp<
   "SettingsList"
 >;
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION: string = "1.0.0";
 
 interface SettingsRowProps {
   label: string;
@@ -43,7 +43,7 @@ function SettingsRow({
 }: SettingsRowProps): React.JSX.Element {
   const { theme } = useTheme();
 
-  const content = (
+  const content: React.JSX.Element = (
     <View
       style={[
         styles.row,
@@ -95,16 +95,16 @@ export default function SettingsScreen(): React.JSX.Element {
   const { theme, themeMode, setThemeMode } = useTheme();
   const { logout } = useAuth();
   const { selectedProject, clearProject } = useProject();
-  const biometric = useBiometric();
+  const biometric: ReturnType<typeof useBiometric> = useBiometric();
   const { selectionFeedback } = useHaptics();
-  const navigation = useNavigation<SettingsNavProp>();
+  const navigation: SettingsNavProp = useNavigation<SettingsNavProp>();
   const [serverUrl, setServerUrlState] = useState("");
 
   useEffect(() => {
     getServerUrl().then(setServerUrlState);
   }, []);
 
-  const handleChangeProject = async (): Promise<void> => {
+  const handleChangeProject: () => Promise<void> = async (): Promise<void> => {
     await clearProject();
   };
 

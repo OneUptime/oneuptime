@@ -23,9 +23,10 @@ export async function storeTokens(tokens: StoredTokens): Promise<void> {
 }
 
 export async function getTokens(): Promise<StoredTokens | null> {
-  const credentials: false | Keychain.UserCredentials = await Keychain.getGenericPassword({
-    service: SERVICE_NAME,
-  });
+  const credentials: false | Keychain.UserCredentials =
+    await Keychain.getGenericPassword({
+      service: SERVICE_NAME,
+    });
 
   if (!credentials || typeof credentials === "boolean") {
     cachedAccessToken = null;

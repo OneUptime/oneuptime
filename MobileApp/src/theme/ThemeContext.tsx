@@ -31,7 +31,8 @@ interface ThemeContextValue {
   setThemeMode: (mode: ThemeMode) => void;
 }
 
-const ThemeContext: React.Context<ThemeContextValue | undefined> = createContext<ThemeContextValue | undefined>(undefined);
+const ThemeContext: React.Context<ThemeContextValue | undefined> =
+  createContext<ThemeContextValue | undefined>(undefined);
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -40,7 +41,8 @@ interface ThemeProviderProps {
 export function ThemeProvider({
   children,
 }: ThemeProviderProps): React.JSX.Element {
-  const systemColorScheme: "light" | "dark" | null | undefined = useColorScheme();
+  const systemColorScheme: "light" | "dark" | null | undefined =
+    useColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>("dark");
 
   // Load persisted theme on mount

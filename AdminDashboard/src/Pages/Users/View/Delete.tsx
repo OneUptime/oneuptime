@@ -1,3 +1,4 @@
+import AdminModelAPI from "../../../Utils/ModelAPI";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -17,6 +18,7 @@ const DeletePage: FunctionComponent = (): ReactElement => {
       modelId={modelId}
       modelNameField="email"
       modelType={User}
+      modelAPI={AdminModelAPI}
       title={"User"}
       breadcrumbLinks={[
         {
@@ -39,6 +41,7 @@ const DeletePage: FunctionComponent = (): ReactElement => {
       <ModelDelete
         modelType={User}
         modelId={modelId}
+        modelAPI={AdminModelAPI}
         onDeleteSuccess={() => {
           Navigation.navigate(RouteMap[PageMap.USERS] as Route);
         }}

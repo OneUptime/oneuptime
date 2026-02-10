@@ -3,7 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
-import type { IncidentEpisodeItem, AlertEpisodeItem } from "../api/types";
+import type {
+  IncidentEpisodeItem,
+  AlertEpisodeItem,
+  NamedEntityWithColor,
+} from "../api/types";
 
 type EpisodeCardProps =
   | {
@@ -23,30 +27,30 @@ export default function EpisodeCard(
   const { episode, type, onPress } = props;
   const { theme } = useTheme();
 
-  const state =
+  const state: NamedEntityWithColor =
     type === "incident"
       ? (episode as IncidentEpisodeItem).currentIncidentState
       : (episode as AlertEpisodeItem).currentAlertState;
 
-  const severity =
+  const severity: NamedEntityWithColor =
     type === "incident"
       ? (episode as IncidentEpisodeItem).incidentSeverity
       : (episode as AlertEpisodeItem).alertSeverity;
 
-  const childCount =
+  const childCount: number =
     type === "incident"
       ? (episode as IncidentEpisodeItem).incidentCount
       : (episode as AlertEpisodeItem).alertCount;
 
-  const stateColor = state?.color
+  const stateColor: string = state?.color
     ? rgbToHex(state.color)
     : theme.colors.textTertiary;
 
-  const severityColor = severity?.color
+  const severityColor: string = severity?.color
     ? rgbToHex(severity.color)
     : theme.colors.textTertiary;
 
-  const timeString = formatRelativeTime(
+  const timeString: string = formatRelativeTime(
     (episode as IncidentEpisodeItem).declaredAt || episode.createdAt,
   );
 
@@ -121,7 +125,7 @@ export default function EpisodeCard(
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,

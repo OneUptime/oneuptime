@@ -24,11 +24,7 @@ import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import type {
-  AlertState,
-  StateTimelineItem,
-  NoteItem,
-} from "../api/types";
+import type { AlertState, StateTimelineItem, NoteItem } from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
@@ -66,7 +62,10 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     await Promise.all([refetchAlert(), refetchTimeline(), refetchNotes()]);
   }, [refetchAlert, refetchTimeline, refetchNotes]);
 
-  const handleStateChange: (stateId: string, stateName: string) => Promise<void> = useCallback(
+  const handleStateChange: (
+    stateId: string,
+    stateName: string,
+  ) => Promise<void> = useCallback(
     async (stateId: string, stateName: string) => {
       if (!alert) {
         return;
@@ -166,9 +165,11 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     : theme.colors.textTertiary;
 
   // Find acknowledge and resolve states from fetched state definitions
-  const acknowledgeState: AlertState | undefined = states?.find((s: AlertState) => {
-    return s.isAcknowledgedState;
-  });
+  const acknowledgeState: AlertState | undefined = states?.find(
+    (s: AlertState) => {
+      return s.isAcknowledgedState;
+    },
+  );
   const resolveState: AlertState | undefined = states?.find((s: AlertState) => {
     return s.isResolvedState;
   });

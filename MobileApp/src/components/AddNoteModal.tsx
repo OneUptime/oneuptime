@@ -28,15 +28,15 @@ export default function AddNoteModal({
   const { theme } = useTheme();
   const [noteText, setNoteText] = useState("");
 
-  const handleSubmit = (): void => {
-    const trimmed = noteText.trim();
+  const handleSubmit: () => void = (): void => {
+    const trimmed: string = noteText.trim();
     if (trimmed) {
       onSubmit(trimmed);
       setNoteText("");
     }
   };
 
-  const handleClose = (): void => {
+  const handleClose: () => void = (): void => {
     setNoteText("");
     onClose();
   };
@@ -151,7 +151,7 @@ export default function AddNoteModal({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",

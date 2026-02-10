@@ -38,7 +38,7 @@ function StatCard({
   const { theme } = useTheme();
   const { lightImpact } = useHaptics();
 
-  const handlePress = (): void => {
+  const handlePress: () => void = (): void => {
     lightImpact();
     onPress();
   };
@@ -101,8 +101,8 @@ function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
 export default function HomeScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { selectedProject } = useProject();
-  const projectId = selectedProject?._id ?? "";
-  const navigation = useNavigation<HomeNavProp>();
+  const projectId: string = selectedProject?._id ?? "";
+  const navigation: HomeNavProp = useNavigation<HomeNavProp>();
 
   const {
     data: incidentCount,
@@ -130,7 +130,7 @@ export default function HomeScreen(): React.JSX.Element {
 
   const { lightImpact } = useHaptics();
 
-  const onRefresh = async (): Promise<void> => {
+  const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
     await Promise.all([
       refetchIncidents(),
@@ -250,7 +250,7 @@ export default function HomeScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 40,

@@ -14,18 +14,18 @@ interface BiometricState {
 }
 
 export function useBiometric(): BiometricState {
-  const [isAvailable, setIsAvailable] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [biometricType, setBiometricType] = useState("Biometrics");
+  const [isAvailable, setIsAvailable] = useState<boolean>(false);
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);
+  const [biometricType, setBiometricType] = useState<string>("Biometrics");
 
-  useEffect(() => {
+  useEffect((): void => {
     const check = async (): Promise<void> => {
-      const compatible = await LocalAuthentication.hasHardwareAsync();
-      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      const compatible: boolean = await LocalAuthentication.hasHardwareAsync();
+      const enrolled: boolean = await LocalAuthentication.isEnrolledAsync();
       setIsAvailable(compatible && enrolled);
 
       if (compatible) {
-        const types =
+        const types: LocalAuthentication.AuthenticationType[] =
           await LocalAuthentication.supportedAuthenticationTypesAsync();
         if (
           types.includes(
@@ -40,7 +40,7 @@ export function useBiometric(): BiometricState {
         }
       }
 
-      const enabled = await getBiometricEnabled();
+      const enabled: boolean = await getBiometricEnabled();
       setIsEnabled(enabled);
     };
 
@@ -48,7 +48,8 @@ export function useBiometric(): BiometricState {
   }, []);
 
   const authenticate = useCallback(async (): Promise<boolean> => {
-    const result = await LocalAuthentication.authenticateAsync({
+    const result: LocalAuthentication.LocalAuthenticationResult =
+      await LocalAuthentication.authenticateAsync({
       promptMessage: "Authenticate to access OneUptime",
       fallbackLabel: "Use passcode",
       disableDeviceFallback: false,
@@ -58,7 +59,8 @@ export function useBiometric(): BiometricState {
 
   const setEnabled = useCallback(async (enabled: boolean): Promise<void> => {
     if (enabled) {
-      const result = await LocalAuthentication.authenticateAsync({
+      const result: LocalAuthentication.LocalAuthenticationResult =
+        await LocalAuthentication.authenticateAsync({
         promptMessage: "Confirm to enable biometric unlock",
         fallbackLabel: "Use passcode",
         disableDeviceFallback: false,

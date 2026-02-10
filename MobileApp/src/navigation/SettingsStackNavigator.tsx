@@ -5,7 +5,7 @@ import SettingsScreen from "../screens/SettingsScreen";
 import NotificationPreferencesScreen from "../screens/NotificationPreferencesScreen";
 import type { SettingsStackParamList } from "./types";
 
-const Stack = createNativeStackNavigator<SettingsStackParamList>();
+const Stack: ReturnType<typeof createNativeStackNavigator<SettingsStackParamList>> = createNativeStackNavigator<SettingsStackParamList>();
 
 export default function SettingsStackNavigator(): React.JSX.Element {
   const { theme } = useTheme();

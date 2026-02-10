@@ -208,20 +208,22 @@ export default function SkeletonCard({
         />
       </View>
       {/* Body lines */}
-      {Array.from({ length: Math.max(lines - 1, 1) }).map((_: unknown, index: number) => {
-        return (
-          <View
-            key={index}
-            style={[
-              styles.line,
-              {
-                backgroundColor: theme.colors.backgroundTertiary,
-                width: lineWidths[index % lineWidths.length],
-              },
-            ]}
-          />
-        );
-      })}
+      {Array.from({ length: Math.max(lines - 1, 1) }).map(
+        (_: unknown, index: number) => {
+          return (
+            <View
+              key={index}
+              style={[
+                styles.line,
+                {
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  width: lineWidths[index % lineWidths.length],
+                },
+              ]}
+            />
+          );
+        },
+      )}
     </Animated.View>
   );
 }

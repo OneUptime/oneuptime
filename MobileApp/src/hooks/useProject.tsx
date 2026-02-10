@@ -21,9 +21,8 @@ interface ProjectContextValue {
   clearProject: () => Promise<void>;
 }
 
-const ProjectContext = createContext<ProjectContextValue | undefined>(
-  undefined,
-);
+const ProjectContext: React.Context<ProjectContextValue | undefined> =
+  createContext<ProjectContextValue | undefined>(undefined);
 
 interface ProjectProviderProps {
   children: ReactNode;
@@ -36,20 +35,23 @@ export function ProjectProvider({
     null,
   );
   const [projectList, setProjectList] = useState<ProjectItem[]>([]);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
 
   const loadProjects = useCallback(async (): Promise<void> => {
     try {
       setIsLoadingProjects(true);
-      const response = await fetchProjects();
+      const response: { data: ProjectItem[] } = await fetchProjects();
       setProjectList(response.data);
 
       // Try to restore previously selected project
-      const savedId = await AsyncStorage.getItem(PROJECT_STORAGE_KEY);
+      const savedId: string | null =
+        await AsyncStorage.getItem(PROJECT_STORAGE_KEY);
       if (savedId) {
-        const saved = response.data.find((p: ProjectItem) => {
-          return p._id === savedId;
-        });
+        const saved: ProjectItem | undefined = response.data.find(
+          (p: ProjectItem): boolean => {
+            return p._id === savedId;
+          },
+        );
         if (saved) {
           setSelectedProject(saved);
         }
@@ -57,7 +59,7 @@ export function ProjectProvider({
 
       // Auto-select if only one project
       if (!savedId && response.data.length === 1) {
-        const project = response.data[0]!;
+        const project: ProjectItem = response.data[0]!;
         setSelectedProject(project);
         await AsyncStorage.setItem(PROJECT_STORAGE_KEY, project._id);
       }
@@ -68,7 +70,7 @@ export function ProjectProvider({
     }
   }, []);
 
-  useEffect(() => {
+  useEffect((): void => {
     loadProjects();
   }, [loadProjects]);
 
@@ -102,7 +104,7 @@ export function ProjectProvider({
 }
 
 export function useProject(): ProjectContextValue {
-  const context = useContext(ProjectContext);
+  const context: ProjectContextValue | undefined = useContext(ProjectContext);
   if (!context) {
     throw new Error("useProject must be used within a ProjectProvider");
   }

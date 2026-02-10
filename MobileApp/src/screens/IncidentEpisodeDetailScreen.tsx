@@ -25,6 +25,7 @@ import {
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { IncidentEpisodesStackParamList } from "../navigation/types";
+import type { IncidentState, StateTimelineItem, NoteItem } from "../api/types";
 import { useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
 import SkeletonCard from "../components/SkeletonCard";
@@ -41,8 +42,8 @@ export default function IncidentEpisodeDetailScreen({
   const { episodeId } = route.params;
   const { theme } = useTheme();
   const { selectedProject } = useProject();
-  const projectId = selectedProject?._id ?? "";
-  const queryClient = useQueryClient();
+  const projectId: string = selectedProject?._id ?? "";
+  const queryClient: ReturnType<typeof useQueryClient> = useQueryClient();
 
   const {
     data: episode,
@@ -62,18 +63,18 @@ export default function IncidentEpisodeDetailScreen({
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh: () => Promise<void> = useCallback(async (): Promise<void> => {
     await Promise.all([refetchEpisode(), refetchTimeline(), refetchNotes()]);
   }, [refetchEpisode, refetchTimeline, refetchNotes]);
 
-  const handleStateChange = useCallback(
-    async (stateId: string, stateName: string) => {
+  const handleStateChange: (stateId: string, stateName: string) => Promise<void> = useCallback(
+    async (stateId: string, stateName: string): Promise<void> => {
       if (!episode) {
         return;
       }
-      const queryKey = ["incident-episode", projectId, episodeId];
-      const previousData = queryClient.getQueryData(queryKey);
-      const newState = states?.find((s) => {
+      const queryKey: string[] = ["incident-episode", projectId, episodeId];
+      const previousData: unknown = queryClient.getQueryData(queryKey);
+      const newState: IncidentState | undefined = states?.find((s: IncidentState) => {
         return s._id === stateId;
       });
       if (newState) {
@@ -113,8 +114,8 @@ export default function IncidentEpisodeDetailScreen({
     ],
   );
 
-  const handleAddNote = useCallback(
-    async (noteText: string) => {
+  const handleAddNote: (noteText: string) => Promise<void> = useCallback(
+    async (noteText: string): Promise<void> => {
       setSubmittingNote(true);
       try {
         await createIncidentEpisodeNote(projectId, episodeId, noteText);
@@ -159,24 +160,24 @@ export default function IncidentEpisodeDetailScreen({
     );
   }
 
-  const stateColor = episode.currentIncidentState?.color
+  const stateColor: string = episode.currentIncidentState?.color
     ? rgbToHex(episode.currentIncidentState.color)
     : theme.colors.textTertiary;
 
-  const severityColor = episode.incidentSeverity?.color
+  const severityColor: string = episode.incidentSeverity?.color
     ? rgbToHex(episode.incidentSeverity.color)
     : theme.colors.textTertiary;
 
-  const acknowledgeState = states?.find((s) => {
+  const acknowledgeState: IncidentState | undefined = states?.find((s: IncidentState) => {
     return s.isAcknowledgedState;
   });
-  const resolveState = states?.find((s) => {
+  const resolveState: IncidentState | undefined = states?.find((s: IncidentState) => {
     return s.isResolvedState;
   });
 
-  const currentStateId = episode.currentIncidentState?._id;
-  const isResolved = resolveState?._id === currentStateId;
-  const isAcknowledged = acknowledgeState?._id === currentStateId;
+  const currentStateId: string | undefined = episode.currentIncidentState?._id;
+  const isResolved: boolean = resolveState?._id === currentStateId;
+  const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
 
   return (
     <ScrollView
@@ -395,8 +396,8 @@ export default function IncidentEpisodeDetailScreen({
           >
             State Timeline
           </Text>
-          {timeline.map((entry) => {
-            const entryColor = entry.incidentState?.color
+          {timeline.map((entry: StateTimelineItem) => {
+            const entryColor: string = entry.incidentState?.color
               ? rgbToHex(entry.incidentState.color)
               : theme.colors.textTertiary;
             return (
@@ -472,7 +473,7 @@ export default function IncidentEpisodeDetailScreen({
         </View>
 
         {notes && notes.length > 0
-          ? notes.map((note) => {
+          ? notes.map((note: NoteItem) => {
               return (
                 <View
                   key={note._id}
@@ -541,7 +542,7 @@ export default function IncidentEpisodeDetailScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   centered: {
     flex: 1,
     alignItems: "center",

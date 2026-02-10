@@ -1,12 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   fetchAlertEpisodeById,
   fetchAlertEpisodeStates,
   fetchAlertEpisodeStateTimeline,
   fetchAlertEpisodeNotes,
 } from "../api/alertEpisodes";
+import type {
+  AlertEpisodeItem,
+  AlertState,
+  StateTimelineItem,
+  NoteItem,
+} from "../api/types";
 
-export function useAlertEpisodeDetail(projectId: string, episodeId: string) {
+export function useAlertEpisodeDetail(
+  projectId: string,
+  episodeId: string,
+): UseQueryResult<AlertEpisodeItem, Error> {
   return useQuery({
     queryKey: ["alert-episode", projectId, episodeId],
     queryFn: () => {
@@ -16,7 +25,9 @@ export function useAlertEpisodeDetail(projectId: string, episodeId: string) {
   });
 }
 
-export function useAlertEpisodeStates(projectId: string) {
+export function useAlertEpisodeStates(
+  projectId: string,
+): UseQueryResult<AlertState[], Error> {
   return useQuery({
     queryKey: ["alert-states", projectId],
     queryFn: () => {
@@ -29,7 +40,7 @@ export function useAlertEpisodeStates(projectId: string) {
 export function useAlertEpisodeStateTimeline(
   projectId: string,
   episodeId: string,
-) {
+): UseQueryResult<StateTimelineItem[], Error> {
   return useQuery({
     queryKey: ["alert-episode-state-timeline", projectId, episodeId],
     queryFn: () => {
@@ -39,7 +50,10 @@ export function useAlertEpisodeStateTimeline(
   });
 }
 
-export function useAlertEpisodeNotes(projectId: string, episodeId: string) {
+export function useAlertEpisodeNotes(
+  projectId: string,
+  episodeId: string,
+): UseQueryResult<NoteItem[], Error> {
   return useQuery({
     queryKey: ["alert-episode-notes", projectId, episodeId],
     queryFn: () => {

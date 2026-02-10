@@ -14,8 +14,8 @@ export default function BiometricLockScreen({
 }: BiometricLockScreenProps): React.JSX.Element {
   const { theme } = useTheme();
 
-  const authenticate = async (): Promise<void> => {
-    const result = await LocalAuthentication.authenticateAsync({
+  const authenticate: () => Promise<void> = async (): Promise<void> => {
+    const result: LocalAuthentication.LocalAuthenticationResult = await LocalAuthentication.authenticateAsync({
       promptMessage: "Unlock OneUptime",
       fallbackLabel: "Use passcode",
       disableDeviceFallback: false,
@@ -100,7 +100,7 @@ export default function BiometricLockScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",

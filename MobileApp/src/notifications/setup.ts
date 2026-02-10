@@ -1,7 +1,9 @@
 import * as Notifications from "expo-notifications";
+import type { ExpoPushToken } from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+import { PermissionStatus } from "expo-modules-core";
 
 // Show notifications when app is in foreground
 Notifications.setNotificationHandler({
@@ -82,7 +84,7 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+  let finalStatus: PermissionStatus = existingStatus;
 
   if (existingStatus !== "granted") {
     const { status } = await Notifications.requestPermissionsAsync();
@@ -93,7 +95,7 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
     return null;
   }
 
-  const projectId =
+  const projectId: string | undefined =
     Constants.expoConfig?.extra?.eas?.projectId ??
     Constants.easConfig?.projectId;
 
@@ -101,7 +103,7 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
     return null;
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync({
+  const tokenData: ExpoPushToken = await Notifications.getExpoPushTokenAsync({
     projectId,
   });
 

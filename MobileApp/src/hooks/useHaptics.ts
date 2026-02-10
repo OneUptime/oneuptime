@@ -1,6 +1,14 @@
 import * as Haptics from "expo-haptics";
 
-export function useHaptics() {
+interface HapticsResult {
+  successFeedback: () => Promise<void>;
+  errorFeedback: () => Promise<void>;
+  lightImpact: () => Promise<void>;
+  mediumImpact: () => Promise<void>;
+  selectionFeedback: () => Promise<void>;
+}
+
+export function useHaptics(): HapticsResult {
   const successFeedback = async (): Promise<void> => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };

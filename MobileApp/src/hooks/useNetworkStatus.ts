@@ -12,15 +12,17 @@ export function useNetworkStatus(): NetworkStatus {
     isInternetReachable: true,
   });
 
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
-      setStatus({
-        isConnected: state.isConnected ?? true,
-        isInternetReachable: state.isInternetReachable,
-      });
-    });
+  useEffect((): (() => void) => {
+    const unsubscribe: (() => void) = NetInfo.addEventListener(
+      (state: NetInfoState): void => {
+        setStatus({
+          isConnected: state.isConnected ?? true,
+          isInternetReachable: state.isInternetReachable,
+        });
+      },
+    );
 
-    return () => {
+    return (): void => {
       unsubscribe();
     };
   }, []);

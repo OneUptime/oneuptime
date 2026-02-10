@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
+  ListRenderItemInfo,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -139,7 +140,7 @@ export default function AlertEpisodesScreen(): React.JSX.Element {
         contentContainerStyle={
           episodes.length === 0 ? styles.emptyContainer : styles.list
         }
-        renderItem={({ item }: { item: AlertEpisodeItem }) => {
+        renderItem={({ item }: ListRenderItemInfo<AlertEpisodeItem>) => {
           return (
             <EpisodeCard
               episode={item}

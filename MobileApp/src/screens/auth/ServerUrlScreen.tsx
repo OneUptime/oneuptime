@@ -28,7 +28,8 @@ type ServerUrlNavigationProp = NativeStackNavigationProp<
 export default function ServerUrlScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { setNeedsServerUrl } = useAuth();
-  const navigation: ServerUrlNavigationProp = useNavigation<ServerUrlNavigationProp>();
+  const navigation: ServerUrlNavigationProp =
+    useNavigation<ServerUrlNavigationProp>();
   const [url, setUrl] = useState("https://oneuptime.com");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

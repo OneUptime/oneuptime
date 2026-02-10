@@ -17,9 +17,9 @@ import ProjectSelectionScreen from "../screens/ProjectSelectionScreen";
 import BiometricLockScreen from "../screens/BiometricLockScreen";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 
-const prefix = Linking.createURL("/");
+const prefix: string = Linking.createURL("/");
 
-const linking = {
+const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
   prefixes: [prefix, "oneuptime://"],
   config: {
     screens: {
@@ -52,8 +52,8 @@ export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
   const { selectedProject, isLoadingProjects } = useProject();
-  const navigationRef = useNavigationContainerRef();
-  const biometric = useBiometric();
+  const navigationRef: ReturnType<typeof useNavigationContainerRef> = useNavigationContainerRef();
+  const biometric: ReturnType<typeof useBiometric> = useBiometric();
 
   const [biometricPassed, setBiometricPassed] = useState(false);
   const [biometricChecked, setBiometricChecked] = useState(false);
@@ -62,7 +62,7 @@ export default function RootNavigator(): React.JSX.Element {
 
   // Check biometric on app launch
   useEffect(() => {
-    const checkBiometric = async (): Promise<void> => {
+    const checkBiometric: () => Promise<void> = async (): Promise<void> => {
       if (!isAuthenticated || !biometric.isEnabled) {
         setBiometricPassed(true);
         setBiometricChecked(true);
@@ -106,7 +106,7 @@ export default function RootNavigator(): React.JSX.Element {
     );
   }
 
-  const renderContent = (): React.JSX.Element => {
+  const renderContent: () => React.JSX.Element = (): React.JSX.Element => {
     if (!isAuthenticated) {
       return (
         <AuthStackNavigator
@@ -158,7 +158,7 @@ export default function RootNavigator(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   loading: {
     flex: 1,
     alignItems: "center",

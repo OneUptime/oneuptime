@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
+  ListRenderItemInfo,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -181,7 +182,7 @@ export default function IncidentsScreen(): React.JSX.Element {
         contentContainerStyle={
           incidents.length === 0 ? styles.emptyContainer : styles.list
         }
-        renderItem={({ item }: { item: IncidentItem }) => {
+        renderItem={({ item }: ListRenderItemInfo<IncidentItem>) => {
           return (
             <SwipeableCard
               rightAction={

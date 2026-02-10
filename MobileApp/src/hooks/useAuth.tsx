@@ -27,7 +27,8 @@ interface AuthContextValue {
   setIsAuthenticated: (value: boolean) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext: React.Context<AuthContextValue | undefined> =
+  createContext<AuthContextValue | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -36,22 +37,23 @@ interface AuthProviderProps {
 export function AuthProvider({
   children,
 }: AuthProviderProps): React.JSX.Element {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [needsServerUrl, setNeedsServerUrl] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [needsServerUrl, setNeedsServerUrl] = useState<boolean>(false);
   const [user, setUser] = useState<LoginResponse["user"] | null>(null);
 
-  useEffect(() => {
+  useEffect((): void => {
     const checkAuth = async (): Promise<void> => {
       try {
-        const hasUrl = await hasServerUrl();
+        const hasUrl: boolean = await hasServerUrl();
         if (!hasUrl) {
           setNeedsServerUrl(true);
           setIsLoading(false);
           return;
         }
 
-        const tokens = await getTokens();
+        const tokens: { accessToken: string; refreshToken: string } | null =
+          await getTokens();
         if (tokens?.accessToken) {
           setIsAuthenticated(true);
         }
@@ -66,8 +68,8 @@ export function AuthProvider({
   }, []);
 
   // Register auth failure handler for 401 interceptor
-  useEffect(() => {
-    setOnAuthFailure(() => {
+  useEffect((): void => {
+    setOnAuthFailure((): void => {
       setIsAuthenticated(false);
       setUser(null);
     });
@@ -75,7 +77,7 @@ export function AuthProvider({
 
   const login = useCallback(
     async (email: string, password: string): Promise<LoginResponse> => {
-      const response = await apiLogin(email, password);
+      const response: LoginResponse = await apiLogin(email, password);
 
       if (!response.twoFactorRequired && response.accessToken) {
         setIsAuthenticated(true);
@@ -113,7 +115,7 @@ export function AuthProvider({
 }
 
 export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
+  const context: AuthContextValue | undefined = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }

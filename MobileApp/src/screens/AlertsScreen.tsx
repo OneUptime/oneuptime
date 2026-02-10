@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
+  ListRenderItemInfo,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -45,9 +46,11 @@ export default function AlertsScreen(): React.JSX.Element {
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
   const queryClient: QueryClient = useQueryClient();
 
-  const acknowledgeState: AlertState | undefined = states?.find((s: AlertState) => {
-    return s.isAcknowledgedState;
-  });
+  const acknowledgeState: AlertState | undefined = states?.find(
+    (s: AlertState) => {
+      return s.isAcknowledgedState;
+    },
+  );
 
   const alerts: AlertItem[] = data?.data ?? [];
   const totalCount: number = data?.count ?? 0;
@@ -168,7 +171,7 @@ export default function AlertsScreen(): React.JSX.Element {
         contentContainerStyle={
           alerts.length === 0 ? styles.emptyContainer : styles.list
         }
-        renderItem={({ item }: { item: AlertItem }) => {
+        renderItem={({ item }: ListRenderItemInfo<AlertItem>) => {
           return (
             <SwipeableCard
               rightAction={

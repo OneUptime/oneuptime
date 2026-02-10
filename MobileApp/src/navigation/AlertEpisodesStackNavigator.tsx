@@ -5,7 +5,7 @@ import AlertEpisodesScreen from "../screens/AlertEpisodesScreen";
 import AlertEpisodeDetailScreen from "../screens/AlertEpisodeDetailScreen";
 import type { AlertEpisodesStackParamList } from "./types";
 
-const Stack = createNativeStackNavigator<AlertEpisodesStackParamList>();
+const Stack: ReturnType<typeof createNativeStackNavigator<AlertEpisodesStackParamList>> = createNativeStackNavigator<AlertEpisodesStackParamList>();
 
 export default function AlertEpisodesStackNavigator(): React.JSX.Element {
   const { theme } = useTheme();

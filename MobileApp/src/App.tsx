@@ -1,9 +1,10 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ViewStyle } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import type { Persister } from "@tanstack/query-persist-client-core";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ThemeProvider, useTheme } from "./theme";
 import { AuthProvider } from "./hooks/useAuth";
@@ -11,7 +12,7 @@ import { ProjectProvider } from "./hooks/useProject";
 import RootNavigator from "./navigation/RootNavigator";
 import OfflineBanner from "./components/OfflineBanner";
 
-const queryClient = new QueryClient({
+const queryClient: QueryClient = new QueryClient({
   defaultOptions: {
     queries: {
       gcTime: 1000 * 60 * 60 * 24, // 24 hours
@@ -19,7 +20,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const asyncStoragePersister = createAsyncStoragePersister({
+const asyncStoragePersister: Persister = createAsyncStoragePersister({
   storage: AsyncStorage,
   throttleTime: 1000,
 });
@@ -58,7 +59,7 @@ export default function App(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: { container: ViewStyle } = StyleSheet.create({
   container: {
     flex: 1,
   },

@@ -1,7 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { fetchAlertNotes } from "../api/alertNotes";
+import type { NoteItem } from "../api/types";
 
-export function useAlertNotes(projectId: string, alertId: string) {
+export function useAlertNotes(
+  projectId: string,
+  alertId: string,
+): UseQueryResult<NoteItem[], Error> {
   return useQuery({
     queryKey: ["alert-notes", projectId, alertId],
     queryFn: () => {

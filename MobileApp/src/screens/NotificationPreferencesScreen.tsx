@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, ScrollView, Switch, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Switch,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
 import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
 import {
@@ -78,7 +86,10 @@ export default function NotificationPreferencesScreen(): React.JSX.Element {
     });
   }, []);
 
-  const updatePref: (key: keyof NotificationPreferences, value: boolean) => void = useCallback(
+  const updatePref: (
+    key: keyof NotificationPreferences,
+    value: boolean,
+  ) => void = useCallback(
     (key: keyof NotificationPreferences, value: boolean) => {
       selectionFeedback();
       const updated: NotificationPreferences = { ...prefs, [key]: value };

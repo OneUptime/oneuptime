@@ -6,9 +6,9 @@ import { useNetworkStatus } from "../hooks/useNetworkStatus";
 export default function OfflineBanner(): React.JSX.Element | null {
   const { theme } = useTheme();
   const { isConnected, isInternetReachable } = useNetworkStatus();
-  const slideAnim = useRef(new Animated.Value(-60)).current;
+  const slideAnim: Animated.Value = useRef(new Animated.Value(-60)).current;
 
-  const isOffline = !isConnected || isInternetReachable === false;
+  const isOffline: boolean = !isConnected || isInternetReachable === false;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -43,7 +43,7 @@ export default function OfflineBanner(): React.JSX.Element | null {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     position: "absolute",
     top: 0,

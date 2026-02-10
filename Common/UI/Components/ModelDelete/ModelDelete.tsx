@@ -12,6 +12,7 @@ import React, { ReactElement, useState } from "react";
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
   modelId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
   onDeleteSuccess: () => void;
 }
 
@@ -29,7 +30,9 @@ const ModelDelete: <TBaseModel extends BaseModel>(
   const deleteItem: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      await ModelAPI.deleteItem<TBaseModel>({
+      const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
+
+      await modelAPI.deleteItem<TBaseModel>({
         modelType: props.modelType,
         id: props.modelId,
       });

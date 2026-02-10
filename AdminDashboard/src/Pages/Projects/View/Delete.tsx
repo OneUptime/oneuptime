@@ -1,3 +1,4 @@
+import AdminModelAPI from "../../../Utils/ModelAPI";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -17,6 +18,7 @@ const DeletePage: FunctionComponent = (): ReactElement => {
       modelId={modelId}
       modelNameField="name"
       modelType={Project}
+      modelAPI={AdminModelAPI}
       title={"Project"}
       breadcrumbLinks={[
         {
@@ -41,6 +43,7 @@ const DeletePage: FunctionComponent = (): ReactElement => {
       <ModelDelete
         modelType={Project}
         modelId={modelId}
+        modelAPI={AdminModelAPI}
         onDeleteSuccess={() => {
           Navigation.navigate(RouteMap[PageMap.PROJECTS] as Route);
         }}

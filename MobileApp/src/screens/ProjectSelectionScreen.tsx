@@ -16,7 +16,7 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
   const { projectList, isLoadingProjects, selectProject, refreshProjects } =
     useProject();
 
-  const handleSelect = async (project: ProjectItem): Promise<void> => {
+  const handleSelect: (project: ProjectItem) => Promise<void> = async (project: ProjectItem): Promise<void> => {
     await selectProject(project);
   };
 
@@ -67,7 +67,7 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
             },
           ]}
         >
-          You don't have access to any projects.
+          {"You don't have access to any projects."}
         </Text>
         <TouchableOpacity
           style={[
@@ -117,11 +117,11 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
 
       <FlatList
         data={projectList}
-        keyExtractor={(item) => {
+        keyExtractor={(item: ProjectItem) => {
           return item._id;
         }}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => {
+        renderItem={({ item }: { item: ProjectItem }) => {
           return (
             <TouchableOpacity
               style={[
@@ -170,7 +170,7 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     flex: 1,
   },
