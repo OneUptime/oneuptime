@@ -9,3 +9,13 @@ export type MainTabParamList = {
   Alerts: undefined;
   Settings: undefined;
 };
+
+export type IncidentsStackParamList = {
+  IncidentsList: undefined;
+  IncidentDetail: { incidentId: string };
+};
+
+export type AlertsStackParamList = {
+  AlertsList: undefined;
+  AlertDetail: { alertId: string };
+};

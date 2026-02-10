@@ -2,13 +2,16 @@ import React from "react";
 import { NavigationContainer, DefaultTheme, Theme } from "@react-navigation/native";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
+import { useProject } from "../hooks/useProject";
 import AuthStackNavigator from "./AuthStackNavigator";
 import MainTabNavigator from "./MainTabNavigator";
+import ProjectSelectionScreen from "../screens/ProjectSelectionScreen";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 
 export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
+  const { selectedProject, isLoadingProjects } = useProject();
 
   const navigationTheme: Theme = {
     ...DefaultTheme,
@@ -38,15 +41,38 @@ export default function RootNavigator(): React.JSX.Element {
     );
   }
 
-  return (
-    <NavigationContainer theme={navigationTheme}>
-      {isAuthenticated ? (
-        <MainTabNavigator />
-      ) : (
+  const renderContent = (): React.JSX.Element => {
+    if (!isAuthenticated) {
+      return (
         <AuthStackNavigator
           initialRoute={needsServerUrl ? "ServerUrl" : "Login"}
         />
-      )}
+      );
+    }
+
+    if (isLoadingProjects) {
+      return (
+        <View
+          style={[
+            styles.loading,
+            { backgroundColor: theme.colors.backgroundPrimary },
+          ]}
+        >
+          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
+        </View>
+      );
+    }
+
+    if (!selectedProject) {
+      return <ProjectSelectionScreen />;
+    }
+
+    return <MainTabNavigator />;
+  };
+
+  return (
+    <NavigationContainer theme={navigationTheme}>
+      {renderContent()}
     </NavigationContainer>
   );
 }

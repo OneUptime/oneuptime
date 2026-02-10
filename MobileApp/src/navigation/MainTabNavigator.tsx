@@ -2,8 +2,8 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
-import IncidentsScreen from "../screens/IncidentsScreen";
-import AlertsScreen from "../screens/AlertsScreen";
+import IncidentsStackNavigator from "./IncidentsStackNavigator";
+import AlertsStackNavigator from "./AlertsStackNavigator";
 import SettingsScreen from "../screens/SettingsScreen";
 import { useTheme } from "../theme";
 
@@ -28,8 +28,16 @@ export default function MainTabNavigator(): React.JSX.Element {
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Incidents" component={IncidentsScreen} />
-      <Tab.Screen name="Alerts" component={AlertsScreen} />
+      <Tab.Screen
+        name="Incidents"
+        component={IncidentsStackNavigator}
+        options={{ headerShown: false }}
+      />
+      <Tab.Screen
+        name="Alerts"
+        component={AlertsStackNavigator}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
