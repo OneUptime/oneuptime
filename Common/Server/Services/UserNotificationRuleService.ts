@@ -29,6 +29,7 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../Types/ObjectID";
+import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
@@ -1115,7 +1116,7 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType!,
+            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,
@@ -1189,7 +1190,7 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType!,
+            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,
@@ -1264,7 +1265,7 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType!,
+            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,

@@ -16,6 +16,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TenantColumn("projectId")
@@ -122,7 +123,7 @@ class UserPush extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public deviceType?: "web" = "web" as const; // Only web support for now
+  public deviceType?: PushDeviceType = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],

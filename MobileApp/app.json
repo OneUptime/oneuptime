@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "OneUptime",
+    "slug": "oneuptime",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "oneuptime",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D1117"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.oneuptime.oncall"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D1117"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.oneuptime.oncall"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

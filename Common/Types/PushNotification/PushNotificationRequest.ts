@@ -1,3 +1,5 @@
+import PushDeviceType from "./PushDeviceType";
+
 interface PushNotificationRequest {
   devices: Array<{
     token: string;
@@ -19,7 +21,7 @@ interface PushNotificationRequest {
     clickAction?: string;
     url?: string;
   };
-  deviceType: "web";
+  deviceType: PushDeviceType;
 }
 
 export default PushNotificationRequest;

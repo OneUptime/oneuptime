@@ -4,6 +4,7 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import PositiveNumber from "../../Types/PositiveNumber";
+import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -25,7 +26,7 @@ export class Service extends DatabaseService<UserPush> {
     }
 
     // Validate device type
-    const validDeviceTypes: string[] = ["web", "android", "ios"];
+    const validDeviceTypes: string[] = Object.values(PushDeviceType);
     if (!validDeviceTypes.includes(createBy.data.deviceType)) {
       throw new BadDataException(
         "Device type must be one of: " + validDeviceTypes.join(", "),

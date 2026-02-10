@@ -64,18 +64,23 @@ export default class UserMiddleware {
   public static getAccessTokenFromExpressRequest(
     req: ExpressRequest,
   ): string | undefined {
-    let accessToken: string | undefined = undefined;
+    // 1. Try cookie (existing web dashboard flow)
+    const cookieToken: string | undefined =
+      CookieUtil.getCookieFromExpressRequest(req, CookieUtil.getUserTokenKey());
 
-    if (
-      CookieUtil.getCookieFromExpressRequest(req, CookieUtil.getUserTokenKey())
-    ) {
-      accessToken = CookieUtil.getCookieFromExpressRequest(
-        req,
-        CookieUtil.getUserTokenKey(),
-      );
+    if (cookieToken) {
+      return cookieToken;
     }
 
-    return accessToken;
+    // 2. Fallback: Check Authorization: Bearer <token> header (mobile app flow)
+    const authHeader: string | undefined = req.headers[
+      "authorization"
+    ] as string | undefined;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      return authHeader.substring(7);
+    }
+
+    return undefined;
   }
 
   @CaptureSpan()
