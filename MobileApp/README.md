@@ -94,13 +94,9 @@ ServerUrlScreen → LoginScreen → MainTabNavigator (Home, Incidents, Alerts, S
 
 ## Push Notifications
 
-To enable native push notifications (iOS/Android), configure Firebase Cloud Messaging on your OneUptime instance:
+Native push notifications (iOS/Android) are powered by Expo Push and require no server-side configuration. The mobile app registers an Expo Push Token with the backend on login. The backend sends notifications via the public Expo Push API.
 
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
-
-For web push, configure VAPID keys instead. See the [Firebase Push Notifications docs](../Docs/Content/self-hosted/firebase-push-notifications.md) for setup instructions.
+Web push uses VAPID keys (configured separately). See the [Push Notifications docs](../Docs/Content/self-hosted/firebase-push-notifications.md) for details.
 
 ## Troubleshooting
 

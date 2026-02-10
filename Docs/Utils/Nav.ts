@@ -250,7 +250,7 @@ DocsNav.push({
       url: "/docs/self-hosted/github-integration",
     },
     {
-      title: "Firebase Push Notifications",
+      title: "Push Notifications",
       url: "/docs/self-hosted/firebase-push-notifications",
     },
     {

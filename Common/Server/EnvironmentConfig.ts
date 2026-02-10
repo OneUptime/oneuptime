@@ -548,13 +548,3 @@ export const InboundEmailDomain: string | undefined =
 export const InboundEmailWebhookSecret: string | undefined =
   process.env["INBOUND_EMAIL_WEBHOOK_SECRET"] || undefined;
 
-// Firebase Cloud Messaging (FCM) Configuration for Native Push Notifications
-export const FirebaseProjectId: string | undefined =
-  process.env["FIREBASE_PROJECT_ID"] || undefined;
-
-export const FirebaseClientEmail: string | undefined =
-  process.env["FIREBASE_CLIENT_EMAIL"] || undefined;
-
-export const FirebasePrivateKey: string | null = decodePrivateKey(
-  process.env["FIREBASE_PRIVATE_KEY"],
-);

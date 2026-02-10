@@ -284,14 +284,6 @@ vapid:
   privateKey:
   subject: mailto:support@oneuptime.com
 
-# Firebase Cloud Messaging (FCM) Configuration for Native Push Notifications (iOS/Android)
-# Create a Firebase project and generate a service account key
-# See: https://console.firebase.google.com
-firebase:
-  projectId:
-  clientEmail:
-  privateKey:
-
 incidents:
   disableAutomaticCreation: false
 
