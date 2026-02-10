@@ -254,10 +254,7 @@ router.post(
         logger.info("User signed up: " + savedUser.email?.toString());
 
         if (!IsBillingEnabled && miscDataProps["notifySelfHosted"] === true) {
-          const instanceUrl: string = new URL(
-            httpProtocol,
-            host,
-          ).toString();
+          const instanceUrl: string = new URL(httpProtocol, host).toString();
 
           API.post({
             url: URL.fromString(
@@ -267,11 +264,9 @@ router.post(
               email: savedUser.email?.toString() || "",
               name: savedUser.name?.toString() || "",
               companyName:
-                (miscDataProps["selfHostedCompanyName"] as string) ||
-                undefined,
+                (miscDataProps["selfHostedCompanyName"] as string) || undefined,
               companyPhoneNumber:
-                (miscDataProps["selfHostedPhoneNumber"] as string) ||
-                undefined,
+                (miscDataProps["selfHostedPhoneNumber"] as string) || undefined,
               oneuptimeVersion: AppVersion,
               instanceUrl: instanceUrl,
             },

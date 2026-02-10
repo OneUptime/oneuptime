@@ -24,27 +24,20 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/register`,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const body: JSONObject = req.body;
 
-          const deployment: OpenSourceDeployment =
-            new OpenSourceDeployment();
+          const deployment: OpenSourceDeployment = new OpenSourceDeployment();
 
           deployment.email = (body["email"] as string) || "";
           deployment.name = (body["name"] as string) || "";
-          deployment.companyName =
-            (body["companyName"] as string) || "";
+          deployment.companyName = (body["companyName"] as string) || "";
           deployment.companyPhoneNumber =
             (body["companyPhoneNumber"] as string) || "";
           deployment.oneuptimeVersion =
             (body["oneuptimeVersion"] as string) || "unknown";
-          deployment.instanceUrl =
-            (body["instanceUrl"] as string) || "";
+          deployment.instanceUrl = (body["instanceUrl"] as string) || "";
 
           await OpenSourceDeploymentService.create({
             data: deployment,
@@ -60,7 +53,8 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
                 email: deployment.email?.toString() || "",
                 name: deployment.name?.toString() || "",
                 companyName: deployment.companyName?.toString() || "",
-                companyPhoneNumber: deployment.companyPhoneNumber?.toString() || "",
+                companyPhoneNumber:
+                  deployment.companyPhoneNumber?.toString() || "",
                 oneuptimeVersion: deployment.oneuptimeVersion?.toString() || "",
                 instanceUrl: deployment.instanceUrl?.toString() || "",
               },
