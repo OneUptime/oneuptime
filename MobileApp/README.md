@@ -96,7 +96,7 @@ ServerUrlScreen → LoginScreen → MainTabNavigator (Home, Incidents, Alerts, S
 
 Native push notifications (iOS/Android) are powered by Expo Push and require no server-side configuration. The mobile app registers an Expo Push Token with the backend on login. The backend sends notifications via the public Expo Push API.
 
-Web push uses VAPID keys (configured separately). See the [Push Notifications docs](../Docs/Content/self-hosted/firebase-push-notifications.md) for details.
+Web push uses VAPID keys (configured separately). See the [Push Notifications docs](../Docs/Content/self-hosted/push-notifications.md) for details.
 
 ## Troubleshooting
 
