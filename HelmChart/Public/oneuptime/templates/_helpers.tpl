@@ -203,6 +203,13 @@ Usage:
 - name: VAPID_PRIVATE_KEY
   value: {{ $.Values.vapid.privateKey }}
 
+- name: FIREBASE_PROJECT_ID
+  value: {{ $.Values.firebase.projectId }}
+- name: FIREBASE_CLIENT_EMAIL
+  value: {{ $.Values.firebase.clientEmail }}
+- name: FIREBASE_PRIVATE_KEY
+  value: {{ $.Values.firebase.privateKey | quote }}
+
 - name: SLACK_APP_CLIENT_SECRET
   value: {{ $.Values.slackApp.clientSecret }}
 
