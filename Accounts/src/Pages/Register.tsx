@@ -199,7 +199,7 @@ const RegisterPage: () => JSX.Element = () => {
         title: "Phone Number",
         dataTestId: "selfHostedPhoneNumber",
         showEvenIfPermissionDoesNotExist: true,
-      }
+      },
     ]);
   }
 
@@ -237,7 +237,7 @@ const RegisterPage: () => JSX.Element = () => {
     },
   ]);
 
-  if(!IsBillingEnabled){
+  if (!IsBillingEnabled) {
     formFields = formFields.concat([
       {
         overrideField: {
