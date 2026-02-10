@@ -1,3 +1,6 @@
+## Important: For developers and agents
+## If you change the structure of this, please also update the values.schema.json file accordingly for better validation and autocompletion in IDEs.
+
 global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
