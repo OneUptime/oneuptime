@@ -5,7 +5,8 @@ import ServerUrlScreen from "../screens/auth/ServerUrlScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import { useTheme } from "../theme";
 
-const Stack: ReturnType<typeof createNativeStackNavigator<AuthStackParamList>> = createNativeStackNavigator<AuthStackParamList>();
+const Stack: ReturnType<typeof createNativeStackNavigator<AuthStackParamList>> =
+  createNativeStackNavigator<AuthStackParamList>();
 
 interface AuthStackNavigatorProps {
   initialRoute: keyof AuthStackParamList;

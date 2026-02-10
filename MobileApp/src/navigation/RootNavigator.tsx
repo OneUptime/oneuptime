@@ -52,7 +52,8 @@ export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
   const { selectedProject, isLoadingProjects } = useProject();
-  const navigationRef: ReturnType<typeof useNavigationContainerRef> = useNavigationContainerRef();
+  const navigationRef: ReturnType<typeof useNavigationContainerRef> =
+    useNavigationContainerRef();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
 
   const [biometricPassed, setBiometricPassed] = useState(false);

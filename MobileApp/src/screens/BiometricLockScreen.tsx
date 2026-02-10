@@ -15,11 +15,12 @@ export default function BiometricLockScreen({
   const { theme } = useTheme();
 
   const authenticate: () => Promise<void> = async (): Promise<void> => {
-    const result: LocalAuthentication.LocalAuthenticationResult = await LocalAuthentication.authenticateAsync({
-      promptMessage: "Unlock OneUptime",
-      fallbackLabel: "Use passcode",
-      disableDeviceFallback: false,
-    });
+    const result: LocalAuthentication.LocalAuthenticationResult =
+      await LocalAuthentication.authenticateAsync({
+        promptMessage: "Unlock OneUptime",
+        fallbackLabel: "Use passcode",
+        disableDeviceFallback: false,
+      });
     if (result.success) {
       onSuccess();
     }

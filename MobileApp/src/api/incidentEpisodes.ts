@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import type { AxiosResponse } from "axios";
 import type {
   ListResponse,
   IncidentEpisodeItem,
@@ -18,7 +19,7 @@ export async function fetchIncidentEpisodes(
     query.currentIncidentState = { isResolvedState: false };
   }
 
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     `/api/incident-episode/get-list?skip=${skip}&limit=${limit}`,
     {
       query,
@@ -47,7 +48,7 @@ export async function fetchIncidentEpisodeById(
   projectId: string,
   episodeId: string,
 ): Promise<IncidentEpisodeItem> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/incident-episode/get-list?skip=0&limit=1",
     {
       query: { _id: episodeId },
@@ -75,7 +76,7 @@ export async function fetchIncidentEpisodeById(
 export async function fetchIncidentEpisodeStates(
   projectId: string,
 ): Promise<IncidentState[]> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/incident-state/get-list?skip=0&limit=20",
     {
       query: {},
@@ -101,7 +102,7 @@ export async function fetchIncidentEpisodeStateTimeline(
   projectId: string,
   episodeId: string,
 ): Promise<StateTimelineItem[]> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/incident-episode-state-timeline/get-list?skip=0&limit=50",
     {
       query: { incidentEpisodeId: episodeId },
@@ -143,7 +144,7 @@ export async function fetchIncidentEpisodeNotes(
   projectId: string,
   episodeId: string,
 ): Promise<NoteItem[]> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/incident-episode-internal-note/get-list?skip=0&limit=50",
     {
       query: { incidentEpisodeId: episodeId },

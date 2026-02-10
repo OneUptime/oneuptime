@@ -6,7 +6,7 @@ export async function registerPushDevice(params: {
   deviceToken: string;
   projectId: string;
 }): Promise<void> {
-  const deviceType =
+  const deviceType: string =
     Platform.OS === "ios"
       ? "iOS"
       : Platform.OS === "android"

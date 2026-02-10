@@ -22,12 +22,14 @@ export function useUnresolvedAlertEpisodeCount(
   return useQuery({
     queryKey: ["alert-episodes", "unresolved-count", projectId],
     queryFn: async () => {
-      const response: ListResponse<AlertEpisodeItem> =
-        await fetchAlertEpisodes(projectId, {
+      const response: ListResponse<AlertEpisodeItem> = await fetchAlertEpisodes(
+        projectId,
+        {
           skip: 0,
           limit: 1,
           unresolvedOnly: true,
-        });
+        },
+      );
       return response.count;
     },
     enabled: Boolean(projectId),

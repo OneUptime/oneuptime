@@ -5,7 +5,9 @@ import IncidentsScreen from "../screens/IncidentsScreen";
 import IncidentDetailScreen from "../screens/IncidentDetailScreen";
 import type { IncidentsStackParamList } from "./types";
 
-const Stack: ReturnType<typeof createNativeStackNavigator<IncidentsStackParamList>> = createNativeStackNavigator<IncidentsStackParamList>();
+const Stack: ReturnType<
+  typeof createNativeStackNavigator<IncidentsStackParamList>
+> = createNativeStackNavigator<IncidentsStackParamList>();
 
 export default function IncidentsStackNavigator(): React.JSX.Element {
   const { theme } = useTheme();

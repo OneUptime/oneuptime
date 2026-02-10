@@ -370,7 +370,10 @@ export default class PushNotificationService {
       const ticket: ExpoPushTicket | undefined = tickets[0];
 
       if (ticket && ticket.status === "error") {
-        const errorTicket = ticket as ExpoPushTicket & {
+        const errorTicket: ExpoPushTicket & {
+          message?: string;
+          details?: { error?: string };
+        } = ticket as ExpoPushTicket & {
           message?: string;
           details?: { error?: string };
         };

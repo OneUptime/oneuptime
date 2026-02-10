@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { type Subscription } from "expo-notifications";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,14 +15,15 @@ import { registerPushDevice, unregisterPushDevice } from "../api/pushDevice";
 import { useAuth } from "./useAuth";
 import { useProject } from "./useProject";
 
-const PUSH_TOKEN_KEY = "oneuptime_expo_push_token";
+const PUSH_TOKEN_KEY: string = "oneuptime_expo_push_token";
 
 export function usePushNotifications(navigationRef: unknown): void {
   const { isAuthenticated }: { isAuthenticated: boolean } = useAuth();
-  const { projectList }: { projectList: Array<{ _id: string }> } =
-    useProject();
-  const responseListenerRef = useRef<Subscription | null>(null);
-  const receivedListenerRef = useRef<Subscription | null>(null);
+  const { projectList }: { projectList: Array<{ _id: string }> } = useProject();
+  const responseListenerRef: React.RefObject<Subscription | null> =
+    useRef<Subscription | null>(null);
+  const receivedListenerRef: React.RefObject<Subscription | null> =
+    useRef<Subscription | null>(null);
 
   // Set up channels and categories on mount
   useEffect((): void => {
@@ -45,7 +46,7 @@ export function usePushNotifications(navigationRef: unknown): void {
 
     let cancelled: boolean = false;
 
-    const register = async (): Promise<void> => {
+    const register: () => Promise<void> = async (): Promise<void> => {
       const token: string | null = await requestPermissionsAndGetToken();
       if (!token || cancelled) {
         return;
@@ -78,12 +79,11 @@ export function usePushNotifications(navigationRef: unknown): void {
 
   // Set up notification listeners
   useEffect((): (() => void) => {
-    receivedListenerRef.current =
-      Notifications.addNotificationReceivedListener(
-        (_notification: Notifications.Notification): void => {
-          // Foreground notification received — handler in setup.ts shows it
-        },
-      );
+    receivedListenerRef.current = Notifications.addNotificationReceivedListener(
+      (_notification: Notifications.Notification): void => {
+        // Foreground notification received — handler in setup.ts shows it
+      },
+    );
 
     responseListenerRef.current =
       Notifications.addNotificationResponseReceivedListener(

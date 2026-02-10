@@ -19,7 +19,7 @@ export function useBiometric(): BiometricState {
   const [biometricType, setBiometricType] = useState<string>("Biometrics");
 
   useEffect((): void => {
-    const check = async (): Promise<void> => {
+    const check: () => Promise<void> = async (): Promise<void> => {
       const compatible: boolean = await LocalAuthentication.hasHardwareAsync();
       const enrolled: boolean = await LocalAuthentication.isEnrolledAsync();
       setIsAvailable(compatible && enrolled);
@@ -47,31 +47,35 @@ export function useBiometric(): BiometricState {
     check();
   }, []);
 
-  const authenticate = useCallback(async (): Promise<boolean> => {
-    const result: LocalAuthentication.LocalAuthenticationResult =
-      await LocalAuthentication.authenticateAsync({
-      promptMessage: "Authenticate to access OneUptime",
-      fallbackLabel: "Use passcode",
-      disableDeviceFallback: false,
-    });
-    return result.success;
-  }, []);
-
-  const setEnabled = useCallback(async (enabled: boolean): Promise<void> => {
-    if (enabled) {
+  const authenticate: () => Promise<boolean> =
+    useCallback(async (): Promise<boolean> => {
       const result: LocalAuthentication.LocalAuthenticationResult =
         await LocalAuthentication.authenticateAsync({
-        promptMessage: "Confirm to enable biometric unlock",
-        fallbackLabel: "Use passcode",
-        disableDeviceFallback: false,
-      });
-      if (!result.success) {
-        return;
+          promptMessage: "Authenticate to access OneUptime",
+          fallbackLabel: "Use passcode",
+          disableDeviceFallback: false,
+        });
+      return result.success;
+    }, []);
+
+  const setEnabled: (enabled: boolean) => Promise<void> = useCallback(
+    async (enabled: boolean): Promise<void> => {
+      if (enabled) {
+        const result: LocalAuthentication.LocalAuthenticationResult =
+          await LocalAuthentication.authenticateAsync({
+            promptMessage: "Confirm to enable biometric unlock",
+            fallbackLabel: "Use passcode",
+            disableDeviceFallback: false,
+          });
+        if (!result.success) {
+          return;
+        }
       }
-    }
-    await storeBiometricEnabled(enabled);
-    setIsEnabled(enabled);
-  }, []);
+      await storeBiometricEnabled(enabled);
+      setIsEnabled(enabled);
+    },
+    [],
+  );
 
   return {
     isAvailable,

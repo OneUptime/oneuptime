@@ -108,12 +108,16 @@ export default function SettingsScreen(): React.JSX.Element {
     await clearProject();
   };
 
-  const handleThemeChange = (mode: ThemeMode): void => {
+  const handleThemeChange: (mode: ThemeMode) => void = (
+    mode: ThemeMode,
+  ): void => {
     selectionFeedback();
     setThemeMode(mode);
   };
 
-  const handleBiometricToggle = async (value: boolean): Promise<void> => {
+  const handleBiometricToggle: (value: boolean) => Promise<void> = async (
+    value: boolean,
+  ): Promise<void> => {
     await biometric.setEnabled(value);
     if (value) {
       selectionFeedback();
@@ -141,45 +145,49 @@ export default function SettingsScreen(): React.JSX.Element {
             },
           ]}
         >
-          {(["dark", "light", "system"] as ThemeMode[]).map((mode) => {
-            const isActive = themeMode === mode;
-            return (
-              <TouchableOpacity
-                key={mode}
-                style={[
-                  styles.themeOption,
-                  isActive && {
-                    backgroundColor: theme.colors.actionPrimary,
-                  },
-                ]}
-                onPress={() => {
-                  return handleThemeChange(mode);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text
+          {(["dark", "light", "system"] as ThemeMode[]).map(
+            (mode: ThemeMode) => {
+              const isActive: boolean = themeMode === mode;
+              return (
+                <TouchableOpacity
+                  key={mode}
                   style={[
-                    styles.themeOptionIcon,
-                    {
-                      color: isActive ? "#FFFFFF" : theme.colors.textSecondary,
+                    styles.themeOption,
+                    isActive && {
+                      backgroundColor: theme.colors.actionPrimary,
                     },
                   ]}
+                  onPress={() => {
+                    return handleThemeChange(mode);
+                  }}
+                  activeOpacity={0.7}
                 >
-                  {mode === "dark" ? "◗" : mode === "light" ? "○" : "◑"}
-                </Text>
-                <Text
-                  style={[
-                    styles.themeOptionLabel,
-                    {
-                      color: isActive ? "#FFFFFF" : theme.colors.textPrimary,
-                    },
-                  ]}
-                >
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                  <Text
+                    style={[
+                      styles.themeOptionIcon,
+                      {
+                        color: isActive
+                          ? "#FFFFFF"
+                          : theme.colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    {mode === "dark" ? "◗" : mode === "light" ? "○" : "◑"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.themeOptionLabel,
+                      {
+                        color: isActive ? "#FFFFFF" : theme.colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            },
+          )}
         </View>
       </View>
 
@@ -285,7 +293,7 @@ export default function SettingsScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 60,

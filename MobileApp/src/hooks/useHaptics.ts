@@ -9,23 +9,23 @@ interface HapticsResult {
 }
 
 export function useHaptics(): HapticsResult {
-  const successFeedback = async (): Promise<void> => {
+  const successFeedback: () => Promise<void> = async (): Promise<void> => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const errorFeedback = async (): Promise<void> => {
+  const errorFeedback: () => Promise<void> = async (): Promise<void> => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
   };
 
-  const lightImpact = async (): Promise<void> => {
+  const lightImpact: () => Promise<void> = async (): Promise<void> => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const mediumImpact = async (): Promise<void> => {
+  const mediumImpact: () => Promise<void> = async (): Promise<void> => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  const selectionFeedback = async (): Promise<void> => {
+  const selectionFeedback: () => Promise<void> = async (): Promise<void> => {
     await Haptics.selectionAsync();
   };
 

@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchProjects } from "../api/projects";
 import type { ProjectItem } from "../api/types";
 
-const PROJECT_STORAGE_KEY = "oneuptime_selected_project_id";
+const PROJECT_STORAGE_KEY: string = "oneuptime_selected_project_id";
 
 interface ProjectContextValue {
   selectedProject: ProjectItem | null;
@@ -37,44 +37,45 @@ export function ProjectProvider({
   const [projectList, setProjectList] = useState<ProjectItem[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
 
-  const loadProjects = useCallback(async (): Promise<void> => {
-    try {
-      setIsLoadingProjects(true);
-      const response: { data: ProjectItem[] } = await fetchProjects();
-      setProjectList(response.data);
+  const loadProjects: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setIsLoadingProjects(true);
+        const response: { data: ProjectItem[] } = await fetchProjects();
+        setProjectList(response.data);
 
-      // Try to restore previously selected project
-      const savedId: string | null =
-        await AsyncStorage.getItem(PROJECT_STORAGE_KEY);
-      if (savedId) {
-        const saved: ProjectItem | undefined = response.data.find(
-          (p: ProjectItem): boolean => {
-            return p._id === savedId;
-          },
-        );
-        if (saved) {
-          setSelectedProject(saved);
+        // Try to restore previously selected project
+        const savedId: string | null =
+          await AsyncStorage.getItem(PROJECT_STORAGE_KEY);
+        if (savedId) {
+          const saved: ProjectItem | undefined = response.data.find(
+            (p: ProjectItem): boolean => {
+              return p._id === savedId;
+            },
+          );
+          if (saved) {
+            setSelectedProject(saved);
+          }
         }
-      }
 
-      // Auto-select if only one project
-      if (!savedId && response.data.length === 1) {
-        const project: ProjectItem = response.data[0]!;
-        setSelectedProject(project);
-        await AsyncStorage.setItem(PROJECT_STORAGE_KEY, project._id);
+        // Auto-select if only one project
+        if (!savedId && response.data.length === 1) {
+          const project: ProjectItem = response.data[0]!;
+          setSelectedProject(project);
+          await AsyncStorage.setItem(PROJECT_STORAGE_KEY, project._id);
+        }
+      } catch {
+        // Projects will be empty, user can retry
+      } finally {
+        setIsLoadingProjects(false);
       }
-    } catch {
-      // Projects will be empty, user can retry
-    } finally {
-      setIsLoadingProjects(false);
-    }
-  }, []);
+    }, []);
 
   useEffect((): void => {
     loadProjects();
   }, [loadProjects]);
 
-  const selectProject = useCallback(
+  const selectProject: (project: ProjectItem) => Promise<void> = useCallback(
     async (project: ProjectItem): Promise<void> => {
       setSelectedProject(project);
       await AsyncStorage.setItem(PROJECT_STORAGE_KEY, project._id);
@@ -82,10 +83,11 @@ export function ProjectProvider({
     [],
   );
 
-  const clearProject = useCallback(async (): Promise<void> => {
-    setSelectedProject(null);
-    await AsyncStorage.removeItem(PROJECT_STORAGE_KEY);
-  }, []);
+  const clearProject: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      setSelectedProject(null);
+      await AsyncStorage.removeItem(PROJECT_STORAGE_KEY);
+    }, []);
 
   return (
     <ProjectContext.Provider

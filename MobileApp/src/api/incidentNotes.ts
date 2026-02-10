@@ -1,11 +1,12 @@
 import apiClient from "./client";
+import type { AxiosResponse } from "axios";
 import type { NoteItem } from "./types";
 
 export async function fetchIncidentNotes(
   projectId: string,
   incidentId: string,
 ): Promise<NoteItem[]> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/incident-internal-note/get-list?skip=0&limit=50",
     {
       query: { incidentId },

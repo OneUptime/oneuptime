@@ -5,7 +5,9 @@ import AlertsScreen from "../screens/AlertsScreen";
 import AlertDetailScreen from "../screens/AlertDetailScreen";
 import type { AlertsStackParamList } from "./types";
 
-const Stack: ReturnType<typeof createNativeStackNavigator<AlertsStackParamList>> = createNativeStackNavigator<AlertsStackParamList>();
+const Stack: ReturnType<
+  typeof createNativeStackNavigator<AlertsStackParamList>
+> = createNativeStackNavigator<AlertsStackParamList>();
 
 export default function AlertsStackNavigator(): React.JSX.Element {
   const { theme } = useTheme();

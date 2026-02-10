@@ -1,8 +1,9 @@
 import apiClient from "./client";
+import type { AxiosResponse } from "axios";
 import type { ListResponse, ProjectItem } from "./types";
 
 export async function fetchProjects(): Promise<ListResponse<ProjectItem>> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/project/get-list?skip=0&limit=100",
     {
       query: {},

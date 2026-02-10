@@ -13,7 +13,7 @@ export function useNetworkStatus(): NetworkStatus {
   });
 
   useEffect((): (() => void) => {
-    const unsubscribe: (() => void) = NetInfo.addEventListener(
+    const unsubscribe: () => void = NetInfo.addEventListener(
       (state: NetInfoState): void => {
         setStatus({
           isConnected: state.isConnected ?? true,

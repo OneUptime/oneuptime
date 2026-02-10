@@ -63,20 +63,26 @@ export default function IncidentEpisodeDetailScreen({
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh: () => Promise<void> = useCallback(async (): Promise<void> => {
-    await Promise.all([refetchEpisode(), refetchTimeline(), refetchNotes()]);
-  }, [refetchEpisode, refetchTimeline, refetchNotes]);
+  const onRefresh: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      await Promise.all([refetchEpisode(), refetchTimeline(), refetchNotes()]);
+    }, [refetchEpisode, refetchTimeline, refetchNotes]);
 
-  const handleStateChange: (stateId: string, stateName: string) => Promise<void> = useCallback(
+  const handleStateChange: (
+    stateId: string,
+    stateName: string,
+  ) => Promise<void> = useCallback(
     async (stateId: string, stateName: string): Promise<void> => {
       if (!episode) {
         return;
       }
       const queryKey: string[] = ["incident-episode", projectId, episodeId];
       const previousData: unknown = queryClient.getQueryData(queryKey);
-      const newState: IncidentState | undefined = states?.find((s: IncidentState) => {
-        return s._id === stateId;
-      });
+      const newState: IncidentState | undefined = states?.find(
+        (s: IncidentState) => {
+          return s._id === stateId;
+        },
+      );
       if (newState) {
         queryClient.setQueryData(queryKey, {
           ...episode,
@@ -168,12 +174,16 @@ export default function IncidentEpisodeDetailScreen({
     ? rgbToHex(episode.incidentSeverity.color)
     : theme.colors.textTertiary;
 
-  const acknowledgeState: IncidentState | undefined = states?.find((s: IncidentState) => {
-    return s.isAcknowledgedState;
-  });
-  const resolveState: IncidentState | undefined = states?.find((s: IncidentState) => {
-    return s.isResolvedState;
-  });
+  const acknowledgeState: IncidentState | undefined = states?.find(
+    (s: IncidentState) => {
+      return s.isAcknowledgedState;
+    },
+  );
+  const resolveState: IncidentState | undefined = states?.find(
+    (s: IncidentState) => {
+      return s.isResolvedState;
+    },
+  );
 
   const currentStateId: string | undefined = episode.currentIncidentState?._id;
   const isResolved: boolean = resolveState?._id === currentStateId;

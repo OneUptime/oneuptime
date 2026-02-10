@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
+  ListRenderItemInfo,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -46,11 +47,12 @@ export default function IncidentEpisodesScreen(): React.JSX.Element {
   const totalCount: number = data?.count ?? 0;
   const hasMore: boolean = skip + PAGE_SIZE < totalCount;
 
-  const onRefresh: () => Promise<void> = useCallback(async (): Promise<void> => {
-    lightImpact();
-    setPage(0);
-    await refetch();
-  }, [refetch, lightImpact]);
+  const onRefresh: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      lightImpact();
+      setPage(0);
+      await refetch();
+    }, [refetch, lightImpact]);
 
   const loadMore: () => void = useCallback((): void => {
     if (hasMore && !isLoading) {
@@ -139,7 +141,7 @@ export default function IncidentEpisodesScreen(): React.JSX.Element {
         contentContainerStyle={
           episodes.length === 0 ? styles.emptyContainer : styles.list
         }
-        renderItem={({ item }: { item: IncidentEpisodeItem }) => {
+        renderItem={({ item }: ListRenderItemInfo<IncidentEpisodeItem>) => {
           return (
             <EpisodeCard
               episode={item}

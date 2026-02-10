@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  ListRenderItemInfo,
 } from "react-native";
 import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
@@ -16,7 +17,9 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
   const { projectList, isLoadingProjects, selectProject, refreshProjects } =
     useProject();
 
-  const handleSelect: (project: ProjectItem) => Promise<void> = async (project: ProjectItem): Promise<void> => {
+  const handleSelect: (project: ProjectItem) => Promise<void> = async (
+    project: ProjectItem,
+  ): Promise<void> => {
     await selectProject(project);
   };
 
@@ -121,7 +124,7 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
           return item._id;
         }}
         contentContainerStyle={styles.list}
-        renderItem={({ item }: { item: ProjectItem }) => {
+        renderItem={({ item }: ListRenderItemInfo<ProjectItem>) => {
           return (
             <TouchableOpacity
               style={[

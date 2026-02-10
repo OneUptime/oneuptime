@@ -27,8 +27,9 @@ interface AuthContextValue {
   setIsAuthenticated: (value: boolean) => void;
 }
 
-const AuthContext: React.Context<AuthContextValue | undefined> =
-  createContext<AuthContextValue | undefined>(undefined);
+const AuthContext: React.Context<AuthContextValue | undefined> = createContext<
+  AuthContextValue | undefined
+>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -43,7 +44,7 @@ export function AuthProvider({
   const [user, setUser] = useState<LoginResponse["user"] | null>(null);
 
   useEffect((): void => {
-    const checkAuth = async (): Promise<void> => {
+    const checkAuth: () => Promise<void> = async (): Promise<void> => {
       try {
         const hasUrl: boolean = await hasServerUrl();
         if (!hasUrl) {
@@ -75,21 +76,22 @@ export function AuthProvider({
     });
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string): Promise<LoginResponse> => {
-      const response: LoginResponse = await apiLogin(email, password);
+  const login: (email: string, password: string) => Promise<LoginResponse> =
+    useCallback(
+      async (email: string, password: string): Promise<LoginResponse> => {
+        const response: LoginResponse = await apiLogin(email, password);
 
-      if (!response.twoFactorRequired && response.accessToken) {
-        setIsAuthenticated(true);
-        setUser(response.user);
-      }
+        if (!response.twoFactorRequired && response.accessToken) {
+          setIsAuthenticated(true);
+          setUser(response.user);
+        }
 
-      return response;
-    },
-    [],
-  );
+        return response;
+      },
+      [],
+    );
 
-  const logout = useCallback(async (): Promise<void> => {
+  const logout: () => Promise<void> = useCallback(async (): Promise<void> => {
     await unregisterPushToken();
     await apiLogout();
     setIsAuthenticated(false);
