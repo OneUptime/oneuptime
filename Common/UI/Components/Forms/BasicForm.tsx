@@ -646,7 +646,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         })
                         .map((field: Field<T>, i: number) => {
                           return (
-                            <div key={getFieldName(field)}>
+                            <div key={getFieldName(field)} className={field.spanFullRow ? `md:col-span-${props.showAsColumns || 1}` : undefined}>
                               {
                                 <FormField<T>
                                   field={field}
