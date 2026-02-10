@@ -172,6 +172,48 @@ const RegisterPage: () => JSX.Element = () => {
     }
   }
 
+  if (!BILLING_ENABLED) {
+    formFields = formFields.concat([
+      {
+        overrideField: {
+          selfHostedCompanyName: true,
+        },
+        overrideFieldKey: "selfHostedCompanyName",
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: "Acme, Inc.",
+        required: false,
+        title: "Company Name",
+        dataTestId: "selfHostedCompanyName",
+        showEvenIfPermissionDoesNotExist: true,
+        disableSpellCheck: true,
+      },
+      {
+        overrideField: {
+          selfHostedPhoneNumber: true,
+        },
+        overrideFieldKey: "selfHostedPhoneNumber",
+        fieldType: FormFieldSchemaType.Phone,
+        required: false,
+        placeholder: "+11234567890",
+        title: "Phone Number",
+        dataTestId: "selfHostedPhoneNumber",
+        showEvenIfPermissionDoesNotExist: true,
+      },
+      {
+        overrideField: {
+          notifySelfHosted: true,
+        },
+        overrideFieldKey: "notifySelfHosted",
+        fieldType: FormFieldSchemaType.Checkbox,
+        required: false,
+        defaultValue: true,
+        title: "Notify me about security patches and new releases",
+        dataTestId: "notifySelfHosted",
+        showEvenIfPermissionDoesNotExist: true,
+      },
+    ]);
+  }
+
   formFields = formFields.concat([
     {
       field: {

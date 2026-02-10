@@ -17,9 +17,11 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
+  AppVersion,
   EncryptionSecret,
   IsBillingEnabled,
 } from "Common/Server/EnvironmentConfig";
+import API from "Common/Utils/API";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
@@ -250,6 +252,33 @@ router.post(
         });
 
         logger.info("User signed up: " + savedUser.email?.toString());
+
+        if (!IsBillingEnabled && miscDataProps["notifySelfHosted"] === true) {
+          const instanceUrl: string = new URL(
+            httpProtocol,
+            host,
+          ).toString();
+
+          API.post({
+            url: URL.fromString(
+              "https://oneuptime.com/api/open-source-deployment/register",
+            ),
+            data: {
+              email: savedUser.email?.toString() || "",
+              name: savedUser.name?.toString() || "",
+              companyName:
+                (miscDataProps["selfHostedCompanyName"] as string) ||
+                undefined,
+              companyPhoneNumber:
+                (miscDataProps["selfHostedPhoneNumber"] as string) ||
+                undefined,
+              version: AppVersion,
+              instanceUrl: instanceUrl,
+            },
+          }).catch((err: Error) => {
+            logger.error(err);
+          });
+        }
 
         return Response.sendEntityResponse(req, res, savedUser, User);
       }

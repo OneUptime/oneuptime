@@ -79,6 +79,7 @@ import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
 import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
+import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
 import ScheduledMaintenanceCustomFieldService from "./ScheduledMaintenanceCustomFieldService";
@@ -210,6 +211,7 @@ const services: Array<BaseService> = [
   AcmeCertificateService,
   PromoCodeService,
   EnterpriseLicenseService,
+  OpenSourceDeploymentService,
 
   ResellerService,
   ResellerPlanService,
