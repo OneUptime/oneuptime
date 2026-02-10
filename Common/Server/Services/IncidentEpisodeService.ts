@@ -609,6 +609,18 @@ export class Service extends DatabaseService<Model> {
       },
       cascadeToIncidents: cascadeToIncidents,
     });
+
+    // Clear resolved timestamp and allIncidentsResolvedAt when episode is reopened
+    await this.updateOneById({
+      id: episodeId,
+      data: {
+        resolvedAt: null,
+        allIncidentsResolvedAt: null,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()

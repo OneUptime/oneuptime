@@ -38,6 +38,7 @@ RunCron(
             projectId: true,
             alertGroupingRuleId: true,
             lastAlertAddedAt: true,
+            allAlertsResolvedAt: true,
           },
           props: {
             isRoot: true,
@@ -134,7 +135,6 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
 
     // Check if all alerts are in resolved state or higher
     let allResolved: boolean = true;
-    let lastResolvedAt: Date | null = null;
 
     for (const alertId of alertIds) {
       const alert: Alert | null = await AlertService.findOneById({
@@ -143,7 +143,6 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
           currentAlertState: {
             order: true,
           },
-          updatedAt: true,
         },
         props: {
           isRoot: true,
@@ -160,31 +159,61 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
         allResolved = false;
         break;
       }
-
-      // Track the latest resolved time among alerts
-      if (alert.updatedAt) {
-        if (!lastResolvedAt || alert.updatedAt > lastResolvedAt) {
-          lastResolvedAt = alert.updatedAt;
-        }
-      }
     }
 
     if (!allResolved) {
+      // If any alert is unresolved, clear allAlertsResolvedAt
+      if (episode.allAlertsResolvedAt) {
+        await AlertEpisodeService.updateOneById({
+          id: episode.id,
+          data: {
+            allAlertsResolvedAt: null,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
       logger.debug(
         `AlertEpisode:AutoResolve - Episode ${episode.id} has unresolved alerts`,
       );
       return;
     }
 
-    // All alerts are resolved. Check if resolve delay has passed (only if enabled)
-    if (enableResolveDelay && resolveDelayMinutes > 0 && lastResolvedAt) {
-      const timeSinceLastResolved: number =
-        OneUptimeDate.getDifferenceInMinutes(
-          lastResolvedAt,
-          OneUptimeDate.getCurrentDate(),
-        );
+    // All alerts are resolved. Set allAlertsResolvedAt if not already set.
+    if (!episode.allAlertsResolvedAt) {
+      await AlertEpisodeService.updateOneById({
+        id: episode.id,
+        data: {
+          allAlertsResolvedAt: OneUptimeDate.getCurrentDate(),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-      if (timeSinceLastResolved < resolveDelayMinutes) {
+      // If resolve delay is enabled, return and wait for the delay
+      if (enableResolveDelay && resolveDelayMinutes > 0) {
+        logger.debug(
+          `AlertEpisode:AutoResolve - Episode ${episode.id} all alerts resolved, starting resolve delay (${resolveDelayMinutes} minutes)`,
+        );
+        return;
+      }
+    }
+
+    // Check if resolve delay has passed (only if enabled)
+    if (
+      enableResolveDelay &&
+      resolveDelayMinutes > 0 &&
+      episode.allAlertsResolvedAt
+    ) {
+      const timeSinceAllResolved: number = OneUptimeDate.getDifferenceInMinutes(
+        episode.allAlertsResolvedAt,
+        OneUptimeDate.getCurrentDate(),
+      );
+
+      if (timeSinceAllResolved < resolveDelayMinutes) {
         logger.debug(
           `AlertEpisode:AutoResolve - Episode ${episode.id} waiting for resolve delay (${resolveDelayMinutes} minutes)`,
         );
