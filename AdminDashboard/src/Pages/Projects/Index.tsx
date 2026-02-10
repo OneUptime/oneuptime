@@ -20,6 +20,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import Navigation from "Common/UI/Utils/Navigation";
 
 const Projects: FunctionComponent = (): ReactElement => {
   const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
@@ -209,7 +210,7 @@ const Projects: FunctionComponent = (): ReactElement => {
         noItemsMessage={"No projects found."}
         formFields={fields}
         showRefreshButton={true}
-        viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECT_VIEW] as Route)}
+        viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {
             field: {
