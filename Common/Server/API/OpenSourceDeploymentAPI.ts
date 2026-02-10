@@ -34,12 +34,13 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
           deployment.email = (body["email"] as string) || "";
           deployment.name = (body["name"] as string) || "";
           deployment.companyName =
-            (body["companyName"] as string) || undefined;
+            (body["companyName"] as string) || "";
           deployment.companyPhoneNumber =
-            (body["companyPhoneNumber"] as string) || undefined;
-          deployment.version = (body["version"] as string) || "unknown";
+            (body["companyPhoneNumber"] as string) || "";
+          deployment.oneuptimeVersion =
+            (body["oneuptimeVersion"] as string) || "unknown";
           deployment.instanceUrl =
-            (body["instanceUrl"] as string) || undefined;
+            (body["instanceUrl"] as string) || "";
 
           await OpenSourceDeploymentService.create({
             data: deployment,

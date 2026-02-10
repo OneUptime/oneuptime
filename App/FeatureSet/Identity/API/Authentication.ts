@@ -272,7 +272,7 @@ router.post(
               companyPhoneNumber:
                 (miscDataProps["selfHostedPhoneNumber"] as string) ||
                 undefined,
-              version: AppVersion,
+              oneuptimeVersion: AppVersion,
               instanceUrl: instanceUrl,
             },
           }).catch((err: Error) => {
