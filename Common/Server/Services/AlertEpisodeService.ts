@@ -815,11 +815,12 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    // Clear resolved timestamp
+    // Clear resolved timestamp and allAlertsResolvedAt
     await this.updateOneById({
       id: episodeId,
       data: {
         resolvedAt: undefined as any,
+        allAlertsResolvedAt: undefined as any,
       },
       props: {
         isRoot: true,

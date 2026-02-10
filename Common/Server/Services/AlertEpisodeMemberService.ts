@@ -94,26 +94,18 @@ export class Service extends DatabaseService<Model> {
     });
 
     // Update episode's alertCount and lastAlertAddedAt
-    Promise.resolve()
-      .then(async () => {
-        try {
-          await AlertEpisodeService.updateAlertCount(
-            createdItem.alertEpisodeId!,
-          );
-          await AlertEpisodeService.updateLastAlertAddedAt(
-            createdItem.alertEpisodeId!,
-          );
-        } catch (error) {
-          logger.error(
-            `Error updating episode counts in AlertEpisodeMemberService.onCreateSuccess: ${error}`,
-          );
-        }
-      })
-      .catch((error: Error) => {
-        logger.error(
-          `Critical error in AlertEpisodeMemberService.onCreateSuccess: ${error}`,
-        );
-      });
+    try {
+      await AlertEpisodeService.updateAlertCount(
+        createdItem.alertEpisodeId!,
+      );
+      await AlertEpisodeService.updateLastAlertAddedAt(
+        createdItem.alertEpisodeId!,
+      );
+    } catch (error) {
+      logger.error(
+        `Error updating episode counts in AlertEpisodeMemberService.onCreateSuccess: ${error}`,
+      );
+    }
 
     // Get alert details for feed
     const alert: Alert | null = await AlertService.findOneById({

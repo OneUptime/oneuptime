@@ -757,6 +757,7 @@ class IncidentGroupingEngineServiceClass {
     newEpisode.incidentGroupingRuleId = rule.id!;
     newEpisode.groupingKey = groupingKey;
     newEpisode.isManuallyCreated = false;
+    newEpisode.lastIncidentAddedAt = OneUptimeDate.getCurrentDate();
 
     // Set severity from incident
     if (incident.incidentSeverityId) {
