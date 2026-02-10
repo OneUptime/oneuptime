@@ -37,8 +37,14 @@ export async function login(
     `${serverUrl}/identity/login`,
     {
       data: {
-        email,
-        password,
+        email: {
+          _type: "Email",
+          value: email,
+        },
+        password: {
+          _type: "HashedString",
+          value: password,
+        },
       },
     },
     {
