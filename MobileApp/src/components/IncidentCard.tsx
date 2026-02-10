@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
-import type { IncidentItem } from "../api/types";
+import type { IncidentItem, NamedEntity } from "../api/types";
 
 interface IncidentCardProps {
   incident: IncidentItem;
@@ -16,16 +16,16 @@ export default function IncidentCard({
 }: IncidentCardProps): React.JSX.Element {
   const { theme } = useTheme();
 
-  const stateColor = incident.currentIncidentState?.color
+  const stateColor: string = incident.currentIncidentState?.color
     ? rgbToHex(incident.currentIncidentState.color)
     : theme.colors.textTertiary;
 
-  const severityColor = incident.incidentSeverity?.color
+  const severityColor: string = incident.incidentSeverity?.color
     ? rgbToHex(incident.incidentSeverity.color)
     : theme.colors.textTertiary;
 
-  const monitorCount = incident.monitors?.length ?? 0;
-  const timeString = formatRelativeTime(
+  const monitorCount: number = incident.monitors?.length ?? 0;
+  const timeString: string = formatRelativeTime(
     incident.declaredAt || incident.createdAt,
   );
 
@@ -44,12 +44,7 @@ export default function IncidentCard({
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
     >
       <View style={styles.topRow}>
-        <Text
-          style={[
-            styles.number,
-            { color: theme.colors.textTertiary },
-          ]}
-        >
+        <Text style={[styles.number, { color: theme.colors.textTertiary }]}>
           {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
         </Text>
         <Text style={[styles.time, { color: theme.colors.textTertiary }]}>
@@ -76,7 +71,9 @@ export default function IncidentCard({
             ]}
           >
             <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text style={[styles.badgeText, { color: theme.colors.textPrimary }]}>
+            <Text
+              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
+            >
               {incident.currentIncidentState.name}
             </Text>
           </View>
@@ -84,10 +81,7 @@ export default function IncidentCard({
 
         {incident.incidentSeverity ? (
           <View
-            style={[
-              styles.badge,
-              { backgroundColor: severityColor + "26" },
-            ]}
+            style={[styles.badge, { backgroundColor: severityColor + "26" }]}
           >
             <Text style={[styles.badgeText, { color: severityColor }]}>
               {incident.incidentSeverity.name}
@@ -101,14 +95,18 @@ export default function IncidentCard({
           style={[styles.monitors, { color: theme.colors.textSecondary }]}
           numberOfLines={1}
         >
-          {incident.monitors.map((m) => m.name).join(", ")}
+          {incident.monitors
+            .map((m: NamedEntity) => {
+              return m.name;
+            })
+            .join(", ")}
         </Text>
       ) : null}
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,

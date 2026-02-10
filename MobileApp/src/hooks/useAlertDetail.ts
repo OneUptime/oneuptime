@@ -8,23 +8,29 @@ import {
 export function useAlertDetail(projectId: string, alertId: string) {
   return useQuery({
     queryKey: ["alert", projectId, alertId],
-    queryFn: () => fetchAlertById(projectId, alertId),
-    enabled: !!projectId && !!alertId,
+    queryFn: () => {
+      return fetchAlertById(projectId, alertId);
+    },
+    enabled: Boolean(projectId) && Boolean(alertId),
   });
 }
 
 export function useAlertStates(projectId: string) {
   return useQuery({
     queryKey: ["alert-states", projectId],
-    queryFn: () => fetchAlertStates(projectId),
-    enabled: !!projectId,
+    queryFn: () => {
+      return fetchAlertStates(projectId);
+    },
+    enabled: Boolean(projectId),
   });
 }
 
 export function useAlertStateTimeline(projectId: string, alertId: string) {
   return useQuery({
     queryKey: ["alert-state-timeline", projectId, alertId],
-    queryFn: () => fetchAlertStateTimeline(projectId, alertId),
-    enabled: !!projectId && !!alertId,
+    queryFn: () => {
+      return fetchAlertStateTimeline(projectId, alertId);
+    },
+    enabled: Boolean(projectId) && Boolean(alertId),
   });
 }

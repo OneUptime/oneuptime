@@ -17,17 +17,14 @@ function EmptyIcon({
   icon: EmptyIcon;
   color: string;
 }): React.JSX.Element {
-  // Simple geometric SVG-style icons using View primitives
-  // Monochrome, clean, professional — not cartoon/playful
+  /*
+   * Simple geometric SVG-style icons using View primitives
+   * Monochrome, clean, professional — not cartoon/playful
+   */
   if (icon === "incidents") {
     return (
       <View style={styles.iconContainer}>
-        <View
-          style={[
-            styles.iconShield,
-            { borderColor: color },
-          ]}
-        >
+        <View style={[styles.iconShield, { borderColor: color }]}>
           <View style={[styles.iconCheckmark, { backgroundColor: color }]} />
         </View>
       </View>
@@ -78,7 +75,11 @@ export default function EmptyState({
       <Text
         style={[
           theme.typography.titleSmall,
-          { color: theme.colors.textPrimary, textAlign: "center", marginTop: 20 },
+          {
+            color: theme.colors.textPrimary,
+            textAlign: "center",
+            marginTop: 20,
+          },
         ]}
       >
         {title}
@@ -102,7 +103,7 @@ export default function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",

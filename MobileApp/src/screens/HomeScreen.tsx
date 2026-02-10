@@ -58,7 +58,7 @@ function StatCard({
       accessibilityRole="button"
     >
       <Text style={[styles.cardCount, { color }]}>
-        {isLoading ? "--" : (count ?? 0)}
+        {isLoading ? "--" : count ?? 0}
       </Text>
       <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
         {label}
@@ -88,12 +88,7 @@ function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
       activeOpacity={0.7}
       accessibilityRole="button"
     >
-      <Text
-        style={[
-          styles.linkLabel,
-          { color: theme.colors.textPrimary },
-        ]}
-      >
+      <Text style={[styles.linkLabel, { color: theme.colors.textPrimary }]}>
         {label}
       </Text>
       <Text style={[styles.chevron, { color: theme.colors.textTertiary }]}>
@@ -183,14 +178,18 @@ export default function HomeScreen(): React.JSX.Element {
           label="Active Incidents"
           color={theme.colors.severityCritical}
           isLoading={loadingIncidents}
-          onPress={() => navigation.navigate("Incidents")}
+          onPress={() => {
+            return navigation.navigate("Incidents");
+          }}
         />
         <StatCard
           count={alertCount}
           label="Active Alerts"
           color={theme.colors.severityMajor}
           isLoading={loadingAlerts}
-          onPress={() => navigation.navigate("Alerts")}
+          onPress={() => {
+            return navigation.navigate("Alerts");
+          }}
         />
       </View>
 
@@ -200,42 +199,51 @@ export default function HomeScreen(): React.JSX.Element {
           label="Inc Episodes"
           color={theme.colors.severityCritical}
           isLoading={loadingIncidentEpisodes}
-          onPress={() => navigation.navigate("IncidentEpisodes")}
+          onPress={() => {
+            return navigation.navigate("IncidentEpisodes");
+          }}
         />
         <StatCard
           count={alertEpisodeCount}
           label="Alert Episodes"
           color={theme.colors.severityMajor}
           isLoading={loadingAlertEpisodes}
-          onPress={() => navigation.navigate("AlertEpisodes")}
+          onPress={() => {
+            return navigation.navigate("AlertEpisodes");
+          }}
         />
       </View>
 
       {/* Quick Links */}
       <View style={styles.quickLinksSection}>
         <Text
-          style={[
-            styles.sectionTitle,
-            { color: theme.colors.textSecondary },
-          ]}
+          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
         >
           Quick Links
         </Text>
         <QuickLink
           label="View All Incidents"
-          onPress={() => navigation.navigate("Incidents")}
+          onPress={() => {
+            return navigation.navigate("Incidents");
+          }}
         />
         <QuickLink
           label="View All Alerts"
-          onPress={() => navigation.navigate("Alerts")}
+          onPress={() => {
+            return navigation.navigate("Alerts");
+          }}
         />
         <QuickLink
           label="Incident Episodes"
-          onPress={() => navigation.navigate("IncidentEpisodes")}
+          onPress={() => {
+            return navigation.navigate("IncidentEpisodes");
+          }}
         />
         <QuickLink
           label="Alert Episodes"
-          onPress={() => navigation.navigate("AlertEpisodes")}
+          onPress={() => {
+            return navigation.navigate("AlertEpisodes");
+          }}
         />
       </View>
     </ScrollView>

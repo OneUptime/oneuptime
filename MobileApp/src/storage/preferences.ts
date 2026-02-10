@@ -1,7 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { ThemeMode } from "../theme";
 
-const KEYS = {
+const KEYS: {
+  readonly THEME_MODE: "oneuptime_theme_mode";
+  readonly BIOMETRIC_ENABLED: "oneuptime_biometric_enabled";
+  readonly NOTIFICATION_PREFS: "oneuptime_notification_prefs";
+} = {
   THEME_MODE: "oneuptime_theme_mode",
   BIOMETRIC_ENABLED: "oneuptime_biometric_enabled",
   NOTIFICATION_PREFS: "oneuptime_notification_prefs",
@@ -24,7 +28,7 @@ const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
 };
 
 export async function getThemeMode(): Promise<ThemeMode> {
-  const stored = await AsyncStorage.getItem(KEYS.THEME_MODE);
+  const stored: string | null = await AsyncStorage.getItem(KEYS.THEME_MODE);
   if (stored === "dark" || stored === "light" || stored === "system") {
     return stored;
   }
@@ -36,7 +40,7 @@ export async function setThemeMode(mode: ThemeMode): Promise<void> {
 }
 
 export async function getBiometricEnabled(): Promise<boolean> {
-  const stored = await AsyncStorage.getItem(KEYS.BIOMETRIC_ENABLED);
+  const stored: string | null = await AsyncStorage.getItem(KEYS.BIOMETRIC_ENABLED);
   return stored === "true";
 }
 
@@ -45,7 +49,7 @@ export async function setBiometricEnabled(enabled: boolean): Promise<void> {
 }
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
-  const stored = await AsyncStorage.getItem(KEYS.NOTIFICATION_PREFS);
+  const stored: string | null = await AsyncStorage.getItem(KEYS.NOTIFICATION_PREFS);
   if (stored) {
     try {
       return { ...DEFAULT_NOTIFICATION_PREFS, ...JSON.parse(stored) };

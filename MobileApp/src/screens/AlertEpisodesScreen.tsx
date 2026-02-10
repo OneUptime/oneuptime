@@ -19,7 +19,7 @@ import EmptyState from "../components/EmptyState";
 import type { AlertEpisodesStackParamList } from "../navigation/types";
 import type { AlertEpisodeItem } from "../api/types";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE: number = 20;
 
 type NavProp = NativeStackNavigationProp<
   AlertEpisodesStackParamList,
@@ -29,12 +29,12 @@ type NavProp = NativeStackNavigationProp<
 export default function AlertEpisodesScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { selectedProject } = useProject();
-  const projectId = selectedProject?._id ?? "";
-  const navigation = useNavigation<NavProp>();
+  const projectId: string = selectedProject?._id ?? "";
+  const navigation: NavProp = useNavigation<NavProp>();
 
   const { lightImpact } = useHaptics();
   const [page, setPage] = useState(0);
-  const skip = page * PAGE_SIZE;
+  const skip: number = page * PAGE_SIZE;
 
   const { data, isLoading, isError, refetch } = useAlertEpisodes(
     projectId,
@@ -42,23 +42,25 @@ export default function AlertEpisodesScreen(): React.JSX.Element {
     PAGE_SIZE,
   );
 
-  const episodes = data?.data ?? [];
-  const totalCount = data?.count ?? 0;
-  const hasMore = skip + PAGE_SIZE < totalCount;
+  const episodes: AlertEpisodeItem[] = data?.data ?? [];
+  const totalCount: number = data?.count ?? 0;
+  const hasMore: boolean = skip + PAGE_SIZE < totalCount;
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
     setPage(0);
     await refetch();
   }, [refetch, lightImpact]);
 
-  const loadMore = useCallback(() => {
+  const loadMore: () => void = useCallback(() => {
     if (hasMore && !isLoading) {
-      setPage((prev) => prev + 1);
+      setPage((prev: number) => {
+        return prev + 1;
+      });
     }
   }, [hasMore, isLoading]);
 
-  const handlePress = useCallback(
+  const handlePress: (episode: AlertEpisodeItem) => void = useCallback(
     (episode: AlertEpisodeItem) => {
       navigation.navigate("AlertEpisodeDetail", {
         episodeId: episode._id,
@@ -105,7 +107,9 @@ export default function AlertEpisodesScreen(): React.JSX.Element {
             styles.retryButton,
             { backgroundColor: theme.colors.actionPrimary },
           ]}
-          onPress={() => refetch()}
+          onPress={() => {
+            return refetch();
+          }}
         >
           <Text
             style={[
@@ -129,17 +133,23 @@ export default function AlertEpisodesScreen(): React.JSX.Element {
     >
       <FlatList
         data={episodes}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item: AlertEpisodeItem) => {
+          return item._id;
+        }}
         contentContainerStyle={
           episodes.length === 0 ? styles.emptyContainer : styles.list
         }
-        renderItem={({ item }) => (
-          <EpisodeCard
-            episode={item}
-            type="alert"
-            onPress={() => handlePress(item)}
-          />
-        )}
+        renderItem={({ item }: { item: AlertEpisodeItem }) => {
+          return (
+            <EpisodeCard
+              episode={item}
+              type="alert"
+              onPress={() => {
+                return handlePress(item);
+              }}
+            />
+          );
+        }}
         ListEmptyComponent={
           <EmptyState
             title="No alert episodes"
@@ -157,7 +167,7 @@ export default function AlertEpisodesScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     flex: 1,
   },

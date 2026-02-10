@@ -1,3 +1,4 @@
+import type { AxiosResponse } from "axios";
 import apiClient from "./client";
 import type {
   ListResponse,
@@ -17,7 +18,7 @@ export async function fetchIncidents(
     query.currentIncidentState = { isResolvedState: false };
   }
 
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     `/api/incident/get-list?skip=${skip}&limit=${limit}`,
     {
       query,
@@ -46,7 +47,7 @@ export async function fetchIncidentById(
   projectId: string,
   incidentId: string,
 ): Promise<IncidentItem> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/incident/get-list?skip=0&limit=1",
     {
       query: { _id: incidentId },
@@ -74,7 +75,7 @@ export async function fetchIncidentById(
 export async function fetchIncidentStates(
   projectId: string,
 ): Promise<IncidentState[]> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/incident-state/get-list?skip=0&limit=20",
     {
       query: {},
@@ -100,7 +101,7 @@ export async function fetchIncidentStateTimeline(
   projectId: string,
   incidentId: string,
 ): Promise<StateTimelineItem[]> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/incident-state-timeline/get-list?skip=0&limit=50",
     {
       query: { incidentId },

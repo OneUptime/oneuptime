@@ -6,22 +6,23 @@ import {
   fetchIncidentEpisodeNotes,
 } from "../api/incidentEpisodes";
 
-export function useIncidentEpisodeDetail(
-  projectId: string,
-  episodeId: string,
-) {
+export function useIncidentEpisodeDetail(projectId: string, episodeId: string) {
   return useQuery({
     queryKey: ["incident-episode", projectId, episodeId],
-    queryFn: () => fetchIncidentEpisodeById(projectId, episodeId),
-    enabled: !!projectId && !!episodeId,
+    queryFn: () => {
+      return fetchIncidentEpisodeById(projectId, episodeId);
+    },
+    enabled: Boolean(projectId) && Boolean(episodeId),
   });
 }
 
 export function useIncidentEpisodeStates(projectId: string) {
   return useQuery({
     queryKey: ["incident-states", projectId],
-    queryFn: () => fetchIncidentEpisodeStates(projectId),
-    enabled: !!projectId,
+    queryFn: () => {
+      return fetchIncidentEpisodeStates(projectId);
+    },
+    enabled: Boolean(projectId),
   });
 }
 
@@ -31,18 +32,19 @@ export function useIncidentEpisodeStateTimeline(
 ) {
   return useQuery({
     queryKey: ["incident-episode-state-timeline", projectId, episodeId],
-    queryFn: () => fetchIncidentEpisodeStateTimeline(projectId, episodeId),
-    enabled: !!projectId && !!episodeId,
+    queryFn: () => {
+      return fetchIncidentEpisodeStateTimeline(projectId, episodeId);
+    },
+    enabled: Boolean(projectId) && Boolean(episodeId),
   });
 }
 
-export function useIncidentEpisodeNotes(
-  projectId: string,
-  episodeId: string,
-) {
+export function useIncidentEpisodeNotes(projectId: string, episodeId: string) {
   return useQuery({
     queryKey: ["incident-episode-notes", projectId, episodeId],
-    queryFn: () => fetchIncidentEpisodeNotes(projectId, episodeId),
-    enabled: !!projectId && !!episodeId,
+    queryFn: () => {
+      return fetchIncidentEpisodeNotes(projectId, episodeId);
+    },
+    enabled: Boolean(projectId) && Boolean(episodeId),
   });
 }

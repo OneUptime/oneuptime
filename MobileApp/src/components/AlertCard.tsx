@@ -16,15 +16,15 @@ export default function AlertCard({
 }: AlertCardProps): React.JSX.Element {
   const { theme } = useTheme();
 
-  const stateColor = alert.currentAlertState?.color
+  const stateColor: string = alert.currentAlertState?.color
     ? rgbToHex(alert.currentAlertState.color)
     : theme.colors.textTertiary;
 
-  const severityColor = alert.alertSeverity?.color
+  const severityColor: string = alert.alertSeverity?.color
     ? rgbToHex(alert.alertSeverity.color)
     : theme.colors.textTertiary;
 
-  const timeString = formatRelativeTime(alert.createdAt);
+  const timeString: string = formatRelativeTime(alert.createdAt);
 
   return (
     <TouchableOpacity
@@ -41,12 +41,7 @@ export default function AlertCard({
       accessibilityLabel={`Alert ${alert.alertNumberWithPrefix || alert.alertNumber}, ${alert.title}. State: ${alert.currentAlertState?.name ?? "unknown"}. Severity: ${alert.alertSeverity?.name ?? "unknown"}.`}
     >
       <View style={styles.topRow}>
-        <Text
-          style={[
-            styles.number,
-            { color: theme.colors.textTertiary },
-          ]}
-        >
+        <Text style={[styles.number, { color: theme.colors.textTertiary }]}>
           {alert.alertNumberWithPrefix || `#${alert.alertNumber}`}
         </Text>
         <Text style={[styles.time, { color: theme.colors.textTertiary }]}>
@@ -73,7 +68,9 @@ export default function AlertCard({
             ]}
           >
             <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text style={[styles.badgeText, { color: theme.colors.textPrimary }]}>
+            <Text
+              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
+            >
               {alert.currentAlertState.name}
             </Text>
           </View>
@@ -81,10 +78,7 @@ export default function AlertCard({
 
         {alert.alertSeverity ? (
           <View
-            style={[
-              styles.badge,
-              { backgroundColor: severityColor + "26" },
-            ]}
+            style={[styles.badge, { backgroundColor: severityColor + "26" }]}
           >
             <Text style={[styles.badgeText, { color: severityColor }]}>
               {alert.alertSeverity.name}
@@ -105,7 +99,7 @@ export default function AlertCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,

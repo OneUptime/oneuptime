@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Switch,
-  StyleSheet,
-} from "react-native";
+import { View, Text, ScrollView, Switch, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
 import {
@@ -43,9 +37,7 @@ function PrefRow({
       accessibilityLabel={`${label}. ${description}`}
     >
       <View style={styles.rowText}>
-        <Text
-          style={[styles.rowLabel, { color: theme.colors.textPrimary }]}
-        >
+        <Text style={[styles.rowLabel, { color: theme.colors.textPrimary }]}>
           {label}
         </Text>
         <Text
@@ -80,16 +72,16 @@ export default function NotificationPreferencesScreen(): React.JSX.Element {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    getNotificationPreferences().then((p) => {
+    getNotificationPreferences().then((p: NotificationPreferences) => {
       setPrefs(p);
       setLoaded(true);
     });
   }, []);
 
-  const updatePref = useCallback(
+  const updatePref: (key: keyof NotificationPreferences, value: boolean) => void = useCallback(
     (key: keyof NotificationPreferences, value: boolean) => {
       selectionFeedback();
-      const updated = { ...prefs, [key]: value };
+      const updated: NotificationPreferences = { ...prefs, [key]: value };
       setPrefs(updated);
       setNotificationPreferences(updated);
     },
@@ -130,25 +122,33 @@ export default function NotificationPreferencesScreen(): React.JSX.Element {
             label="Incidents"
             description="New incidents and state changes"
             value={prefs.incidents}
-            onValueChange={(v) => updatePref("incidents", v)}
+            onValueChange={(v: boolean) => {
+              return updatePref("incidents", v);
+            }}
           />
           <PrefRow
             label="Alerts"
             description="New alerts and state changes"
             value={prefs.alerts}
-            onValueChange={(v) => updatePref("alerts", v)}
+            onValueChange={(v: boolean) => {
+              return updatePref("alerts", v);
+            }}
           />
           <PrefRow
             label="Incident Episodes"
             description="Grouped incident notifications"
             value={prefs.incidentEpisodes}
-            onValueChange={(v) => updatePref("incidentEpisodes", v)}
+            onValueChange={(v: boolean) => {
+              return updatePref("incidentEpisodes", v);
+            }}
           />
           <PrefRow
             label="Alert Episodes"
             description="Grouped alert notifications"
             value={prefs.alertEpisodes}
-            onValueChange={(v) => updatePref("alertEpisodes", v)}
+            onValueChange={(v: boolean) => {
+              return updatePref("alertEpisodes", v);
+            }}
           />
         </View>
       </View>
@@ -166,25 +166,39 @@ export default function NotificationPreferencesScreen(): React.JSX.Element {
             label="Critical Only"
             description="Only receive notifications for critical and high severity events"
             value={prefs.criticalOnly}
-            onValueChange={(v) => updatePref("criticalOnly", v)}
+            onValueChange={(v: boolean) => {
+              return updatePref("criticalOnly", v);
+            }}
           />
         </View>
       </View>
 
       {/* Info */}
       <View style={styles.infoSection}>
-        <Text
-          style={[styles.infoText, { color: theme.colors.textTertiary }]}
-        >
-          Notification preferences are stored locally on this device. Server-side
-          notification rules configured in your project settings take precedence.
+        <Text style={[styles.infoText, { color: theme.colors.textTertiary }]}>
+          Notification preferences are stored locally on this device.
+          Server-side notification rules configured in your project settings
+          take precedence.
         </Text>
       </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const styles: {
+  container: ViewStyle;
+  content: ViewStyle;
+  section: ViewStyle;
+  sectionTitle: TextStyle;
+  sectionHint: TextStyle;
+  rowGroup: ViewStyle;
+  row: ViewStyle;
+  rowText: ViewStyle;
+  rowLabel: TextStyle;
+  rowDescription: TextStyle;
+  infoSection: ViewStyle;
+  infoText: TextStyle;
+} = StyleSheet.create({
   container: {
     flex: 1,
   },

@@ -98,7 +98,10 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
     >
       <View style={styles.header}>
         <Text
-          style={[theme.typography.titleLarge, { color: theme.colors.textPrimary }]}
+          style={[
+            theme.typography.titleLarge,
+            { color: theme.colors.textPrimary },
+          ]}
         >
           Select Project
         </Text>
@@ -114,48 +117,54 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
 
       <FlatList
         data={projectList}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item) => {
+          return item._id;
+        }}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.projectCard,
-              {
-                backgroundColor: theme.colors.backgroundSecondary,
-                borderColor: theme.colors.borderSubtle,
-              },
-            ]}
-            onPress={() => handleSelect(item)}
-            activeOpacity={0.7}
-          >
-            <View
+        renderItem={({ item }) => {
+          return (
+            <TouchableOpacity
               style={[
-                styles.projectDot,
-                { backgroundColor: theme.colors.actionPrimary },
+                styles.projectCard,
+                {
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  borderColor: theme.colors.borderSubtle,
+                },
               ]}
-            />
-            <View style={styles.projectInfo}>
-              <Text
+              onPress={() => {
+                return handleSelect(item);
+              }}
+              activeOpacity={0.7}
+            >
+              <View
                 style={[
-                  theme.typography.bodyLarge,
-                  { color: theme.colors.textPrimary, fontWeight: "600" },
+                  styles.projectDot,
+                  { backgroundColor: theme.colors.actionPrimary },
                 ]}
-              >
-                {item.name}
-              </Text>
-              {item.slug ? (
+              />
+              <View style={styles.projectInfo}>
                 <Text
                   style={[
-                    theme.typography.bodySmall,
-                    { color: theme.colors.textTertiary },
+                    theme.typography.bodyLarge,
+                    { color: theme.colors.textPrimary, fontWeight: "600" },
                   ]}
                 >
-                  {item.slug}
+                  {item.name}
                 </Text>
-              ) : null}
-            </View>
-          </TouchableOpacity>
-        )}
+                {item.slug ? (
+                  <Text
+                    style={[
+                      theme.typography.bodySmall,
+                      { color: theme.colors.textTertiary },
+                    ]}
+                  >
+                    {item.slug}
+                  </Text>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );

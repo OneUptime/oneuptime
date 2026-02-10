@@ -8,16 +8,20 @@ import {
 export function useIncidentDetail(projectId: string, incidentId: string) {
   return useQuery({
     queryKey: ["incident", projectId, incidentId],
-    queryFn: () => fetchIncidentById(projectId, incidentId),
-    enabled: !!projectId && !!incidentId,
+    queryFn: () => {
+      return fetchIncidentById(projectId, incidentId);
+    },
+    enabled: Boolean(projectId) && Boolean(incidentId),
   });
 }
 
 export function useIncidentStates(projectId: string) {
   return useQuery({
     queryKey: ["incident-states", projectId],
-    queryFn: () => fetchIncidentStates(projectId),
-    enabled: !!projectId,
+    queryFn: () => {
+      return fetchIncidentStates(projectId);
+    },
+    enabled: Boolean(projectId),
   });
 }
 
@@ -27,7 +31,9 @@ export function useIncidentStateTimeline(
 ) {
   return useQuery({
     queryKey: ["incident-state-timeline", projectId, incidentId],
-    queryFn: () => fetchIncidentStateTimeline(projectId, incidentId),
-    enabled: !!projectId && !!incidentId,
+    queryFn: () => {
+      return fetchIncidentStateTimeline(projectId, incidentId);
+    },
+    enabled: Boolean(projectId) && Boolean(incidentId),
   });
 }

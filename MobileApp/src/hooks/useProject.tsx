@@ -21,7 +21,9 @@ interface ProjectContextValue {
   clearProject: () => Promise<void>;
 }
 
-const ProjectContext = createContext<ProjectContextValue | undefined>(undefined);
+const ProjectContext = createContext<ProjectContextValue | undefined>(
+  undefined,
+);
 
 interface ProjectProviderProps {
   children: ReactNode;
@@ -45,9 +47,9 @@ export function ProjectProvider({
       // Try to restore previously selected project
       const savedId = await AsyncStorage.getItem(PROJECT_STORAGE_KEY);
       if (savedId) {
-        const saved = response.data.find(
-          (p: ProjectItem) => p._id === savedId,
-        );
+        const saved = response.data.find((p: ProjectItem) => {
+          return p._id === savedId;
+        });
         if (saved) {
           setSelectedProject(saved);
         }

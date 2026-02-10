@@ -9,7 +9,7 @@ import AlertEpisodesStackNavigator from "./AlertEpisodesStackNavigator";
 import SettingsStackNavigator from "./SettingsStackNavigator";
 import { useTheme } from "../theme";
 
-const Tab = createBottomTabNavigator<MainTabParamList>();
+const Tab: ReturnType<typeof createBottomTabNavigator<MainTabParamList>> = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabNavigator(): React.JSX.Element {
   const { theme } = useTheme();

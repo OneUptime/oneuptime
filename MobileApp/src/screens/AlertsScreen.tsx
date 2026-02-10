@@ -20,21 +20,21 @@ import SwipeableCard from "../components/SwipeableCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import type { AlertsStackParamList } from "../navigation/types";
-import type { AlertItem } from "../api/types";
-import { useQueryClient } from "@tanstack/react-query";
+import type { AlertItem, AlertState } from "../api/types";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE: number = 20;
 
 type NavProp = NativeStackNavigationProp<AlertsStackParamList, "AlertsList">;
 
 export default function AlertsScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { selectedProject } = useProject();
-  const projectId = selectedProject?._id ?? "";
-  const navigation = useNavigation<NavProp>();
+  const projectId: string = selectedProject?._id ?? "";
+  const navigation: NavProp = useNavigation<NavProp>();
 
   const [page, setPage] = useState(0);
-  const skip = page * PAGE_SIZE;
+  const skip: number = page * PAGE_SIZE;
 
   const { data, isLoading, isError, refetch } = useAlerts(
     projectId,
@@ -43,34 +43,38 @@ export default function AlertsScreen(): React.JSX.Element {
   );
   const { data: states } = useAlertStates(projectId);
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
-  const queryClient = useQueryClient();
+  const queryClient: QueryClient = useQueryClient();
 
-  const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
+  const acknowledgeState: AlertState | undefined = states?.find((s: AlertState) => {
+    return s.isAcknowledgedState;
+  });
 
-  const alerts = data?.data ?? [];
-  const totalCount = data?.count ?? 0;
-  const hasMore = skip + PAGE_SIZE < totalCount;
+  const alerts: AlertItem[] = data?.data ?? [];
+  const totalCount: number = data?.count ?? 0;
+  const hasMore: boolean = skip + PAGE_SIZE < totalCount;
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
     setPage(0);
     await refetch();
   }, [refetch, lightImpact]);
 
-  const loadMore = useCallback(() => {
+  const loadMore: () => void = useCallback(() => {
     if (hasMore && !isLoading) {
-      setPage((prev) => prev + 1);
+      setPage((prev: number) => {
+        return prev + 1;
+      });
     }
   }, [hasMore, isLoading]);
 
-  const handlePress = useCallback(
+  const handlePress: (alert: AlertItem) => void = useCallback(
     (alert: AlertItem) => {
       navigation.navigate("AlertDetail", { alertId: alert._id });
     },
     [navigation],
   );
 
-  const handleAcknowledge = useCallback(
+  const handleAcknowledge: (alert: AlertItem) => Promise<void> = useCallback(
     async (alert: AlertItem) => {
       if (!acknowledgeState) {
         return;
@@ -84,7 +88,14 @@ export default function AlertsScreen(): React.JSX.Element {
         await errorFeedback();
       }
     },
-    [projectId, acknowledgeState, successFeedback, errorFeedback, refetch, queryClient],
+    [
+      projectId,
+      acknowledgeState,
+      successFeedback,
+      errorFeedback,
+      refetch,
+      queryClient,
+    ],
   );
 
   if (isLoading && alerts.length === 0) {
@@ -125,7 +136,9 @@ export default function AlertsScreen(): React.JSX.Element {
             styles.retryButton,
             { backgroundColor: theme.colors.actionPrimary },
           ]}
-          onPress={() => refetch()}
+          onPress={() => {
+            return refetch();
+          }}
         >
           <Text
             style={[
@@ -149,26 +162,37 @@ export default function AlertsScreen(): React.JSX.Element {
     >
       <FlatList
         data={alerts}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item: AlertItem) => {
+          return item._id;
+        }}
         contentContainerStyle={
           alerts.length === 0 ? styles.emptyContainer : styles.list
         }
-        renderItem={({ item }) => (
-          <SwipeableCard
-            rightAction={
-              acknowledgeState &&
-              item.currentAlertState?._id !== acknowledgeState._id
-                ? {
-                    label: "Acknowledge",
-                    color: "#2EA043",
-                    onAction: () => handleAcknowledge(item),
-                  }
-                : undefined
-            }
-          >
-            <AlertCard alert={item} onPress={() => handlePress(item)} />
-          </SwipeableCard>
-        )}
+        renderItem={({ item }: { item: AlertItem }) => {
+          return (
+            <SwipeableCard
+              rightAction={
+                acknowledgeState &&
+                item.currentAlertState?._id !== acknowledgeState._id
+                  ? {
+                      label: "Acknowledge",
+                      color: "#2EA043",
+                      onAction: () => {
+                        return handleAcknowledge(item);
+                      },
+                    }
+                  : undefined
+              }
+            >
+              <AlertCard
+                alert={item}
+                onPress={() => {
+                  return handlePress(item);
+                }}
+              />
+            </SwipeableCard>
+          );
+        }}
         ListEmptyComponent={
           <EmptyState
             title="No active alerts"
@@ -186,7 +210,7 @@ export default function AlertsScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     flex: 1,
   },

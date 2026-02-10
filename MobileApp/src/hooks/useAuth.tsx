@@ -6,7 +6,7 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import { getTokens, clearTokens } from "../storage/keychain";
+import { getTokens } from "../storage/keychain";
 import { hasServerUrl } from "../storage/serverUrl";
 import {
   login as apiLogin,
@@ -33,7 +33,9 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element {
+export function AuthProvider({
+  children,
+}: AuthProviderProps): React.JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [needsServerUrl, setNeedsServerUrl] = useState(false);

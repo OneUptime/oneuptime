@@ -63,9 +63,7 @@ export default function EpisodeCard(
       activeOpacity={0.7}
     >
       <View style={styles.topRow}>
-        <Text
-          style={[styles.number, { color: theme.colors.textTertiary }]}
-        >
+        <Text style={[styles.number, { color: theme.colors.textTertiary }]}>
           {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
         </Text>
         <Text style={[styles.time, { color: theme.colors.textTertiary }]}>
@@ -102,10 +100,7 @@ export default function EpisodeCard(
 
         {severity ? (
           <View
-            style={[
-              styles.badge,
-              { backgroundColor: severityColor + "26" },
-            ]}
+            style={[styles.badge, { backgroundColor: severityColor + "26" }]}
           >
             <Text style={[styles.badgeText, { color: severityColor }]}>
               {severity.name}

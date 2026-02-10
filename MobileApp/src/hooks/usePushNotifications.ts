@@ -17,9 +17,7 @@ import { useProject } from "./useProject";
 
 const PUSH_TOKEN_KEY = "oneuptime_expo_push_token";
 
-export function usePushNotifications(
-  navigationRef: unknown,
-): void {
+export function usePushNotifications(navigationRef: unknown): void {
   const { isAuthenticated } = useAuth();
   const { projectList } = useProject();
   const responseListenerRef = useRef<Subscription | null>(null);
@@ -79,10 +77,11 @@ export function usePushNotifications(
 
   // Set up notification listeners
   useEffect(() => {
-    receivedListenerRef.current =
-      Notifications.addNotificationReceivedListener((_notification) => {
+    receivedListenerRef.current = Notifications.addNotificationReceivedListener(
+      (_notification) => {
         // Foreground notification received — handler in setup.ts shows it
-      });
+      },
+    );
 
     responseListenerRef.current =
       Notifications.addNotificationResponseReceivedListener(

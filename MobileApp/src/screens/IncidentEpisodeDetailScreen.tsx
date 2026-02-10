@@ -50,14 +50,12 @@ export default function IncidentEpisodeDetailScreen({
     refetch: refetchEpisode,
   } = useIncidentEpisodeDetail(projectId, episodeId);
   const { data: states } = useIncidentEpisodeStates(projectId);
-  const {
-    data: timeline,
-    refetch: refetchTimeline,
-  } = useIncidentEpisodeStateTimeline(projectId, episodeId);
-  const {
-    data: notes,
-    refetch: refetchNotes,
-  } = useIncidentEpisodeNotes(projectId, episodeId);
+  const { data: timeline, refetch: refetchTimeline } =
+    useIncidentEpisodeStateTimeline(projectId, episodeId);
+  const { data: notes, refetch: refetchNotes } = useIncidentEpisodeNotes(
+    projectId,
+    episodeId,
+  );
 
   const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
@@ -75,7 +73,9 @@ export default function IncidentEpisodeDetailScreen({
       }
       const queryKey = ["incident-episode", projectId, episodeId];
       const previousData = queryClient.getQueryData(queryKey);
-      const newState = states?.find((s) => s._id === stateId);
+      const newState = states?.find((s) => {
+        return s._id === stateId;
+      });
       if (newState) {
         queryClient.setQueryData(queryKey, {
           ...episode,
@@ -132,9 +132,7 @@ export default function IncidentEpisodeDetailScreen({
   if (isLoading) {
     return (
       <View
-        style={[
-          { flex: 1, backgroundColor: theme.colors.backgroundPrimary },
-        ]}
+        style={[{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }]}
       >
         <SkeletonCard variant="detail" />
       </View>
@@ -169,8 +167,12 @@ export default function IncidentEpisodeDetailScreen({
     ? rgbToHex(episode.incidentSeverity.color)
     : theme.colors.textTertiary;
 
-  const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
-  const resolveState = states?.find((s) => s.isResolvedState);
+  const acknowledgeState = states?.find((s) => {
+    return s.isAcknowledgedState;
+  });
+  const resolveState = states?.find((s) => {
+    return s.isResolvedState;
+  });
 
   const currentStateId = episode.currentIncidentState?._id;
   const isResolved = resolveState?._id === currentStateId;
@@ -231,10 +233,7 @@ export default function IncidentEpisodeDetailScreen({
       {episode.description ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Description
           </Text>
@@ -289,18 +288,12 @@ export default function IncidentEpisodeDetailScreen({
 
           <View style={styles.detailRow}>
             <Text
-              style={[
-                styles.detailLabel,
-                { color: theme.colors.textTertiary },
-              ]}
+              style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
             >
               Created
             </Text>
             <Text
-              style={[
-                styles.detailValue,
-                { color: theme.colors.textPrimary },
-              ]}
+              style={[styles.detailValue, { color: theme.colors.textPrimary }]}
             >
               {formatDateTime(episode.createdAt)}
             </Text>
@@ -308,18 +301,12 @@ export default function IncidentEpisodeDetailScreen({
 
           <View style={styles.detailRow}>
             <Text
-              style={[
-                styles.detailLabel,
-                { color: theme.colors.textTertiary },
-              ]}
+              style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
             >
               Incidents
             </Text>
             <Text
-              style={[
-                styles.detailValue,
-                { color: theme.colors.textPrimary },
-              ]}
+              style={[styles.detailValue, { color: theme.colors.textPrimary }]}
             >
               {episode.incidentCount ?? 0}
             </Text>
@@ -331,10 +318,7 @@ export default function IncidentEpisodeDetailScreen({
       {!isResolved ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Actions
           </Text>
@@ -345,12 +329,12 @@ export default function IncidentEpisodeDetailScreen({
                   styles.actionButton,
                   { backgroundColor: theme.colors.stateAcknowledged },
                 ]}
-                onPress={() =>
-                  handleStateChange(
+                onPress={() => {
+                  return handleStateChange(
                     acknowledgeState._id,
                     acknowledgeState.name,
-                  )
-                }
+                  );
+                }}
                 disabled={changingState}
               >
                 {changingState ? (
@@ -377,9 +361,9 @@ export default function IncidentEpisodeDetailScreen({
                   styles.actionButton,
                   { backgroundColor: theme.colors.stateResolved },
                 ]}
-                onPress={() =>
-                  handleStateChange(resolveState._id, resolveState.name)
-                }
+                onPress={() => {
+                  return handleStateChange(resolveState._id, resolveState.name);
+                }}
                 disabled={changingState}
               >
                 {changingState ? (
@@ -407,10 +391,7 @@ export default function IncidentEpisodeDetailScreen({
       {timeline && timeline.length > 0 ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             State Timeline
           </Text>
@@ -430,10 +411,7 @@ export default function IncidentEpisodeDetailScreen({
                 ]}
               >
                 <View
-                  style={[
-                    styles.timelineDot,
-                    { backgroundColor: entryColor },
-                  ]}
+                  style={[styles.timelineDot, { backgroundColor: entryColor }]}
                 />
                 <View style={styles.timelineInfo}>
                   <Text
@@ -478,7 +456,9 @@ export default function IncidentEpisodeDetailScreen({
               styles.addNoteButton,
               { backgroundColor: theme.colors.actionPrimary },
             ]}
-            onPress={() => setNoteModalVisible(true)}
+            onPress={() => {
+              return setNoteModalVisible(true);
+            }}
           >
             <Text
               style={[
@@ -492,47 +472,49 @@ export default function IncidentEpisodeDetailScreen({
         </View>
 
         {notes && notes.length > 0
-          ? notes.map((note) => (
-              <View
-                key={note._id}
-                style={[
-                  styles.noteCard,
-                  {
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderColor: theme.colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Text
+          ? notes.map((note) => {
+              return (
+                <View
+                  key={note._id}
                   style={[
-                    theme.typography.bodyMedium,
-                    { color: theme.colors.textPrimary },
+                    styles.noteCard,
+                    {
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      borderColor: theme.colors.borderSubtle,
+                    },
                   ]}
                 >
-                  {note.note}
-                </Text>
-                <View style={styles.noteMeta}>
-                  {note.createdByUser ? (
+                  <Text
+                    style={[
+                      theme.typography.bodyMedium,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {note.note}
+                  </Text>
+                  <View style={styles.noteMeta}>
+                    {note.createdByUser ? (
+                      <Text
+                        style={[
+                          theme.typography.bodySmall,
+                          { color: theme.colors.textTertiary },
+                        ]}
+                      >
+                        {note.createdByUser.name}
+                      </Text>
+                    ) : null}
                     <Text
                       style={[
                         theme.typography.bodySmall,
                         { color: theme.colors.textTertiary },
                       ]}
                     >
-                      {note.createdByUser.name}
+                      {formatDateTime(note.createdAt)}
                     </Text>
-                  ) : null}
-                  <Text
-                    style={[
-                      theme.typography.bodySmall,
-                      { color: theme.colors.textTertiary },
-                    ]}
-                  >
-                    {formatDateTime(note.createdAt)}
-                  </Text>
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           : null}
 
         {notes && notes.length === 0 ? (
@@ -549,7 +531,9 @@ export default function IncidentEpisodeDetailScreen({
 
       <AddNoteModal
         visible={noteModalVisible}
-        onClose={() => setNoteModalVisible(false)}
+        onClose={() => {
+          return setNoteModalVisible(false);
+        }}
         onSubmit={handleAddNote}
         isSubmitting={submittingNote}
       />

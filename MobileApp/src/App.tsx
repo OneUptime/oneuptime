@@ -28,7 +28,12 @@ function AppContent(): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.backgroundPrimary }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.backgroundPrimary },
+      ]}
+    >
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <RootNavigator />
       <OfflineBanner />

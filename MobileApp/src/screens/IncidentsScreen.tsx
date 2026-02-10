@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useTheme } from "../theme";
+import { useTheme, type Theme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import { useIncidents } from "../hooks/useIncidents";
 import { useIncidentStates } from "../hooks/useIncidentDetail";
@@ -20,21 +20,27 @@ import SwipeableCard from "../components/SwipeableCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import type { IncidentsStackParamList } from "../navigation/types";
-import type { IncidentItem } from "../api/types";
-import { useQueryClient } from "@tanstack/react-query";
+import type { IncidentItem, IncidentState } from "../api/types";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE: number = 20;
 
-type NavProp = NativeStackNavigationProp<IncidentsStackParamList, "IncidentsList">;
+type NavProp = NativeStackNavigationProp<
+  IncidentsStackParamList,
+  "IncidentsList"
+>;
 
 export default function IncidentsScreen(): React.JSX.Element {
-  const { theme } = useTheme();
+  const { theme }: { theme: Theme } = useTheme();
   const { selectedProject } = useProject();
-  const projectId = selectedProject?._id ?? "";
-  const navigation = useNavigation<NavProp>();
+  const projectId: string = selectedProject?._id ?? "";
+  const navigation: NativeStackNavigationProp<
+    IncidentsStackParamList,
+    "IncidentsList"
+  > = useNavigation<NavProp>();
 
   const [page, setPage] = useState(0);
-  const skip = page * PAGE_SIZE;
+  const skip: number = page * PAGE_SIZE;
 
   const { data, isLoading, isError, refetch } = useIncidents(
     projectId,
@@ -43,49 +49,67 @@ export default function IncidentsScreen(): React.JSX.Element {
   );
   const { data: states } = useIncidentStates(projectId);
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
-  const queryClient = useQueryClient();
+  const queryClient: QueryClient = useQueryClient();
 
-  const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
+  const acknowledgeState: IncidentState | undefined = states?.find(
+    (s: IncidentState) => {
+      return s.isAcknowledgedState;
+    },
+  );
 
-  const incidents = data?.data ?? [];
-  const totalCount = data?.count ?? 0;
-  const hasMore = skip + PAGE_SIZE < totalCount;
+  const incidents: IncidentItem[] = data?.data ?? [];
+  const totalCount: number = data?.count ?? 0;
+  const hasMore: boolean = skip + PAGE_SIZE < totalCount;
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
     setPage(0);
     await refetch();
   }, [refetch, lightImpact]);
 
-  const loadMore = useCallback(() => {
+  const loadMore: () => void = useCallback(() => {
     if (hasMore && !isLoading) {
-      setPage((prev) => prev + 1);
+      setPage((prev: number) => {
+        return prev + 1;
+      });
     }
   }, [hasMore, isLoading]);
 
-  const handlePress = useCallback(
+  const handlePress: (incident: IncidentItem) => void = useCallback(
     (incident: IncidentItem) => {
       navigation.navigate("IncidentDetail", { incidentId: incident._id });
     },
     [navigation],
   );
 
-  const handleAcknowledge = useCallback(
-    async (incident: IncidentItem) => {
-      if (!acknowledgeState) {
-        return;
-      }
-      try {
-        await changeIncidentState(projectId, incident._id, acknowledgeState._id);
-        await successFeedback();
-        await refetch();
-        await queryClient.invalidateQueries({ queryKey: ["incidents"] });
-      } catch {
-        await errorFeedback();
-      }
-    },
-    [projectId, acknowledgeState, successFeedback, errorFeedback, refetch, queryClient],
-  );
+  const handleAcknowledge: (incident: IncidentItem) => Promise<void> =
+    useCallback(
+      async (incident: IncidentItem) => {
+        if (!acknowledgeState) {
+          return;
+        }
+        try {
+          await changeIncidentState(
+            projectId,
+            incident._id,
+            acknowledgeState._id,
+          );
+          await successFeedback();
+          await refetch();
+          await queryClient.invalidateQueries({ queryKey: ["incidents"] });
+        } catch {
+          await errorFeedback();
+        }
+      },
+      [
+        projectId,
+        acknowledgeState,
+        successFeedback,
+        errorFeedback,
+        refetch,
+        queryClient,
+      ],
+    );
 
   if (isLoading && incidents.length === 0) {
     return (
@@ -125,7 +149,9 @@ export default function IncidentsScreen(): React.JSX.Element {
             styles.retryButton,
             { backgroundColor: theme.colors.actionPrimary },
           ]}
-          onPress={() => refetch()}
+          onPress={() => {
+            return refetch();
+          }}
         >
           <Text
             style={[
@@ -149,26 +175,37 @@ export default function IncidentsScreen(): React.JSX.Element {
     >
       <FlatList
         data={incidents}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item: IncidentItem) => {
+          return item._id;
+        }}
         contentContainerStyle={
           incidents.length === 0 ? styles.emptyContainer : styles.list
         }
-        renderItem={({ item }) => (
-          <SwipeableCard
-            rightAction={
-              acknowledgeState &&
-              item.currentIncidentState?._id !== acknowledgeState._id
-                ? {
-                    label: "Acknowledge",
-                    color: "#2EA043",
-                    onAction: () => handleAcknowledge(item),
-                  }
-                : undefined
-            }
-          >
-            <IncidentCard incident={item} onPress={() => handlePress(item)} />
-          </SwipeableCard>
-        )}
+        renderItem={({ item }: { item: IncidentItem }) => {
+          return (
+            <SwipeableCard
+              rightAction={
+                acknowledgeState &&
+                item.currentIncidentState?._id !== acknowledgeState._id
+                  ? {
+                      label: "Acknowledge",
+                      color: "#2EA043",
+                      onAction: () => {
+                        return handleAcknowledge(item);
+                      },
+                    }
+                  : undefined
+              }
+            >
+              <IncidentCard
+                incident={item}
+                onPress={() => {
+                  return handlePress(item);
+                }}
+              />
+            </SwipeableCard>
+          );
+        }}
         ListEmptyComponent={
           <EmptyState
             title="No active incidents"
@@ -186,7 +223,7 @@ export default function IncidentsScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     flex: 1,
   },

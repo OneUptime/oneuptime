@@ -8,8 +8,10 @@ export function useAlertEpisodes(
 ) {
   return useQuery({
     queryKey: ["alert-episodes", projectId, skip, limit],
-    queryFn: () => fetchAlertEpisodes(projectId, { skip, limit }),
-    enabled: !!projectId,
+    queryFn: () => {
+      return fetchAlertEpisodes(projectId, { skip, limit });
+    },
+    enabled: Boolean(projectId),
   });
 }
 
@@ -24,6 +26,6 @@ export function useUnresolvedAlertEpisodeCount(projectId: string) {
       });
       return response.count;
     },
-    enabled: !!projectId,
+    enabled: Boolean(projectId),
   });
 }

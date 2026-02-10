@@ -18,11 +18,11 @@ export default function SkeletonCard({
   variant = "card",
 }: SkeletonCardProps): React.JSX.Element {
   const { theme } = useTheme();
-  const opacity = useRef(new Animated.Value(0.3)).current;
-  const reduceMotion = useRef(false);
+  const opacity: Animated.Value = useRef(new Animated.Value(0.3)).current;
+  const reduceMotion: React.MutableRefObject<boolean> = useRef(false);
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled: boolean) => {
       reduceMotion.current = enabled;
     });
   }, []);
@@ -33,7 +33,7 @@ export default function SkeletonCard({
       return;
     }
 
-    const animation = Animated.loop(
+    const animation: Animated.CompositeAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
           toValue: 0.7,
@@ -98,10 +98,7 @@ export default function SkeletonCard({
   if (variant === "detail") {
     return (
       <Animated.View
-        style={[
-          styles.detailContainer,
-          { opacity },
-        ]}
+        style={[styles.detailContainer, { opacity }]}
         accessibilityLabel="Loading content"
         accessibilityRole="progressbar"
       >
@@ -137,22 +134,24 @@ export default function SkeletonCard({
             },
           ]}
         >
-          {Array.from({ length: 3 }).map((_, index) => (
-            <View key={index} style={styles.detailRow}>
-              <View
-                style={[
-                  styles.detailLabel,
-                  { backgroundColor: theme.colors.backgroundTertiary },
-                ]}
-              />
-              <View
-                style={[
-                  styles.detailValue,
-                  { backgroundColor: theme.colors.backgroundTertiary },
-                ]}
-              />
-            </View>
-          ))}
+          {Array.from({ length: 3 }).map((_: unknown, index: number) => {
+            return (
+              <View key={index} style={styles.detailRow}>
+                <View
+                  style={[
+                    styles.detailLabel,
+                    { backgroundColor: theme.colors.backgroundTertiary },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.detailValue,
+                    { backgroundColor: theme.colors.backgroundTertiary },
+                  ]}
+                />
+              </View>
+            );
+          })}
         </View>
       </Animated.View>
     );
@@ -209,23 +208,25 @@ export default function SkeletonCard({
         />
       </View>
       {/* Body lines */}
-      {Array.from({ length: Math.max(lines - 1, 1) }).map((_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.line,
-            {
-              backgroundColor: theme.colors.backgroundTertiary,
-              width: lineWidths[index % lineWidths.length],
-            },
-          ]}
-        />
-      ))}
+      {Array.from({ length: Math.max(lines - 1, 1) }).map((_: unknown, index: number) => {
+        return (
+          <View
+            key={index}
+            style={[
+              styles.line,
+              {
+                backgroundColor: theme.colors.backgroundTertiary,
+                width: lineWidths[index % lineWidths.length],
+              },
+            ]}
+          />
+        );
+      })}
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,

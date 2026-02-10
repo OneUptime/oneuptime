@@ -119,7 +119,9 @@ export default function RootNavigator(): React.JSX.Element {
     if (biometric.isEnabled && !biometricPassed) {
       return (
         <BiometricLockScreen
-          onSuccess={() => setBiometricPassed(true)}
+          onSuccess={() => {
+            return setBiometricPassed(true);
+          }}
           biometricType={biometric.biometricType}
         />
       );

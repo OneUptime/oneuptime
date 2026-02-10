@@ -1,3 +1,4 @@
+import type { AxiosResponse } from "axios";
 import apiClient from "./client";
 import type {
   ListResponse,
@@ -17,7 +18,7 @@ export async function fetchAlerts(
     query.currentAlertState = { isResolvedState: false };
   }
 
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     `/api/alert/get-list?skip=${skip}&limit=${limit}`,
     {
       query,
@@ -45,7 +46,7 @@ export async function fetchAlertById(
   projectId: string,
   alertId: string,
 ): Promise<AlertItem> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/alert/get-list?skip=0&limit=1",
     {
       query: { _id: alertId },
@@ -72,7 +73,7 @@ export async function fetchAlertById(
 export async function fetchAlertStates(
   projectId: string,
 ): Promise<AlertState[]> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/alert-state/get-list?skip=0&limit=20",
     {
       query: {},
@@ -98,7 +99,7 @@ export async function fetchAlertStateTimeline(
   projectId: string,
   alertId: string,
 ): Promise<StateTimelineItem[]> {
-  const response = await apiClient.post(
+  const response: AxiosResponse = await apiClient.post(
     "/api/alert-state-timeline/get-list?skip=0&limit=50",
     {
       query: { alertId },

@@ -17,7 +17,10 @@ import { useHaptics } from "../hooks/useHaptics";
 import { getServerUrl } from "../storage/serverUrl";
 import type { SettingsStackParamList } from "../navigation/types";
 
-type SettingsNavProp = NativeStackNavigationProp<SettingsStackParamList, "SettingsList">;
+type SettingsNavProp = NativeStackNavigationProp<
+  SettingsStackParamList,
+  "SettingsList"
+>;
 
 const APP_VERSION = "1.0.0";
 
@@ -64,7 +67,9 @@ function SettingsRow({
       </Text>
       {rightElement ??
         (value ? (
-          <Text style={[styles.rowValue, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.rowValue, { color: theme.colors.textSecondary }]}
+          >
             {value}
           </Text>
         ) : onPress ? (
@@ -147,16 +152,16 @@ export default function SettingsScreen(): React.JSX.Element {
                     backgroundColor: theme.colors.actionPrimary,
                   },
                 ]}
-                onPress={() => handleThemeChange(mode)}
+                onPress={() => {
+                  return handleThemeChange(mode);
+                }}
                 activeOpacity={0.7}
               >
                 <Text
                   style={[
                     styles.themeOptionIcon,
                     {
-                      color: isActive
-                        ? "#FFFFFF"
-                        : theme.colors.textSecondary,
+                      color: isActive ? "#FFFFFF" : theme.colors.textSecondary,
                     },
                   ]}
                 >
@@ -166,9 +171,7 @@ export default function SettingsScreen(): React.JSX.Element {
                   style={[
                     styles.themeOptionLabel,
                     {
-                      color: isActive
-                        ? "#FFFFFF"
-                        : theme.colors.textPrimary,
+                      color: isActive ? "#FFFFFF" : theme.colors.textPrimary,
                     },
                   ]}
                 >
@@ -189,7 +192,9 @@ export default function SettingsScreen(): React.JSX.Element {
         </Text>
         <SettingsRow
           label="Notification Preferences"
-          onPress={() => navigation.navigate("NotificationPreferences")}
+          onPress={() => {
+            return navigation.navigate("NotificationPreferences");
+          }}
         />
       </View>
 
@@ -245,10 +250,7 @@ export default function SettingsScreen(): React.JSX.Element {
         >
           Server
         </Text>
-        <SettingsRow
-          label="Server URL"
-          value={serverUrl || "oneuptime.com"}
-        />
+        <SettingsRow label="Server URL" value={serverUrl || "oneuptime.com"} />
       </View>
 
       {/* Account */}
@@ -258,11 +260,7 @@ export default function SettingsScreen(): React.JSX.Element {
         >
           Account
         </Text>
-        <SettingsRow
-          label="Log Out"
-          onPress={logout}
-          destructive
-        />
+        <SettingsRow label="Log Out" onPress={logout} destructive />
       </View>
 
       {/* About */}
@@ -279,9 +277,7 @@ export default function SettingsScreen(): React.JSX.Element {
 
       {/* Footer branding */}
       <View style={styles.footer}>
-        <Text
-          style={[styles.footerText, { color: theme.colors.textTertiary }]}
-        >
+        <Text style={[styles.footerText, { color: theme.colors.textTertiary }]}>
           OneUptime On-Call
         </Text>
       </View>

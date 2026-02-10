@@ -8,8 +8,10 @@ export function useAlerts(
 ) {
   return useQuery({
     queryKey: ["alerts", projectId, skip, limit],
-    queryFn: () => fetchAlerts(projectId, { skip, limit }),
-    enabled: !!projectId,
+    queryFn: () => {
+      return fetchAlerts(projectId, { skip, limit });
+    },
+    enabled: Boolean(projectId),
   });
 }
 
@@ -24,6 +26,6 @@ export function useUnresolvedAlertCount(projectId: string) {
       });
       return response.count;
     },
-    enabled: !!projectId,
+    enabled: Boolean(projectId),
   });
 }

@@ -5,6 +5,9 @@ import {
   StyleSheet,
   Animated,
   PanResponder,
+  type GestureResponderEvent,
+  type PanResponderGestureState,
+  type PanResponderInstance,
 } from "react-native";
 import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
@@ -21,7 +24,7 @@ interface SwipeableCardProps {
   rightAction?: SwipeAction;
 }
 
-const SWIPE_THRESHOLD = 80;
+const SWIPE_THRESHOLD: number = 80;
 
 export default function SwipeableCard({
   children,
@@ -30,8 +33,8 @@ export default function SwipeableCard({
 }: SwipeableCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const { mediumImpact } = useHaptics();
-  const translateX = useRef(new Animated.Value(0)).current;
-  const hasTriggeredHaptic = useRef(false);
+  const translateX: Animated.Value = useRef(new Animated.Value(0)).current;
+  const hasTriggeredHaptic: React.MutableRefObject<boolean> = useRef(false);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -90,20 +93,14 @@ export default function SwipeableCard({
       <View style={styles.actionsContainer}>
         {leftAction ? (
           <View
-            style={[
-              styles.actionLeft,
-              { backgroundColor: leftAction.color },
-            ]}
+            style={[styles.actionLeft, { backgroundColor: leftAction.color }]}
           >
             <Text style={styles.actionText}>{leftAction.label}</Text>
           </View>
         ) : null}
         {rightAction ? (
           <View
-            style={[
-              styles.actionRight,
-              { backgroundColor: rightAction.color },
-            ]}
+            style={[styles.actionRight, { backgroundColor: rightAction.color }]}
           >
             <Text style={styles.actionText}>{rightAction.label}</Text>
           </View>

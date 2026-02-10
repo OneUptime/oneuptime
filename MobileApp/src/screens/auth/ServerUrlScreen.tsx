@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ViewStyle,
+  TextStyle,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
@@ -26,12 +28,12 @@ type ServerUrlNavigationProp = NativeStackNavigationProp<
 export default function ServerUrlScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { setNeedsServerUrl } = useAuth();
-  const navigation = useNavigation<ServerUrlNavigationProp>();
+  const navigation: ServerUrlNavigationProp = useNavigation<ServerUrlNavigationProp>();
   const [url, setUrl] = useState("https://oneuptime.com");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleConnect = async (): Promise<void> => {
+  const handleConnect: () => Promise<void> = async (): Promise<void> => {
     if (!url.trim()) {
       setError("Please enter a server URL");
       return;
@@ -41,8 +43,8 @@ export default function ServerUrlScreen(): React.JSX.Element {
     setIsLoading(true);
 
     try {
-      const normalizedUrl = url.trim().replace(/\/+$/, "");
-      const isValid = await validateServerUrl(normalizedUrl);
+      const normalizedUrl: string = url.trim().replace(/\/+$/, "");
+      const isValid: boolean = await validateServerUrl(normalizedUrl);
 
       if (!isValid) {
         setError(
@@ -118,7 +120,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
                 },
               ]}
               value={url}
-              onChangeText={(text) => {
+              onChangeText={(text: string) => {
                 setUrl(text);
                 setError(null);
               }}
@@ -189,7 +191,15 @@ export default function ServerUrlScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: {
+  flex: ViewStyle;
+  scrollContent: ViewStyle;
+  container: ViewStyle;
+  header: ViewStyle;
+  form: ViewStyle;
+  input: TextStyle;
+  button: ViewStyle;
+} = StyleSheet.create({
   flex: {
     flex: 1,
   },

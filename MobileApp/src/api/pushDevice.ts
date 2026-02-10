@@ -7,7 +7,11 @@ export async function registerPushDevice(params: {
   projectId: string;
 }): Promise<void> {
   const deviceType =
-    Platform.OS === "ios" ? "iOS" : Platform.OS === "android" ? "Android" : "Web";
+    Platform.OS === "ios"
+      ? "iOS"
+      : Platform.OS === "android"
+        ? "Android"
+        : "Web";
 
   try {
     await apiClient.post("/api/user-push/register", {
@@ -25,9 +29,7 @@ export async function registerPushDevice(params: {
   }
 }
 
-export async function unregisterPushDevice(
-  deviceToken: string,
-): Promise<void> {
+export async function unregisterPushDevice(deviceToken: string): Promise<void> {
   try {
     await apiClient.post("/api/user-push/unregister", {
       deviceToken: deviceToken,

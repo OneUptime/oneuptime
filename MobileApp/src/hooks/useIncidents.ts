@@ -8,8 +8,10 @@ export function useIncidents(
 ) {
   return useQuery({
     queryKey: ["incidents", projectId, skip, limit],
-    queryFn: () => fetchIncidents(projectId, { skip, limit }),
-    enabled: !!projectId,
+    queryFn: () => {
+      return fetchIncidents(projectId, { skip, limit });
+    },
+    enabled: Boolean(projectId),
   });
 }
 
@@ -24,6 +26,6 @@ export function useUnresolvedIncidentCount(projectId: string) {
       });
       return response.count;
     },
-    enabled: !!projectId,
+    enabled: Boolean(projectId),
   });
 }

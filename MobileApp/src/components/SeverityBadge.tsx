@@ -2,12 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "../theme";
 
-export type SeverityLevel =
-  | "critical"
-  | "major"
-  | "minor"
-  | "warning"
-  | "info";
+export type SeverityLevel = "critical" | "major" | "minor" | "warning" | "info";
 
 interface SeverityBadgeProps {
   severity: SeverityLevel;
@@ -43,8 +38,8 @@ export default function SeverityBadge({
     },
   };
 
-  const colors = colorMap[severity];
-  const displayLabel = label || severity;
+  const colors: { text: string; bg: string } = colorMap[severity];
+  const displayLabel: string = label || severity;
 
   return (
     <View style={[styles.badge, { backgroundColor: colors.bg }]}>
@@ -55,7 +50,7 @@ export default function SeverityBadge({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,

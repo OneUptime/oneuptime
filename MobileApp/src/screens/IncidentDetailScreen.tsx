@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useTheme } from "../theme";
+import { useTheme, type Theme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import {
   useIncidentDetail,
@@ -23,10 +23,17 @@ import { createIncidentNote } from "../api/incidentNotes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { IncidentsStackParamList } from "../navigation/types";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
+import type {
+  IncidentItem,
+  IncidentState,
+  StateTimelineItem,
+  NoteItem,
+  NamedEntity,
+} from "../api/types";
 
 type Props = NativeStackScreenProps<IncidentsStackParamList, "IncidentDetail">;
 
@@ -34,10 +41,10 @@ export default function IncidentDetailScreen({
   route,
 }: Props): React.JSX.Element {
   const { incidentId } = route.params;
-  const { theme } = useTheme();
+  const { theme }: { theme: Theme } = useTheme();
   const { selectedProject } = useProject();
-  const projectId = selectedProject?._id ?? "";
-  const queryClient = useQueryClient();
+  const projectId: string = selectedProject?._id ?? "";
+  const queryClient: QueryClient = useQueryClient();
 
   const {
     data: incident,
@@ -45,32 +52,40 @@ export default function IncidentDetailScreen({
     refetch: refetchIncident,
   } = useIncidentDetail(projectId, incidentId);
   const { data: states } = useIncidentStates(projectId);
-  const {
-    data: timeline,
-    refetch: refetchTimeline,
-  } = useIncidentStateTimeline(projectId, incidentId);
-  const {
-    data: notes,
-    refetch: refetchNotes,
-  } = useIncidentNotes(projectId, incidentId);
+  const { data: timeline, refetch: refetchTimeline } = useIncidentStateTimeline(
+    projectId,
+    incidentId,
+  );
+  const { data: notes, refetch: refetchNotes } = useIncidentNotes(
+    projectId,
+    incidentId,
+  );
 
   const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh: () => Promise<void> = useCallback(async () => {
     await Promise.all([refetchIncident(), refetchTimeline(), refetchNotes()]);
   }, [refetchIncident, refetchTimeline, refetchNotes]);
 
-  const handleStateChange = useCallback(
+  const handleStateChange: (
+    stateId: string,
+    stateName: string,
+  ) => Promise<void> = useCallback(
     async (stateId: string, stateName: string) => {
       if (!incident) {
         return;
       }
-      const queryKey = ["incident", projectId, incidentId];
-      const previousData = queryClient.getQueryData(queryKey);
-      const newState = states?.find((s) => s._id === stateId);
+      const queryKey: string[] = ["incident", projectId, incidentId];
+      const previousData: IncidentItem | undefined =
+        queryClient.getQueryData(queryKey);
+      const newState: IncidentState | undefined = states?.find(
+        (s: IncidentState) => {
+          return s._id === stateId;
+        },
+      );
       if (newState) {
         queryClient.setQueryData(queryKey, {
           ...incident,
@@ -95,10 +110,18 @@ export default function IncidentDetailScreen({
         setChangingState(false);
       }
     },
-    [projectId, incidentId, incident, states, refetchIncident, refetchTimeline, queryClient],
+    [
+      projectId,
+      incidentId,
+      incident,
+      states,
+      refetchIncident,
+      refetchTimeline,
+      queryClient,
+    ],
   );
 
-  const handleAddNote = useCallback(
+  const handleAddNote: (noteText: string) => Promise<void> = useCallback(
     async (noteText: string) => {
       setSubmittingNote(true);
       try {
@@ -117,9 +140,7 @@ export default function IncidentDetailScreen({
   if (isLoading) {
     return (
       <View
-        style={[
-          { flex: 1, backgroundColor: theme.colors.backgroundPrimary },
-        ]}
+        style={[{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }]}
       >
         <SkeletonCard variant="detail" />
       </View>
@@ -146,21 +167,29 @@ export default function IncidentDetailScreen({
     );
   }
 
-  const stateColor = incident.currentIncidentState?.color
+  const stateColor: string = incident.currentIncidentState?.color
     ? rgbToHex(incident.currentIncidentState.color)
     : theme.colors.textTertiary;
 
-  const severityColor = incident.incidentSeverity?.color
+  const severityColor: string = incident.incidentSeverity?.color
     ? rgbToHex(incident.incidentSeverity.color)
     : theme.colors.textTertiary;
 
   // Find acknowledge and resolve states from fetched state definitions
-  const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
-  const resolveState = states?.find((s) => s.isResolvedState);
+  const acknowledgeState: IncidentState | undefined = states?.find(
+    (s: IncidentState) => {
+      return s.isAcknowledgedState;
+    },
+  );
+  const resolveState: IncidentState | undefined = states?.find(
+    (s: IncidentState) => {
+      return s.isResolvedState;
+    },
+  );
 
-  const currentStateId = incident.currentIncidentState?._id;
-  const isResolved = resolveState?._id === currentStateId;
-  const isAcknowledged = acknowledgeState?._id === currentStateId;
+  const currentStateId: string | undefined = incident.currentIncidentState?._id;
+  const isResolved: boolean = resolveState?._id === currentStateId;
+  const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
 
   return (
     <ScrollView
@@ -171,12 +200,7 @@ export default function IncidentDetailScreen({
       }
     >
       {/* Header */}
-      <Text
-        style={[
-          styles.number,
-          { color: theme.colors.textTertiary },
-        ]}
-      >
+      <Text style={[styles.number, { color: theme.colors.textTertiary }]}>
         {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
       </Text>
 
@@ -199,7 +223,9 @@ export default function IncidentDetailScreen({
             ]}
           >
             <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text style={[styles.badgeText, { color: theme.colors.textPrimary }]}>
+            <Text
+              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
+            >
               {incident.currentIncidentState.name}
             </Text>
           </View>
@@ -220,10 +246,7 @@ export default function IncidentDetailScreen({
       {incident.description ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Description
           </Text>
@@ -258,7 +281,10 @@ export default function IncidentDetailScreen({
           {incident.declaredAt ? (
             <View style={styles.detailRow}>
               <Text
-                style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
+                style={[
+                  styles.detailLabel,
+                  { color: theme.colors.textTertiary },
+                ]}
               >
                 Declared
               </Text>
@@ -289,7 +315,10 @@ export default function IncidentDetailScreen({
           {incident.monitors?.length > 0 ? (
             <View style={styles.detailRow}>
               <Text
-                style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
+                style={[
+                  styles.detailLabel,
+                  { color: theme.colors.textTertiary },
+                ]}
               >
                 Monitors
               </Text>
@@ -299,7 +328,11 @@ export default function IncidentDetailScreen({
                   { color: theme.colors.textPrimary, flex: 1 },
                 ]}
               >
-                {incident.monitors.map((m) => m.name).join(", ")}
+                {incident.monitors
+                  .map((m: NamedEntity) => {
+                    return m.name;
+                  })
+                  .join(", ")}
               </Text>
             </View>
           ) : null}
@@ -310,10 +343,7 @@ export default function IncidentDetailScreen({
       {!isResolved ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Actions
           </Text>
@@ -324,18 +354,21 @@ export default function IncidentDetailScreen({
                   styles.actionButton,
                   { backgroundColor: theme.colors.stateAcknowledged },
                 ]}
-                onPress={() =>
-                  handleStateChange(
+                onPress={() => {
+                  return handleStateChange(
                     acknowledgeState._id,
                     acknowledgeState.name,
-                  )
-                }
+                  );
+                }}
                 disabled={changingState}
                 accessibilityRole="button"
                 accessibilityLabel="Acknowledge incident"
               >
                 {changingState ? (
-                  <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textInverse}
+                  />
                 ) : (
                   <Text
                     style={[
@@ -355,15 +388,18 @@ export default function IncidentDetailScreen({
                   styles.actionButton,
                   { backgroundColor: theme.colors.stateResolved },
                 ]}
-                onPress={() =>
-                  handleStateChange(resolveState._id, resolveState.name)
-                }
+                onPress={() => {
+                  return handleStateChange(resolveState._id, resolveState.name);
+                }}
                 disabled={changingState}
                 accessibilityRole="button"
                 accessibilityLabel="Resolve incident"
               >
                 {changingState ? (
-                  <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textInverse}
+                  />
                 ) : (
                   <Text
                     style={[
@@ -384,15 +420,12 @@ export default function IncidentDetailScreen({
       {timeline && timeline.length > 0 ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             State Timeline
           </Text>
-          {timeline.map((entry) => {
-            const entryColor = entry.incidentState?.color
+          {timeline.map((entry: StateTimelineItem) => {
+            const entryColor: string = entry.incidentState?.color
               ? rgbToHex(entry.incidentState.color)
               : theme.colors.textTertiary;
             return (
@@ -449,7 +482,9 @@ export default function IncidentDetailScreen({
               styles.addNoteButton,
               { backgroundColor: theme.colors.actionPrimary },
             ]}
-            onPress={() => setNoteModalVisible(true)}
+            onPress={() => {
+              return setNoteModalVisible(true);
+            }}
           >
             <Text
               style={[
@@ -463,47 +498,49 @@ export default function IncidentDetailScreen({
         </View>
 
         {notes && notes.length > 0
-          ? notes.map((note) => (
-              <View
-                key={note._id}
-                style={[
-                  styles.noteCard,
-                  {
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderColor: theme.colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Text
+          ? notes.map((note: NoteItem) => {
+              return (
+                <View
+                  key={note._id}
                   style={[
-                    theme.typography.bodyMedium,
-                    { color: theme.colors.textPrimary },
+                    styles.noteCard,
+                    {
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      borderColor: theme.colors.borderSubtle,
+                    },
                   ]}
                 >
-                  {note.note}
-                </Text>
-                <View style={styles.noteMeta}>
-                  {note.createdByUser ? (
+                  <Text
+                    style={[
+                      theme.typography.bodyMedium,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {note.note}
+                  </Text>
+                  <View style={styles.noteMeta}>
+                    {note.createdByUser ? (
+                      <Text
+                        style={[
+                          theme.typography.bodySmall,
+                          { color: theme.colors.textTertiary },
+                        ]}
+                      >
+                        {note.createdByUser.name}
+                      </Text>
+                    ) : null}
                     <Text
                       style={[
                         theme.typography.bodySmall,
                         { color: theme.colors.textTertiary },
                       ]}
                     >
-                      {note.createdByUser.name}
+                      {formatDateTime(note.createdAt)}
                     </Text>
-                  ) : null}
-                  <Text
-                    style={[
-                      theme.typography.bodySmall,
-                      { color: theme.colors.textTertiary },
-                    ]}
-                  >
-                    {formatDateTime(note.createdAt)}
-                  </Text>
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           : null}
 
         {notes && notes.length === 0 ? (
@@ -520,7 +557,9 @@ export default function IncidentDetailScreen({
 
       <AddNoteModal
         visible={noteModalVisible}
-        onClose={() => setNoteModalVisible(false)}
+        onClose={() => {
+          return setNoteModalVisible(false);
+        }}
         onSubmit={handleAddNote}
         isSubmitting={submittingNote}
       />
@@ -528,7 +567,7 @@ export default function IncidentDetailScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   centered: {
     flex: 1,
     alignItems: "center",

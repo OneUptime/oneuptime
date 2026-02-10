@@ -547,4 +547,3 @@ export const InboundEmailDomain: string | undefined =
 
 export const InboundEmailWebhookSecret: string | undefined =
   process.env["INBOUND_EMAIL_WEBHOOK_SECRET"] || undefined;
-

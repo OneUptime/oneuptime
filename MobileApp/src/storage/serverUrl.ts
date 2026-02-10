@@ -1,14 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const STORAGE_KEY = "oneuptime_server_url";
-const DEFAULT_SERVER_URL = "https://oneuptime.com";
+const STORAGE_KEY: string = "oneuptime_server_url";
+const DEFAULT_SERVER_URL: string = "https://oneuptime.com";
 
 function normalizeUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
 export async function getServerUrl(): Promise<string> {
-  const stored = await AsyncStorage.getItem(STORAGE_KEY);
+  const stored: string | null = await AsyncStorage.getItem(STORAGE_KEY);
   return stored || DEFAULT_SERVER_URL;
 }
 
@@ -17,7 +17,7 @@ export async function setServerUrl(url: string): Promise<void> {
 }
 
 export async function hasServerUrl(): Promise<boolean> {
-  const stored = await AsyncStorage.getItem(STORAGE_KEY);
+  const stored: string | null = await AsyncStorage.getItem(STORAGE_KEY);
   return stored !== null;
 }
 

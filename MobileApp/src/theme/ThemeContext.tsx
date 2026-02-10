@@ -31,29 +31,31 @@ interface ThemeContextValue {
   setThemeMode: (mode: ThemeMode) => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+const ThemeContext: React.Context<ThemeContextValue | undefined> = createContext<ThemeContextValue | undefined>(undefined);
 
 interface ThemeProviderProps {
   children: ReactNode;
 }
 
-export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
-  const systemColorScheme = useColorScheme();
+export function ThemeProvider({
+  children,
+}: ThemeProviderProps): React.JSX.Element {
+  const systemColorScheme: "light" | "dark" | null | undefined = useColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>("dark");
 
   // Load persisted theme on mount
   useEffect(() => {
-    loadThemeMode().then((mode) => {
+    loadThemeMode().then((mode: ThemeMode) => {
       setThemeModeState(mode);
     });
   }, []);
 
-  const setThemeMode = (mode: ThemeMode): void => {
+  const setThemeMode: (mode: ThemeMode) => void = (mode: ThemeMode): void => {
     setThemeModeState(mode);
     saveThemeMode(mode);
   };
 
-  const theme = useMemo((): Theme => {
+  const theme: Theme = useMemo((): Theme => {
     let isDark: boolean;
 
     if (themeMode === "system") {
@@ -71,14 +73,13 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
     };
   }, [themeMode, systemColorScheme]);
 
-  const value = useMemo(
-    (): ThemeContextValue => ({
+  const value: ThemeContextValue = useMemo((): ThemeContextValue => {
+    return {
       theme,
       themeMode,
       setThemeMode,
-    }),
-    [theme, themeMode],
-  );
+    };
+  }, [theme, themeMode]);
 
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
@@ -86,7 +87,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
 }
 
 export function useTheme(): ThemeContextValue {
-  const context = useContext(ThemeContext);
+  const context: ThemeContextValue | undefined = useContext(ThemeContext);
   if (!context) {
     throw new Error("useTheme must be used within a ThemeProvider");
   }

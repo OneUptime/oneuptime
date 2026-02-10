@@ -5,13 +5,15 @@ import { Platform } from "react-native";
 
 // Show notifications when app is in foreground
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async () => {
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
 });
 
 export async function setupNotificationChannels(): Promise<void> {
@@ -24,8 +26,7 @@ export async function setupNotificationChannels(): Promise<void> {
     importance: Notifications.AndroidImportance.MAX,
     sound: "default",
     vibrationPattern: [0, 500, 250, 500],
-    lockscreenVisibility:
-      Notifications.AndroidNotificationVisibility.PUBLIC,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
   });
 
   await Notifications.setNotificationChannelAsync("oncall_high", {
@@ -80,8 +81,7 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
     return null;
   }
 
-  const { status: existingStatus } =
-    await Notifications.getPermissionsAsync();
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
   if (existingStatus !== "granted") {

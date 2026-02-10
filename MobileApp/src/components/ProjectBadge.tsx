@@ -13,7 +13,7 @@ export default function ProjectBadge({
 }: ProjectBadgeProps): React.JSX.Element {
   const { theme } = useTheme();
 
-  const dotColor = color || theme.colors.actionPrimary;
+  const dotColor: string = color || theme.colors.actionPrimary;
 
   return (
     <View style={styles.container}>
@@ -31,7 +31,7 @@ export default function ProjectBadge({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",

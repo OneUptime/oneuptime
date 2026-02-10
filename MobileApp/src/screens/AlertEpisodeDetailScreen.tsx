@@ -25,7 +25,12 @@ import {
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { AlertEpisodesStackParamList } from "../navigation/types";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import type {
+  AlertState,
+  StateTimelineItem,
+  NoteItem,
+} from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
@@ -41,8 +46,8 @@ export default function AlertEpisodeDetailScreen({
   const { episodeId } = route.params;
   const { theme } = useTheme();
   const { selectedProject } = useProject();
-  const projectId = selectedProject?._id ?? "";
-  const queryClient = useQueryClient();
+  const projectId: string = selectedProject?._id ?? "";
+  const queryClient: QueryClient = useQueryClient();
 
   const {
     data: episode,
@@ -50,32 +55,32 @@ export default function AlertEpisodeDetailScreen({
     refetch: refetchEpisode,
   } = useAlertEpisodeDetail(projectId, episodeId);
   const { data: states } = useAlertEpisodeStates(projectId);
-  const {
-    data: timeline,
-    refetch: refetchTimeline,
-  } = useAlertEpisodeStateTimeline(projectId, episodeId);
-  const {
-    data: notes,
-    refetch: refetchNotes,
-  } = useAlertEpisodeNotes(projectId, episodeId);
+  const { data: timeline, refetch: refetchTimeline } =
+    useAlertEpisodeStateTimeline(projectId, episodeId);
+  const { data: notes, refetch: refetchNotes } = useAlertEpisodeNotes(
+    projectId,
+    episodeId,
+  );
 
   const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh: () => Promise<void> = useCallback(async () => {
     await Promise.all([refetchEpisode(), refetchTimeline(), refetchNotes()]);
   }, [refetchEpisode, refetchTimeline, refetchNotes]);
 
-  const handleStateChange = useCallback(
+  const handleStateChange: (stateId: string, stateName: string) => Promise<void> = useCallback(
     async (stateId: string, stateName: string) => {
       if (!episode) {
         return;
       }
-      const queryKey = ["alert-episode", projectId, episodeId];
-      const previousData = queryClient.getQueryData(queryKey);
-      const newState = states?.find((s) => s._id === stateId);
+      const queryKey: string[] = ["alert-episode", projectId, episodeId];
+      const previousData: unknown = queryClient.getQueryData(queryKey);
+      const newState: AlertState | undefined = states?.find((s: AlertState) => {
+        return s._id === stateId;
+      });
       if (newState) {
         queryClient.setQueryData(queryKey, {
           ...episode,
@@ -113,7 +118,7 @@ export default function AlertEpisodeDetailScreen({
     ],
   );
 
-  const handleAddNote = useCallback(
+  const handleAddNote: (noteText: string) => Promise<void> = useCallback(
     async (noteText: string) => {
       setSubmittingNote(true);
       try {
@@ -132,9 +137,7 @@ export default function AlertEpisodeDetailScreen({
   if (isLoading) {
     return (
       <View
-        style={[
-          { flex: 1, backgroundColor: theme.colors.backgroundPrimary },
-        ]}
+        style={[{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }]}
       >
         <SkeletonCard variant="detail" />
       </View>
@@ -161,20 +164,24 @@ export default function AlertEpisodeDetailScreen({
     );
   }
 
-  const stateColor = episode.currentAlertState?.color
+  const stateColor: string = episode.currentAlertState?.color
     ? rgbToHex(episode.currentAlertState.color)
     : theme.colors.textTertiary;
 
-  const severityColor = episode.alertSeverity?.color
+  const severityColor: string = episode.alertSeverity?.color
     ? rgbToHex(episode.alertSeverity.color)
     : theme.colors.textTertiary;
 
-  const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
-  const resolveState = states?.find((s) => s.isResolvedState);
+  const acknowledgeState: AlertState | undefined = states?.find((s: AlertState) => {
+    return s.isAcknowledgedState;
+  });
+  const resolveState: AlertState | undefined = states?.find((s: AlertState) => {
+    return s.isResolvedState;
+  });
 
-  const currentStateId = episode.currentAlertState?._id;
-  const isResolved = resolveState?._id === currentStateId;
-  const isAcknowledged = acknowledgeState?._id === currentStateId;
+  const currentStateId: string | undefined = episode.currentAlertState?._id;
+  const isResolved: boolean = resolveState?._id === currentStateId;
+  const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
 
   return (
     <ScrollView
@@ -231,10 +238,7 @@ export default function AlertEpisodeDetailScreen({
       {episode.description ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Description
           </Text>
@@ -268,18 +272,12 @@ export default function AlertEpisodeDetailScreen({
         >
           <View style={styles.detailRow}>
             <Text
-              style={[
-                styles.detailLabel,
-                { color: theme.colors.textTertiary },
-              ]}
+              style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
             >
               Created
             </Text>
             <Text
-              style={[
-                styles.detailValue,
-                { color: theme.colors.textPrimary },
-              ]}
+              style={[styles.detailValue, { color: theme.colors.textPrimary }]}
             >
               {formatDateTime(episode.createdAt)}
             </Text>
@@ -287,18 +285,12 @@ export default function AlertEpisodeDetailScreen({
 
           <View style={styles.detailRow}>
             <Text
-              style={[
-                styles.detailLabel,
-                { color: theme.colors.textTertiary },
-              ]}
+              style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
             >
               Alerts
             </Text>
             <Text
-              style={[
-                styles.detailValue,
-                { color: theme.colors.textPrimary },
-              ]}
+              style={[styles.detailValue, { color: theme.colors.textPrimary }]}
             >
               {episode.alertCount ?? 0}
             </Text>
@@ -310,10 +302,7 @@ export default function AlertEpisodeDetailScreen({
       {!isResolved ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Actions
           </Text>
@@ -324,12 +313,12 @@ export default function AlertEpisodeDetailScreen({
                   styles.actionButton,
                   { backgroundColor: theme.colors.stateAcknowledged },
                 ]}
-                onPress={() =>
-                  handleStateChange(
+                onPress={() => {
+                  return handleStateChange(
                     acknowledgeState._id,
                     acknowledgeState.name,
-                  )
-                }
+                  );
+                }}
                 disabled={changingState}
               >
                 {changingState ? (
@@ -356,9 +345,9 @@ export default function AlertEpisodeDetailScreen({
                   styles.actionButton,
                   { backgroundColor: theme.colors.stateResolved },
                 ]}
-                onPress={() =>
-                  handleStateChange(resolveState._id, resolveState.name)
-                }
+                onPress={() => {
+                  return handleStateChange(resolveState._id, resolveState.name);
+                }}
                 disabled={changingState}
               >
                 {changingState ? (
@@ -386,15 +375,12 @@ export default function AlertEpisodeDetailScreen({
       {timeline && timeline.length > 0 ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             State Timeline
           </Text>
-          {timeline.map((entry) => {
-            const entryColor = entry.alertState?.color
+          {timeline.map((entry: StateTimelineItem) => {
+            const entryColor: string = entry.alertState?.color
               ? rgbToHex(entry.alertState.color)
               : theme.colors.textTertiary;
             return (
@@ -409,10 +395,7 @@ export default function AlertEpisodeDetailScreen({
                 ]}
               >
                 <View
-                  style={[
-                    styles.timelineDot,
-                    { backgroundColor: entryColor },
-                  ]}
+                  style={[styles.timelineDot, { backgroundColor: entryColor }]}
                 />
                 <View style={styles.timelineInfo}>
                   <Text
@@ -457,7 +440,9 @@ export default function AlertEpisodeDetailScreen({
               styles.addNoteButton,
               { backgroundColor: theme.colors.actionPrimary },
             ]}
-            onPress={() => setNoteModalVisible(true)}
+            onPress={() => {
+              return setNoteModalVisible(true);
+            }}
           >
             <Text
               style={[
@@ -471,47 +456,49 @@ export default function AlertEpisodeDetailScreen({
         </View>
 
         {notes && notes.length > 0
-          ? notes.map((note) => (
-              <View
-                key={note._id}
-                style={[
-                  styles.noteCard,
-                  {
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderColor: theme.colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Text
+          ? notes.map((note: NoteItem) => {
+              return (
+                <View
+                  key={note._id}
                   style={[
-                    theme.typography.bodyMedium,
-                    { color: theme.colors.textPrimary },
+                    styles.noteCard,
+                    {
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      borderColor: theme.colors.borderSubtle,
+                    },
                   ]}
                 >
-                  {note.note}
-                </Text>
-                <View style={styles.noteMeta}>
-                  {note.createdByUser ? (
+                  <Text
+                    style={[
+                      theme.typography.bodyMedium,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {note.note}
+                  </Text>
+                  <View style={styles.noteMeta}>
+                    {note.createdByUser ? (
+                      <Text
+                        style={[
+                          theme.typography.bodySmall,
+                          { color: theme.colors.textTertiary },
+                        ]}
+                      >
+                        {note.createdByUser.name}
+                      </Text>
+                    ) : null}
                     <Text
                       style={[
                         theme.typography.bodySmall,
                         { color: theme.colors.textTertiary },
                       ]}
                     >
-                      {note.createdByUser.name}
+                      {formatDateTime(note.createdAt)}
                     </Text>
-                  ) : null}
-                  <Text
-                    style={[
-                      theme.typography.bodySmall,
-                      { color: theme.colors.textTertiary },
-                    ]}
-                  >
-                    {formatDateTime(note.createdAt)}
-                  </Text>
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           : null}
 
         {notes && notes.length === 0 ? (
@@ -528,7 +515,9 @@ export default function AlertEpisodeDetailScreen({
 
       <AddNoteModal
         visible={noteModalVisible}
-        onClose={() => setNoteModalVisible(false)}
+        onClose={() => {
+          return setNoteModalVisible(false);
+        }}
         onSubmit={handleAddNote}
         isSubmitting={submittingNote}
       />
@@ -536,7 +525,7 @@ export default function AlertEpisodeDetailScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   centered: {
     flex: 1,
     alignItems: "center",

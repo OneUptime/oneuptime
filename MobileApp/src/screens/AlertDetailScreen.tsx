@@ -23,21 +23,24 @@ import { createAlertNote } from "../api/alertNotes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { AlertsStackParamList } from "../navigation/types";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import type {
+  AlertState,
+  StateTimelineItem,
+  NoteItem,
+} from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertDetail">;
 
-export default function AlertDetailScreen({
-  route,
-}: Props): React.JSX.Element {
+export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   const { alertId } = route.params;
   const { theme } = useTheme();
   const { selectedProject } = useProject();
-  const projectId = selectedProject?._id ?? "";
-  const queryClient = useQueryClient();
+  const projectId: string = selectedProject?._id ?? "";
+  const queryClient: QueryClient = useQueryClient();
 
   const {
     data: alert,
@@ -45,32 +48,34 @@ export default function AlertDetailScreen({
     refetch: refetchAlert,
   } = useAlertDetail(projectId, alertId);
   const { data: states } = useAlertStates(projectId);
-  const {
-    data: timeline,
-    refetch: refetchTimeline,
-  } = useAlertStateTimeline(projectId, alertId);
-  const {
-    data: notes,
-    refetch: refetchNotes,
-  } = useAlertNotes(projectId, alertId);
+  const { data: timeline, refetch: refetchTimeline } = useAlertStateTimeline(
+    projectId,
+    alertId,
+  );
+  const { data: notes, refetch: refetchNotes } = useAlertNotes(
+    projectId,
+    alertId,
+  );
 
   const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh: () => Promise<void> = useCallback(async () => {
     await Promise.all([refetchAlert(), refetchTimeline(), refetchNotes()]);
   }, [refetchAlert, refetchTimeline, refetchNotes]);
 
-  const handleStateChange = useCallback(
+  const handleStateChange: (stateId: string, stateName: string) => Promise<void> = useCallback(
     async (stateId: string, stateName: string) => {
       if (!alert) {
         return;
       }
-      const queryKey = ["alert", projectId, alertId];
-      const previousData = queryClient.getQueryData(queryKey);
-      const newState = states?.find((s) => s._id === stateId);
+      const queryKey: string[] = ["alert", projectId, alertId];
+      const previousData: unknown = queryClient.getQueryData(queryKey);
+      const newState: AlertState | undefined = states?.find((s: AlertState) => {
+        return s._id === stateId;
+      });
       if (newState) {
         queryClient.setQueryData(queryKey, {
           ...alert,
@@ -95,10 +100,18 @@ export default function AlertDetailScreen({
         setChangingState(false);
       }
     },
-    [projectId, alertId, alert, states, refetchAlert, refetchTimeline, queryClient],
+    [
+      projectId,
+      alertId,
+      alert,
+      states,
+      refetchAlert,
+      refetchTimeline,
+      queryClient,
+    ],
   );
 
-  const handleAddNote = useCallback(
+  const handleAddNote: (noteText: string) => Promise<void> = useCallback(
     async (noteText: string) => {
       setSubmittingNote(true);
       try {
@@ -117,9 +130,7 @@ export default function AlertDetailScreen({
   if (isLoading) {
     return (
       <View
-        style={[
-          { flex: 1, backgroundColor: theme.colors.backgroundPrimary },
-        ]}
+        style={[{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }]}
       >
         <SkeletonCard variant="detail" />
       </View>
@@ -146,21 +157,25 @@ export default function AlertDetailScreen({
     );
   }
 
-  const stateColor = alert.currentAlertState?.color
+  const stateColor: string = alert.currentAlertState?.color
     ? rgbToHex(alert.currentAlertState.color)
     : theme.colors.textTertiary;
 
-  const severityColor = alert.alertSeverity?.color
+  const severityColor: string = alert.alertSeverity?.color
     ? rgbToHex(alert.alertSeverity.color)
     : theme.colors.textTertiary;
 
   // Find acknowledge and resolve states from fetched state definitions
-  const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
-  const resolveState = states?.find((s) => s.isResolvedState);
+  const acknowledgeState: AlertState | undefined = states?.find((s: AlertState) => {
+    return s.isAcknowledgedState;
+  });
+  const resolveState: AlertState | undefined = states?.find((s: AlertState) => {
+    return s.isResolvedState;
+  });
 
-  const currentStateId = alert.currentAlertState?._id;
-  const isResolved = resolveState?._id === currentStateId;
-  const isAcknowledged = acknowledgeState?._id === currentStateId;
+  const currentStateId: string | undefined = alert.currentAlertState?._id;
+  const isResolved: boolean = resolveState?._id === currentStateId;
+  const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
 
   return (
     <ScrollView
@@ -194,7 +209,9 @@ export default function AlertDetailScreen({
             ]}
           >
             <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text style={[styles.badgeText, { color: theme.colors.textPrimary }]}>
+            <Text
+              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
+            >
               {alert.currentAlertState.name}
             </Text>
           </View>
@@ -215,10 +232,7 @@ export default function AlertDetailScreen({
       {alert.description ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Description
           </Text>
@@ -266,12 +280,18 @@ export default function AlertDetailScreen({
           {alert.monitor ? (
             <View style={styles.detailRow}>
               <Text
-                style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
+                style={[
+                  styles.detailLabel,
+                  { color: theme.colors.textTertiary },
+                ]}
               >
                 Monitor
               </Text>
               <Text
-                style={[styles.detailValue, { color: theme.colors.textPrimary }]}
+                style={[
+                  styles.detailValue,
+                  { color: theme.colors.textPrimary },
+                ]}
               >
                 {alert.monitor.name}
               </Text>
@@ -284,10 +304,7 @@ export default function AlertDetailScreen({
       {!isResolved ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Actions
           </Text>
@@ -298,18 +315,21 @@ export default function AlertDetailScreen({
                   styles.actionButton,
                   { backgroundColor: theme.colors.stateAcknowledged },
                 ]}
-                onPress={() =>
-                  handleStateChange(
+                onPress={() => {
+                  return handleStateChange(
                     acknowledgeState._id,
                     acknowledgeState.name,
-                  )
-                }
+                  );
+                }}
                 disabled={changingState}
                 accessibilityRole="button"
                 accessibilityLabel="Acknowledge alert"
               >
                 {changingState ? (
-                  <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textInverse}
+                  />
                 ) : (
                   <Text
                     style={[
@@ -329,15 +349,18 @@ export default function AlertDetailScreen({
                   styles.actionButton,
                   { backgroundColor: theme.colors.stateResolved },
                 ]}
-                onPress={() =>
-                  handleStateChange(resolveState._id, resolveState.name)
-                }
+                onPress={() => {
+                  return handleStateChange(resolveState._id, resolveState.name);
+                }}
                 disabled={changingState}
                 accessibilityRole="button"
                 accessibilityLabel="Resolve alert"
               >
                 {changingState ? (
-                  <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textInverse}
+                  />
                 ) : (
                   <Text
                     style={[
@@ -358,15 +381,12 @@ export default function AlertDetailScreen({
       {timeline && timeline.length > 0 ? (
         <View style={styles.section}>
           <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             State Timeline
           </Text>
-          {timeline.map((entry) => {
-            const entryColor = entry.alertState?.color
+          {timeline.map((entry: StateTimelineItem) => {
+            const entryColor: string = entry.alertState?.color
               ? rgbToHex(entry.alertState.color)
               : theme.colors.textTertiary;
             return (
@@ -423,7 +443,9 @@ export default function AlertDetailScreen({
               styles.addNoteButton,
               { backgroundColor: theme.colors.actionPrimary },
             ]}
-            onPress={() => setNoteModalVisible(true)}
+            onPress={() => {
+              return setNoteModalVisible(true);
+            }}
           >
             <Text
               style={[
@@ -437,47 +459,49 @@ export default function AlertDetailScreen({
         </View>
 
         {notes && notes.length > 0
-          ? notes.map((note) => (
-              <View
-                key={note._id}
-                style={[
-                  styles.noteCard,
-                  {
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderColor: theme.colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Text
+          ? notes.map((note: NoteItem) => {
+              return (
+                <View
+                  key={note._id}
                   style={[
-                    theme.typography.bodyMedium,
-                    { color: theme.colors.textPrimary },
+                    styles.noteCard,
+                    {
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      borderColor: theme.colors.borderSubtle,
+                    },
                   ]}
                 >
-                  {note.note}
-                </Text>
-                <View style={styles.noteMeta}>
-                  {note.createdByUser ? (
+                  <Text
+                    style={[
+                      theme.typography.bodyMedium,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {note.note}
+                  </Text>
+                  <View style={styles.noteMeta}>
+                    {note.createdByUser ? (
+                      <Text
+                        style={[
+                          theme.typography.bodySmall,
+                          { color: theme.colors.textTertiary },
+                        ]}
+                      >
+                        {note.createdByUser.name}
+                      </Text>
+                    ) : null}
                     <Text
                       style={[
                         theme.typography.bodySmall,
                         { color: theme.colors.textTertiary },
                       ]}
                     >
-                      {note.createdByUser.name}
+                      {formatDateTime(note.createdAt)}
                     </Text>
-                  ) : null}
-                  <Text
-                    style={[
-                      theme.typography.bodySmall,
-                      { color: theme.colors.textTertiary },
-                    ]}
-                  >
-                    {formatDateTime(note.createdAt)}
-                  </Text>
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           : null}
 
         {notes && notes.length === 0 ? (
@@ -494,7 +518,9 @@ export default function AlertDetailScreen({
 
       <AddNoteModal
         visible={noteModalVisible}
-        onClose={() => setNoteModalVisible(false)}
+        onClose={() => {
+          return setNoteModalVisible(false);
+        }}
         onSubmit={handleAddNote}
         isSubmitting={submittingNote}
       />
@@ -502,7 +528,7 @@ export default function AlertDetailScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   centered: {
     flex: 1,
     alignItems: "center",

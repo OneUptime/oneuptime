@@ -45,7 +45,10 @@ export default function BiometricLockScreen({
         ]}
       >
         <View
-          style={[styles.lockBody, { backgroundColor: theme.colors.textTertiary }]}
+          style={[
+            styles.lockBody,
+            { backgroundColor: theme.colors.textTertiary },
+          ]}
         />
         <View
           style={[
@@ -58,7 +61,11 @@ export default function BiometricLockScreen({
       <Text
         style={[
           theme.typography.titleMedium,
-          { color: theme.colors.textPrimary, marginTop: 24, textAlign: "center" },
+          {
+            color: theme.colors.textPrimary,
+            marginTop: 24,
+            textAlign: "center",
+          },
         ]}
       >
         OneUptime is Locked

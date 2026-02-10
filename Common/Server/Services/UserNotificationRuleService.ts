@@ -1118,7 +1118,8 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
+            deviceType: notificationRuleItem.userPush
+              .deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,
@@ -1194,7 +1195,8 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
+            deviceType: notificationRuleItem.userPush
+              .deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,
@@ -1271,7 +1273,8 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
+            deviceType: notificationRuleItem.userPush
+              .deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,

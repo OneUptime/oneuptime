@@ -54,7 +54,9 @@ export default function IncidentEpisodesScreen(): React.JSX.Element {
 
   const loadMore = useCallback(() => {
     if (hasMore && !isLoading) {
-      setPage((prev) => prev + 1);
+      setPage((prev) => {
+        return prev + 1;
+      });
     }
   }, [hasMore, isLoading]);
 
@@ -105,7 +107,9 @@ export default function IncidentEpisodesScreen(): React.JSX.Element {
             styles.retryButton,
             { backgroundColor: theme.colors.actionPrimary },
           ]}
-          onPress={() => refetch()}
+          onPress={() => {
+            return refetch();
+          }}
         >
           <Text
             style={[
@@ -129,17 +133,23 @@ export default function IncidentEpisodesScreen(): React.JSX.Element {
     >
       <FlatList
         data={episodes}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item) => {
+          return item._id;
+        }}
         contentContainerStyle={
           episodes.length === 0 ? styles.emptyContainer : styles.list
         }
-        renderItem={({ item }) => (
-          <EpisodeCard
-            episode={item}
-            type="incident"
-            onPress={() => handlePress(item)}
-          />
-        )}
+        renderItem={({ item }) => {
+          return (
+            <EpisodeCard
+              episode={item}
+              type="incident"
+              onPress={() => {
+                return handlePress(item);
+              }}
+            />
+          );
+        }}
         ListEmptyComponent={
           <EmptyState
             title="No incident episodes"

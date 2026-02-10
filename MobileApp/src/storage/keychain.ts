@@ -1,6 +1,6 @@
 import * as Keychain from "react-native-keychain";
 
-const SERVICE_NAME = "com.oneuptime.oncall.tokens";
+const SERVICE_NAME: string = "com.oneuptime.oncall.tokens";
 
 export interface StoredTokens {
   accessToken: string;
@@ -17,15 +17,13 @@ export function getCachedAccessToken(): string | null {
 
 export async function storeTokens(tokens: StoredTokens): Promise<void> {
   cachedAccessToken = tokens.accessToken;
-  await Keychain.setGenericPassword(
-    "tokens",
-    JSON.stringify(tokens),
-    { service: SERVICE_NAME },
-  );
+  await Keychain.setGenericPassword("tokens", JSON.stringify(tokens), {
+    service: SERVICE_NAME,
+  });
 }
 
 export async function getTokens(): Promise<StoredTokens | null> {
-  const credentials = await Keychain.getGenericPassword({
+  const credentials: false | Keychain.UserCredentials = await Keychain.getGenericPassword({
     service: SERVICE_NAME,
   });
 

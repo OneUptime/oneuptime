@@ -1,11 +1,7 @@
-export function rgbToHex(color: {
-  r: number;
-  g: number;
-  b: number;
-}): string {
-  const r = Math.max(0, Math.min(255, Math.round(color.r)));
-  const g = Math.max(0, Math.min(255, Math.round(color.g)));
-  const b = Math.max(0, Math.min(255, Math.round(color.b)));
+export function rgbToHex(color: { r: number; g: number; b: number }): string {
+  const r: number = Math.max(0, Math.min(255, Math.round(color.r)));
+  const g: number = Math.max(0, Math.min(255, Math.round(color.g)));
+  const b: number = Math.max(0, Math.min(255, Math.round(color.b)));
 
   return (
     "#" +
