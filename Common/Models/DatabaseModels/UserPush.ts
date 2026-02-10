@@ -123,7 +123,7 @@ class UserPush extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public deviceType?: string = PushDeviceType.Web;
+  public deviceType?: PushDeviceType = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
