@@ -1,4 +1,5 @@
 import React from "react";
+import { View, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -8,6 +9,7 @@ import { ThemeProvider, useTheme } from "./theme";
 import { AuthProvider } from "./hooks/useAuth";
 import { ProjectProvider } from "./hooks/useProject";
 import RootNavigator from "./navigation/RootNavigator";
+import OfflineBanner from "./components/OfflineBanner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,10 +28,11 @@ function AppContent(): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
-    <>
+    <View style={[styles.container, { backgroundColor: theme.colors.backgroundPrimary }]}>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <RootNavigator />
-    </>
+      <OfflineBanner />
+    </View>
   );
 }
 
@@ -49,3 +52,9 @@ export default function App(): React.JSX.Element {
     </PersistQueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

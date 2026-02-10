@@ -25,6 +25,8 @@ import { formatDateTime } from "../utils/date";
 import type { IncidentsStackParamList } from "../navigation/types";
 import { useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
+import SkeletonCard from "../components/SkeletonCard";
+import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<IncidentsStackParamList, "IncidentDetail">;
 
@@ -52,6 +54,7 @@ export default function IncidentDetailScreen({
     refetch: refetchNotes,
   } = useIncidentNotes(projectId, incidentId);
 
+  const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
@@ -81,10 +84,12 @@ export default function IncidentDetailScreen({
       setChangingState(true);
       try {
         await changeIncidentState(projectId, incidentId, stateId);
+        await successFeedback();
         await Promise.all([refetchIncident(), refetchTimeline()]);
         await queryClient.invalidateQueries({ queryKey: ["incidents"] });
       } catch {
         queryClient.setQueryData(queryKey, previousData);
+        await errorFeedback();
         Alert.alert("Error", `Failed to change state to ${stateName}.`);
       } finally {
         setChangingState(false);
@@ -113,11 +118,10 @@ export default function IncidentDetailScreen({
     return (
       <View
         style={[
-          styles.centered,
-          { backgroundColor: theme.colors.backgroundPrimary },
+          { flex: 1, backgroundColor: theme.colors.backgroundPrimary },
         ]}
       >
-        <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
+        <SkeletonCard variant="detail" />
       </View>
     );
   }

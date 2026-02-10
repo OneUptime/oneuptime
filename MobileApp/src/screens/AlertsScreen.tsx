@@ -130,8 +130,9 @@ export default function AlertsScreen(): React.JSX.Element {
         )}
         ListEmptyComponent={
           <EmptyState
-            title="No Alerts"
-            subtitle="There are no alerts for this project."
+            title="No active alerts"
+            subtitle="Alerts assigned to you will appear here."
+            icon="alerts"
           />
         }
         refreshControl={

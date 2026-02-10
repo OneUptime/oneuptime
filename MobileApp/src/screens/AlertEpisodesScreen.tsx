@@ -139,8 +139,9 @@ export default function AlertEpisodesScreen(): React.JSX.Element {
         )}
         ListEmptyComponent={
           <EmptyState
-            title="No Alert Episodes"
-            subtitle="There are no alert episodes for this project."
+            title="No alert episodes"
+            subtitle="Alert episodes for this project will appear here."
+            icon="episodes"
           />
         }
         refreshControl={

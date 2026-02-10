@@ -2,6 +2,7 @@ import React, {
   createContext,
   useContext,
   useState,
+  useEffect,
   useMemo,
   ReactNode,
 } from "react";
@@ -9,6 +10,10 @@ import { useColorScheme } from "react-native";
 import { ColorTokens, darkColors, lightColors } from "./colors";
 import { typography } from "./typography";
 import { spacing, radius } from "./spacing";
+import {
+  getThemeMode as loadThemeMode,
+  setThemeMode as saveThemeMode,
+} from "../storage/preferences";
 
 export type ThemeMode = "dark" | "light" | "system";
 
@@ -34,7 +39,19 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
   const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("dark");
+
+  // Load persisted theme on mount
+  useEffect(() => {
+    loadThemeMode().then((mode) => {
+      setThemeModeState(mode);
+    });
+  }, []);
+
+  const setThemeMode = (mode: ThemeMode): void => {
+    setThemeModeState(mode);
+    saveThemeMode(mode);
+  };
 
   const theme = useMemo((): Theme => {
     let isDark: boolean;

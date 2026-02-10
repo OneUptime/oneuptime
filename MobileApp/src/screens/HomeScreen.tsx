@@ -13,11 +13,95 @@ import { useUnresolvedIncidentCount } from "../hooks/useIncidents";
 import { useUnresolvedAlertCount } from "../hooks/useAlerts";
 import { useUnresolvedIncidentEpisodeCount } from "../hooks/useIncidentEpisodes";
 import { useUnresolvedAlertEpisodeCount } from "../hooks/useAlertEpisodes";
+import { useHaptics } from "../hooks/useHaptics";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
 
 type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
+
+interface StatCardProps {
+  count: number | undefined;
+  label: string;
+  color: string;
+  isLoading: boolean;
+  onPress: () => void;
+}
+
+function StatCard({
+  count,
+  label,
+  color,
+  isLoading,
+  onPress,
+}: StatCardProps): React.JSX.Element {
+  const { theme } = useTheme();
+  const { lightImpact } = useHaptics();
+
+  const handlePress = (): void => {
+    lightImpact();
+    onPress();
+  };
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.summaryCard,
+        {
+          backgroundColor: theme.colors.backgroundSecondary,
+          borderColor: theme.colors.borderSubtle,
+        },
+      ]}
+      onPress={handlePress}
+      activeOpacity={0.7}
+      accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
+      accessibilityRole="button"
+    >
+      <Text style={[styles.cardCount, { color }]}>
+        {isLoading ? "--" : (count ?? 0)}
+      </Text>
+      <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+interface QuickLinkProps {
+  label: string;
+  onPress: () => void;
+}
+
+function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
+  const { theme } = useTheme();
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.linkCard,
+        {
+          backgroundColor: theme.colors.backgroundSecondary,
+          borderColor: theme.colors.borderSubtle,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+    >
+      <Text
+        style={[
+          styles.linkLabel,
+          { color: theme.colors.textPrimary },
+        ]}
+      >
+        {label}
+      </Text>
+      <Text style={[styles.chevron, { color: theme.colors.textTertiary }]}>
+        ›
+      </Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function HomeScreen(): React.JSX.Element {
   const { theme } = useTheme();
@@ -63,11 +147,20 @@ export default function HomeScreen(): React.JSX.Element {
       style={[{ backgroundColor: theme.colors.backgroundPrimary }]}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={false} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={false}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.actionPrimary}
+        />
       }
     >
+      {/* Header */}
       <Text
-        style={[theme.typography.titleLarge, { color: theme.colors.textPrimary }]}
+        style={[
+          theme.typography.titleLarge,
+          { color: theme.colors.textPrimary },
+        ]}
+        accessibilityRole="header"
       >
         {selectedProject?.name ?? "OneUptime"}
       </Text>
@@ -80,197 +173,68 @@ export default function HomeScreen(): React.JSX.Element {
         Project overview
       </Text>
 
+      {/* Stats Grid */}
       <View style={styles.cardRow}>
-        <TouchableOpacity
-          style={[
-            styles.summaryCard,
-            {
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderColor: theme.colors.borderSubtle,
-            },
-          ]}
+        <StatCard
+          count={incidentCount}
+          label="Active Incidents"
+          color={theme.colors.severityCritical}
+          isLoading={loadingIncidents}
           onPress={() => navigation.navigate("Incidents")}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[styles.cardCount, { color: theme.colors.severityCritical }]}
-          >
-            {loadingIncidents ? "-" : (incidentCount ?? 0)}
-          </Text>
-          <Text
-            style={[styles.cardLabel, { color: theme.colors.textSecondary }]}
-          >
-            Active Incidents
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.summaryCard,
-            {
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderColor: theme.colors.borderSubtle,
-            },
-          ]}
+        />
+        <StatCard
+          count={alertCount}
+          label="Active Alerts"
+          color={theme.colors.severityMajor}
+          isLoading={loadingAlerts}
           onPress={() => navigation.navigate("Alerts")}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[styles.cardCount, { color: theme.colors.severityMajor }]}
-          >
-            {loadingAlerts ? "-" : (alertCount ?? 0)}
-          </Text>
-          <Text
-            style={[styles.cardLabel, { color: theme.colors.textSecondary }]}
-          >
-            Active Alerts
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
 
       <View style={styles.cardRow}>
-        <TouchableOpacity
-          style={[
-            styles.summaryCard,
-            {
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderColor: theme.colors.borderSubtle,
-            },
-          ]}
+        <StatCard
+          count={incidentEpisodeCount}
+          label="Inc Episodes"
+          color={theme.colors.severityCritical}
+          isLoading={loadingIncidentEpisodes}
           onPress={() => navigation.navigate("IncidentEpisodes")}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[styles.cardCount, { color: theme.colors.severityCritical }]}
-          >
-            {loadingIncidentEpisodes ? "-" : (incidentEpisodeCount ?? 0)}
-          </Text>
-          <Text
-            style={[styles.cardLabel, { color: theme.colors.textSecondary }]}
-          >
-            Inc Episodes
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.summaryCard,
-            {
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderColor: theme.colors.borderSubtle,
-            },
-          ]}
+        />
+        <StatCard
+          count={alertEpisodeCount}
+          label="Alert Episodes"
+          color={theme.colors.severityMajor}
+          isLoading={loadingAlertEpisodes}
           onPress={() => navigation.navigate("AlertEpisodes")}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[styles.cardCount, { color: theme.colors.severityMajor }]}
-          >
-            {loadingAlertEpisodes ? "-" : (alertEpisodeCount ?? 0)}
-          </Text>
-          <Text
-            style={[styles.cardLabel, { color: theme.colors.textSecondary }]}
-          >
-            Alert Episodes
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.linkCard,
-          {
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderColor: theme.colors.borderSubtle,
-          },
-        ]}
-        onPress={() => navigation.navigate("Incidents")}
-        activeOpacity={0.7}
-      >
+      {/* Quick Links */}
+      <View style={styles.quickLinksSection}>
         <Text
           style={[
-            theme.typography.bodyLarge,
-            { color: theme.colors.textPrimary, fontWeight: "600" },
+            styles.sectionTitle,
+            { color: theme.colors.textSecondary },
           ]}
         >
-          View All Incidents
+          Quick Links
         </Text>
-        <Text style={[styles.arrow, { color: theme.colors.textTertiary }]}>
-          &gt;
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.linkCard,
-          {
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderColor: theme.colors.borderSubtle,
-          },
-        ]}
-        onPress={() => navigation.navigate("Alerts")}
-        activeOpacity={0.7}
-      >
-        <Text
-          style={[
-            theme.typography.bodyLarge,
-            { color: theme.colors.textPrimary, fontWeight: "600" },
-          ]}
-        >
-          View All Alerts
-        </Text>
-        <Text style={[styles.arrow, { color: theme.colors.textTertiary }]}>
-          &gt;
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.linkCard,
-          {
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderColor: theme.colors.borderSubtle,
-          },
-        ]}
-        onPress={() => navigation.navigate("IncidentEpisodes")}
-        activeOpacity={0.7}
-      >
-        <Text
-          style={[
-            theme.typography.bodyLarge,
-            { color: theme.colors.textPrimary, fontWeight: "600" },
-          ]}
-        >
-          View Incident Episodes
-        </Text>
-        <Text style={[styles.arrow, { color: theme.colors.textTertiary }]}>
-          &gt;
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.linkCard,
-          {
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderColor: theme.colors.borderSubtle,
-          },
-        ]}
-        onPress={() => navigation.navigate("AlertEpisodes")}
-        activeOpacity={0.7}
-      >
-        <Text
-          style={[
-            theme.typography.bodyLarge,
-            { color: theme.colors.textPrimary, fontWeight: "600" },
-          ]}
-        >
-          View Alert Episodes
-        </Text>
-        <Text style={[styles.arrow, { color: theme.colors.textTertiary }]}>
-          &gt;
-        </Text>
-      </TouchableOpacity>
+        <QuickLink
+          label="View All Incidents"
+          onPress={() => navigation.navigate("Incidents")}
+        />
+        <QuickLink
+          label="View All Alerts"
+          onPress={() => navigation.navigate("Alerts")}
+        />
+        <QuickLink
+          label="Incident Episodes"
+          onPress={() => navigation.navigate("IncidentEpisodes")}
+        />
+        <QuickLink
+          label="Alert Episodes"
+          onPress={() => navigation.navigate("AlertEpisodes")}
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -283,7 +247,7 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 24,
+    marginTop: 16,
   },
   summaryCard: {
     flex: 1,
@@ -295,11 +259,23 @@ const styles = StyleSheet.create({
   cardCount: {
     fontSize: 36,
     fontWeight: "700",
+    fontVariant: ["tabular-nums"],
   },
   cardLabel: {
     fontSize: 13,
     fontWeight: "500",
     marginTop: 4,
+  },
+  quickLinksSection: {
+    marginTop: 28,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    marginLeft: 4,
   },
   linkCard: {
     flexDirection: "row",
@@ -308,10 +284,14 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    marginTop: 12,
+    marginBottom: 8,
   },
-  arrow: {
-    fontSize: 18,
-    fontWeight: "600",
+  linkLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  chevron: {
+    fontSize: 24,
+    fontWeight: "300",
   },
 });

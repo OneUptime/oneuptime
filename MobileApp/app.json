@@ -17,7 +17,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.oneuptime.oncall",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "NSFaceIDUsageDescription": "Authenticate to access OneUptime On-Call"
       }
     },
     "android": {
@@ -34,7 +35,8 @@
         {
           "color": "#58A6FF"
         }
-      ]
+      ],
+      "expo-local-authentication"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

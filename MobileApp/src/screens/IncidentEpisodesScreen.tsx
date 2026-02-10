@@ -139,8 +139,9 @@ export default function IncidentEpisodesScreen(): React.JSX.Element {
         )}
         ListEmptyComponent={
           <EmptyState
-            title="No Incident Episodes"
-            subtitle="There are no incident episodes for this project."
+            title="No incident episodes"
+            subtitle="Incident episodes for this project will appear here."
+            icon="episodes"
           />
         }
         refreshControl={

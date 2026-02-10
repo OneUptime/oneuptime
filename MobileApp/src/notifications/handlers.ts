@@ -1,13 +1,9 @@
-import type { NavigationContainerRef } from "@react-navigation/native";
 import type { NotificationResponse } from "expo-notifications";
 
-type RootParamList = Record<string, object | undefined>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let navigationRef: any = null;
 
-let navigationRef: NavigationContainerRef<RootParamList> | null = null;
-
-export function setNavigationRef(
-  ref: NavigationContainerRef<RootParamList>,
-): void {
+export function setNavigationRef(ref: unknown): void {
   navigationRef = ref;
 }
 
@@ -25,28 +21,28 @@ function navigateToEntity(data: NotificationData): void {
 
   switch (data.entityType) {
     case "incident":
-      navigationRef.navigate("Incidents" as never, {
+      navigationRef.navigate("Incidents", {
         screen: "IncidentDetail",
         params: { incidentId: data.entityId },
-      } as never);
+      });
       break;
     case "alert":
-      navigationRef.navigate("Alerts" as never, {
+      navigationRef.navigate("Alerts", {
         screen: "AlertDetail",
         params: { alertId: data.entityId },
-      } as never);
+      });
       break;
     case "incident-episode":
-      navigationRef.navigate("IncidentEpisodes" as never, {
+      navigationRef.navigate("IncidentEpisodes", {
         screen: "IncidentEpisodeDetail",
         params: { episodeId: data.entityId },
-      } as never);
+      });
       break;
     case "alert-episode":
-      navigationRef.navigate("AlertEpisodes" as never, {
+      navigationRef.navigate("AlertEpisodes", {
         screen: "AlertEpisodeDetail",
         params: { episodeId: data.entityId },
-      } as never);
+      });
       break;
     default:
       break;

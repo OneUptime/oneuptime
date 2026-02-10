@@ -130,8 +130,9 @@ export default function IncidentsScreen(): React.JSX.Element {
         )}
         ListEmptyComponent={
           <EmptyState
-            title="No Incidents"
-            subtitle="There are no incidents for this project."
+            title="No active incidents"
+            subtitle="Incidents assigned to you will appear here."
+            icon="incidents"
           />
         }
         refreshControl={

@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { type Subscription } from "expo-notifications";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { NavigationContainerRef } from "@react-navigation/native";
 import {
   setupNotificationChannels,
   setupNotificationCategories,
@@ -18,10 +17,8 @@ import { useProject } from "./useProject";
 
 const PUSH_TOKEN_KEY = "oneuptime_expo_push_token";
 
-type RootParamList = Record<string, object | undefined>;
-
 export function usePushNotifications(
-  navigationRef: NavigationContainerRef<RootParamList> | null,
+  navigationRef: unknown,
 ): void {
   const { isAuthenticated } = useAuth();
   const { projectList } = useProject();
@@ -101,14 +98,10 @@ export function usePushNotifications(
 
     return () => {
       if (receivedListenerRef.current) {
-        Notifications.removeNotificationSubscription(
-          receivedListenerRef.current,
-        );
+        receivedListenerRef.current.remove();
       }
       if (responseListenerRef.current) {
-        Notifications.removeNotificationSubscription(
-          responseListenerRef.current,
-        );
+        responseListenerRef.current.remove();
       }
     };
   }, []);
