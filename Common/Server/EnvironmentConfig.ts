@@ -148,6 +148,9 @@ export const EncryptionSecret: ObjectID = new ObjectID(
   process.env["ENCRYPTION_SECRET"] || "secret",
 );
 
+export const OpenSourceDeploymentWebhookUrl: string =
+  process.env["OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL"] || "";
+
 export const AirtableApiKey: string = process.env["AIRTABLE_API_KEY"] || "";
 
 export const AirtableBaseId: string = process.env["AIRTABLE_BASE_ID"] || "";

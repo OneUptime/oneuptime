@@ -524,6 +524,10 @@ externalClickhouse:
     cert:
     key:
 
+openSourceDeployment:
+  # This webhook is called when a new self-hosted open source deployment registers.
+  webhookUrl:
+
 # Notification webhooks when certain events happen in the system. (usually they are slack webhooks)
 notifications:
   webhooks:

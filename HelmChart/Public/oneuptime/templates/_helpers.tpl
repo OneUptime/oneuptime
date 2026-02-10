@@ -225,6 +225,9 @@ Usage:
   value: {{ default "" $.Values.captcha.secretKey | quote }}
 
 
+- name: OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL
+  value: {{ default "" $.Values.openSourceDeployment.webhookUrl | quote }}
+
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
   value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}
 
