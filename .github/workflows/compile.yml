@@ -389,6 +389,22 @@ jobs:
           max_attempts: 3
           command: cd MCP && npm update @oneuptime/common && npm install && npm run compile && npm run dep-check
 
+  compile-mobile-app:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: latest
+      - name: Compile MobileApp
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd MobileApp && npm install && npm run compile
+
   compile-ai-agent:
     runs-on: ubuntu-latest
     env:
