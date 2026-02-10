@@ -108,13 +108,13 @@ export default function AlertDetailScreen({
     ? rgbToHex(alert.alertSeverity.color)
     : theme.colors.textTertiary;
 
+  // Find acknowledge and resolve states from fetched state definitions
   const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
   const resolveState = states?.find((s) => s.isResolvedState);
 
-  const currentStateName =
-    alert.currentAlertState?.name?.toLowerCase() ?? "";
-  const isResolved = currentStateName.includes("resolve");
-  const isAcknowledged = currentStateName.includes("acknowledge");
+  const currentStateId = alert.currentAlertState?._id;
+  const isResolved = resolveState?._id === currentStateId;
+  const isAcknowledged = acknowledgeState?._id === currentStateId;
 
   return (
     <ScrollView
