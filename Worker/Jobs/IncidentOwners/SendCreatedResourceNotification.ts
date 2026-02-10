@@ -214,6 +214,8 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
               ...(incident.incidentNumber !== undefined && {
                 incidentNumber: incident.incidentNumber,
               }),
+              incidentId: incident.id!.toString(),
+              projectId: incident.projectId!.toString(),
             });
 
           const eventType: NotificationSettingEventType =

@@ -113,6 +113,46 @@ export default class UserPushAPI extends BaseAPI<
     );
 
     this.router.post(
+      `/user-push/unregister`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          req = req as OneUptimeRequest;
+
+          if (!req.body.deviceToken) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device token is required"),
+            );
+          }
+
+          const userId: ObjectID = (req as OneUptimeRequest).userAuthorization!
+            .userId!;
+
+          await this.service.deleteBy({
+            query: {
+              userId: userId,
+              deviceToken: req.body.deviceToken,
+            },
+            limit: 100,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            success: true,
+            message: "Device unregistered successfully",
+          });
+        } catch (error) {
+          return next(error);
+        }
+      },
+    );
+
+    this.router.post(
       `/user-push/:deviceId/test-notification`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {

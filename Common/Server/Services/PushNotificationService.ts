@@ -16,6 +16,7 @@ import {
 } from "../EnvironmentConfig";
 import webpush from "web-push";
 import * as firebaseAdmin from "firebase-admin";
+import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import UserPush from "../../Models/DatabaseModels/UserPush";
@@ -47,6 +48,7 @@ export interface PushNotificationOptions {
 export default class PushNotificationService {
   public static isWebPushInitialized = false;
   public static isFirebaseInitialized = false;
+  private static expoClient: Expo = new Expo();
 
   public static initializeFirebase(): void {
     if (this.isFirebaseInitialized) {
@@ -135,7 +137,7 @@ export default class PushNotificationService {
         request.deviceType === PushDeviceType.Android
       ) {
         promises.push(
-          this.sendFcmPushNotification(
+          this.sendExpoPushNotification(
             device.token,
             request.message,
             request.deviceType,
@@ -425,6 +427,78 @@ export default class PushNotificationService {
         logger.info("FCM token is invalid or unregistered");
       }
 
+      throw error;
+    }
+  }
+
+  private static async sendExpoPushNotification(
+    expoPushToken: string,
+    message: PushNotificationMessage,
+    deviceType: PushDeviceType,
+    _options: PushNotificationOptions,
+  ): Promise<void> {
+    if (!Expo.isExpoPushToken(expoPushToken)) {
+      throw new Error(
+        `Invalid Expo push token for ${deviceType} device: ${expoPushToken}`,
+      );
+    }
+
+    try {
+      const dataPayload: { [key: string]: string } = {};
+      if (message.data) {
+        for (const key of Object.keys(message.data)) {
+          dataPayload[key] = String(message.data[key]);
+        }
+      }
+      if (message.url || message.clickAction) {
+        dataPayload["url"] = message.url || message.clickAction || "";
+      }
+
+      const channelId: string =
+        deviceType === PushDeviceType.Android ? "oncall_high" : "default";
+
+      const expoPushMessage: ExpoPushMessage = {
+        to: expoPushToken,
+        title: message.title,
+        body: message.body,
+        data: dataPayload,
+        sound: "default",
+        priority: "high",
+        channelId: channelId,
+      };
+
+      const tickets: ExpoPushTicket[] =
+        await this.expoClient.sendPushNotificationsAsync([expoPushMessage]);
+
+      const ticket: ExpoPushTicket | undefined = tickets[0];
+
+      if (ticket && ticket.status === "error") {
+        const errorTicket = ticket as ExpoPushTicket & {
+          message?: string;
+          details?: { error?: string };
+        };
+        logger.error(
+          `Expo push notification error for ${deviceType} device: ${errorTicket.message}`,
+        );
+
+        if (errorTicket.details?.error === "DeviceNotRegistered") {
+          logger.info(
+            "Expo push token is no longer valid (DeviceNotRegistered)",
+          );
+        }
+
+        throw new Error(
+          `Expo push notification failed: ${errorTicket.message}`,
+        );
+      }
+
+      logger.info(
+        `Expo push notification sent successfully to ${deviceType} device`,
+      );
+    } catch (error: any) {
+      logger.error(
+        `Failed to send Expo push notification to ${deviceType} device: ${error.message}`,
+      );
       throw error;
     }
   }

@@ -96,6 +96,7 @@
     "ejs": "^3.1.10",
     "elkjs": "^0.10.0",
     "esbuild": "^0.25.5",
+    "expo-server-sdk": "^3.10.0",
     "express": "^4.21.1",
     "firebase-admin": "^13.6.1",
     "formik": "^2.4.6",

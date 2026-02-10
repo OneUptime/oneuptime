@@ -1,8 +1,9 @@
 import React from "react";
-import { NavigationContainer, DefaultTheme, Theme } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme, Theme, useNavigationContainerRef } from "@react-navigation/native";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
 import { useProject } from "../hooks/useProject";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 import AuthStackNavigator from "./AuthStackNavigator";
 import MainTabNavigator from "./MainTabNavigator";
 import ProjectSelectionScreen from "../screens/ProjectSelectionScreen";
@@ -12,6 +13,9 @@ export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
   const { selectedProject, isLoadingProjects } = useProject();
+  const navigationRef = useNavigationContainerRef();
+
+  usePushNotifications(navigationRef);
 
   const navigationTheme: Theme = {
     ...DefaultTheme,
@@ -71,7 +75,7 @@ export default function RootNavigator(): React.JSX.Element {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       {renderContent()}
     </NavigationContainer>
   );

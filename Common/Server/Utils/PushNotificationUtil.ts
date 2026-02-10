@@ -21,6 +21,8 @@ export default class PushNotificationUtil {
     incidentViewLink: string;
     incidentNumber?: number;
     incidentNumberWithPrefix?: string;
+    incidentId?: string;
+    projectId?: string;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -28,6 +30,8 @@ export default class PushNotificationUtil {
       incidentViewLink,
       incidentNumber,
       incidentNumberWithPrefix,
+      incidentId,
+      projectId,
     } = params;
     const displayNumber: string =
       incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
@@ -43,6 +47,9 @@ export default class PushNotificationUtil {
       requireInteraction: true,
       data: {
         type: "incident-created",
+        entityType: "incident",
+        entityId: incidentId,
+        projectId: projectId,
         incidentTitle: incidentTitle,
         projectName: projectName,
         url: incidentViewLink,
@@ -58,6 +65,8 @@ export default class PushNotificationUtil {
     incidentViewLink: string;
     incidentNumber?: number;
     incidentNumberWithPrefix?: string;
+    incidentId?: string;
+    projectId?: string;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -67,6 +76,8 @@ export default class PushNotificationUtil {
       incidentViewLink,
       incidentNumber,
       incidentNumberWithPrefix,
+      incidentId,
+      projectId,
     } = params;
     const displayNumber: string =
       incidentNumberWithPrefix || (incidentNumber ? `#${incidentNumber}` : "");
@@ -85,6 +96,9 @@ export default class PushNotificationUtil {
       requireInteraction: true,
       data: {
         type: "incident-state-changed",
+        entityType: "incident",
+        entityId: incidentId,
+        projectId: projectId,
         incidentTitle: incidentTitle,
         projectName: projectName,
         newState: newState,
@@ -101,6 +115,8 @@ export default class PushNotificationUtil {
     incidentViewLink: string;
     incidentNumber?: number;
     incidentNumberWithPrefix?: string;
+    incidentId?: string;
+    projectId?: string;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -109,6 +125,8 @@ export default class PushNotificationUtil {
       incidentViewLink,
       incidentNumber,
       incidentNumberWithPrefix,
+      incidentId,
+      projectId,
     } = params;
     const noteType: string = isPrivateNote ? "Private" : "Public";
     const displayNumber: string =
@@ -125,6 +143,9 @@ export default class PushNotificationUtil {
       requireInteraction: true,
       data: {
         type: "incident-note-posted",
+        entityType: "incident",
+        entityId: incidentId,
+        projectId: projectId,
         incidentTitle: incidentTitle,
         projectName: projectName,
         isPrivateNote: isPrivateNote,
@@ -139,6 +160,8 @@ export default class PushNotificationUtil {
     alertViewLink: string;
     alertNumber?: number;
     alertNumberWithPrefix?: string;
+    alertId?: string;
+    projectId?: string;
   }): PushNotificationMessage {
     const {
       alertTitle,
@@ -146,6 +169,8 @@ export default class PushNotificationUtil {
       alertViewLink,
       alertNumber,
       alertNumberWithPrefix,
+      alertId,
+      projectId,
     } = params;
     const displayNumber: string =
       alertNumberWithPrefix || (alertNumber ? `#${alertNumber}` : "");
@@ -161,6 +186,9 @@ export default class PushNotificationUtil {
       requireInteraction: true,
       data: {
         type: "alert-created",
+        entityType: "alert",
+        entityId: alertId,
+        projectId: projectId,
         alertTitle: alertTitle,
         projectName: projectName,
         url: alertViewLink,
@@ -174,6 +202,8 @@ export default class PushNotificationUtil {
     alertEpisodeViewLink: string;
     episodeNumber?: number;
     episodeNumberWithPrefix?: string;
+    alertEpisodeId?: string;
+    projectId?: string;
   }): PushNotificationMessage {
     const {
       alertEpisodeTitle,
@@ -181,6 +211,8 @@ export default class PushNotificationUtil {
       alertEpisodeViewLink,
       episodeNumber,
       episodeNumberWithPrefix,
+      alertEpisodeId,
+      projectId,
     } = params;
     const displayNumber: string =
       episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
@@ -196,6 +228,9 @@ export default class PushNotificationUtil {
       requireInteraction: true,
       data: {
         type: "alert-episode-created",
+        entityType: "alert-episode",
+        entityId: alertEpisodeId,
+        projectId: projectId,
         alertEpisodeTitle: alertEpisodeTitle,
         projectName: projectName,
         url: alertEpisodeViewLink,
@@ -209,6 +244,8 @@ export default class PushNotificationUtil {
     incidentEpisodeViewLink: string;
     episodeNumber?: number;
     episodeNumberWithPrefix?: string;
+    incidentEpisodeId?: string;
+    projectId?: string;
   }): PushNotificationMessage {
     const {
       incidentEpisodeTitle,
@@ -216,6 +253,8 @@ export default class PushNotificationUtil {
       incidentEpisodeViewLink,
       episodeNumber,
       episodeNumberWithPrefix,
+      incidentEpisodeId,
+      projectId,
     } = params;
     const displayNumber: string =
       episodeNumberWithPrefix || (episodeNumber ? `#${episodeNumber}` : "");
@@ -231,6 +270,9 @@ export default class PushNotificationUtil {
       requireInteraction: true,
       data: {
         type: "incident-episode-created",
+        entityType: "incident-episode",
+        entityId: incidentEpisodeId,
+        projectId: projectId,
         incidentEpisodeTitle: incidentEpisodeTitle,
         projectName: projectName,
         url: incidentEpisodeViewLink,
@@ -244,6 +286,8 @@ export default class PushNotificationUtil {
     newStatus: string;
     previousStatus?: string;
     monitorViewLink: string;
+    monitorId?: string;
+    projectId?: string;
   }): PushNotificationMessage {
     const {
       monitorName,
@@ -251,6 +295,8 @@ export default class PushNotificationUtil {
       newStatus,
       previousStatus,
       monitorViewLink,
+      monitorId,
+      projectId,
     } = params;
     const statusChangeText: string = previousStatus
       ? `Monitor status changed from ${previousStatus} to ${newStatus}`
@@ -264,6 +310,9 @@ export default class PushNotificationUtil {
       requireInteraction: true,
       data: {
         type: "monitor-status-changed",
+        entityType: "monitor",
+        entityId: monitorId,
+        projectId: projectId,
         monitorName: monitorName,
         projectName: projectName,
         newStatus: newStatus,
@@ -280,6 +329,8 @@ export default class PushNotificationUtil {
     viewLink: string;
     scheduledMaintenanceNumber?: number;
     scheduledMaintenanceNumberWithPrefix?: string;
+    scheduledMaintenanceId?: string;
+    projectId?: string;
   }): PushNotificationMessage {
     const {
       title,
@@ -288,6 +339,8 @@ export default class PushNotificationUtil {
       viewLink,
       scheduledMaintenanceNumber,
       scheduledMaintenanceNumberWithPrefix,
+      scheduledMaintenanceId,
+      projectId,
     } = params;
     const displayNumber: string =
       scheduledMaintenanceNumberWithPrefix ||
@@ -304,6 +357,9 @@ export default class PushNotificationUtil {
       requireInteraction: false,
       data: {
         type: "scheduled-maintenance",
+        entityType: "scheduled-maintenance",
+        entityId: scheduledMaintenanceId,
+        projectId: projectId,
         title: title,
         projectName: projectName,
         state: state,

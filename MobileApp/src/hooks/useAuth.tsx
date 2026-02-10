@@ -14,6 +14,7 @@ import {
   LoginResponse,
 } from "../api/auth";
 import { setOnAuthFailure } from "../api/client";
+import { unregisterPushToken } from "./usePushNotifications";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -85,6 +86,7 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
   );
 
   const logout = useCallback(async (): Promise<void> => {
+    await unregisterPushToken();
     await apiLogout();
     setIsAuthenticated(false);
     setUser(null);

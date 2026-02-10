@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.oneuptime.oncall"
+      "bundleIdentifier": "com.oneuptime.oncall",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +28,14 @@
       "edgeToEdgeEnabled": true,
       "package": "com.oneuptime.oncall"
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#58A6FF"
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }

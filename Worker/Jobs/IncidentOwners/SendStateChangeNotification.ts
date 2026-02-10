@@ -292,6 +292,8 @@ RunCron(
           previousState?: string;
           incidentViewLink: string;
           incidentNumber?: number;
+          incidentId?: string;
+          projectId?: string;
         } = {
           incidentTitle: incident.title!,
           projectName: incidentStateTimeline.project!.name!,
@@ -300,6 +302,8 @@ RunCron(
           ...(incident.incidentNumber !== undefined && {
             incidentNumber: incident.incidentNumber,
           }),
+          incidentId: incident.id!.toString(),
+          projectId: incident.projectId!.toString(),
         };
 
         if (previousState?.name) {
