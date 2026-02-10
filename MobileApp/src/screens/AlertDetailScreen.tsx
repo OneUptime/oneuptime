@@ -17,11 +17,14 @@ import {
   useAlertStates,
   useAlertStateTimeline,
 } from "../hooks/useAlertDetail";
+import { useAlertNotes } from "../hooks/useAlertNotes";
 import { changeAlertState } from "../api/alerts";
+import { createAlertNote } from "../api/alertNotes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { AlertsStackParamList } from "../navigation/types";
 import { useQueryClient } from "@tanstack/react-query";
+import AddNoteModal from "../components/AddNoteModal";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertDetail">;
 
@@ -44,27 +47,66 @@ export default function AlertDetailScreen({
     data: timeline,
     refetch: refetchTimeline,
   } = useAlertStateTimeline(projectId, alertId);
+  const {
+    data: notes,
+    refetch: refetchNotes,
+  } = useAlertNotes(projectId, alertId);
 
   const [changingState, setChangingState] = useState(false);
+  const [noteModalVisible, setNoteModalVisible] = useState(false);
+  const [submittingNote, setSubmittingNote] = useState(false);
 
   const onRefresh = useCallback(async () => {
-    await Promise.all([refetchAlert(), refetchTimeline()]);
-  }, [refetchAlert, refetchTimeline]);
+    await Promise.all([refetchAlert(), refetchTimeline(), refetchNotes()]);
+  }, [refetchAlert, refetchTimeline, refetchNotes]);
 
   const handleStateChange = useCallback(
     async (stateId: string, stateName: string) => {
+      if (!alert) {
+        return;
+      }
+      const queryKey = ["alert", projectId, alertId];
+      const previousData = queryClient.getQueryData(queryKey);
+      const newState = states?.find((s) => s._id === stateId);
+      if (newState) {
+        queryClient.setQueryData(queryKey, {
+          ...alert,
+          currentAlertState: {
+            _id: newState._id,
+            name: newState.name,
+            color: newState.color,
+          },
+        });
+      }
       setChangingState(true);
       try {
         await changeAlertState(projectId, alertId, stateId);
         await Promise.all([refetchAlert(), refetchTimeline()]);
         await queryClient.invalidateQueries({ queryKey: ["alerts"] });
       } catch {
+        queryClient.setQueryData(queryKey, previousData);
         Alert.alert("Error", `Failed to change state to ${stateName}.`);
       } finally {
         setChangingState(false);
       }
     },
-    [projectId, alertId, refetchAlert, refetchTimeline, queryClient],
+    [projectId, alertId, alert, states, refetchAlert, refetchTimeline, queryClient],
+  );
+
+  const handleAddNote = useCallback(
+    async (noteText: string) => {
+      setSubmittingNote(true);
+      try {
+        await createAlertNote(projectId, alertId, noteText);
+        await refetchNotes();
+        setNoteModalVisible(false);
+      } catch {
+        Alert.alert("Error", "Failed to add note.");
+      } finally {
+        setSubmittingNote(false);
+      }
+    },
+    [projectId, alertId, refetchNotes],
   );
 
   if (isLoading) {
@@ -356,6 +398,98 @@ export default function AlertDetailScreen({
           })}
         </View>
       ) : null}
+
+      {/* Internal Notes */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: theme.colors.textSecondary, marginBottom: 0 },
+            ]}
+          >
+            Internal Notes
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.addNoteButton,
+              { backgroundColor: theme.colors.actionPrimary },
+            ]}
+            onPress={() => setNoteModalVisible(true)}
+          >
+            <Text
+              style={[
+                styles.addNoteButtonText,
+                { color: theme.colors.textInverse },
+              ]}
+            >
+              Add Note
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {notes && notes.length > 0
+          ? notes.map((note) => (
+              <View
+                key={note._id}
+                style={[
+                  styles.noteCard,
+                  {
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderColor: theme.colors.borderSubtle,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    theme.typography.bodyMedium,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  {note.note}
+                </Text>
+                <View style={styles.noteMeta}>
+                  {note.createdByUser ? (
+                    <Text
+                      style={[
+                        theme.typography.bodySmall,
+                        { color: theme.colors.textTertiary },
+                      ]}
+                    >
+                      {note.createdByUser.name}
+                    </Text>
+                  ) : null}
+                  <Text
+                    style={[
+                      theme.typography.bodySmall,
+                      { color: theme.colors.textTertiary },
+                    ]}
+                  >
+                    {formatDateTime(note.createdAt)}
+                  </Text>
+                </View>
+              </View>
+            ))
+          : null}
+
+        {notes && notes.length === 0 ? (
+          <Text
+            style={[
+              theme.typography.bodySmall,
+              { color: theme.colors.textTertiary },
+            ]}
+          >
+            No notes yet.
+          </Text>
+        ) : null}
+      </View>
+
+      <AddNoteModal
+        visible={noteModalVisible}
+        onClose={() => setNoteModalVisible(false)}
+        onSubmit={handleAddNote}
+        isSubmitting={submittingNote}
+      />
     </ScrollView>
   );
 }
@@ -399,6 +533,12 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 13,
@@ -455,5 +595,25 @@ const styles = StyleSheet.create({
   },
   timelineInfo: {
     flex: 1,
+  },
+  addNoteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  addNoteButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  noteCard: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 8,
+  },
+  noteMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
   },
 });

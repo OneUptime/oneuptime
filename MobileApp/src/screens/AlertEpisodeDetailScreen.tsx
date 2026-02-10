@@ -13,65 +13,70 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import {
-  useIncidentDetail,
-  useIncidentStates,
-  useIncidentStateTimeline,
-} from "../hooks/useIncidentDetail";
-import { useIncidentNotes } from "../hooks/useIncidentNotes";
-import { changeIncidentState } from "../api/incidents";
-import { createIncidentNote } from "../api/incidentNotes";
+  useAlertEpisodeDetail,
+  useAlertEpisodeStates,
+  useAlertEpisodeStateTimeline,
+  useAlertEpisodeNotes,
+} from "../hooks/useAlertEpisodeDetail";
+import {
+  changeAlertEpisodeState,
+  createAlertEpisodeNote,
+} from "../api/alertEpisodes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
-import type { IncidentsStackParamList } from "../navigation/types";
+import type { AlertEpisodesStackParamList } from "../navigation/types";
 import { useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
 
-type Props = NativeStackScreenProps<IncidentsStackParamList, "IncidentDetail">;
+type Props = NativeStackScreenProps<
+  AlertEpisodesStackParamList,
+  "AlertEpisodeDetail"
+>;
 
-export default function IncidentDetailScreen({
+export default function AlertEpisodeDetailScreen({
   route,
 }: Props): React.JSX.Element {
-  const { incidentId } = route.params;
+  const { episodeId } = route.params;
   const { theme } = useTheme();
   const { selectedProject } = useProject();
   const projectId = selectedProject?._id ?? "";
   const queryClient = useQueryClient();
 
   const {
-    data: incident,
+    data: episode,
     isLoading,
-    refetch: refetchIncident,
-  } = useIncidentDetail(projectId, incidentId);
-  const { data: states } = useIncidentStates(projectId);
+    refetch: refetchEpisode,
+  } = useAlertEpisodeDetail(projectId, episodeId);
+  const { data: states } = useAlertEpisodeStates(projectId);
   const {
     data: timeline,
     refetch: refetchTimeline,
-  } = useIncidentStateTimeline(projectId, incidentId);
+  } = useAlertEpisodeStateTimeline(projectId, episodeId);
   const {
     data: notes,
     refetch: refetchNotes,
-  } = useIncidentNotes(projectId, incidentId);
+  } = useAlertEpisodeNotes(projectId, episodeId);
 
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
   const onRefresh = useCallback(async () => {
-    await Promise.all([refetchIncident(), refetchTimeline(), refetchNotes()]);
-  }, [refetchIncident, refetchTimeline, refetchNotes]);
+    await Promise.all([refetchEpisode(), refetchTimeline(), refetchNotes()]);
+  }, [refetchEpisode, refetchTimeline, refetchNotes]);
 
   const handleStateChange = useCallback(
     async (stateId: string, stateName: string) => {
-      if (!incident) {
+      if (!episode) {
         return;
       }
-      const queryKey = ["incident", projectId, incidentId];
+      const queryKey = ["alert-episode", projectId, episodeId];
       const previousData = queryClient.getQueryData(queryKey);
       const newState = states?.find((s) => s._id === stateId);
       if (newState) {
         queryClient.setQueryData(queryKey, {
-          ...incident,
-          currentIncidentState: {
+          ...episode,
+          currentAlertState: {
             _id: newState._id,
             name: newState.name,
             color: newState.color,
@@ -80,9 +85,11 @@ export default function IncidentDetailScreen({
       }
       setChangingState(true);
       try {
-        await changeIncidentState(projectId, incidentId, stateId);
-        await Promise.all([refetchIncident(), refetchTimeline()]);
-        await queryClient.invalidateQueries({ queryKey: ["incidents"] });
+        await changeAlertEpisodeState(projectId, episodeId, stateId);
+        await Promise.all([refetchEpisode(), refetchTimeline()]);
+        await queryClient.invalidateQueries({
+          queryKey: ["alert-episodes"],
+        });
       } catch {
         queryClient.setQueryData(queryKey, previousData);
         Alert.alert("Error", `Failed to change state to ${stateName}.`);
@@ -90,14 +97,22 @@ export default function IncidentDetailScreen({
         setChangingState(false);
       }
     },
-    [projectId, incidentId, incident, states, refetchIncident, refetchTimeline, queryClient],
+    [
+      projectId,
+      episodeId,
+      episode,
+      states,
+      refetchEpisode,
+      refetchTimeline,
+      queryClient,
+    ],
   );
 
   const handleAddNote = useCallback(
     async (noteText: string) => {
       setSubmittingNote(true);
       try {
-        await createIncidentNote(projectId, incidentId, noteText);
+        await createAlertEpisodeNote(projectId, episodeId, noteText);
         await refetchNotes();
         setNoteModalVisible(false);
       } catch {
@@ -106,7 +121,7 @@ export default function IncidentDetailScreen({
         setSubmittingNote(false);
       }
     },
-    [projectId, incidentId, refetchNotes],
+    [projectId, episodeId, refetchNotes],
   );
 
   if (isLoading) {
@@ -122,7 +137,7 @@ export default function IncidentDetailScreen({
     );
   }
 
-  if (!incident) {
+  if (!episode) {
     return (
       <View
         style={[
@@ -136,25 +151,24 @@ export default function IncidentDetailScreen({
             { color: theme.colors.textSecondary },
           ]}
         >
-          Incident not found.
+          Episode not found.
         </Text>
       </View>
     );
   }
 
-  const stateColor = incident.currentIncidentState?.color
-    ? rgbToHex(incident.currentIncidentState.color)
+  const stateColor = episode.currentAlertState?.color
+    ? rgbToHex(episode.currentAlertState.color)
     : theme.colors.textTertiary;
 
-  const severityColor = incident.incidentSeverity?.color
-    ? rgbToHex(incident.incidentSeverity.color)
+  const severityColor = episode.alertSeverity?.color
+    ? rgbToHex(episode.alertSeverity.color)
     : theme.colors.textTertiary;
 
-  // Find acknowledge and resolve states from fetched state definitions
   const acknowledgeState = states?.find((s) => s.isAcknowledgedState);
   const resolveState = states?.find((s) => s.isResolvedState);
 
-  const currentStateId = incident.currentIncidentState?._id;
+  const currentStateId = episode.currentAlertState?._id;
   const isResolved = resolveState?._id === currentStateId;
   const isAcknowledged = acknowledgeState?._id === currentStateId;
 
@@ -167,13 +181,8 @@ export default function IncidentDetailScreen({
       }
     >
       {/* Header */}
-      <Text
-        style={[
-          styles.number,
-          { color: theme.colors.textTertiary },
-        ]}
-      >
-        {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
+      <Text style={[styles.number, { color: theme.colors.textTertiary }]}>
+        {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
       </Text>
 
       <Text
@@ -182,12 +191,12 @@ export default function IncidentDetailScreen({
           { color: theme.colors.textPrimary, marginTop: 4 },
         ]}
       >
-        {incident.title}
+        {episode.title}
       </Text>
 
       {/* Badges */}
       <View style={styles.badgeRow}>
-        {incident.currentIncidentState ? (
+        {episode.currentAlertState ? (
           <View
             style={[
               styles.badge,
@@ -195,25 +204,27 @@ export default function IncidentDetailScreen({
             ]}
           >
             <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text style={[styles.badgeText, { color: theme.colors.textPrimary }]}>
-              {incident.currentIncidentState.name}
+            <Text
+              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
+            >
+              {episode.currentAlertState.name}
             </Text>
           </View>
         ) : null}
 
-        {incident.incidentSeverity ? (
+        {episode.alertSeverity ? (
           <View
             style={[styles.badge, { backgroundColor: severityColor + "26" }]}
           >
             <Text style={[styles.badgeText, { color: severityColor }]}>
-              {incident.incidentSeverity.name}
+              {episode.alertSeverity.name}
             </Text>
           </View>
         ) : null}
       </View>
 
       {/* Description */}
-      {incident.description ? (
+      {episode.description ? (
         <View style={styles.section}>
           <Text
             style={[
@@ -229,7 +240,7 @@ export default function IncidentDetailScreen({
               { color: theme.colors.textPrimary },
             ]}
           >
-            {incident.description}
+            {episode.description}
           </Text>
         </View>
       ) : null}
@@ -251,54 +262,43 @@ export default function IncidentDetailScreen({
             },
           ]}
         >
-          {incident.declaredAt ? (
-            <View style={styles.detailRow}>
-              <Text
-                style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
-              >
-                Declared
-              </Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  { color: theme.colors.textPrimary },
-                ]}
-              >
-                {formatDateTime(incident.declaredAt)}
-              </Text>
-            </View>
-          ) : null}
-
           <View style={styles.detailRow}>
             <Text
-              style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
+              style={[
+                styles.detailLabel,
+                { color: theme.colors.textTertiary },
+              ]}
             >
               Created
             </Text>
             <Text
-              style={[styles.detailValue, { color: theme.colors.textPrimary }]}
+              style={[
+                styles.detailValue,
+                { color: theme.colors.textPrimary },
+              ]}
             >
-              {formatDateTime(incident.createdAt)}
+              {formatDateTime(episode.createdAt)}
             </Text>
           </View>
 
-          {incident.monitors?.length > 0 ? (
-            <View style={styles.detailRow}>
-              <Text
-                style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
-              >
-                Monitors
-              </Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  { color: theme.colors.textPrimary, flex: 1 },
-                ]}
-              >
-                {incident.monitors.map((m) => m.name).join(", ")}
-              </Text>
-            </View>
-          ) : null}
+          <View style={styles.detailRow}>
+            <Text
+              style={[
+                styles.detailLabel,
+                { color: theme.colors.textTertiary },
+              ]}
+            >
+              Alerts
+            </Text>
+            <Text
+              style={[
+                styles.detailValue,
+                { color: theme.colors.textPrimary },
+              ]}
+            >
+              {episode.alertCount ?? 0}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -329,7 +329,10 @@ export default function IncidentDetailScreen({
                 disabled={changingState}
               >
                 {changingState ? (
-                  <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textInverse}
+                  />
                 ) : (
                   <Text
                     style={[
@@ -355,7 +358,10 @@ export default function IncidentDetailScreen({
                 disabled={changingState}
               >
                 {changingState ? (
-                  <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textInverse}
+                  />
                 ) : (
                   <Text
                     style={[
@@ -384,8 +390,8 @@ export default function IncidentDetailScreen({
             State Timeline
           </Text>
           {timeline.map((entry) => {
-            const entryColor = entry.incidentState?.color
-              ? rgbToHex(entry.incidentState.color)
+            const entryColor = entry.alertState?.color
+              ? rgbToHex(entry.alertState.color)
               : theme.colors.textTertiary;
             return (
               <View
@@ -399,16 +405,22 @@ export default function IncidentDetailScreen({
                 ]}
               >
                 <View
-                  style={[styles.timelineDot, { backgroundColor: entryColor }]}
+                  style={[
+                    styles.timelineDot,
+                    { backgroundColor: entryColor },
+                  ]}
                 />
                 <View style={styles.timelineInfo}>
                   <Text
                     style={[
                       theme.typography.bodyMedium,
-                      { color: theme.colors.textPrimary, fontWeight: "600" },
+                      {
+                        color: theme.colors.textPrimary,
+                        fontWeight: "600",
+                      },
                     ]}
                   >
-                    {entry.incidentState?.name ?? "Unknown"}
+                    {entry.alertState?.name ?? "Unknown"}
                   </Text>
                   <Text
                     style={[

@@ -79,3 +79,35 @@ export interface StateTimelineItem {
   incidentState?: NamedEntityWithColor;
   alertState?: NamedEntityWithColor;
 }
+
+export interface IncidentEpisodeItem {
+  _id: string;
+  title: string;
+  episodeNumber: number;
+  episodeNumberWithPrefix: string;
+  description: string;
+  createdAt: string;
+  declaredAt: string;
+  incidentCount: number;
+  currentIncidentState: NamedEntityWithColor;
+  incidentSeverity: NamedEntityWithColor;
+}
+
+export interface AlertEpisodeItem {
+  _id: string;
+  title: string;
+  episodeNumber: number;
+  episodeNumberWithPrefix: string;
+  description: string;
+  createdAt: string;
+  alertCount: number;
+  currentAlertState: NamedEntityWithColor;
+  alertSeverity: NamedEntityWithColor;
+}
+
+export interface NoteItem {
+  _id: string;
+  note: string;
+  createdAt: string;
+  createdByUser: { _id: string; name: string } | null;
+}

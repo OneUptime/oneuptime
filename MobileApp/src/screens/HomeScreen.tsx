@@ -11,6 +11,8 @@ import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import { useUnresolvedIncidentCount } from "../hooks/useIncidents";
 import { useUnresolvedAlertCount } from "../hooks/useAlerts";
+import { useUnresolvedIncidentEpisodeCount } from "../hooks/useIncidentEpisodes";
+import { useUnresolvedAlertEpisodeCount } from "../hooks/useAlertEpisodes";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
@@ -35,8 +37,25 @@ export default function HomeScreen(): React.JSX.Element {
     refetch: refetchAlerts,
   } = useUnresolvedAlertCount(projectId);
 
+  const {
+    data: incidentEpisodeCount,
+    isLoading: loadingIncidentEpisodes,
+    refetch: refetchIncidentEpisodes,
+  } = useUnresolvedIncidentEpisodeCount(projectId);
+
+  const {
+    data: alertEpisodeCount,
+    isLoading: loadingAlertEpisodes,
+    refetch: refetchAlertEpisodes,
+  } = useUnresolvedAlertEpisodeCount(projectId);
+
   const onRefresh = async (): Promise<void> => {
-    await Promise.all([refetchIncidents(), refetchAlerts()]);
+    await Promise.all([
+      refetchIncidents(),
+      refetchAlerts(),
+      refetchIncidentEpisodes(),
+      refetchAlertEpisodes(),
+    ]);
   };
 
   return (
@@ -109,6 +128,54 @@ export default function HomeScreen(): React.JSX.Element {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.cardRow}>
+        <TouchableOpacity
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderColor: theme.colors.borderSubtle,
+            },
+          ]}
+          onPress={() => navigation.navigate("IncidentEpisodes")}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[styles.cardCount, { color: theme.colors.severityCritical }]}
+          >
+            {loadingIncidentEpisodes ? "-" : (incidentEpisodeCount ?? 0)}
+          </Text>
+          <Text
+            style={[styles.cardLabel, { color: theme.colors.textSecondary }]}
+          >
+            Inc Episodes
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderColor: theme.colors.borderSubtle,
+            },
+          ]}
+          onPress={() => navigation.navigate("AlertEpisodes")}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[styles.cardCount, { color: theme.colors.severityMajor }]}
+          >
+            {loadingAlertEpisodes ? "-" : (alertEpisodeCount ?? 0)}
+          </Text>
+          <Text
+            style={[styles.cardLabel, { color: theme.colors.textSecondary }]}
+          >
+            Alert Episodes
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
         style={[
           styles.linkCard,
@@ -151,6 +218,54 @@ export default function HomeScreen(): React.JSX.Element {
           ]}
         >
           View All Alerts
+        </Text>
+        <Text style={[styles.arrow, { color: theme.colors.textTertiary }]}>
+          &gt;
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.linkCard,
+          {
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderColor: theme.colors.borderSubtle,
+          },
+        ]}
+        onPress={() => navigation.navigate("IncidentEpisodes")}
+        activeOpacity={0.7}
+      >
+        <Text
+          style={[
+            theme.typography.bodyLarge,
+            { color: theme.colors.textPrimary, fontWeight: "600" },
+          ]}
+        >
+          View Incident Episodes
+        </Text>
+        <Text style={[styles.arrow, { color: theme.colors.textTertiary }]}>
+          &gt;
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.linkCard,
+          {
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderColor: theme.colors.borderSubtle,
+          },
+        ]}
+        onPress={() => navigation.navigate("AlertEpisodes")}
+        activeOpacity={0.7}
+      >
+        <Text
+          style={[
+            theme.typography.bodyLarge,
+            { color: theme.colors.textPrimary, fontWeight: "600" },
+          ]}
+        >
+          View Alert Episodes
         </Text>
         <Text style={[styles.arrow, { color: theme.colors.textTertiary }]}>
           &gt;

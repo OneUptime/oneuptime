@@ -4,6 +4,8 @@ import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
 import IncidentsStackNavigator from "./IncidentsStackNavigator";
 import AlertsStackNavigator from "./AlertsStackNavigator";
+import IncidentEpisodesStackNavigator from "./IncidentEpisodesStackNavigator";
+import AlertEpisodesStackNavigator from "./AlertEpisodesStackNavigator";
 import SettingsScreen from "../screens/SettingsScreen";
 import { useTheme } from "../theme";
 
@@ -37,6 +39,16 @@ export default function MainTabNavigator(): React.JSX.Element {
         name="Alerts"
         component={AlertsStackNavigator}
         options={{ headerShown: false }}
+      />
+      <Tab.Screen
+        name="IncidentEpisodes"
+        component={IncidentEpisodesStackNavigator}
+        options={{ headerShown: false, title: "Inc Episodes" }}
+      />
+      <Tab.Screen
+        name="AlertEpisodes"
+        component={AlertEpisodesStackNavigator}
+        options={{ headerShown: false, title: "Alert Episodes" }}
       />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
