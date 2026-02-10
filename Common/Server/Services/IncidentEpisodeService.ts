@@ -610,11 +610,12 @@ export class Service extends DatabaseService<Model> {
       cascadeToIncidents: cascadeToIncidents,
     });
 
-    // Clear allIncidentsResolvedAt when episode is reopened
+    // Clear resolved timestamp and allIncidentsResolvedAt when episode is reopened
     await this.updateOneById({
       id: episodeId,
       data: {
-        allIncidentsResolvedAt: undefined as any,
+        resolvedAt: null,
+        allIncidentsResolvedAt: null,
       },
       props: {
         isRoot: true,

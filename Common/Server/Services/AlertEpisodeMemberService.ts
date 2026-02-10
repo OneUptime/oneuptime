@@ -95,9 +95,7 @@ export class Service extends DatabaseService<Model> {
 
     // Update episode's alertCount and lastAlertAddedAt
     try {
-      await AlertEpisodeService.updateAlertCount(
-        createdItem.alertEpisodeId!,
-      );
+      await AlertEpisodeService.updateAlertCount(createdItem.alertEpisodeId!);
       await AlertEpisodeService.updateLastAlertAddedAt(
         createdItem.alertEpisodeId!,
       );
