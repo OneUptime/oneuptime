@@ -4,8 +4,6 @@ export class MigrationName1770728946893 implements MigrationInterface {
     name = 'MigrationName1770728946893'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "WorkspaceNotificationRule" DROP CONSTRAINT "FK_WorkspaceNotificationRule_workspaceProjectAuthTokenId"`);
-        await queryRunner.query(`ALTER TABLE "WorkspaceNotificationRule" DROP COLUMN "workspaceProjectAuthTokenId"`);
         await queryRunner.query(`ALTER TABLE "IncidentEpisode" ADD "allIncidentsResolvedAt" TIMESTAMP WITH TIME ZONE`);
         await queryRunner.query(`ALTER TABLE "AlertEpisode" ADD "allAlertsResolvedAt" TIMESTAMP WITH TIME ZONE`);
         await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`);
@@ -21,8 +19,6 @@ export class MigrationName1770728946893 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`);
         await queryRunner.query(`ALTER TABLE "AlertEpisode" DROP COLUMN "allAlertsResolvedAt"`);
         await queryRunner.query(`ALTER TABLE "IncidentEpisode" DROP COLUMN "allIncidentsResolvedAt"`);
-        await queryRunner.query(`ALTER TABLE "WorkspaceNotificationRule" ADD "workspaceProjectAuthTokenId" uuid`);
-        await queryRunner.query(`ALTER TABLE "WorkspaceNotificationRule" ADD CONSTRAINT "FK_WorkspaceNotificationRule_workspaceProjectAuthTokenId" FOREIGN KEY ("workspaceProjectAuthTokenId") REFERENCES "WorkspaceProjectAuthToken"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
     }
 
 }
