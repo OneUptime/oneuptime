@@ -66,7 +66,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   const uniqueId: string = useId();
   const errorId: string = `dropdown-error-${uniqueId}`;
 
-  const isDropdownOptionGroup = (
+  const isDropdownOptionGroup: (
+    item: DropdownOption | DropdownOptionGroup,
+  ) => item is DropdownOptionGroup = (
     item: DropdownOption | DropdownOptionGroup,
   ): item is DropdownOptionGroup => {
     return (
