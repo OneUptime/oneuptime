@@ -4,6 +4,10 @@ export interface DataTypeDocumentation {
   name: string;
   path: string;
   description: string;
+  // Additional column type display strings that should link to this data type page.
+  // Used for cases where the TableColumnType enum value doesn't match the PascalCase name
+  // (e.g., enum "Date" should link to the "DateTime" data type page).
+  columnTypeAliases?: Array<string>;
 }
 
 export default class DataTypeUtil {
@@ -70,6 +74,7 @@ export default class DataTypeUtil {
         name: "PositiveNumber",
         path: "positive-number",
         description: "A number type that must be greater than zero.",
+        columnTypeAliases: ["Small Positive Number", "Big Positive Number"],
       },
       {
         name: "MonitorCriteriaInstance",
@@ -197,6 +202,7 @@ export default class DataTypeUtil {
         path: "date-time",
         description:
           "An ISO 8601 date-time string (e.g., 2024-01-15T10:30:00.000Z).",
+        columnTypeAliases: ["Date"],
       },
       {
         name: "Buffer",
@@ -251,5 +257,42 @@ export default class DataTypeUtil {
     }
 
     return dict;
+  }
+
+  // Convert PascalCase name to space-separated display string.
+  // e.g., "ObjectID" → "Object ID", "MonitorSteps" → "Monitor Steps",
+  //        "HashedString" → "Hashed String", "IP" → "IP"
+  private static pascalCaseToDisplayString(name: string): string {
+    return name
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
+  }
+
+  // Build a mapping from column type display strings to data type page paths.
+  // Automatically derives both PascalCase and display-string variants from each
+  // data type's name, so adding a new entry to getDataTypes() is all that's needed.
+  public static getTypeToDocPathMap(): Dictionary<string> {
+    const map: Dictionary<string> = {};
+
+    for (const dt of DataTypeUtil.getDataTypes()) {
+      // Map PascalCase name: "ObjectID" → "object-id"
+      map[dt.name] = dt.path;
+
+      // Map display string: "Object ID" → "object-id"
+      const displayName: string =
+        DataTypeUtil.pascalCaseToDisplayString(dt.name);
+      if (displayName !== dt.name) {
+        map[displayName] = dt.path;
+      }
+
+      // Map any explicit aliases (for edge cases like enum "Date" → "date-time")
+      if (dt.columnTypeAliases) {
+        for (const alias of dt.columnTypeAliases) {
+          map[alias] = dt.path;
+        }
+      }
+    }
+
+    return map;
   }
 }
