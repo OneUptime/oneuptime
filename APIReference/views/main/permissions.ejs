@@ -14,17 +14,38 @@
          <p class="text-lg text-slate-600 leading-relaxed max-w-2xl">Your API Token needs permissions to create, update, read or delete any resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response. You can manage permissions for your API Key in Project Settings > API Keys.</p>
       </div>
 
-      <h2 id="permissions-list" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-6 mt-12">
-         Permissions List
-      </h2>
-      <p class="text-slate-600 leading-relaxed mb-6">Here is a list of all the permissions, organized by category:</p>
+      <!-- Quick Navigation -->
+      <div class="my-6 flex gap-3 rounded-xl border border-indigo-500/20 bg-indigo-50/50 p-4">
+         <div class="flex-shrink-0">
+            <svg viewBox="0 0 16 16" aria-hidden="true" class="h-5 w-5 fill-indigo-500 stroke-white">
+               <circle cx="8" cy="8" r="8" stroke-width="0"></circle>
+               <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.75h1.5v3.5"></path>
+               <circle cx="8" cy="4" r=".5" fill="none"></circle>
+            </svg>
+         </div>
+         <div>
+            <p class="text-sm font-medium text-indigo-900 mb-2">Jump to a category</p>
+            <div class="flex flex-wrap gap-2">
+               <% for(var g=0; g<pageData.permissionGroups.length; g++) { %>
+                  <a href="#<%= pageData.permissionGroups[g].group.toLowerCase().replace(/ /g, '-') -%>"
+                     class="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-200 transition-colors">
+                     <%= pageData.permissionGroups[g].group %>
+                     <span class="text-slate-400">(<%= pageData.permissionGroups[g].permissions.length %>)</span>
+                  </a>
+               <% } %>
+            </div>
+         </div>
+      </div>
 
       <% for(var g=0; g<pageData.permissionGroups.length; g++) { %>
-         <h3 id="<%= pageData.permissionGroups[g].group.toLowerCase().replace(/ /g, '-') -%>" class="scroll-mt-24 text-lg font-semibold text-slate-800 mb-4 mt-10">
+         <h2 id="<%= pageData.permissionGroups[g].group.toLowerCase().replace(/ /g, '-') -%>"
+            class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-4 mt-12 <%= g > 0 ? 'pt-8 border-t border-slate-200' : '' %>">
             <%= pageData.permissionGroups[g].group %>
-         </h3>
-         <div class="rounded-xl border border-slate-200 bg-white overflow-hidden mb-8">
-            <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
+            <span class="ml-2 align-middle inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"><%= pageData.permissionGroups[g].permissions.length %></span>
+         </h2>
+
+         <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
                <% for(var i=0; i<pageData.permissionGroups[g].permissions.length; i++) { %>
                   <li class="m-0 px-5 py-4 hover:bg-slate-50/50 transition-colors">
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
