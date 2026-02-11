@@ -505,11 +505,12 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         // Update the state
         const episodeId: ObjectID = new ObjectID(actionValue);
 
-        await IncidentEpisodeService.updateOneById({
-          id: episodeId,
-          data: {
-            currentIncidentStateId: new ObjectID(incidentStateId.toString()),
-          },
+        await IncidentEpisodeService.changeEpisodeState({
+          projectId: projectId,
+          episodeId: episodeId,
+          incidentStateId: new ObjectID(incidentStateId.toString()),
+          notifyOwners: true,
+          rootCause: "State changed via Microsoft Teams.",
           props: {
             isRoot: true,
           },

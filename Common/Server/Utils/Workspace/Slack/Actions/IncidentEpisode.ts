@@ -452,11 +452,12 @@ export default class SlackIncidentEpisodeActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
-    await IncidentEpisodeService.updateOneById({
-      id: episodeId,
-      data: {
-        currentIncidentStateId: stateId,
-      },
+    await IncidentEpisodeService.changeEpisodeState({
+      projectId: data.slackRequest.projectId!,
+      episodeId: episodeId,
+      incidentStateId: stateId,
+      notifyOwners: true,
+      rootCause: "State changed via Slack.",
       props:
         await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
           {
