@@ -453,9 +453,9 @@ export default class Alert extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
-    modelType: Monitor,
+    modelType: OnCallDutyPolicy,
     title: "On-Call Duty Policies",
-    description: "List of on-call duty policy affected by this alert.",
+    description: "List of on-call duty policies affected by this alert.",
   })
   @ManyToMany(
     () => {
@@ -466,15 +466,15 @@ export default class Alert extends BaseModel {
   @JoinTable({
     name: "AlertOnCallDutyPolicy",
     inverseJoinColumn: {
-      name: "monitorId",
-      referencedColumnName: "_id",
-    },
-    joinColumn: {
       name: "onCallDutyPolicyId",
       referencedColumnName: "_id",
     },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
   })
-  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // monitors affected by this alert.
+  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // on-call duty policies affected by this alert.
 
   @ColumnAccessControl({
     create: [
@@ -701,7 +701,7 @@ export default class Alert extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "monitorStatusWhenThisAlertWasCreatedId",
     type: TableColumnType.Entity,
-    modelType: AlertState,
+    modelType: MonitorStatus,
     title: "Monitor status when this alert was created",
     description: "Monitor status when this alert was created",
   })

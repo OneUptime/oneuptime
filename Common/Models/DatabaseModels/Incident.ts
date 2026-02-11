@@ -493,9 +493,9 @@ export default class Incident extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
-    modelType: Monitor,
+    modelType: OnCallDutyPolicy,
     title: "On-Call Duty Policies",
-    description: "List of on-call duty policy affected by this incident.",
+    description: "List of on-call duty policies affected by this incident.",
   })
   @ManyToMany(
     () => {
@@ -506,15 +506,15 @@ export default class Incident extends BaseModel {
   @JoinTable({
     name: "IncidentOnCallDutyPolicy",
     inverseJoinColumn: {
-      name: "monitorId",
-      referencedColumnName: "_id",
-    },
-    joinColumn: {
       name: "onCallDutyPolicyId",
       referencedColumnName: "_id",
     },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
   })
-  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // monitors affected by this incident.
+  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined; // on-call duty policies affected by this incident.
 
   @ColumnAccessControl({
     create: [
