@@ -21,7 +21,7 @@
         <% } %>
 
         <!-- Hero Section -->
-        <div class="mb-10">
+        <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
                 <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-600 shadow-lg shadow-emerald-500/30">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,33 +34,86 @@
             <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%- pageData.description %></p>
         </div>
 
+        <!-- At a Glance Summary Box -->
+        <div class="mb-10 rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">At a Glance</h4>
+            <div class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+                <div>
+                    <span class="text-slate-500">Kind</span>
+                    <span class="ml-2 font-medium text-slate-900"><%= pageData.isEnum ? 'Enum' : 'Data Type' %></span>
+                </div>
+                <% if (pageData.isEnum && pageData.valueCount > 0) { %>
+                    <div>
+                        <span class="text-slate-500">Values</span>
+                        <span class="ml-2 font-medium text-slate-900"><%= pageData.valueCount %></span>
+                    </div>
+                <% } else if (pageData.propertyCount > 0) { %>
+                    <div>
+                        <span class="text-slate-500">Properties</span>
+                        <span class="ml-2 font-medium text-slate-900"><%= pageData.propertyCount %></span>
+                    </div>
+                <% } %>
+                <div>
+                    <span class="text-slate-500">JSON Format</span>
+                    <code class="ml-2 text-xs font-mono bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700">{"_type": "<%= pageData.jsonWrapperType %>", "value": ...}</code>
+                </div>
+            </div>
+        </div>
+
         <% if (pageData.isEnum) { %>
-            <h3 class="text-base font-semibold text-slate-800 mb-4">Possible Values</h3>
+            <!-- Quick Navigation for Enum Values -->
+            <% if (pageData.values.length >= 4) { %>
+                <div class="mb-6">
+                    <div class="flex flex-wrap gap-1.5">
+                        <% for (var qv = 0; qv < pageData.values.length; qv++) { %>
+                            <a href="#value-<%= pageData.values[qv].value.toLowerCase().replace(/\s+/g, '-') %>" class="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-colors no-underline"><%= pageData.values[qv].value %></a>
+                        <% } %>
+                    </div>
+                </div>
+            <% } %>
+
+            <h3 id="values" class="text-base font-semibold text-slate-800 mb-4 scroll-mt-24">Possible Values</h3>
             <div class="my-6 rounded-xl border border-slate-200 bg-white overflow-hidden">
                 <ul role="list" class="m-0 w-full list-none divide-y divide-slate-100 p-0">
                     <% for (var v = 0; v < pageData.values.length; v++) { %>
-                        <li class="m-0 px-5 py-3 hover:bg-slate-50/50 transition-colors">
-                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <li id="value-<%= pageData.values[v].value.toLowerCase().replace(/\s+/g, '-') %>" class="m-0 px-5 py-5 hover:bg-slate-50/50 transition-colors scroll-mt-24">
+                            <dl class="m-0 flex flex-wrap items-start gap-x-3 gap-y-2">
+                                <dt class="sr-only">Index</dt>
+                                <dd class="text-xs font-mono text-slate-300 w-6 pt-0.5 flex-shrink-0"><%= v + 1 %>.</dd>
                                 <dt class="sr-only">Value</dt>
                                 <dd><code class="model-inline-code"><%= pageData.values[v].value %></code></dd>
                                 <dt class="sr-only">Description</dt>
-                                <dd class="w-full flex-none text-sm text-slate-600"><%- pageData.values[v].description %></dd>
+                                <dd class="w-full flex-none pl-9 text-sm text-slate-600"><%- pageData.values[v].description %></dd>
                             </dl>
                         </li>
                     <% } %>
                 </ul>
             </div>
         <% } else if (pageData.properties && pageData.properties.length > 0) { %>
-            <h3 class="text-base font-semibold text-slate-800 mb-4">Properties</h3>
+            <!-- Quick Navigation for Properties -->
+            <% if (pageData.properties.length >= 4) { %>
+                <div class="mb-6">
+                    <div class="flex flex-wrap gap-1.5">
+                        <% for (var qp = 0; qp < pageData.properties.length; qp++) { %>
+                            <a href="#prop-<%= pageData.properties[qp].name %>" class="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-colors no-underline"><%= pageData.properties[qp].name %></a>
+                        <% } %>
+                    </div>
+                </div>
+            <% } %>
+
+            <h3 id="properties" class="text-base font-semibold text-slate-800 mb-4 scroll-mt-24">Properties</h3>
             <div class="my-6 rounded-xl border border-slate-200 bg-white overflow-hidden">
                 <ul role="list" class="m-0 w-full list-none divide-y divide-slate-100 p-0">
                     <% for (var p = 0; p < pageData.properties.length; p++) { %>
-                        <li class="m-0 px-5 py-3 hover:bg-slate-50/50 transition-colors">
-                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                                <dt class="sr-only">Name</dt>
-                                <dd><code class="model-inline-code"><%= pageData.properties[p].name %></code></dd>
-                                <dt class="sr-only">Type</dt>
-                                <dd class="font-mono text-xs text-slate-500">
+                        <li id="prop-<%= pageData.properties[p].name %>" class="m-0 px-5 py-5 hover:bg-slate-50/50 transition-colors scroll-mt-24">
+                            <div class="mb-1.5">
+                                <code class="text-sm font-semibold text-slate-900"><%= pageData.properties[p].name %></code>
+                                <% if (pageData.properties[p].required) { %>
+                                    <span class="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Required</span>
+                                <% } %>
+                            </div>
+                            <div class="mb-2">
+                                <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-mono text-slate-600">
                                     <% if (pageData.properties[p].typeLinks && pageData.properties[p].typeLinks.length > 0) { %>
                                         <% var typeLinks = pageData.properties[p].typeLinks; %>
                                         <% for (var tl = 0; tl < typeLinks.length; tl++) { %>
@@ -73,45 +126,19 @@
                                     <% } else { %>
                                         <%= pageData.properties[p].type %>
                                     <% } %>
-                                    <% if (pageData.properties[p].required) { %>
-                                        <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Required</span>
-                                    <% } %>
-                                </dd>
-                                <dt class="sr-only">Description</dt>
-                                <dd class="w-full flex-none text-sm text-slate-600"><%- pageData.properties[p].description %></dd>
-                            </dl>
+                                </span>
+                            </div>
+                            <p class="m-0 text-sm text-slate-600 leading-relaxed"><%- pageData.properties[p].description %></p>
                         </li>
                     <% } %>
                 </ul>
             </div>
         <% } %>
 
-        <!-- Related Types Section -->
-        <% if (pageData.relatedTypes && pageData.relatedTypes.length > 0) { %>
-            <h3 class="text-base font-semibold text-slate-800 mb-4 mt-8">Related Types</h3>
-            <div class="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <% for (var r = 0; r < pageData.relatedTypes.length; r++) { %>
-                    <a href="/reference/<%= pageData.relatedTypes[r].path %>" class="group flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all no-underline">
-                        <div class="flex-shrink-0 mt-0.5">
-                            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= pageData.relatedTypes[r].name %></div>
-                            <div class="text-xs text-slate-500 mt-0.5"><%= pageData.relatedTypes[r].relationship %></div>
-                        </div>
-                    </a>
-                <% } %>
-            </div>
-        <% } %>
-
-        <h3 class="text-base font-semibold text-slate-800 mb-4 mt-8">JSON Example</h3>
-        <div class="rounded-xl border border-slate-200 bg-slate-900 overflow-hidden">
-            <div class="flex items-center justify-between px-4 py-2 border-b border-slate-700">
-                <span class="text-xs font-medium text-slate-400">JSON</span>
-            </div>
-            <pre class="p-4 overflow-x-auto text-sm text-slate-300 m-0"><code><%= pageData.jsonExample %></code></pre>
+        <!-- JSON Example Section -->
+        <div class="border-t border-slate-200 pt-8 mt-10">
+            <h3 id="example" class="text-base font-semibold text-slate-800 mb-4 scroll-mt-24">JSON Example</h3>
+            <%- include('../partials/code', { title: "JSON", code: pageData.jsonExample, requestType: "", requestUrl: "" }) %>
         </div>
 
         <% if (pageData.title === "Permission") { %>
@@ -120,6 +147,31 @@
                     For a complete list of all available permissions and their descriptions, see the
                     <a href="/reference/permissions" class="font-medium text-indigo-600 hover:text-indigo-700 hover:underline">Permissions guide</a>.
                 </p>
+            </div>
+        <% } %>
+
+        <!-- Related Types Section -->
+        <% if (pageData.relatedTypes && pageData.relatedTypes.length > 0) { %>
+            <div class="border-t border-slate-200 pt-8 mt-10">
+                <h3 id="related-types" class="text-base font-semibold text-slate-800 mb-4 scroll-mt-24">Related Types</h3>
+                <div class="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <% for (var r = 0; r < pageData.relatedTypes.length; r++) { %>
+                        <a href="/reference/<%= pageData.relatedTypes[r].path %>" class="group flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-5 hover:border-indigo-300 hover:shadow-sm transition-all no-underline">
+                            <div class="flex-shrink-0 mt-0.5">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
+                                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= pageData.relatedTypes[r].name %></div>
+                                <div class="text-xs text-slate-500 mt-0.5"><%= pageData.relatedTypes[r].relationship %></div>
+                                <% if (pageData.relatedTypes[r].description) { %>
+                                    <div class="text-xs text-slate-400 mt-1 line-clamp-2"><%= pageData.relatedTypes[r].description %></div>
+                                <% } %>
+                            </div>
+                        </a>
+                    <% } %>
+                </div>
             </div>
         <% } %>
 

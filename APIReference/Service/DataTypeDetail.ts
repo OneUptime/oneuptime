@@ -8,6 +8,8 @@ import Dictionary from "Common/Types/Dictionary";
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 const TypeToDocPath: Dictionary<string> = DataTypeUtil.getTypeToDocPathMap();
+const DataTypesByPath: Dictionary<DataTypeDocumentation> =
+  DataTypeUtil.getDataTypeDictionaryByPath();
 
 /*
  * Convert "See TypeName" references in descriptions to HTML links.
@@ -63,6 +65,7 @@ interface RelatedType {
   name: string;
   path: string;
   relationship: string;
+  description?: string;
 }
 
 interface TypeHierarchyItem {
@@ -3165,6 +3168,30 @@ export default class ServiceHandler {
       },
     );
 
+    // Enrich related types with descriptions from the DataTypes registry
+    const enrichedRelatedTypes: Array<RelatedType> = (
+      detail.relatedTypes || []
+    ).map((rt: RelatedType) => {
+      const dtDoc: DataTypeDocumentation | undefined = DataTypesByPath[rt.path];
+      return {
+        ...rt,
+        description: rt.description || (dtDoc ? dtDoc.description : undefined),
+      };
+    });
+
+    // Extract _type wrapper from JSON example
+    let jsonWrapperType: string = detail.title;
+    try {
+      const parsed: Record<string, unknown> = JSON.parse(
+        detail.jsonExample,
+      ) as Record<string, unknown>;
+      if (parsed._type && typeof parsed._type === "string") {
+        jsonWrapperType = parsed._type;
+      }
+    } catch {
+      // ignore parse errors
+    }
+
     const pageData: Dictionary<unknown> = {
       title: detail.title,
       description: linkifyDescription(detail.description),
@@ -3172,8 +3199,11 @@ export default class ServiceHandler {
       properties: linkedProperties,
       values: linkedValues,
       jsonExample: detail.jsonExample,
-      relatedTypes: detail.relatedTypes || [],
+      relatedTypes: enrichedRelatedTypes,
       typeHierarchy: detail.typeHierarchy || [],
+      propertyCount: linkedProperties.length,
+      valueCount: linkedValues.length,
+      jsonWrapperType: jsonWrapperType,
     };
 
     return res.render(`${ViewsPath}/pages/index`, {
