@@ -9,6 +9,9 @@ import DatabaseService from "./DatabaseService";
 import Model, {
   IncidentEpisodeFeedEventType,
 } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
+import WorkspaceNotificationRuleService, {
+  MessageBlocksByWorkspaceType,
+} from "./WorkspaceNotificationRuleService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -30,6 +33,13 @@ export class Service extends DatabaseService<Model> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    workspaceNotification?:
+      | {
+          notifyUserId?: ObjectID | undefined;
+          sendWorkspaceNotification: boolean;
+          appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+        }
+      | undefined;
   }): Promise<void> {
     try {
       if (!data.incidentEpisodeId) {
@@ -83,11 +93,51 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+      try {
+        if (
+          data.workspaceNotification &&
+          data.workspaceNotification?.sendWorkspaceNotification
+        ) {
+          await this.sendWorkspaceNotification({
+            projectId: data.projectId,
+            incidentEpisodeId: data.incidentEpisodeId,
+            feedInfoInMarkdown: data.feedInfoInMarkdown,
+            workspaceNotification: data.workspaceNotification,
+          });
+        }
+      } catch (e) {
+        logger.error("Error in sending notification to slack and teams");
+        logger.error(e);
+      }
     } catch (error) {
       logger.error("IncidentEpisodeFeedService.createIncidentEpisodeFeedItem");
       logger.error(error);
       // we dont want to throw the error here, as this is a non-critical operation
     }
+  }
+
+  @CaptureSpan()
+  public async sendWorkspaceNotification(data: {
+    projectId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    feedInfoInMarkdown: string;
+    workspaceNotification: {
+      notifyUserId?: ObjectID | undefined;
+      sendWorkspaceNotification: boolean;
+      appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+    };
+  }): Promise<void> {
+    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+      {
+        projectId: data.projectId,
+        notificationFor: {
+          incidentEpisodeId: data.incidentEpisodeId,
+        },
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        workspaceNotification: data.workspaceNotification,
+      },
+    );
   }
 }
 

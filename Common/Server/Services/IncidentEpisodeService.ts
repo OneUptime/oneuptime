@@ -33,6 +33,8 @@ import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import IncidentEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/IncidentEpisode";
+import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import IncidentService from "./IncidentService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -149,6 +151,17 @@ export class Service extends DatabaseService<Model> {
     Promise.resolve()
       .then(async () => {
         try {
+          if (createdItem.projectId && createdItem.id) {
+            await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
+          }
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+          );
+        }
+      })
+      .then(async () => {
+        try {
           await this.changeEpisodeState({
             projectId: createdItem.projectId!,
             episodeId: createdItem.id!,
@@ -194,6 +207,48 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  private async handleEpisodeWorkspaceOperationsAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for workspace operations",
+        );
+      }
+
+      const workspaceResult: {
+        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+      } | null =
+        await IncidentEpisodeWorkspaceMessages.createChannelsAndInviteUsersToChannels(
+          {
+            projectId: createdItem.projectId,
+            incidentEpisodeId: createdItem.id,
+            episodeNumber: createdItem.episodeNumber || 0,
+          },
+        );
+
+      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+        await this.updateOneById({
+          id: createdItem.id,
+          data: {
+            postUpdatesToWorkspaceChannels:
+              workspaceResult.channelsCreated || [],
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `Error in handleEpisodeWorkspaceOperationsAsync: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
   private async createEpisodeCreatedFeed(episode: Model): Promise<void> {
     if (!episode.id || !episode.projectId) {
       return;
@@ -213,6 +268,14 @@ export class Service extends DatabaseService<Model> {
       feedInfoInMarkdown += `This episode was manually created.\n\n`;
     }
 
+    const episodeCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+      await IncidentEpisodeWorkspaceMessages.getIncidentEpisodeCreateMessageBlocks(
+        {
+          incidentEpisodeId: episode.id,
+          projectId: episode.projectId,
+        },
+      );
+
     await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
       incidentEpisodeId: episode.id,
       projectId: episode.projectId,
@@ -220,6 +283,10 @@ export class Service extends DatabaseService<Model> {
       displayColor: Red500,
       feedInfoInMarkdown: feedInfoInMarkdown,
       userId: episode.createdByUserId || undefined,
+      workspaceNotification: {
+        appendMessageBlocks: episodeCreateMessageBlocks,
+        sendWorkspaceNotification: true,
+      },
     });
   }
 
