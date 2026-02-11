@@ -202,7 +202,11 @@ export class Service extends DatabaseService<Model> {
             projectId: createdItem.projectId,
             alertEpisodeId: createdItem.id,
             episodeNumber: createdItem.episodeNumber || 0,
-            episodeNumberWithPrefix: createdItem.episodeNumberWithPrefix,
+            ...(createdItem.episodeNumberWithPrefix
+              ? {
+                  episodeNumberWithPrefix: createdItem.episodeNumberWithPrefix,
+                }
+              : {}),
           },
         );
 

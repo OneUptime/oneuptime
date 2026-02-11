@@ -368,7 +368,9 @@ export class Service extends DatabaseService<Model> {
           projectId: createdItem.projectId,
           alertId: createdItem.id,
           alertNumber: createdItem.alertNumber!,
-          alertNumberWithPrefix: createdItem.alertNumberWithPrefix,
+          ...(createdItem.alertNumberWithPrefix
+            ? { alertNumberWithPrefix: createdItem.alertNumberWithPrefix }
+            : {}),
         });
 
       logger.debug("Alert created. Workspace result:");

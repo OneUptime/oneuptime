@@ -843,7 +843,11 @@ export class Service extends DatabaseService<Model> {
           projectId: createdItem.projectId,
           incidentId: createdItem.id,
           incidentNumber: createdItem.incidentNumber!,
-          incidentNumberWithPrefix: createdItem.incidentNumberWithPrefix,
+          ...(createdItem.incidentNumberWithPrefix
+            ? {
+                incidentNumberWithPrefix: createdItem.incidentNumberWithPrefix,
+              }
+            : {}),
         });
 
       if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
