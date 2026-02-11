@@ -246,6 +246,66 @@ export default class DataTypeUtil {
         description:
           "A configuration object for a dashboard view including its components and layout.",
       },
+      {
+        name: "CriteriaFilter",
+        path: "criteria-filter",
+        description:
+          "A single filter condition within a MonitorCriteriaInstance that defines what to check and how to compare it.",
+      },
+      {
+        name: "CriteriaIncident",
+        path: "criteria-incident",
+        description:
+          "Configuration for an incident that is automatically created when a MonitorCriteriaInstance's conditions are met.",
+      },
+      {
+        name: "CriteriaAlert",
+        path: "criteria-alert",
+        description:
+          "Configuration for an alert that is automatically created when a MonitorCriteriaInstance's conditions are met.",
+      },
+      {
+        name: "CheckOn",
+        path: "check-on",
+        description:
+          "Enum specifying what aspect of a monitor response to evaluate (e.g., response code, response time, body content).",
+      },
+      {
+        name: "FilterType",
+        path: "filter-type",
+        description:
+          "Enum specifying the comparison operator used in a CriteriaFilter (e.g., Equal To, Greater Than, Contains).",
+      },
+      {
+        name: "FilterCondition",
+        path: "filter-condition",
+        description:
+          "Enum specifying how multiple filters are combined: 'All' (AND) or 'Any' (OR).",
+      },
+      {
+        name: "MonitorStepLogMonitor",
+        path: "monitor-step-log-monitor",
+        description:
+          "Configuration for a Log monitor step, defining which logs to query and evaluate.",
+      },
+      {
+        name: "MonitorStepTraceMonitor",
+        path: "monitor-step-trace-monitor",
+        description:
+          "Configuration for a Trace monitor step, defining which spans to query and evaluate.",
+      },
+      {
+        name: "MonitorStepMetricMonitor",
+        path: "monitor-step-metric-monitor",
+        description:
+          "Configuration for a Metric monitor step, defining which metrics to query and evaluate.",
+      },
+      {
+        name: "MonitorStepSnmpMonitor",
+        path: "monitor-step-snmp-monitor",
+        description:
+          "Configuration for an SNMP monitor step, defining the SNMP device connection and OIDs to query.",
+      },
     ];
   }
 
