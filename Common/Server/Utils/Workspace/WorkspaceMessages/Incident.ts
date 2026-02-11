@@ -29,7 +29,8 @@ export default class IncidentWorkspaceMessages {
             incidentId: data.incidentId,
           },
           notificationRuleEventType: NotificationRuleEventType.Incident,
-          channelNameSiffix: data.incidentNumber.toString(),
+          channelNameSiffix:
+            data.incidentNumberWithPrefix || data.incidentNumber.toString(),
         },
       );
     } catch (err) {

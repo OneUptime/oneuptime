@@ -225,6 +225,7 @@ export class Service extends DatabaseService<Model> {
             projectId: createdItem.projectId,
             incidentEpisodeId: createdItem.id,
             episodeNumber: createdItem.episodeNumber || 0,
+            episodeNumberWithPrefix: createdItem.episodeNumberWithPrefix,
           },
         );
 

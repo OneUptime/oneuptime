@@ -16,6 +16,7 @@ export default class AlertEpisodeWorkspaceMessages {
     projectId: ObjectID;
     alertEpisodeId: ObjectID;
     episodeNumber: number;
+    episodeNumberWithPrefix?: string;
   }): Promise<{
     channelsCreated: NotificationRuleWorkspaceChannel[];
   } | null> {
@@ -28,7 +29,8 @@ export default class AlertEpisodeWorkspaceMessages {
             alertEpisodeId: data.alertEpisodeId,
           },
           notificationRuleEventType: NotificationRuleEventType.AlertEpisode,
-          channelNameSiffix: data.episodeNumber.toString(),
+          channelNameSiffix:
+            data.episodeNumberWithPrefix || data.episodeNumber.toString(),
         },
       );
     } catch (err) {
