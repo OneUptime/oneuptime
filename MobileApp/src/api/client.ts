@@ -73,11 +73,11 @@ apiClient.interceptors.response.use(
 
     if (isRefreshing) {
       return new Promise((resolve: (value: AxiosResponse) => void) => {
-        subscribeTokenRefresh((newToken: string) => {
+        subscribeTokenRefresh(async (newToken: string) => {
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
           }
-          resolve(apiClient(originalRequest));
+          resolve(await apiClient(originalRequest));
         });
       });
     }
