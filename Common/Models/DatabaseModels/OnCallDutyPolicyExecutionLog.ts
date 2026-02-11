@@ -780,7 +780,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
+    title: "Acknowledged by User ID",
     description:
       "User ID who acknowledged this object (if this object was acknowledged by a User)",
     example: "c3d4e5f6-a7b8-9012-cdef-123456789012",

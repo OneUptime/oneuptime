@@ -766,7 +766,7 @@ export default class UserOnCallLog extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
+    title: "Acknowledged by User ID",
     description:
       "User ID who acknowledged this object (if this object was acknowledged by a User)",
     example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
