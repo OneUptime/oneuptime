@@ -524,7 +524,8 @@ export default class IncidentTemplate extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
     title: "On-Call Duty Policies",
-    description: "List of on-call duty policies affected by this incident template.",
+    description:
+      "List of on-call duty policies affected by this incident template.",
   })
   @ManyToMany(
     () => {

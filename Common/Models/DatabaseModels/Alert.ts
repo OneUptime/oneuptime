@@ -419,8 +419,7 @@ export default class Alert extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Monitor ID",
-    description:
-      "ID of the monitor this alert belongs to",
+    description: "ID of the monitor this alert belongs to",
   })
   @Column({
     type: ColumnType.ObjectID,

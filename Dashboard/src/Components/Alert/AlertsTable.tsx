@@ -26,6 +26,9 @@ import React, {
 } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
 import MonitorElement from "../Monitor/Monitor";
 import {
   BulkActionButtonSchema,
@@ -51,6 +54,7 @@ export interface ComponentProps {
   description?: string | undefined;
   createInitialValues?: FormValues<Alert> | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
+  disableCreate?: boolean | undefined;
 }
 
 const AlertsTable: FunctionComponent<ComponentProps> = (
@@ -211,6 +215,25 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       };
     };
 
+  let cardbuttons: Array<CardButtonSchema> = [];
+
+  if (!props.disableCreate) {
+    cardbuttons = [
+      {
+        title: "Create Alert",
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_CREATE] as Route,
+            ),
+          );
+        },
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.Add,
+      },
+    ];
+  }
+
   return (
     <>
       <ModelTable<Alert>
@@ -240,6 +263,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         }
         cardProps={{
           title: props.title || "Alerts",
+          buttons: cardbuttons,
           description:
             props.description || "Here is a list of alerts for this project.",
         }}

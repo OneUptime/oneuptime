@@ -519,5 +519,5 @@ export default [
   MigrationName1770728946893,
   MigrationName1770732721195,
   MigrationName1770833704656,
-  MigrationName1770834237090
+  MigrationName1770834237090,
 ];
