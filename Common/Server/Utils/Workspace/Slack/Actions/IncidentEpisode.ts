@@ -22,7 +22,7 @@ import UserNotificationEventType from "../../../../../Types/UserNotification/Use
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateService from "../../../../Services/IncidentStateService";
 import logger from "../../../Logger";
-import AccessTokenService from "../../../../Services/AccessTokenService";
+
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
@@ -458,13 +458,10 @@ export default class SlackIncidentEpisodeActions {
       incidentStateId: stateId,
       notifyOwners: true,
       rootCause: "State changed via Slack.",
-      props:
-        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-          {
-            userId: data.slackRequest.userId!,
-            projectId: data.slackRequest.projectId!,
-          },
-        ),
+      props: {
+        isRoot: true,
+        userId: data.slackRequest.userId!,
+      },
     });
 
     // Log the button interaction
