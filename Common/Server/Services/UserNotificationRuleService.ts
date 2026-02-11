@@ -1102,6 +1102,8 @@ export class Service extends DatabaseService<Model> {
             ...(alert.alertNumber !== undefined && {
               alertNumber: alert.alertNumber,
             }),
+            alertId: alert.id!.toString(),
+            projectId: alert.projectId!.toString(),
           });
 
         // send push notification.
@@ -1116,7 +1118,8 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
+            deviceType: notificationRuleItem.userPush
+              .deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,
@@ -1176,6 +1179,8 @@ export class Service extends DatabaseService<Model> {
             ...(incident.incidentNumber !== undefined && {
               incidentNumber: incident.incidentNumber,
             }),
+            incidentId: incident.id!.toString(),
+            projectId: incident.projectId!.toString(),
           });
 
         // send push notification.
@@ -1190,7 +1195,8 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
+            deviceType: notificationRuleItem.userPush
+              .deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,
@@ -1252,6 +1258,8 @@ export class Service extends DatabaseService<Model> {
             ...(alertEpisode.episodeNumberWithPrefix && {
               episodeNumberWithPrefix: alertEpisode.episodeNumberWithPrefix,
             }),
+            alertEpisodeId: alertEpisode.id!.toString(),
+            projectId: alertEpisode.projectId!.toString(),
           });
 
         PushNotificationService.sendPushNotification(
@@ -1265,7 +1273,8 @@ export class Service extends DatabaseService<Model> {
               },
             ],
             message: pushMessage,
-            deviceType: notificationRuleItem.userPush.deviceType! as PushDeviceType,
+            deviceType: notificationRuleItem.userPush
+              .deviceType! as PushDeviceType,
           },
           {
             projectId: options.projectId,

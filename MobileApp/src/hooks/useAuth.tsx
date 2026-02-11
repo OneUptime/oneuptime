@@ -6,7 +6,7 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import { getTokens, clearTokens } from "../storage/keychain";
+import { getTokens } from "../storage/keychain";
 import { hasServerUrl } from "../storage/serverUrl";
 import {
   login as apiLogin,
@@ -14,6 +14,7 @@ import {
   LoginResponse,
 } from "../api/auth";
 import { setOnAuthFailure } from "../api/client";
+import { unregisterPushToken } from "./pushTokenUtils";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -26,29 +27,34 @@ interface AuthContextValue {
   setIsAuthenticated: (value: boolean) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext: React.Context<AuthContextValue | undefined> = createContext<
+  AuthContextValue | undefined
+>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [needsServerUrl, setNeedsServerUrl] = useState(false);
+export function AuthProvider({
+  children,
+}: AuthProviderProps): React.JSX.Element {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [needsServerUrl, setNeedsServerUrl] = useState<boolean>(false);
   const [user, setUser] = useState<LoginResponse["user"] | null>(null);
 
-  useEffect(() => {
-    const checkAuth = async (): Promise<void> => {
+  useEffect((): void => {
+    const checkAuth: () => Promise<void> = async (): Promise<void> => {
       try {
-        const hasUrl = await hasServerUrl();
+        const hasUrl: boolean = await hasServerUrl();
         if (!hasUrl) {
           setNeedsServerUrl(true);
           setIsLoading(false);
           return;
         }
 
-        const tokens = await getTokens();
+        const tokens: { accessToken: string; refreshToken: string } | null =
+          await getTokens();
         if (tokens?.accessToken) {
           setIsAuthenticated(true);
         }
@@ -63,28 +69,30 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
   }, []);
 
   // Register auth failure handler for 401 interceptor
-  useEffect(() => {
-    setOnAuthFailure(() => {
+  useEffect((): void => {
+    setOnAuthFailure((): void => {
       setIsAuthenticated(false);
       setUser(null);
     });
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string): Promise<LoginResponse> => {
-      const response = await apiLogin(email, password);
+  const login: (email: string, password: string) => Promise<LoginResponse> =
+    useCallback(
+      async (email: string, password: string): Promise<LoginResponse> => {
+        const response: LoginResponse = await apiLogin(email, password);
 
-      if (!response.twoFactorRequired && response.accessToken) {
-        setIsAuthenticated(true);
-        setUser(response.user);
-      }
+        if (!response.twoFactorRequired && response.accessToken) {
+          setIsAuthenticated(true);
+          setUser(response.user);
+        }
 
-      return response;
-    },
-    [],
-  );
+        return response;
+      },
+      [],
+    );
 
-  const logout = useCallback(async (): Promise<void> => {
+  const logout: () => Promise<void> = useCallback(async (): Promise<void> => {
+    await unregisterPushToken();
     await apiLogout();
     setIsAuthenticated(false);
     setUser(null);
@@ -109,7 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
 }
 
 export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
+  const context: AuthContextValue | undefined = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }

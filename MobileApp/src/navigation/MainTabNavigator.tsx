@@ -2,12 +2,15 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
-import IncidentsScreen from "../screens/IncidentsScreen";
-import AlertsScreen from "../screens/AlertsScreen";
-import SettingsScreen from "../screens/SettingsScreen";
+import IncidentsStackNavigator from "./IncidentsStackNavigator";
+import AlertsStackNavigator from "./AlertsStackNavigator";
+import IncidentEpisodesStackNavigator from "./IncidentEpisodesStackNavigator";
+import AlertEpisodesStackNavigator from "./AlertEpisodesStackNavigator";
+import SettingsStackNavigator from "./SettingsStackNavigator";
 import { useTheme } from "../theme";
 
-const Tab = createBottomTabNavigator<MainTabParamList>();
+const Tab: ReturnType<typeof createBottomTabNavigator<MainTabParamList>> =
+  createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabNavigator(): React.JSX.Element {
   const { theme } = useTheme();
@@ -28,9 +31,31 @@ export default function MainTabNavigator(): React.JSX.Element {
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Incidents" component={IncidentsScreen} />
-      <Tab.Screen name="Alerts" component={AlertsScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen
+        name="Incidents"
+        component={IncidentsStackNavigator}
+        options={{ headerShown: false }}
+      />
+      <Tab.Screen
+        name="Alerts"
+        component={AlertsStackNavigator}
+        options={{ headerShown: false }}
+      />
+      <Tab.Screen
+        name="IncidentEpisodes"
+        component={IncidentEpisodesStackNavigator}
+        options={{ headerShown: false, title: "Inc Episodes" }}
+      />
+      <Tab.Screen
+        name="AlertEpisodes"
+        component={AlertEpisodesStackNavigator}
+        options={{ headerShown: false, title: "Alert Episodes" }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsStackNavigator}
+        options={{ headerShown: false }}
+      />
     </Tab.Navigator>
   );
 }

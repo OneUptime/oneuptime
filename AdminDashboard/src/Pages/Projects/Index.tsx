@@ -12,7 +12,6 @@ import Toggle from "Common/UI/Components/Toggle/Toggle";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
-import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import React, {
@@ -21,6 +20,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import Navigation from "Common/UI/Utils/Navigation";
 
 const Projects: FunctionComponent = (): ReactElement => {
   const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =

@@ -250,8 +250,8 @@ DocsNav.push({
       url: "/docs/self-hosted/github-integration",
     },
     {
-      title: "Firebase Push Notifications",
-      url: "/docs/self-hosted/firebase-push-notifications",
+      title: "Push Notifications",
+      url: "/docs/self-hosted/push-notifications",
     },
     {
       title: "SendGrid Inbound Email",

@@ -28,8 +28,8 @@ export default function StateBadge({
     muted: theme.colors.stateMuted,
   };
 
-  const color = colorMap[state];
-  const displayLabel = label || state;
+  const color: string = colorMap[state];
+  const displayLabel: string = label || state;
 
   return (
     <View
@@ -41,19 +41,14 @@ export default function StateBadge({
       ]}
     >
       <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text
-        style={[
-          styles.text,
-          { color: theme.colors.textPrimary },
-        ]}
-      >
+      <Text style={[styles.text, { color: theme.colors.textPrimary }]}>
         {displayLabel.charAt(0).toUpperCase() + displayLabel.slice(1)}
       </Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   badge: {
     flexDirection: "row",
     alignItems: "center",

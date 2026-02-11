@@ -1,31 +1,66 @@
 import React from "react";
+import { View, StyleSheet, ViewStyle } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import type { Persister } from "@tanstack/query-persist-client-core";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ThemeProvider, useTheme } from "./theme";
 import { AuthProvider } from "./hooks/useAuth";
+import { ProjectProvider } from "./hooks/useProject";
 import RootNavigator from "./navigation/RootNavigator";
+import OfflineBanner from "./components/OfflineBanner";
 
-const queryClient = new QueryClient();
+const queryClient: QueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    },
+  },
+});
+
+const asyncStoragePersister: Persister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  throttleTime: 1000,
+});
 
 function AppContent(): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
-    <>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.backgroundPrimary },
+      ]}
+    >
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <RootNavigator />
-    </>
+      <OfflineBanner />
+    </View>
   );
 }
 
 export default function App(): React.JSX.Element {
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: asyncStoragePersister }}
+    >
       <ThemeProvider>
         <AuthProvider>
-          <AppContent />
+          <ProjectProvider>
+            <AppContent />
+          </ProjectProvider>
         </AuthProvider>
       </ThemeProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
+
+const styles: { container: ViewStyle } = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

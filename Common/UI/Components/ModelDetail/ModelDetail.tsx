@@ -28,6 +28,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   fields: Array<Field<TBaseModel>>;
   onLoadingChange?: undefined | ((isLoading: boolean) => void);
   modelId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
   onError?: ((error: string) => void) | undefined;
   onItemLoaded?: (item: TBaseModel) => void | undefined;
   refresher?: undefined | boolean;
@@ -179,7 +180,9 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         setOnBeforeFetchData(model);
       }
 
-      const item: TBaseModel | null = await ModelAPI.getItem({
+      const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
+
+      const item: TBaseModel | null = await modelAPI.getItem({
         modelType: props.modelType,
         id: props.modelId,
         select: {

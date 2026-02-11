@@ -10,12 +10,9 @@ import {
   VapidPublicKey,
   VapidPrivateKey,
   VapidSubject,
-  FirebaseProjectId,
-  FirebaseClientEmail,
-  FirebasePrivateKey,
 } from "../EnvironmentConfig";
 import webpush from "web-push";
-import * as firebaseAdmin from "firebase-admin";
+import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import UserPush from "../../Models/DatabaseModels/UserPush";
@@ -46,34 +43,7 @@ export interface PushNotificationOptions {
 
 export default class PushNotificationService {
   public static isWebPushInitialized = false;
-  public static isFirebaseInitialized = false;
-
-  public static initializeFirebase(): void {
-    if (this.isFirebaseInitialized) {
-      return;
-    }
-
-    if (!FirebaseProjectId || !FirebaseClientEmail || !FirebasePrivateKey) {
-      logger.warn(
-        "Firebase credentials not configured. Native push notifications (iOS/Android) will not work.",
-      );
-      return;
-    }
-
-    try {
-      firebaseAdmin.initializeApp({
-        credential: firebaseAdmin.credential.cert({
-          projectId: FirebaseProjectId,
-          clientEmail: FirebaseClientEmail,
-          privateKey: FirebasePrivateKey,
-        }),
-      });
-      this.isFirebaseInitialized = true;
-      logger.info("Firebase Admin SDK initialized successfully");
-    } catch (error: any) {
-      logger.error(`Failed to initialize Firebase Admin SDK: ${error.message}`);
-    }
-  }
+  private static expoClient: Expo = new Expo();
 
   public static initializeWebPush(): void {
     if (this.isWebPushInitialized) {
@@ -135,7 +105,7 @@ export default class PushNotificationService {
         request.deviceType === PushDeviceType.Android
       ) {
         promises.push(
-          this.sendFcmPushNotification(
+          this.sendExpoPushNotification(
             device.token,
             request.message,
             request.deviceType,
@@ -358,18 +328,16 @@ export default class PushNotificationService {
     }
   }
 
-  private static async sendFcmPushNotification(
-    fcmToken: string,
+  private static async sendExpoPushNotification(
+    expoPushToken: string,
     message: PushNotificationMessage,
     deviceType: PushDeviceType,
     _options: PushNotificationOptions,
   ): Promise<void> {
-    if (!this.isFirebaseInitialized) {
-      this.initializeFirebase();
-    }
-
-    if (!this.isFirebaseInitialized) {
-      throw new Error("Firebase Admin SDK not configured");
+    if (!Expo.isExpoPushToken(expoPushToken)) {
+      throw new Error(
+        `Invalid Expo push token for ${deviceType} device: ${expoPushToken}`,
+      );
     }
 
     try {
@@ -383,48 +351,54 @@ export default class PushNotificationService {
         dataPayload["url"] = message.url || message.clickAction || "";
       }
 
-      const fcmMessage: firebaseAdmin.messaging.Message = {
-        token: fcmToken,
-        notification: {
-          title: message.title,
-          body: message.body,
-        },
+      const channelId: string =
+        deviceType === PushDeviceType.Android ? "oncall_high" : "default";
+
+      const expoPushMessage: ExpoPushMessage = {
+        to: expoPushToken,
+        title: message.title,
+        body: message.body,
         data: dataPayload,
-        android: {
-          priority: "high" as const,
-          notification: {
-            sound: "default",
-            channelId: "oncall_high",
-          },
-        },
-        apns: {
-          payload: {
-            aps: {
-              sound: "default",
-              badge: 1,
-            },
-          },
-        },
+        sound: "default",
+        priority: "high",
+        channelId: channelId,
       };
 
-      await firebaseAdmin.messaging().send(fcmMessage);
+      const tickets: ExpoPushTicket[] =
+        await this.expoClient.sendPushNotificationsAsync([expoPushMessage]);
+
+      const ticket: ExpoPushTicket | undefined = tickets[0];
+
+      if (ticket && ticket.status === "error") {
+        const errorTicket: ExpoPushTicket & {
+          message?: string;
+          details?: { error?: string };
+        } = ticket as ExpoPushTicket & {
+          message?: string;
+          details?: { error?: string };
+        };
+        logger.error(
+          `Expo push notification error for ${deviceType} device: ${errorTicket.message}`,
+        );
+
+        if (errorTicket.details?.error === "DeviceNotRegistered") {
+          logger.info(
+            "Expo push token is no longer valid (DeviceNotRegistered)",
+          );
+        }
+
+        throw new Error(
+          `Expo push notification failed: ${errorTicket.message}`,
+        );
+      }
 
       logger.info(
-        `FCM push notification sent successfully to ${deviceType} device`,
+        `Expo push notification sent successfully to ${deviceType} device`,
       );
     } catch (error: any) {
       logger.error(
-        `Failed to send FCM push notification to ${deviceType} device: ${error.message}`,
+        `Failed to send Expo push notification to ${deviceType} device: ${error.message}`,
       );
-
-      // If the token is invalid, log it
-      if (
-        error.code === "messaging/invalid-registration-token" ||
-        error.code === "messaging/registration-token-not-registered"
-      ) {
-        logger.info("FCM token is invalid or unregistered");
-      }
-
       throw error;
     }
   }

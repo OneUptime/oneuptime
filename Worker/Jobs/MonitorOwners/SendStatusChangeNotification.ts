@@ -244,11 +244,15 @@ RunCron(
           newStatus: string;
           previousStatus?: string;
           monitorViewLink: string;
+          monitorId?: string;
+          projectId?: string;
         } = {
           monitorName: monitor.name || "Monitor",
           projectName: monitorStatusTimeline.project!.name!,
           newStatus: monitorStatus!.name!,
           monitorViewLink: vars["monitorViewLink"] || "",
+          monitorId: monitor.id!.toString(),
+          projectId: monitorStatusTimeline.projectId!.toString(),
         };
 
         if (previousStatus?.name) {

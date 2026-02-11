@@ -1,3 +1,4 @@
+import AdminModelAPI from "../../../Utils/ModelAPI";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -19,6 +20,7 @@ const UserSettings: FunctionComponent = (): ReactElement => {
       modelId={modelId}
       modelNameField="email"
       modelType={User}
+      modelAPI={AdminModelAPI}
       title={"User"}
       breadcrumbLinks={[
         {
@@ -52,6 +54,7 @@ const UserSettings: FunctionComponent = (): ReactElement => {
     >
       <CardModelDetail<User>
         name="user-master-admin-settings"
+        modelAPI={AdminModelAPI}
         cardProps={{
           title: "Master Admin Access",
           description:

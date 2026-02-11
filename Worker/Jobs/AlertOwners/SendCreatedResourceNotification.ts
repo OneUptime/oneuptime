@@ -201,6 +201,8 @@ RunCron(
               ...(alert.alertNumber !== undefined && {
                 alertNumber: alert.alertNumber,
               }),
+              alertId: alert.id!.toString(),
+              projectId: alert.projectId!.toString(),
             });
 
           const eventType: NotificationSettingEventType =

@@ -9,9 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ViewStyle,
+  TextStyle,
 } from "react-native";
 import { useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
+import { LoginResponse } from "../../api/auth";
 import { getServerUrl } from "../../storage/serverUrl";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
@@ -25,7 +28,7 @@ type LoginNavigationProp = NativeStackNavigationProp<
 export default function LoginScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { login, setNeedsServerUrl } = useAuth();
-  const navigation = useNavigation<LoginNavigationProp>();
+  const navigation: LoginNavigationProp = useNavigation<LoginNavigationProp>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [serverUrl, setServerUrlState] = useState("");
@@ -36,7 +39,7 @@ export default function LoginScreen(): React.JSX.Element {
     getServerUrl().then(setServerUrlState);
   }, []);
 
-  const handleLogin = async (): Promise<void> => {
+  const handleLogin: () => Promise<void> = async (): Promise<void> => {
     if (!email.trim() || !password.trim()) {
       setError("Email and password are required.");
       return;
@@ -46,7 +49,7 @@ export default function LoginScreen(): React.JSX.Element {
     setIsLoading(true);
 
     try {
-      const response = await login(email.trim(), password);
+      const response: LoginResponse = await login(email.trim(), password);
 
       if (response.twoFactorRequired) {
         setError(
@@ -54,7 +57,7 @@ export default function LoginScreen(): React.JSX.Element {
         );
       }
     } catch (err: any) {
-      const message =
+      const message: string =
         err?.response?.data?.message ||
         err?.message ||
         "Login failed. Please check your credentials.";
@@ -64,7 +67,7 @@ export default function LoginScreen(): React.JSX.Element {
     }
   };
 
-  const handleChangeServer = (): void => {
+  const handleChangeServer: () => void = (): void => {
     setNeedsServerUrl(true);
     navigation.navigate("ServerUrl");
   };
@@ -123,7 +126,7 @@ export default function LoginScreen(): React.JSX.Element {
                 },
               ]}
               value={email}
-              onChangeText={(text) => {
+              onChangeText={(text: string) => {
                 setEmail(text);
                 setError(null);
               }}
@@ -158,7 +161,7 @@ export default function LoginScreen(): React.JSX.Element {
                 },
               ]}
               value={password}
-              onChangeText={(text) => {
+              onChangeText={(text: string) => {
                 setPassword(text);
                 setError(null);
               }}
@@ -229,7 +232,16 @@ export default function LoginScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: {
+  flex: ViewStyle;
+  scrollContent: ViewStyle;
+  container: ViewStyle;
+  header: ViewStyle;
+  form: ViewStyle;
+  input: TextStyle;
+  button: ViewStyle;
+  changeServer: ViewStyle;
+} = StyleSheet.create({
   flex: {
     flex: 1,
   },

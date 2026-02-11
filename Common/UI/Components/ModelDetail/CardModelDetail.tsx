@@ -1,3 +1,4 @@
+import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../Utils/Permission";
 import User from "../../Utils/User";
 import Navigation from "../../Utils/Navigation";
@@ -33,6 +34,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   formFields?: undefined | Fields<TBaseModel>;
   className?: string | undefined;
   name: string;
+  modelAPI?: typeof ModelAPI | undefined;
   createEditModalWidth?: ModalWidth | undefined;
   refresher?: boolean;
   createOrUpdateApiUrl?: URL | undefined;
@@ -130,6 +132,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
           <ModelDetail
             refresher={refresher}
             {...props.modelDetailProps}
+            modelAPI={props.modelAPI}
             onItemLoaded={(item: TBaseModel) => {
               setItem(item);
               if (props.modelDetailProps.onItemLoaded) {
@@ -144,6 +147,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
         <ModelFormModal<TBaseModel>
           title={`Edit ${model.singularName}`}
           modalWidth={props.createEditModalWidth}
+          modelAPI={props.modelAPI}
           onClose={() => {
             setShowModal(false);
           }}

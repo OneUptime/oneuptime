@@ -1,3 +1,4 @@
+import AdminModelAPI from "../../../Utils/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -19,6 +20,7 @@ const Users: FunctionComponent = (): ReactElement => {
       modelId={modelId}
       modelNameField="email"
       modelType={User}
+      modelAPI={AdminModelAPI}
       title={"User"}
       breadcrumbLinks={[
         {
@@ -41,6 +43,7 @@ const Users: FunctionComponent = (): ReactElement => {
       <div>
         <CardModelDetail<User>
           name="User"
+          modelAPI={AdminModelAPI}
           cardProps={{
             title: "User",
             description: "User details",

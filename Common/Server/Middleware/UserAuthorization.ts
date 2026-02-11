@@ -73,9 +73,9 @@ export default class UserMiddleware {
     }
 
     // 2. Fallback: Check Authorization: Bearer <token> header (mobile app flow)
-    const authHeader: string | undefined = req.headers[
-      "authorization"
-    ] as string | undefined;
+    const authHeader: string | undefined = req.headers["authorization"] as
+      | string
+      | undefined;
     if (authHeader && authHeader.startsWith("Bearer ")) {
       return authHeader.substring(7);
     }

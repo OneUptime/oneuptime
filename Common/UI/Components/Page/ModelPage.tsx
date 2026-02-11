@@ -20,6 +20,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
   modelId: ObjectID;
   modelNameField: string;
+  modelAPI?: typeof ModelAPI | undefined;
 }
 
 const ModelPage: <TBaseModel extends BaseModel>(
@@ -54,7 +55,9 @@ const ModelPage: <TBaseModel extends BaseModel>(
         } as Select<TBaseModel>;
       }
 
-      const item: TBaseModel | null = await ModelAPI.getItem({
+      const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
+
+      const item: TBaseModel | null = await modelAPI.getItem({
         modelType: props.modelType,
         id: props.modelId,
         select: select as Select<TBaseModel>,

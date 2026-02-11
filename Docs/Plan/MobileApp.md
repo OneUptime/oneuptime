@@ -54,7 +54,7 @@ This document outlines the design for a native mobile app (iOS & Android) for On
 | **Framework** | React Native + Expo | Shares React expertise with existing Dashboard team; single codebase for iOS & Android; Expo simplifies build/deploy |
 | **Navigation** | React Navigation 7 | Industry standard for React Native; supports deep linking, stack/tab navigation |
 | **State & Caching** | TanStack Query (React Query) | Automatic caching, background refetch, optimistic updates, offline support |
-| **Push Notifications** | Firebase Cloud Messaging (FCM) + APNs | Native push for both platforms; FCM handles Android natively and proxies to APNs for iOS |
+| **Push Notifications** | Expo Push + APNs/FCM | Native push for both platforms; Expo Push routes to APNs and FCM with zero server-side credentials |
 | **Auth Token Storage** | react-native-keychain | Secure storage in iOS Keychain / Android Keystore |
 | **HTTP Client** | Axios | Consistent with existing Common/UI/Utils/API patterns |
 | **Forms** | React Hook Form | Lightweight, performant form handling |
@@ -66,7 +66,7 @@ This document outlines the design for a native mobile app (iOS & Android) for On
 
 ## UI/UX Design Philosophy
 
-> Engineers will be woken up at 3 AM by this app. Every design decision must respect that reality. The UI must be instantly legible, require zero cognitive effort to parse, and make the critical action (acknowledge) reachable in under 2 seconds. The UI should be modern, polished, and pleasant to use. Implement pleasent animations and haptic feedback, but never at the cost of speed or clarity. The app should feel like a native extension of the phone's OS, not a clunky cross-platform afterthought.
+> Engineers will be woken up at 3 AM by this app. Every design decision must respect that reality. The UI must be instantly legible, require zero cognitive effort to parse, and make the critical action (acknowledge) reachable in under 2 seconds. The UI should be modern, polished, and pleasant to use. Implement pleasent animations and haptic feedback, but never at the cost of speed or clarity. The app should NOT feel like a clunky cross-platform afterthought.
 
 ### Core Design Principles
 
@@ -357,7 +357,7 @@ Swipe actions use iOS-native feel (spring animation, haptic on threshold).
 │                    └────────────────────────────────┘ │
 │  ┌──────────────────────────────────────────────────┐│
 │  │  Notification Service (Extended)                  ││
-│  │  web-push (existing) + firebase-admin (new)       ││
+│  │  web-push (existing) + expo-server-sdk (native)   ││
 │  └──────────────────────────────────────────────────┘│
 │                                                       │
 │  ┌──────────────────────────────────────────────────┐│
@@ -369,8 +369,8 @@ Swipe actions use iOS-native feel (spring animation, haptic on threshold).
                           │
                           ▼
 ┌──────────────────────────────────────────────────────┐
-│         Firebase Cloud Messaging (FCM)                │
-│         Delivers push to iOS (APNs) & Android         │
+│         Expo Push Service                             │
+│         Routes to APNs (iOS) & FCM (Android)          │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -396,16 +396,16 @@ export enum PushDeviceType {
 **Changes needed:**
 - Add `PushDeviceType` enum with `web`, `ios`, `android`
 - Update `UserPush.deviceType` to use the enum
-- For native devices, `deviceToken` stores the FCM registration token (plain string) instead of a web push subscription JSON object
+- For native devices, `deviceToken` stores the Expo Push Token (plain string) instead of a web push subscription JSON object
 - Add database migration for the new enum values
 
 **Migration file:** `Common/Server/Infrastructure/Postgres/SchemaMigrations/XXXXXXXXX-AddMobileDeviceTypes.ts`
 
-### 2. Extend `PushNotificationService` for FCM
+### 2. Extend `PushNotificationService` for Expo Push
 
 **File:** `Common/Server/Services/PushNotificationService.ts`
 
-Add Firebase Cloud Messaging support alongside existing web-push:
+Add Expo Push support alongside existing web-push:
 
 ```typescript
 // Routing logic in sendPushNotification():
@@ -413,23 +413,20 @@ if (deviceType === PushDeviceType.Web) {
     // Existing web-push flow (unchanged)
     await webpush.sendNotification(subscription, payload);
 } else if (deviceType === PushDeviceType.iOS || deviceType === PushDeviceType.Android) {
-    // New FCM flow
-    await firebaseAdmin.messaging().send({
-        token: fcmToken,
-        notification: { title, body },
+    // Expo Push flow — no server credentials needed
+    await expoClient.sendPushNotificationsAsync([{
+        to: expoPushToken,
+        title, body,
         data: { type, entityId, projectId },
-        apns: { payload: { aps: { sound: "default", badge: 1 } } },
-        android: { priority: "high", notification: { sound: "default" } },
-    });
+        sound: "default",
+        priority: "high",
+    }]);
 }
 ```
 
-**New dependency:** `firebase-admin` npm package
+**New dependency:** `expo-server-sdk` npm package
 
-**Configuration:** Add Firebase service account credentials to environment config:
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
+**Configuration:** No server-side credentials required. Expo Push is a public API.
 
 ### 3. Add Mobile-Friendly On-Call Status Endpoint
 
@@ -804,7 +801,7 @@ Since OneUptime is self-hostable, the app must first determine which server to c
      ▼
 ┌─────────┐     POST {serverUrl}/api/user-push     ┌──────────┐
 │  Register│ ──────────────────────────────────── │  Backend  │
-│  Device  │   { fcmToken, deviceType,             │  BaseAPI  │
+│  Device  │   { expoPushToken, deviceType,        │  BaseAPI  │
 │          │     deviceName }                      │          │
 └────┬─────┘                                       └──────────┘
      │
@@ -1168,7 +1165,7 @@ MobileApp/
 │   │   └── useBiometric.ts
 │   │
 │   ├── notifications/                # Push notification setup
-│   │   ├── setup.ts                  # FCM registration & permission request
+│   │   ├── setup.ts                  # Expo Push registration & permission request
 │   │   ├── handlers.ts              # Notification tap/action handlers
 │   │   ├── channels.ts             # Android notification channels
 │   │   └── categories.ts           # iOS notification categories
@@ -1226,9 +1223,8 @@ MobileApp/
 - [ ] Add `PushDeviceType` enum (`web`, `ios`, `android`) to codebase
 - [ ] Update `UserPush` model to support native device types
 - [ ] Create database migration for new device types
-- [ ] Install `firebase-admin` SDK
-- [ ] Extend `PushNotificationService` with FCM send logic
-- [ ] Configure Firebase project and add credentials to environment
+- [ ] Install `expo-server-sdk` package
+- [ ] Extend `PushNotificationService` with Expo Push send logic
 
 **Mobile:**
 - [ ] Initialize Expo project in `MobileApp/` directory
@@ -1281,21 +1277,21 @@ MobileApp/
 ### Phase 4: Push Notifications (Weeks 7-8)
 
 **Backend:**
-- [ ] Test FCM integration end-to-end
-- [ ] Ensure all worker jobs correctly route to FCM for native devices
+- [ ] Test Expo Push integration end-to-end
+- [ ] Ensure all worker jobs correctly route to Expo Push for native devices
 - [ ] Add push notification payload structure with deep link data
 
 **Mobile:**
-- [ ] Configure FCM in Expo (expo-notifications + @react-native-firebase/messaging)
+- [ ] Configure expo-notifications
 - [ ] Implement push notification permission request flow
-- [ ] Register FCM token with backend on login (create UserPush)
-- [ ] Unregister FCM token on logout (delete UserPush)
+- [ ] Register Expo Push token with backend on login (create UserPush)
+- [ ] Unregister Expo Push token on logout (delete UserPush)
 - [ ] Handle foreground notifications (in-app banner)
 - [ ] Handle background notification taps (deep link to detail screen)
 - [ ] Implement actionable notifications (Acknowledge button)
 - [ ] Set up Android notification channels
 - [ ] Set up iOS notification categories
-- [ ] Handle FCM token refresh
+- [ ] Handle Expo Push token refresh
 
 **Deliverable:** User receives push notifications and can acknowledge from notification.
 

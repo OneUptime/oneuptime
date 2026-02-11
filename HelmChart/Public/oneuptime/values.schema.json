@@ -727,25 +727,6 @@
       },
       "additionalProperties": false
     },
-    "firebase": {
-      "type": "object",
-      "description": "Firebase Cloud Messaging (FCM) Configuration for Native Push Notifications (iOS/Android)",
-      "properties": {
-        "projectId": {
-          "type": ["string", "null"],
-          "description": "Firebase project ID"
-        },
-        "clientEmail": {
-          "type": ["string", "null"],
-          "description": "Firebase service account client email"
-        },
-        "privateKey": {
-          "type": ["string", "null"],
-          "description": "Firebase service account private key"
-        }
-      },
-      "additionalProperties": false
-    },
     "incidents": {
       "type": "object",
       "properties": {

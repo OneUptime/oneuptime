@@ -1,13 +1,19 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+  AxiosError,
+} from "axios";
 import { getServerUrl } from "../storage/serverUrl";
 import {
   getCachedAccessToken,
   getTokens,
   storeTokens,
   clearTokens,
+  type StoredTokens,
 } from "../storage/keychain";
 
-let isRefreshing = false;
+let isRefreshing: boolean = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
 let onAuthFailure: (() => void) | null = null;
 
@@ -16,7 +22,7 @@ function subscribeTokenRefresh(callback: (token: string) => void): void {
 }
 
 function onTokenRefreshed(newToken: string): void {
-  refreshSubscribers.forEach((callback) => {
+  refreshSubscribers.forEach((callback: (token: string) => void) => {
     callback(newToken);
   });
   refreshSubscribers = [];
@@ -40,7 +46,7 @@ apiClient.interceptors.request.use(
       config.baseURL = await getServerUrl();
     }
 
-    const token = getCachedAccessToken();
+    const token: string | null = getCachedAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -51,11 +57,13 @@ apiClient.interceptors.request.use(
 
 // Response interceptor: handle 401 with token refresh queue
 apiClient.interceptors.response.use(
-  (response) => {
+  (response: AxiosResponse) => {
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
+    const originalRequest: InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    } = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
@@ -64,7 +72,7 @@ apiClient.interceptors.response.use(
     }
 
     if (isRefreshing) {
-      return new Promise((resolve) => {
+      return new Promise((resolve: (value: AxiosResponse) => void) => {
         subscribeTokenRefresh((newToken: string) => {
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -78,15 +86,18 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const tokens = await getTokens();
+      const tokens: StoredTokens | null = await getTokens();
       if (!tokens?.refreshToken) {
         throw new Error("No refresh token available");
       }
 
-      const serverUrl = await getServerUrl();
-      const response = await axios.post(`${serverUrl}/identity/refresh-token`, {
-        refreshToken: tokens.refreshToken,
-      });
+      const serverUrl: string = await getServerUrl();
+      const response: AxiosResponse = await axios.post(
+        `${serverUrl}/identity/refresh-token`,
+        {
+          refreshToken: tokens.refreshToken,
+        },
+      );
 
       const { accessToken, refreshToken, refreshTokenExpiresAt } =
         response.data;
