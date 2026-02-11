@@ -140,6 +140,10 @@ export class Service extends DatabaseService<Model> {
 
 ${(createdItem.note || "") + attachmentsMarkdown}
           `,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: userId || undefined,
+      },
     });
 
     return createdItem;
@@ -196,6 +200,10 @@ ${(createdItem.note || "") + attachmentsMarkdown}
 
 ${(updatedItem.note || "") + attachmentsMarkdown}
                   `,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: userId || undefined,
+          },
         });
       }
     }

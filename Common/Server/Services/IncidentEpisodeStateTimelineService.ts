@@ -383,6 +383,11 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
         ? `**Cause:** \n${createdItem.rootCause}`
         : undefined,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
+      },
     });
 
     return createdItem;
