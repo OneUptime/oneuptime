@@ -47,7 +47,11 @@
                      <dd><code class="model-inline-code"><%= Object.keys(pageData.columns)[i] -%></code></dd>
                      <dt class="sr-only">Type</dt>
                      <dd class="font-mono text-xs text-slate-500">
-                        <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
+                        <% if(pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath) { %>
+                           <a href="/reference/<%= pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].modelName -%></a>
+                        <% } else { %>
+                           <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
+                        <% } %>
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].required){ %>
                            <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Required</span>
                         <% } %>

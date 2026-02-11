@@ -5,6 +5,7 @@ import CodeExampleGenerator, {
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import PageNotFoundServiceHandler from "./PageNotFound";
 import { AppApiRoute } from "Common/ServiceRoute";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import {
   getTableColumns,
@@ -391,6 +392,23 @@ export default class ServiceHandler {
     delete tableColumns["deletedByUserId"];
     delete tableColumns["deletedByUser"];
     delete tableColumns["version"];
+
+    // For columns with a modelType (Entity/EntityArray), resolve the related model's documentation path
+    for (const key in tableColumns) {
+      const column: TableColumnMetadata | undefined = tableColumns[key];
+      if (column?.modelType) {
+        try {
+          const relatedModelInstance: BaseModel = new column.modelType();
+          if (relatedModelInstance.enableDocumentation) {
+            (column as any).modelDocumentationPath =
+              relatedModelInstance.getAPIDocumentationPath();
+            (column as any).modelName = relatedModelInstance.singularName;
+          }
+        } catch {
+          // If model instantiation fails, skip linking
+        }
+      }
+    }
 
     // Set page data
     pageData["title"] = currentResource.model.singularName;
