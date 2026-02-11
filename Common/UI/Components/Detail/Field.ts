@@ -1,5 +1,5 @@
 import AlignItem from "../../Types/AlignItem";
-import { DropdownOption } from "../Dropdown/Dropdown";
+import { DropdownOption, DropdownOptionGroup } from "../Dropdown/Dropdown";
 import FieldType from "../Types/FieldType";
 import { Size } from "./FieldLabel";
 import Route from "../../../Types/API/Route";
@@ -18,7 +18,7 @@ export interface FieldBase<T> {
   description?: string | ReactElement;
   fieldTitleSize?: Size | undefined;
   fieldType?: FieldType;
-  dropdownOptions?: Array<DropdownOption> | undefined;
+  dropdownOptions?: Array<DropdownOption | DropdownOptionGroup> | undefined;
   colSpan?: number | undefined;
   alignItem?: AlignItem | undefined;
   contentClassName?: string | undefined;

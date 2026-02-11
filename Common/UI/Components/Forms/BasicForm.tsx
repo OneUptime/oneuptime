@@ -4,7 +4,11 @@ import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
 
-import { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
+import {
+  DropdownOption,
+  DropdownOptionGroup,
+  DropdownValue,
+} from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FormField from "./Fields/FormField";
 import FormSummary from "./FormSummary";
@@ -301,7 +305,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           setIsDropdownOptionsLoading(true);
           // If a dropdown has fetch optiosn then we need to fetch them
           try {
-            const options: Array<DropdownOption> =
+            const options: Array<DropdownOption | DropdownOptionGroup> =
               await item.fetchDropdownOptions(refCurrentValue.current);
             item.dropdownOptions = options;
           } catch (err) {
@@ -501,8 +505,23 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           field.fieldType === FormFieldSchemaType.Dropdown &&
           (values as any)[fieldName]
         ) {
+          const flatDropdownOptions: Array<DropdownOption> =
+            field.dropdownOptions?.flatMap(
+              (item: DropdownOption | DropdownOptionGroup) => {
+                if (
+                  "options" in item &&
+                  Array.isArray(
+                    (item as DropdownOptionGroup).options,
+                  )
+                ) {
+                  return (item as DropdownOptionGroup).options;
+                }
+                return [item as DropdownOption];
+              },
+            ) || [];
+
           const dropdownOption: DropdownOption | undefined =
-            field.dropdownOptions?.find((option: DropdownOption) => {
+            flatDropdownOptions.find((option: DropdownOption) => {
               let valueToCompare: DropdownValue = (values as any)[fieldName];
 
               if ((valueToCompare as any) instanceof ObjectID) {
@@ -519,8 +538,23 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&
           (values as any)[fieldName]
         ) {
+          const flatDropdownOptions: Array<DropdownOption> =
+            field.dropdownOptions?.flatMap(
+              (item: DropdownOption | DropdownOptionGroup) => {
+                if (
+                  "options" in item &&
+                  Array.isArray(
+                    (item as DropdownOptionGroup).options,
+                  )
+                ) {
+                  return (item as DropdownOptionGroup).options;
+                }
+                return [item as DropdownOption];
+              },
+            ) || [];
+
           const dropdownOptions: Array<DropdownOption> =
-            field.dropdownOptions?.filter((option: DropdownOption) => {
+            flatDropdownOptions.filter((option: DropdownOption) => {
               let valueToCompare: Array<DropdownValue> = [
                 ...(values as any)[fieldName],
               ];
@@ -534,7 +568,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
               });
 
               return valueToCompare.includes(option.value);
-            }) || [];
+            });
 
           (values as any)[fieldName] = dropdownOptions.map(
             (option: DropdownOption) => {

@@ -35,8 +35,13 @@ export interface DropdownOption {
   color?: Color;
 }
 
-export interface ComponentProps {
+export interface DropdownOptionGroup {
+  label: string;
   options: Array<DropdownOption>;
+}
+
+export interface ComponentProps {
+  options: Array<DropdownOption | DropdownOptionGroup>;
   initialValue?: undefined | DropdownOption | Array<DropdownOption>;
   onClick?: undefined | (() => void);
   placeholder?: undefined | string;
@@ -60,6 +65,24 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const uniqueId: string = useId();
   const errorId: string = `dropdown-error-${uniqueId}`;
+
+  const isDropdownOptionGroup = (
+    item: DropdownOption | DropdownOptionGroup,
+  ): item is DropdownOptionGroup => {
+    return (
+      "options" in item &&
+      Array.isArray((item as DropdownOptionGroup).options)
+    );
+  };
+
+  const flatOptions: Array<DropdownOption> = props.options.flatMap(
+    (item: DropdownOption | DropdownOptionGroup) => {
+      if (isDropdownOptionGroup(item)) {
+        return item.options;
+      }
+      return [item];
+    },
+  );
 
   type GetDropdownOptionFromValueFunctionProps =
     | undefined
@@ -103,13 +126,13 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           !Array.isArray(item) &&
           (typeof item === "string" || typeof item === "number")
         ) {
-          const option: DropdownOption | undefined | Array<DropdownOption> =
-            props.options.find((option: DropdownOption) => {
+          const option: DropdownOption | undefined =
+            flatOptions.find((option: DropdownOption) => {
               return option.value === item;
-            }) as DropdownOption | Array<DropdownOption>;
+            });
 
           if (option) {
-            options.push(option as DropdownOption);
+            options.push(option);
           }
         }
       }
@@ -121,9 +144,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       !Array.isArray(value) &&
       (typeof value === "string" || typeof value === "number")
     ) {
-      return props.options.find((option: DropdownOption) => {
+      return flatOptions.find((option: DropdownOption) => {
         return option.value === value;
-      }) as DropdownOption | Array<DropdownOption>;
+      });
     }
 
     return value as DropdownOption | Array<DropdownOption>;
@@ -568,6 +591,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             }
 
             return "px-3 py-2 text-sm text-gray-700";
+          },
+          group: () => {
+            return "py-1";
+          },
+          groupHeading: () => {
+            return "px-3 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500";
           },
           noOptionsMessage: () => {
             return "px-3 py-2 text-sm text-gray-500";

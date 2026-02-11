@@ -1,7 +1,11 @@
-import { DropdownOption } from "../Components/Dropdown/Dropdown";
+import {
+  DropdownOption,
+  DropdownOptionGroup,
+} from "../Components/Dropdown/Dropdown";
 import LocalStorage from "./LocalStorage";
 import { JSONObject } from "../../Types/JSON";
 import Permission, {
+  PermissionGroup,
   PermissionHelper,
   PermissionProps,
   UserGlobalAccessPermission,
@@ -60,16 +64,35 @@ export default class PermissionUtil {
     return userTenantAccessPermission;
   }
 
-  public static projectPermissionsAsDropdownOptions(): Array<DropdownOption> {
+  public static projectPermissionsAsDropdownOptions(): Array<DropdownOptionGroup> {
     const permissions: Array<PermissionProps> =
       PermissionHelper.getTenantPermissionProps();
 
-    return permissions.map((permissionProp: PermissionProps) => {
-      return {
+    const groupMap: Map<PermissionGroup, Array<DropdownOption>> = new Map();
+
+    for (const permissionProp of permissions) {
+      const group: PermissionGroup = permissionProp.group;
+
+      if (!groupMap.has(group)) {
+        groupMap.set(group, []);
+      }
+
+      groupMap.get(group)!.push({
         value: permissionProp.permission,
         label: permissionProp.title,
-      };
-    });
+      });
+    }
+
+    const groups: Array<DropdownOptionGroup> = [];
+
+    for (const [group, options] of groupMap) {
+      groups.push({
+        label: group,
+        options,
+      });
+    }
+
+    return groups;
   }
 
   public static setGlobalPermissions(

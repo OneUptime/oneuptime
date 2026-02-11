@@ -4,7 +4,7 @@ import CodeBlock from "../CodeBlock/CodeBlock";
 import ColorViewer from "../ColorViewer/ColorViewer";
 import CopyableButton from "../CopyableButton/CopyableButton";
 import DictionaryOfStringsViewer from "../Dictionary/DictionaryOfStingsViewer";
-import { DropdownOption } from "../Dropdown/Dropdown";
+import { DropdownOption, DropdownOptionGroup } from "../Dropdown/Dropdown";
 import HiddenText from "../HiddenText/HiddenText";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
@@ -72,13 +72,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
   type GetDropdownViewerFunction = (
     data: string,
-    options: Array<DropdownOption>,
+    options: Array<DropdownOption | DropdownOptionGroup>,
     placeholder: string,
   ) => ReactElement;
 
   const getDropdownViewer: GetDropdownViewerFunction = (
     data: string,
-    options: Array<DropdownOption>,
+    options: Array<DropdownOption | DropdownOptionGroup>,
     placeholder: string,
   ): ReactElement => {
     if (!options) {
@@ -87,7 +87,16 @@ const Detail: DetailFunction = <T extends GenericObject>(
       );
     }
 
-    const selectedOption: DropdownOption | undefined = options.find(
+    const flatOptions: Array<DropdownOption> = options.flatMap(
+      (item: DropdownOption | DropdownOptionGroup) => {
+        if ("options" in item && Array.isArray(item.options)) {
+          return item.options;
+        }
+        return [item as DropdownOption];
+      },
+    );
+
+    const selectedOption: DropdownOption | undefined = flatOptions.find(
       (i: DropdownOption) => {
         return i.value === data;
       },

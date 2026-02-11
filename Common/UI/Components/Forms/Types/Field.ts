@@ -4,7 +4,7 @@ import {
   CheckboxCategory,
 } from "../../CategoryCheckbox/CategoryCheckboxTypes";
 import { CardSelectOption } from "../../CardSelect/CardSelect";
-import { DropdownOption } from "../../Dropdown/Dropdown";
+import { DropdownOption, DropdownOptionGroup } from "../../Dropdown/Dropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
 import FormValues from "./FormValues";
@@ -50,10 +50,10 @@ export default interface Field<TEntity> {
   disabled?: boolean;
   stepId?: string | undefined;
   required?: boolean | ((item: FormValues<TEntity>) => boolean) | undefined;
-  dropdownOptions?: Array<DropdownOption> | undefined;
+  dropdownOptions?: Array<DropdownOption | DropdownOptionGroup> | undefined;
   cardSelectOptions?: Array<CardSelectOption> | undefined;
   fetchDropdownOptions?:
-    | ((item: FormValues<TEntity>) => Promise<Array<DropdownOption>>)
+    | ((item: FormValues<TEntity>) => Promise<Array<DropdownOption | DropdownOptionGroup>>)
     | undefined;
   showHorizontalRuleBelow?: boolean | undefined;
   showHorizontalRuleAbove?: boolean | undefined;
