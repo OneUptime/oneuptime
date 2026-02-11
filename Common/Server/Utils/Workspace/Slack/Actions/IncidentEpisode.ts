@@ -13,6 +13,7 @@ import {
   WorkspaceTextAreaBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import IncidentEpisodeInternalNoteService from "../../../../Services/IncidentEpisodeInternalNoteService";
+import IncidentEpisodePublicNoteService from "../../../../Services/IncidentEpisodePublicNoteService";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
@@ -275,9 +276,7 @@ export default class SlackIncidentEpisodeActions {
     }
 
     // We send this early let slack know we're ok. We'll do the rest in the background.
-    Response.sendJsonObjectResponse(req, res, {
-      response_action: "clear",
-    });
+    Response.sendTextResponse(req, res, "");
 
     const onCallPolicies: Array<OnCallDutyPolicy> =
       await OnCallDutyPolicyService.findBy({
@@ -349,9 +348,7 @@ export default class SlackIncidentEpisodeActions {
     }
 
     // We send this early let slack know we're ok. We'll do the rest in the background.
-    Response.sendJsonObjectResponse(req, res, {
-      response_action: "clear",
-    });
+    Response.sendTextResponse(req, res, "");
 
     // Incident Episodes use incident states
     const incidentStates: Array<IncidentState> =
@@ -610,6 +607,14 @@ export default class SlackIncidentEpisodeActions {
       );
     }
 
+    if (!data.slackRequest.viewValues["noteType"]) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Note Type"),
+      );
+    }
+
     if (!data.slackRequest.viewValues["note"]) {
       return Response.sendErrorResponse(
         req,
@@ -620,18 +625,41 @@ export default class SlackIncidentEpisodeActions {
 
     const episodeId: ObjectID = new ObjectID(actionValue);
     const note: string = data.slackRequest.viewValues["note"].toString();
+    const noteType: string =
+      data.slackRequest.viewValues["noteType"].toString();
+
+    if (noteType !== "public" && noteType !== "private") {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Note Type"),
+      );
+    }
 
     // send empty response.
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
 
-    await IncidentEpisodeInternalNoteService.addNote({
-      incidentEpisodeId: episodeId!,
-      note: note || "",
-      projectId: data.slackRequest.projectId!,
-      userId: data.slackRequest.userId!,
-    });
+    // if public note then, add a note.
+    if (noteType === "public") {
+      await IncidentEpisodePublicNoteService.addNote({
+        incidentEpisodeId: episodeId!,
+        note: note || "",
+        projectId: data.slackRequest.projectId!,
+        userId: data.slackRequest.userId!,
+      });
+    }
+
+    // if private note then, add a note.
+    if (noteType === "private") {
+      await IncidentEpisodeInternalNoteService.addNote({
+        incidentEpisodeId: episodeId!,
+        note: note || "",
+        projectId: data.slackRequest.projectId!,
+        userId: data.slackRequest.userId!,
+      });
+    }
   }
 
   @CaptureSpan()
@@ -653,9 +681,24 @@ export default class SlackIncidentEpisodeActions {
     }
 
     // We send this early let slack know we're ok. We'll do the rest in the background.
-    Response.sendJsonObjectResponse(req, res, {
-      response_action: "clear",
-    });
+    Response.sendTextResponse(req, res, "");
+
+    const notePickerDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Note Type",
+      blockId: "noteType",
+      placeholder: "Select Note Type",
+      options: [
+        {
+          label: "Public Note (Will be posted on Status Page)",
+          value: "public",
+        },
+        {
+          label: "Private Note (Only visible to team members)",
+          value: "private",
+        },
+      ],
+    };
 
     const noteTextArea: WorkspaceTextAreaBlock = {
       _type: "WorkspaceTextAreaBlock",
@@ -672,7 +715,7 @@ export default class SlackIncidentEpisodeActions {
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitIncidentEpisodeNote,
       actionValue: actionValue,
-      blocks: [noteTextArea],
+      blocks: [notePickerDropdown, noteTextArea],
     };
 
     await SlackUtil.showModalToUser({
