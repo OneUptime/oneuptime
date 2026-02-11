@@ -9,15 +9,17 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { FormProps } from "Common/UI/Components/Forms/BasicForm";
+import PermissionPicker from "Common/UI/Components/Forms/Fields/PermissionPicker";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -79,6 +81,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         userPreferencesKey="api-key-permission-table"
         isDeleteable={true}
         name="Settings > API Key > Permissions"
+        createEditModalWidth={ModalWidth.Large}
         query={{
           apiKeyId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -113,11 +116,30 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
               await formRef.current.setFieldValue("labels", [], true);
             },
             title: "Permission",
-            fieldType: FormFieldSchemaType.Dropdown,
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
-            placeholder: "Permission",
-            dropdownOptions:
-              PermissionUtil.projectPermissionsAsDropdownOptions(),
+            placeholder: "Search permissions...",
+            getCustomElement: (
+              _values: FormValues<ApiKeyPermission>,
+              customElementProps: CustomElementProps,
+            ) => {
+              return (
+                <PermissionPicker
+                  onChange={(value: Permission | null) => {
+                    customElementProps.onChange?.(value);
+                  }}
+                  onBlur={customElementProps.onBlur}
+                  tabIndex={customElementProps.tabIndex}
+                  initialValue={
+                    customElementProps.initialValue as
+                      | Permission
+                      | undefined
+                  }
+                  placeholder={customElementProps.placeholder}
+                  error={customElementProps.error}
+                />
+              );
+            },
           },
           {
             field: {

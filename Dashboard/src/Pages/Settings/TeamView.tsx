@@ -13,16 +13,18 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { FormProps } from "Common/UI/Components/Forms/BasicForm";
+import PermissionPicker from "Common/UI/Components/Forms/Fields/PermissionPicker";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
@@ -115,6 +117,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         isEditable={true}
         isCreateable={true}
         name={"Settings > Team > Permissions-" + permissionType}
+        createEditModalWidth={ModalWidth.Large}
         isViewable={false}
         createEditFromRef={formRef}
         query={{
@@ -146,11 +149,30 @@ const TeamView: FunctionComponent<PageComponentProps> = (
               await formRef.current.setFieldValue("labels", [], true);
             },
             title: "Permission",
-            fieldType: FormFieldSchemaType.Dropdown,
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
-            placeholder: "Permission",
-            dropdownOptions:
-              PermissionUtil.projectPermissionsAsDropdownOptions(),
+            placeholder: "Search permissions...",
+            getCustomElement: (
+              _values: FormValues<TeamPermission>,
+              customElementProps: CustomElementProps,
+            ) => {
+              return (
+                <PermissionPicker
+                  onChange={(value: Permission | null) => {
+                    customElementProps.onChange?.(value);
+                  }}
+                  onBlur={customElementProps.onBlur}
+                  tabIndex={customElementProps.tabIndex}
+                  initialValue={
+                    customElementProps.initialValue as
+                      | Permission
+                      | undefined
+                  }
+                  placeholder={customElementProps.placeholder}
+                  error={customElementProps.error}
+                />
+              );
+            },
           },
           {
             field: {
