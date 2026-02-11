@@ -391,6 +391,21 @@
                         </ul>
                     </div>
                 </li>
+                <% if (typeof dataTypes !== 'undefined' && dataTypes && dataTypes.length > 0) { %>
+                <li class="relative mt-6">
+                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide">Data Types</h6>
+                    <div class="relative mt-3 pl-2">
+                        <div class="absolute inset-y-0 left-2 w-px bg-slate-200"></div>
+                        <ul role="list" class="border-l border-transparent space-y-1">
+                            <% for(var i=0; i<dataTypes.length; i++) {%>
+                                <li class="relative"><a
+                                        class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                        href="/reference/<%= dataTypes[i].path -%>"><span class="truncate"><%= dataTypes[i].name -%></span></a></li>
+                            <% } %>
+                        </ul>
+                    </div>
+                </li>
+                <% } %>
                 <li class="relative mt-6">
                     <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide">Resources</h6>
                     <div class="relative mt-3 pl-2">
@@ -529,6 +544,16 @@
                   <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/openapi">OpenAPI Spec</a></li>
                </ul>
             </li>
+            <% if (typeof dataTypes !== 'undefined' && dataTypes && dataTypes.length > 0) { %>
+            <li class="relative">
+               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3">Data Types</h6>
+               <ul role="list" class="space-y-1 border-l border-slate-200 ml-2">
+                  <% for(var i=0; i<dataTypes.length; i++) {%>
+                     <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition truncate" href="/reference/<%= dataTypes[i].path -%>"><%= dataTypes[i].name -%></a></li>
+                  <% } %>
+               </ul>
+            </li>
+            <% } %>
             <li class="relative">
                <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3">Resources</h6>
                <ul role="list" class="space-y-1 border-l border-slate-200 ml-2">

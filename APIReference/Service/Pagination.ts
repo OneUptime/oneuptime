@@ -1,12 +1,14 @@
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
+import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import Dictionary from "Common/Types/Dictionary";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources(); // Get all resources from ResourceUtil
+const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 
 export default class ServiceHandler {
   public static async executeResponse(
@@ -49,6 +51,7 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: page, // Pass the page parameter
       resources: Resources, // Pass all resources
+      dataTypes: DataTypes,
       pageTitle: pageTitle,
       enableGoogleTagManager: IsBillingEnabled, // Pass the page title
       pageDescription: pageDescription, // Pass the page description

@@ -1,5 +1,6 @@
 import AuthenticationServiceHandler from "./Service/Authentication";
 import DataTypeServiceHandler from "./Service/DataType";
+import DataTypeDetailServiceHandler from "./Service/DataTypeDetail";
 import ErrorServiceHandler from "./Service/Errors";
 import OpenAPIServiceHandler from "./Service/OpenAPI";
 import IntroductionServiceHandler from "./Service/Introduction";
@@ -10,6 +11,7 @@ import PermissionServiceHandler from "./Service/Permissions";
 import StatusServiceHandler from "./Service/Status";
 import { StaticPath } from "./Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "./Utils/Resources";
+import DataTypeUtil, { DataTypeDocumentation } from "./Utils/DataTypes";
 import Dictionary from "Common/Types/Dictionary";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
@@ -23,6 +25,9 @@ const APIReferenceFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const ResourceDictionary: Dictionary<ModelDocumentation> =
       ResourceUtil.getResourceDictionaryByPath();
+
+    const DataTypeDictionary: Dictionary<DataTypeDocumentation> =
+      DataTypeUtil.getDataTypeDictionaryByPath();
 
     const app: ExpressApplication = Express.getExpressApp();
 
@@ -72,6 +77,8 @@ const APIReferenceFeatureSet: FeatureSet = {
           return StatusServiceHandler.executeResponse(req, res);
         } else if (req.params["page"] === "data-types") {
           return DataTypeServiceHandler.executeResponse(req, res);
+        } else if (DataTypeDictionary[page]) {
+          return DataTypeDetailServiceHandler.executeResponse(req, res);
         } else if (currentResource) {
           return ModelServiceHandler.executeResponse(req, res);
         }

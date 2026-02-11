@@ -3,6 +3,7 @@ import CodeExampleGenerator, {
   CodeExamples,
 } from "../Utils/CodeExampleGenerator";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
+import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
 import PageNotFoundServiceHandler from "./PageNotFound";
 import { AppApiRoute } from "Common/ServiceRoute";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -315,8 +316,54 @@ function generateApiCodeExamples(
 
 // Get all resources and resource dictionary
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
+const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 const ResourceDictionary: Dictionary<ModelDocumentation> =
   ResourceUtil.getResourceDictionaryByPath();
+
+// Map column type strings to data type documentation page paths
+const TypeToDocPath: Dictionary<string> = {
+  ObjectID: "object-id",
+  Decimal: "decimal",
+  Name: "name",
+  "Monitor Steps": "monitor-steps",
+  MonitorSteps: "monitor-steps",
+  "Monitor Step": "monitor-step",
+  MonitorStep: "monitor-step",
+  "Monitor Type": "monitor-type",
+  MonitorType: "monitor-type",
+  Recurring: "recurring",
+  "Restriction Times": "restriction-times",
+  RestrictionTimes: "restriction-times",
+  "Monitor Criteria": "monitor-criteria",
+  MonitorCriteria: "monitor-criteria",
+  "Monitor Criteria Instance": "monitor-criteria-instance",
+  MonitorCriteriaInstance: "monitor-criteria-instance",
+  "Positive Number": "positive-number",
+  PositiveNumber: "positive-number",
+  "Custom Field Type": "custom-field-type",
+  CustomFieldType: "custom-field-type",
+  "Workflow Status": "workflow-status",
+  WorkflowStatus: "workflow-status",
+  Permission: "permission",
+  Email: "email",
+  Phone: "phone",
+  Color: "color",
+  Domain: "domain",
+  Version: "version",
+  IP: "ip",
+  Route: "route",
+  URL: "url",
+  Port: "port",
+  Hostname: "hostname",
+  "Hashed String": "hashed-string",
+  HashedString: "hashed-string",
+  DateTime: "date-time",
+  Buffer: "buffer",
+  "Dashboard Component": "dashboard-component",
+  DashboardComponent: "dashboard-component",
+  "Dashboard View Config": "dashboard-view-config",
+  DashboardViewConfig: "dashboard-view-config",
+};
 
 // Get all permission props
 const PermissionDictionary: Dictionary<PermissionProps> =
@@ -406,6 +453,15 @@ export default class ServiceHandler {
           }
         } catch {
           // If model instantiation fails, skip linking
+        }
+      }
+
+      // Resolve non-entity complex types to their documentation paths
+      if (column?.type && !((column as any).modelDocumentationPath)) {
+        const typeStr: string = column.type.toString();
+        const docPath: string | undefined = TypeToDocPath[typeStr];
+        if (docPath) {
+          (column as any).typeDocumentationPath = docPath;
         }
       }
     }
@@ -604,6 +660,7 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: page,
       resources: Resources,
+      dataTypes: DataTypes,
       pageTitle: pageTitle,
       enableGoogleTagManager: IsBillingEnabled,
       pageDescription: pageDescription,

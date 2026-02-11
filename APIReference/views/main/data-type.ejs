@@ -1,0 +1,76 @@
+<main class="py-12">
+    <article class="prose">
+        <!-- Hero Section -->
+        <div class="mb-10">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-600 shadow-lg shadow-emerald-500/30">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                </div>
+                <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Data Type</span>
+            </div>
+            <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3"><%= pageData.title %></h1>
+            <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%= pageData.description %></p>
+        </div>
+
+        <% if (pageData.isEnum) { %>
+            <h3 class="text-base font-semibold text-slate-800 mb-4">Possible Values</h3>
+            <div class="my-6 rounded-xl border border-slate-200 bg-white overflow-hidden">
+                <ul role="list" class="m-0 w-full list-none divide-y divide-slate-100 p-0">
+                    <% for (var v = 0; v < pageData.values.length; v++) { %>
+                        <li class="m-0 px-5 py-3 hover:bg-slate-50/50 transition-colors">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Value</dt>
+                                <dd><code class="model-inline-code"><%= pageData.values[v].value %></code></dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none text-sm text-slate-600"><%= pageData.values[v].description %></dd>
+                            </dl>
+                        </li>
+                    <% } %>
+                </ul>
+            </div>
+        <% } else if (pageData.properties && pageData.properties.length > 0) { %>
+            <h3 class="text-base font-semibold text-slate-800 mb-4">Properties</h3>
+            <div class="my-6 rounded-xl border border-slate-200 bg-white overflow-hidden">
+                <ul role="list" class="m-0 w-full list-none divide-y divide-slate-100 p-0">
+                    <% for (var p = 0; p < pageData.properties.length; p++) { %>
+                        <li class="m-0 px-5 py-3 hover:bg-slate-50/50 transition-colors">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Name</dt>
+                                <dd><code class="model-inline-code"><%= pageData.properties[p].name %></code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-slate-500">
+                                    <%= pageData.properties[p].type %>
+                                    <% if (pageData.properties[p].required) { %>
+                                        <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Required</span>
+                                    <% } %>
+                                </dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none text-sm text-slate-600"><%= pageData.properties[p].description %></dd>
+                            </dl>
+                        </li>
+                    <% } %>
+                </ul>
+            </div>
+        <% } %>
+
+        <h3 class="text-base font-semibold text-slate-800 mb-4 mt-8">JSON Example</h3>
+        <div class="rounded-xl border border-slate-200 bg-slate-900 overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+                <span class="text-xs font-medium text-slate-400">JSON</span>
+            </div>
+            <pre class="p-4 overflow-x-auto text-sm text-slate-300 m-0"><code><%= pageData.jsonExample %></code></pre>
+        </div>
+
+        <% if (pageData.title === "Permission") { %>
+            <div class="mt-6 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
+                <p class="text-sm text-indigo-800 m-0">
+                    For a complete list of all available permissions and their descriptions, see the
+                    <a href="/reference/permissions" class="font-medium text-indigo-600 hover:text-indigo-700 hover:underline">Permissions guide</a>.
+                </p>
+            </div>
+        <% } %>
+
+    </article>
+</main>

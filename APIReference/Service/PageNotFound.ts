@@ -1,9 +1,11 @@
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
+import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources(); // Get an array of model documentation resources
+const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 
 export default class ServiceHandler {
   // This is a static method that handles the response
@@ -21,6 +23,7 @@ export default class ServiceHandler {
       enableGoogleTagManager: IsBillingEnabled,
       pageDescription: "Page you're looking for is not found.", // The page description
       resources: Resources, // The array of model documentation resources
+      dataTypes: DataTypes,
       pageData: {}, // An empty object to hold any additional page data
     });
   }

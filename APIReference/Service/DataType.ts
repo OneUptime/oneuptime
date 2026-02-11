@@ -1,12 +1,14 @@
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
+import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import Dictionary from "Common/Types/Dictionary";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
+const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 
 export default class ServiceHandler {
   public static async executeResponse(
@@ -153,6 +155,7 @@ export default class ServiceHandler {
       pageDescription:
         "Data Types that can be used to interact with OneUptime API",
       resources: Resources,
+      dataTypes: DataTypes,
       pageData: pageData,
     });
   }

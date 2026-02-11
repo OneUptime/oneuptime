@@ -49,6 +49,8 @@
                      <dd class="font-mono text-xs text-slate-500">
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath) { %>
                            <a href="/reference/<%= pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].modelName -%></a>
+                        <% } else if(pageData.columns[Object.keys(pageData.columns)[i]].typeDocumentationPath) { %>
+                           <a href="/reference/<%= pageData.columns[Object.keys(pageData.columns)[i]].typeDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].type -%></a>
                         <% } else { %>
                            <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
                         <% } %>

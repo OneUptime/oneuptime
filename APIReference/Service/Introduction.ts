@@ -1,11 +1,13 @@
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
+import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
 
 // Get all resources and featured resources from ResourceUtil
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
+const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
 const FeaturedResources: Array<ModelDocumentation> =
   ResourceUtil.getFeaturedResources();
 
@@ -34,6 +36,7 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: page,
       resources: Resources,
+      dataTypes: DataTypes,
       pageTitle: pageTitle,
       enableGoogleTagManager: IsBillingEnabled,
       pageDescription: pageDescription,
