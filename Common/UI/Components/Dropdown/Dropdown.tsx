@@ -70,8 +70,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     item: DropdownOption | DropdownOptionGroup,
   ): item is DropdownOptionGroup => {
     return (
-      "options" in item &&
-      Array.isArray((item as DropdownOptionGroup).options)
+      "options" in item && Array.isArray((item as DropdownOptionGroup).options)
     );
   };
 
@@ -126,10 +125,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           !Array.isArray(item) &&
           (typeof item === "string" || typeof item === "number")
         ) {
-          const option: DropdownOption | undefined =
-            flatOptions.find((option: DropdownOption) => {
+          const option: DropdownOption | undefined = flatOptions.find(
+            (option: DropdownOption) => {
               return option.value === item;
-            });
+            },
+          );
 
           if (option) {
             options.push(option);

@@ -131,9 +131,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                   onBlur={customElementProps.onBlur}
                   tabIndex={customElementProps.tabIndex}
                   initialValue={
-                    customElementProps.initialValue as
-                      | Permission
-                      | undefined
+                    customElementProps.initialValue as Permission | undefined
                   }
                   placeholder={customElementProps.placeholder}
                   error={customElementProps.error}

@@ -4,9 +4,11 @@ export interface DataTypeDocumentation {
   name: string;
   path: string;
   description: string;
-  // Additional column type display strings that should link to this data type page.
-  // Used for cases where the TableColumnType enum value doesn't match the PascalCase name
-  // (e.g., enum "Date" should link to the "DateTime" data type page).
+  /*
+   * Additional column type display strings that should link to this data type page.
+   * Used for cases where the TableColumnType enum value doesn't match the PascalCase name
+   * (e.g., enum "Date" should link to the "DateTime" data type page).
+   */
   columnTypeAliases?: Array<string>;
 }
 
@@ -16,7 +18,8 @@ export default class DataTypeUtil {
       {
         name: "ObjectID",
         path: "object-id",
-        description: "A unique identifier for objects, typically a UUID string.",
+        description:
+          "A unique identifier for objects, typically a UUID string.",
       },
       {
         name: "Decimal",
@@ -91,14 +94,12 @@ export default class DataTypeUtil {
       {
         name: "Email",
         path: "email",
-        description:
-          "An email address type with built-in format validation.",
+        description: "An email address type with built-in format validation.",
       },
       {
         name: "Phone",
         path: "phone",
-        description:
-          "A phone number type with built-in format validation.",
+        description: "A phone number type with built-in format validation.",
       },
       {
         name: "Color",
@@ -114,8 +115,7 @@ export default class DataTypeUtil {
       {
         name: "Version",
         path: "version",
-        description:
-          "A semantic version type (e.g., 1.0.0).",
+        description: "A semantic version type (e.g., 1.0.0).",
       },
       {
         name: "IP",
@@ -259,18 +259,22 @@ export default class DataTypeUtil {
     return dict;
   }
 
-  // Convert PascalCase name to space-separated display string.
-  // e.g., "ObjectID" → "Object ID", "MonitorSteps" → "Monitor Steps",
-  //        "HashedString" → "Hashed String", "IP" → "IP"
+  /*
+   * Convert PascalCase name to space-separated display string.
+   * e.g., "ObjectID" → "Object ID", "MonitorSteps" → "Monitor Steps",
+   *        "HashedString" → "Hashed String", "IP" → "IP"
+   */
   private static pascalCaseToDisplayString(name: string): string {
     return name
       .replace(/([a-z])([A-Z])/g, "$1 $2")
       .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
   }
 
-  // Build a mapping from column type display strings to data type page paths.
-  // Automatically derives both PascalCase and display-string variants from each
-  // data type's name, so adding a new entry to getDataTypes() is all that's needed.
+  /*
+   * Build a mapping from column type display strings to data type page paths.
+   * Automatically derives both PascalCase and display-string variants from each
+   * data type's name, so adding a new entry to getDataTypes() is all that's needed.
+   */
   public static getTypeToDocPathMap(): Dictionary<string> {
     const map: Dictionary<string> = {};
 
@@ -279,8 +283,9 @@ export default class DataTypeUtil {
       map[dt.name] = dt.path;
 
       // Map display string: "Object ID" → "object-id"
-      const displayName: string =
-        DataTypeUtil.pascalCaseToDisplayString(dt.name);
+      const displayName: string = DataTypeUtil.pascalCaseToDisplayString(
+        dt.name,
+      );
       if (displayName !== dt.name) {
         map[displayName] = dt.path;
       }

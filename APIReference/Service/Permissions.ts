@@ -32,11 +32,9 @@ export default class ServiceHandler {
 
     // Filter permissions to only include those assignable to tenants
     const tenantPermissions: Array<PermissionProps> =
-      PermissionHelper.getAllPermissionProps().filter(
-        (i: PermissionProps) => {
-          return i.isAssignableToTenant;
-        },
-      );
+      PermissionHelper.getAllPermissionProps().filter((i: PermissionProps) => {
+        return i.isAssignableToTenant;
+      });
 
     // Group permissions by PermissionGroup
     const permissionGroups: Array<{
@@ -45,10 +43,11 @@ export default class ServiceHandler {
     }> = [];
 
     for (const group of Object.values(PermissionGroup)) {
-      const groupPermissions: Array<PermissionProps> =
-        tenantPermissions.filter((p: PermissionProps) => {
+      const groupPermissions: Array<PermissionProps> = tenantPermissions.filter(
+        (p: PermissionProps) => {
           return p.group === group;
-        });
+        },
+      );
 
       if (groupPermissions.length > 0) {
         permissionGroups.push({

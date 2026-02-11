@@ -53,7 +53,9 @@ export default interface Field<TEntity> {
   dropdownOptions?: Array<DropdownOption | DropdownOptionGroup> | undefined;
   cardSelectOptions?: Array<CardSelectOption> | undefined;
   fetchDropdownOptions?:
-    | ((item: FormValues<TEntity>) => Promise<Array<DropdownOption | DropdownOptionGroup>>)
+    | ((
+        item: FormValues<TEntity>,
+      ) => Promise<Array<DropdownOption | DropdownOptionGroup>>)
     | undefined;
   showHorizontalRuleBelow?: boolean | undefined;
   showHorizontalRuleAbove?: boolean | undefined;

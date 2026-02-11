@@ -33,17 +33,19 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
     return PermissionHelper.getTenantPermissionProps();
   }, []);
 
-  const groupedPermissions: Map<PermissionGroup, Array<PermissionProps>> =
-    useMemo(() => {
-      const map: Map<PermissionGroup, Array<PermissionProps>> = new Map();
-      for (const perm of allPermissions) {
-        if (!map.has(perm.group)) {
-          map.set(perm.group, []);
-        }
-        map.get(perm.group)!.push(perm);
+  const groupedPermissions: Map<
+    PermissionGroup,
+    Array<PermissionProps>
+  > = useMemo(() => {
+    const map: Map<PermissionGroup, Array<PermissionProps>> = new Map();
+    for (const perm of allPermissions) {
+      if (!map.has(perm.group)) {
+        map.set(perm.group, []);
       }
-      return map;
-    }, [allPermissions]);
+      map.get(perm.group)!.push(perm);
+    }
+    return map;
+  }, [allPermissions]);
 
   const groups: Array<PermissionGroup> = useMemo(() => {
     return Array.from(groupedPermissions.keys());
@@ -53,7 +55,9 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (props.initialValue && !activeGroup) {
       const match: PermissionProps | undefined = allPermissions.find(
-        (p: PermissionProps) => p.permission === props.initialValue,
+        (p: PermissionProps) => {
+          return p.permission === props.initialValue;
+        },
       );
       if (match) {
         setActiveGroup(match.group);
@@ -97,9 +101,9 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
   const visiblePermissions: Array<PermissionProps> = useMemo(() => {
     if (isSearching) {
       if (activeGroup) {
-        return filteredPermissions.filter(
-          (p: PermissionProps) => p.group === activeGroup,
-        );
+        return filteredPermissions.filter((p: PermissionProps) => {
+          return p.group === activeGroup;
+        });
       }
       return filteredPermissions;
     }
@@ -107,19 +111,22 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
       return [];
     }
     return groupedPermissions.get(activeGroup) || [];
-  }, [
-    isSearching,
-    activeGroup,
-    filteredPermissions,
-    groupedPermissions,
-  ]);
+  }, [isSearching, activeGroup, filteredPermissions, groupedPermissions]);
 
-  const handlePermissionClick = (perm: PermissionProps): void => {
+  type HandlePermissionClickFunction = (perm: PermissionProps) => void;
+
+  const handlePermissionClick: HandlePermissionClickFunction = (
+    perm: PermissionProps,
+  ): void => {
     setSelectedPermission(perm.permission);
     props.onChange(perm.permission);
   };
 
-  const getGroupCount = (group: PermissionGroup): number => {
+  type GetGroupCountFunction = (group: PermissionGroup) => number;
+
+  const getGroupCount: GetGroupCountFunction = (
+    group: PermissionGroup,
+  ): number => {
     if (isSearching) {
       return searchMatchCountByGroup.get(group) || 0;
     }

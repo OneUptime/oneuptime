@@ -510,9 +510,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
               (item: DropdownOption | DropdownOptionGroup) => {
                 if (
                   "options" in item &&
-                  Array.isArray(
-                    (item as DropdownOptionGroup).options,
-                  )
+                  Array.isArray((item as DropdownOptionGroup).options)
                 ) {
                   return (item as DropdownOptionGroup).options;
                 }
@@ -543,9 +541,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
               (item: DropdownOption | DropdownOptionGroup) => {
                 if (
                   "options" in item &&
-                  Array.isArray(
-                    (item as DropdownOptionGroup).options,
-                  )
+                  Array.isArray((item as DropdownOptionGroup).options)
                 ) {
                   return (item as DropdownOptionGroup).options;
                 }

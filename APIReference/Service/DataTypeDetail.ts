@@ -33,8 +33,7 @@ interface DataTypePageData {
 const dataTypeDetails: Dictionary<DataTypePageData> = {
   "object-id": {
     title: "ObjectID",
-    description:
-      "A unique identifier for objects, typically a UUID string.",
+    description: "A unique identifier for objects, typically a UUID string.",
     isEnum: false,
     properties: [
       {
@@ -65,11 +64,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "Decimal", value: 99.99 },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "Decimal", value: 99.99 }, null, 2),
   },
   name: {
     title: "Name",
@@ -340,11 +335,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "PositiveNumber", value: 5 },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "PositiveNumber", value: 5 }, null, 2),
   },
   "monitor-criteria-instance": {
     title: "MonitorCriteriaInstance",
@@ -424,8 +415,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "value",
         type: "string",
         required: true,
-        description:
-          "A valid email address string (e.g., user@example.com).",
+        description: "A valid email address string (e.g., user@example.com).",
       },
     ],
     values: [],
@@ -444,8 +434,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "value",
         type: "string",
         required: true,
-        description:
-          "A valid phone number string (e.g., +1-555-123-4567).",
+        description: "A valid phone number string (e.g., +1-555-123-4567).",
       },
     ],
     values: [],
@@ -468,11 +457,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "Color", value: "#3498db" },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "Color", value: "#3498db" }, null, 2),
   },
   domain: {
     title: "Domain",
@@ -507,11 +492,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "Version", value: "1.0.0" },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "Version", value: "1.0.0" }, null, 2),
   },
   ip: {
     title: "IP",
@@ -527,11 +508,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "IP", value: "192.168.1.1" },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "IP", value: "192.168.1.1" }, null, 2),
   },
   route: {
     title: "Route",
@@ -634,11 +611,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "GreaterThan", value: 100 },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "GreaterThan", value: 100 }, null, 2),
   },
   "greater-than-or-equal": {
     title: "GreaterThanOrEqual",
@@ -716,11 +689,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "LessThan", value: 100 },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "LessThan", value: 100 }, null, 2),
   },
   "less-than-or-equal": {
     title: "LessThanOrEqual",
@@ -755,11 +724,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "Port", value: 443 },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "Port", value: 443 }, null, 2),
   },
   hostname: {
     title: "Hostname",
@@ -832,8 +797,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "value",
         type: "string (base64)",
         required: true,
-        description:
-          "Base64-encoded binary data.",
+        description: "Base64-encoded binary data.",
       },
     ],
     values: [],
@@ -882,24 +846,15 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     isEnum: false,
     properties: [],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "NotNull", value: true },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "NotNull", value: true }, null, 2),
   },
   "is-null": {
     title: "IsNull",
-    description:
-      "A query filter that matches objects where a field is null.",
+    description: "A query filter that matches objects where a field is null.",
     isEnum: false,
     properties: [],
     values: [],
-    jsonExample: JSON.stringify(
-      { _type: "IsNull", value: true },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify({ _type: "IsNull", value: true }, null, 2),
   },
   includes: {
     title: "Includes",
@@ -938,8 +893,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "componentType",
         type: "string",
         required: true,
-        description:
-          "The type of component (e.g., Chart, Value, Table).",
+        description: "The type of component (e.g., Chart, Value, Table).",
       },
       {
         name: "widthInDashboardUnits",
@@ -957,15 +911,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "topInDashboardUnits",
         type: "number",
         required: true,
-        description:
-          "Top position of the component in dashboard grid units.",
+        description: "Top position of the component in dashboard grid units.",
       },
       {
         name: "leftInDashboardUnits",
         type: "number",
         required: true,
-        description:
-          "Left position of the component in dashboard grid units.",
+        description: "Left position of the component in dashboard grid units.",
       },
     ],
     values: [],

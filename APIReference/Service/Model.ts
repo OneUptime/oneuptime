@@ -415,7 +415,7 @@ export default class ServiceHandler {
       }
 
       // Resolve non-entity complex types to their documentation paths
-      if (column?.type && !((column as any).modelDocumentationPath)) {
+      if (column?.type && !(column as any).modelDocumentationPath) {
         const typeStr: string = column.type.toString();
         const docPath: string | undefined = TypeToDocPath[typeStr];
         if (docPath) {
