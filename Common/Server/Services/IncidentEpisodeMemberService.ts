@@ -144,6 +144,10 @@ export class Service extends DatabaseService<Model> {
       displayColor: Yellow500,
       feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}** added to episode: ${incident?.title || "No title"}`,
       userId: createdItem.addedByUserId || undefined,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: createdItem.addedByUserId || undefined,
+      },
     });
 
     // Create feed item on incident
@@ -242,6 +246,9 @@ export class Service extends DatabaseService<Model> {
                 IncidentEpisodeFeedEventType.IncidentRemoved,
               displayColor: Green500,
               feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}** removed from episode: ${incident?.title || "No title"}`,
+              workspaceNotification: {
+                sendWorkspaceNotification: true,
+              },
             });
 
             // Create feed item on incident

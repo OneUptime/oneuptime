@@ -139,6 +139,10 @@ export class Service extends DatabaseService<Model> {
       displayColor: Yellow500,
       feedInfoInMarkdown: `**Alert ${alert?.alertNumberWithPrefix || "#" + (alert?.alertNumber || "N/A")}** added to episode: ${alert?.title || "No title"}`,
       userId: createdItem.addedByUserId || undefined,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: createdItem.addedByUserId || undefined,
+      },
     });
 
     // Create feed item on alert
@@ -235,6 +239,9 @@ export class Service extends DatabaseService<Model> {
               alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertRemoved,
               displayColor: Green500,
               feedInfoInMarkdown: `**Alert #${alert?.alertNumber || "N/A"}** removed from episode: ${alert?.title || "No title"}`,
+              workspaceNotification: {
+                sendWorkspaceNotification: true,
+              },
             });
 
             // Create feed item on alert
