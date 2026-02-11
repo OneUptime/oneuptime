@@ -1,7 +1,11 @@
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
-import { PermissionHelper, PermissionProps } from "Common/Types/Permission";
+import {
+  PermissionGroup,
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import Dictionary from "Common/Types/Dictionary";
@@ -27,11 +31,34 @@ export default class ServiceHandler {
     pageDescription = "Learn how permissions work with OneUptime";
 
     // Filter permissions to only include those assignable to tenants
-    pageData["permissions"] = PermissionHelper.getAllPermissionProps().filter(
-      (i: PermissionProps) => {
-        return i.isAssignableToTenant;
-      },
-    );
+    const tenantPermissions: Array<PermissionProps> =
+      PermissionHelper.getAllPermissionProps().filter(
+        (i: PermissionProps) => {
+          return i.isAssignableToTenant;
+        },
+      );
+
+    // Group permissions by PermissionGroup
+    const permissionGroups: Array<{
+      group: string;
+      permissions: Array<PermissionProps>;
+    }> = [];
+
+    for (const group of Object.values(PermissionGroup)) {
+      const groupPermissions: Array<PermissionProps> =
+        tenantPermissions.filter((p: PermissionProps) => {
+          return p.group === group;
+        });
+
+      if (groupPermissions.length > 0) {
+        permissionGroups.push({
+          group: group,
+          permissions: groupPermissions,
+        });
+      }
+    }
+
+    pageData["permissionGroups"] = permissionGroups;
 
     // Render the page
     return res.render(`${ViewsPath}/pages/index`, {
