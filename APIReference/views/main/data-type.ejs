@@ -1,5 +1,25 @@
 <main class="py-12">
     <article class="prose">
+        <!-- Type Hierarchy Breadcrumb -->
+        <% if (pageData.typeHierarchy && pageData.typeHierarchy.length > 0) { %>
+            <nav class="mb-6">
+                <ol class="flex items-center flex-wrap gap-1 text-sm">
+                    <% for (var h = 0; h < pageData.typeHierarchy.length; h++) { %>
+                        <% if (h > 0) { %>
+                            <li class="text-slate-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </li>
+                        <% } %>
+                        <% if (pageData.typeHierarchy[h].path && pageData.typeHierarchy[h].name !== pageData.title) { %>
+                            <li><a href="/reference/<%= pageData.typeHierarchy[h].path %>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.typeHierarchy[h].name %></a></li>
+                        <% } else { %>
+                            <li class="text-slate-900 font-semibold"><%= pageData.typeHierarchy[h].name %></li>
+                        <% } %>
+                    <% } %>
+                </ol>
+            </nav>
+        <% } %>
+
         <!-- Hero Section -->
         <div class="mb-10">
             <div class="flex items-center gap-3 mb-4">
@@ -8,10 +28,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                     </svg>
                 </div>
-                <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Data Type</span>
+                <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wider"><%= pageData.isEnum ? 'Enum' : 'Data Type' %></span>
             </div>
             <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3"><%= pageData.title %></h1>
-            <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%= pageData.description %></p>
+            <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%- pageData.description %></p>
         </div>
 
         <% if (pageData.isEnum) { %>
@@ -24,7 +44,7 @@
                                 <dt class="sr-only">Value</dt>
                                 <dd><code class="model-inline-code"><%= pageData.values[v].value %></code></dd>
                                 <dt class="sr-only">Description</dt>
-                                <dd class="w-full flex-none text-sm text-slate-600"><%= pageData.values[v].description %></dd>
+                                <dd class="w-full flex-none text-sm text-slate-600"><%- pageData.values[v].description %></dd>
                             </dl>
                         </li>
                     <% } %>
@@ -41,17 +61,48 @@
                                 <dd><code class="model-inline-code"><%= pageData.properties[p].name %></code></dd>
                                 <dt class="sr-only">Type</dt>
                                 <dd class="font-mono text-xs text-slate-500">
-                                    <%= pageData.properties[p].type %>
+                                    <% if (pageData.properties[p].typeLinks && pageData.properties[p].typeLinks.length > 0) { %>
+                                        <% var typeLinks = pageData.properties[p].typeLinks; %>
+                                        <% for (var tl = 0; tl < typeLinks.length; tl++) { %>
+                                            <% if (typeLinks[tl].path) { %>
+                                                <a href="/reference/<%= typeLinks[tl].path %>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= typeLinks[tl].label %></a>
+                                            <% } else { %>
+                                                <%= typeLinks[tl].label %>
+                                            <% } %>
+                                        <% } %>
+                                    <% } else { %>
+                                        <%= pageData.properties[p].type %>
+                                    <% } %>
                                     <% if (pageData.properties[p].required) { %>
                                         <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Required</span>
                                     <% } %>
                                 </dd>
                                 <dt class="sr-only">Description</dt>
-                                <dd class="w-full flex-none text-sm text-slate-600"><%= pageData.properties[p].description %></dd>
+                                <dd class="w-full flex-none text-sm text-slate-600"><%- pageData.properties[p].description %></dd>
                             </dl>
                         </li>
                     <% } %>
                 </ul>
+            </div>
+        <% } %>
+
+        <!-- Related Types Section -->
+        <% if (pageData.relatedTypes && pageData.relatedTypes.length > 0) { %>
+            <h3 class="text-base font-semibold text-slate-800 mb-4 mt-8">Related Types</h3>
+            <div class="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <% for (var r = 0; r < pageData.relatedTypes.length; r++) { %>
+                    <a href="/reference/<%= pageData.relatedTypes[r].path %>" class="group flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all no-underline">
+                        <div class="flex-shrink-0 mt-0.5">
+                            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= pageData.relatedTypes[r].name %></div>
+                            <div class="text-xs text-slate-500 mt-0.5"><%= pageData.relatedTypes[r].relationship %></div>
+                        </div>
+                    </a>
+                <% } %>
             </div>
         <% } %>
 

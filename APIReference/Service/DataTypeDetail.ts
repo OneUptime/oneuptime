@@ -7,17 +7,64 @@ import Dictionary from "Common/Types/Dictionary";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
+const TypeToDocPath: Dictionary<string> = DataTypeUtil.getTypeToDocPathMap();
+
+/*
+ * Convert "See TypeName" references in descriptions to HTML links.
+ * Matches patterns like "See MonitorStep", "See CriteriaFilter, CheckOn, and FilterType"
+ * and converts them to clickable links.
+ */
+function linkifyDescription(text: string): string {
+  // Escape HTML entities first
+  let escaped: string = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Replace "See TypeName" references with links
+  // Match type names that exist in our documentation
+  for (const typeName in TypeToDocPath) {
+    const path: string | undefined = TypeToDocPath[typeName];
+    if (!path) {
+      continue;
+    }
+    // Only match PascalCase type names (at least 2 chars, starts with uppercase)
+    if (!/^[A-Z][a-zA-Z]+$/.test(typeName)) {
+      continue;
+    }
+    // Replace standalone occurrences of the type name (word boundaries)
+    const regex: RegExp = new RegExp(`\\b${typeName}\\b`, "g");
+    escaped = escaped.replace(
+      regex,
+      `<a href="/reference/${path}" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium">${typeName}</a>`,
+    );
+  }
+
+  return escaped;
+}
 
 interface DataTypeProperty {
   name: string;
   type: string;
   required: boolean;
   description: string;
+  typeLinks?: Array<{ label: string; path: string }>;
 }
 
 interface DataTypeValue {
   value: string;
   description: string;
+}
+
+interface RelatedType {
+  name: string;
+  path: string;
+  relationship: string;
+}
+
+interface TypeHierarchyItem {
+  name: string;
+  path: string;
 }
 
 interface DataTypePageData {
@@ -27,6 +74,8 @@ interface DataTypePageData {
   properties: Array<DataTypeProperty>;
   values: Array<DataTypeValue>;
   jsonExample: string;
+  relatedTypes?: Array<RelatedType>;
+  typeHierarchy?: Array<TypeHierarchyItem>;
 }
 
 // Detailed documentation for each data type, keyed by path
@@ -131,6 +180,17 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "The top-level configuration object for a Monitor. It contains an ordered array of MonitorStep objects (each defining what to check and how to evaluate the result) and a defaultMonitorStatusId that serves as the fallback status when no criteria in any step match. The structure is: MonitorSteps → MonitorStep[] → MonitorCriteria → MonitorCriteriaInstance[] → CriteriaFilter[]. See MonitorStep, MonitorCriteria, MonitorCriteriaInstance, and CriteriaFilter for the nested types.",
     isEnum: false,
+    typeHierarchy: [
+      { name: "MonitorSteps", path: "monitor-steps" },
+    ],
+    relatedTypes: [
+      { name: "MonitorStep", path: "monitor-step", relationship: "Contains an array of MonitorStep objects" },
+      { name: "MonitorCriteria", path: "monitor-criteria", relationship: "Each step contains MonitorCriteria" },
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance", relationship: "Criteria contains instances that define rules" },
+      { name: "CriteriaFilter", path: "criteria-filter", relationship: "Each instance contains filter conditions" },
+      { name: "CheckOn", path: "check-on", relationship: "Enum of what to check in filters" },
+      { name: "FilterType", path: "filter-type", relationship: "Enum of comparison operators in filters" },
+    ],
     properties: [
       {
         name: "monitorStepsInstanceArray",
@@ -138,6 +198,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "An ordered array of MonitorStep objects. Each step defines a check target (URL, IP, hostname, etc.), HTTP request configuration (for API/Website monitors), and a MonitorCriteria object containing rules that determine the resulting monitor status, incidents, and alerts. Most monitors use a single step, but you can define multiple steps for different endpoints.",
+        typeLinks: [
+          { label: "Array<", path: "" },
+          { label: "MonitorStep", path: "monitor-step" },
+          { label: ">", path: "" },
+        ],
       },
       {
         name: "defaultMonitorStatusId",
@@ -145,6 +210,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "The ID of a MonitorStatus resource. This status is used as the fallback when none of the criteria in any MonitorStep match the check result. Typically set to the 'Operational' or 'Online' monitor status. You can list your project's monitor statuses via the MonitorStatus API to find the correct ID.",
+        typeLinks: [
+          { label: "ObjectID", path: "object-id" },
+        ],
       },
     ],
     values: [],
@@ -252,6 +320,18 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "A single monitor step that defines what to check and how to evaluate the result. The properties you need depend on the MonitorType. For Website/API monitors, set monitorDestination and requestType. For Port monitors, also set monitorDestinationPort. For Synthetic/CustomJavaScriptCode monitors, set customCode. For Log/Trace/Metric/SNMP monitors, set the corresponding sub-config (logMonitor, traceMonitor, metricMonitor, snmpMonitor). Every step must include a MonitorCriteria object containing the evaluation rules. See MonitorCriteria, CriteriaFilter, and CheckOn for details on how criteria are evaluated.",
     isEnum: false,
+    typeHierarchy: [
+      { name: "MonitorSteps", path: "monitor-steps" },
+      { name: "MonitorStep", path: "monitor-step" },
+    ],
+    relatedTypes: [
+      { name: "MonitorSteps", path: "monitor-steps", relationship: "Parent container that holds MonitorStep array" },
+      { name: "MonitorCriteria", path: "monitor-criteria", relationship: "Contains the evaluation rules for this step" },
+      { name: "MonitorStepLogMonitor", path: "monitor-step-log-monitor", relationship: "Log monitor configuration" },
+      { name: "MonitorStepTraceMonitor", path: "monitor-step-trace-monitor", relationship: "Trace monitor configuration" },
+      { name: "MonitorStepMetricMonitor", path: "monitor-step-metric-monitor", relationship: "Metric monitor configuration" },
+      { name: "MonitorStepSnmpMonitor", path: "monitor-step-snmp-monitor", relationship: "SNMP monitor configuration" },
+    ],
     properties: [
       {
         name: "id",
@@ -279,6 +359,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "The criteria used to evaluate the monitor check result. Contains an array of MonitorCriteriaInstance objects that define conditions and resulting status changes, incidents, and alerts. Criteria instances are evaluated in order; the first matching instance determines the outcome.",
+        typeLinks: [
+          { label: "MonitorCriteria", path: "monitor-criteria" },
+        ],
       },
       {
         name: "requestType",
@@ -342,6 +425,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: false,
         description:
           "Configuration for log-based monitoring. Required for Logs monitor type. Defines log severity filters, body search text, service IDs, and the time window to evaluate. See MonitorStepLogMonitor.",
+        typeLinks: [
+          { label: "MonitorStepLogMonitor", path: "monitor-step-log-monitor" },
+        ],
       },
       {
         name: "traceMonitor",
@@ -349,6 +435,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: false,
         description:
           "Configuration for trace/span-based monitoring. Required for Traces monitor type. Defines span status filters, span name, service IDs, and the time window to evaluate. See MonitorStepTraceMonitor.",
+        typeLinks: [
+          { label: "MonitorStepTraceMonitor", path: "monitor-step-trace-monitor" },
+        ],
       },
       {
         name: "metricMonitor",
@@ -356,6 +445,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: false,
         description:
           "Configuration for metric-based monitoring. Required for Metrics monitor type. Defines the metric query configuration and rolling time window. See MonitorStepMetricMonitor.",
+        typeLinks: [
+          { label: "MonitorStepMetricMonitor", path: "monitor-step-metric-monitor" },
+        ],
       },
       {
         name: "exceptionMonitor",
@@ -370,6 +462,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: false,
         description:
           "Configuration for SNMP monitoring. Required for SNMP monitor type. Defines SNMP version, hostname, port, community string or V3 auth, OIDs to query, and timeout settings. See MonitorStepSnmpMonitor.",
+        typeLinks: [
+          { label: "MonitorStepSnmpMonitor", path: "monitor-step-snmp-monitor" },
+        ],
       },
     ],
     values: [],
@@ -855,6 +950,17 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "A collection of MonitorCriteriaInstance objects used to evaluate monitor check results. Each instance in the array is evaluated in order; the first instance whose filter conditions match determines the resulting monitor status and whether incidents or alerts are created. If no instances match, the MonitorSteps.defaultMonitorStatusId is used as a fallback. See MonitorCriteriaInstance for the structure of each rule, and CriteriaFilter for the filter conditions.",
     isEnum: false,
+    typeHierarchy: [
+      { name: "MonitorSteps", path: "monitor-steps" },
+      { name: "MonitorStep", path: "monitor-step" },
+      { name: "MonitorCriteria", path: "monitor-criteria" },
+    ],
+    relatedTypes: [
+      { name: "MonitorStep", path: "monitor-step", relationship: "Parent that contains this criteria" },
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance", relationship: "Contains array of criteria instances" },
+      { name: "CriteriaFilter", path: "criteria-filter", relationship: "Each instance uses filters to define conditions" },
+      { name: "FilterCondition", path: "filter-condition", relationship: "Determines AND/OR logic for filters" },
+    ],
     properties: [
       {
         name: "monitorCriteriaInstanceArray",
@@ -862,6 +968,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "An ordered array of MonitorCriteriaInstance objects. Evaluated top to bottom; the first matching instance wins. Each instance contains filter conditions (using CriteriaFilter objects), a target MonitorStatus ID, and optional incident/alert configurations. Place failure/offline criteria first and success/online criteria last.",
+        typeLinks: [
+          { label: "Array<", path: "" },
+          { label: "MonitorCriteriaInstance", path: "monitor-criteria-instance" },
+          { label: ">", path: "" },
+        ],
       },
     ],
     values: [],
@@ -970,6 +1081,21 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "A single criteria rule within a MonitorCriteria array. Each instance defines: (1) filter conditions (using CriteriaFilter objects combined with a FilterCondition), (2) the MonitorStatus to set when conditions match, and (3) optional incidents and alerts to automatically create. Criteria instances are evaluated in order within their parent MonitorCriteria; the first matching instance wins. See CriteriaFilter for filter structure, CheckOn for available checks, FilterType for comparison operators, CriteriaIncident for incident configuration, and CriteriaAlert for alert configuration.",
     isEnum: false,
+    typeHierarchy: [
+      { name: "MonitorSteps", path: "monitor-steps" },
+      { name: "MonitorStep", path: "monitor-step" },
+      { name: "MonitorCriteria", path: "monitor-criteria" },
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance" },
+    ],
+    relatedTypes: [
+      { name: "MonitorCriteria", path: "monitor-criteria", relationship: "Parent container that holds instances" },
+      { name: "CriteriaFilter", path: "criteria-filter", relationship: "Defines the conditions to check" },
+      { name: "FilterCondition", path: "filter-condition", relationship: "AND/OR logic for combining filters" },
+      { name: "CheckOn", path: "check-on", relationship: "What to check in each filter" },
+      { name: "FilterType", path: "filter-type", relationship: "Comparison operator in each filter" },
+      { name: "CriteriaIncident", path: "criteria-incident", relationship: "Auto-created incidents when criteria matches" },
+      { name: "CriteriaAlert", path: "criteria-alert", relationship: "Auto-created alerts when criteria matches" },
+    ],
     properties: [
       {
         name: "id",
@@ -997,6 +1123,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "The ID of a MonitorStatus resource to set when this criteria matches. List your project's monitor statuses via the MonitorStatus API to find the correct IDs (e.g., 'Online', 'Offline', 'Degraded').",
+        typeLinks: [
+          { label: "ObjectID", path: "object-id" },
+        ],
       },
       {
         name: "filterCondition",
@@ -1004,6 +1133,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "How to combine the filters array. 'All' means all filters must be true (AND logic). 'Any' means at least one filter must be true (OR logic). See FilterCondition.",
+        typeLinks: [
+          { label: "FilterCondition", path: "filter-condition" },
+        ],
       },
       {
         name: "filters",
@@ -1011,6 +1143,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "An array of CriteriaFilter objects that define the conditions to evaluate. Each filter specifies what to check (CheckOn), how to compare (FilterType), and the expected value. Must contain at least one filter. See CriteriaFilter, CheckOn, and FilterType.",
+        typeLinks: [
+          { label: "Array<", path: "" },
+          { label: "CriteriaFilter", path: "criteria-filter" },
+          { label: ">", path: "" },
+        ],
       },
       {
         name: "changeMonitorStatus",
@@ -1032,6 +1169,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: false,
         description:
           "An array of CriteriaIncident objects defining incidents to create when this criteria matches and createIncidents is true. Each incident has a title, description, severity, and can be set to auto-resolve. See CriteriaIncident.",
+        typeLinks: [
+          { label: "Array<", path: "" },
+          { label: "CriteriaIncident", path: "criteria-incident" },
+          { label: ">", path: "" },
+        ],
       },
       {
         name: "createAlerts",
@@ -1046,6 +1188,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: false,
         description:
           "An array of CriteriaAlert objects defining alerts to create when this criteria matches and createAlerts is true. Each alert has a title, description, severity, and can be set to auto-resolve. See CriteriaAlert.",
+        typeLinks: [
+          { label: "Array<", path: "" },
+          { label: "CriteriaAlert", path: "criteria-alert" },
+          { label: ">", path: "" },
+        ],
       },
     ],
     values: [],
@@ -1684,6 +1831,19 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "A single filter condition within a MonitorCriteriaInstance. Each filter defines what to check (CheckOn), how to compare it (FilterType), and the expected value. Multiple filters in a MonitorCriteriaInstance are combined using the parent's FilterCondition (All = AND, Any = OR). The available CheckOn values depend on the monitor type. See CheckOn for all available checks, FilterType for comparison operators, and MonitorCriteriaInstance for how filters are used.",
     isEnum: false,
+    typeHierarchy: [
+      { name: "MonitorSteps", path: "monitor-steps" },
+      { name: "MonitorStep", path: "monitor-step" },
+      { name: "MonitorCriteria", path: "monitor-criteria" },
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance" },
+      { name: "CriteriaFilter", path: "criteria-filter" },
+    ],
+    relatedTypes: [
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance", relationship: "Parent that holds the filters array" },
+      { name: "CheckOn", path: "check-on", relationship: "Enum of what to check" },
+      { name: "FilterType", path: "filter-type", relationship: "Enum of comparison operators" },
+      { name: "FilterCondition", path: "filter-condition", relationship: "How filters are combined (AND/OR)" },
+    ],
     properties: [
       {
         name: "checkOn",
@@ -1691,6 +1851,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "What aspect of the monitor response to evaluate. The available values depend on monitor type. For Website/API: 'Is Online', 'Response Status Code', 'Response Time (in ms)', 'Response Body', 'Response Header', etc. For Server: 'CPU Usage (in %)', 'Memory Usage (in %)', 'Disk Usage (in %)'. For SSL: 'Expires In Days', 'Is Valid Certificate'. For Logs: 'Log Count'. For Incoming Request: 'Incoming Request'. See CheckOn for the full list.",
+        typeLinks: [
+          { label: "CheckOn", path: "check-on" },
+        ],
       },
       {
         name: "filterType",
@@ -1698,6 +1861,9 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         required: true,
         description:
           "The comparison operator. Common values: 'Equal To', 'Not Equal To', 'Greater Than', 'Less Than', 'Greater Than Or Equal To', 'Less Than Or Equal To', 'Contains', 'Not Contains', 'True', 'False'. For incoming request monitors: 'Not Recieved In Minutes', 'Recieved In Minutes'. See FilterType for the full list.",
+        typeLinks: [
+          { label: "FilterType", path: "filter-type" },
+        ],
       },
       {
         name: "value",
@@ -1843,6 +2009,10 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Configuration for an incident that is automatically created when a MonitorCriteriaInstance's conditions are met. When createIncidents is true on the parent MonitorCriteriaInstance, one or more incidents with these settings are created. Incidents can be configured to auto-resolve when the criteria no longer matches. You can assign on-call policies, labels, and owners. See MonitorCriteriaInstance for how this is used.",
     isEnum: false,
+    relatedTypes: [
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance", relationship: "Parent that holds the incidents array" },
+      { name: "CriteriaAlert", path: "criteria-alert", relationship: "Lighter-weight alternative to incidents" },
+    ],
     properties: [
       {
         name: "id",
@@ -1947,6 +2117,10 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Configuration for an alert that is automatically created when a MonitorCriteriaInstance's conditions are met. Alerts are lighter-weight than incidents and are used for warnings or non-critical notifications. When createAlerts is true on the parent MonitorCriteriaInstance, one or more alerts with these settings are created. See MonitorCriteriaInstance for how this is used, and CriteriaIncident for the heavier incident equivalent.",
     isEnum: false,
+    relatedTypes: [
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance", relationship: "Parent that holds the alerts array" },
+      { name: "CriteriaIncident", path: "criteria-incident", relationship: "Heavier-weight alternative for critical issues" },
+    ],
     properties: [
       {
         name: "id",
@@ -2042,6 +2216,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Enum specifying what aspect of a monitor response or system metric to evaluate in a CriteriaFilter. The available CheckOn values depend on the monitor type. For example, 'Response Status Code' applies to Website and API monitors, while 'CPU Usage (in %)' applies to Server monitors. See CriteriaFilter for how this is used, and FilterType for the comparison operators that can be applied.",
     isEnum: true,
+    relatedTypes: [
+      { name: "CriteriaFilter", path: "criteria-filter", relationship: "Used as the checkOn property" },
+      { name: "FilterType", path: "filter-type", relationship: "Paired with CheckOn to define comparisons" },
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance", relationship: "Contains filters that use CheckOn" },
+    ],
     properties: [],
     values: [
       {
@@ -2288,6 +2467,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Enum specifying the comparison operator used in a CriteriaFilter. Determines how the monitored value (specified by CheckOn) is compared against the expected value. See CriteriaFilter for how this is used with CheckOn values.",
     isEnum: true,
+    relatedTypes: [
+      { name: "CriteriaFilter", path: "criteria-filter", relationship: "Used as the filterType property" },
+      { name: "CheckOn", path: "check-on", relationship: "Paired with FilterType to define comparisons" },
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance", relationship: "Contains filters that use FilterType" },
+    ],
     properties: [],
     values: [
       {
@@ -2422,6 +2606,10 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Enum specifying how multiple CriteriaFilter objects within a MonitorCriteriaInstance are combined. Determines whether all filters must match (AND logic) or any single filter matching is sufficient (OR logic). See MonitorCriteriaInstance for how this is used.",
     isEnum: true,
+    relatedTypes: [
+      { name: "MonitorCriteriaInstance", path: "monitor-criteria-instance", relationship: "Uses FilterCondition to combine filters" },
+      { name: "CriteriaFilter", path: "criteria-filter", relationship: "The filters that are combined" },
+    ],
     properties: [],
     values: [
       {
@@ -2474,6 +2662,10 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Configuration for a Log monitor step. Defines which logs to query and evaluate, including severity filters, body search text, telemetry service filters, and the time window. Used as the 'logMonitor' property on a MonitorStep when the monitor type is 'Logs'. The criteria filters on the parent MonitorStep then use 'Log Count' as the CheckOn value to evaluate the number of matching logs.",
     isEnum: false,
+    relatedTypes: [
+      { name: "MonitorStep", path: "monitor-step", relationship: "Parent that holds this as logMonitor property" },
+      { name: "CheckOn", path: "check-on", relationship: "Use 'Log Count' CheckOn with log monitors" },
+    ],
     properties: [
       {
         name: "attributes",
@@ -2529,6 +2721,10 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Configuration for a Trace monitor step. Defines which trace spans to query and evaluate, including span status filters, span name search, telemetry service filters, and the time window. Used as the 'traceMonitor' property on a MonitorStep when the monitor type is 'Traces'. The criteria filters then use 'Span Count' as the CheckOn value.",
     isEnum: false,
+    relatedTypes: [
+      { name: "MonitorStep", path: "monitor-step", relationship: "Parent that holds this as traceMonitor property" },
+      { name: "CheckOn", path: "check-on", relationship: "Use 'Span Count' CheckOn with trace monitors" },
+    ],
     properties: [
       {
         name: "attributes",
@@ -2584,6 +2780,10 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Configuration for a Metric monitor step. Defines the metric query and the rolling time window for evaluation. Used as the 'metricMonitor' property on a MonitorStep when the monitor type is 'Metrics'. The criteria filters then use 'Metric Value' as the CheckOn value with metricMonitorOptions to specify the metric alias.",
     isEnum: false,
+    relatedTypes: [
+      { name: "MonitorStep", path: "monitor-step", relationship: "Parent that holds this as metricMonitor property" },
+      { name: "CheckOn", path: "check-on", relationship: "Use 'Metric Value' CheckOn with metric monitors" },
+    ],
     properties: [
       {
         name: "metricViewConfig",
@@ -2618,6 +2818,10 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     description:
       "Configuration for an SNMP monitor step. Defines the SNMP device connection settings (version, hostname, authentication) and the OIDs to query. Used as the 'snmpMonitor' property on a MonitorStep when the monitor type is 'SNMP'. The criteria filters can then use 'SNMP OID Value', 'SNMP OID Exists', 'SNMP Response Time (in ms)', and 'SNMP Device Is Online' as CheckOn values.",
     isEnum: false,
+    relatedTypes: [
+      { name: "MonitorStep", path: "monitor-step", relationship: "Parent that holds this as snmpMonitor property" },
+      { name: "CheckOn", path: "check-on", relationship: "Use SNMP-specific CheckOn values with SNMP monitors" },
+    ],
     properties: [
       {
         name: "snmpVersion",
@@ -2763,13 +2967,34 @@ export default class ServiceHandler {
       });
     }
 
+    // Linkify descriptions to create clickable type references
+    const linkedProperties: Array<DataTypeProperty> = detail.properties.map(
+      (prop: DataTypeProperty) => {
+        return {
+          ...prop,
+          description: linkifyDescription(prop.description),
+        };
+      },
+    );
+
+    const linkedValues: Array<DataTypeValue> = detail.values.map(
+      (val: DataTypeValue) => {
+        return {
+          ...val,
+          description: linkifyDescription(val.description),
+        };
+      },
+    );
+
     const pageData: Dictionary<unknown> = {
       title: detail.title,
-      description: detail.description,
+      description: linkifyDescription(detail.description),
       isEnum: detail.isEnum,
-      properties: detail.properties,
-      values: detail.values,
+      properties: linkedProperties,
+      values: linkedValues,
       jsonExample: detail.jsonExample,
+      relatedTypes: detail.relatedTypes || [],
+      typeHierarchy: detail.typeHierarchy || [],
     };
 
     return res.render(`${ViewsPath}/pages/index`, {

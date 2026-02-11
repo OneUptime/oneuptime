@@ -10,6 +10,16 @@ export interface DataTypeDocumentation {
    * (e.g., enum "Date" should link to the "DateTime" data type page).
    */
   columnTypeAliases?: Array<string>;
+  /*
+   * Category for grouping in sidebar navigation.
+   * Types with the same category are grouped under a collapsible heading.
+   */
+  category?: string;
+}
+
+export interface DataTypeCategory {
+  name: string;
+  types: Array<DataTypeDocumentation>;
 }
 
 export default class DataTypeUtil {
@@ -48,12 +58,14 @@ export default class DataTypeUtil {
         path: "monitor-steps",
         description:
           "Complex nested object describing monitor check configuration including steps and default status.",
+        category: "Monitor",
       },
       {
         name: "MonitorStep",
         path: "monitor-step",
         description:
           "A single monitor step defining a check target, request configuration, and criteria for determining status.",
+        category: "Monitor",
       },
       {
         name: "Recurring",
@@ -72,6 +84,7 @@ export default class DataTypeUtil {
         path: "monitor-criteria",
         description:
           "A collection of monitor criteria instances used to evaluate monitor check results.",
+        category: "Monitor",
       },
       {
         name: "PositiveNumber",
@@ -84,6 +97,7 @@ export default class DataTypeUtil {
         path: "monitor-criteria-instance",
         description:
           "A single criteria rule defining conditions and the resulting monitor status when conditions are met.",
+        category: "Monitor",
       },
       {
         name: "NotEqual",
@@ -251,62 +265,107 @@ export default class DataTypeUtil {
         path: "criteria-filter",
         description:
           "A single filter condition within a MonitorCriteriaInstance that defines what to check and how to compare it.",
+        category: "Monitor",
       },
       {
         name: "CriteriaIncident",
         path: "criteria-incident",
         description:
           "Configuration for an incident that is automatically created when a MonitorCriteriaInstance's conditions are met.",
+        category: "Monitor",
       },
       {
         name: "CriteriaAlert",
         path: "criteria-alert",
         description:
           "Configuration for an alert that is automatically created when a MonitorCriteriaInstance's conditions are met.",
+        category: "Monitor",
       },
       {
         name: "CheckOn",
         path: "check-on",
         description:
           "Enum specifying what aspect of a monitor response to evaluate (e.g., response code, response time, body content).",
+        category: "Monitor",
       },
       {
         name: "FilterType",
         path: "filter-type",
         description:
           "Enum specifying the comparison operator used in a CriteriaFilter (e.g., Equal To, Greater Than, Contains).",
+        category: "Monitor",
       },
       {
         name: "FilterCondition",
         path: "filter-condition",
         description:
           "Enum specifying how multiple filters are combined: 'All' (AND) or 'Any' (OR).",
+        category: "Monitor",
       },
       {
         name: "MonitorStepLogMonitor",
         path: "monitor-step-log-monitor",
         description:
           "Configuration for a Log monitor step, defining which logs to query and evaluate.",
+        category: "Monitor",
       },
       {
         name: "MonitorStepTraceMonitor",
         path: "monitor-step-trace-monitor",
         description:
           "Configuration for a Trace monitor step, defining which spans to query and evaluate.",
+        category: "Monitor",
       },
       {
         name: "MonitorStepMetricMonitor",
         path: "monitor-step-metric-monitor",
         description:
           "Configuration for a Metric monitor step, defining which metrics to query and evaluate.",
+        category: "Monitor",
       },
       {
         name: "MonitorStepSnmpMonitor",
         path: "monitor-step-snmp-monitor",
         description:
           "Configuration for an SNMP monitor step, defining the SNMP device connection and OIDs to query.",
+        category: "Monitor",
       },
     ];
+  }
+
+  public static getDataTypesByCategory(): Array<DataTypeCategory> {
+    const allTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
+    const uncategorized: Array<DataTypeDocumentation> = [];
+    const categoryMap: Dictionary<Array<DataTypeDocumentation>> = {};
+    const categoryOrder: Array<string> = [];
+
+    for (const dt of allTypes) {
+      if (dt.category) {
+        if (!categoryMap[dt.category]) {
+          categoryMap[dt.category] = [];
+          categoryOrder.push(dt.category);
+        }
+        categoryMap[dt.category]!.push(dt);
+      } else {
+        uncategorized.push(dt);
+      }
+    }
+
+    const result: Array<DataTypeCategory> = [];
+
+    // Add uncategorized types first under "General"
+    if (uncategorized.length > 0) {
+      result.push({ name: "General", types: uncategorized });
+    }
+
+    // Add categorized groups
+    for (const cat of categoryOrder) {
+      if (categoryMap[cat]) {
+        result.push({ name: cat, types: categoryMap[cat]! });
+      }
+    }
+
+    return result;
   }
 
   public static getDataTypeDictionaryByPath(): Dictionary<DataTypeDocumentation> {
