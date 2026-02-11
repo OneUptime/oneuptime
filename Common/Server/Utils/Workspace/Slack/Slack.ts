@@ -156,6 +156,55 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
+  public static async sendEphemeralMessageToChannel(data: {
+    authToken: string;
+    channelId: string;
+    userId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+  }): Promise<void> {
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
+      {
+        messageBlocks: data.messageBlocks,
+      },
+    );
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString("https://slack.com/api/chat.postEphemeral"),
+        data: {
+          channel: data.channelId,
+          user: data.userId,
+          blocks: blocks,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API for ephemeral message:");
+      logger.error(response);
+      throw response;
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API for ephemeral message:");
+      logger.error(response.jsonData);
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
+    }
+
+    logger.debug("Ephemeral message sent successfully.");
+  }
+
+  @CaptureSpan()
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
     workspaceUserId: string;

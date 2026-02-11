@@ -306,16 +306,19 @@ export default class SlackAlertEpisodeActions {
       });
 
     if (dropdownOption.length === 0) {
-      await SlackUtil.sendDirectMessageToUser({
-        messageBlocks: [
-          {
-            _type: "WorkspacePayloadMarkdown",
-            text: "No on-call policies found in this project.",
-          } as WorkspacePayloadMarkdown,
-        ],
-        authToken: data.slackRequest.projectAuthToken!,
-        workspaceUserId: data.slackRequest.slackUserId!,
-      });
+      if (data.slackRequest.slackChannelId) {
+        await SlackUtil.sendEphemeralMessageToChannel({
+          messageBlocks: [
+            {
+              _type: "WorkspacePayloadMarkdown",
+              text: "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
+            } as WorkspacePayloadMarkdown,
+          ],
+          authToken: data.slackRequest.projectAuthToken!,
+          channelId: data.slackRequest.slackChannelId,
+          userId: data.slackRequest.slackUserId!,
+        });
+      }
       return;
     }
 

@@ -424,7 +424,7 @@ export default class MicrosoftTeamsIncidentActions {
       );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies found in the project",
+          "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
         );
         return;
       }
