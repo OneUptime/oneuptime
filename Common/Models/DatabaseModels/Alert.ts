@@ -418,9 +418,9 @@ export default class Alert extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
+    title: "Monitor ID",
     description:
-      "User ID who deleted this object (if this object was deleted by a User)",
+      "ID of the monitor this alert belongs to",
   })
   @Column({
     type: ColumnType.ObjectID,
