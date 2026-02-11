@@ -47,7 +47,7 @@ export default class SlackIncidentEpisodeMessages {
     // view data.
     const viewIncidentEpisodeButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "View Episode",
+      title: "🔗 View Episode",
       url: await IncidentEpisodeService.getEpisodeLinkInDashboard(
         data.projectId!,
         data.incidentEpisodeId!,
@@ -61,7 +61,7 @@ export default class SlackIncidentEpisodeMessages {
     // execute on call.
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "Execute On Call",
+      title: "📞 Execute On Call",
       value: data.incidentEpisodeId?.toString() || "",
       actionId: SlackActionType.ViewExecuteIncidentEpisodeOnCallPolicy,
     };
@@ -71,7 +71,7 @@ export default class SlackIncidentEpisodeMessages {
     // acknowledge data.
     const acknowledgeIncidentEpisodeButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "Acknowledge Episode",
+      title: "👀 Acknowledge Episode",
       value: data.incidentEpisodeId?.toString() || "",
       actionId: SlackActionType.AcknowledgeIncidentEpisode,
     };
@@ -81,7 +81,7 @@ export default class SlackIncidentEpisodeMessages {
     // resolve data.
     const resolveIncidentEpisodeButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "Resolve Episode",
+      title: "✅ Resolve Episode",
       value: data.incidentEpisodeId?.toString() || "",
       actionId: SlackActionType.ResolveIncidentEpisode,
     };
@@ -91,7 +91,7 @@ export default class SlackIncidentEpisodeMessages {
     // change incident episode state.
     const changeIncidentEpisodeStateButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "Change Episode State",
+      title: "➡️ Change Episode State",
       value: data.incidentEpisodeId?.toString() || "",
       actionId: SlackActionType.ViewChangeIncidentEpisodeState,
     };
@@ -101,7 +101,7 @@ export default class SlackIncidentEpisodeMessages {
     // add note.
     const addNoteButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "Add Note",
+      title: "📄 Add Note",
       value: data.incidentEpisodeId?.toString() || "",
       actionId: SlackActionType.ViewAddIncidentEpisodeNote,
     };
