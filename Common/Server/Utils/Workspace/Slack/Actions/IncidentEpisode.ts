@@ -304,6 +304,20 @@ export default class SlackIncidentEpisodeActions {
         return option.label !== "" || option.value !== "";
       });
 
+    if (dropdownOption.length === 0) {
+      await SlackUtil.sendDirectMessageToUser({
+        messageBlocks: [
+          {
+            _type: "WorkspacePayloadMarkdown",
+            text: "No on-call policies found in this project.",
+          } as WorkspacePayloadMarkdown,
+        ],
+        authToken: data.slackRequest.projectAuthToken!,
+        workspaceUserId: data.slackRequest.slackUserId!,
+      });
+      return;
+    }
+
     const onCallPolicyDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
       label: "On Call Policy",
