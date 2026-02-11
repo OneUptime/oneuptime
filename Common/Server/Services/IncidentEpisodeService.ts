@@ -1018,21 +1018,30 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  public getWorkspaceChannelForEpisode(
-    episode: Model,
-    workspaceType: WorkspaceType,
-  ): Array<NotificationRuleWorkspaceChannel> {
-    if (
-      !episode.postUpdatesToWorkspaceChannels ||
-      !Array.isArray(episode.postUpdatesToWorkspaceChannels) ||
-      episode.postUpdatesToWorkspaceChannels.length === 0
-    ) {
-      return [];
+  public async getWorkspaceChannelForEpisode(data: {
+    episodeId: ObjectID;
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    const episode: Model | null = await this.findOneById({
+      id: data.episodeId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!episode) {
+      throw new BadDataException("Incident Episode not found.");
     }
 
-    return episode.postUpdatesToWorkspaceChannels.filter(
+    return (episode.postUpdatesToWorkspaceChannels || []).filter(
       (channel: NotificationRuleWorkspaceChannel) => {
-        return channel.workspaceType === workspaceType;
+        if (!data.workspaceType) {
+          return true;
+        }
+        return channel.workspaceType === data.workspaceType;
       },
     );
   }

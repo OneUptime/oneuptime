@@ -52,6 +52,7 @@ import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNoti
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import AlertEpisodeService from "./AlertEpisodeService";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -733,6 +734,25 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             workspaceType: data.workspaceType,
           },
         );
+    }
+
+    // incident episodes
+    if (data.notificationFor.incidentEpisodeId) {
+      monitorChannels =
+        await IncidentEpisodeService.getWorkspaceChannelForEpisode({
+          episodeId: data.notificationFor.incidentEpisodeId,
+          workspaceType: data.workspaceType,
+        });
+    }
+
+    // alert episodes
+    if (data.notificationFor.alertEpisodeId) {
+      monitorChannels = await AlertEpisodeService.getWorkspaceChannelForEpisode(
+        {
+          episodeId: data.notificationFor.alertEpisodeId,
+          workspaceType: data.workspaceType,
+        },
+      );
     }
 
     logger.debug("Workspace channels found:");
