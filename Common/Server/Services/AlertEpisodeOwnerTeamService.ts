@@ -140,8 +140,7 @@ export class Service extends DatabaseService<Model> {
         await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
           alertEpisodeId: alertEpisodeId,
           projectId: projectId,
-          alertEpisodeFeedEventType:
-            AlertEpisodeFeedEventType.OwnerTeamAdded,
+          alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
           feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
@@ -160,8 +159,7 @@ export class Service extends DatabaseService<Model> {
             notificationFor: {
               alertEpisodeId: alertEpisodeId,
             },
-            notificationRuleEventType:
-              NotificationRuleEventType.AlertEpisode,
+            notificationRuleEventType: NotificationRuleEventType.AlertEpisode,
           },
         );
 
@@ -182,8 +180,7 @@ export class Service extends DatabaseService<Model> {
           {
             notificationRules: notificationRules,
             projectId: projectId,
-            workspaceChannels:
-              episode.postUpdatesToWorkspaceChannels || [],
+            workspaceChannels: episode.postUpdatesToWorkspaceChannels || [],
             teamIds: [teamId],
           },
         ).catch((error: Error) => {

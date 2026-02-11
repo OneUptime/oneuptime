@@ -92,8 +92,7 @@ export class Service extends DatabaseService<Model> {
       episodeId: incidentEpisodeId,
     });
     const episodeNumberDisplay: string =
-      episodeNumberResult.numberWithPrefix ||
-      "#" + episodeNumberResult.number;
+      episodeNumberResult.numberWithPrefix || "#" + episodeNumberResult.number;
 
     const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
       createdItem.id!,
@@ -162,7 +161,8 @@ ${(createdItem.note || "") + attachmentsMarkdown}
         await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
           incidentEpisodeId: updatedItem.incidentEpisodeId!,
           projectId: updatedItem.projectId!,
-          incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.PrivateNote,
+          incidentEpisodeFeedEventType:
+            IncidentEpisodeFeedEventType.PrivateNote,
           displayColor: Blue500,
           userId: userId || undefined,
           feedInfoInMarkdown: `📄 updated **Private Note** for this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()})

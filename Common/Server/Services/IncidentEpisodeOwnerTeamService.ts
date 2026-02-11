@@ -183,8 +183,7 @@ export class Service extends DatabaseService<Model> {
           {
             notificationRules: notificationRules,
             projectId: projectId,
-            workspaceChannels:
-              episode.postUpdatesToWorkspaceChannels || [],
+            workspaceChannels: episode.postUpdatesToWorkspaceChannels || [],
             teamIds: [teamId],
           },
         ).catch((error: Error) => {

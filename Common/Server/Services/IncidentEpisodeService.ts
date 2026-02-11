@@ -241,9 +241,7 @@ export class Service extends DatabaseService<Model> {
         });
       }
     } catch (error) {
-      logger.error(
-        `Error in handleEpisodeWorkspaceOperationsAsync: ${error}`,
-      );
+      logger.error(`Error in handleEpisodeWorkspaceOperationsAsync: ${error}`);
       throw error;
     }
   }

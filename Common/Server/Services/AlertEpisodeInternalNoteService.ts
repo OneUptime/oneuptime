@@ -92,8 +92,7 @@ export class Service extends DatabaseService<Model> {
       episodeId: alertEpisodeId,
     });
     const episodeNumberDisplay: string =
-      episodeNumberResult.numberWithPrefix ||
-      "#" + episodeNumberResult.number;
+      episodeNumberResult.numberWithPrefix || "#" + episodeNumberResult.number;
 
     const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
       createdItem.id!,

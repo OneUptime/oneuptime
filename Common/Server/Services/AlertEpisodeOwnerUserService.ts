@@ -153,8 +153,7 @@ export class Service extends DatabaseService<Model> {
             notificationFor: {
               alertEpisodeId: alertEpisodeId,
             },
-            notificationRuleEventType:
-              NotificationRuleEventType.AlertEpisode,
+            notificationRuleEventType: NotificationRuleEventType.AlertEpisode,
           },
         );
 
@@ -175,8 +174,7 @@ export class Service extends DatabaseService<Model> {
           {
             notificationRules: notificationRules,
             projectId: projectId,
-            workspaceChannels:
-              episode.postUpdatesToWorkspaceChannels || [],
+            workspaceChannels: episode.postUpdatesToWorkspaceChannels || [],
             userIds: [userId],
           },
         ).catch((error: Error) => {
