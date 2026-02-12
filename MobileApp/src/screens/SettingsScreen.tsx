@@ -6,6 +6,7 @@ import {
   ScrollView,
   Switch,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme, ThemeMode } from "../theme";
 import { useAuth } from "../hooks/useAuth";
 import { useProject } from "../hooks/useProject";
@@ -50,7 +51,11 @@ function SettingsRow({
         (value ? (
           <Text className="text-[15px] text-text-secondary">{value}</Text>
         ) : onPress ? (
-          <Text className="text-2xl font-light text-text-tertiary">{">"}</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={theme.colors.textTertiary}
+          />
         ) : null)}
     </View>
   );
@@ -126,16 +131,19 @@ export default function SettingsScreen(): React.JSX.Element {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text
-                    className="text-base"
-                    style={{
-                      color: isActive
-                        ? "#FFFFFF"
-                        : theme.colors.textSecondary,
-                    }}
-                  >
-                    {mode === "dark" ? "\u25D7" : mode === "light" ? "\u25CB" : "\u25D1"}
-                  </Text>
+                  <Ionicons
+                    name={
+                      mode === "dark"
+                        ? "moon-outline"
+                        : mode === "light"
+                          ? "sunny-outline"
+                          : "phone-portrait-outline"
+                    }
+                    size={16}
+                    color={
+                      isActive ? "#FFFFFF" : theme.colors.textSecondary
+                    }
+                  />
                   <Text
                     className="text-sm font-semibold"
                     style={{

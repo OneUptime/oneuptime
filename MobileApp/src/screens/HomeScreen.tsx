@@ -6,6 +6,7 @@ import {
   ScrollView,
   RefreshControl,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import { useUnresolvedIncidentCount } from "../hooks/useIncidents";
@@ -68,6 +69,7 @@ interface QuickLinkProps {
 }
 
 function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
+  const { theme } = useTheme();
   return (
     <TouchableOpacity
       className="flex-row justify-between items-center p-[18px] rounded-2xl mb-2.5 bg-bg-elevated shadow-sm"
@@ -76,7 +78,11 @@ function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
       accessibilityRole="button"
     >
       <Text className="text-base font-medium text-text-primary">{label}</Text>
-      <Text className="text-2xl font-light text-text-tertiary">{">"}</Text>
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={theme.colors.textTertiary}
+      />
     </TouchableOpacity>
   );
 }

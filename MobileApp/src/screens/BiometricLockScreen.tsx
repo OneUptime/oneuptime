@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import * as LocalAuthentication from "expo-local-authentication";
 
@@ -33,24 +34,14 @@ export default function BiometricLockScreen({
 
   return (
     <View className="flex-1 items-center justify-center px-10 bg-bg-primary">
-      {/* Lock icon */}
       <View
         className="w-20 h-20 rounded-full items-center justify-center"
         style={{ borderWidth: 1.5, borderColor: theme.colors.borderDefault }}
       >
-        <View
-          className="w-7 h-[22px] rounded mt-2"
-          style={{ backgroundColor: theme.colors.textTertiary }}
-        />
-        <View
-          className="w-5 h-4 absolute top-4"
-          style={{
-            borderWidth: 3,
-            borderBottomWidth: 0,
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderColor: theme.colors.textTertiary,
-          }}
+        <Ionicons
+          name="lock-closed-outline"
+          size={36}
+          color={theme.colors.textTertiary}
         />
       </View>
 
