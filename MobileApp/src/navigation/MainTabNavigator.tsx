@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
 import IncidentsStackNavigator from "./IncidentsStackNavigator";
@@ -58,21 +59,54 @@ export default function MainTabNavigator(): React.JSX.Element {
         },
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+            return <Ionicons name="home-outline" size={size} color={color} />;
+          },
+        }}
+      />
       <Tab.Screen
         name="Incidents"
         component={IncidentsStackNavigator}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+            return (
+              <Ionicons name="warning-outline" size={size} color={color} />
+            );
+          },
+        }}
       />
       <Tab.Screen
         name="Alerts"
         component={AlertsStackNavigator}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+            return (
+              <Ionicons
+                name="notifications-outline"
+                size={size}
+                color={color}
+              />
+            );
+          },
+        }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsStackNavigator}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+            return (
+              <Ionicons name="settings-outline" size={size} color={color} />
+            );
+          },
+        }}
       />
     </Tab.Navigator>
   );
