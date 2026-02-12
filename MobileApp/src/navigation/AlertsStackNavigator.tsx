@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import AlertsScreen from "../screens/AlertsScreen";
 import AlertDetailScreen from "../screens/AlertDetailScreen";
+import AlertEpisodeDetailScreen from "../screens/AlertEpisodeDetailScreen";
 import type { AlertsStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -31,6 +32,11 @@ export default function AlertsStackNavigator(): React.JSX.Element {
         name="AlertDetail"
         component={AlertDetailScreen}
         options={{ title: "Alert" }}
+      />
+      <Stack.Screen
+        name="AlertEpisodeDetail"
+        component={AlertEpisodeDetailScreen}
+        options={{ title: "Episode" }}
       />
     </Stack.Navigator>
   );

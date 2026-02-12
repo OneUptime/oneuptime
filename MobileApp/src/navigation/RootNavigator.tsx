@@ -27,20 +27,12 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
       Incidents: {
         screens: {
           IncidentDetail: "incident/:incidentId",
+          IncidentEpisodeDetail: "incident-episode/:episodeId",
         },
       },
       Alerts: {
         screens: {
           AlertDetail: "alert/:alertId",
-        },
-      },
-      IncidentEpisodes: {
-        screens: {
-          IncidentEpisodeDetail: "incident-episode/:episodeId",
-        },
-      },
-      AlertEpisodes: {
-        screens: {
           AlertEpisodeDetail: "alert-episode/:episodeId",
         },
       },

@@ -33,13 +33,13 @@ function navigateToEntity(data: NotificationData): void {
       });
       break;
     case "incident-episode":
-      navigationRef.navigate("IncidentEpisodes", {
+      navigationRef.navigate("Incidents", {
         screen: "IncidentEpisodeDetail",
         params: { episodeId: data.entityId },
       });
       break;
     case "alert-episode":
-      navigationRef.navigate("AlertEpisodes", {
+      navigationRef.navigate("Alerts", {
         screen: "AlertEpisodeDetail",
         params: { episodeId: data.entityId },
       });

@@ -170,7 +170,7 @@ export default function HomeScreen(): React.JSX.Element {
           color={theme.colors.severityCritical}
           isLoading={loadingIncidentEpisodes}
           onPress={() => {
-            return navigation.navigate("IncidentEpisodes");
+            return navigation.navigate("Incidents");
           }}
         />
         <StatCard
@@ -179,7 +179,7 @@ export default function HomeScreen(): React.JSX.Element {
           color={theme.colors.severityMajor}
           isLoading={loadingAlertEpisodes}
           onPress={() => {
-            return navigation.navigate("AlertEpisodes");
+            return navigation.navigate("Alerts");
           }}
         />
       </View>
@@ -203,13 +203,13 @@ export default function HomeScreen(): React.JSX.Element {
         <QuickLink
           label="Incident Episodes"
           onPress={() => {
-            return navigation.navigate("IncidentEpisodes");
+            return navigation.navigate("Incidents");
           }}
         />
         <QuickLink
           label="Alert Episodes"
           onPress={() => {
-            return navigation.navigate("AlertEpisodes");
+            return navigation.navigate("Alerts");
           }}
         />
       </View>

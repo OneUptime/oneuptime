@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import IncidentsScreen from "../screens/IncidentsScreen";
 import IncidentDetailScreen from "../screens/IncidentDetailScreen";
+import IncidentEpisodeDetailScreen from "../screens/IncidentEpisodeDetailScreen";
 import type { IncidentsStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -31,6 +32,11 @@ export default function IncidentsStackNavigator(): React.JSX.Element {
         name="IncidentDetail"
         component={IncidentDetailScreen}
         options={{ title: "Incident" }}
+      />
+      <Stack.Screen
+        name="IncidentEpisodeDetail"
+        component={IncidentEpisodeDetailScreen}
+        options={{ title: "Episode" }}
       />
     </Stack.Navigator>
   );

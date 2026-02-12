@@ -23,7 +23,7 @@ import {
 } from "../api/alertEpisodes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
-import type { AlertEpisodesStackParamList } from "../navigation/types";
+import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { AlertState, StateTimelineItem, NoteItem } from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
@@ -31,7 +31,7 @@ import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<
-  AlertEpisodesStackParamList,
+  AlertsStackParamList,
   "AlertEpisodeDetail"
 >;
 
