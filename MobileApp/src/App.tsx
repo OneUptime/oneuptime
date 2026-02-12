@@ -1,5 +1,6 @@
 import React from "react";
 import { View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -39,17 +40,19 @@ function AppContent(): React.JSX.Element {
 
 export default function App(): React.JSX.Element {
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{ persister: asyncStoragePersister }}
-    >
-      <ThemeProvider>
-        <AuthProvider>
-          <ProjectProvider>
-            <AppContent />
-          </ProjectProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </PersistQueryClientProvider>
+    <SafeAreaProvider>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: asyncStoragePersister }}
+      >
+        <ThemeProvider>
+          <AuthProvider>
+            <ProjectProvider>
+              <AppContent />
+            </ProjectProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </PersistQueryClientProvider>
+    </SafeAreaProvider>
   );
 }
