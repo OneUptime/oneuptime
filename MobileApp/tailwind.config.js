@@ -1,9 +1,8 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   presets: [require("nativewind/preset")],
   darkMode: "class",
-  content: ["./App.tsx", "./src/**/*.{ts,tsx}"],
+  content: ["./index.ts", "./App.tsx", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
@@ -46,18 +45,9 @@ const config: Config = {
         "status-error-bg": "var(--color-status-error-bg)",
       },
       fontSize: {
-        "title-lg": [
-          "28px",
-          { lineHeight: "34px", fontWeight: "700" },
-        ],
-        "title-md": [
-          "22px",
-          { lineHeight: "28px", fontWeight: "600" },
-        ],
-        "title-sm": [
-          "17px",
-          { lineHeight: "22px", fontWeight: "600" },
-        ],
+        "title-lg": ["28px", { lineHeight: "34px", fontWeight: "700" }],
+        "title-md": ["22px", { lineHeight: "28px", fontWeight: "600" }],
+        "title-sm": ["17px", { lineHeight: "22px", fontWeight: "600" }],
         "body-lg": ["17px", { lineHeight: "24px" }],
         "body-md": ["15px", { lineHeight: "20px" }],
         "body-sm": ["13px", { lineHeight: "18px" }],
@@ -76,5 +66,3 @@ const config: Config = {
   },
   plugins: [],
 };
-
-export default config;
