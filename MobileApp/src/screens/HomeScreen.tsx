@@ -23,7 +23,8 @@ type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
 interface StatCardProps {
   count: number | undefined;
   label: string;
-  color: string;
+  accentColor: string;
+  iconName: keyof typeof Ionicons.glyphMap;
   isLoading: boolean;
   onPress: () => void;
 }
@@ -31,10 +32,12 @@ interface StatCardProps {
 function StatCard({
   count,
   label,
-  color,
+  accentColor,
+  iconName,
   isLoading,
   onPress,
 }: StatCardProps): React.JSX.Element {
+  const { theme } = useTheme();
   const { lightImpact } = useHaptics();
 
   const handlePress: () => void = (): void => {
@@ -44,47 +47,60 @@ function StatCard({
 
   return (
     <TouchableOpacity
-      className="flex-1 p-5 rounded-2xl items-center bg-bg-elevated shadow-md"
+      className="flex-1 flex-row items-center p-4 rounded-2xl bg-bg-elevated border border-border-subtle"
+      style={{
+        borderLeftWidth: 4,
+        borderLeftColor: accentColor,
+        shadowColor: "#000",
+        shadowOpacity: 0.04,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 8,
+        elevation: 2,
+      }}
       onPress={handlePress}
       activeOpacity={0.7}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
     >
-      <Text
-        className="text-[40px] font-bold"
-        style={{ color, fontVariant: ["tabular-nums"] }}
+      <View
+        className="w-11 h-11 rounded-xl items-center justify-center mr-3"
+        style={{ backgroundColor: accentColor + "1A" }}
       >
-        {isLoading ? "--" : count ?? 0}
-      </Text>
-      <Text className="text-sm font-medium mt-1 text-text-secondary">
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-interface QuickLinkProps {
-  label: string;
-  onPress: () => void;
-}
-
-function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
-  const { theme } = useTheme();
-  return (
-    <TouchableOpacity
-      className="flex-row justify-between items-center p-[18px] rounded-2xl mb-2.5 bg-bg-elevated shadow-sm"
-      onPress={onPress}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-    >
-      <Text className="text-base font-medium text-text-primary">{label}</Text>
+        <Ionicons name={iconName} size={22} color={accentColor} />
+      </View>
+      <View className="flex-1">
+        <Text
+          className="text-[28px] font-bold text-text-primary"
+          style={{ fontVariant: ["tabular-nums"], letterSpacing: -1 }}
+        >
+          {isLoading ? "--" : count ?? 0}
+        </Text>
+        <Text
+          className="text-[12px] font-medium text-text-secondary"
+          style={{ letterSpacing: 0.2 }}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </View>
       <Ionicons
         name="chevron-forward"
-        size={20}
+        size={16}
         color={theme.colors.textTertiary}
       />
     </TouchableOpacity>
   );
+}
+
+function getGreeting(): string {
+  const hour: number = new Date().getHours();
+  if (hour < 12) {
+    return "Good morning";
+  }
+  if (hour < 17) {
+    return "Good afternoon";
+  }
+  return "Good evening";
 }
 
 export default function HomeScreen(): React.JSX.Element {
@@ -129,6 +145,18 @@ export default function HomeScreen(): React.JSX.Element {
     ]);
   };
 
+  const totalActive: number =
+    (incidentCount ?? 0) +
+    (alertCount ?? 0) +
+    (incidentEpisodeCount ?? 0) +
+    (alertEpisodeCount ?? 0);
+
+  const anyLoading: boolean =
+    loadingIncidents ||
+    loadingAlerts ||
+    loadingIncidentEpisodes ||
+    loadingAlertEpisodes;
+
   return (
     <ScrollView
       className="bg-bg-primary"
@@ -141,83 +169,89 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      <Text className="text-title-lg text-text-primary" accessibilityRole="header">
+      {/* Greeting Header */}
+      <Text
+        className="text-body-md text-text-secondary"
+        style={{ letterSpacing: 0.2 }}
+      >
+        {getGreeting()}
+      </Text>
+      <Text
+        className="text-title-lg text-text-primary mt-0.5"
+        accessibilityRole="header"
+        style={{ letterSpacing: -0.5 }}
+      >
         {selectedProject?.name ?? "OneUptime"}
       </Text>
-      <Text className="text-body-md text-text-secondary mt-1">
-        Project overview
-      </Text>
 
-      <View className="flex-row gap-3 mt-4">
-        <StatCard
-          count={incidentCount}
-          label="Active Incidents"
-          color={theme.colors.severityCritical}
-          isLoading={loadingIncidents}
-          onPress={() => {
-            return navigation.navigate("Incidents");
-          }}
-        />
-        <StatCard
-          count={alertCount}
-          label="Active Alerts"
-          color={theme.colors.severityMajor}
-          isLoading={loadingAlerts}
-          onPress={() => {
-            return navigation.navigate("Alerts");
-          }}
-        />
-      </View>
+      {/* Active Issues Summary Pill */}
+      {!anyLoading ? (
+        <View className="self-start mt-3 mb-1">
+          <View
+            className="flex-row items-center px-3 py-1.5 rounded-full"
+            style={{ backgroundColor: theme.colors.actionPrimary + "18" }}
+          >
+            <View
+              className="w-2 h-2 rounded-full mr-2"
+              style={{ backgroundColor: theme.colors.actionPrimary }}
+            />
+            <Text
+              className="text-[13px] font-semibold"
+              style={{ color: theme.colors.actionPrimary }}
+            >
+              {totalActive} active issue{totalActive !== 1 ? "s" : ""}
+            </Text>
+          </View>
+        </View>
+      ) : null}
 
-      <View className="flex-row gap-3 mt-4">
-        <StatCard
-          count={incidentEpisodeCount}
-          label="Inc Episodes"
-          color={theme.colors.severityCritical}
-          isLoading={loadingIncidentEpisodes}
-          onPress={() => {
-            return navigation.navigate("Incidents");
-          }}
-        />
-        <StatCard
-          count={alertEpisodeCount}
-          label="Alert Episodes"
-          color={theme.colors.severityMajor}
-          isLoading={loadingAlertEpisodes}
-          onPress={() => {
-            return navigation.navigate("Alerts");
-          }}
-        />
-      </View>
+      {/* Stat Cards - 2x2 Grid */}
+      <View className="gap-3 mt-5">
+        <View className="flex-row gap-3">
+          <StatCard
+            count={incidentCount}
+            label="Active Incidents"
+            accentColor={theme.colors.severityCritical}
+            iconName="warning"
+            isLoading={loadingIncidents}
+            onPress={() => {
+              return navigation.navigate("Incidents");
+            }}
+          />
+          <StatCard
+            count={alertCount}
+            label="Active Alerts"
+            accentColor={theme.colors.severityMajor}
+            iconName="notifications"
+            isLoading={loadingAlerts}
+            onPress={() => {
+              return navigation.navigate("Alerts");
+            }}
+          />
+        </View>
 
-      <View className="mt-8">
-        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-3 ml-1 text-text-secondary">
-          Quick Links
-        </Text>
-        <QuickLink
-          label="View All Incidents"
-          onPress={() => {
-            return navigation.navigate("Incidents");
-          }}
-        />
-        <QuickLink
-          label="View All Alerts"
-          onPress={() => {
-            return navigation.navigate("Alerts");
-          }}
-        />
-        <QuickLink
-          label="Incident Episodes"
-          onPress={() => {
-            return navigation.navigate("Incidents");
-          }}
-        />
-        <QuickLink
-          label="Alert Episodes"
-          onPress={() => {
-            return navigation.navigate("Alerts");
-          }}
-        />
+        <View className="flex-row gap-3">
+          <StatCard
+            count={incidentEpisodeCount}
+            label="Inc. Episodes"
+            accentColor={theme.colors.severityInfo}
+            iconName="layers"
+            isLoading={loadingIncidentEpisodes}
+            onPress={() => {
+              return navigation.navigate("Incidents");
+            }}
+          />
+          <StatCard
+            count={alertEpisodeCount}
+            label="Alert Episodes"
+            accentColor={theme.colors.severityWarning}
+            iconName="albums"
+            isLoading={loadingAlertEpisodes}
+            onPress={() => {
+              return navigation.navigate("Alerts");
+            }}
+          />
+        </View>
       </View>
     </ScrollView>
   );

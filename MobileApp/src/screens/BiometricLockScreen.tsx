@@ -35,27 +35,38 @@ export default function BiometricLockScreen({
   return (
     <View className="flex-1 items-center justify-center px-10 bg-bg-primary">
       <View
-        className="w-20 h-20 rounded-full items-center justify-center"
-        style={{ borderWidth: 1.5, borderColor: theme.colors.borderDefault }}
+        className="w-[88px] h-[88px] rounded-[22px] items-center justify-center"
+        style={{ backgroundColor: theme.colors.actionPrimary + "18" }}
       >
         <Ionicons
-          name="lock-closed-outline"
-          size={36}
-          color={theme.colors.textTertiary}
+          name="lock-closed"
+          size={40}
+          color={theme.colors.actionPrimary}
         />
       </View>
 
-      <Text className="text-title-md text-text-primary mt-6 text-center">
+      <Text
+        className="text-title-md text-text-primary mt-6 text-center"
+        style={{ letterSpacing: -0.3 }}
+      >
         OneUptime is Locked
       </Text>
 
-      <Text className="text-body-md text-text-secondary mt-2 text-center">
+      <Text className="text-body-md text-text-secondary mt-2 text-center leading-6">
         Use {biometricType.toLowerCase()} to unlock
       </Text>
 
       <TouchableOpacity
-        className="mt-8 py-4 px-12 rounded-[14px] min-w-[200px] items-center shadow-md"
-        style={{ backgroundColor: theme.colors.actionPrimary }}
+        className="mt-8 py-4 w-full rounded-xl items-center"
+        style={{
+          backgroundColor: theme.colors.actionPrimary,
+          shadowColor: theme.colors.actionPrimary,
+          shadowOpacity: 0.3,
+          shadowOffset: { width: 0, height: 4 },
+          shadowRadius: 12,
+          elevation: 4,
+          maxWidth: 280,
+        }}
         onPress={authenticate}
         activeOpacity={0.8}
       >

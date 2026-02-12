@@ -30,6 +30,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
   const [url, setUrl] = useState("https://oneuptime.com");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [urlFocused, setUrlFocused] = useState(false);
 
   const handleConnect: () => Promise<void> = async (): Promise<void> => {
     if (!url.trim()) {
@@ -72,29 +73,41 @@ export default function ServerUrlScreen(): React.JSX.Element {
       >
         <View className="flex-1 justify-center px-6">
           <View className="items-center mb-12">
-            <Text className="text-text-primary font-extrabold text-[28px] tracking-tight">
+            <Text
+              className="text-text-primary font-extrabold text-[32px]"
+              style={{ letterSpacing: -1 }}
+            >
               OneUptime
             </Text>
-            <Text className="text-body-md text-text-secondary mt-2 text-center">
+            <Text className="text-body-md text-text-secondary mt-2 text-center leading-6">
               Connect to your OneUptime instance
             </Text>
           </View>
 
           <View className="w-full">
-            <Text className="text-body-sm text-text-secondary mb-1">
+            <Text className="text-body-sm text-text-secondary mb-1.5 font-medium">
               Server URL
             </Text>
             <TextInput
-              className="h-14 border rounded-[14px] px-4 text-base bg-bg-primary text-text-primary"
+              className="h-14 rounded-xl px-4 text-base bg-bg-primary text-text-primary"
               style={{
+                borderWidth: 1.5,
                 borderColor: error
                   ? theme.colors.statusError
-                  : theme.colors.borderDefault,
+                  : urlFocused
+                    ? theme.colors.actionPrimary
+                    : theme.colors.borderDefault,
               }}
               value={url}
               onChangeText={(text: string) => {
                 setUrl(text);
                 setError(null);
+              }}
+              onFocus={() => {
+                return setUrlFocused(true);
+              }}
+              onBlur={() => {
+                return setUrlFocused(false);
               }}
               placeholder="https://oneuptime.com"
               placeholderTextColor={theme.colors.textTertiary}
@@ -106,16 +119,24 @@ export default function ServerUrlScreen(): React.JSX.Element {
             />
 
             {error ? (
-              <Text className="text-body-sm mt-2" style={{ color: theme.colors.statusError }}>
+              <Text
+                className="text-body-sm mt-2"
+                style={{ color: theme.colors.statusError }}
+              >
                 {error}
               </Text>
             ) : null}
 
             <TouchableOpacity
-              className="h-[52px] rounded-[14px] items-center justify-center mt-6 shadow-md"
+              className="h-[52px] rounded-xl items-center justify-center mt-6"
               style={{
                 backgroundColor: theme.colors.actionPrimary,
                 opacity: isLoading ? 0.7 : 1,
+                shadowColor: theme.colors.actionPrimary,
+                shadowOpacity: 0.3,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 12,
+                elevation: 4,
               }}
               onPress={handleConnect}
               disabled={isLoading}
@@ -129,7 +150,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
               )}
             </TouchableOpacity>
 
-            <Text className="text-caption text-text-tertiary text-center mt-6">
+            <Text className="text-caption text-text-tertiary text-center mt-6 leading-5">
               Self-hosting? Enter your OneUptime server URL above.
             </Text>
           </View>

@@ -7,6 +7,9 @@
   --color-bg-secondary: #F9FAFB;
   --color-bg-tertiary: #F3F4F6;
   --color-bg-elevated: #FFFFFF;
+  --color-card-accent: rgba(99, 102, 241, 0.10);
+  --color-bg-glass: rgba(255, 255, 255, 0.60);
+  --color-icon-bg: rgba(99, 102, 241, 0.10);
   --color-border-default: #E5E7EB;
   --color-border-subtle: #F3F4F6;
   --color-text-primary: #111827;
@@ -47,6 +50,9 @@
   --color-bg-secondary: #161B22;
   --color-bg-tertiary: #21262D;
   --color-bg-elevated: #1C2128;
+  --color-card-accent: rgba(99, 102, 241, 0.15);
+  --color-bg-glass: rgba(255, 255, 255, 0.08);
+  --color-icon-bg: rgba(99, 102, 241, 0.15);
   --color-border-default: #30363D;
   --color-border-subtle: #21262D;
   --color-text-primary: #E6EDF3;

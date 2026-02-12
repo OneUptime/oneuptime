@@ -27,19 +27,25 @@ export default function EmptyState({
   const { theme } = useTheme();
 
   return (
-    <View className="flex-1 items-center justify-center px-10 py-20">
-      <View className="w-16 h-16 items-center justify-center">
+    <View className="flex-1 items-center justify-center px-10 py-24">
+      <View
+        className="w-16 h-16 rounded-2xl items-center justify-center"
+        style={{ backgroundColor: theme.colors.backgroundTertiary }}
+      >
         <Ionicons
           name={iconMap[icon]}
-          size={40}
+          size={32}
           color={theme.colors.textTertiary}
         />
       </View>
-      <Text className="text-title-sm text-text-primary text-center mt-5">
+      <Text
+        className="text-title-md text-text-primary text-center mt-5"
+        style={{ letterSpacing: -0.3 }}
+      >
         {title}
       </Text>
       {subtitle ? (
-        <Text className="text-body-md text-text-secondary text-center mt-2 leading-5">
+        <Text className="text-body-md text-text-secondary text-center mt-2 leading-6">
           {subtitle}
         </Text>
       ) : null}

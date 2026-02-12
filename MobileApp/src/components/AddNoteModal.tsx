@@ -52,13 +52,24 @@ export default function AddNoteModal({
         style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="rounded-t-3xl p-5 pb-9 bg-bg-primary">
-          <Text className="text-title-md text-text-primary mb-4">
+        <View className="rounded-t-[28px] p-5 pb-9 bg-bg-primary">
+          {/* Drag Handle */}
+          <View className="items-center pt-1 pb-4">
+            <View
+              className="w-9 h-1 rounded-full"
+              style={{ backgroundColor: theme.colors.borderDefault }}
+            />
+          </View>
+
+          <Text
+            className="text-title-md text-text-primary mb-4"
+            style={{ letterSpacing: -0.3 }}
+          >
             Add Note
           </Text>
 
           <TextInput
-            className="min-h-[120px] rounded-[14px] border p-3 text-[15px] bg-bg-primary text-text-primary border-border-default"
+            className="min-h-[120px] rounded-xl border p-3 text-[15px] bg-bg-primary text-text-primary border-border-default"
             placeholder="Add a note..."
             placeholderTextColor={theme.colors.textTertiary}
             value={noteText}
@@ -70,7 +81,7 @@ export default function AddNoteModal({
 
           <View className="flex-row gap-3 mt-4">
             <TouchableOpacity
-              className="flex-1 py-3.5 rounded-[14px] items-center justify-center min-h-[48px] bg-bg-tertiary border border-border-subtle"
+              className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-[48px] bg-bg-tertiary border border-border-subtle"
               onPress={handleClose}
               disabled={isSubmitting}
             >
@@ -80,7 +91,7 @@ export default function AddNoteModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="flex-1 py-3.5 rounded-[14px] items-center justify-center min-h-[48px]"
+              className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-[48px]"
               style={{
                 backgroundColor:
                   noteText.trim() && !isSubmitting

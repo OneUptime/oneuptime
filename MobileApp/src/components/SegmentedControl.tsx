@@ -22,7 +22,7 @@ export default function SegmentedControl<T extends string>({
 
   return (
     <View
-      className="flex-row mx-4 mt-3 mb-1 rounded-[10px] p-1"
+      className="flex-row mx-4 mt-3 mb-1 rounded-xl p-1"
       style={{ backgroundColor: theme.colors.backgroundSecondary }}
     >
       {segments.map((segment: Segment<T>) => {
@@ -30,16 +30,11 @@ export default function SegmentedControl<T extends string>({
         return (
           <TouchableOpacity
             key={segment.key}
-            className="flex-1 items-center py-2 rounded-lg"
+            className="flex-1 items-center py-2 rounded-[10px]"
             style={
               isActive
                 ? {
-                    backgroundColor: theme.colors.backgroundPrimary,
-                    shadowColor: "#000",
-                    shadowOpacity: 0.08,
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowRadius: 2,
-                    elevation: 2,
+                    backgroundColor: theme.colors.actionPrimary,
                   }
                 : undefined
             }
@@ -51,9 +46,7 @@ export default function SegmentedControl<T extends string>({
             <Text
               className="text-body-sm font-semibold"
               style={{
-                color: isActive
-                  ? theme.colors.textPrimary
-                  : theme.colors.textTertiary,
+                color: isActive ? "#FFFFFF" : theme.colors.textTertiary,
               }}
             >
               {segment.label}

@@ -36,16 +36,16 @@ export default function MainTabNavigator(): React.JSX.Element {
         headerTintColor: theme.colors.textPrimary,
         tabBarStyle: {
           backgroundColor: theme.colors.backgroundPrimary,
-          borderTopColor: theme.colors.borderSubtle,
+          borderTopColor: theme.colors.borderDefault,
           borderTopWidth: StyleSheet.hairlineWidth,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
-              shadowOpacity: 0.04,
-              shadowOffset: { width: 0, height: -1 },
-              shadowRadius: 6,
+              shadowOpacity: 0.06,
+              shadowOffset: { width: 0, height: -2 },
+              shadowRadius: 8,
             },
-            default: { elevation: 3 },
+            default: { elevation: 4 },
           }),
         },
         tabBarActiveTintColor: theme.colors.actionPrimary,
@@ -63,8 +63,21 @@ export default function MainTabNavigator(): React.JSX.Element {
         name="Home"
         component={HomeScreen}
         options={{
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => {
-            return <Ionicons name="home-outline" size={size} color={color} />;
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => {
+            return (
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={24}
+                color={color}
+              />
+            );
           },
         }}
       />
@@ -73,9 +86,20 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={IncidentsStackNavigator}
         options={{
           headerShown: false,
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => {
             return (
-              <Ionicons name="warning-outline" size={size} color={color} />
+              <Ionicons
+                name={focused ? "warning" : "warning-outline"}
+                size={24}
+                color={color}
+              />
             );
           },
         }}
@@ -85,11 +109,18 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={AlertsStackNavigator}
         options={{
           headerShown: false,
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => {
             return (
               <Ionicons
-                name="notifications-outline"
-                size={size}
+                name={focused ? "notifications" : "notifications-outline"}
+                size={24}
                 color={color}
               />
             );
@@ -101,9 +132,20 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={SettingsStackNavigator}
         options={{
           headerShown: false,
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => {
             return (
-              <Ionicons name="settings-outline" size={size} color={color} />
+              <Ionicons
+                name={focused ? "settings" : "settings-outline"}
+                size={24}
+                color={color}
+              />
             );
           },
         }}

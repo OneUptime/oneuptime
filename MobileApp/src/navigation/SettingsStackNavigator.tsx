@@ -1,4 +1,5 @@
 import React from "react";
+import { Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -19,6 +20,7 @@ export default function SettingsStackNavigator(): React.JSX.Element {
         },
         headerTintColor: theme.colors.textPrimary,
         headerShadowVisible: false,
+        ...(Platform.OS === "ios" ? { headerLargeTitle: true, headerLargeStyle: { backgroundColor: theme.colors.backgroundPrimary } } : {}),
       }}
     >
       <Stack.Screen

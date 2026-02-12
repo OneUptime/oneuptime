@@ -21,8 +21,8 @@ interface SettingsRowProps {
   value?: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
-  textColor?: string;
   destructive?: boolean;
+  isLast?: boolean;
 }
 
 function SettingsRow({
@@ -30,19 +30,29 @@ function SettingsRow({
   value,
   onPress,
   rightElement,
-  textColor,
   destructive,
+  isLast,
 }: SettingsRowProps): React.JSX.Element {
   const { theme } = useTheme();
 
   const content: React.JSX.Element = (
-    <View className="flex-row justify-between items-center p-4 rounded-2xl min-h-[52px] bg-bg-elevated shadow-sm">
+    <View
+      className="flex-row justify-between items-center px-4 min-h-[52px]"
+      style={
+        !isLast
+          ? {
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.borderSubtle,
+            }
+          : undefined
+      }
+    >
       <Text
-        className="text-base font-medium"
+        className="text-base font-medium py-3.5"
         style={{
           color: destructive
             ? theme.colors.actionDestructive
-            : textColor || theme.colors.textPrimary,
+            : theme.colors.textPrimary,
         }}
       >
         {label}
@@ -69,6 +79,25 @@ function SettingsRow({
   }
 
   return content;
+}
+
+function SectionCard({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View
+      className="rounded-2xl overflow-hidden bg-bg-elevated"
+      style={{
+        borderWidth: 1,
+        borderColor: theme.colors.borderSubtle,
+      }}
+    >
+      {children}
+    </View>
+  );
 }
 
 export default function SettingsScreen(): React.JSX.Element {
@@ -113,50 +142,56 @@ export default function SettingsScreen(): React.JSX.Element {
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Appearance
         </Text>
-        <View className="flex-row rounded-2xl p-1 gap-1 bg-bg-elevated shadow-sm">
-          {(["dark", "light", "system"] as ThemeMode[]).map(
-            (mode: ThemeMode) => {
-              const isActive: boolean = themeMode === mode;
-              return (
-                <TouchableOpacity
-                  key={mode}
-                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5"
-                  style={
-                    isActive
-                      ? { backgroundColor: theme.colors.actionPrimary }
-                      : undefined
-                  }
-                  onPress={() => {
-                    return handleThemeChange(mode);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={
-                      mode === "dark"
-                        ? "moon-outline"
-                        : mode === "light"
-                          ? "sunny-outline"
-                          : "phone-portrait-outline"
-                    }
-                    size={16}
-                    color={
-                      isActive ? "#FFFFFF" : theme.colors.textSecondary
-                    }
-                  />
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{
-                      color: isActive ? "#FFFFFF" : theme.colors.textPrimary,
-                    }}
-                  >
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            },
-          )}
-        </View>
+        <SectionCard>
+          <View className="p-1.5">
+            <View className="flex-row rounded-xl gap-1">
+              {(["dark", "light", "system"] as ThemeMode[]).map(
+                (mode: ThemeMode) => {
+                  const isActive: boolean = themeMode === mode;
+                  return (
+                    <TouchableOpacity
+                      key={mode}
+                      className="flex-1 flex-row items-center justify-center py-2.5 rounded-[10px] gap-1.5"
+                      style={
+                        isActive
+                          ? { backgroundColor: theme.colors.actionPrimary }
+                          : undefined
+                      }
+                      onPress={() => {
+                        return handleThemeChange(mode);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={
+                          mode === "dark"
+                            ? "moon-outline"
+                            : mode === "light"
+                              ? "sunny-outline"
+                              : "phone-portrait-outline"
+                        }
+                        size={16}
+                        color={
+                          isActive ? "#FFFFFF" : theme.colors.textSecondary
+                        }
+                      />
+                      <Text
+                        className="text-sm font-semibold"
+                        style={{
+                          color: isActive
+                            ? "#FFFFFF"
+                            : theme.colors.textPrimary,
+                        }}
+                      >
+                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                },
+              )}
+            </View>
+          </View>
+        </SectionCard>
       </View>
 
       {/* Security */}
@@ -165,20 +200,23 @@ export default function SettingsScreen(): React.JSX.Element {
           <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
             Security
           </Text>
-          <SettingsRow
-            label="Biometrics Login"
-            rightElement={
-              <Switch
-                value={biometric.isEnabled}
-                onValueChange={handleBiometricToggle}
-                trackColor={{
-                  false: theme.colors.backgroundTertiary,
-                  true: theme.colors.actionPrimary,
-                }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
+          <SectionCard>
+            <SettingsRow
+              label="Biometrics Login"
+              isLast
+              rightElement={
+                <Switch
+                  value={biometric.isEnabled}
+                  onValueChange={handleBiometricToggle}
+                  trackColor={{
+                    false: theme.colors.backgroundTertiary,
+                    true: theme.colors.actionPrimary,
+                  }}
+                  thumbColor="#FFFFFF"
+                />
+              }
+            />
+          </SectionCard>
           <Text className="text-xs mt-2 ml-1 leading-4 text-text-tertiary">
             Require biometrics to unlock the app
           </Text>
@@ -191,10 +229,13 @@ export default function SettingsScreen(): React.JSX.Element {
           <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
             Project
           </Text>
-          <SettingsRow
-            label={selectedProject.name}
-            onPress={handleChangeProject}
-          />
+          <SectionCard>
+            <SettingsRow
+              label={selectedProject.name}
+              onPress={handleChangeProject}
+              isLast
+            />
+          </SectionCard>
         </View>
       ) : null}
 
@@ -203,7 +244,13 @@ export default function SettingsScreen(): React.JSX.Element {
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Server
         </Text>
-        <SettingsRow label="Server URL" value={serverUrl || "oneuptime.com"} />
+        <SectionCard>
+          <SettingsRow
+            label="Server URL"
+            value={serverUrl || "oneuptime.com"}
+            isLast
+          />
+        </SectionCard>
       </View>
 
       {/* Account */}
@@ -211,7 +258,9 @@ export default function SettingsScreen(): React.JSX.Element {
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Account
         </Text>
-        <SettingsRow label="Log Out" onPress={logout} destructive />
+        <SectionCard>
+          <SettingsRow label="Log Out" onPress={logout} destructive isLast />
+        </SectionCard>
       </View>
 
       {/* About */}
@@ -219,9 +268,10 @@ export default function SettingsScreen(): React.JSX.Element {
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           About
         </Text>
-        <SettingsRow label="Version" value={APP_VERSION} />
-        <View className="h-px" />
-        <SettingsRow label="Build" value="1" />
+        <SectionCard>
+          <SettingsRow label="Version" value={APP_VERSION} />
+          <SettingsRow label="Build" value="1" isLast />
+        </SectionCard>
       </View>
 
       {/* Footer branding */}

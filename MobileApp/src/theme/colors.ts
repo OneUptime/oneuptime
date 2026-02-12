@@ -5,6 +5,11 @@ export interface ColorTokens {
   backgroundTertiary: string;
   backgroundElevated: string;
 
+  // Accent
+  cardAccent: string;
+  backgroundGlass: string;
+  iconBackground: string;
+
   // Border
   borderDefault: string;
   borderSubtle: string;
@@ -60,6 +65,11 @@ export const darkColors: ColorTokens = {
   backgroundTertiary: "#21262D",
   backgroundElevated: "#1C2128",
 
+  // Accent
+  cardAccent: "rgba(99, 102, 241, 0.15)",
+  backgroundGlass: "rgba(255, 255, 255, 0.08)",
+  iconBackground: "rgba(99, 102, 241, 0.15)",
+
   // Border
   borderDefault: "#30363D",
   borderSubtle: "#21262D",
@@ -114,6 +124,11 @@ export const lightColors: ColorTokens = {
   backgroundSecondary: "#F9FAFB",
   backgroundTertiary: "#F3F4F6",
   backgroundElevated: "#FFFFFF",
+
+  // Accent
+  cardAccent: "rgba(99, 102, 241, 0.10)",
+  backgroundGlass: "rgba(255, 255, 255, 0.60)",
+  iconBackground: "rgba(99, 102, 241, 0.10)",
 
   // Border
   borderDefault: "#E5E7EB",

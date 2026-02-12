@@ -1,4 +1,5 @@
 import React from "react";
+import { Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import AlertsScreen from "../screens/AlertsScreen";
@@ -21,6 +22,7 @@ export default function AlertsStackNavigator(): React.JSX.Element {
         },
         headerTintColor: theme.colors.textPrimary,
         headerShadowVisible: false,
+        ...(Platform.OS === "ios" ? { headerLargeTitle: true, headerLargeStyle: { backgroundColor: theme.colors.backgroundPrimary } } : {}),
       }}
     >
       <Stack.Screen
@@ -31,12 +33,18 @@ export default function AlertsStackNavigator(): React.JSX.Element {
       <Stack.Screen
         name="AlertDetail"
         component={AlertDetailScreen}
-        options={{ title: "Alert" }}
+        options={{
+          title: "Alert",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
       />
       <Stack.Screen
         name="AlertEpisodeDetail"
         component={AlertEpisodeDetailScreen}
-        options={{ title: "Episode" }}
+        options={{
+          title: "Episode",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
       />
     </Stack.Navigator>
   );

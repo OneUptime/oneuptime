@@ -31,6 +31,8 @@ export default function LoginScreen(): React.JSX.Element {
   const [serverUrl, setServerUrlState] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   useEffect(() => {
     getServerUrl().then(setServerUrlState);
@@ -80,8 +82,14 @@ export default function LoginScreen(): React.JSX.Element {
       >
         <View className="flex-1 justify-center px-6">
           <View className="items-center mb-12">
-            <Text className="text-text-primary font-extrabold text-[28px] tracking-tight">
+            <Text
+              className="text-text-primary font-extrabold text-[32px]"
+              style={{ letterSpacing: -1 }}
+            >
               OneUptime
+            </Text>
+            <Text className="text-body-md text-text-secondary mt-1">
+              On-Call Management
             </Text>
             <Text className="text-body-sm text-text-tertiary mt-1">
               {serverUrl}
@@ -89,15 +97,27 @@ export default function LoginScreen(): React.JSX.Element {
           </View>
 
           <View className="w-full">
-            <Text className="text-body-sm text-text-secondary mb-1">
+            <Text className="text-body-sm text-text-secondary mb-1.5 font-medium">
               Email
             </Text>
             <TextInput
-              className="h-14 border rounded-[14px] px-4 text-base bg-bg-primary text-text-primary border-border-default"
+              className="h-14 rounded-xl px-4 text-base bg-bg-primary text-text-primary"
+              style={{
+                borderWidth: 1.5,
+                borderColor: emailFocused
+                  ? theme.colors.actionPrimary
+                  : theme.colors.borderDefault,
+              }}
               value={email}
               onChangeText={(text: string) => {
                 setEmail(text);
                 setError(null);
+              }}
+              onFocus={() => {
+                return setEmailFocused(true);
+              }}
+              onBlur={() => {
+                return setEmailFocused(false);
               }}
               placeholder="you@example.com"
               placeholderTextColor={theme.colors.textTertiary}
@@ -108,15 +128,27 @@ export default function LoginScreen(): React.JSX.Element {
               returnKeyType="next"
             />
 
-            <Text className="text-body-sm text-text-secondary mb-1 mt-4">
+            <Text className="text-body-sm text-text-secondary mb-1.5 mt-4 font-medium">
               Password
             </Text>
             <TextInput
-              className="h-14 border rounded-[14px] px-4 text-base bg-bg-primary text-text-primary border-border-default"
+              className="h-14 rounded-xl px-4 text-base bg-bg-primary text-text-primary"
+              style={{
+                borderWidth: 1.5,
+                borderColor: passwordFocused
+                  ? theme.colors.actionPrimary
+                  : theme.colors.borderDefault,
+              }}
               value={password}
               onChangeText={(text: string) => {
                 setPassword(text);
                 setError(null);
+              }}
+              onFocus={() => {
+                return setPasswordFocused(true);
+              }}
+              onBlur={() => {
+                return setPasswordFocused(false);
               }}
               placeholder="Your password"
               placeholderTextColor={theme.colors.textTertiary}
@@ -127,16 +159,24 @@ export default function LoginScreen(): React.JSX.Element {
             />
 
             {error ? (
-              <Text className="text-body-sm mt-2" style={{ color: theme.colors.statusError }}>
+              <Text
+                className="text-body-sm mt-2"
+                style={{ color: theme.colors.statusError }}
+              >
                 {error}
               </Text>
             ) : null}
 
             <TouchableOpacity
-              className="h-[52px] rounded-[14px] items-center justify-center mt-6 shadow-md"
+              className="h-[52px] rounded-xl items-center justify-center mt-6"
               style={{
                 backgroundColor: theme.colors.actionPrimary,
                 opacity: isLoading ? 0.7 : 1,
+                shadowColor: theme.colors.actionPrimary,
+                shadowOpacity: 0.3,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 12,
+                elevation: 4,
               }}
               onPress={handleLogin}
               disabled={isLoading}
@@ -154,7 +194,13 @@ export default function LoginScreen(): React.JSX.Element {
               className="items-center mt-6 py-2"
               onPress={handleChangeServer}
             >
-              <Text className="text-body-sm text-action-primary">
+              <Text
+                className="text-body-sm font-medium"
+                style={{
+                  color: theme.colors.actionPrimary,
+                  textDecorationLine: "underline",
+                }}
+              >
                 Change Server
               </Text>
             </TouchableOpacity>

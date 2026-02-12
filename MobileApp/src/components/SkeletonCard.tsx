@@ -54,19 +54,29 @@ export default function SkeletonCard({
   if (variant === "compact") {
     return (
       <Animated.View
-        className="p-[18px] rounded-2xl mb-3"
+        className="rounded-2xl mb-3 overflow-hidden"
         style={{
           backgroundColor: theme.colors.backgroundElevated,
+          borderWidth: 1,
+          borderColor: theme.colors.borderSubtle,
           opacity,
         }}
         accessibilityLabel="Loading content"
         accessibilityRole="progressbar"
       >
-        <View className="flex-row justify-between items-center mb-2.5">
-          <View className="h-3.5 w-12 rounded bg-bg-tertiary" />
-          <View className="h-3 w-8 rounded bg-bg-tertiary" />
+        <View className="flex-row">
+          <View
+            className="w-1"
+            style={{ backgroundColor: theme.colors.backgroundTertiary }}
+          />
+          <View className="flex-1 p-4">
+            <View className="flex-row justify-between items-center mb-2.5">
+              <View className="h-3.5 w-12 rounded-full bg-bg-tertiary" />
+              <View className="h-3 w-8 rounded bg-bg-tertiary" />
+            </View>
+            <View className="h-[18px] rounded w-3/4 mb-3 bg-bg-tertiary" />
+          </View>
         </View>
-        <View className="h-[18px] rounded w-3/4 mb-3 bg-bg-tertiary" />
       </Animated.View>
     );
   }
@@ -80,14 +90,15 @@ export default function SkeletonCard({
         accessibilityRole="progressbar"
       >
         <View className="flex-row gap-2 mb-3">
-          <View className="h-6 w-20 rounded-md bg-bg-tertiary" />
-          <View className="h-6 w-16 rounded-md bg-bg-tertiary" />
+          <View className="h-6 w-20 rounded-full bg-bg-tertiary" />
+          <View className="h-6 w-16 rounded-full bg-bg-tertiary" />
         </View>
         <View className="h-6 w-4/5 rounded mb-5 bg-bg-tertiary" />
         <View
           className="rounded-2xl p-4"
           style={{
             backgroundColor: theme.colors.backgroundSecondary,
+            borderWidth: 1,
             borderColor: theme.colors.borderSubtle,
           }}
         >
@@ -106,35 +117,44 @@ export default function SkeletonCard({
 
   return (
     <Animated.View
-      className="p-[18px] rounded-2xl mb-3"
+      className="rounded-2xl mb-3 overflow-hidden"
       style={{
         backgroundColor: theme.colors.backgroundSecondary,
+        borderWidth: 1,
         borderColor: theme.colors.borderSubtle,
         opacity,
       }}
       accessibilityLabel="Loading content"
       accessibilityRole="progressbar"
     >
-      <View className="flex-row justify-between items-center mb-3">
-        <View className="h-3.5 w-12 rounded bg-bg-tertiary" />
-        <View className="h-3 w-9 rounded bg-bg-tertiary" />
+      <View className="flex-row">
+        <View
+          className="w-1"
+          style={{ backgroundColor: theme.colors.backgroundTertiary }}
+        />
+        <View className="flex-1 p-4">
+          <View className="flex-row justify-between items-center mb-3">
+            <View className="h-3.5 w-12 rounded-full bg-bg-tertiary" />
+            <View className="h-3 w-9 rounded bg-bg-tertiary" />
+          </View>
+          <View className="h-[18px] rounded w-[70%] mb-3 bg-bg-tertiary" />
+          <View className="flex-row gap-2 mb-3">
+            <View className="h-6 w-20 rounded-full bg-bg-tertiary" />
+            <View className="h-6 w-14 rounded-full bg-bg-tertiary" />
+          </View>
+          {Array.from({ length: Math.max(lines - 1, 1) }).map(
+            (_: unknown, index: number) => {
+              return (
+                <View
+                  key={index}
+                  className="h-3 rounded mb-2 bg-bg-tertiary"
+                  style={{ width: lineWidths[index % lineWidths.length] }}
+                />
+              );
+            },
+          )}
+        </View>
       </View>
-      <View className="h-[18px] rounded w-[70%] mb-3 bg-bg-tertiary" />
-      <View className="flex-row gap-2 mb-3">
-        <View className="h-6 w-20 rounded-md bg-bg-tertiary" />
-        <View className="h-6 w-14 rounded-md bg-bg-tertiary" />
-      </View>
-      {Array.from({ length: Math.max(lines - 1, 1) }).map(
-        (_: unknown, index: number) => {
-          return (
-            <View
-              key={index}
-              className="h-3 rounded mb-2 bg-bg-tertiary"
-              style={{ width: lineWidths[index % lineWidths.length] }}
-            />
-          );
-        },
-      )}
     </Animated.View>
   );
 }

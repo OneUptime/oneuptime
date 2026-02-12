@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
@@ -34,6 +35,29 @@ type Props = NativeStackScreenProps<
   AlertsStackParamList,
   "AlertEpisodeDetail"
 >;
+
+function SectionHeader({
+  title,
+  iconName,
+}: {
+  title: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View className="flex-row items-center mb-3">
+      <Ionicons
+        name={iconName}
+        size={15}
+        color={theme.colors.textSecondary}
+        style={{ marginRight: 6 }}
+      />
+      <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
+        {title}
+      </Text>
+    </View>
+  );
+}
 
 export default function AlertEpisodeDetailScreen({
   route,
@@ -180,20 +204,29 @@ export default function AlertEpisodeDetailScreen({
       }
     >
       {/* Header */}
-      <View className="self-start px-2.5 py-1 rounded-lg bg-bg-tertiary">
-        <Text className="text-sm font-semibold text-text-secondary">
+      <View
+        className="self-start px-2.5 py-1 rounded-full"
+        style={{ backgroundColor: stateColor + "1A" }}
+      >
+        <Text
+          className="text-[13px] font-semibold"
+          style={{ color: stateColor }}
+        >
           {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
         </Text>
       </View>
 
-      <Text className="text-title-lg text-text-primary mt-1">
+      <Text
+        className="text-title-lg text-text-primary mt-2"
+        style={{ letterSpacing: -0.5 }}
+      >
         {episode.title}
       </Text>
 
       {/* Badges */}
       <View className="flex-row flex-wrap gap-2 mt-3">
         {episode.currentAlertState ? (
-          <View className="flex-row items-center px-2.5 py-[5px] rounded-md bg-bg-tertiary">
+          <View className="flex-row items-center px-2.5 py-1 rounded-full bg-bg-tertiary">
             <View
               className="w-2 h-2 rounded-full mr-1.5"
               style={{ backgroundColor: stateColor }}
@@ -206,8 +239,8 @@ export default function AlertEpisodeDetailScreen({
 
         {episode.alertSeverity ? (
           <View
-            className="flex-row items-center px-2.5 py-[5px] rounded-md"
-            style={{ backgroundColor: severityColor + "26" }}
+            className="flex-row items-center px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: severityColor + "1A" }}
           >
             <Text
               className="text-[13px] font-semibold"
@@ -222,10 +255,8 @@ export default function AlertEpisodeDetailScreen({
       {/* Description */}
       {episode.description ? (
         <View className="mt-6">
-          <Text className="text-[13px] font-semibold uppercase tracking-wide mb-2.5 text-text-secondary">
-            Description
-          </Text>
-          <Text className="text-body-md text-text-primary">
+          <SectionHeader title="Description" iconName="document-text-outline" />
+          <Text className="text-body-md text-text-primary leading-6">
             {episode.description}
           </Text>
         </View>
@@ -233,12 +264,16 @@ export default function AlertEpisodeDetailScreen({
 
       {/* Details */}
       <View className="mt-6">
-        <Text className="text-[13px] font-semibold uppercase tracking-wide mb-2.5 text-text-secondary">
-          Details
-        </Text>
+        <SectionHeader title="Details" iconName="information-circle-outline" />
 
-        <View className="rounded-2xl p-4 bg-bg-elevated shadow-sm">
-          <View className="flex-row mb-2.5">
+        <View
+          className="rounded-2xl p-4 bg-bg-elevated border border-border-subtle overflow-hidden"
+          style={{
+            borderLeftWidth: 3,
+            borderLeftColor: theme.colors.actionPrimary,
+          }}
+        >
+          <View className="flex-row mb-3">
             <Text className="text-sm w-[90px] text-text-tertiary">
               Created
             </Text>
@@ -247,7 +282,7 @@ export default function AlertEpisodeDetailScreen({
             </Text>
           </View>
 
-          <View className="flex-row mb-2.5">
+          <View className="flex-row">
             <Text className="text-sm w-[90px] text-text-tertiary">
               Alerts
             </Text>
@@ -261,14 +296,19 @@ export default function AlertEpisodeDetailScreen({
       {/* State Change Actions */}
       {!isResolved ? (
         <View className="mt-6">
-          <Text className="text-[13px] font-semibold uppercase tracking-wide mb-2.5 text-text-secondary">
-            Actions
-          </Text>
+          <SectionHeader title="Actions" iconName="flash-outline" />
           <View className="flex-row gap-3">
             {!isAcknowledged && !isResolved && acknowledgeState ? (
               <TouchableOpacity
-                className="flex-1 py-3.5 rounded-[14px] items-center justify-center min-h-[50px] shadow-md"
-                style={{ backgroundColor: theme.colors.stateAcknowledged }}
+                className="flex-1 flex-row py-3.5 rounded-xl items-center justify-center min-h-[50px]"
+                style={{
+                  backgroundColor: theme.colors.stateAcknowledged,
+                  shadowColor: theme.colors.stateAcknowledged,
+                  shadowOpacity: 0.3,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
                 onPress={() => {
                   return handleStateChange(
                     acknowledgeState._id,
@@ -283,17 +323,32 @@ export default function AlertEpisodeDetailScreen({
                     color={theme.colors.textInverse}
                   />
                 ) : (
-                  <Text className="text-[15px] font-bold text-text-inverse">
-                    Acknowledge
-                  </Text>
+                  <>
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={18}
+                      color={theme.colors.textInverse}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text className="text-[15px] font-bold text-text-inverse">
+                      Acknowledge
+                    </Text>
+                  </>
                 )}
               </TouchableOpacity>
             ) : null}
 
             {resolveState ? (
               <TouchableOpacity
-                className="flex-1 py-3.5 rounded-[14px] items-center justify-center min-h-[50px] shadow-md"
-                style={{ backgroundColor: theme.colors.stateResolved }}
+                className="flex-1 flex-row py-3.5 rounded-xl items-center justify-center min-h-[50px]"
+                style={{
+                  backgroundColor: theme.colors.stateResolved,
+                  shadowColor: theme.colors.stateResolved,
+                  shadowOpacity: 0.3,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
                 onPress={() => {
                   return handleStateChange(resolveState._id, resolveState.name);
                 }}
@@ -305,9 +360,17 @@ export default function AlertEpisodeDetailScreen({
                     color={theme.colors.textInverse}
                   />
                 ) : (
-                  <Text className="text-[15px] font-bold text-text-inverse">
-                    Resolve
-                  </Text>
+                  <>
+                    <Ionicons
+                      name="checkmark-done-outline"
+                      size={18}
+                      color={theme.colors.textInverse}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text className="text-[15px] font-bold text-text-inverse">
+                      Resolve
+                    </Text>
+                  </>
                 )}
               </TouchableOpacity>
             ) : null}
@@ -318,49 +381,71 @@ export default function AlertEpisodeDetailScreen({
       {/* State Timeline */}
       {timeline && timeline.length > 0 ? (
         <View className="mt-6">
-          <Text className="text-[13px] font-semibold uppercase tracking-wide mb-2.5 text-text-secondary">
-            State Timeline
-          </Text>
-          {timeline.map((entry: StateTimelineItem) => {
-            const entryColor: string = entry.alertState?.color
-              ? rgbToHex(entry.alertState.color)
-              : theme.colors.textTertiary;
-            return (
-              <View
-                key={entry._id}
-                className="flex-row items-center p-3.5 rounded-xl mb-2 bg-bg-elevated shadow-sm"
-              >
-                <View
-                  className="w-2.5 h-2.5 rounded-full mr-3"
-                  style={{ backgroundColor: entryColor }}
-                />
-                <View className="flex-1">
-                  <Text className="text-body-md text-text-primary font-semibold">
-                    {entry.alertState?.name ?? "Unknown"}
-                  </Text>
-                  <Text className="text-body-sm text-text-tertiary">
-                    {formatDateTime(entry.createdAt)}
-                  </Text>
+          <SectionHeader title="State Timeline" iconName="time-outline" />
+          <View className="ml-1">
+            {timeline.map((entry: StateTimelineItem, index: number) => {
+              const entryColor: string = entry.alertState?.color
+                ? rgbToHex(entry.alertState.color)
+                : theme.colors.textTertiary;
+              const isLast: boolean = index === timeline.length - 1;
+              return (
+                <View key={entry._id} className="flex-row">
+                  <View className="items-center mr-3">
+                    <View
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: entryColor }}
+                    />
+                    {!isLast ? (
+                      <View
+                        className="w-0.5 flex-1 my-1"
+                        style={{
+                          backgroundColor: theme.colors.borderDefault,
+                        }}
+                      />
+                    ) : null}
+                  </View>
+                  <View className="flex-1 pb-4">
+                    <Text className="text-body-md text-text-primary font-semibold">
+                      {entry.alertState?.name ?? "Unknown"}
+                    </Text>
+                    <Text className="text-body-sm text-text-tertiary">
+                      {formatDateTime(entry.createdAt)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
       ) : null}
 
       {/* Internal Notes */}
       <View className="mt-6">
-        <View className="flex-row justify-between items-center mb-2.5">
-          <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
-            Internal Notes
-          </Text>
+        <View className="flex-row justify-between items-center mb-3">
+          <View className="flex-row items-center">
+            <Ionicons
+              name="chatbubble-outline"
+              size={15}
+              color={theme.colors.textSecondary}
+              style={{ marginRight: 6 }}
+            />
+            <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
+              Internal Notes
+            </Text>
+          </View>
           <TouchableOpacity
-            className="px-3 py-1.5 rounded-lg"
+            className="flex-row items-center px-3 py-1.5 rounded-lg"
             style={{ backgroundColor: theme.colors.actionPrimary }}
             onPress={() => {
               return setNoteModalVisible(true);
             }}
           >
+            <Ionicons
+              name="add"
+              size={16}
+              color={theme.colors.textInverse}
+              style={{ marginRight: 2 }}
+            />
             <Text className="text-[13px] font-semibold text-text-inverse">
               Add Note
             </Text>
@@ -372,7 +457,11 @@ export default function AlertEpisodeDetailScreen({
               return (
                 <View
                   key={note._id}
-                  className="rounded-xl p-3.5 mb-2 bg-bg-elevated shadow-sm"
+                  className="rounded-xl p-3.5 mb-2 bg-bg-elevated border border-border-subtle"
+                  style={{
+                    borderTopWidth: 2,
+                    borderTopColor: theme.colors.actionPrimary + "30",
+                  }}
                 >
                   <Text className="text-body-md text-text-primary">
                     {note.note}

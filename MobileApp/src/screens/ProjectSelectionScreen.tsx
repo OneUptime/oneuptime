@@ -36,7 +36,10 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
   if (projectList.length === 0) {
     return (
       <View className="flex-1 items-center justify-center px-8 bg-bg-primary">
-        <Text className="text-title-sm text-text-primary text-center">
+        <Text
+          className="text-title-sm text-text-primary text-center"
+          style={{ letterSpacing: -0.3 }}
+        >
           No Projects Found
         </Text>
         <Text className="text-body-md text-text-secondary text-center mt-2">
@@ -58,7 +61,10 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
   return (
     <View className="flex-1 bg-bg-primary">
       <View className="px-5 pt-4 pb-2">
-        <Text className="text-title-lg text-text-primary">
+        <Text
+          className="text-title-lg text-text-primary"
+          style={{ letterSpacing: -0.5 }}
+        >
           Select Project
         </Text>
         <Text className="text-body-md text-text-secondary mt-1">
@@ -73,18 +79,30 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
         }}
         contentContainerStyle={{ padding: 20, paddingTop: 12 }}
         renderItem={({ item }: ListRenderItemInfo<ProjectItem>) => {
+          const initial: string = (item.name || "P").charAt(0).toUpperCase();
           return (
             <TouchableOpacity
-              className="flex-row items-center p-[18px] rounded-2xl mb-3 bg-bg-elevated shadow-sm"
+              className="flex-row items-center p-4 rounded-2xl mb-3 bg-bg-elevated border border-border-subtle"
+              style={{
+                shadowColor: "#000",
+                shadowOpacity: 0.04,
+                shadowOffset: { width: 0, height: 2 },
+                shadowRadius: 8,
+                elevation: 2,
+              }}
               onPress={() => {
                 return handleSelect(item);
               }}
               activeOpacity={0.7}
             >
               <View
-                className="w-3.5 h-3.5 rounded-full mr-3"
+                className="w-10 h-10 rounded-xl items-center justify-center mr-3"
                 style={{ backgroundColor: theme.colors.actionPrimary }}
-              />
+              >
+                <Text className="text-[17px] font-bold text-white">
+                  {initial}
+                </Text>
+              </View>
               <View className="flex-1">
                 <Text className="text-body-lg text-text-primary font-semibold">
                   {item.name}
