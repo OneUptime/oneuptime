@@ -16,7 +16,7 @@ export default function AlertsStackNavigator(): React.JSX.Element {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: theme.colors.backgroundSecondary,
+          backgroundColor: theme.colors.backgroundPrimary,
         },
         headerTintColor: theme.colors.textPrimary,
         headerShadowVisible: false,

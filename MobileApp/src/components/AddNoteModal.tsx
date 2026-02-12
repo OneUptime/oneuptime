@@ -56,8 +56,7 @@ export default function AddNoteModal({
           style={[
             styles.container,
             {
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderColor: theme.colors.borderDefault,
+              backgroundColor: theme.colors.backgroundPrimary,
             },
           ]}
         >
@@ -74,9 +73,9 @@ export default function AddNoteModal({
             style={[
               styles.input,
               {
-                backgroundColor: theme.colors.backgroundTertiary,
+                backgroundColor: theme.colors.backgroundPrimary,
                 color: theme.colors.textPrimary,
-                borderColor: theme.colors.borderSubtle,
+                borderColor: theme.colors.borderDefault,
               },
             ]}
             placeholder="Add a note..."
@@ -154,20 +153,18 @@ export default function AddNoteModal({
 const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   container: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    borderBottomWidth: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 36,
   },
   input: {
     minHeight: 120,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     padding: 12,
     fontSize: 15,
@@ -180,7 +177,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 48,

@@ -33,9 +33,9 @@ export default function IncidentCard({
     <TouchableOpacity
       style={[
         styles.card,
+        theme.shadows.sm,
         {
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderColor: theme.colors.borderSubtle,
+          backgroundColor: theme.colors.backgroundElevated,
         },
       ]}
       onPress={onPress}
@@ -108,9 +108,8 @@ export default function IncidentCard({
 
 const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   card: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    padding: 18,
+    borderRadius: 16,
     marginBottom: 12,
   },
   topRow: {

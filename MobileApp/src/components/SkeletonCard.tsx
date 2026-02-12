@@ -63,8 +63,7 @@ export default function SkeletonCard({
         style={[
           styles.card,
           {
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderColor: theme.colors.borderSubtle,
+            backgroundColor: theme.colors.backgroundElevated,
             opacity,
           },
         ]}
@@ -230,9 +229,8 @@ export default function SkeletonCard({
 
 const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   card: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    padding: 18,
+    borderRadius: 16,
     marginBottom: 12,
   },
   topRow: {
@@ -300,8 +298,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     marginBottom: 20,
   },
   detailCard: {
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
     padding: 16,
   },
   detailRow: {

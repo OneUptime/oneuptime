@@ -47,9 +47,9 @@ function StatCard({
     <TouchableOpacity
       style={[
         styles.summaryCard,
+        theme.shadows.md,
         {
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderColor: theme.colors.borderSubtle,
+          backgroundColor: theme.colors.backgroundElevated,
         },
       ]}
       onPress={handlePress}
@@ -79,9 +79,9 @@ function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
     <TouchableOpacity
       style={[
         styles.linkCard,
+        theme.shadows.sm,
         {
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderColor: theme.colors.borderSubtle,
+          backgroundColor: theme.colors.backgroundElevated,
         },
       ]}
       onPress={onPress}
@@ -252,7 +252,7 @@ export default function HomeScreen(): React.JSX.Element {
 
 const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   content: {
-    padding: 20,
+    padding: 24,
     paddingBottom: 40,
   },
   cardRow: {
@@ -263,39 +263,37 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   summaryCard: {
     flex: 1,
     padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
     alignItems: "center",
   },
   cardCount: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: "700",
     fontVariant: ["tabular-nums"],
   },
   cardLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "500",
     marginTop: 4,
   },
   quickLinksSection: {
-    marginTop: 28,
+    marginTop: 32,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    marginBottom: 10,
+    marginBottom: 12,
     marginLeft: 4,
   },
   linkCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
+    padding: 18,
+    borderRadius: 16,
+    marginBottom: 10,
   },
   linkLabel: {
     fontSize: 16,

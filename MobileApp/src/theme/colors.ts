@@ -111,18 +111,18 @@ export const darkColors: ColorTokens = {
 export const lightColors: ColorTokens = {
   // Background
   backgroundPrimary: "#FFFFFF",
-  backgroundSecondary: "#F6F8FA",
-  backgroundTertiary: "#EAEEF2",
+  backgroundSecondary: "#F9FAFB",
+  backgroundTertiary: "#F3F4F6",
   backgroundElevated: "#FFFFFF",
 
   // Border
-  borderDefault: "#D0D7DE",
-  borderSubtle: "#EAEEF2",
+  borderDefault: "#E5E7EB",
+  borderSubtle: "#F3F4F6",
 
   // Text
-  textPrimary: "#1F2328",
-  textSecondary: "#656D76",
-  textTertiary: "#8C959F",
+  textPrimary: "#111827",
+  textSecondary: "#6B7280",
+  textTertiary: "#9CA3AF",
   textInverse: "#FFFFFF",
 
   // Severity

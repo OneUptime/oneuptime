@@ -10,6 +10,7 @@ import { useColorScheme } from "react-native";
 import { ColorTokens, darkColors, lightColors } from "./colors";
 import { typography } from "./typography";
 import { spacing, radius } from "./spacing";
+import { shadows, ShadowTokens } from "./shadows";
 import {
   getThemeMode as loadThemeMode,
   setThemeMode as saveThemeMode,
@@ -22,6 +23,7 @@ export interface Theme {
   typography: typeof typography;
   spacing: typeof spacing;
   radius: typeof radius;
+  shadows: ShadowTokens;
   isDark: boolean;
 }
 
@@ -43,7 +45,7 @@ export function ThemeProvider({
 }: ThemeProviderProps): React.JSX.Element {
   const systemColorScheme: "light" | "dark" | null | undefined =
     useColorScheme();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>("dark");
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
 
   // Load persisted theme on mount
   useEffect(() => {
@@ -71,6 +73,7 @@ export function ThemeProvider({
       typography,
       spacing,
       radius,
+      shadows,
       isDark,
     };
   }, [themeMode, systemColorScheme]);

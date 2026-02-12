@@ -47,9 +47,9 @@ function SettingsRow({
     <View
       style={[
         styles.row,
+        theme.shadows.sm,
         {
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderColor: theme.colors.borderSubtle,
+          backgroundColor: theme.colors.backgroundElevated,
         },
       ]}
     >
@@ -139,9 +139,9 @@ export default function SettingsScreen(): React.JSX.Element {
         <View
           style={[
             styles.themeSelector,
+            theme.shadows.sm,
             {
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderColor: theme.colors.borderSubtle,
+              backgroundColor: theme.colors.backgroundElevated,
             },
           ]}
         >
@@ -320,8 +320,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
     minHeight: 52,
   },
   rowLabel: {
@@ -338,8 +337,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   // Theme selector
   themeSelector: {
     flexDirection: "row",
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
     padding: 4,
     gap: 4,
   },

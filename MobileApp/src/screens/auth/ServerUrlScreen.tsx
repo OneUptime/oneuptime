@@ -78,7 +78,12 @@ export default function ServerUrlScreen(): React.JSX.Element {
             <Text
               style={[
                 theme.typography.titleLarge,
-                { color: theme.colors.textPrimary },
+                {
+                  color: theme.colors.textPrimary,
+                  fontWeight: "800",
+                  fontSize: 28,
+                  letterSpacing: -0.5,
+                },
               ]}
             >
               OneUptime
@@ -113,7 +118,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
               style={[
                 styles.input,
                 {
-                  backgroundColor: theme.colors.backgroundSecondary,
+                  backgroundColor: theme.colors.backgroundPrimary,
                   borderColor: error
                     ? theme.colors.statusError
                     : theme.colors.borderDefault,
@@ -151,6 +156,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
             <TouchableOpacity
               style={[
                 styles.button,
+                theme.shadows.md,
                 {
                   backgroundColor: theme.colors.actionPrimary,
                   opacity: isLoading ? 0.7 : 1,
@@ -165,7 +171,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
                 <Text
                   style={[
                     theme.typography.bodyMedium,
-                    { color: theme.colors.textInverse, fontWeight: "600" },
+                    { color: theme.colors.textInverse, fontWeight: "700" },
                   ]}
                 >
                   Connect
@@ -222,15 +228,15 @@ const styles: {
   input: {
     height: 56,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 16,
   },
   button: {
-    height: 56,
-    borderRadius: 12,
+    height: 52,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 24,
   },
 });

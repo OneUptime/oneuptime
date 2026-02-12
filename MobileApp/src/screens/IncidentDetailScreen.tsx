@@ -200,9 +200,16 @@ export default function IncidentDetailScreen({
       }
     >
       {/* Header */}
-      <Text style={[styles.number, { color: theme.colors.textTertiary }]}>
-        {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
-      </Text>
+      <View
+        style={[
+          styles.numberBadge,
+          { backgroundColor: theme.colors.backgroundTertiary },
+        ]}
+      >
+        <Text style={[styles.number, { color: theme.colors.textSecondary }]}>
+          {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
+        </Text>
+      </View>
 
       <Text
         style={[
@@ -272,9 +279,9 @@ export default function IncidentDetailScreen({
         <View
           style={[
             styles.detailCard,
+            theme.shadows.sm,
             {
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderColor: theme.colors.borderSubtle,
+              backgroundColor: theme.colors.backgroundElevated,
             },
           ]}
         >
@@ -352,6 +359,7 @@ export default function IncidentDetailScreen({
               <TouchableOpacity
                 style={[
                   styles.actionButton,
+                  theme.shadows.md,
                   { backgroundColor: theme.colors.stateAcknowledged },
                 ]}
                 onPress={() => {
@@ -386,6 +394,7 @@ export default function IncidentDetailScreen({
               <TouchableOpacity
                 style={[
                   styles.actionButton,
+                  theme.shadows.md,
                   { backgroundColor: theme.colors.stateResolved },
                 ]}
                 onPress={() => {
@@ -433,9 +442,9 @@ export default function IncidentDetailScreen({
                 key={entry._id}
                 style={[
                   styles.timelineEntry,
+                  theme.shadows.sm,
                   {
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderColor: theme.colors.borderSubtle,
+                    backgroundColor: theme.colors.backgroundElevated,
                   },
                 ]}
               >
@@ -504,9 +513,9 @@ export default function IncidentDetailScreen({
                   key={note._id}
                   style={[
                     styles.noteCard,
+                    theme.shadows.sm,
                     {
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      borderColor: theme.colors.borderSubtle,
+                      backgroundColor: theme.colors.backgroundElevated,
                     },
                   ]}
                 >
@@ -577,6 +586,12 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
+  numberBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
   number: {
     fontSize: 14,
     fontWeight: "600",
@@ -621,8 +636,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     marginBottom: 10,
   },
   detailCard: {
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
     padding: 16,
   },
   detailRow: {
@@ -643,10 +657,10 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   actionButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 48,
+    minHeight: 50,
   },
   actionButtonText: {
     fontSize: 15,
@@ -656,8 +670,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 12,
     marginBottom: 8,
   },
   timelineDot: {
@@ -679,8 +692,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     fontWeight: "600",
   },
   noteCard: {
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 8,
   },

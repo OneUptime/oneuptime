@@ -109,7 +109,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 40,
-    paddingVertical: 60,
+    paddingVertical: 80,
   },
   iconContainer: {
     width: 64,
@@ -121,7 +121,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   iconShield: {
     width: 44,
     height: 52,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderRadius: 6,
     borderBottomLeftRadius: 22,
     borderBottomRightRadius: 22,
@@ -138,7 +138,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   iconBell: {
     width: 36,
     height: 36,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderRadius: 18,
     borderBottomLeftRadius: 4,
     borderBottomRightRadius: 4,
@@ -155,7 +155,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   iconStack: {
     width: 40,
     height: 32,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderRadius: 8,
     position: "absolute",
     top: 12,
@@ -163,7 +163,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   iconStackBack: {
     width: 32,
     height: 28,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderRadius: 6,
     position: "absolute",
     top: 6,
@@ -172,7 +172,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   iconCircle: {
     width: 48,
     height: 48,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",

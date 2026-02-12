@@ -88,6 +88,7 @@ export default function BiometricLockScreen({
       <TouchableOpacity
         style={[
           styles.unlockButton,
+          theme.shadows.md,
           { backgroundColor: theme.colors.actionPrimary },
         ]}
         onPress={authenticate}
@@ -112,7 +113,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 2,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -136,7 +137,7 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
     marginTop: 32,
     paddingVertical: 16,
     paddingHorizontal: 48,
-    borderRadius: 12,
+    borderRadius: 14,
     minWidth: 200,
     alignItems: "center",
   },

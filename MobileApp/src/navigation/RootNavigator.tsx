@@ -86,7 +86,7 @@ export default function RootNavigator(): React.JSX.Element {
       ...DefaultTheme.colors,
       primary: theme.colors.actionPrimary,
       background: theme.colors.backgroundPrimary,
-      card: theme.colors.backgroundSecondary,
+      card: theme.colors.backgroundPrimary,
       text: theme.colors.textPrimary,
       border: theme.colors.borderDefault,
       notification: theme.colors.severityCritical,

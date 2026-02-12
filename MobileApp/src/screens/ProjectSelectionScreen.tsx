@@ -129,9 +129,9 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
             <TouchableOpacity
               style={[
                 styles.projectCard,
+                theme.shadows.sm,
                 {
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderColor: theme.colors.borderSubtle,
+                  backgroundColor: theme.colors.backgroundElevated,
                 },
               ]}
               onPress={() => {
@@ -195,15 +195,14 @@ const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
   projectCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    padding: 18,
+    borderRadius: 16,
     marginBottom: 12,
   },
   projectDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     marginRight: 12,
   },
   projectInfo: {

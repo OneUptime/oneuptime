@@ -106,6 +106,7 @@ export default function AlertEpisodesScreen(): React.JSX.Element {
         <TouchableOpacity
           style={[
             styles.retryButton,
+            theme.shadows.md,
             { backgroundColor: theme.colors.actionPrimary },
           ]}
           onPress={() => {

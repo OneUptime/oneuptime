@@ -35,9 +35,9 @@ function PrefRow({
     <View
       style={[
         styles.row,
+        theme.shadows.sm,
         {
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderColor: theme.colors.borderSubtle,
+          backgroundColor: theme.colors.backgroundElevated,
         },
       ]}
       accessibilityRole="switch"
@@ -242,9 +242,8 @@ const styles: {
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
+    borderRadius: 16,
+    marginBottom: 10,
   },
   rowText: {
     flex: 1,
