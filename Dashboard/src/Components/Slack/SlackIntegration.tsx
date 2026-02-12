@@ -142,9 +142,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
-          url: URL.fromString(
-            `${HOME_URL.toString()}/api/slack/app-manifest`,
-          ),
+          url: URL.fromString(`${HOME_URL.toString()}/api/slack/app-manifest`),
         });
 
       if (response instanceof HTTPErrorResponse) {
@@ -221,9 +219,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
     if (!userId) {
       setError(
-        <div>
-          Looks like you are not logged in. Please login to continue.
-        </div>,
+        <div>Looks like you are not logged in. Please login to continue.</div>,
       );
       return;
     }
@@ -336,10 +332,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     };
   };
 
-  const userAuthByWorkspaceProjectId: Map<
-    string,
-    WorkspaceUserAuthToken
-  > = new Map();
+  const userAuthByWorkspaceProjectId: Map<string, WorkspaceUserAuthToken> =
+    new Map();
 
   userAuthTokens.forEach((token: WorkspaceUserAuthToken) => {
     if (token.workspaceProjectId) {
@@ -349,17 +343,15 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
   const workspaceCards: Array<ReactElement> = projectAuthTokens.map(
     (workspace: WorkspaceProjectAuthToken) => {
-      const teamName: string | undefined = (
-        workspace.miscData as SlackMiscData
-      )?.teamName;
+      const teamName: string | undefined = (workspace.miscData as SlackMiscData)
+        ?.teamName;
 
       const workspaceProjectId: string | undefined =
         workspace.workspaceProjectId;
 
-      const userAuth: WorkspaceUserAuthToken | undefined =
-        workspaceProjectId
-          ? userAuthByWorkspaceProjectId.get(workspaceProjectId)
-          : undefined;
+      const userAuth: WorkspaceUserAuthToken | undefined = workspaceProjectId
+        ? userAuthByWorkspaceProjectId.get(workspaceProjectId)
+        : undefined;
 
       const buttons: Array<CardButtonSchema> = [];
 

@@ -423,9 +423,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     workspace: WorkspaceProjectAuthToken,
   ): string => {
     if (props.workspaceType === WorkspaceType.Slack) {
-      const teamName: string | undefined = (
-        workspace.miscData as SlackMiscData
-      )?.teamName;
+      const teamName: string | undefined = (workspace.miscData as SlackMiscData)
+        ?.teamName;
       return teamName || workspace.workspaceProjectId || "Slack Workspace";
     }
 

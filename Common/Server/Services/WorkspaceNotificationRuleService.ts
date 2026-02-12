@@ -499,8 +499,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
       }
 
-      const rulesByAuthToken: Map<string, Array<WorkspaceNotificationRule>> =
-        new Map();
+      const rulesByAuthToken: Map<
+        string,
+        Array<WorkspaceNotificationRule>
+      > = new Map();
 
       for (const rule of notificationRules) {
         const key: string = rule.workspaceProjectAuthTokenId
@@ -564,7 +566,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         };
 
         if (authTokenId !== "default") {
-          archiveAuthQuery.workspaceProjectAuthTokenId = new ObjectID(authTokenId);
+          archiveAuthQuery.workspaceProjectAuthTokenId = new ObjectID(
+            authTokenId,
+          );
         }
 
         const projectAuth: WorkspaceProjectAuthToken | null =
@@ -577,16 +581,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           continue;
         }
 
-        await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).archiveChannels({
-          authToken: projectAuth.authToken!,
-          channelIds: channelIds,
-          userId: this.getBotUserIdFromprojectAuthToken({
-            projectAuthToken: projectAuth,
-            workspaceType: workspaceType,
-          }),
-          sendMessageBeforeArchiving: data.sendMessageBeforeArchiving,
-          projectId: data.projectId,
-        });
+        await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).archiveChannels(
+          {
+            authToken: projectAuth.authToken!,
+            channelIds: channelIds,
+            userId: this.getBotUserIdFromprojectAuthToken({
+              projectAuthToken: projectAuth,
+              workspaceType: workspaceType,
+            }),
+            sendMessageBeforeArchiving: data.sendMessageBeforeArchiving,
+            projectId: data.projectId,
+          },
+        );
       }
     }
   }
@@ -669,7 +675,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           workspaceType: workspaceType,
         });
 
-      const payloadsByAuthToken: Map<string, WorkspaceMessagePayload> = new Map();
+      const payloadsByAuthToken: Map<string, WorkspaceMessagePayload> =
+        new Map();
 
       const getPayloadForAuthToken: (
         authTokenId?: string,
@@ -1370,19 +1377,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     const normalizedChannels: Array<NotificationRuleWorkspaceChannel> =
-      data.workspaceChannels.map((channel: NotificationRuleWorkspaceChannel) => {
-        if (!channel.workspaceProjectAuthTokenId && channel.notificationRuleId) {
-          const mappedTokenId: string | undefined =
-            ruleIdToWorkspaceAuthTokenId.get(channel.notificationRuleId);
-          if (mappedTokenId) {
-            return {
-              ...channel,
-              workspaceProjectAuthTokenId: mappedTokenId,
-            };
+      data.workspaceChannels.map(
+        (channel: NotificationRuleWorkspaceChannel) => {
+          if (
+            !channel.workspaceProjectAuthTokenId &&
+            channel.notificationRuleId
+          ) {
+            const mappedTokenId: string | undefined =
+              ruleIdToWorkspaceAuthTokenId.get(channel.notificationRuleId);
+            if (mappedTokenId) {
+              return {
+                ...channel,
+                workspaceProjectAuthTokenId: mappedTokenId,
+              };
+            }
           }
-        }
-        return channel;
-      });
+          return channel;
+        },
+      );
 
     for (const workspaceType of workspaceTypes) {
       const rulesForWorkspace: Array<WorkspaceNotificationRule> =
@@ -1394,8 +1406,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         continue;
       }
 
-      const rulesByAuthToken: Map<string, Array<WorkspaceNotificationRule>> =
-        new Map();
+      const rulesByAuthToken: Map<
+        string,
+        Array<WorkspaceNotificationRule>
+      > = new Map();
       for (const rule of rulesForWorkspace) {
         const key: string = rule.workspaceProjectAuthTokenId
           ? rule.workspaceProjectAuthTokenId.toString()
@@ -1449,7 +1463,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         };
 
         if (authTokenId !== "default") {
-          inviteAuthQuery.workspaceProjectAuthTokenId = new ObjectID(authTokenId);
+          inviteAuthQuery.workspaceProjectAuthTokenId = new ObjectID(
+            authTokenId,
+          );
         }
 
         const projectAuth: WorkspaceProjectAuthToken | null =

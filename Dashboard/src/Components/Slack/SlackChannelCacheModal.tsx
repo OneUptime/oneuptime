@@ -40,7 +40,10 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
         await API.get({
           url: URL.fromString(
             `${HOME_URL.toString()}/api/slack/get-all-channels`,
-          ).addQueryParam("workspaceProjectAuthTokenId", props.projectAuthTokenId.toString()),
+          ).addQueryParam(
+            "workspaceProjectAuthTokenId",
+            props.projectAuthTokenId.toString(),
+          ),
           headers: ModelAPI.getCommonHeaders(),
         });
 

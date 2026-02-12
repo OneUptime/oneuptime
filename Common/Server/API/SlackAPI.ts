@@ -472,9 +472,8 @@ export default class SlackAPI {
           idToken["https://slack.com/team_id"]?.toString();
 
         // If state is provided, enforce workspace selection.
-        const expectedTeamId: string | undefined = req.query[
-          "state"
-        ]?.toString();
+        const expectedTeamId: string | undefined =
+          req.query["state"]?.toString();
 
         if (expectedTeamId && teamIdFromSlack) {
           if (expectedTeamId !== teamIdFromSlack) {
@@ -758,9 +757,8 @@ export default class SlackAPI {
           );
         }
 
-        const workspaceProjectAuthTokenId: string | undefined = req.query[
-          "workspaceProjectAuthTokenId"
-        ]?.toString();
+        const workspaceProjectAuthTokenId: string | undefined =
+          req.query["workspaceProjectAuthTokenId"]?.toString();
 
         // Get Slack project auth
         const projectAuthQuery: {
