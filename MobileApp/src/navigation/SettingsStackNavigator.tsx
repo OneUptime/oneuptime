@@ -2,7 +2,6 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import SettingsScreen from "../screens/SettingsScreen";
-import NotificationPreferencesScreen from "../screens/NotificationPreferencesScreen";
 import type { SettingsStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -26,11 +25,6 @@ export default function SettingsStackNavigator(): React.JSX.Element {
         name="SettingsList"
         component={SettingsScreen}
         options={{ title: "Settings" }}
-      />
-      <Stack.Screen
-        name="NotificationPreferences"
-        component={NotificationPreferencesScreen}
-        options={{ title: "Notifications" }}
       />
     </Stack.Navigator>
   );

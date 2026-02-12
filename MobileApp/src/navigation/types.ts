@@ -14,7 +14,6 @@ export type MainTabParamList = {
 
 export type SettingsStackParamList = {
   SettingsList: undefined;
-  NotificationPreferences: undefined;
 };
 
 export type IncidentsStackParamList = {
