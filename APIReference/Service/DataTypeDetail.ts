@@ -3173,10 +3173,17 @@ export default class ServiceHandler {
       detail.relatedTypes || []
     ).map((rt: RelatedType) => {
       const dtDoc: DataTypeDocumentation | undefined = DataTypesByPath[rt.path];
-      return {
-        ...rt,
-        description: rt.description || (dtDoc ? dtDoc.description : undefined),
+      const desc: string | undefined =
+        rt.description || (dtDoc ? dtDoc.description : undefined);
+      const result: RelatedType = {
+        name: rt.name,
+        path: rt.path,
+        relationship: rt.relationship,
       };
+      if (desc !== undefined) {
+        result.description = desc;
+      }
+      return result;
     });
 
     // Extract _type wrapper from JSON example
@@ -3185,8 +3192,8 @@ export default class ServiceHandler {
       const parsed: Record<string, unknown> = JSON.parse(
         detail.jsonExample,
       ) as Record<string, unknown>;
-      if (parsed._type && typeof parsed._type === "string") {
-        jsonWrapperType = parsed._type;
+      if (parsed["_type"] && typeof parsed["_type"] === "string") {
+        jsonWrapperType = parsed["_type"];
       }
     } catch {
       // ignore parse errors
