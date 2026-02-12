@@ -1,0 +1,80 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  presets: [require("nativewind/preset")],
+  darkMode: "class",
+  content: ["./App.tsx", "./src/**/*.{ts,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        "bg-primary": "var(--color-bg-primary)",
+        "bg-secondary": "var(--color-bg-secondary)",
+        "bg-tertiary": "var(--color-bg-tertiary)",
+        "bg-elevated": "var(--color-bg-elevated)",
+        "border-default": "var(--color-border-default)",
+        "border-subtle": "var(--color-border-subtle)",
+        "text-primary": "var(--color-text-primary)",
+        "text-secondary": "var(--color-text-secondary)",
+        "text-tertiary": "var(--color-text-tertiary)",
+        "text-inverse": "var(--color-text-inverse)",
+        "severity-critical": "var(--color-severity-critical)",
+        "severity-critical-bg": "var(--color-severity-critical-bg)",
+        "severity-major": "var(--color-severity-major)",
+        "severity-major-bg": "var(--color-severity-major-bg)",
+        "severity-minor": "var(--color-severity-minor)",
+        "severity-minor-bg": "var(--color-severity-minor-bg)",
+        "severity-warning": "var(--color-severity-warning)",
+        "severity-warning-bg": "var(--color-severity-warning-bg)",
+        "severity-info": "var(--color-severity-info)",
+        "severity-info-bg": "var(--color-severity-info-bg)",
+        "state-created": "var(--color-state-created)",
+        "state-acknowledged": "var(--color-state-acknowledged)",
+        "state-resolved": "var(--color-state-resolved)",
+        "state-investigating": "var(--color-state-investigating)",
+        "state-muted": "var(--color-state-muted)",
+        "oncall-active": "var(--color-oncall-active)",
+        "oncall-active-bg": "var(--color-oncall-active-bg)",
+        "oncall-inactive": "var(--color-oncall-inactive)",
+        "oncall-inactive-bg": "var(--color-oncall-inactive-bg)",
+        "action-primary": "var(--color-action-primary)",
+        "action-primary-pressed": "var(--color-action-primary-pressed)",
+        "action-destructive": "var(--color-action-destructive)",
+        "action-destructive-pressed": "var(--color-action-destructive-pressed)",
+        "status-success": "var(--color-status-success)",
+        "status-success-bg": "var(--color-status-success-bg)",
+        "status-error": "var(--color-status-error)",
+        "status-error-bg": "var(--color-status-error-bg)",
+      },
+      fontSize: {
+        "title-lg": [
+          "28px",
+          { lineHeight: "34px", fontWeight: "700" },
+        ],
+        "title-md": [
+          "22px",
+          { lineHeight: "28px", fontWeight: "600" },
+        ],
+        "title-sm": [
+          "17px",
+          { lineHeight: "22px", fontWeight: "600" },
+        ],
+        "body-lg": ["17px", { lineHeight: "24px" }],
+        "body-md": ["15px", { lineHeight: "20px" }],
+        "body-sm": ["13px", { lineHeight: "18px" }],
+        label: [
+          "12px",
+          { lineHeight: "16px", fontWeight: "600", letterSpacing: "0.5px" },
+        ],
+        caption: ["12px", { lineHeight: "16px" }],
+      },
+      boxShadow: {
+        sm: "0 1px 6px rgba(0,0,0,0.04)",
+        md: "0 2px 12px rgba(0,0,0,0.06)",
+        lg: "0 4px 16px rgba(0,0,0,0.08)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

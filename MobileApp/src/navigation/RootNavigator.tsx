@@ -15,7 +15,7 @@ import AuthStackNavigator from "./AuthStackNavigator";
 import MainTabNavigator from "./MainTabNavigator";
 import ProjectSelectionScreen from "../screens/ProjectSelectionScreen";
 import BiometricLockScreen from "../screens/BiometricLockScreen";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 
 const prefix: string = Linking.createURL("/");
 
@@ -96,12 +96,7 @@ export default function RootNavigator(): React.JSX.Element {
 
   if (isLoading || !biometricChecked) {
     return (
-      <View
-        style={[
-          styles.loading,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
+      <View className="flex-1 items-center justify-center bg-bg-primary">
         <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
       </View>
     );
@@ -130,12 +125,7 @@ export default function RootNavigator(): React.JSX.Element {
 
     if (isLoadingProjects) {
       return (
-        <View
-          style={[
-            styles.loading,
-            { backgroundColor: theme.colors.backgroundPrimary },
-          ]}
-        >
+        <View className="flex-1 items-center justify-center bg-bg-primary">
           <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
         </View>
       );
@@ -158,11 +148,3 @@ export default function RootNavigator(): React.JSX.Element {
     </NavigationContainer>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

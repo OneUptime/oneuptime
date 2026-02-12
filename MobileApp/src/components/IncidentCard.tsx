@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
@@ -31,49 +31,34 @@ export default function IncidentCard({
 
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        theme.shadows.sm,
-        {
-          backgroundColor: theme.colors.backgroundElevated,
-        },
-      ]}
+      className="p-[18px] rounded-2xl mb-3 bg-bg-elevated shadow-sm"
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
     >
-      <View style={styles.topRow}>
-        <Text style={[styles.number, { color: theme.colors.textTertiary }]}>
+      <View className="flex-row justify-between items-center mb-1.5">
+        <Text className="text-[13px] font-semibold text-text-tertiary">
           {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
         </Text>
-        <Text style={[styles.time, { color: theme.colors.textTertiary }]}>
-          {timeString}
-        </Text>
+        <Text className="text-xs text-text-tertiary">{timeString}</Text>
       </View>
 
       <Text
-        style={[
-          theme.typography.bodyLarge,
-          { color: theme.colors.textPrimary, fontWeight: "600" },
-        ]}
+        className="text-body-lg text-text-primary font-semibold"
         numberOfLines={2}
       >
         {incident.title}
       </Text>
 
-      <View style={styles.badgeRow}>
+      <View className="flex-row flex-wrap gap-2 mt-2.5">
         {incident.currentIncidentState ? (
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: theme.colors.backgroundTertiary },
-            ]}
-          >
-            <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text
-              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
-            >
+          <View className="flex-row items-center px-2 py-1 rounded-md bg-bg-tertiary">
+            <View
+              className="w-2 h-2 rounded-full mr-1.5"
+              style={{ backgroundColor: stateColor }}
+            />
+            <Text className="text-xs font-semibold text-text-primary">
               {incident.currentIncidentState.name}
             </Text>
           </View>
@@ -81,9 +66,13 @@ export default function IncidentCard({
 
         {incident.incidentSeverity ? (
           <View
-            style={[styles.badge, { backgroundColor: severityColor + "26" }]}
+            className="flex-row items-center px-2 py-1 rounded-md"
+            style={{ backgroundColor: severityColor + "26" }}
           >
-            <Text style={[styles.badgeText, { color: severityColor }]}>
+            <Text
+              className="text-xs font-semibold"
+              style={{ color: severityColor }}
+            >
               {incident.incidentSeverity.name}
             </Text>
           </View>
@@ -91,10 +80,7 @@ export default function IncidentCard({
       </View>
 
       {monitorCount > 0 ? (
-        <Text
-          style={[styles.monitors, { color: theme.colors.textSecondary }]}
-          numberOfLines={1}
-        >
+        <Text className="text-xs text-text-secondary mt-2" numberOfLines={1}>
           {incident.monitors
             .map((m: NamedEntity) => {
               return m.name;
@@ -105,51 +91,3 @@ export default function IncidentCard({
     </TouchableOpacity>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  card: {
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  number: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  time: {
-    fontSize: 12,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 10,
-  },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  monitors: {
-    fontSize: 12,
-    marginTop: 8,
-  },
-});

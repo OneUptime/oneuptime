@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  StyleSheet,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
@@ -138,9 +137,7 @@ export default function IncidentEpisodeDetailScreen({
 
   if (isLoading) {
     return (
-      <View
-        style={[{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }]}
-      >
+      <View className="flex-1 bg-bg-primary">
         <SkeletonCard variant="detail" />
       </View>
     );
@@ -148,18 +145,8 @@ export default function IncidentEpisodeDetailScreen({
 
   if (!episode) {
     return (
-      <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            { color: theme.colors.textSecondary },
-          ]}
-        >
+      <View className="flex-1 items-center justify-center bg-bg-primary">
+        <Text className="text-body-md text-text-secondary">
           Episode not found.
         </Text>
       </View>
@@ -191,46 +178,32 @@ export default function IncidentEpisodeDetailScreen({
 
   return (
     <ScrollView
-      style={[{ backgroundColor: theme.colors.backgroundPrimary }]}
-      contentContainerStyle={styles.content}
+      className="bg-bg-primary"
+      contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
       refreshControl={
         <RefreshControl refreshing={false} onRefresh={onRefresh} />
       }
     >
       {/* Header */}
-      <View
-        style={[
-          styles.numberBadge,
-          { backgroundColor: theme.colors.backgroundTertiary },
-        ]}
-      >
-        <Text style={[styles.number, { color: theme.colors.textSecondary }]}>
+      <View className="self-start px-2.5 py-1 rounded-lg bg-bg-tertiary">
+        <Text className="text-sm font-semibold text-text-secondary">
           {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
         </Text>
       </View>
 
-      <Text
-        style={[
-          theme.typography.titleLarge,
-          { color: theme.colors.textPrimary, marginTop: 4 },
-        ]}
-      >
+      <Text className="text-title-lg text-text-primary mt-1">
         {episode.title}
       </Text>
 
       {/* Badges */}
-      <View style={styles.badgeRow}>
+      <View className="flex-row flex-wrap gap-2 mt-3">
         {episode.currentIncidentState ? (
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: theme.colors.backgroundTertiary },
-            ]}
-          >
-            <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text
-              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
-            >
+          <View className="flex-row items-center px-2.5 py-[5px] rounded-md bg-bg-tertiary">
+            <View
+              className="w-2 h-2 rounded-full mr-1.5"
+              style={{ backgroundColor: stateColor }}
+            />
+            <Text className="text-[13px] font-semibold text-text-primary">
               {episode.currentIncidentState.name}
             </Text>
           </View>
@@ -238,9 +211,13 @@ export default function IncidentEpisodeDetailScreen({
 
         {episode.incidentSeverity ? (
           <View
-            style={[styles.badge, { backgroundColor: severityColor + "26" }]}
+            className="flex-row items-center px-2.5 py-[5px] rounded-md"
+            style={{ backgroundColor: severityColor + "26" }}
           >
-            <Text style={[styles.badgeText, { color: severityColor }]}>
+            <Text
+              className="text-[13px] font-semibold"
+              style={{ color: severityColor }}
+            >
               {episode.incidentSeverity.name}
             </Text>
           </View>
@@ -249,83 +226,48 @@ export default function IncidentEpisodeDetailScreen({
 
       {/* Description */}
       {episode.description ? (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
+        <View className="mt-6">
+          <Text className="text-[13px] font-semibold uppercase tracking-wide mb-2.5 text-text-secondary">
             Description
           </Text>
-          <Text
-            style={[
-              theme.typography.bodyMedium,
-              { color: theme.colors.textPrimary },
-            ]}
-          >
+          <Text className="text-body-md text-text-primary">
             {episode.description}
           </Text>
         </View>
       ) : null}
 
       {/* Details */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mt-6">
+        <Text className="text-[13px] font-semibold uppercase tracking-wide mb-2.5 text-text-secondary">
           Details
         </Text>
 
-        <View
-          style={[
-            styles.detailCard,
-            theme.shadows.sm,
-            {
-              backgroundColor: theme.colors.backgroundElevated,
-            },
-          ]}
-        >
+        <View className="rounded-2xl p-4 bg-bg-elevated shadow-sm">
           {episode.declaredAt ? (
-            <View style={styles.detailRow}>
-              <Text
-                style={[
-                  styles.detailLabel,
-                  { color: theme.colors.textTertiary },
-                ]}
-              >
+            <View className="flex-row mb-2.5">
+              <Text className="text-sm w-[90px] text-text-tertiary">
                 Declared
               </Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  { color: theme.colors.textPrimary },
-                ]}
-              >
+              <Text className="text-sm text-text-primary">
                 {formatDateTime(episode.declaredAt)}
               </Text>
             </View>
           ) : null}
 
-          <View style={styles.detailRow}>
-            <Text
-              style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
-            >
+          <View className="flex-row mb-2.5">
+            <Text className="text-sm w-[90px] text-text-tertiary">
               Created
             </Text>
-            <Text
-              style={[styles.detailValue, { color: theme.colors.textPrimary }]}
-            >
+            <Text className="text-sm text-text-primary">
               {formatDateTime(episode.createdAt)}
             </Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text
-              style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
-            >
+          <View className="flex-row mb-2.5">
+            <Text className="text-sm w-[90px] text-text-tertiary">
               Incidents
             </Text>
-            <Text
-              style={[styles.detailValue, { color: theme.colors.textPrimary }]}
-            >
+            <Text className="text-sm text-text-primary">
               {episode.incidentCount ?? 0}
             </Text>
           </View>
@@ -334,20 +276,15 @@ export default function IncidentEpisodeDetailScreen({
 
       {/* State Change Actions */}
       {!isResolved ? (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
+        <View className="mt-6">
+          <Text className="text-[13px] font-semibold uppercase tracking-wide mb-2.5 text-text-secondary">
             Actions
           </Text>
-          <View style={styles.actionRow}>
+          <View className="flex-row gap-3">
             {!isAcknowledged && !isResolved && acknowledgeState ? (
               <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  theme.shadows.md,
-                  { backgroundColor: theme.colors.stateAcknowledged },
-                ]}
+                className="flex-1 py-3.5 rounded-[14px] items-center justify-center min-h-[50px] shadow-md"
+                style={{ backgroundColor: theme.colors.stateAcknowledged }}
                 onPress={() => {
                   return handleStateChange(
                     acknowledgeState._id,
@@ -362,12 +299,7 @@ export default function IncidentEpisodeDetailScreen({
                     color={theme.colors.textInverse}
                   />
                 ) : (
-                  <Text
-                    style={[
-                      styles.actionButtonText,
-                      { color: theme.colors.textInverse },
-                    ]}
-                  >
+                  <Text className="text-[15px] font-bold text-text-inverse">
                     Acknowledge
                   </Text>
                 )}
@@ -376,11 +308,8 @@ export default function IncidentEpisodeDetailScreen({
 
             {resolveState ? (
               <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  theme.shadows.md,
-                  { backgroundColor: theme.colors.stateResolved },
-                ]}
+                className="flex-1 py-3.5 rounded-[14px] items-center justify-center min-h-[50px] shadow-md"
+                style={{ backgroundColor: theme.colors.stateResolved }}
                 onPress={() => {
                   return handleStateChange(resolveState._id, resolveState.name);
                 }}
@@ -392,12 +321,7 @@ export default function IncidentEpisodeDetailScreen({
                     color={theme.colors.textInverse}
                   />
                 ) : (
-                  <Text
-                    style={[
-                      styles.actionButtonText,
-                      { color: theme.colors.textInverse },
-                    ]}
-                  >
+                  <Text className="text-[15px] font-bold text-text-inverse">
                     Resolve
                   </Text>
                 )}
@@ -409,10 +333,8 @@ export default function IncidentEpisodeDetailScreen({
 
       {/* State Timeline */}
       {timeline && timeline.length > 0 ? (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
+        <View className="mt-6">
+          <Text className="text-[13px] font-semibold uppercase tracking-wide mb-2.5 text-text-secondary">
             State Timeline
           </Text>
           {timeline.map((entry: StateTimelineItem) => {
@@ -422,35 +344,17 @@ export default function IncidentEpisodeDetailScreen({
             return (
               <View
                 key={entry._id}
-                style={[
-                  styles.timelineEntry,
-                  theme.shadows.sm,
-                  {
-                    backgroundColor: theme.colors.backgroundElevated,
-                  },
-                ]}
+                className="flex-row items-center p-3.5 rounded-xl mb-2 bg-bg-elevated shadow-sm"
               >
                 <View
-                  style={[styles.timelineDot, { backgroundColor: entryColor }]}
+                  className="w-2.5 h-2.5 rounded-full mr-3"
+                  style={{ backgroundColor: entryColor }}
                 />
-                <View style={styles.timelineInfo}>
-                  <Text
-                    style={[
-                      theme.typography.bodyMedium,
-                      {
-                        color: theme.colors.textPrimary,
-                        fontWeight: "600",
-                      },
-                    ]}
-                  >
+                <View className="flex-1">
+                  <Text className="text-body-md text-text-primary font-semibold">
                     {entry.incidentState?.name ?? "Unknown"}
                   </Text>
-                  <Text
-                    style={[
-                      theme.typography.bodySmall,
-                      { color: theme.colors.textTertiary },
-                    ]}
-                  >
+                  <Text className="text-body-sm text-text-tertiary">
                     {formatDateTime(entry.createdAt)}
                   </Text>
                 </View>
@@ -461,31 +365,19 @@ export default function IncidentEpisodeDetailScreen({
       ) : null}
 
       {/* Internal Notes */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary, marginBottom: 0 },
-            ]}
-          >
+      <View className="mt-6">
+        <View className="flex-row justify-between items-center mb-2.5">
+          <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
             Internal Notes
           </Text>
           <TouchableOpacity
-            style={[
-              styles.addNoteButton,
-              { backgroundColor: theme.colors.actionPrimary },
-            ]}
+            className="px-3 py-1.5 rounded-lg"
+            style={{ backgroundColor: theme.colors.actionPrimary }}
             onPress={() => {
               return setNoteModalVisible(true);
             }}
           >
-            <Text
-              style={[
-                styles.addNoteButtonText,
-                { color: theme.colors.textInverse },
-              ]}
-            >
+            <Text className="text-[13px] font-semibold text-text-inverse">
               Add Note
             </Text>
           </TouchableOpacity>
@@ -496,39 +388,18 @@ export default function IncidentEpisodeDetailScreen({
               return (
                 <View
                   key={note._id}
-                  style={[
-                    styles.noteCard,
-                    theme.shadows.sm,
-                    {
-                      backgroundColor: theme.colors.backgroundElevated,
-                    },
-                  ]}
+                  className="rounded-xl p-3.5 mb-2 bg-bg-elevated shadow-sm"
                 >
-                  <Text
-                    style={[
-                      theme.typography.bodyMedium,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                  >
+                  <Text className="text-body-md text-text-primary">
                     {note.note}
                   </Text>
-                  <View style={styles.noteMeta}>
+                  <View className="flex-row justify-between mt-2">
                     {note.createdByUser ? (
-                      <Text
-                        style={[
-                          theme.typography.bodySmall,
-                          { color: theme.colors.textTertiary },
-                        ]}
-                      >
+                      <Text className="text-body-sm text-text-tertiary">
                         {note.createdByUser.name}
                       </Text>
                     ) : null}
-                    <Text
-                      style={[
-                        theme.typography.bodySmall,
-                        { color: theme.colors.textTertiary },
-                      ]}
-                    >
+                    <Text className="text-body-sm text-text-tertiary">
                       {formatDateTime(note.createdAt)}
                     </Text>
                   </View>
@@ -538,12 +409,7 @@ export default function IncidentEpisodeDetailScreen({
           : null}
 
         {notes && notes.length === 0 ? (
-          <Text
-            style={[
-              theme.typography.bodySmall,
-              { color: theme.colors.textTertiary },
-            ]}
-          >
+          <Text className="text-body-sm text-text-tertiary">
             No notes yet.
           </Text>
         ) : null}
@@ -560,130 +426,3 @@ export default function IncidentEpisodeDetailScreen({
     </ScrollView>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  numberBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  number: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 12,
-  },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  badgeText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  section: {
-    marginTop: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
-  detailCard: {
-    borderRadius: 16,
-    padding: 16,
-  },
-  detailRow: {
-    flexDirection: "row",
-    marginBottom: 10,
-  },
-  detailLabel: {
-    fontSize: 14,
-    width: 90,
-  },
-  detailValue: {
-    fontSize: 14,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 50,
-  },
-  actionButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  timelineEntry: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 12,
-  },
-  timelineInfo: {
-    flex: 1,
-  },
-  addNoteButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  addNoteButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  noteCard: {
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-  },
-  noteMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-});

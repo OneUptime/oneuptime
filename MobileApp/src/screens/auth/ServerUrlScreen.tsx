@@ -4,13 +4,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ViewStyle,
-  TextStyle,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
@@ -66,65 +63,34 @@ export default function ServerUrlScreen(): React.JSX.Element {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: theme.colors.backgroundPrimary }]}
+      className="flex-1 bg-bg-primary"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text
-              style={[
-                theme.typography.titleLarge,
-                {
-                  color: theme.colors.textPrimary,
-                  fontWeight: "800",
-                  fontSize: 28,
-                  letterSpacing: -0.5,
-                },
-              ]}
-            >
+        <View className="flex-1 justify-center px-6">
+          <View className="items-center mb-12">
+            <Text className="text-text-primary font-extrabold text-[28px] tracking-tight">
               OneUptime
             </Text>
-            <Text
-              style={[
-                theme.typography.bodyMedium,
-                {
-                  color: theme.colors.textSecondary,
-                  marginTop: theme.spacing.sm,
-                  textAlign: "center",
-                },
-              ]}
-            >
+            <Text className="text-body-md text-text-secondary mt-2 text-center">
               Connect to your OneUptime instance
             </Text>
           </View>
 
-          <View style={styles.form}>
-            <Text
-              style={[
-                theme.typography.bodySmall,
-                {
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing.xs,
-                },
-              ]}
-            >
+          <View className="w-full">
+            <Text className="text-body-sm text-text-secondary mb-1">
               Server URL
             </Text>
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme.colors.backgroundPrimary,
-                  borderColor: error
-                    ? theme.colors.statusError
-                    : theme.colors.borderDefault,
-                  color: theme.colors.textPrimary,
-                },
-              ]}
+              className="h-14 border rounded-[14px] px-4 text-base bg-bg-primary text-text-primary"
+              style={{
+                borderColor: error
+                  ? theme.colors.statusError
+                  : theme.colors.borderDefault,
+              }}
               value={url}
               onChangeText={(text: string) => {
                 setUrl(text);
@@ -140,55 +106,30 @@ export default function ServerUrlScreen(): React.JSX.Element {
             />
 
             {error ? (
-              <Text
-                style={[
-                  theme.typography.bodySmall,
-                  {
-                    color: theme.colors.statusError,
-                    marginTop: theme.spacing.sm,
-                  },
-                ]}
-              >
+              <Text className="text-body-sm mt-2" style={{ color: theme.colors.statusError }}>
                 {error}
               </Text>
             ) : null}
 
             <TouchableOpacity
-              style={[
-                styles.button,
-                theme.shadows.md,
-                {
-                  backgroundColor: theme.colors.actionPrimary,
-                  opacity: isLoading ? 0.7 : 1,
-                },
-              ]}
+              className="h-[52px] rounded-[14px] items-center justify-center mt-6 shadow-md"
+              style={{
+                backgroundColor: theme.colors.actionPrimary,
+                opacity: isLoading ? 0.7 : 1,
+              }}
               onPress={handleConnect}
               disabled={isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color={theme.colors.textInverse} />
               ) : (
-                <Text
-                  style={[
-                    theme.typography.bodyMedium,
-                    { color: theme.colors.textInverse, fontWeight: "700" },
-                  ]}
-                >
+                <Text className="text-body-md text-text-inverse font-bold">
                   Connect
                 </Text>
               )}
             </TouchableOpacity>
 
-            <Text
-              style={[
-                theme.typography.caption,
-                {
-                  color: theme.colors.textTertiary,
-                  textAlign: "center",
-                  marginTop: theme.spacing.lg,
-                },
-              ]}
-            >
+            <Text className="text-caption text-text-tertiary text-center mt-6">
               Self-hosting? Enter your OneUptime server URL above.
             </Text>
           </View>
@@ -197,46 +138,3 @@ export default function ServerUrlScreen(): React.JSX.Element {
     </KeyboardAvoidingView>
   );
 }
-
-const styles: {
-  flex: ViewStyle;
-  scrollContent: ViewStyle;
-  container: ViewStyle;
-  header: ViewStyle;
-  form: ViewStyle;
-  input: TextStyle;
-  button: ViewStyle;
-} = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 48,
-  },
-  form: {
-    width: "100%",
-  },
-  input: {
-    height: 56,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  button: {
-    height: 52,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 24,
-  },
-});

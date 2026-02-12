@@ -1,5 +1,6 @@
+import "../global.css";
 import React from "react";
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -29,12 +30,7 @@ function AppContent(): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.backgroundPrimary },
-      ]}
-    >
+    <View className="flex-1 bg-bg-primary">
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <RootNavigator />
       <OfflineBanner />
@@ -58,9 +54,3 @@ export default function App(): React.JSX.Element {
     </PersistQueryClientProvider>
   );
 }
-
-const styles: { container: ViewStyle } = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
   ListRenderItemInfo,
 } from "react-native";
 import { useTheme } from "../theme";
@@ -25,19 +24,9 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
 
   if (isLoadingProjects) {
     return (
-      <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
+      <View className="flex-1 items-center justify-center px-8 bg-bg-primary">
         <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            { color: theme.colors.textSecondary, marginTop: theme.spacing.md },
-          ]}
-        >
+        <Text className="text-body-md text-text-secondary mt-4">
           Loading projects...
         </Text>
       </View>
@@ -46,45 +35,19 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
 
   if (projectList.length === 0) {
     return (
-      <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
-        <Text
-          style={[
-            theme.typography.titleSmall,
-            { color: theme.colors.textPrimary, textAlign: "center" },
-          ]}
-        >
+      <View className="flex-1 items-center justify-center px-8 bg-bg-primary">
+        <Text className="text-title-sm text-text-primary text-center">
           No Projects Found
         </Text>
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            {
-              color: theme.colors.textSecondary,
-              textAlign: "center",
-              marginTop: theme.spacing.sm,
-            },
-          ]}
-        >
+        <Text className="text-body-md text-text-secondary text-center mt-2">
           {"You don't have access to any projects."}
         </Text>
         <TouchableOpacity
-          style={[
-            styles.retryButton,
-            { backgroundColor: theme.colors.actionPrimary },
-          ]}
+          className="mt-6 px-8 py-3.5 rounded-xl"
+          style={{ backgroundColor: theme.colors.actionPrimary }}
           onPress={refreshProjects}
         >
-          <Text
-            style={[
-              theme.typography.bodyMedium,
-              { color: theme.colors.textInverse, fontWeight: "600" },
-            ]}
-          >
+          <Text className="text-body-md text-text-inverse font-semibold">
             Retry
           </Text>
         </TouchableOpacity>
@@ -93,27 +56,12 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.backgroundPrimary },
-      ]}
-    >
-      <View style={styles.header}>
-        <Text
-          style={[
-            theme.typography.titleLarge,
-            { color: theme.colors.textPrimary },
-          ]}
-        >
+    <View className="flex-1 bg-bg-primary">
+      <View className="px-5 pt-4 pb-2">
+        <Text className="text-title-lg text-text-primary">
           Select Project
         </Text>
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            { color: theme.colors.textSecondary, marginTop: theme.spacing.xs },
-          ]}
-        >
+        <Text className="text-body-md text-text-secondary mt-1">
           Choose a project to view incidents and alerts.
         </Text>
       </View>
@@ -123,44 +71,26 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
         keyExtractor={(item: ProjectItem) => {
           return item._id;
         }}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ padding: 20, paddingTop: 12 }}
         renderItem={({ item }: ListRenderItemInfo<ProjectItem>) => {
           return (
             <TouchableOpacity
-              style={[
-                styles.projectCard,
-                theme.shadows.sm,
-                {
-                  backgroundColor: theme.colors.backgroundElevated,
-                },
-              ]}
+              className="flex-row items-center p-[18px] rounded-2xl mb-3 bg-bg-elevated shadow-sm"
               onPress={() => {
                 return handleSelect(item);
               }}
               activeOpacity={0.7}
             >
               <View
-                style={[
-                  styles.projectDot,
-                  { backgroundColor: theme.colors.actionPrimary },
-                ]}
+                className="w-3.5 h-3.5 rounded-full mr-3"
+                style={{ backgroundColor: theme.colors.actionPrimary }}
               />
-              <View style={styles.projectInfo}>
-                <Text
-                  style={[
-                    theme.typography.bodyLarge,
-                    { color: theme.colors.textPrimary, fontWeight: "600" },
-                  ]}
-                >
+              <View className="flex-1">
+                <Text className="text-body-lg text-text-primary font-semibold">
                   {item.name}
                 </Text>
                 {item.slug ? (
-                  <Text
-                    style={[
-                      theme.typography.bodySmall,
-                      { color: theme.colors.textTertiary },
-                    ]}
-                  >
+                  <Text className="text-body-sm text-text-tertiary">
                     {item.slug}
                   </Text>
                 ) : null}
@@ -172,46 +102,3 @@ export default function ProjectSelectionScreen(): React.JSX.Element {
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  list: {
-    padding: 20,
-    paddingTop: 12,
-  },
-  projectCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  projectDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginRight: 12,
-  },
-  projectInfo: {
-    flex: 1,
-  },
-  retryButton: {
-    marginTop: 24,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-});

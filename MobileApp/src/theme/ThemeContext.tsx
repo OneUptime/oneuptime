@@ -6,11 +6,8 @@ import React, {
   useMemo,
   ReactNode,
 } from "react";
-import { useColorScheme } from "react-native";
+import { View, useColorScheme } from "react-native";
 import { ColorTokens, darkColors, lightColors } from "./colors";
-import { typography } from "./typography";
-import { spacing, radius } from "./spacing";
-import { shadows, ShadowTokens } from "./shadows";
 import {
   getThemeMode as loadThemeMode,
   setThemeMode as saveThemeMode,
@@ -20,10 +17,6 @@ export type ThemeMode = "dark" | "light" | "system";
 
 export interface Theme {
   colors: ColorTokens;
-  typography: typeof typography;
-  spacing: typeof spacing;
-  radius: typeof radius;
-  shadows: ShadowTokens;
   isDark: boolean;
 }
 
@@ -70,10 +63,6 @@ export function ThemeProvider({
 
     return {
       colors: isDark ? darkColors : lightColors,
-      typography,
-      spacing,
-      radius,
-      shadows,
       isDark,
     };
   }, [themeMode, systemColorScheme]);
@@ -87,7 +76,11 @@ export function ThemeProvider({
   }, [theme, themeMode]);
 
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>
+      <View className={theme.isDark ? "dark flex-1" : "flex-1"}>
+        {children}
+      </View>
+    </ThemeContext.Provider>
   );
 }
 

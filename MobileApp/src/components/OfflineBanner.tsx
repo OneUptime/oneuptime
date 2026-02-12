@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { View, Text, Animated } from "react-native";
 import { useTheme } from "../theme";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
@@ -25,51 +25,18 @@ export default function OfflineBanner(): React.JSX.Element | null {
 
   return (
     <Animated.View
-      style={[
-        styles.container,
-        {
-          backgroundColor: theme.colors.statusError,
-          transform: [{ translateY: slideAnim }],
-        },
-      ]}
+      className="absolute top-0 left-0 right-0 z-[100] pt-[50px] pb-2 px-4"
+      style={{
+        backgroundColor: theme.colors.statusError,
+        transform: [{ translateY: slideAnim }],
+      }}
     >
-      <View style={styles.content}>
-        <View style={styles.dot} />
-        <Text style={[styles.text, { color: "#FFFFFF" }]}>
+      <View className="flex-row items-center justify-center">
+        <View className="w-1.5 h-1.5 rounded-full bg-white mr-2 opacity-80" />
+        <Text className="text-[13px] font-semibold tracking-tight text-white">
           No internet connection
         </Text>
       </View>
     </Animated.View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    paddingTop: 50,
-    paddingBottom: 8,
-    paddingHorizontal: 16,
-  },
-  content: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#FFFFFF",
-    marginRight: 8,
-    opacity: 0.8,
-  },
-  text: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-  },
-});

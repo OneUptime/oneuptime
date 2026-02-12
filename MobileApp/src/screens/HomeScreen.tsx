@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  StyleSheet,
 } from "react-native";
 import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
@@ -35,7 +34,6 @@ function StatCard({
   isLoading,
   onPress,
 }: StatCardProps): React.JSX.Element {
-  const { theme } = useTheme();
   const { lightImpact } = useHaptics();
 
   const handlePress: () => void = (): void => {
@@ -45,22 +43,19 @@ function StatCard({
 
   return (
     <TouchableOpacity
-      style={[
-        styles.summaryCard,
-        theme.shadows.md,
-        {
-          backgroundColor: theme.colors.backgroundElevated,
-        },
-      ]}
+      className="flex-1 p-5 rounded-2xl items-center bg-bg-elevated shadow-md"
       onPress={handlePress}
       activeOpacity={0.7}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
     >
-      <Text style={[styles.cardCount, { color }]}>
+      <Text
+        className="text-[40px] font-bold"
+        style={{ color, fontVariant: ["tabular-nums"] }}
+      >
         {isLoading ? "--" : count ?? 0}
       </Text>
-      <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+      <Text className="text-sm font-medium mt-1 text-text-secondary">
         {label}
       </Text>
     </TouchableOpacity>
@@ -73,27 +68,15 @@ interface QuickLinkProps {
 }
 
 function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
-  const { theme } = useTheme();
-
   return (
     <TouchableOpacity
-      style={[
-        styles.linkCard,
-        theme.shadows.sm,
-        {
-          backgroundColor: theme.colors.backgroundElevated,
-        },
-      ]}
+      className="flex-row justify-between items-center p-[18px] rounded-2xl mb-2.5 bg-bg-elevated shadow-sm"
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
     >
-      <Text style={[styles.linkLabel, { color: theme.colors.textPrimary }]}>
-        {label}
-      </Text>
-      <Text style={[styles.chevron, { color: theme.colors.textTertiary }]}>
-        ›
-      </Text>
+      <Text className="text-base font-medium text-text-primary">{label}</Text>
+      <Text className="text-2xl font-light text-text-tertiary">{">"}</Text>
     </TouchableOpacity>
   );
 }
@@ -142,8 +125,8 @@ export default function HomeScreen(): React.JSX.Element {
 
   return (
     <ScrollView
-      style={[{ backgroundColor: theme.colors.backgroundPrimary }]}
-      contentContainerStyle={styles.content}
+      className="bg-bg-primary"
+      contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -152,27 +135,14 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      {/* Header */}
-      <Text
-        style={[
-          theme.typography.titleLarge,
-          { color: theme.colors.textPrimary },
-        ]}
-        accessibilityRole="header"
-      >
+      <Text className="text-title-lg text-text-primary" accessibilityRole="header">
         {selectedProject?.name ?? "OneUptime"}
       </Text>
-      <Text
-        style={[
-          theme.typography.bodyMedium,
-          { color: theme.colors.textSecondary, marginTop: theme.spacing.xs },
-        ]}
-      >
+      <Text className="text-body-md text-text-secondary mt-1">
         Project overview
       </Text>
 
-      {/* Stats Grid */}
-      <View style={styles.cardRow}>
+      <View className="flex-row gap-3 mt-4">
         <StatCard
           count={incidentCount}
           label="Active Incidents"
@@ -193,7 +163,7 @@ export default function HomeScreen(): React.JSX.Element {
         />
       </View>
 
-      <View style={styles.cardRow}>
+      <View className="flex-row gap-3 mt-4">
         <StatCard
           count={incidentEpisodeCount}
           label="Inc Episodes"
@@ -214,11 +184,8 @@ export default function HomeScreen(): React.JSX.Element {
         />
       </View>
 
-      {/* Quick Links */}
-      <View style={styles.quickLinksSection}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mt-8">
+        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-3 ml-1 text-text-secondary">
           Quick Links
         </Text>
         <QuickLink
@@ -249,58 +216,3 @@ export default function HomeScreen(): React.JSX.Element {
     </ScrollView>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  content: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  cardRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
-  },
-  summaryCard: {
-    flex: 1,
-    padding: 20,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  cardCount: {
-    fontSize: 40,
-    fontWeight: "700",
-    fontVariant: ["tabular-nums"],
-  },
-  cardLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginTop: 4,
-  },
-  quickLinksSection: {
-    marginTop: 32,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  linkCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 10,
-  },
-  linkLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  chevron: {
-    fontSize: 24,
-    fontWeight: "300",
-  },
-});

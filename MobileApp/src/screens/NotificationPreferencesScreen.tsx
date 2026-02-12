@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Switch,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-} from "react-native";
+import { View, Text, ScrollView, Switch } from "react-native";
 import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
 import {
@@ -33,24 +25,16 @@ function PrefRow({
 
   return (
     <View
-      style={[
-        styles.row,
-        theme.shadows.sm,
-        {
-          backgroundColor: theme.colors.backgroundElevated,
-        },
-      ]}
+      className="flex-row justify-between items-center p-4 rounded-2xl mb-2.5 bg-bg-elevated shadow-sm"
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
       accessibilityLabel={`${label}. ${description}`}
     >
-      <View style={styles.rowText}>
-        <Text style={[styles.rowLabel, { color: theme.colors.textPrimary }]}>
+      <View className="flex-1 mr-3">
+        <Text className="text-base font-medium text-text-primary">
           {label}
         </Text>
-        <Text
-          style={[styles.rowDescription, { color: theme.colors.textTertiary }]}
-        >
+        <Text className="text-[13px] mt-0.5 leading-[18px] text-text-tertiary">
           {description}
         </Text>
       </View>
@@ -102,33 +86,27 @@ export default function NotificationPreferencesScreen(): React.JSX.Element {
   if (!loaded) {
     return (
       <View
-        style={[
-          styles.container,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
+        className="flex-1"
+        style={{ backgroundColor: theme.colors.backgroundPrimary }}
       />
     );
   }
 
   return (
     <ScrollView
-      style={[{ backgroundColor: theme.colors.backgroundPrimary }]}
-      contentContainerStyle={styles.content}
+      className="bg-bg-primary"
+      contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
     >
       {/* Event Types */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mb-7">
+        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-1 ml-1 text-text-secondary">
           Event Types
         </Text>
-        <Text
-          style={[styles.sectionHint, { color: theme.colors.textTertiary }]}
-        >
+        <Text className="text-xs mb-3 ml-1 leading-4 text-text-tertiary">
           Choose which event types send push notifications
         </Text>
 
-        <View style={styles.rowGroup}>
+        <View className="gap-px">
           <PrefRow
             label="Incidents"
             description="New incidents and state changes"
@@ -165,14 +143,12 @@ export default function NotificationPreferencesScreen(): React.JSX.Element {
       </View>
 
       {/* Priority Filter */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mb-7">
+        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Priority
         </Text>
 
-        <View style={styles.rowGroup}>
+        <View className="gap-px">
           <PrefRow
             label="Critical Only"
             description="Only receive notifications for critical and high severity events"
@@ -185,8 +161,8 @@ export default function NotificationPreferencesScreen(): React.JSX.Element {
       </View>
 
       {/* Info */}
-      <View style={styles.infoSection}>
-        <Text style={[styles.infoText, { color: theme.colors.textTertiary }]}>
+      <View className="mt-1 px-1">
+        <Text className="text-xs leading-[18px] text-text-tertiary">
           Notification preferences are stored locally on this device.
           Server-side notification rules configured in your project settings
           take precedence.
@@ -195,75 +171,3 @@ export default function NotificationPreferencesScreen(): React.JSX.Element {
     </ScrollView>
   );
 }
-
-const styles: {
-  container: ViewStyle;
-  content: ViewStyle;
-  section: ViewStyle;
-  sectionTitle: TextStyle;
-  sectionHint: TextStyle;
-  rowGroup: ViewStyle;
-  row: ViewStyle;
-  rowText: ViewStyle;
-  rowLabel: TextStyle;
-  rowDescription: TextStyle;
-  infoSection: ViewStyle;
-  infoText: TextStyle;
-} = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 60,
-  },
-  section: {
-    marginBottom: 28,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 4,
-    marginLeft: 4,
-  },
-  sectionHint: {
-    fontSize: 12,
-    marginBottom: 12,
-    marginLeft: 4,
-    lineHeight: 16,
-  },
-  rowGroup: {
-    gap: 1,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 10,
-  },
-  rowText: {
-    flex: 1,
-    marginRight: 12,
-  },
-  rowLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  rowDescription: {
-    fontSize: 13,
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  infoSection: {
-    marginTop: 4,
-    paddingHorizontal: 4,
-  },
-  infoText: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-});

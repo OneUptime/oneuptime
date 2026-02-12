@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Switch,
-  StyleSheet,
 } from "react-native";
 import { useTheme, ThemeMode } from "../theme";
 import { useNavigation } from "@react-navigation/native";
@@ -44,38 +43,22 @@ function SettingsRow({
   const { theme } = useTheme();
 
   const content: React.JSX.Element = (
-    <View
-      style={[
-        styles.row,
-        theme.shadows.sm,
-        {
-          backgroundColor: theme.colors.backgroundElevated,
-        },
-      ]}
-    >
+    <View className="flex-row justify-between items-center p-4 rounded-2xl min-h-[52px] bg-bg-elevated shadow-sm">
       <Text
-        style={[
-          styles.rowLabel,
-          {
-            color: destructive
-              ? theme.colors.actionDestructive
-              : textColor || theme.colors.textPrimary,
-          },
-        ]}
+        className="text-base font-medium"
+        style={{
+          color: destructive
+            ? theme.colors.actionDestructive
+            : textColor || theme.colors.textPrimary,
+        }}
       >
         {label}
       </Text>
       {rightElement ??
         (value ? (
-          <Text
-            style={[styles.rowValue, { color: theme.colors.textSecondary }]}
-          >
-            {value}
-          </Text>
+          <Text className="text-[15px] text-text-secondary">{value}</Text>
         ) : onPress ? (
-          <Text style={[styles.chevron, { color: theme.colors.textTertiary }]}>
-            ›
-          </Text>
+          <Text className="text-2xl font-light text-text-tertiary">{">"}</Text>
         ) : null)}
     </View>
   );
@@ -126,61 +109,47 @@ export default function SettingsScreen(): React.JSX.Element {
 
   return (
     <ScrollView
-      style={[{ backgroundColor: theme.colors.backgroundPrimary }]}
-      contentContainerStyle={styles.content}
+      className="bg-bg-primary"
+      contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
     >
       {/* Appearance */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mb-7">
+        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Appearance
         </Text>
-        <View
-          style={[
-            styles.themeSelector,
-            theme.shadows.sm,
-            {
-              backgroundColor: theme.colors.backgroundElevated,
-            },
-          ]}
-        >
+        <View className="flex-row rounded-2xl p-1 gap-1 bg-bg-elevated shadow-sm">
           {(["dark", "light", "system"] as ThemeMode[]).map(
             (mode: ThemeMode) => {
               const isActive: boolean = themeMode === mode;
               return (
                 <TouchableOpacity
                   key={mode}
-                  style={[
-                    styles.themeOption,
-                    isActive && {
-                      backgroundColor: theme.colors.actionPrimary,
-                    },
-                  ]}
+                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5"
+                  style={
+                    isActive
+                      ? { backgroundColor: theme.colors.actionPrimary }
+                      : undefined
+                  }
                   onPress={() => {
                     return handleThemeChange(mode);
                   }}
                   activeOpacity={0.7}
                 >
                   <Text
-                    style={[
-                      styles.themeOptionIcon,
-                      {
-                        color: isActive
-                          ? "#FFFFFF"
-                          : theme.colors.textSecondary,
-                      },
-                    ]}
+                    className="text-base"
+                    style={{
+                      color: isActive
+                        ? "#FFFFFF"
+                        : theme.colors.textSecondary,
+                    }}
                   >
-                    {mode === "dark" ? "◗" : mode === "light" ? "○" : "◑"}
+                    {mode === "dark" ? "\u25D7" : mode === "light" ? "\u25CB" : "\u25D1"}
                   </Text>
                   <Text
-                    style={[
-                      styles.themeOptionLabel,
-                      {
-                        color: isActive ? "#FFFFFF" : theme.colors.textPrimary,
-                      },
-                    ]}
+                    className="text-sm font-semibold"
+                    style={{
+                      color: isActive ? "#FFFFFF" : theme.colors.textPrimary,
+                    }}
                   >
                     {mode.charAt(0).toUpperCase() + mode.slice(1)}
                   </Text>
@@ -192,10 +161,8 @@ export default function SettingsScreen(): React.JSX.Element {
       </View>
 
       {/* Notifications */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mb-7">
+        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Notifications
         </Text>
         <SettingsRow
@@ -208,10 +175,8 @@ export default function SettingsScreen(): React.JSX.Element {
 
       {/* Security */}
       {biometric.isAvailable ? (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
+        <View className="mb-7">
+          <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
             Security
           </Text>
           <SettingsRow
@@ -228,9 +193,7 @@ export default function SettingsScreen(): React.JSX.Element {
               />
             }
           />
-          <Text
-            style={[styles.sectionHint, { color: theme.colors.textTertiary }]}
-          >
+          <Text className="text-xs mt-2 ml-1 leading-4 text-text-tertiary">
             Require {biometric.biometricType.toLowerCase()} to unlock the app
           </Text>
         </View>
@@ -238,10 +201,8 @@ export default function SettingsScreen(): React.JSX.Element {
 
       {/* Project */}
       {selectedProject ? (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
+        <View className="mb-7">
+          <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
             Project
           </Text>
           <SettingsRow
@@ -252,118 +213,37 @@ export default function SettingsScreen(): React.JSX.Element {
       ) : null}
 
       {/* Server */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mb-7">
+        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Server
         </Text>
         <SettingsRow label="Server URL" value={serverUrl || "oneuptime.com"} />
       </View>
 
       {/* Account */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mb-7">
+        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Account
         </Text>
         <SettingsRow label="Log Out" onPress={logout} destructive />
       </View>
 
       {/* About */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
+      <View className="mb-7">
+        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           About
         </Text>
         <SettingsRow label="Version" value={APP_VERSION} />
-        <View style={{ height: 1 }} />
+        <View className="h-px" />
         <SettingsRow label="Build" value="1" />
       </View>
 
       {/* Footer branding */}
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: theme.colors.textTertiary }]}>
+      <View className="items-center pt-3">
+        <Text className="text-xs font-medium text-text-tertiary">
           OneUptime On-Call
         </Text>
       </View>
     </ScrollView>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  content: {
-    padding: 20,
-    paddingBottom: 60,
-  },
-  section: {
-    marginBottom: 28,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 10,
-    marginLeft: 4,
-  },
-  sectionHint: {
-    fontSize: 12,
-    marginTop: 8,
-    marginLeft: 4,
-    lineHeight: 16,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    minHeight: 52,
-  },
-  rowLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  rowValue: {
-    fontSize: 15,
-  },
-  chevron: {
-    fontSize: 24,
-    fontWeight: "300",
-  },
-  // Theme selector
-  themeSelector: {
-    flexDirection: "row",
-    borderRadius: 16,
-    padding: 4,
-    gap: 4,
-  },
-  themeOption: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-  },
-  themeOptionIcon: {
-    fontSize: 16,
-  },
-  themeOptionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  // Footer
-  footer: {
-    alignItems: "center",
-    paddingTop: 12,
-  },
-  footerText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-});

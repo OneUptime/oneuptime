@@ -5,12 +5,11 @@ import {
   RefreshControl,
   TouchableOpacity,
   Text,
-  StyleSheet,
   ListRenderItemInfo,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useTheme, type Theme } from "../theme";
+import { useTheme } from "../theme";
 import { useProject } from "../hooks/useProject";
 import { useIncidents } from "../hooks/useIncidents";
 import { useIncidentStates } from "../hooks/useIncidentDetail";
@@ -32,7 +31,7 @@ type NavProp = NativeStackNavigationProp<
 >;
 
 export default function IncidentsScreen(): React.JSX.Element {
-  const { theme }: { theme: Theme } = useTheme();
+  const { theme } = useTheme();
   const { selectedProject } = useProject();
   const projectId: string = selectedProject?._id ?? "";
   const navigation: NativeStackNavigationProp<
@@ -114,13 +113,8 @@ export default function IncidentsScreen(): React.JSX.Element {
 
   if (isLoading && incidents.length === 0) {
     return (
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
-        <View style={styles.skeletonList}>
+      <View className="flex-1 bg-bg-primary">
+        <View className="p-4">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -131,36 +125,18 @@ export default function IncidentsScreen(): React.JSX.Element {
 
   if (isError) {
     return (
-      <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            { color: theme.colors.textSecondary, textAlign: "center" },
-          ]}
-        >
+      <View className="flex-1 items-center justify-center px-8 bg-bg-primary">
+        <Text className="text-body-md text-text-secondary text-center">
           Failed to load incidents.
         </Text>
         <TouchableOpacity
-          style={[
-            styles.retryButton,
-            theme.shadows.md,
-            { backgroundColor: theme.colors.actionPrimary },
-          ]}
+          className="mt-4 px-6 py-3 rounded-[10px] shadow-md"
+          style={{ backgroundColor: theme.colors.actionPrimary }}
           onPress={() => {
             return refetch();
           }}
         >
-          <Text
-            style={[
-              theme.typography.bodyMedium,
-              { color: theme.colors.textInverse, fontWeight: "600" },
-            ]}
-          >
+          <Text className="text-body-md text-text-inverse font-semibold">
             Retry
           </Text>
         </TouchableOpacity>
@@ -169,19 +145,14 @@ export default function IncidentsScreen(): React.JSX.Element {
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.backgroundPrimary },
-      ]}
-    >
+    <View className="flex-1 bg-bg-primary">
       <FlatList
         data={incidents}
         keyExtractor={(item: IncidentItem) => {
           return item._id;
         }}
         contentContainerStyle={
-          incidents.length === 0 ? styles.emptyContainer : styles.list
+          incidents.length === 0 ? { flex: 1 } : { padding: 16 }
         }
         renderItem={({ item }: ListRenderItemInfo<IncidentItem>) => {
           return (
@@ -224,30 +195,3 @@ export default function IncidentsScreen(): React.JSX.Element {
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-  },
-  list: {
-    padding: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-  },
-  skeletonList: {
-    padding: 16,
-  },
-  retryButton: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-});
