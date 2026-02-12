@@ -419,7 +419,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  const getWorkspaceDisplayName = (
+  type GetWorkspaceDisplayName = (
+    workspace: WorkspaceProjectAuthToken,
+  ) => string;
+
+  const getWorkspaceDisplayName: GetWorkspaceDisplayName = (
     workspace: WorkspaceProjectAuthToken,
   ): string => {
     if (props.workspaceType === WorkspaceType.Slack) {
@@ -458,7 +462,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       ? workspaceProjectAuthTokens[0]?.id?.toString()
       : undefined;
 
-  const getWorkspaceNameById = (id?: string): string => {
+  type GetWorkspaceNameById = (id?: string) => string;
+
+  const getWorkspaceNameById: GetWorkspaceNameById = (id?: string): string => {
     if (!id) {
       return "-";
     }

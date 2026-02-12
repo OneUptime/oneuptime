@@ -183,10 +183,16 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  const connectWithSlack = (data: {
+  interface ConnectWithSlackData {
     mode: "workspace" | "user";
     expectedWorkspaceProjectId?: string;
-  }): void => {
+  }
+
+  type ConnectWithSlack = (data: ConnectWithSlackData) => void;
+
+  const connectWithSlack: ConnectWithSlack = (
+    data: ConnectWithSlackData,
+  ): void => {
     if (!SlackAppClientId) {
       setError(
         <div>
