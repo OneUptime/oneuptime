@@ -177,10 +177,15 @@ export default class UserMiddleware {
     try {
       oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
     } catch (err) {
-      // if the token is invalid or expired, it'll throw this error.
+      // if the token is invalid or expired, return 401 so clients can refresh the token.
       logger.error(err);
-      oneuptimeRequest.userType = UserType.Public;
-      return next();
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new NotAuthenticatedException(
+          "AccessToken is invalid or expired. Please refresh your token.",
+        ),
+      );
     }
 
     if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
