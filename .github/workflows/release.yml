@@ -1913,12 +1913,51 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      # Docker compose needs a lot of space to build images, so we need to free up some space first in the GitHub Actions runner
+      # Aggressively free disk space before anything else
+      - name: Aggressive Disk Cleanup
+        run: |
+          echo "=== Disk space BEFORE cleanup ==="
+          df -h /
+          # Remove pre-installed software not needed for this job
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /opt/hostedtoolcache || true
+          sudo rm -rf /usr/local/share/boost || true
+          sudo rm -rf /usr/local/graalvm/ || true
+          sudo rm -rf /usr/local/share/powershell || true
+          sudo rm -rf /usr/local/share/chromium || true
+          sudo rm -rf /usr/local/lib/node_modules || true
+          sudo rm -rf /usr/share/swift || true
+          sudo rm -rf /usr/share/miniconda || true
+          sudo rm -rf /usr/lib/google-cloud-sdk || true
+          sudo rm -rf /usr/lib/jvm || true
+          sudo rm -rf /usr/lib/firefox || true
+          sudo rm -rf /usr/lib/heroku || true
+          sudo rm -rf /usr/local/julia* || true
+          sudo rm -rf /opt/az || true
+          sudo rm -rf /opt/microsoft || true
+          sudo rm -rf /opt/pipx || true
+          sudo rm -rf /opt/actionarchivecache || true
+          sudo rm -rf /imagegeneration || true
+          sudo rm -rf /usr/share/az_* || true
+          sudo rm -rf /usr/share/sbt || true
+          sudo rm -rf /usr/share/gradle* || true
+          sudo rm -rf /usr/share/kotlinc || true
+          sudo rm -rf /usr/share/ri || true
+          sudo rm -rf /usr/local/.ghcup || true
+          # Clean apt cache
+          sudo apt-get clean || true
+          sudo rm -rf /var/lib/apt/lists/* || true
+          # Clean temp files
+          sudo rm -rf /tmp/* || true
+          # Docker cleanup
+          docker system prune -af --volumes || true
+          echo "=== Disk space AFTER aggressive cleanup ==="
+          df -h /
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
           tool-cache: true
           android: true
           dotnet: true
@@ -1926,6 +1965,10 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
+      - name: Final Disk Space Check
+        run: |
+          echo "=== Disk space after all cleanup ==="
+          df -h /
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -2001,12 +2044,51 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      # Docker compose needs a lot of space to build images, so we need to free up some space first in the GitHub Actions runner
+      # Aggressively free disk space before anything else
+      - name: Aggressive Disk Cleanup
+        run: |
+          echo "=== Disk space BEFORE cleanup ==="
+          df -h /
+          # Remove pre-installed software not needed for this job
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /opt/hostedtoolcache || true
+          sudo rm -rf /usr/local/share/boost || true
+          sudo rm -rf /usr/local/graalvm/ || true
+          sudo rm -rf /usr/local/share/powershell || true
+          sudo rm -rf /usr/local/share/chromium || true
+          sudo rm -rf /usr/local/lib/node_modules || true
+          sudo rm -rf /usr/share/swift || true
+          sudo rm -rf /usr/share/miniconda || true
+          sudo rm -rf /usr/lib/google-cloud-sdk || true
+          sudo rm -rf /usr/lib/jvm || true
+          sudo rm -rf /usr/lib/firefox || true
+          sudo rm -rf /usr/lib/heroku || true
+          sudo rm -rf /usr/local/julia* || true
+          sudo rm -rf /opt/az || true
+          sudo rm -rf /opt/microsoft || true
+          sudo rm -rf /opt/pipx || true
+          sudo rm -rf /opt/actionarchivecache || true
+          sudo rm -rf /imagegeneration || true
+          sudo rm -rf /usr/share/az_* || true
+          sudo rm -rf /usr/share/sbt || true
+          sudo rm -rf /usr/share/gradle* || true
+          sudo rm -rf /usr/share/kotlinc || true
+          sudo rm -rf /usr/share/ri || true
+          sudo rm -rf /usr/local/.ghcup || true
+          # Clean apt cache
+          sudo apt-get clean || true
+          sudo rm -rf /var/lib/apt/lists/* || true
+          # Clean temp files
+          sudo rm -rf /tmp/* || true
+          # Docker cleanup
+          docker system prune -af --volumes || true
+          echo "=== Disk space AFTER aggressive cleanup ==="
+          df -h /
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
           tool-cache: true
           android: true
           dotnet: true
@@ -2014,6 +2096,10 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
+      - name: Final Disk Space Check
+        run: |
+          echo "=== Disk space after all cleanup ==="
+          df -h /
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
