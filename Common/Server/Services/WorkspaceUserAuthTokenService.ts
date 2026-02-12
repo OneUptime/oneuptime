@@ -16,18 +16,31 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     userId: ObjectID;
     workspaceType: WorkspaceType;
+    workspaceProjectId?: string;
   }): Promise<Model | null> {
+    const query: {
+      userId: ObjectID;
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      workspaceProjectId?: string;
+    } = {
+      userId: data.userId,
+      projectId: data.projectId,
+      workspaceType: data.workspaceType,
+    };
+
+    if (data.workspaceProjectId) {
+      query.workspaceProjectId = data.workspaceProjectId;
+    }
+
     return await this.findOneBy({
-      query: {
-        userId: data.userId,
-        projectId: data.projectId,
-        workspaceType: data.workspaceType,
-      },
+      query: query,
       select: {
         authToken: true,
         workspaceUserId: true,
         miscData: true,
         workspaceType: true,
+        workspaceProjectId: true,
       },
       props: {
         isRoot: true,
@@ -40,15 +53,27 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     userId: ObjectID;
     workspaceType: WorkspaceType;
+    workspaceProjectId?: string;
   }): Promise<boolean> {
+    const query: {
+      projectId: ObjectID;
+      userId: ObjectID;
+      workspaceType: WorkspaceType;
+      workspaceProjectId?: string;
+    } = {
+      projectId: data.projectId,
+      userId: data.userId,
+      workspaceType: data.workspaceType,
+    };
+
+    if (data.workspaceProjectId) {
+      query.workspaceProjectId = data.workspaceProjectId;
+    }
+
     return (
       (
         await this.countBy({
-          query: {
-            projectId: data.projectId,
-            userId: data.userId,
-            workspaceType: data.workspaceType,
-          },
+          query: query,
           skip: 0,
           limit: 1,
           props: {
@@ -67,13 +92,25 @@ export class Service extends DatabaseService<Model> {
     authToken: string;
     workspaceUserId: string;
     miscData: SlackMiscData;
+    workspaceProjectId?: string;
   }): Promise<void> {
+    const query: {
+      projectId: ObjectID;
+      userId: ObjectID;
+      workspaceType: WorkspaceType;
+      workspaceProjectId?: string;
+    } = {
+      projectId: data.projectId,
+      userId: data.userId,
+      workspaceType: data.workspaceType,
+    };
+
+    if (data.workspaceProjectId) {
+      query.workspaceProjectId = data.workspaceProjectId;
+    }
+
     let userAuth: Model | null = await this.findOneBy({
-      query: {
-        projectId: data.projectId,
-        userId: data.userId,
-        workspaceType: data.workspaceType,
-      },
+      query: query,
       select: {
         _id: true,
       },
@@ -92,6 +129,10 @@ export class Service extends DatabaseService<Model> {
       userAuth.workspaceUserId = data.workspaceUserId;
       userAuth.miscData = data.miscData;
 
+      if (data.workspaceProjectId !== undefined) {
+        userAuth.workspaceProjectId = data.workspaceProjectId;
+      }
+
       await this.create({
         data: userAuth,
         props: {
@@ -105,6 +146,9 @@ export class Service extends DatabaseService<Model> {
           authToken: data.authToken,
           workspaceUserId: data.workspaceUserId,
           miscData: data.miscData,
+          ...(data.workspaceProjectId !== undefined && {
+            workspaceProjectId: data.workspaceProjectId,
+          }),
         },
         props: {
           isRoot: true,

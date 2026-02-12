@@ -43,6 +43,7 @@ export interface WorkspaceChannel {
   name: string;
   workspaceType: WorkspaceType;
   teamId?: string; // Required for Microsoft Teams
+  workspaceProjectAuthTokenId?: string; // Optional: link to project auth token for multi-workspace support
 }
 
 export default class WorkspaceBase {
@@ -61,6 +62,7 @@ export default class WorkspaceBase {
     channelName: string;
     projectId: ObjectID;
     teamId?: string;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<boolean> {
     throw new NotImplementedException();
   }
@@ -219,6 +221,7 @@ export default class WorkspaceBase {
   public static async getAllWorkspaceChannels(_data: {
     authToken: string;
     projectId: ObjectID;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<Dictionary<WorkspaceChannel>> {
     throw new NotImplementedException();
   }
@@ -228,6 +231,7 @@ export default class WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<WorkspaceChannel> {
     throw new NotImplementedException();
   }
