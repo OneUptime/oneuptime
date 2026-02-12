@@ -158,7 +158,7 @@ export default function SettingsScreen(): React.JSX.Element {
             Security
           </Text>
           <SettingsRow
-            label={biometric.biometricType}
+            label="Biometrics Login"
             rightElement={
               <Switch
                 value={biometric.isEnabled}
@@ -172,7 +172,7 @@ export default function SettingsScreen(): React.JSX.Element {
             }
           />
           <Text className="text-xs mt-2 ml-1 leading-4 text-text-tertiary">
-            Require {biometric.biometricType.toLowerCase()} to unlock the app
+            Require biometrics to unlock the app
           </Text>
         </View>
       ) : null}
