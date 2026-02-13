@@ -3,7 +3,6 @@ import {
   View,
   SectionList,
   RefreshControl,
-  TouchableOpacity,
   Text,
   SectionListRenderItemInfo,
   DefaultSectionT,
@@ -327,22 +326,17 @@ export default function AlertsScreen(): React.JSX.Element {
           selected={segment}
           onSelect={setSegment}
         />
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-body-md text-text-secondary text-center">
-            {segment === "alerts"
-              ? "Failed to load alerts."
-              : "Failed to load alert episodes."}
-          </Text>
-          <TouchableOpacity
-            className="mt-4 px-6 py-3 rounded-[10px] shadow-md"
-            style={{ backgroundColor: theme.colors.actionPrimary }}
-            onPress={retryFn}
-          >
-            <Text className="text-body-md text-text-inverse font-semibold">
-              Retry
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          title="Something went wrong"
+          subtitle={
+            segment === "alerts"
+              ? "Failed to load alerts. Pull to refresh or try again."
+              : "Failed to load alert episodes. Pull to refresh or try again."
+          }
+          icon="alerts"
+          actionLabel="Retry"
+          onAction={retryFn}
+        />
       </View>
     );
   }

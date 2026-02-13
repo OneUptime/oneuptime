@@ -216,63 +216,78 @@ export default function IncidentDetailScreen({
   return (
     <ScrollView
       className="bg-bg-primary"
-      contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 48 }}
       refreshControl={
         <RefreshControl refreshing={false} onRefresh={onRefresh} />
       }
     >
-      {/* Header */}
+      {/* Header with gradient background */}
       <View
-        className="self-start px-2.5 py-1 rounded-full"
-        style={{ backgroundColor: stateColor + "1A" }}
+        className="rounded-2xl p-5 mb-5"
+        style={{
+          backgroundColor: theme.colors.surfaceGlow,
+        }}
       >
-        <Text
-          className="text-[13px] font-semibold"
-          style={{ color: stateColor }}
+        <View
+          className="self-start px-3 py-1.5 rounded-full mb-3"
+          style={{ backgroundColor: stateColor + "1A" }}
         >
-          {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
-        </Text>
-      </View>
-
-      <Text
-        className="text-title-lg text-text-primary mt-2"
-        style={{ letterSpacing: -0.5 }}
-      >
-        {incident.title}
-      </Text>
-
-      {/* Badges */}
-      <View className="flex-row flex-wrap gap-2 mt-3">
-        {incident.currentIncidentState ? (
-          <View className="flex-row items-center px-2.5 py-1 rounded-full bg-bg-tertiary">
-            <View
-              className="w-2 h-2 rounded-full mr-1.5"
-              style={{ backgroundColor: stateColor }}
-            />
-            <Text className="text-[13px] font-semibold text-text-primary">
-              {incident.currentIncidentState.name}
-            </Text>
-          </View>
-        ) : null}
-
-        {incident.incidentSeverity ? (
-          <View
-            className="flex-row items-center px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: severityColor + "1A" }}
+          <Text
+            className="text-[13px] font-bold"
+            style={{ color: stateColor }}
           >
-            <Text
-              className="text-[13px] font-semibold"
-              style={{ color: severityColor }}
+            {incident.incidentNumberWithPrefix ||
+              `#${incident.incidentNumber}`}
+          </Text>
+        </View>
+
+        <Text
+          className="text-title-lg text-text-primary"
+          style={{ letterSpacing: -0.5 }}
+        >
+          {incident.title}
+        </Text>
+
+        {/* Badges */}
+        <View className="flex-row flex-wrap gap-2 mt-3">
+          {incident.currentIncidentState ? (
+            <View
+              className="flex-row items-center px-3 py-1.5 rounded-full"
+              style={{
+                backgroundColor: theme.colors.backgroundElevated,
+                borderWidth: 1,
+                borderColor: theme.colors.borderSubtle,
+              }}
             >
-              {incident.incidentSeverity.name}
-            </Text>
-          </View>
-        ) : null}
+              <View
+                className="w-2.5 h-2.5 rounded-full mr-2"
+                style={{ backgroundColor: stateColor }}
+              />
+              <Text className="text-[13px] font-semibold text-text-primary">
+                {incident.currentIncidentState.name}
+              </Text>
+            </View>
+          ) : null}
+
+          {incident.incidentSeverity ? (
+            <View
+              className="flex-row items-center px-3 py-1.5 rounded-full"
+              style={{ backgroundColor: severityColor + "1A" }}
+            >
+              <Text
+                className="text-[13px] font-semibold"
+                style={{ color: severityColor }}
+              >
+                {incident.incidentSeverity.name}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {/* Description */}
       {incident.description ? (
-        <View className="mt-6">
+        <View className="mb-6">
           <SectionHeader title="Description" iconName="document-text-outline" />
           <Text className="text-body-md text-text-primary leading-6">
             {incident.description}
@@ -281,14 +296,22 @@ export default function IncidentDetailScreen({
       ) : null}
 
       {/* Details */}
-      <View className="mt-6">
+      <View className="mb-6">
         <SectionHeader title="Details" iconName="information-circle-outline" />
 
         <View
-          className="rounded-2xl p-4 bg-bg-elevated border border-border-subtle overflow-hidden"
+          className="rounded-2xl p-4 overflow-hidden"
           style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderSubtle,
             borderLeftWidth: 3,
             borderLeftColor: theme.colors.actionPrimary,
+            shadowColor: "#000",
+            shadowOpacity: theme.isDark ? 0.15 : 0.04,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 8,
+            elevation: 2,
           }}
         >
           {incident.declaredAt ? (
@@ -328,7 +351,7 @@ export default function IncidentDetailScreen({
 
       {/* State Change Actions */}
       {!isResolved ? (
-        <View className="mt-6">
+        <View className="mb-6">
           <SectionHeader title="Actions" iconName="flash-outline" />
           <View className="flex-row gap-3">
             {!isAcknowledged && !isResolved && acknowledgeState ? (
@@ -339,7 +362,7 @@ export default function IncidentDetailScreen({
                   shadowColor: theme.colors.stateAcknowledged,
                   shadowOpacity: 0.3,
                   shadowOffset: { width: 0, height: 4 },
-                  shadowRadius: 8,
+                  shadowRadius: 12,
                   elevation: 4,
                 }}
                 onPress={() => {
@@ -349,6 +372,7 @@ export default function IncidentDetailScreen({
                   );
                 }}
                 disabled={changingState}
+                activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel="Acknowledge incident"
               >
@@ -381,13 +405,14 @@ export default function IncidentDetailScreen({
                   shadowColor: theme.colors.stateResolved,
                   shadowOpacity: 0.3,
                   shadowOffset: { width: 0, height: 4 },
-                  shadowRadius: 8,
+                  shadowRadius: 12,
                   elevation: 4,
                 }}
                 onPress={() => {
                   return handleStateChange(resolveState._id, resolveState.name);
                 }}
                 disabled={changingState}
+                activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel="Resolve incident"
               >
@@ -417,14 +442,14 @@ export default function IncidentDetailScreen({
 
       {/* Activity Feed */}
       {feed && feed.length > 0 ? (
-        <View className="mt-6">
+        <View className="mb-6">
           <SectionHeader title="Activity Feed" iconName="list-outline" />
           <FeedTimeline feed={feed} />
         </View>
       ) : null}
 
       {/* Internal Notes */}
-      <View className="mt-6">
+      <View className="mb-2">
         <View className="flex-row justify-between items-center mb-3">
           <View className="flex-row items-center">
             <Ionicons
@@ -438,17 +463,25 @@ export default function IncidentDetailScreen({
             </Text>
           </View>
           <TouchableOpacity
-            className="flex-row items-center px-3 py-1.5 rounded-lg"
-            style={{ backgroundColor: theme.colors.actionPrimary }}
+            className="flex-row items-center px-3.5 py-2 rounded-lg"
+            style={{
+              backgroundColor: theme.colors.actionPrimary,
+              shadowColor: theme.colors.actionPrimary,
+              shadowOpacity: 0.25,
+              shadowOffset: { width: 0, height: 2 },
+              shadowRadius: 8,
+              elevation: 3,
+            }}
             onPress={() => {
               return setNoteModalVisible(true);
             }}
+            activeOpacity={0.85}
           >
             <Ionicons
               name="add"
               size={16}
               color={theme.colors.textInverse}
-              style={{ marginRight: 2 }}
+              style={{ marginRight: 4 }}
             />
             <Text className="text-[13px] font-semibold text-text-inverse">
               Add Note
@@ -461,16 +494,24 @@ export default function IncidentDetailScreen({
               return (
                 <View
                   key={note._id}
-                  className="rounded-xl p-3.5 mb-2 bg-bg-elevated border border-border-subtle"
+                  className="rounded-xl p-4 mb-2.5"
                   style={{
+                    backgroundColor: theme.colors.backgroundElevated,
+                    borderWidth: 1,
+                    borderColor: theme.colors.borderSubtle,
                     borderTopWidth: 2,
                     borderTopColor: theme.colors.actionPrimary + "30",
+                    shadowColor: "#000",
+                    shadowOpacity: theme.isDark ? 0.1 : 0.03,
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowRadius: 4,
+                    elevation: 1,
                   }}
                 >
-                  <Text className="text-body-md text-text-primary">
+                  <Text className="text-body-md text-text-primary leading-6">
                     {note.note}
                   </Text>
-                  <View className="flex-row justify-between mt-2">
+                  <View className="flex-row justify-between mt-2.5">
                     {note.createdByUser ? (
                       <Text className="text-body-sm text-text-tertiary">
                         {note.createdByUser.name}
@@ -486,7 +527,18 @@ export default function IncidentDetailScreen({
           : null}
 
         {notes && notes.length === 0 ? (
-          <Text className="text-body-sm text-text-tertiary">No notes yet.</Text>
+          <View
+            className="rounded-xl p-4 items-center"
+            style={{
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderWidth: 1,
+              borderColor: theme.colors.borderSubtle,
+            }}
+          >
+            <Text className="text-body-sm text-text-tertiary">
+              No notes yet.
+            </Text>
+          </View>
         ) : null}
       </View>
 

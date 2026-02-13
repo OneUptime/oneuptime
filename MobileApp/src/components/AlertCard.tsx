@@ -34,14 +34,17 @@ export default function AlertCard({
 
   return (
     <TouchableOpacity
-      className="rounded-2xl mb-3 bg-bg-elevated border border-border-subtle overflow-hidden"
+      className="rounded-2xl mb-3 overflow-hidden"
       style={{
+        backgroundColor: theme.colors.backgroundElevated,
+        borderWidth: 1,
+        borderColor: theme.colors.borderSubtle,
         opacity: muted ? 0.55 : 1,
         shadowColor: "#000",
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOpacity: theme.isDark ? 0.2 : 0.06,
+        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: 10,
+        elevation: 3,
       }}
       onPress={onPress}
       activeOpacity={0.7}
@@ -49,16 +52,19 @@ export default function AlertCard({
       accessibilityLabel={`Alert ${alert.alertNumberWithPrefix || alert.alertNumber}, ${alert.title}. State: ${alert.currentAlertState?.name ?? "unknown"}. Severity: ${alert.alertSeverity?.name ?? "unknown"}.`}
     >
       <View className="flex-row">
-        <View className="w-1" style={{ backgroundColor: stateColor }} />
+        <View
+          className="w-1"
+          style={{ backgroundColor: stateColor }}
+        />
         <View className="flex-1 p-4">
           {projectName ? (
-            <View className="mb-1.5">
+            <View className="mb-2">
               <ProjectBadge name={projectName} />
             </View>
           ) : null}
-          <View className="flex-row justify-between items-center mb-1.5">
+          <View className="flex-row justify-between items-center mb-2">
             <View
-              className="px-2 py-0.5 rounded-full"
+              className="px-2.5 py-0.5 rounded-full"
               style={{ backgroundColor: theme.colors.backgroundTertiary }}
             >
               <Text className="text-[12px] font-semibold text-text-tertiary">
@@ -75,9 +81,14 @@ export default function AlertCard({
             {alert.title}
           </Text>
 
-          <View className="flex-row flex-wrap gap-2 mt-2.5">
+          <View className="flex-row flex-wrap gap-2 mt-3">
             {alert.currentAlertState ? (
-              <View className="flex-row items-center px-2.5 py-0.5 rounded-full bg-bg-tertiary">
+              <View
+                className="flex-row items-center px-2.5 py-1 rounded-full"
+                style={{
+                  backgroundColor: theme.colors.backgroundTertiary,
+                }}
+              >
                 <View
                   className="w-2 h-2 rounded-full mr-1.5"
                   style={{ backgroundColor: stateColor }}
@@ -90,8 +101,8 @@ export default function AlertCard({
 
             {alert.alertSeverity ? (
               <View
-                className="flex-row items-center px-2.5 py-0.5 rounded-full"
-                style={{ backgroundColor: severityColor + "1A" }}
+                className="flex-row items-center px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: severityColor + "15" }}
               >
                 <Text
                   className="text-[12px] font-semibold"
@@ -104,12 +115,12 @@ export default function AlertCard({
           </View>
 
           {alert.monitor ? (
-            <View className="flex-row items-center mt-2.5">
+            <View className="flex-row items-center mt-3">
               <Ionicons
                 name="desktop-outline"
                 size={12}
                 color={theme.colors.textTertiary}
-                style={{ marginRight: 4 }}
+                style={{ marginRight: 5 }}
               />
               <Text
                 className="text-[12px] text-text-secondary flex-1"

@@ -3,7 +3,6 @@ import {
   View,
   SectionList,
   RefreshControl,
-  TouchableOpacity,
   Text,
   SectionListRenderItemInfo,
   DefaultSectionT,
@@ -332,22 +331,17 @@ export default function IncidentsScreen(): React.JSX.Element {
           selected={segment}
           onSelect={setSegment}
         />
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-body-md text-text-secondary text-center">
-            {segment === "incidents"
-              ? "Failed to load incidents."
-              : "Failed to load incident episodes."}
-          </Text>
-          <TouchableOpacity
-            className="mt-4 px-6 py-3 rounded-[10px] shadow-md"
-            style={{ backgroundColor: theme.colors.actionPrimary }}
-            onPress={retryFn}
-          >
-            <Text className="text-body-md text-text-inverse font-semibold">
-              Retry
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          title="Something went wrong"
+          subtitle={
+            segment === "incidents"
+              ? "Failed to load incidents. Pull to refresh or try again."
+              : "Failed to load incident episodes. Pull to refresh or try again."
+          }
+          icon="incidents"
+          actionLabel="Retry"
+          onAction={retryFn}
+        />
       </View>
     );
   }

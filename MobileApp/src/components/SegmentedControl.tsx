@@ -30,11 +30,16 @@ export default function SegmentedControl<T extends string>({
         return (
           <TouchableOpacity
             key={segment.key}
-            className="flex-1 items-center py-2 rounded-[10px]"
+            className="flex-1 items-center py-2.5 rounded-[10px]"
             style={
               isActive
                 ? {
                     backgroundColor: theme.colors.actionPrimary,
+                    shadowColor: theme.colors.actionPrimary,
+                    shadowOpacity: 0.3,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowRadius: 6,
+                    elevation: 3,
                   }
                 : undefined
             }

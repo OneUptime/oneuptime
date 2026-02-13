@@ -43,14 +43,21 @@ export default function FeedTimeline({
         return (
           <View key={entry._id} className="flex-row">
             {/* Timeline connector */}
-            <View className="items-center mr-3">
+            <View className="items-center mr-3.5">
               <View
                 className="w-3 h-3 rounded-full mt-0.5"
-                style={{ backgroundColor: entryColor }}
+                style={{
+                  backgroundColor: entryColor,
+                  shadowColor: entryColor,
+                  shadowOpacity: 0.3,
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
               />
               {!isLast ? (
                 <View
-                  className="w-0.5 flex-1 my-1"
+                  className="w-0.5 flex-1 my-1.5"
                   style={{
                     backgroundColor: theme.colors.borderDefault,
                   }}
@@ -58,19 +65,19 @@ export default function FeedTimeline({
               ) : null}
             </View>
             {/* Content */}
-            <View className="flex-1 pb-4">
+            <View className="flex-1 pb-5">
               <Text className="text-body-md text-text-primary leading-5">
                 {mainText}
               </Text>
               {moreText ? (
                 <Text
-                  className="text-body-sm text-text-secondary mt-1 leading-5"
+                  className="text-body-sm text-text-secondary mt-1.5 leading-5"
                   numberOfLines={3}
                 >
                   {moreText}
                 </Text>
               ) : null}
-              <Text className="text-body-sm text-text-tertiary mt-1">
+              <Text className="text-body-sm text-text-tertiary mt-1.5">
                 {timeString}
               </Text>
             </View>

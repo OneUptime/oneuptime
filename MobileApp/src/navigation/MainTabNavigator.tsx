@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Platform } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { MainTabParamList } from "./types";
@@ -11,6 +11,36 @@ import { useTheme } from "../theme";
 
 const Tab: ReturnType<typeof createBottomTabNavigator<MainTabParamList>> =
   createBottomTabNavigator<MainTabParamList>();
+
+function TabIcon({
+  name,
+  focusedName,
+  color,
+  focused,
+  accentColor,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  focusedName: keyof typeof Ionicons.glyphMap;
+  color: string;
+  focused: boolean;
+  accentColor: string;
+}): React.JSX.Element {
+  return (
+    <View className="items-center">
+      <Ionicons
+        name={focused ? focusedName : name}
+        size={24}
+        color={color}
+      />
+      {focused ? (
+        <View
+          className="w-1 h-1 rounded-full mt-1"
+          style={{ backgroundColor: accentColor }}
+        />
+      ) : null}
+    </View>
+  );
+}
 
 export default function MainTabNavigator(): React.JSX.Element {
   const { theme } = useTheme();
@@ -25,27 +55,34 @@ export default function MainTabNavigator(): React.JSX.Element {
           ...Platform.select({
             ios: {
               shadowColor: "#000",
-              shadowOpacity: 0.03,
+              shadowOpacity: 0.04,
               shadowOffset: { width: 0, height: 1 },
-              shadowRadius: 4,
+              shadowRadius: 6,
             },
-            default: { elevation: 1 },
+            default: { elevation: 2 },
           }),
         },
         headerShadowVisible: false,
         headerTintColor: theme.colors.textPrimary,
+        headerTitleStyle: {
+          fontWeight: "700",
+          letterSpacing: -0.3,
+        },
         tabBarStyle: {
           backgroundColor: theme.colors.backgroundPrimary,
-          borderTopColor: theme.colors.borderDefault,
+          borderTopColor: theme.colors.borderSubtle,
           borderTopWidth: StyleSheet.hairlineWidth,
+          height: Platform.OS === "ios" ? 88 : 64,
+          paddingBottom: Platform.OS === "ios" ? 28 : 8,
+          paddingTop: 8,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
-              shadowOpacity: 0.06,
-              shadowOffset: { width: 0, height: -2 },
-              shadowRadius: 8,
+              shadowOpacity: 0.08,
+              shadowOffset: { width: 0, height: -4 },
+              shadowRadius: 12,
             },
-            default: { elevation: 4 },
+            default: { elevation: 8 },
           }),
         },
         tabBarActiveTintColor: theme.colors.actionPrimary,
@@ -53,9 +90,10 @@ export default function MainTabNavigator(): React.JSX.Element {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "600",
+          marginTop: 2,
         },
         tabBarItemStyle: {
-          paddingVertical: 4,
+          paddingVertical: 2,
         },
       }}
     >
@@ -71,10 +109,12 @@ export default function MainTabNavigator(): React.JSX.Element {
             focused: boolean;
           }) => {
             return (
-              <Ionicons
-                name={focused ? "home" : "home-outline"}
-                size={24}
+              <TabIcon
+                name="home-outline"
+                focusedName="home"
                 color={color}
+                focused={focused}
+                accentColor={theme.colors.actionPrimary}
               />
             );
           },
@@ -93,10 +133,12 @@ export default function MainTabNavigator(): React.JSX.Element {
             focused: boolean;
           }) => {
             return (
-              <Ionicons
-                name={focused ? "warning" : "warning-outline"}
-                size={24}
+              <TabIcon
+                name="warning-outline"
+                focusedName="warning"
                 color={color}
+                focused={focused}
+                accentColor={theme.colors.actionPrimary}
               />
             );
           },
@@ -115,10 +157,12 @@ export default function MainTabNavigator(): React.JSX.Element {
             focused: boolean;
           }) => {
             return (
-              <Ionicons
-                name={focused ? "notifications" : "notifications-outline"}
-                size={24}
+              <TabIcon
+                name="notifications-outline"
+                focusedName="notifications"
                 color={color}
+                focused={focused}
+                accentColor={theme.colors.actionPrimary}
               />
             );
           },
@@ -131,10 +175,12 @@ export default function MainTabNavigator(): React.JSX.Element {
           headerShown: false,
           tabBarIcon: (props: { color: string; focused: boolean }) => {
             return (
-              <Ionicons
-                name={props.focused ? "settings" : "settings-outline"}
-                size={24}
+              <TabIcon
+                name="settings-outline"
+                focusedName="settings"
                 color={props.color}
+                focused={props.focused}
+                accentColor={theme.colors.actionPrimary}
               />
             );
           },

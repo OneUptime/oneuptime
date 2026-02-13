@@ -16,6 +16,7 @@ interface SettingsRowProps {
   rightElement?: React.ReactNode;
   destructive?: boolean;
   isLast?: boolean;
+  iconName?: keyof typeof Ionicons.glyphMap;
 }
 
 function SettingsRow({
@@ -25,6 +26,7 @@ function SettingsRow({
   rightElement,
   destructive,
   isLast,
+  iconName,
 }: SettingsRowProps): React.JSX.Element {
   const { theme } = useTheme();
 
@@ -40,16 +42,30 @@ function SettingsRow({
           : undefined
       }
     >
-      <Text
-        className="text-base font-medium py-3.5"
-        style={{
-          color: destructive
-            ? theme.colors.actionDestructive
-            : theme.colors.textPrimary,
-        }}
-      >
-        {label}
-      </Text>
+      <View className="flex-row items-center flex-1">
+        {iconName ? (
+          <Ionicons
+            name={iconName}
+            size={20}
+            color={
+              destructive
+                ? theme.colors.actionDestructive
+                : theme.colors.textSecondary
+            }
+            style={{ marginRight: 12 }}
+          />
+        ) : null}
+        <Text
+          className="text-base font-medium py-3.5"
+          style={{
+            color: destructive
+              ? theme.colors.actionDestructive
+              : theme.colors.textPrimary,
+          }}
+        >
+          {label}
+        </Text>
+      </View>
       {rightElement ??
         (value ? (
           <Text className="text-[15px] text-text-secondary">{value}</Text>
@@ -82,10 +98,16 @@ function SectionCard({
   const { theme } = useTheme();
   return (
     <View
-      className="rounded-2xl overflow-hidden bg-bg-elevated"
+      className="rounded-2xl overflow-hidden"
       style={{
+        backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
         borderColor: theme.colors.borderSubtle,
+        shadowColor: "#000",
+        shadowOpacity: theme.isDark ? 0.15 : 0.04,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 8,
+        elevation: 2,
       }}
     >
       {children}
@@ -125,6 +147,34 @@ export default function SettingsScreen(): React.JSX.Element {
       className="bg-bg-primary"
       contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
     >
+      {/* Profile Header */}
+      <View
+        className="items-center py-6 mb-7 rounded-2xl"
+        style={{ backgroundColor: theme.colors.surfaceGlow }}
+      >
+        <View
+          className="w-16 h-16 rounded-full items-center justify-center mb-3"
+          style={{
+            backgroundColor: theme.colors.accentGradientStart + "18",
+          }}
+        >
+          <Ionicons
+            name="person"
+            size={28}
+            color={theme.colors.accentGradientStart}
+          />
+        </View>
+        <Text
+          className="text-title-md text-text-primary"
+          style={{ letterSpacing: -0.3 }}
+        >
+          Settings
+        </Text>
+        <Text className="text-body-sm text-text-tertiary mt-1">
+          {serverUrl || "oneuptime.com"}
+        </Text>
+      </View>
+
       {/* Appearance */}
       <View className="mb-7">
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
@@ -142,7 +192,14 @@ export default function SettingsScreen(): React.JSX.Element {
                       className="flex-1 flex-row items-center justify-center py-2.5 rounded-[10px] gap-1.5"
                       style={
                         isActive
-                          ? { backgroundColor: theme.colors.actionPrimary }
+                          ? {
+                              backgroundColor: theme.colors.actionPrimary,
+                              shadowColor: theme.colors.actionPrimary,
+                              shadowOpacity: 0.3,
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowRadius: 6,
+                              elevation: 3,
+                            }
                           : undefined
                       }
                       onPress={() => {
@@ -191,6 +248,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <SectionCard>
             <SettingsRow
               label="Biometrics Login"
+              iconName="finger-print-outline"
               isLast
               rightElement={
                 <Switch
@@ -219,6 +277,7 @@ export default function SettingsScreen(): React.JSX.Element {
         <SectionCard>
           <SettingsRow
             label="Server URL"
+            iconName="globe-outline"
             value={serverUrl || "oneuptime.com"}
             isLast
           />
@@ -231,7 +290,13 @@ export default function SettingsScreen(): React.JSX.Element {
           Account
         </Text>
         <SectionCard>
-          <SettingsRow label="Log Out" onPress={logout} destructive isLast />
+          <SettingsRow
+            label="Log Out"
+            iconName="log-out-outline"
+            onPress={logout}
+            destructive
+            isLast
+          />
         </SectionCard>
       </View>
 
@@ -241,14 +306,34 @@ export default function SettingsScreen(): React.JSX.Element {
           About
         </Text>
         <SectionCard>
-          <SettingsRow label="Version" value={APP_VERSION} isLast />
+          <SettingsRow
+            label="Version"
+            iconName="information-circle-outline"
+            value={APP_VERSION}
+            isLast
+          />
         </SectionCard>
       </View>
 
       {/* Footer branding */}
-      <View className="items-center pt-3">
-        <Text className="text-xs font-medium text-text-tertiary">
-          OneUptime On-Call
+      <View className="items-center pt-4 pb-2">
+        <View
+          className="w-10 h-10 rounded-xl items-center justify-center mb-2"
+          style={{
+            backgroundColor: theme.colors.accentGradientStart + "10",
+          }}
+        >
+          <Ionicons
+            name="shield-checkmark"
+            size={20}
+            color={theme.colors.accentGradientStart}
+          />
+        </View>
+        <Text className="text-xs font-semibold text-text-tertiary">
+          OneUptime
+        </Text>
+        <Text className="text-[10px] text-text-tertiary mt-0.5">
+          On-Call Management
         </Text>
       </View>
     </ScrollView>

@@ -44,47 +44,50 @@ function StatCard({
 
   return (
     <TouchableOpacity
-      className="flex-1 flex-row items-center p-4 rounded-2xl bg-bg-elevated border border-border-subtle"
+      className="flex-1 p-4 rounded-2xl"
       style={{
+        backgroundColor: theme.colors.backgroundElevated,
+        borderWidth: 1,
+        borderColor: theme.colors.borderSubtle,
         borderLeftWidth: 4,
         borderLeftColor: accentColor,
         shadowColor: "#000",
-        shadowOpacity: 0.04,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOpacity: theme.isDark ? 0.2 : 0.06,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 12,
+        elevation: 3,
       }}
       onPress={handlePress}
       activeOpacity={0.7}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
     >
-      <View
-        className="w-11 h-11 rounded-xl items-center justify-center mr-3"
-        style={{ backgroundColor: accentColor + "1A" }}
+      <View className="flex-row items-center justify-between mb-3">
+        <View
+          className="w-10 h-10 rounded-xl items-center justify-center"
+          style={{ backgroundColor: accentColor + "18" }}
+        >
+          <Ionicons name={iconName} size={20} color={accentColor} />
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={theme.colors.textTertiary}
+        />
+      </View>
+      <Text
+        className="text-[32px] font-bold text-text-primary"
+        style={{ fontVariant: ["tabular-nums"], letterSpacing: -1.2 }}
       >
-        <Ionicons name={iconName} size={22} color={accentColor} />
-      </View>
-      <View className="flex-1">
-        <Text
-          className="text-[28px] font-bold text-text-primary"
-          style={{ fontVariant: ["tabular-nums"], letterSpacing: -1 }}
-        >
-          {isLoading ? "--" : count ?? 0}
-        </Text>
-        <Text
-          className="text-[12px] font-medium text-text-secondary"
-          style={{ letterSpacing: 0.2 }}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
-      </View>
-      <Ionicons
-        name="chevron-forward"
-        size={16}
-        color={theme.colors.textTertiary}
-      />
+        {isLoading ? "--" : count ?? 0}
+      </Text>
+      <Text
+        className="text-[12px] font-medium text-text-secondary mt-0.5"
+        style={{ letterSpacing: 0.3 }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -129,7 +132,7 @@ export default function HomeScreen(): React.JSX.Element {
   return (
     <ScrollView
       className="bg-bg-primary"
-      contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: 48 }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -138,23 +141,44 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      {/* Greeting Header */}
-      <Text
-        className="text-body-md text-text-secondary"
-        style={{ letterSpacing: 0.2 }}
+      {/* Header area with subtle background tint */}
+      <View
+        className="px-6 pt-6 pb-5"
+        style={{ backgroundColor: theme.colors.headerGradient }}
       >
-        {getGreeting()}
-      </Text>
-      <Text
-        className="text-title-lg text-text-primary mt-0.5"
-        accessibilityRole="header"
-        style={{ letterSpacing: -0.5 }}
-      >
-        {subtitle}
-      </Text>
+        <View className="flex-row items-center mb-1">
+          <View
+            className="w-10 h-10 rounded-full items-center justify-center mr-3"
+            style={{
+              backgroundColor: theme.colors.accentGradientStart + "15",
+            }}
+          >
+            <Ionicons
+              name="pulse"
+              size={20}
+              color={theme.colors.accentGradientStart}
+            />
+          </View>
+          <View>
+            <Text
+              className="text-body-md text-text-secondary"
+              style={{ letterSpacing: 0.2 }}
+            >
+              {getGreeting()}
+            </Text>
+            <Text
+              className="text-title-lg text-text-primary"
+              accessibilityRole="header"
+              style={{ letterSpacing: -0.5 }}
+            >
+              {subtitle}
+            </Text>
+          </View>
+        </View>
+      </View>
 
       {/* Stat Cards - 2x2 Grid */}
-      <View className="gap-3 mt-5">
+      <View className="gap-3 px-6 mt-2">
         <View className="flex-row gap-3">
           <StatCard
             count={incidentCount}

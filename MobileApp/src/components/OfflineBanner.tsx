@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Animated } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
@@ -25,14 +26,24 @@ export default function OfflineBanner(): React.JSX.Element | null {
 
   return (
     <Animated.View
-      className="absolute top-0 left-0 right-0 z-[100] pt-[50px] pb-2 px-4"
+      className="absolute top-0 left-0 right-0 z-[100] pt-[50px] pb-2.5 px-4"
       style={{
         backgroundColor: theme.colors.statusError,
         transform: [{ translateY: slideAnim }],
+        shadowColor: theme.colors.statusError,
+        shadowOpacity: 0.3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 12,
+        elevation: 8,
       }}
     >
       <View className="flex-row items-center justify-center">
-        <View className="w-1.5 h-1.5 rounded-full bg-white mr-2 opacity-80" />
+        <Ionicons
+          name="cloud-offline-outline"
+          size={16}
+          color="#FFFFFF"
+          style={{ marginRight: 8, opacity: 0.9 }}
+        />
         <Text className="text-[13px] font-semibold tracking-tight text-white">
           No internet connection
         </Text>

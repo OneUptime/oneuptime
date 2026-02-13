@@ -10,6 +10,12 @@ export interface ColorTokens {
   backgroundGlass: string;
   iconBackground: string;
 
+  // Gradient
+  accentGradientStart: string;
+  accentGradientEnd: string;
+  surfaceGlow: string;
+  headerGradient: string;
+
   // Border
   borderDefault: string;
   borderSubtle: string;
@@ -60,25 +66,31 @@ export interface ColorTokens {
 
 export const darkColors: ColorTokens = {
   // Background
-  backgroundPrimary: "#0D1117",
-  backgroundSecondary: "#161B22",
-  backgroundTertiary: "#21262D",
-  backgroundElevated: "#1C2128",
+  backgroundPrimary: "#0A0E14",
+  backgroundSecondary: "#131920",
+  backgroundTertiary: "#1C2330",
+  backgroundElevated: "#141921",
 
   // Accent
   cardAccent: "rgba(99, 102, 241, 0.15)",
-  backgroundGlass: "rgba(255, 255, 255, 0.08)",
+  backgroundGlass: "rgba(255, 255, 255, 0.06)",
   iconBackground: "rgba(99, 102, 241, 0.15)",
 
+  // Gradient
+  accentGradientStart: "#6366F1",
+  accentGradientEnd: "#8B5CF6",
+  surfaceGlow: "rgba(99, 102, 241, 0.08)",
+  headerGradient: "rgba(99, 102, 241, 0.06)",
+
   // Border
-  borderDefault: "#30363D",
-  borderSubtle: "#21262D",
+  borderDefault: "#1E2632",
+  borderSubtle: "#171D28",
 
   // Text
   textPrimary: "#E6EDF3",
   textSecondary: "#8B949E",
   textTertiary: "#6E7681",
-  textInverse: "#0D1117",
+  textInverse: "#0A0E14",
 
   // Severity
   severityCritical: "#F85149",
@@ -121,18 +133,24 @@ export const darkColors: ColorTokens = {
 export const lightColors: ColorTokens = {
   // Background
   backgroundPrimary: "#FFFFFF",
-  backgroundSecondary: "#F9FAFB",
-  backgroundTertiary: "#F3F4F6",
+  backgroundSecondary: "#F8F9FB",
+  backgroundTertiary: "#F0F1F5",
   backgroundElevated: "#FFFFFF",
 
   // Accent
-  cardAccent: "rgba(99, 102, 241, 0.10)",
-  backgroundGlass: "rgba(255, 255, 255, 0.60)",
-  iconBackground: "rgba(99, 102, 241, 0.10)",
+  cardAccent: "rgba(99, 102, 241, 0.08)",
+  backgroundGlass: "rgba(255, 255, 255, 0.80)",
+  iconBackground: "rgba(99, 102, 241, 0.08)",
+
+  // Gradient
+  accentGradientStart: "#6366F1",
+  accentGradientEnd: "#8B5CF6",
+  surfaceGlow: "rgba(99, 102, 241, 0.04)",
+  headerGradient: "rgba(99, 102, 241, 0.03)",
 
   // Border
   borderDefault: "#E5E7EB",
-  borderSubtle: "#F3F4F6",
+  borderSubtle: "#F0F1F5",
 
   // Text
   textPrimary: "#111827",

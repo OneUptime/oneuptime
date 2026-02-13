@@ -35,13 +35,13 @@ export default function SkeletonCard({
     const animation: Animated.CompositeAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
-          toValue: 0.7,
-          duration: 1000,
+          toValue: 0.6,
+          duration: 900,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 1000,
+          toValue: 0.25,
+          duration: 900,
           useNativeDriver: true,
         }),
       ]),
@@ -76,10 +76,19 @@ export default function SkeletonCard({
           />
           <View className="flex-1 p-4">
             <View className="flex-row justify-between items-center mb-2.5">
-              <View className="h-3.5 w-12 rounded-full bg-bg-tertiary" />
-              <View className="h-3 w-8 rounded bg-bg-tertiary" />
+              <View
+                className="h-4 w-14 rounded-full"
+                style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              />
+              <View
+                className="h-3 w-8 rounded"
+                style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              />
             </View>
-            <View className="h-[18px] rounded w-3/4 mb-3 bg-bg-tertiary" />
+            <View
+              className="h-[18px] rounded w-3/4 mb-3"
+              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            />
           </View>
         </View>
       </Animated.View>
@@ -94,15 +103,37 @@ export default function SkeletonCard({
         accessibilityLabel="Loading content"
         accessibilityRole="progressbar"
       >
-        <View className="flex-row gap-2 mb-3">
-          <View className="h-6 w-20 rounded-full bg-bg-tertiary" />
-          <View className="h-6 w-16 rounded-full bg-bg-tertiary" />
+        {/* Header area */}
+        <View
+          className="rounded-2xl p-5 mb-5"
+          style={{ backgroundColor: theme.colors.surfaceGlow }}
+        >
+          <View className="flex-row gap-2 mb-3">
+            <View
+              className="h-7 w-20 rounded-full"
+              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            />
+          </View>
+          <View
+            className="h-7 w-4/5 rounded mb-3"
+            style={{ backgroundColor: theme.colors.backgroundTertiary }}
+          />
+          <View className="flex-row gap-2">
+            <View
+              className="h-7 w-24 rounded-full"
+              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            />
+            <View
+              className="h-7 w-16 rounded-full"
+              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            />
+          </View>
         </View>
-        <View className="h-6 w-4/5 rounded mb-5 bg-bg-tertiary" />
+        {/* Details card */}
         <View
           className="rounded-2xl p-4"
           style={{
-            backgroundColor: theme.colors.backgroundSecondary,
+            backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderSubtle,
           }}
@@ -110,8 +141,14 @@ export default function SkeletonCard({
           {Array.from({ length: 3 }).map((_: unknown, index: number) => {
             return (
               <View key={index} className="flex-row mb-3">
-                <View className="h-3.5 w-20 rounded mr-4 bg-bg-tertiary" />
-                <View className="h-3.5 w-[120px] rounded bg-bg-tertiary" />
+                <View
+                  className="h-3.5 w-20 rounded mr-4"
+                  style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                />
+                <View
+                  className="h-3.5 w-[120px] rounded"
+                  style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                />
               </View>
             );
           })}
@@ -124,7 +161,7 @@ export default function SkeletonCard({
     <Animated.View
       className="rounded-2xl mb-3 overflow-hidden"
       style={{
-        backgroundColor: theme.colors.backgroundSecondary,
+        backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
         borderColor: theme.colors.borderSubtle,
         opacity,
@@ -139,21 +176,39 @@ export default function SkeletonCard({
         />
         <View className="flex-1 p-4">
           <View className="flex-row justify-between items-center mb-3">
-            <View className="h-3.5 w-12 rounded-full bg-bg-tertiary" />
-            <View className="h-3 w-9 rounded bg-bg-tertiary" />
+            <View
+              className="h-4 w-14 rounded-full"
+              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            />
+            <View
+              className="h-3 w-10 rounded"
+              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            />
           </View>
-          <View className="h-[18px] rounded w-[70%] mb-3 bg-bg-tertiary" />
+          <View
+            className="h-[18px] rounded w-[70%] mb-3"
+            style={{ backgroundColor: theme.colors.backgroundTertiary }}
+          />
           <View className="flex-row gap-2 mb-3">
-            <View className="h-6 w-20 rounded-full bg-bg-tertiary" />
-            <View className="h-6 w-14 rounded-full bg-bg-tertiary" />
+            <View
+              className="h-7 w-24 rounded-full"
+              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            />
+            <View
+              className="h-7 w-16 rounded-full"
+              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            />
           </View>
           {Array.from({ length: Math.max(lines - 1, 1) }).map(
             (_: unknown, index: number) => {
               return (
                 <View
                   key={index}
-                  className="h-3 rounded mb-2 bg-bg-tertiary"
-                  style={{ width: lineWidths[index % lineWidths.length] }}
+                  className="h-3 rounded mb-2"
+                  style={{
+                    width: lineWidths[index % lineWidths.length],
+                    backgroundColor: theme.colors.backgroundTertiary,
+                  }}
                 />
               );
             },
