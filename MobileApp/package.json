@@ -23,6 +23,7 @@
     "expo": "~54.0.33",
     "expo-constants": "~18.0.0",
     "expo-device": "~8.0.10",
+    "expo-font": "~14.0.11",
     "expo-haptics": "~15.0.8",
     "expo-linking": "~8.0.11",
     "expo-local-authentication": "~17.0.8",
