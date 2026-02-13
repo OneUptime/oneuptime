@@ -367,16 +367,14 @@ export default function AlertsScreen(): React.JSX.Element {
           contentContainerStyle={
             alertSections.length === 0 ? { flex: 1 } : { padding: 16 }
           }
-          renderSectionHeader={({
-            section,
-          }: {
+          renderSectionHeader={(params: {
             section: DefaultSectionT & AlertSection;
           }) => {
             return (
               <SectionHeader
-                title={section.title}
-                count={section.data.length}
-                isActive={section.isActive}
+                title={params.section.title}
+                count={params.section.data.length}
+                isActive={params.section.isActive}
               />
             );
           }}
@@ -446,16 +444,14 @@ export default function AlertsScreen(): React.JSX.Element {
           contentContainerStyle={
             episodeSections.length === 0 ? { flex: 1 } : { padding: 16 }
           }
-          renderSectionHeader={({
-            section,
-          }: {
+          renderSectionHeader={(params: {
             section: DefaultSectionT & EpisodeSection;
           }) => {
             return (
               <SectionHeader
-                title={section.title}
-                count={section.data.length}
-                isActive={section.isActive}
+                title={params.section.title}
+                count={params.section.data.length}
+                isActive={params.section.isActive}
               />
             );
           }}

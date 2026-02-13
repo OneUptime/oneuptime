@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQueries, UseQueryResult } from "@tanstack/react-query";
 import { useProject } from "./useProject";
 import { fetchAlertStates } from "../api/alerts";
-import type { AlertState } from "../api/types";
+import type { AlertState, ProjectItem } from "../api/types";
 
 interface UseAllProjectAlertStatesResult {
   statesMap: Map<string, AlertState[]>;
@@ -13,7 +13,7 @@ export function useAllProjectAlertStates(): UseAllProjectAlertStatesResult {
   const { projectList } = useProject();
 
   const queries: UseQueryResult<AlertState[], Error>[] = useQueries({
-    queries: projectList.map((project) => {
+    queries: projectList.map((project: ProjectItem) => {
       return {
         queryKey: ["alert-states", project._id],
         queryFn: () => {
@@ -24,14 +24,16 @@ export function useAllProjectAlertStates(): UseAllProjectAlertStatesResult {
     }),
   });
 
-  const isLoading: boolean = queries.some((q) => {
-    return q.isLoading;
-  });
+  const isLoading: boolean = queries.some(
+    (q: UseQueryResult<AlertState[], Error>) => {
+      return q.isLoading;
+    },
+  );
 
   const statesMap: Map<string, AlertState[]> = useMemo(() => {
     const map: Map<string, AlertState[]> = new Map();
-    queries.forEach((q, index: number) => {
-      const project = projectList[index];
+    queries.forEach((q: UseQueryResult<AlertState[], Error>, index: number) => {
+      const project: ProjectItem | undefined = projectList[index];
       if (project && q.data) {
         map.set(project._id, q.data);
       }

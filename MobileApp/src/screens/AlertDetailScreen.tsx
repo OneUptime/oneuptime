@@ -66,7 +66,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     refetch: refetchAlert,
   } = useAlertDetail(projectId, alertId);
   const { data: states } = useAlertStates(projectId);
-  const { data: timeline, refetch: refetchTimeline } = useAlertStateTimeline(
+  const { refetch: refetchTimeline } = useAlertStateTimeline(
     projectId,
     alertId,
   );

@@ -73,7 +73,7 @@ export default function IncidentDetailScreen({
     refetch: refetchIncident,
   } = useIncidentDetail(projectId, incidentId);
   const { data: states } = useIncidentStates(projectId);
-  const { data: timeline, refetch: refetchTimeline } = useIncidentStateTimeline(
+  const { refetch: refetchTimeline } = useIncidentStateTimeline(
     projectId,
     incidentId,
   );

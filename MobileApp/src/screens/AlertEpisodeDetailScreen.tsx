@@ -70,8 +70,10 @@ export default function AlertEpisodeDetailScreen({
     refetch: refetchEpisode,
   } = useAlertEpisodeDetail(projectId, episodeId);
   const { data: states } = useAlertEpisodeStates(projectId);
-  const { data: timeline, refetch: refetchTimeline } =
-    useAlertEpisodeStateTimeline(projectId, episodeId);
+  const { refetch: refetchTimeline } = useAlertEpisodeStateTimeline(
+    projectId,
+    episodeId,
+  );
   const { data: feed, refetch: refetchFeed } = useAlertEpisodeFeed(
     projectId,
     episodeId,

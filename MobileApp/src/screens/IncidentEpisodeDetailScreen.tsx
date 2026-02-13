@@ -73,8 +73,10 @@ export default function IncidentEpisodeDetailScreen({
     refetch: refetchEpisode,
   } = useIncidentEpisodeDetail(projectId, episodeId);
   const { data: states } = useIncidentEpisodeStates(projectId);
-  const { data: timeline, refetch: refetchTimeline } =
-    useIncidentEpisodeStateTimeline(projectId, episodeId);
+  const { refetch: refetchTimeline } = useIncidentEpisodeStateTimeline(
+    projectId,
+    episodeId,
+  );
   const { data: feed, refetch: refetchFeed } = useIncidentEpisodeFeed(
     projectId,
     episodeId,

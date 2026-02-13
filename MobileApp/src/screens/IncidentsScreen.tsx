@@ -372,16 +372,14 @@ export default function IncidentsScreen(): React.JSX.Element {
           contentContainerStyle={
             incidentSections.length === 0 ? { flex: 1 } : { padding: 16 }
           }
-          renderSectionHeader={({
-            section,
-          }: {
+          renderSectionHeader={(params: {
             section: DefaultSectionT & IncidentSection;
           }) => {
             return (
               <SectionHeader
-                title={section.title}
-                count={section.data.length}
-                isActive={section.isActive}
+                title={params.section.title}
+                count={params.section.data.length}
+                isActive={params.section.isActive}
               />
             );
           }}
@@ -452,16 +450,14 @@ export default function IncidentsScreen(): React.JSX.Element {
           contentContainerStyle={
             episodeSections.length === 0 ? { flex: 1 } : { padding: 16 }
           }
-          renderSectionHeader={({
-            section,
-          }: {
+          renderSectionHeader={(params: {
             section: DefaultSectionT & EpisodeSection;
           }) => {
             return (
               <SectionHeader
-                title={section.title}
-                count={section.data.length}
-                isActive={section.isActive}
+                title={params.section.title}
+                count={params.section.data.length}
+                isActive={params.section.isActive}
               />
             );
           }}
