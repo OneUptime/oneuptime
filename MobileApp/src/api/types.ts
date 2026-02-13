@@ -39,6 +39,7 @@ export interface IncidentItem {
   currentIncidentState: NamedEntityWithColor;
   incidentSeverity: NamedEntityWithColor;
   monitors: NamedEntity[];
+  projectId?: string;
 }
 
 export interface AlertItem {
@@ -51,6 +52,7 @@ export interface AlertItem {
   currentAlertState: NamedEntityWithColor;
   alertSeverity: NamedEntityWithColor;
   monitor: NamedEntity | null;
+  projectId?: string;
 }
 
 export interface IncidentState {
@@ -91,6 +93,7 @@ export interface IncidentEpisodeItem {
   incidentCount: number;
   currentIncidentState: NamedEntityWithColor;
   incidentSeverity: NamedEntityWithColor;
+  projectId?: string;
 }
 
 export interface AlertEpisodeItem {
@@ -103,6 +106,7 @@ export interface AlertEpisodeItem {
   alertCount: number;
   currentAlertState: NamedEntityWithColor;
   alertSeverity: NamedEntityWithColor;
+  projectId?: string;
 }
 
 export interface NoteItem {

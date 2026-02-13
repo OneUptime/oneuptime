@@ -42,6 +42,41 @@ export async function fetchAlerts(
   return response.data;
 }
 
+export async function fetchAllAlerts(
+  options: { skip?: number; limit?: number; unresolvedOnly?: boolean } = {},
+): Promise<ListResponse<AlertItem>> {
+  const { skip = 0, limit = 100, unresolvedOnly = false } = options;
+
+  const query: Record<string, unknown> = {};
+  if (unresolvedOnly) {
+    query.currentAlertState = { isResolvedState: false };
+  }
+
+  const response: AxiosResponse = await apiClient.post(
+    `/api/alert/get-list?skip=${skip}&limit=${limit}`,
+    {
+      query,
+      select: {
+        _id: true,
+        title: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        description: true,
+        createdAt: true,
+        currentAlertState: { _id: true, name: true, color: true },
+        alertSeverity: { _id: true, name: true, color: true },
+        monitor: { _id: true, name: true },
+        projectId: true,
+      },
+      sort: { createdAt: "DESC" },
+    },
+    {
+      headers: { "is-multi-tenant-query": "true" },
+    },
+  );
+  return response.data;
+}
+
 export async function fetchAlertById(
   projectId: string,
   alertId: string,

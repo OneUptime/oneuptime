@@ -43,6 +43,41 @@ export async function fetchAlertEpisodes(
   return response.data;
 }
 
+export async function fetchAllAlertEpisodes(
+  options: { skip?: number; limit?: number; unresolvedOnly?: boolean } = {},
+): Promise<ListResponse<AlertEpisodeItem>> {
+  const { skip = 0, limit = 100, unresolvedOnly = false } = options;
+
+  const query: Record<string, unknown> = {};
+  if (unresolvedOnly) {
+    query.currentAlertState = { isResolvedState: false };
+  }
+
+  const response: AxiosResponse = await apiClient.post(
+    `/api/alert-episode/get-list?skip=${skip}&limit=${limit}`,
+    {
+      query,
+      select: {
+        _id: true,
+        title: true,
+        episodeNumber: true,
+        episodeNumberWithPrefix: true,
+        description: true,
+        createdAt: true,
+        alertCount: true,
+        currentAlertState: { _id: true, name: true, color: true },
+        alertSeverity: { _id: true, name: true, color: true },
+        projectId: true,
+      },
+      sort: { createdAt: "DESC" },
+    },
+    {
+      headers: { "is-multi-tenant-query": "true" },
+    },
+  );
+  return response.data;
+}
+
 export async function fetchAlertEpisodeById(
   projectId: string,
   episodeId: string,

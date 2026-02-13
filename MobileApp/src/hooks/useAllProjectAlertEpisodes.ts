@@ -1,11 +1,12 @@
 import { useMemo } from "react";
-import { useQueries, UseQueryResult } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { useProject } from "./useProject";
-import { fetchAlertEpisodes } from "../api/alertEpisodes";
+import { fetchAllAlertEpisodes } from "../api/alertEpisodes";
 import type {
   ListResponse,
   AlertEpisodeItem,
   ProjectAlertEpisodeItem,
+  ProjectItem,
 } from "../api/types";
 
 const FETCH_LIMIT: number = 100;
@@ -20,60 +21,47 @@ interface UseAllProjectAlertEpisodesResult {
 export function useAllProjectAlertEpisodes(): UseAllProjectAlertEpisodesResult {
   const { projectList } = useProject();
 
-  const queries: UseQueryResult<ListResponse<AlertEpisodeItem>, Error>[] =
-    useQueries({
-      queries: projectList.map((project) => {
-        return {
-          queryKey: ["alert-episodes", project._id, 0, FETCH_LIMIT],
-          queryFn: () => {
-            return fetchAlertEpisodes(project._id, {
-              skip: 0,
-              limit: FETCH_LIMIT,
-            });
-          },
-          enabled: Boolean(project._id),
-        };
-      }),
+  const query: UseQueryResult<ListResponse<AlertEpisodeItem>, Error> =
+    useQuery({
+      queryKey: ["alert-episodes", "all-projects"],
+      queryFn: () => {
+        return fetchAllAlertEpisodes({ skip: 0, limit: FETCH_LIMIT });
+      },
+      enabled: projectList.length > 0,
     });
 
-  const isLoading: boolean = queries.some((q) => {
-    return q.isLoading;
-  });
-  const isError: boolean = queries.every((q) => {
-    return q.isError;
-  });
+  const projectMap: Map<string, string> = useMemo(() => {
+    const map: Map<string, string> = new Map();
+    projectList.forEach((p: ProjectItem) => {
+      map.set(p._id, p.name);
+    });
+    return map;
+  }, [projectList]);
 
   const items: ProjectAlertEpisodeItem[] = useMemo(() => {
-    const result: ProjectAlertEpisodeItem[] = [];
-    queries.forEach((q, index: number) => {
-      const project = projectList[index];
-      if (!project || !q.data) {
-        return;
-      }
-      for (const item of q.data.data) {
-        result.push({
+    if (!query.data) {
+      return [];
+    }
+    return query.data.data.map(
+      (item: AlertEpisodeItem): ProjectAlertEpisodeItem => {
+        const pid: string = item.projectId ?? "";
+        return {
           item,
-          projectId: project._id,
-          projectName: project.name,
-        });
-      }
-    });
-    result.sort((a, b) => {
-      return (
-        new Date(b.item.createdAt).getTime() -
-        new Date(a.item.createdAt).getTime()
-      );
-    });
-    return result;
-  }, [queries, projectList]);
+          projectId: pid,
+          projectName: projectMap.get(pid) ?? "",
+        };
+      },
+    );
+  }, [query.data, projectMap]);
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
-    await Promise.all(
-      queries.map((q) => {
-        return q.refetch();
-      }),
-    );
+    await query.refetch();
   };
 
-  return { items, isLoading, isError, refetch };
+  return {
+    items,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch,
+  };
 }

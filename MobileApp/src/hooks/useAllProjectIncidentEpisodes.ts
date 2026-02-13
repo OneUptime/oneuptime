@@ -1,11 +1,12 @@
 import { useMemo } from "react";
-import { useQueries, UseQueryResult } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { useProject } from "./useProject";
-import { fetchIncidentEpisodes } from "../api/incidentEpisodes";
+import { fetchAllIncidentEpisodes } from "../api/incidentEpisodes";
 import type {
   ListResponse,
   IncidentEpisodeItem,
   ProjectIncidentEpisodeItem,
+  ProjectItem,
 } from "../api/types";
 
 const FETCH_LIMIT: number = 100;
@@ -20,62 +21,47 @@ interface UseAllProjectIncidentEpisodesResult {
 export function useAllProjectIncidentEpisodes(): UseAllProjectIncidentEpisodesResult {
   const { projectList } = useProject();
 
-  const queries: UseQueryResult<
-    ListResponse<IncidentEpisodeItem>,
-    Error
-  >[] = useQueries({
-    queries: projectList.map((project) => {
-      return {
-        queryKey: ["incident-episodes", project._id, 0, FETCH_LIMIT],
-        queryFn: () => {
-          return fetchIncidentEpisodes(project._id, {
-            skip: 0,
-            limit: FETCH_LIMIT,
-          });
-        },
-        enabled: Boolean(project._id),
-      };
-    }),
-  });
+  const query: UseQueryResult<ListResponse<IncidentEpisodeItem>, Error> =
+    useQuery({
+      queryKey: ["incident-episodes", "all-projects"],
+      queryFn: () => {
+        return fetchAllIncidentEpisodes({ skip: 0, limit: FETCH_LIMIT });
+      },
+      enabled: projectList.length > 0,
+    });
 
-  const isLoading: boolean = queries.some((q) => {
-    return q.isLoading;
-  });
-  const isError: boolean = queries.every((q) => {
-    return q.isError;
-  });
+  const projectMap: Map<string, string> = useMemo(() => {
+    const map: Map<string, string> = new Map();
+    projectList.forEach((p: ProjectItem) => {
+      map.set(p._id, p.name);
+    });
+    return map;
+  }, [projectList]);
 
   const items: ProjectIncidentEpisodeItem[] = useMemo(() => {
-    const result: ProjectIncidentEpisodeItem[] = [];
-    queries.forEach((q, index: number) => {
-      const project = projectList[index];
-      if (!project || !q.data) {
-        return;
-      }
-      for (const item of q.data.data) {
-        result.push({
+    if (!query.data) {
+      return [];
+    }
+    return query.data.data.map(
+      (item: IncidentEpisodeItem): ProjectIncidentEpisodeItem => {
+        const pid: string = item.projectId ?? "";
+        return {
           item,
-          projectId: project._id,
-          projectName: project.name,
-        });
-      }
-    });
-    result.sort((a, b) => {
-      return (
-        new Date(b.item.createdAt).getTime() -
-        new Date(a.item.createdAt).getTime()
-      );
-    });
-    return result;
-  }, [queries, projectList]);
+          projectId: pid,
+          projectName: projectMap.get(pid) ?? "",
+        };
+      },
+    );
+  }, [query.data, projectMap]);
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
-    await Promise.all(
-      queries.map((q) => {
-        return q.refetch();
-      }),
-    );
+    await query.refetch();
   };
 
-  return { items, isLoading, isError, refetch };
+  return {
+    items,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch,
+  };
 }

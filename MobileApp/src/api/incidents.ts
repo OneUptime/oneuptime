@@ -43,6 +43,42 @@ export async function fetchIncidents(
   return response.data;
 }
 
+export async function fetchAllIncidents(
+  options: { skip?: number; limit?: number; unresolvedOnly?: boolean } = {},
+): Promise<ListResponse<IncidentItem>> {
+  const { skip = 0, limit = 100, unresolvedOnly = false } = options;
+
+  const query: Record<string, unknown> = {};
+  if (unresolvedOnly) {
+    query.currentIncidentState = { isResolvedState: false };
+  }
+
+  const response: AxiosResponse = await apiClient.post(
+    `/api/incident/get-list?skip=${skip}&limit=${limit}`,
+    {
+      query,
+      select: {
+        _id: true,
+        title: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        description: true,
+        declaredAt: true,
+        createdAt: true,
+        currentIncidentState: { _id: true, name: true, color: true },
+        incidentSeverity: { _id: true, name: true, color: true },
+        monitors: { _id: true, name: true },
+        projectId: true,
+      },
+      sort: { createdAt: "DESC" },
+    },
+    {
+      headers: { "is-multi-tenant-query": "true" },
+    },
+  );
+  return response.data;
+}
+
 export async function fetchIncidentById(
   projectId: string,
   incidentId: string,
