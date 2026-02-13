@@ -30,7 +30,10 @@ function AppContent(): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
-    <View className="flex-1 bg-bg-primary">
+    <View
+      className="flex-1 bg-bg-primary"
+      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+    >
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <RootNavigator />
       <OfflineBanner />

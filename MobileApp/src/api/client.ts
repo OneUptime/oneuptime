@@ -97,6 +97,9 @@ apiClient.interceptors.response.use(
         {
           refreshToken: tokens.refreshToken,
         },
+        {
+          timeout: 10000,
+        },
       );
 
       const { accessToken, refreshToken, refreshTokenExpiresAt } =

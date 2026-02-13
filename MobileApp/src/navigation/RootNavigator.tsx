@@ -9,7 +9,6 @@ import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
-import { useProject } from "../hooks/useProject";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useBiometric } from "../hooks/useBiometric";
 import AuthStackNavigator from "./AuthStackNavigator";
@@ -43,7 +42,6 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
 export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
-  const { isLoadingProjects } = useProject();
   const navigationRef: ReturnType<typeof useNavigationContainerRef> =
     useNavigationContainerRef();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
@@ -95,7 +93,15 @@ export default function RootNavigator(): React.JSX.Element {
 
   if (isLoading || !biometricChecked) {
     return (
-      <View className="flex-1 items-center justify-center bg-bg-primary">
+      <View
+        className="flex-1 items-center justify-center bg-bg-primary"
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.colors.backgroundPrimary,
+        }}
+      >
         <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
       </View>
     );
@@ -119,14 +125,6 @@ export default function RootNavigator(): React.JSX.Element {
           }}
           biometricType={biometric.biometricType}
         />
-      );
-    }
-
-    if (isLoadingProjects) {
-      return (
-        <View className="flex-1 items-center justify-center bg-bg-primary">
-          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
-        </View>
       );
     }
 
