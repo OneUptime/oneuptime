@@ -59,30 +59,34 @@ function SectionHeader({
 }): React.JSX.Element {
   const { theme } = useTheme();
   return (
-    <View className="flex-row items-center pb-2 pt-1 bg-bg-primary">
+    <View
+      className="flex-row items-center pb-2 pt-1"
+      style={{ backgroundColor: theme.colors.backgroundPrimary }}
+    >
       <Ionicons
         name={isActive ? "flame" : "checkmark-done"}
-        size={14}
+        size={13}
         color={
           isActive ? theme.colors.severityCritical : theme.colors.textTertiary
         }
         style={{ marginRight: 6 }}
       />
       <Text
-        className="text-[13px] font-semibold uppercase tracking-wide"
+        className="text-[12px] font-semibold uppercase"
         style={{
           color: isActive
             ? theme.colors.textPrimary
             : theme.colors.textTertiary,
+          letterSpacing: 0.6,
         }}
       >
         {title}
       </Text>
       <View
-        className="ml-2 px-1.5 py-0.5 rounded-full"
+        className="ml-2 px-1.5 py-0.5 rounded"
         style={{
           backgroundColor: isActive
-            ? theme.colors.severityCritical + "1A"
+            ? theme.colors.severityCritical + "18"
             : theme.colors.backgroundTertiary,
         }}
       >
@@ -102,6 +106,7 @@ function SectionHeader({
 }
 
 export default function AlertsScreen(): React.JSX.Element {
+  const { theme } = useTheme();
   const navigation: NavProp = useNavigation<NavProp>();
 
   const [segment, setSegment] = useState<Segment>("alerts");
@@ -288,7 +293,10 @@ export default function AlertsScreen(): React.JSX.Element {
 
   if (showLoading) {
     return (
-      <View className="flex-1 bg-bg-primary">
+      <View
+        className="flex-1"
+        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+      >
         <SegmentedControl
           segments={[
             { key: "alerts" as const, label: "Alerts" },
@@ -316,7 +324,10 @@ export default function AlertsScreen(): React.JSX.Element {
             return refetchEpisodes();
           };
     return (
-      <View className="flex-1 bg-bg-primary">
+      <View
+        className="flex-1"
+        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+      >
         <SegmentedControl
           segments={[
             { key: "alerts" as const, label: "Alerts" },
@@ -341,7 +352,10 @@ export default function AlertsScreen(): React.JSX.Element {
   }
 
   return (
-    <View className="flex-1 bg-bg-primary">
+    <View
+      className="flex-1"
+      style={{ backgroundColor: theme.colors.backgroundPrimary }}
+    >
       <SegmentedControl
         segments={[
           { key: "alerts" as const, label: "Alerts" },
@@ -394,7 +408,7 @@ export default function AlertsScreen(): React.JSX.Element {
                   wrapped.item.currentAlertState?._id !== acknowledgeState._id
                     ? {
                         label: "Acknowledge",
-                        color: "#2EA043",
+                        color: "#22C55E",
                         onAction: () => {
                           return handleAcknowledge(wrapped);
                         },

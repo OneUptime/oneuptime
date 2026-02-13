@@ -8,7 +8,6 @@ import { useBiometric } from "../hooks/useBiometric";
 import { useHaptics } from "../hooks/useHaptics";
 import { getServerUrl } from "../storage/serverUrl";
 import Logo from "../components/Logo";
-import GlassCard from "../components/GlassCard";
 
 const APP_VERSION: string = "1.0.0";
 
@@ -35,7 +34,7 @@ function SettingsRow({
 
   const content: React.JSX.Element = (
     <View
-      className="flex-row justify-between items-center px-4 min-h-[52px]"
+      className="flex-row justify-between items-center px-4 min-h-[48px]"
       style={
         !isLast
           ? {
@@ -47,19 +46,27 @@ function SettingsRow({
     >
       <View className="flex-row items-center flex-1">
         {iconName ? (
-          <Ionicons
-            name={iconName}
-            size={20}
-            color={
-              destructive
-                ? theme.colors.actionDestructive
-                : theme.colors.textSecondary
-            }
-            style={{ marginRight: 12 }}
-          />
+          <View
+            className="w-7 h-7 rounded-lg items-center justify-center mr-3"
+            style={{
+              backgroundColor: destructive
+                ? theme.colors.statusErrorBg
+                : theme.colors.iconBackground,
+            }}
+          >
+            <Ionicons
+              name={iconName}
+              size={15}
+              color={
+                destructive
+                  ? theme.colors.actionDestructive
+                  : theme.colors.actionPrimary
+              }
+            />
+          </View>
         ) : null}
         <Text
-          className="text-base font-medium py-3.5"
+          className="text-[15px] font-medium py-3"
           style={{
             color: destructive
               ? theme.colors.actionDestructive
@@ -71,11 +78,16 @@ function SettingsRow({
       </View>
       {rightElement ??
         (value ? (
-          <Text className="text-[15px] text-text-secondary">{value}</Text>
+          <Text
+            className="text-[14px]"
+            style={{ color: theme.colors.textTertiary }}
+          >
+            {value}
+          </Text>
         ) : onPress ? (
           <Ionicons
             name="chevron-forward"
-            size={20}
+            size={18}
             color={theme.colors.textTertiary}
           />
         ) : null)}
@@ -122,43 +134,46 @@ export default function SettingsScreen(): React.JSX.Element {
 
   return (
     <ScrollView
-      className="bg-bg-primary"
+      style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
     >
-      {/* Profile Header */}
-      <GlassCard style={{ marginBottom: 28 }}>
-        <LinearGradient
-          colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          className="items-center py-6"
+      {/* Header */}
+      <View className="items-center py-4 mb-6">
+        <View
+          className="w-14 h-14 rounded-2xl items-center justify-center mb-3"
+          style={{
+            backgroundColor: theme.colors.iconBackground,
+          }}
         >
-          <View
-            className="w-16 h-16 rounded-full items-center justify-center mb-3"
-            style={{
-              backgroundColor: theme.colors.iconBackground,
-            }}
-          >
-            <Logo size={32} />
-          </View>
-          <Text
-            className="text-title-md text-text-primary"
-            style={{ letterSpacing: -0.3 }}
-          >
-            Settings
-          </Text>
-          <Text className="text-body-sm text-text-tertiary mt-1">
-            {serverUrl || "oneuptime.com"}
-          </Text>
-        </LinearGradient>
-      </GlassCard>
+          <Logo size={28} />
+        </View>
+        <Text
+          className="text-[11px] font-semibold uppercase"
+          style={{
+            color: theme.colors.textTertiary,
+            letterSpacing: 1.2,
+          }}
+        >
+          {serverUrl || "oneuptime.com"}
+        </Text>
+      </View>
 
       {/* Appearance */}
-      <View className="mb-7">
-        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
+      <View className="mb-6">
+        <Text
+          className="text-[12px] font-semibold uppercase mb-2 ml-1"
+          style={{ color: theme.colors.textTertiary, letterSpacing: 0.8 }}
+        >
           Appearance
         </Text>
-        <GlassCard>
+        <View
+          className="rounded-2xl overflow-hidden"
+          style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+          }}
+        >
           <View className="p-1.5">
             <View className="flex-row rounded-xl gap-1">
               {(["dark", "light", "system"] as ThemeMode[]).map(
@@ -169,15 +184,15 @@ export default function SettingsScreen(): React.JSX.Element {
                       key={mode}
                       className="flex-1 flex-row items-center justify-center py-2.5 rounded-[10px] gap-1.5 overflow-hidden"
                       style={
-                        !isActive
-                          ? undefined
-                          : {
-                              shadowColor: "#000000",
-                              shadowOpacity: theme.isDark ? 0.4 : 0.15,
+                        isActive
+                          ? {
+                              shadowColor: theme.colors.accentGradientMid,
+                              shadowOpacity: 0.3,
                               shadowOffset: { width: 0, height: 2 },
                               shadowRadius: 6,
                               elevation: 3,
                             }
+                          : undefined
                       }
                       onPress={() => {
                         return handleThemeChange(mode);
@@ -209,18 +224,16 @@ export default function SettingsScreen(): React.JSX.Element {
                               ? "sunny-outline"
                               : "phone-portrait-outline"
                         }
-                        size={16}
+                        size={15}
                         color={
-                          isActive
-                            ? theme.colors.textInverse
-                            : theme.colors.textSecondary
+                          isActive ? "#FFFFFF" : theme.colors.textSecondary
                         }
                       />
                       <Text
-                        className="text-sm font-semibold"
+                        className="text-[13px] font-semibold"
                         style={{
                           color: isActive
-                            ? theme.colors.textInverse
+                            ? "#FFFFFF"
                             : theme.colors.textPrimary,
                         }}
                       >
@@ -232,16 +245,26 @@ export default function SettingsScreen(): React.JSX.Element {
               )}
             </View>
           </View>
-        </GlassCard>
+        </View>
       </View>
 
       {/* Security */}
       {biometric.isAvailable ? (
-        <View className="mb-7">
-          <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
+        <View className="mb-6">
+          <Text
+            className="text-[12px] font-semibold uppercase mb-2 ml-1"
+            style={{ color: theme.colors.textTertiary, letterSpacing: 0.8 }}
+          >
             Security
           </Text>
-          <GlassCard>
+          <View
+            className="rounded-2xl overflow-hidden"
+            style={{
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
+          >
             <SettingsRow
               label="Biometrics Login"
               iconName="finger-print-outline"
@@ -258,34 +281,57 @@ export default function SettingsScreen(): React.JSX.Element {
                 />
               }
             />
-          </GlassCard>
-          <Text className="text-xs mt-2 ml-1 leading-4 text-text-tertiary">
+          </View>
+          <Text
+            className="text-[12px] mt-1.5 ml-1 leading-4"
+            style={{ color: theme.colors.textTertiary }}
+          >
             Require biometrics to unlock the app
           </Text>
         </View>
       ) : null}
 
       {/* Server */}
-      <View className="mb-7">
-        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
+      <View className="mb-6">
+        <Text
+          className="text-[12px] font-semibold uppercase mb-2 ml-1"
+          style={{ color: theme.colors.textTertiary, letterSpacing: 0.8 }}
+        >
           Server
         </Text>
-        <GlassCard>
+        <View
+          className="rounded-2xl overflow-hidden"
+          style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+          }}
+        >
           <SettingsRow
             label="Server URL"
             iconName="globe-outline"
             value={serverUrl || "oneuptime.com"}
             isLast
           />
-        </GlassCard>
+        </View>
       </View>
 
       {/* Account */}
-      <View className="mb-7">
-        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
+      <View className="mb-6">
+        <Text
+          className="text-[12px] font-semibold uppercase mb-2 ml-1"
+          style={{ color: theme.colors.textTertiary, letterSpacing: 0.8 }}
+        >
           Account
         </Text>
-        <GlassCard>
+        <View
+          className="rounded-2xl overflow-hidden"
+          style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+          }}
+        >
           <SettingsRow
             label="Log Out"
             iconName="log-out-outline"
@@ -293,39 +339,41 @@ export default function SettingsScreen(): React.JSX.Element {
             destructive
             isLast
           />
-        </GlassCard>
+        </View>
       </View>
 
       {/* About */}
-      <View className="mb-7">
-        <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
+      <View className="mb-6">
+        <Text
+          className="text-[12px] font-semibold uppercase mb-2 ml-1"
+          style={{ color: theme.colors.textTertiary, letterSpacing: 0.8 }}
+        >
           About
         </Text>
-        <GlassCard>
+        <View
+          className="rounded-2xl overflow-hidden"
+          style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+          }}
+        >
           <SettingsRow
             label="Version"
             iconName="information-circle-outline"
             value={APP_VERSION}
             isLast
           />
-        </GlassCard>
+        </View>
       </View>
 
-      {/* Footer branding */}
+      {/* Footer */}
       <View className="items-center pt-4 pb-2">
-        <View
-          className="w-10 h-10 rounded-xl items-center justify-center mb-2"
-          style={{
-            backgroundColor: theme.colors.iconBackground,
-          }}
+        <Text
+          className="text-[11px] font-medium"
+          style={{ color: theme.colors.textTertiary }}
         >
-          <Logo size={28} />
-        </View>
-        <Text className="text-xs font-semibold text-text-tertiary">
           OneUptime
-        </Text>
-        <Text className="text-[10px] text-text-tertiary mt-0.5">
-          On-Call Management
         </Text>
       </View>
     </ScrollView>

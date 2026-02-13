@@ -17,11 +17,17 @@ export default function SectionHeader({
     <View className="flex-row items-center mb-3">
       <Ionicons
         name={iconName}
-        size={15}
-        color={theme.colors.textSecondary}
+        size={14}
+        color={theme.colors.textTertiary}
         style={{ marginRight: 6 }}
       />
-      <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
+      <Text
+        className="text-[12px] font-semibold uppercase"
+        style={{
+          color: theme.colors.textTertiary,
+          letterSpacing: 0.8,
+        }}
+      >
         {title}
       </Text>
     </View>

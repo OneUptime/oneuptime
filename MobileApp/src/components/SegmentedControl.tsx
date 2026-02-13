@@ -24,7 +24,7 @@ export default function SegmentedControl<T extends string>({
   return (
     <View
       className="flex-row mx-4 mt-3 mb-1 rounded-xl p-1"
-      style={{ backgroundColor: theme.colors.backgroundSecondary }}
+      style={{ backgroundColor: theme.colors.backgroundTertiary }}
     >
       {segments.map((segment: Segment<T>) => {
         const isActive: boolean = segment.key === selected;
@@ -35,8 +35,8 @@ export default function SegmentedControl<T extends string>({
             style={
               isActive
                 ? {
-                    shadowColor: "#000000",
-                    shadowOpacity: theme.isDark ? 0.4 : 0.15,
+                    shadowColor: theme.colors.accentGradientMid,
+                    shadowOpacity: 0.3,
                     shadowOffset: { width: 0, height: 2 },
                     shadowRadius: 6,
                     elevation: 3,
@@ -68,9 +68,7 @@ export default function SegmentedControl<T extends string>({
             <Text
               className="text-body-sm font-semibold"
               style={{
-                color: isActive
-                  ? theme.colors.textInverse
-                  : theme.colors.textTertiary,
+                color: isActive ? "#FFFFFF" : theme.colors.textTertiary,
               }}
             >
               {segment.label}

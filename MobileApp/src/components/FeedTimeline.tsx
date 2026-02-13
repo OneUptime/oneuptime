@@ -30,7 +30,7 @@ export default function FeedTimeline({
       {feed.map((entry: FeedItem, index: number) => {
         const entryColor: string = entry.displayColor
           ? rgbToHex(entry.displayColor)
-          : theme.colors.textTertiary;
+          : theme.colors.actionPrimary;
         const isLast: boolean = index === feed.length - 1;
         const timeString: string = formatDateTime(
           entry.postedAt || entry.createdAt,
@@ -42,42 +42,40 @@ export default function FeedTimeline({
 
         return (
           <View key={entry._id} className="flex-row">
-            {/* Timeline connector */}
             <View className="items-center mr-3.5">
               <View
-                className="w-3 h-3 rounded-full mt-0.5"
-                style={{
-                  backgroundColor: entryColor,
-                  shadowColor: entryColor,
-                  shadowOpacity: 0.3,
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowRadius: 4,
-                  elevation: 2,
-                }}
+                className="w-2.5 h-2.5 rounded-full mt-1"
+                style={{ backgroundColor: entryColor }}
               />
               {!isLast ? (
                 <View
-                  className="w-0.5 flex-1 my-1.5"
+                  className="w-px flex-1 my-1.5"
                   style={{
                     backgroundColor: theme.colors.borderDefault,
                   }}
                 />
               ) : null}
             </View>
-            {/* Content */}
             <View className="flex-1 pb-5">
-              <Text className="text-body-md text-text-primary leading-5">
+              <Text
+                className="text-[14px] leading-5"
+                style={{ color: theme.colors.textPrimary }}
+              >
                 {mainText}
               </Text>
               {moreText ? (
                 <Text
-                  className="text-body-sm text-text-secondary mt-1.5 leading-5"
+                  className="text-[13px] mt-1.5 leading-5"
+                  style={{ color: theme.colors.textSecondary }}
                   numberOfLines={3}
                 >
                   {moreText}
                 </Text>
               ) : null}
-              <Text className="text-body-sm text-text-tertiary mt-1.5">
+              <Text
+                className="text-[12px] mt-1.5"
+                style={{ color: theme.colors.textTertiary }}
+              >
                 {timeString}
               </Text>
             </View>

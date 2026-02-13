@@ -1,12 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
 import ProjectBadge from "./ProjectBadge";
-import GlassCard from "./GlassCard";
 import type { IncidentItem, NamedEntity } from "../api/types";
 
 interface IncidentCardProps {
@@ -41,105 +39,119 @@ export default function IncidentCard({
     <TouchableOpacity
       className="mb-3"
       style={{
-        opacity: muted ? 0.55 : 1,
+        opacity: muted ? 0.5 : 1,
       }}
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
     >
-      <GlassCard opaque>
-        <View className="flex-row">
-          <LinearGradient
-            colors={[stateColor, stateColor + "40"]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={{ width: 3 }}
-          />
-          <View className="flex-1 p-4">
-            {projectName ? (
-              <View className="mb-2">
+      <View
+        className="rounded-2xl overflow-hidden"
+        style={{
+          backgroundColor: theme.colors.backgroundElevated,
+          borderWidth: 1,
+          borderColor: theme.colors.borderGlass,
+        }}
+      >
+        <View
+          style={{
+            height: 3,
+            backgroundColor: stateColor,
+            opacity: 0.8,
+          }}
+        />
+        <View className="p-4">
+          <View className="flex-row justify-between items-center mb-2.5">
+            <View className="flex-row items-center gap-2">
+              {projectName ? (
                 <ProjectBadge name={projectName} />
-              </View>
-            ) : null}
-            <View className="flex-row justify-between items-center mb-2">
-              <View
-                className="px-2.5 py-0.5 rounded-full"
-                style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              ) : null}
+              <Text
+                className="text-[12px] font-medium"
+                style={{ color: theme.colors.textTertiary }}
               >
-                <Text className="text-[12px] font-semibold text-text-tertiary">
-                  {incident.incidentNumberWithPrefix ||
-                    `#${incident.incidentNumber}`}
-                </Text>
-              </View>
-              <Text className="text-[12px] text-text-tertiary">
-                {timeString}
+                {incident.incidentNumberWithPrefix ||
+                  `#${incident.incidentNumber}`}
               </Text>
             </View>
-
             <Text
-              className="text-body-lg text-text-primary font-semibold mt-0.5"
-              numberOfLines={2}
+              className="text-[12px]"
+              style={{ color: theme.colors.textTertiary }}
             >
-              {incident.title}
+              {timeString}
             </Text>
+          </View>
 
-            <View className="flex-row flex-wrap gap-2 mt-3">
-              {incident.currentIncidentState ? (
+          <Text
+            className="text-[16px] font-semibold mt-0.5"
+            style={{ color: theme.colors.textPrimary, letterSpacing: -0.2 }}
+            numberOfLines={2}
+          >
+            {incident.title}
+          </Text>
+
+          <View className="flex-row flex-wrap gap-2 mt-3">
+            {incident.currentIncidentState ? (
+              <View
+                className="flex-row items-center px-2 py-1 rounded-md"
+                style={{
+                  backgroundColor: stateColor + "14",
+                }}
+              >
                 <View
-                  className="flex-row items-center px-2.5 py-1 rounded-full"
-                  style={{
-                    backgroundColor: theme.colors.backgroundTertiary,
-                  }}
-                >
-                  <View
-                    className="w-2 h-2 rounded-full mr-1.5"
-                    style={{ backgroundColor: stateColor }}
-                  />
-                  <Text className="text-[12px] font-semibold text-text-primary">
-                    {incident.currentIncidentState.name}
-                  </Text>
-                </View>
-              ) : null}
-
-              {incident.incidentSeverity ? (
-                <View
-                  className="flex-row items-center px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: severityColor + "15" }}
-                >
-                  <Text
-                    className="text-[12px] font-semibold"
-                    style={{ color: severityColor }}
-                  >
-                    {incident.incidentSeverity.name}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-
-            {monitorCount > 0 ? (
-              <View className="flex-row items-center mt-3">
-                <Ionicons
-                  name="desktop-outline"
-                  size={12}
-                  color={theme.colors.textTertiary}
-                  style={{ marginRight: 5 }}
+                  className="w-1.5 h-1.5 rounded-full mr-1.5"
+                  style={{ backgroundColor: stateColor }}
                 />
                 <Text
-                  className="text-[12px] text-text-secondary flex-1"
-                  numberOfLines={1}
+                  className="text-[11px] font-semibold"
+                  style={{ color: stateColor }}
                 >
-                  {incident.monitors
-                    .map((m: NamedEntity) => {
-                      return m.name;
-                    })
-                    .join(", ")}
+                  {incident.currentIncidentState.name}
+                </Text>
+              </View>
+            ) : null}
+
+            {incident.incidentSeverity ? (
+              <View
+                className="flex-row items-center px-2 py-1 rounded-md"
+                style={{ backgroundColor: severityColor + "14" }}
+              >
+                <Text
+                  className="text-[11px] font-semibold"
+                  style={{ color: severityColor }}
+                >
+                  {incident.incidentSeverity.name}
                 </Text>
               </View>
             ) : null}
           </View>
+
+          {monitorCount > 0 ? (
+            <View className="flex-row items-center mt-2.5 pt-2.5"
+              style={{ borderTopWidth: 1, borderTopColor: theme.colors.borderSubtle }}
+            >
+              <Ionicons
+                name="desktop-outline"
+                size={11}
+                color={theme.colors.textTertiary}
+                style={{ marginRight: 5 }}
+              />
+              <Text
+                className="text-[12px] flex-1"
+                style={{ color: theme.colors.textTertiary }}
+                numberOfLines={1}
+              >
+                {incident.monitors
+                  .map((m: NamedEntity) => {
+                    return m.name;
+                  })
+                  .join(", ")}
+              </Text>
+            </View>
+          ) : null}
         </View>
-      </GlassCard>
+      </View>
     </TouchableOpacity>
   );
 }

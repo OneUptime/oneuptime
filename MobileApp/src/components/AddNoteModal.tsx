@@ -54,7 +54,7 @@ export default function AddNoteModal({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View
-          className="rounded-t-[28px] p-5 pb-9"
+          className="rounded-t-3xl p-5 pb-9"
           style={{
             backgroundColor: theme.isDark
               ? theme.colors.backgroundElevated
@@ -62,48 +62,46 @@ export default function AddNoteModal({
             borderWidth: 1,
             borderBottomWidth: 0,
             borderColor: theme.colors.borderGlass,
-            shadowColor: "#000",
-            shadowOpacity: 0.2,
-            shadowOffset: { width: 0, height: -8 },
-            shadowRadius: 24,
-            elevation: 16,
           }}
         >
-          {/* Drag Handle */}
           <View className="items-center pt-1 pb-5">
             <View
-              className="w-10 h-1.5 rounded-full"
+              className="w-9 h-1 rounded-full"
               style={{ backgroundColor: theme.colors.borderDefault }}
             />
           </View>
 
           <View className="flex-row items-center mb-5">
             <View
-              className="w-9 h-9 rounded-lg items-center justify-center mr-3"
+              className="w-8 h-8 rounded-lg items-center justify-center mr-3"
               style={{
                 backgroundColor: theme.colors.iconBackground,
               }}
             >
               <Ionicons
                 name="chatbubble-outline"
-                size={18}
-                color={theme.colors.textPrimary}
+                size={16}
+                color={theme.colors.actionPrimary}
               />
             </View>
             <Text
-              className="text-title-md text-text-primary"
-              style={{ letterSpacing: -0.3 }}
+              className="text-[18px] font-bold"
+              style={{
+                color: theme.colors.textPrimary,
+                letterSpacing: -0.3,
+              }}
             >
               Add Note
             </Text>
           </View>
 
           <TextInput
-            className="min-h-[120px] rounded-xl p-4 text-[15px] text-text-primary"
+            className="min-h-[120px] rounded-xl p-4 text-[15px]"
             style={{
               backgroundColor: theme.colors.backgroundSecondary,
               borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
+              borderColor: theme.colors.borderDefault,
+              color: theme.colors.textPrimary,
             }}
             placeholder="Write a note..."
             placeholderTextColor={theme.colors.textTertiary}
@@ -116,17 +114,19 @@ export default function AddNoteModal({
 
           <View className="flex-row gap-3 mt-5">
             <TouchableOpacity
-              className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-[48px]"
+              className="flex-1 py-3 rounded-xl items-center justify-center min-h-[48px]"
               style={{
-                backgroundColor: theme.colors.backgroundGlass,
                 borderWidth: 1,
-                borderColor: theme.colors.borderGlass,
+                borderColor: theme.colors.borderDefault,
               }}
               onPress={handleClose}
               disabled={isSubmitting}
               activeOpacity={0.7}
             >
-              <Text className="text-[15px] font-bold text-text-secondary">
+              <Text
+                className="text-[15px] font-semibold"
+                style={{ color: theme.colors.textSecondary }}
+              >
                 Cancel
               </Text>
             </TouchableOpacity>

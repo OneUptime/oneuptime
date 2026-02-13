@@ -25,11 +25,6 @@ export default function GlassCard({
             : theme.colors.backgroundGlass,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
-          shadowColor: "#000000",
-          shadowOpacity: theme.isDark ? 0.3 : 0.08,
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 12,
-          elevation: 3,
         },
         style,
       ]}

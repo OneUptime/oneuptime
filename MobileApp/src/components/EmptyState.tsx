@@ -33,49 +33,34 @@ export default function EmptyState({
 
   return (
     <View className="flex-1 items-center justify-center px-10 py-28">
-      {/* Outer gradient glow ring */}
-      <View className="w-28 h-28 rounded-full items-center justify-center overflow-hidden">
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: theme.colors.surfaceGlow,
-            borderRadius: 56,
-          }}
+      <View
+        className="w-20 h-20 rounded-2xl items-center justify-center"
+        style={{
+          backgroundColor: theme.colors.iconBackground,
+        }}
+      >
+        <Ionicons
+          name={iconMap[icon]}
+          size={32}
+          color={theme.colors.actionPrimary}
         />
-        {/* Inner icon container */}
-        <View
-          className="w-20 h-20 rounded-full items-center justify-center"
-          style={{
-            backgroundColor: theme.colors.backgroundTertiary,
-          }}
-        >
-          <Ionicons
-            name={iconMap[icon]}
-            size={36}
-            color={theme.colors.textSecondary}
-          />
-        </View>
       </View>
 
       <Text
-        className="text-title-md text-text-primary text-center mt-7"
+        className="text-[20px] font-bold text-text-primary text-center mt-6"
         style={{ letterSpacing: -0.3 }}
       >
         {title}
       </Text>
 
       {subtitle ? (
-        <Text className="text-body-md text-text-secondary text-center mt-2.5 leading-6 max-w-[280px]">
+        <Text className="text-[15px] text-text-secondary text-center mt-2 leading-[22px] max-w-[280px]">
           {subtitle}
         </Text>
       ) : null}
 
       {actionLabel && onAction ? (
-        <View className="mt-6 w-[200px]">
+        <View className="mt-6 w-[180px]">
           <GradientButton label={actionLabel} onPress={onAction} />
         </View>
       ) : null}

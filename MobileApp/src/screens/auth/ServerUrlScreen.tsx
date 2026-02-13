@@ -16,8 +16,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { setServerUrl } from "../../storage/serverUrl";
 import { validateServerUrl } from "../../api/auth";
 import Logo from "../../components/Logo";
-import GradientHeader from "../../components/GradientHeader";
-import GlassCard from "../../components/GlassCard";
 import GradientButton from "../../components/GradientButton";
 
 type ServerUrlNavigationProp = NativeStackNavigationProp<
@@ -67,11 +65,10 @@ export default function ServerUrlScreen(): React.JSX.Element {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-bg-primary"
+      className="flex-1"
+      style={{ backgroundColor: theme.colors.backgroundPrimary }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <GradientHeader />
-
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
@@ -79,38 +76,42 @@ export default function ServerUrlScreen(): React.JSX.Element {
         <View className="flex-1 justify-center px-7">
           <View className="items-center mb-14">
             <View
-              className="w-20 h-20 rounded-[22px] items-center justify-center mb-6"
+              className="w-16 h-16 rounded-2xl items-center justify-center mb-5"
               style={{
-                backgroundColor: theme.colors.backgroundTertiary,
-                shadowColor: "#000000",
-                shadowOpacity: 0.3,
-                shadowOffset: { width: 0, height: 4 },
-                shadowRadius: 16,
-                elevation: 6,
+                backgroundColor: theme.colors.iconBackground,
               }}
             >
-              <Logo size={48} />
+              <Logo size={36} />
             </View>
 
             <Text
-              className="text-text-primary font-extrabold text-[34px]"
-              style={{ letterSpacing: -1.2 }}
+              className="text-[30px] font-bold"
+              style={{
+                color: theme.colors.textPrimary,
+                letterSpacing: -1,
+              }}
             >
               OneUptime
             </Text>
-            <Text className="text-body-md text-text-secondary mt-2 text-center leading-6">
+            <Text
+              className="text-[15px] mt-2 text-center leading-[22px]"
+              style={{ color: theme.colors.textSecondary }}
+            >
               Connect to your OneUptime instance
             </Text>
           </View>
 
-          <GlassCard style={{ padding: 20 }}>
-            <Text className="text-body-sm text-text-secondary mb-2 font-semibold">
+          <View>
+            <Text
+              className="text-[13px] font-semibold mb-2"
+              style={{ color: theme.colors.textSecondary }}
+            >
               Server URL
             </Text>
             <View
-              className="flex-row items-center h-[52px] rounded-xl px-3.5"
+              className="flex-row items-center h-[48px] rounded-xl px-3.5"
               style={{
-                backgroundColor: theme.colors.backgroundPrimary,
+                backgroundColor: theme.colors.backgroundSecondary,
                 borderWidth: 1.5,
                 borderColor: error
                   ? theme.colors.statusError
@@ -121,7 +122,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
             >
               <Ionicons
                 name="globe-outline"
-                size={20}
+                size={18}
                 color={
                   urlFocused
                     ? theme.colors.actionPrimary
@@ -130,7 +131,8 @@ export default function ServerUrlScreen(): React.JSX.Element {
                 style={{ marginRight: 10 }}
               />
               <TextInput
-                className="flex-1 text-base text-text-primary"
+                className="flex-1 text-[15px]"
+                style={{ color: theme.colors.textPrimary }}
                 value={url}
                 onChangeText={(text: string) => {
                   setUrl(text);
@@ -153,7 +155,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
             </View>
 
             {error ? (
-              <View className="flex-row items-center mt-2.5">
+              <View className="flex-row items-center mt-3">
                 <Ionicons
                   name="alert-circle"
                   size={14}
@@ -161,7 +163,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
                   style={{ marginRight: 6 }}
                 />
                 <Text
-                  className="text-body-sm flex-1"
+                  className="text-[13px] flex-1"
                   style={{ color: theme.colors.statusError }}
                 >
                   {error}
@@ -169,7 +171,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
               </View>
             ) : null}
 
-            <View className="mt-5">
+            <View className="mt-6">
               <GradientButton
                 label="Connect"
                 onPress={handleConnect}
@@ -177,20 +179,14 @@ export default function ServerUrlScreen(): React.JSX.Element {
                 disabled={isLoading}
               />
             </View>
-          </GlassCard>
+          </View>
 
-          <Text className="text-caption text-text-tertiary text-center mt-7 leading-5">
+          <Text
+            className="text-[12px] text-center mt-6 leading-5"
+            style={{ color: theme.colors.textTertiary }}
+          >
             Self-hosting? Enter your OneUptime server URL above.
           </Text>
-
-          <View className="items-center mt-10">
-            <View className="flex-row items-center">
-              <Logo size={16} style={{ marginRight: 6 }} />
-              <Text className="text-[11px] text-text-tertiary">
-                Powered by OneUptime
-              </Text>
-            </View>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

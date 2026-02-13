@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Platform } from "react-native";
+import { View, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { MainTabParamList } from "./types";
@@ -27,17 +27,12 @@ function TabIcon({
 }): React.JSX.Element {
   return (
     <View className="items-center">
-      <Ionicons name={focused ? focusedName : name} size={24} color={color} />
+      <Ionicons name={focused ? focusedName : name} size={22} color={color} />
       {focused ? (
         <View
           className="w-1 h-1 rounded-full mt-1"
           style={{
             backgroundColor: accentColor,
-            shadowColor: accentColor,
-            shadowOpacity: 0.6,
-            shadowOffset: { width: 0, height: 0 },
-            shadowRadius: 4,
-            elevation: 2,
           }}
         />
       ) : null}
@@ -53,42 +48,23 @@ export default function MainTabNavigator(): React.JSX.Element {
       screenOptions={{
         headerStyle: {
           backgroundColor: theme.colors.backgroundPrimary,
-          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomWidth: 1,
           borderBottomColor: theme.colors.borderSubtle,
-          ...Platform.select({
-            ios: {
-              shadowColor: "#000",
-              shadowOpacity: 0.04,
-              shadowOffset: { width: 0, height: 1 },
-              shadowRadius: 6,
-            },
-            default: { elevation: 2 },
-          }),
         },
         headerShadowVisible: false,
         headerTintColor: theme.colors.textPrimary,
         headerTitleStyle: {
           fontWeight: "700",
+          fontSize: 17,
           letterSpacing: -0.3,
         },
         tabBarStyle: {
-          backgroundColor: theme.isDark
-            ? theme.colors.backgroundGlass
-            : theme.colors.backgroundPrimary,
-          borderTopColor: theme.colors.borderGlass,
-          borderTopWidth: StyleSheet.hairlineWidth,
+          backgroundColor: theme.colors.backgroundPrimary,
+          borderTopColor: theme.colors.borderSubtle,
+          borderTopWidth: 1,
           height: Platform.OS === "ios" ? 88 : 64,
           paddingBottom: Platform.OS === "ios" ? 28 : 8,
           paddingTop: 8,
-          ...Platform.select({
-            ios: {
-              shadowColor: "#000",
-              shadowOpacity: 0.08,
-              shadowOffset: { width: 0, height: -4 },
-              shadowRadius: 12,
-            },
-            default: { elevation: 8 },
-          }),
         },
         tabBarActiveTintColor: theme.colors.actionPrimary,
         tabBarInactiveTintColor: theme.colors.textTertiary,

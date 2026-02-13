@@ -34,13 +34,13 @@ export default function GradientButton({
   if (variant === "secondary") {
     return (
       <TouchableOpacity
-        className="h-[52px] rounded-xl items-center justify-center overflow-hidden"
+        className="h-[50px] rounded-xl items-center justify-center overflow-hidden"
         style={[
           {
-            backgroundColor: theme.colors.backgroundGlass,
+            backgroundColor: "transparent",
             borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-            opacity: disabled || loading ? 0.6 : 1,
+            borderColor: theme.colors.borderDefault,
+            opacity: disabled || loading ? 0.5 : 1,
           },
           style,
         ]}
@@ -50,20 +50,20 @@ export default function GradientButton({
       >
         <View className="flex-row items-center">
           {loading ? (
-            <ActivityIndicator color={theme.colors.textPrimary} />
+            <ActivityIndicator color={theme.colors.textSecondary} />
           ) : (
             <>
               {icon ? (
                 <Ionicons
                   name={icon}
                   size={18}
-                  color={theme.colors.textPrimary}
+                  color={theme.colors.textSecondary}
                   style={{ marginRight: 8 }}
                 />
               ) : null}
               <Text
-                className="text-[16px] font-bold"
-                style={{ color: theme.colors.textPrimary }}
+                className="text-[15px] font-semibold"
+                style={{ color: theme.colors.textSecondary }}
               >
                 {label}
               </Text>
@@ -76,12 +76,12 @@ export default function GradientButton({
 
   return (
     <TouchableOpacity
-      className="h-[52px] rounded-xl overflow-hidden"
+      className="h-[50px] rounded-xl overflow-hidden"
       style={[
         {
-          opacity: disabled || loading ? 0.6 : 1,
-          shadowColor: theme.colors.accentGradientStart,
-          shadowOpacity: theme.isDark ? 0.15 : 0.2,
+          opacity: disabled || loading ? 0.5 : 1,
+          shadowColor: theme.colors.accentGradientMid,
+          shadowOpacity: 0.3,
           shadowOffset: { width: 0, height: 4 },
           shadowRadius: 12,
           elevation: 4,
@@ -102,20 +102,20 @@ export default function GradientButton({
         className="flex-1 items-center justify-center flex-row"
       >
         {loading ? (
-          <ActivityIndicator color={theme.colors.textInverse} />
+          <ActivityIndicator color="#FFFFFF" />
         ) : (
           <>
             {icon ? (
               <Ionicons
                 name={icon}
                 size={18}
-                color={theme.colors.textInverse}
+                color="#FFFFFF"
                 style={{ marginRight: 8 }}
               />
             ) : null}
             <Text
-              className="text-[16px] font-bold"
-              style={{ color: theme.colors.textInverse }}
+              className="text-[15px] font-bold"
+              style={{ color: "#FFFFFF", letterSpacing: 0.2 }}
             >
               {label}
             </Text>

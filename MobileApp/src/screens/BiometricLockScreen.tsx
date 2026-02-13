@@ -3,7 +3,6 @@ import { View, Text } from "react-native";
 import { useTheme } from "../theme";
 import * as LocalAuthentication from "expo-local-authentication";
 import Logo from "../components/Logo";
-import GradientHeader from "../components/GradientHeader";
 import GradientButton from "../components/GradientButton";
 
 interface BiometricLockScreenProps {
@@ -34,42 +33,37 @@ export default function BiometricLockScreen({
   }, []);
 
   return (
-    <View className="flex-1 items-center justify-center px-10 bg-bg-primary">
-      <GradientHeader height={400} />
-
-      {/* Outer glow ring */}
+    <View
+      className="flex-1 items-center justify-center px-10"
+      style={{ backgroundColor: theme.colors.backgroundPrimary }}
+    >
       <View
-        className="w-[120px] h-[120px] rounded-full items-center justify-center"
-        style={{ backgroundColor: theme.colors.surfaceGlow }}
+        className="w-20 h-20 rounded-2xl items-center justify-center mb-6"
+        style={{
+          backgroundColor: theme.colors.iconBackground,
+        }}
       >
-        {/* Inner icon container */}
-        <View
-          className="w-[88px] h-[88px] rounded-[22px] items-center justify-center"
-          style={{
-            backgroundColor: theme.colors.actionPrimary + "18",
-            shadowColor: theme.colors.actionPrimary,
-            shadowOpacity: 0.2,
-            shadowOffset: { width: 0, height: 8 },
-            shadowRadius: 24,
-            elevation: 8,
-          }}
-        >
-          <Logo size={48} />
-        </View>
+        <Logo size={40} />
       </View>
 
       <Text
-        className="text-title-md text-text-primary mt-7 text-center"
-        style={{ letterSpacing: -0.3 }}
+        className="text-[20px] font-bold text-center"
+        style={{
+          color: theme.colors.textPrimary,
+          letterSpacing: -0.3,
+        }}
       >
         OneUptime is Locked
       </Text>
 
-      <Text className="text-body-md text-text-secondary mt-2.5 text-center leading-6">
+      <Text
+        className="text-[15px] mt-2 text-center"
+        style={{ color: theme.colors.textSecondary }}
+      >
         Use {biometricType.toLowerCase()} to unlock
       </Text>
 
-      <View className="mt-10 w-full" style={{ maxWidth: 280 }}>
+      <View className="mt-10 w-full" style={{ maxWidth: 260 }}>
         <GradientButton
           label="Unlock"
           onPress={authenticate}

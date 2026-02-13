@@ -16,8 +16,6 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
 import Logo from "../../components/Logo";
-import GradientHeader from "../../components/GradientHeader";
-import GlassCard from "../../components/GlassCard";
 import GradientButton from "../../components/GradientButton";
 
 type LoginNavigationProp = NativeStackNavigationProp<
@@ -76,11 +74,10 @@ export default function LoginScreen(): React.JSX.Element {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-bg-primary"
+      className="flex-1"
+      style={{ backgroundColor: theme.colors.backgroundPrimary }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <GradientHeader />
-
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
@@ -88,53 +85,58 @@ export default function LoginScreen(): React.JSX.Element {
         <View className="flex-1 justify-center px-7">
           <View className="items-center mb-12">
             <View
-              className="w-20 h-20 rounded-[22px] items-center justify-center mb-6"
+              className="w-16 h-16 rounded-2xl items-center justify-center mb-5"
               style={{
-                backgroundColor: theme.colors.backgroundTertiary,
-                shadowColor: "#000000",
-                shadowOpacity: 0.3,
-                shadowOffset: { width: 0, height: 4 },
-                shadowRadius: 16,
-                elevation: 6,
+                backgroundColor: theme.colors.iconBackground,
               }}
             >
-              <Logo size={48} />
+              <Logo size={36} />
             </View>
 
             <Text
-              className="text-text-primary font-extrabold text-[34px]"
-              style={{ letterSpacing: -1.2 }}
+              className="text-[30px] font-bold"
+              style={{
+                color: theme.colors.textPrimary,
+                letterSpacing: -1,
+              }}
             >
               OneUptime
             </Text>
-            <Text className="text-body-md text-text-secondary mt-1">
-              On-Call Management
+            <Text
+              className="text-[15px] mt-1"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              Sign in to continue
             </Text>
 
             {serverUrl ? (
               <View
-                className="mt-2 px-4 py-1.5 rounded-full"
+                className="mt-3 px-3 py-1 rounded-lg"
                 style={{
-                  backgroundColor: theme.colors.backgroundGlass,
-                  borderWidth: 1,
-                  borderColor: theme.colors.borderGlass,
+                  backgroundColor: theme.colors.backgroundTertiary,
                 }}
               >
-                <Text className="text-body-sm text-text-tertiary">
+                <Text
+                  className="text-[12px]"
+                  style={{ color: theme.colors.textTertiary }}
+                >
                   {serverUrl}
                 </Text>
               </View>
             ) : null}
           </View>
 
-          <GlassCard style={{ padding: 20 }}>
-            <Text className="text-body-sm text-text-secondary mb-2 font-semibold">
+          <View>
+            <Text
+              className="text-[13px] font-semibold mb-2"
+              style={{ color: theme.colors.textSecondary }}
+            >
               Email
             </Text>
             <View
-              className="flex-row items-center h-[52px] rounded-xl px-3.5"
+              className="flex-row items-center h-[48px] rounded-xl px-3.5"
               style={{
-                backgroundColor: theme.colors.backgroundPrimary,
+                backgroundColor: theme.colors.backgroundSecondary,
                 borderWidth: 1.5,
                 borderColor: emailFocused
                   ? theme.colors.actionPrimary
@@ -143,7 +145,7 @@ export default function LoginScreen(): React.JSX.Element {
             >
               <Ionicons
                 name="mail-outline"
-                size={20}
+                size={18}
                 color={
                   emailFocused
                     ? theme.colors.actionPrimary
@@ -152,7 +154,8 @@ export default function LoginScreen(): React.JSX.Element {
                 style={{ marginRight: 10 }}
               />
               <TextInput
-                className="flex-1 text-base text-text-primary"
+                className="flex-1 text-[15px]"
+                style={{ color: theme.colors.textPrimary }}
                 value={email}
                 onChangeText={(text: string) => {
                   setEmail(text);
@@ -174,13 +177,16 @@ export default function LoginScreen(): React.JSX.Element {
               />
             </View>
 
-            <Text className="text-body-sm text-text-secondary mb-2 mt-4 font-semibold">
+            <Text
+              className="text-[13px] font-semibold mb-2 mt-4"
+              style={{ color: theme.colors.textSecondary }}
+            >
               Password
             </Text>
             <View
-              className="flex-row items-center h-[52px] rounded-xl px-3.5"
+              className="flex-row items-center h-[48px] rounded-xl px-3.5"
               style={{
-                backgroundColor: theme.colors.backgroundPrimary,
+                backgroundColor: theme.colors.backgroundSecondary,
                 borderWidth: 1.5,
                 borderColor: passwordFocused
                   ? theme.colors.actionPrimary
@@ -189,7 +195,7 @@ export default function LoginScreen(): React.JSX.Element {
             >
               <Ionicons
                 name="lock-closed-outline"
-                size={20}
+                size={18}
                 color={
                   passwordFocused
                     ? theme.colors.actionPrimary
@@ -198,7 +204,8 @@ export default function LoginScreen(): React.JSX.Element {
                 style={{ marginRight: 10 }}
               />
               <TextInput
-                className="flex-1 text-base text-text-primary"
+                className="flex-1 text-[15px]"
+                style={{ color: theme.colors.textPrimary }}
                 value={password}
                 onChangeText={(text: string) => {
                   setPassword(text);
@@ -220,7 +227,7 @@ export default function LoginScreen(): React.JSX.Element {
             </View>
 
             {error ? (
-              <View className="flex-row items-start mt-2.5">
+              <View className="flex-row items-start mt-3">
                 <Ionicons
                   name="alert-circle"
                   size={14}
@@ -228,7 +235,7 @@ export default function LoginScreen(): React.JSX.Element {
                   style={{ marginRight: 6, marginTop: 2 }}
                 />
                 <Text
-                  className="text-body-sm flex-1"
+                  className="text-[13px] flex-1"
                   style={{ color: theme.colors.statusError }}
                 >
                   {error}
@@ -236,17 +243,17 @@ export default function LoginScreen(): React.JSX.Element {
               </View>
             ) : null}
 
-            <View className="mt-5">
+            <View className="mt-6">
               <GradientButton
-                label="Log In"
+                label="Sign In"
                 onPress={handleLogin}
                 loading={isLoading}
                 disabled={isLoading}
               />
             </View>
-          </GlassCard>
+          </View>
 
-          <View className="mt-5">
+          <View className="mt-4">
             <GradientButton
               label="Change Server"
               onPress={handleChangeServer}

@@ -9,7 +9,6 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import {
@@ -30,7 +29,6 @@ import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
 import NotesSection from "../components/NotesSection";
-import GlassCard from "../components/GlassCard";
 import { useHaptics } from "../hooks/useHaptics";
 import type { IncidentItem, IncidentState, NamedEntity } from "../api/types";
 
@@ -150,7 +148,10 @@ export default function IncidentDetailScreen({
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-bg-primary">
+      <View
+        className="flex-1"
+        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+      >
         <SkeletonCard variant="detail" />
       </View>
     );
@@ -158,8 +159,14 @@ export default function IncidentDetailScreen({
 
   if (!incident) {
     return (
-      <View className="flex-1 items-center justify-center bg-bg-primary">
-        <Text className="text-body-md text-text-secondary">
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+      >
+        <Text
+          className="text-[15px]"
+          style={{ color: theme.colors.textSecondary }}
+        >
           Incident not found.
         </Text>
       </View>
@@ -191,36 +198,42 @@ export default function IncidentDetailScreen({
 
   return (
     <ScrollView
-      className="bg-bg-primary"
+      style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{ padding: 20, paddingBottom: 48 }}
       refreshControl={
         <RefreshControl refreshing={false} onRefresh={onRefresh} />
       }
     >
-      {/* Header with glass card */}
-      <GlassCard style={{ marginBottom: 20 }}>
-        <LinearGradient
-          colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          className="p-5"
-        >
-          <View
-            className="self-start px-3 py-1.5 rounded-full mb-3"
-            style={{ backgroundColor: stateColor + "1A" }}
+      {/* Header card */}
+      <View
+        className="rounded-2xl overflow-hidden mb-5"
+        style={{
+          backgroundColor: theme.colors.backgroundElevated,
+          borderWidth: 1,
+          borderColor: theme.colors.borderGlass,
+        }}
+      >
+        <View
+          style={{
+            height: 3,
+            backgroundColor: stateColor,
+          }}
+        />
+        <View className="p-5">
+          <Text
+            className="text-[13px] font-semibold mb-2"
+            style={{ color: stateColor }}
           >
-            <Text
-              className="text-[13px] font-bold"
-              style={{ color: stateColor }}
-            >
-              {incident.incidentNumberWithPrefix ||
-                `#${incident.incidentNumber}`}
-            </Text>
-          </View>
+            {incident.incidentNumberWithPrefix ||
+              `#${incident.incidentNumber}`}
+          </Text>
 
           <Text
-            className="text-title-lg text-text-primary"
-            style={{ letterSpacing: -0.5 }}
+            className="text-[22px] font-bold"
+            style={{
+              color: theme.colors.textPrimary,
+              letterSpacing: -0.5,
+            }}
           >
             {incident.title}
           </Text>
@@ -228,18 +241,17 @@ export default function IncidentDetailScreen({
           <View className="flex-row flex-wrap gap-2 mt-3">
             {incident.currentIncidentState ? (
               <View
-                className="flex-row items-center px-3 py-1.5 rounded-full"
-                style={{
-                  backgroundColor: theme.colors.backgroundGlass,
-                  borderWidth: 1,
-                  borderColor: theme.colors.borderGlass,
-                }}
+                className="flex-row items-center px-2.5 py-1 rounded-md"
+                style={{ backgroundColor: stateColor + "14" }}
               >
                 <View
-                  className="w-2.5 h-2.5 rounded-full mr-2"
+                  className="w-2 h-2 rounded-full mr-1.5"
                   style={{ backgroundColor: stateColor }}
                 />
-                <Text className="text-[13px] font-semibold text-text-primary">
+                <Text
+                  className="text-[12px] font-semibold"
+                  style={{ color: stateColor }}
+                >
                   {incident.currentIncidentState.name}
                 </Text>
               </View>
@@ -247,11 +259,11 @@ export default function IncidentDetailScreen({
 
             {incident.incidentSeverity ? (
               <View
-                className="flex-row items-center px-3 py-1.5 rounded-full"
-                style={{ backgroundColor: severityColor + "1A" }}
+                className="flex-row items-center px-2.5 py-1 rounded-md"
+                style={{ backgroundColor: severityColor + "14" }}
               >
                 <Text
-                  className="text-[13px] font-semibold"
+                  className="text-[12px] font-semibold"
                   style={{ color: severityColor }}
                 >
                   {incident.incidentSeverity.name}
@@ -259,14 +271,17 @@ export default function IncidentDetailScreen({
               </View>
             ) : null}
           </View>
-        </LinearGradient>
-      </GlassCard>
+        </View>
+      </View>
 
       {/* Description */}
       {incident.description ? (
         <View className="mb-6">
           <SectionHeader title="Description" iconName="document-text-outline" />
-          <Text className="text-body-md text-text-primary leading-6">
+          <Text
+            className="text-[14px] leading-[22px]"
+            style={{ color: theme.colors.textPrimary }}
+          >
             {incident.description}
           </Text>
         </View>
@@ -275,8 +290,12 @@ export default function IncidentDetailScreen({
       {/* Details */}
       <View className="mb-6">
         <SectionHeader title="Details" iconName="information-circle-outline" />
-        <GlassCard
+        <View
+          className="rounded-xl overflow-hidden"
           style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
             borderLeftWidth: 3,
             borderLeftColor: theme.colors.actionPrimary,
           }}
@@ -284,30 +303,48 @@ export default function IncidentDetailScreen({
           <View className="p-4">
             {incident.declaredAt ? (
               <View className="flex-row mb-3">
-                <Text className="text-sm w-[90px] text-text-tertiary">
+                <Text
+                  className="text-[13px] w-[90px]"
+                  style={{ color: theme.colors.textTertiary }}
+                >
                   Declared
                 </Text>
-                <Text className="text-sm text-text-primary">
+                <Text
+                  className="text-[13px]"
+                  style={{ color: theme.colors.textPrimary }}
+                >
                   {formatDateTime(incident.declaredAt)}
                 </Text>
               </View>
             ) : null}
 
             <View className="flex-row mb-3">
-              <Text className="text-sm w-[90px] text-text-tertiary">
+              <Text
+                className="text-[13px] w-[90px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
                 Created
               </Text>
-              <Text className="text-sm text-text-primary">
+              <Text
+                className="text-[13px]"
+                style={{ color: theme.colors.textPrimary }}
+              >
                 {formatDateTime(incident.createdAt)}
               </Text>
             </View>
 
             {incident.monitors?.length > 0 ? (
               <View className="flex-row">
-                <Text className="text-sm w-[90px] text-text-tertiary">
+                <Text
+                  className="text-[13px] w-[90px]"
+                  style={{ color: theme.colors.textTertiary }}
+                >
                   Monitors
                 </Text>
-                <Text className="text-sm text-text-primary flex-1">
+                <Text
+                  className="text-[13px] flex-1"
+                  style={{ color: theme.colors.textPrimary }}
+                >
                   {incident.monitors
                     .map((m: NamedEntity) => {
                       return m.name;
@@ -317,7 +354,7 @@ export default function IncidentDetailScreen({
               </View>
             ) : null}
           </View>
-        </GlassCard>
+        </View>
       </View>
 
       {/* State Change Actions */}
@@ -327,14 +364,9 @@ export default function IncidentDetailScreen({
           <View className="flex-row gap-3">
             {!isAcknowledged && !isResolved && acknowledgeState ? (
               <TouchableOpacity
-                className="flex-1 flex-row py-3.5 rounded-xl items-center justify-center min-h-[50px]"
+                className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px]"
                 style={{
                   backgroundColor: theme.colors.stateAcknowledged,
-                  shadowColor: theme.colors.stateAcknowledged,
-                  shadowOpacity: 0.3,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowRadius: 12,
-                  elevation: 4,
                 }}
                 onPress={() => {
                   return handleStateChange(
@@ -348,19 +380,19 @@ export default function IncidentDetailScreen({
                 accessibilityLabel="Acknowledge incident"
               >
                 {changingState ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.textInverse}
-                  />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
                     <Ionicons
                       name="checkmark-circle-outline"
-                      size={18}
-                      color={theme.colors.textInverse}
+                      size={17}
+                      color="#FFFFFF"
                       style={{ marginRight: 6 }}
                     />
-                    <Text className="text-[15px] font-bold text-text-inverse">
+                    <Text
+                      className="text-[14px] font-bold"
+                      style={{ color: "#FFFFFF" }}
+                    >
                       Acknowledge
                     </Text>
                   </>
@@ -370,14 +402,9 @@ export default function IncidentDetailScreen({
 
             {resolveState ? (
               <TouchableOpacity
-                className="flex-1 flex-row py-3.5 rounded-xl items-center justify-center min-h-[50px]"
+                className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px]"
                 style={{
                   backgroundColor: theme.colors.stateResolved,
-                  shadowColor: theme.colors.stateResolved,
-                  shadowOpacity: 0.3,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowRadius: 12,
-                  elevation: 4,
                 }}
                 onPress={() => {
                   return handleStateChange(resolveState._id, resolveState.name);
@@ -388,19 +415,19 @@ export default function IncidentDetailScreen({
                 accessibilityLabel="Resolve incident"
               >
                 {changingState ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.textInverse}
-                  />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
                     <Ionicons
                       name="checkmark-done-outline"
-                      size={18}
-                      color={theme.colors.textInverse}
+                      size={17}
+                      color="#FFFFFF"
                       style={{ marginRight: 6 }}
                     />
-                    <Text className="text-[15px] font-bold text-text-inverse">
+                    <Text
+                      className="text-[14px] font-bold"
+                      style={{ color: "#FFFFFF" }}
+                    >
                       Resolve
                     </Text>
                   </>
