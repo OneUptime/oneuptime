@@ -45,7 +45,7 @@ export default function AlertCard({
       accessibilityRole="button"
       accessibilityLabel={`Alert ${alert.alertNumberWithPrefix || alert.alertNumber}, ${alert.title}. State: ${alert.currentAlertState?.name ?? "unknown"}. Severity: ${alert.alertSeverity?.name ?? "unknown"}.`}
     >
-      <GlassCard>
+      <GlassCard opaque>
         <View className="flex-row">
           <LinearGradient
             colors={[stateColor, stateColor + "40"]}

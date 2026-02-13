@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,6 +18,8 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
 import Logo from "../components/Logo";
 import GlassCard from "../components/GlassCard";
+import GradientHeader from "../components/GradientHeader";
+import GradientButton from "../components/GradientButton";
 
 type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
 
@@ -60,7 +63,7 @@ function StatCard({
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
     >
-      <GlassCard>
+      <GlassCard opaque>
         <View className="flex-row">
           <LinearGradient
             colors={[accentColor, accentColor + "40"]}
@@ -115,7 +118,7 @@ function getGreeting(): string {
 
 export default function HomeScreen(): React.JSX.Element {
   const { theme } = useTheme();
-  const { projectList } = useProject();
+  const { projectList, isLoadingProjects, refreshProjects } = useProject();
   const navigation: HomeNavProp = useNavigation<HomeNavProp>();
 
   const {
@@ -131,8 +134,76 @@ export default function HomeScreen(): React.JSX.Element {
 
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
-    await refetch();
+    await Promise.all([refetch(), refreshProjects()]);
   };
+
+  // No projects state
+  if (!isLoadingProjects && projectList.length === 0) {
+    return (
+      <ScrollView
+        className="bg-bg-primary"
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.actionPrimary}
+          />
+        }
+      >
+        <GradientHeader height={400} />
+        <View className="flex-1 items-center justify-center px-8">
+          <View
+            className="w-28 h-28 rounded-full items-center justify-center mb-6"
+            style={{ backgroundColor: theme.colors.surfaceGlow }}
+          >
+            <View
+              className="w-20 h-20 rounded-[22px] items-center justify-center"
+              style={{
+                backgroundColor: theme.colors.accentGradientStart + "18",
+                shadowColor: theme.colors.accentGradientStart,
+                shadowOpacity: 0.2,
+                shadowOffset: { width: 0, height: 8 },
+                shadowRadius: 24,
+                elevation: 8,
+              }}
+            >
+              <Logo size={48} />
+            </View>
+          </View>
+
+          <Text
+            className="text-title-lg text-text-primary text-center"
+            style={{ letterSpacing: -0.5 }}
+          >
+            No Projects Found
+          </Text>
+          <Text className="text-body-md text-text-secondary text-center mt-3 leading-6 max-w-[300px]">
+            You don&apos;t have access to any projects. Contact your
+            administrator or pull to refresh.
+          </Text>
+
+          <View className="mt-8 w-[200px]">
+            <GradientButton
+              label="Retry"
+              onPress={refreshProjects}
+              icon="refresh-outline"
+            />
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  // Loading state
+  if (isLoadingProjects) {
+    return (
+      <View className="flex-1 bg-bg-primary items-center justify-center">
+        <GradientHeader height={400} />
+        <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
+      </View>
+    );
+  }
 
   const subtitle: string =
     projectList.length === 1

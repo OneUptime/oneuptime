@@ -70,7 +70,7 @@ export default function EpisodeCard(
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <GlassCard>
+      <GlassCard opaque>
         <View className="flex-row">
           <LinearGradient
             colors={[stateColor, stateColor + "40"]}

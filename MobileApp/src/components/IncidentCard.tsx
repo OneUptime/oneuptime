@@ -48,7 +48,7 @@ export default function IncidentCard({
       accessibilityRole="button"
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
     >
-      <GlassCard>
+      <GlassCard opaque>
         <View className="flex-row">
           <LinearGradient
             colors={[stateColor, stateColor + "40"]}
