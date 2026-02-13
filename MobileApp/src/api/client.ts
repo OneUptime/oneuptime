@@ -13,6 +13,42 @@ import {
   type StoredTokens,
 } from "../storage/keychain";
 
+/**
+ * Recursively normalizes OneUptime API serialized types in response data.
+ * Converts { _type: "ObjectID", value: "uuid" } → "uuid"
+ * Converts { _type: "DateTime", value: "iso-string" } → "iso-string"
+ */
+function normalizeResponseData(data: unknown): unknown {
+  if (data === null || data === undefined) {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(normalizeResponseData);
+  }
+
+  if (typeof data === "object") {
+    const obj: Record<string, unknown> = data as Record<string, unknown>;
+
+    // Check for serialized OneUptime types
+    if (
+      typeof obj["_type"] === "string" &&
+      typeof obj["value"] === "string" &&
+      (obj["_type"] === "ObjectID" || obj["_type"] === "DateTime")
+    ) {
+      return obj["value"];
+    }
+
+    const normalized: Record<string, unknown> = {};
+    for (const key in obj) {
+      normalized[key] = normalizeResponseData(obj[key]);
+    }
+    return normalized;
+  }
+
+  return data;
+}
+
 let isRefreshing: boolean = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
 let onAuthFailure: (() => void) | null = null;
@@ -55,9 +91,10 @@ apiClient.interceptors.request.use(
   },
 );
 
-// Response interceptor: handle 401 with token refresh queue
+// Response interceptor: normalize OneUptime serialized types then handle 401
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    response.data = normalizeResponseData(response.data);
     return response;
   },
   async (error: AxiosError) => {
