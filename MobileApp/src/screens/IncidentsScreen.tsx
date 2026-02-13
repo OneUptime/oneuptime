@@ -360,6 +360,7 @@ export default function IncidentsScreen(): React.JSX.Element {
       {segment === "incidents" ? (
         <SectionList
           sections={incidentSections}
+          style={{ flex: 1 }}
           keyExtractor={(wrapped: ProjectIncidentItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
@@ -439,6 +440,7 @@ export default function IncidentsScreen(): React.JSX.Element {
       ) : (
         <SectionList
           sections={episodeSections}
+          style={{ flex: 1 }}
           keyExtractor={(wrapped: ProjectIncidentEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}

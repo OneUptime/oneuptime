@@ -355,6 +355,7 @@ export default function AlertsScreen(): React.JSX.Element {
       {segment === "alerts" ? (
         <SectionList
           sections={alertSections}
+          style={{ flex: 1 }}
           keyExtractor={(wrapped: ProjectAlertItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
@@ -433,6 +434,7 @@ export default function AlertsScreen(): React.JSX.Element {
       ) : (
         <SectionList
           sections={episodeSections}
+          style={{ flex: 1 }}
           keyExtractor={(wrapped: ProjectAlertEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
