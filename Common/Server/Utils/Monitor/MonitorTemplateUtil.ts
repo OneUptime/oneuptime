@@ -14,6 +14,9 @@ import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/S
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import DnsMonitorResponse, {
+  DnsRecordResponse,
+} from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import Typeof from "../../../Types/Typeof";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
@@ -238,6 +241,40 @@ export default class MonitorTemplateUtil {
               storageMap[oidResponse.name] = oidResponse.value;
             }
           }
+        }
+      }
+
+      if (data.monitorType === MonitorType.DNS) {
+        const dnsResponse: DnsMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).dnsResponse;
+
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          responseTimeInMs: dnsResponse?.responseTimeInMs,
+          failureCause: dnsResponse?.failureCause,
+          isTimeout: dnsResponse?.isTimeout,
+          isDnssecValid: dnsResponse?.isDnssecValid,
+        } as JSONObject;
+
+        // Add DNS records
+        if (dnsResponse?.records) {
+          storageMap["records"] = dnsResponse.records.map(
+            (record: DnsRecordResponse) => {
+              return {
+                type: record.type,
+                value: record.value,
+                ttl: record.ttl,
+              };
+            },
+          );
+
+          // Add record values as a flat array for easier templating
+          storageMap["recordValues"] = dnsResponse.records.map(
+            (record: DnsRecordResponse) => {
+              return record.value;
+            },
+          );
         }
       }
     } catch (err) {

@@ -521,6 +521,19 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           },
         ],
       },
+      {
+        name: "dnsMonitor",
+        type: "MonitorStepDnsMonitor",
+        required: false,
+        description:
+          "Configuration for DNS monitoring. Required for DNS monitor type. Defines query name (domain), record type, optional DNS server, port, timeout, and retry settings. See MonitorStepDnsMonitor.",
+        typeLinks: [
+          {
+            label: "MonitorStepDnsMonitor",
+            path: "monitor-step-dns-monitor",
+          },
+        ],
+      },
     ],
     values: [],
     jsonExample: JSON.stringify(
@@ -2561,6 +2574,31 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           "Whether the SNMP device is reachable. Use with 'True' or 'False'. Applies to: SNMP monitors.",
       },
       {
+        value: "DNS Response Time (in ms)",
+        description:
+          "The DNS query response time in milliseconds. Use with numeric FilterTypes. Applies to: DNS monitors.",
+      },
+      {
+        value: "DNS Is Online",
+        description:
+          "Whether the DNS resolution succeeded. Use with 'True' or 'False'. Applies to: DNS monitors.",
+      },
+      {
+        value: "DNS Record Value",
+        description:
+          "The value of a DNS record returned by the query. Use with string FilterTypes (Contains, EqualTo, etc.). Applies to: DNS monitors.",
+      },
+      {
+        value: "DNSSEC Is Valid",
+        description:
+          "Whether DNSSEC validation passed (AD flag present). Use with 'True' or 'False'. Applies to: DNS monitors.",
+      },
+      {
+        value: "DNS Record Exists",
+        description:
+          "Whether any DNS records were returned for the query. Use with 'True' or 'False'. Applies to: DNS monitors.",
+      },
+      {
         value: "JavaScript Expression",
         description:
           "A JavaScript expression to evaluate against the monitor result. Use with 'Evaluates To True'. Applies to: Custom JavaScript Code monitors.",
@@ -3104,6 +3142,94 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
               description: "Inbound traffic on interface 1",
             },
           ],
+          timeout: 5000,
+          retries: 3,
+        },
+      },
+      null,
+      2,
+    ),
+  },
+  "monitor-step-dns-monitor": {
+    title: "MonitorStepDnsMonitor",
+    description:
+      "Configuration for a DNS monitor step. Defines the domain to query, record type, optional custom DNS server, and timeout settings. Used as the 'dnsMonitor' property on a MonitorStep when the monitor type is 'DNS'. The criteria filters can then use 'DNS Is Online', 'DNS Response Time (in ms)', 'DNS Record Value', 'DNSSEC Is Valid', and 'DNS Record Exists' as CheckOn values.",
+    isEnum: false,
+    relatedTypes: [
+      {
+        name: "MonitorStep",
+        path: "monitor-step",
+        relationship: "Parent that holds this as dnsMonitor property",
+      },
+      {
+        name: "CheckOn",
+        path: "check-on",
+        relationship: "Use DNS-specific CheckOn values with DNS monitors",
+      },
+    ],
+    properties: [
+      {
+        name: "queryName",
+        type: "string",
+        required: true,
+        description:
+          "The domain name to query (e.g., 'example.com').",
+      },
+      {
+        name: "recordType",
+        type: "string (enum)",
+        required: true,
+        description:
+          "The DNS record type to query. Possible values: 'A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SOA', 'PTR', 'SRV', 'CAA'.",
+      },
+      {
+        name: "hostname",
+        type: "string",
+        required: false,
+        description:
+          "Custom DNS server to use for the query (e.g., '8.8.8.8'). Leave empty to use system default DNS resolver.",
+      },
+      {
+        name: "port",
+        type: "number",
+        required: false,
+        description: "DNS port. Default is 53.",
+      },
+      {
+        name: "timeout",
+        type: "number",
+        required: false,
+        description:
+          "Timeout for DNS queries in milliseconds. Default is 5000 (5 seconds).",
+      },
+      {
+        name: "retries",
+        type: "number",
+        required: false,
+        description: "Number of retries for failed DNS queries. Default is 3.",
+      },
+    ],
+    values: [],
+    jsonExample: JSON.stringify(
+      {
+        "// Example 1: Basic A record lookup": {
+          queryName: "example.com",
+          recordType: "A",
+          timeout: 5000,
+          retries: 3,
+        },
+        "// Example 2: MX record with custom DNS server": {
+          queryName: "example.com",
+          recordType: "MX",
+          hostname: "8.8.8.8",
+          port: 53,
+          timeout: 5000,
+          retries: 3,
+        },
+        "// Example 3: TXT record for SPF verification": {
+          queryName: "example.com",
+          recordType: "TXT",
+          hostname: "1.1.1.1",
           timeout: 5000,
           retries: 3,
         },
