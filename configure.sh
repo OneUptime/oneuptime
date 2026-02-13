@@ -162,7 +162,7 @@ clone_oneuptime() {
 setup_tsnode() {
     if ! command_exists ts-node; then
         print_info "Installing ts-node..."
-        sudo npm install -g ts-node
+        sudo "$(which npm)" install -g ts-node
     fi
 }
 
