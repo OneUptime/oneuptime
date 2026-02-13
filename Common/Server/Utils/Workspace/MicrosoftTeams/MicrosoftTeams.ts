@@ -780,9 +780,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     const workspaceChannels: Array<WorkspaceChannel> = [];
 
-    for (let channelName of data.channelNames) {
-      // Normalize channel name: replace spaces with hyphens, then strip
-      // characters not valid in Teams channel names (e.g. #, %, &, *, etc.).
+    for (const channelName of data.channelNames) {
+      /*
+       * Normalize channel name: replace spaces with hyphens, then strip
+       * characters not valid in Teams channel names (e.g. #, %, &, *, etc.).
+       */
       const normalizedChannelName: string = channelName
         .replace(/\s+/g, "-")
         .replace(/[^a-zA-Z0-9\-_]/g, "");

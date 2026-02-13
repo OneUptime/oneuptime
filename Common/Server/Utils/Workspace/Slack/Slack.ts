@@ -442,8 +442,10 @@ export default class SlackUtil extends WorkspaceBase {
     const workspaceChannels: Array<WorkspaceChannel> = [];
 
     for (let channelName of data.channelNames) {
-      // Normalize channel name: replace spaces with hyphens, then strip
-      // any characters not valid in Slack channel names.
+      /*
+       * Normalize channel name: replace spaces with hyphens, then strip
+       * any characters not valid in Slack channel names.
+       */
       channelName = channelName
         .toLowerCase()
         .replace(/\s+/g, "-")
@@ -1345,8 +1347,10 @@ export default class SlackUtil extends WorkspaceBase {
     channelName: string;
     projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
-    // Sanitize channel name: Slack only allows lowercase letters, numbers,
-    // hyphens, and underscores. Remove all other characters (including #).
+    /*
+     * Sanitize channel name: Slack only allows lowercase letters, numbers,
+     * hyphens, and underscores. Remove all other characters (including #).
+     */
     data.channelName = data.channelName
       .toLowerCase()
       .replace(/[^a-z0-9\-_]/g, "");
