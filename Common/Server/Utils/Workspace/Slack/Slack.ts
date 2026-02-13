@@ -442,12 +442,12 @@ export default class SlackUtil extends WorkspaceBase {
     const workspaceChannels: Array<WorkspaceChannel> = [];
 
     for (let channelName of data.channelNames) {
-      // Normalize channel name
-      if (channelName && channelName.startsWith("#")) {
-        channelName = channelName.substring(1);
-      }
-      channelName = channelName.toLowerCase();
-      channelName = channelName.replace(/\s+/g, "-");
+      // Normalize channel name: replace spaces with hyphens, then strip
+      // any characters not valid in Slack channel names.
+      channelName = channelName
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\-_]/g, "");
 
       // Check if channel exists using optimized method
       const existingChannel: WorkspaceChannel | null =
@@ -1345,12 +1345,11 @@ export default class SlackUtil extends WorkspaceBase {
     channelName: string;
     projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
-    if (data.channelName && data.channelName.startsWith("#")) {
-      data.channelName = data.channelName.substring(1);
-    }
-
-    // lower case channel name
-    data.channelName = data.channelName.toLowerCase();
+    // Sanitize channel name: Slack only allows lowercase letters, numbers,
+    // hyphens, and underscores. Remove all other characters (including #).
+    data.channelName = data.channelName
+      .toLowerCase()
+      .replace(/[^a-z0-9\-_]/g, "");
 
     logger.debug("Creating channel with data:");
     logger.debug(data);

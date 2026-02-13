@@ -1805,9 +1805,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         logger.debug("New channel template name:");
         logger.debug(notificationChannels);
 
+        // Sanitize the suffix for workspace channel names.
+        // When no custom prefix is set, the default "#" prefix (e.g. "#42") produces
+        // invalid Slack channel names (e.g. "oneuptime-alert-#42"). Strip characters
+        // that are not valid in Slack/Teams channel names.
+        const sanitizedSuffix: string = data.channelNameSiffix
+          .toLowerCase()
+          .replace(/[^a-z0-9\-_]/g, "");
+
         // add suffix and then check if it is already added or not.
         const channelName: string =
-          notificationChannels + data.channelNameSiffix;
+          notificationChannels + sanitizedSuffix;
 
         logger.debug("Final channel name with suffix:");
         logger.debug(channelName);
