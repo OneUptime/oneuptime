@@ -1,12 +1,14 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
-  FlatList,
+  SectionList,
   RefreshControl,
   TouchableOpacity,
   Text,
-  ListRenderItemInfo,
+  SectionListRenderItemInfo,
+  DefaultSectionT,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
@@ -38,6 +40,69 @@ type NavProp = NativeStackNavigationProp<
   "IncidentsList"
 >;
 
+interface IncidentSection {
+  title: string;
+  isActive: boolean;
+  data: ProjectIncidentItem[];
+}
+
+interface EpisodeSection {
+  title: string;
+  isActive: boolean;
+  data: ProjectIncidentEpisodeItem[];
+}
+
+function SectionHeader({
+  title,
+  count,
+  isActive,
+}: {
+  title: string;
+  count: number;
+  isActive: boolean;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View className="flex-row items-center pb-2 pt-1 bg-bg-primary">
+      <Ionicons
+        name={isActive ? "flame" : "checkmark-done"}
+        size={14}
+        color={isActive ? theme.colors.severityCritical : theme.colors.textTertiary}
+        style={{ marginRight: 6 }}
+      />
+      <Text
+        className="text-[13px] font-semibold uppercase tracking-wide"
+        style={{
+          color: isActive
+            ? theme.colors.textPrimary
+            : theme.colors.textTertiary,
+        }}
+      >
+        {title}
+      </Text>
+      <View
+        className="ml-2 px-1.5 py-0.5 rounded-full"
+        style={{
+          backgroundColor: isActive
+            ? theme.colors.severityCritical + "1A"
+            : theme.colors.backgroundTertiary,
+        }}
+      >
+        <Text
+          className="text-[11px] font-bold"
+          style={{
+            color: isActive
+              ? theme.colors.severityCritical
+              : theme.colors.textTertiary,
+          }}
+        >
+          {count}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function IncidentsScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const navigation: NavProp = useNavigation<NavProp>();
@@ -62,11 +127,80 @@ export default function IncidentsScreen(): React.JSX.Element {
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
   const queryClient: QueryClient = useQueryClient();
 
-  const incidents: ProjectIncidentItem[] = allIncidents.slice(0, visibleCount);
-  const episodes: ProjectIncidentEpisodeItem[] = allEpisodes.slice(
-    0,
-    visibleEpisodeCount,
-  );
+  const resolvedStateIds: Set<string> = useMemo(() => {
+    const ids: Set<string> = new Set();
+    statesMap.forEach((states: IncidentState[]) => {
+      states.forEach((s: IncidentState) => {
+        if (s.isResolvedState) {
+          ids.add(s._id);
+        }
+      });
+    });
+    return ids;
+  }, [statesMap]);
+
+  const incidentSections: IncidentSection[] = useMemo(() => {
+    const active: ProjectIncidentItem[] = [];
+    const resolved: ProjectIncidentItem[] = [];
+    for (const wrapped of allIncidents) {
+      const stateId: string | undefined =
+        wrapped.item.currentIncidentState?._id;
+      if (stateId && resolvedStateIds.has(stateId)) {
+        resolved.push(wrapped);
+      } else {
+        active.push(wrapped);
+      }
+    }
+    const sections: IncidentSection[] = [];
+    if (active.length > 0) {
+      sections.push({
+        title: "Active",
+        isActive: true,
+        data: active.slice(0, visibleCount),
+      });
+    }
+    if (resolved.length > 0) {
+      sections.push({
+        title: "Resolved",
+        isActive: false,
+        data: resolved.slice(0, visibleCount),
+      });
+    }
+    return sections;
+  }, [allIncidents, resolvedStateIds, visibleCount]);
+
+  const episodeSections: EpisodeSection[] = useMemo(() => {
+    const active: ProjectIncidentEpisodeItem[] = [];
+    const resolved: ProjectIncidentEpisodeItem[] = [];
+    for (const wrapped of allEpisodes) {
+      const stateId: string | undefined =
+        wrapped.item.currentIncidentState?._id;
+      if (stateId && resolvedStateIds.has(stateId)) {
+        resolved.push(wrapped);
+      } else {
+        active.push(wrapped);
+      }
+    }
+    const sections: EpisodeSection[] = [];
+    if (active.length > 0) {
+      sections.push({
+        title: "Active",
+        isActive: true,
+        data: active.slice(0, visibleEpisodeCount),
+      });
+    }
+    if (resolved.length > 0) {
+      sections.push({
+        title: "Resolved",
+        isActive: false,
+        data: resolved.slice(0, visibleEpisodeCount),
+      });
+    }
+    return sections;
+  }, [allEpisodes, resolvedStateIds, visibleEpisodeCount]);
+
+  const totalIncidentCount: number = allIncidents.length;
+  const totalEpisodeCount: number = allEpisodes.length;
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
@@ -81,19 +215,19 @@ export default function IncidentsScreen(): React.JSX.Element {
 
   const loadMore: () => void = useCallback(() => {
     if (segment === "incidents") {
-      if (visibleCount < allIncidents.length) {
+      if (visibleCount < totalIncidentCount) {
         setVisibleCount((prev: number) => {
           return prev + PAGE_SIZE;
         });
       }
     } else {
-      if (visibleEpisodeCount < allEpisodes.length) {
+      if (visibleEpisodeCount < totalEpisodeCount) {
         setVisibleEpisodeCount((prev: number) => {
           return prev + PAGE_SIZE;
         });
       }
     }
-  }, [segment, visibleCount, allIncidents.length, visibleEpisodeCount, allEpisodes.length]);
+  }, [segment, visibleCount, totalIncidentCount, visibleEpisodeCount, totalEpisodeCount]);
 
   const handlePress: (wrapped: ProjectIncidentItem) => void = useCallback(
     (wrapped: ProjectIncidentItem) => {
@@ -224,17 +358,35 @@ export default function IncidentsScreen(): React.JSX.Element {
         onSelect={setSegment}
       />
       {segment === "incidents" ? (
-        <FlatList
-          data={incidents}
+        <SectionList
+          sections={incidentSections}
           keyExtractor={(wrapped: ProjectIncidentItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
           contentContainerStyle={
-            incidents.length === 0 ? { flex: 1 } : { padding: 16 }
+            incidentSections.length === 0 ? { flex: 1 } : { padding: 16 }
           }
+          renderSectionHeader={({
+            section,
+          }: {
+            section: DefaultSectionT & IncidentSection;
+          }) => {
+            return (
+              <SectionHeader
+                title={section.title}
+                count={section.data.length}
+                isActive={section.isActive}
+              />
+            );
+          }}
           renderItem={({
             item: wrapped,
-          }: ListRenderItemInfo<ProjectIncidentItem>) => {
+            section,
+          }: SectionListRenderItemInfo<
+            ProjectIncidentItem,
+            DefaultSectionT & IncidentSection
+          >) => {
+            const isResolved: boolean = !section.isActive;
             const projectStates: IncidentState[] | undefined = statesMap.get(
               wrapped.projectId,
             );
@@ -245,6 +397,7 @@ export default function IncidentsScreen(): React.JSX.Element {
             return (
               <SwipeableCard
                 rightAction={
+                  !isResolved &&
                   acknowledgeState &&
                   wrapped.item.currentIncidentState?._id !==
                     acknowledgeState._id
@@ -261,6 +414,7 @@ export default function IncidentsScreen(): React.JSX.Element {
                 <IncidentCard
                   incident={wrapped.item}
                   projectName={wrapped.projectName}
+                  muted={isResolved}
                   onPress={() => {
                     return handlePress(wrapped);
                   }}
@@ -270,11 +424,12 @@ export default function IncidentsScreen(): React.JSX.Element {
           }}
           ListEmptyComponent={
             <EmptyState
-              title="No active incidents"
+              title="No incidents"
               subtitle="Incidents assigned to you will appear here."
               icon="incidents"
             />
           }
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl refreshing={false} onRefresh={onRefresh} />
           }
@@ -282,22 +437,41 @@ export default function IncidentsScreen(): React.JSX.Element {
           onEndReachedThreshold={0.5}
         />
       ) : (
-        <FlatList
-          data={episodes}
+        <SectionList
+          sections={episodeSections}
           keyExtractor={(wrapped: ProjectIncidentEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
           contentContainerStyle={
-            episodes.length === 0 ? { flex: 1 } : { padding: 16 }
+            episodeSections.length === 0 ? { flex: 1 } : { padding: 16 }
           }
+          renderSectionHeader={({
+            section,
+          }: {
+            section: DefaultSectionT & EpisodeSection;
+          }) => {
+            return (
+              <SectionHeader
+                title={section.title}
+                count={section.data.length}
+                isActive={section.isActive}
+              />
+            );
+          }}
           renderItem={({
             item: wrapped,
-          }: ListRenderItemInfo<ProjectIncidentEpisodeItem>) => {
+            section,
+          }: SectionListRenderItemInfo<
+            ProjectIncidentEpisodeItem,
+            DefaultSectionT & EpisodeSection
+          >) => {
+            const isResolved: boolean = !section.isActive;
             return (
               <EpisodeCard
                 episode={wrapped.item}
                 type="incident"
                 projectName={wrapped.projectName}
+                muted={isResolved}
                 onPress={() => {
                   return handleEpisodePress(wrapped);
                 }}
@@ -311,6 +485,7 @@ export default function IncidentsScreen(): React.JSX.Element {
               icon="episodes"
             />
           }
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl refreshing={false} onRefresh={onRefresh} />
           }

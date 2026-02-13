@@ -11,12 +11,14 @@ interface AlertCardProps {
   alert: AlertItem;
   onPress: () => void;
   projectName?: string;
+  muted?: boolean;
 }
 
 export default function AlertCard({
   alert,
   onPress,
   projectName,
+  muted,
 }: AlertCardProps): React.JSX.Element {
   const { theme } = useTheme();
 
@@ -34,6 +36,7 @@ export default function AlertCard({
     <TouchableOpacity
       className="rounded-2xl mb-3 bg-bg-elevated border border-border-subtle overflow-hidden"
       style={{
+        opacity: muted ? 0.55 : 1,
         shadowColor: "#000",
         shadowOpacity: 0.04,
         shadowOffset: { width: 0, height: 2 },

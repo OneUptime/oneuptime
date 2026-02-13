@@ -11,12 +11,14 @@ interface IncidentCardProps {
   incident: IncidentItem;
   onPress: () => void;
   projectName?: string;
+  muted?: boolean;
 }
 
 export default function IncidentCard({
   incident,
   onPress,
   projectName,
+  muted,
 }: IncidentCardProps): React.JSX.Element {
   const { theme } = useTheme();
 
@@ -37,6 +39,7 @@ export default function IncidentCard({
     <TouchableOpacity
       className="rounded-2xl mb-3 bg-bg-elevated border border-border-subtle overflow-hidden"
       style={{
+        opacity: muted ? 0.55 : 1,
         shadowColor: "#000",
         shadowOpacity: 0.04,
         shadowOffset: { width: 0, height: 2 },

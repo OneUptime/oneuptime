@@ -16,18 +16,20 @@ type EpisodeCardProps =
       type: "incident";
       onPress: () => void;
       projectName?: string;
+      muted?: boolean;
     }
   | {
       episode: AlertEpisodeItem;
       type: "alert";
       onPress: () => void;
       projectName?: string;
+      muted?: boolean;
     };
 
 export default function EpisodeCard(
   props: EpisodeCardProps,
 ): React.JSX.Element {
-  const { episode, type, onPress, projectName } = props;
+  const { episode, type, onPress, projectName, muted } = props;
   const { theme } = useTheme();
 
   const state: NamedEntityWithColor =
@@ -61,6 +63,7 @@ export default function EpisodeCard(
     <TouchableOpacity
       className="rounded-2xl mb-3 bg-bg-elevated border border-border-subtle overflow-hidden"
       style={{
+        opacity: muted ? 0.55 : 1,
         shadowColor: "#000",
         shadowOpacity: 0.04,
         shadowOffset: { width: 0, height: 2 },
