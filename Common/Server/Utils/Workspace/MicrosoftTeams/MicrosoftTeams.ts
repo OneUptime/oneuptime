@@ -781,12 +781,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const workspaceChannels: Array<WorkspaceChannel> = [];
 
     for (let channelName of data.channelNames) {
-      // Normalize channel name - Teams has different naming requirements
-      if (channelName && channelName.startsWith("#")) {
-        channelName = channelName.substring(1);
-      }
-      // Teams channels cannot have spaces in the name for some operations
-      const normalizedChannelName: string = channelName.replace(/\s+/g, "-");
+      // Normalize channel name: replace spaces with hyphens, then strip
+      // characters not valid in Teams channel names (e.g. #, %, &, *, etc.).
+      const normalizedChannelName: string = channelName
+        .replace(/\s+/g, "-")
+        .replace(/[^a-zA-Z0-9\-_]/g, "");
 
       // Check if channel exists
       const existingChannel: WorkspaceChannel | null =
@@ -838,6 +837,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     teamId: string; // Required team ID
   }): Promise<WorkspaceChannel> {
     const teamId: string = data.teamId;
+
+    // Sanitize channel name: strip characters not valid in Teams channel names.
+    data.channelName = data.channelName.replace(/[^a-zA-Z0-9\-_\s]/g, "");
 
     // Get valid access token
     const accessToken: string = await this.getValidAccessToken({
