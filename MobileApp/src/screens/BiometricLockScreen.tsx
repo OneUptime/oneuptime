@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { View, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import * as LocalAuthentication from "expo-local-authentication";
 import Logo from "../components/Logo";

@@ -32,12 +32,7 @@ import SectionHeader from "../components/SectionHeader";
 import NotesSection from "../components/NotesSection";
 import GlassCard from "../components/GlassCard";
 import { useHaptics } from "../hooks/useHaptics";
-import type {
-  IncidentItem,
-  IncidentState,
-  NoteItem,
-  NamedEntity,
-} from "../api/types";
+import type { IncidentItem, IncidentState, NamedEntity } from "../api/types";
 
 type Props = NativeStackScreenProps<IncidentsStackParamList, "IncidentDetail">;
 

@@ -27,7 +27,7 @@ import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import type { AlertState, NoteItem } from "../api/types";
+import type { AlertState } from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";

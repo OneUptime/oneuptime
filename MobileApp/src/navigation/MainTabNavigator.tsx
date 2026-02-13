@@ -27,11 +27,7 @@ function TabIcon({
 }): React.JSX.Element {
   return (
     <View className="items-center">
-      <Ionicons
-        name={focused ? focusedName : name}
-        size={24}
-        color={color}
-      />
+      <Ionicons name={focused ? focusedName : name} size={24} color={color} />
       {focused ? (
         <View
           className="w-1 h-1 rounded-full mt-1"

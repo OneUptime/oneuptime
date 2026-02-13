@@ -34,9 +34,7 @@ export default function EmptyState({
   return (
     <View className="flex-1 items-center justify-center px-10 py-28">
       {/* Outer gradient glow ring */}
-      <View
-        className="w-28 h-28 rounded-full items-center justify-center overflow-hidden"
-      >
+      <View className="w-28 h-28 rounded-full items-center justify-center overflow-hidden">
         <View
           style={{
             position: "absolute",

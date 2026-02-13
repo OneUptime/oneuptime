@@ -79,75 +79,78 @@ export default function EpisodeCard(
             style={{ width: 3 }}
           />
           <View className="flex-1 p-4">
-          {projectName ? (
-            <View className="mb-2">
-              <ProjectBadge name={projectName} />
-            </View>
-          ) : null}
-          <View className="flex-row justify-between items-center mb-2">
-            <View
-              className="px-2.5 py-0.5 rounded-full"
-              style={{ backgroundColor: theme.colors.backgroundTertiary }}
-            >
-              <Text className="text-[12px] font-semibold text-text-tertiary">
-                {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
-              </Text>
-            </View>
-            <Text className="text-[12px] text-text-tertiary">{timeString}</Text>
-          </View>
-
-          <Text
-            className="text-body-lg text-text-primary font-semibold mt-0.5"
-            numberOfLines={2}
-          >
-            {episode.title}
-          </Text>
-
-          <View className="flex-row flex-wrap gap-2 mt-3">
-            {state ? (
-              <View
-                className="flex-row items-center px-2.5 py-1 rounded-full"
-                style={{
-                  backgroundColor: theme.colors.backgroundTertiary,
-                }}
-              >
-                <View
-                  className="w-2 h-2 rounded-full mr-1.5"
-                  style={{ backgroundColor: stateColor }}
-                />
-                <Text className="text-[12px] font-semibold text-text-primary">
-                  {state.name}
-                </Text>
+            {projectName ? (
+              <View className="mb-2">
+                <ProjectBadge name={projectName} />
               </View>
             ) : null}
-
-            {severity ? (
+            <View className="flex-row justify-between items-center mb-2">
               <View
-                className="flex-row items-center px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: severityColor + "15" }}
-              >
-                <Text
-                  className="text-[12px] font-semibold"
-                  style={{ color: severityColor }}
-                >
-                  {severity.name}
-                </Text>
-              </View>
-            ) : null}
-
-            {childCount > 0 ? (
-              <View
-                className="flex-row items-center px-2.5 py-1 rounded-full"
+                className="px-2.5 py-0.5 rounded-full"
                 style={{ backgroundColor: theme.colors.backgroundTertiary }}
               >
-                <Text className="text-[12px] font-semibold text-text-secondary">
-                  {childCount} {type === "incident" ? "incident" : "alert"}
-                  {childCount !== 1 ? "s" : ""}
+                <Text className="text-[12px] font-semibold text-text-tertiary">
+                  {episode.episodeNumberWithPrefix ||
+                    `#${episode.episodeNumber}`}
                 </Text>
               </View>
-            ) : null}
+              <Text className="text-[12px] text-text-tertiary">
+                {timeString}
+              </Text>
+            </View>
+
+            <Text
+              className="text-body-lg text-text-primary font-semibold mt-0.5"
+              numberOfLines={2}
+            >
+              {episode.title}
+            </Text>
+
+            <View className="flex-row flex-wrap gap-2 mt-3">
+              {state ? (
+                <View
+                  className="flex-row items-center px-2.5 py-1 rounded-full"
+                  style={{
+                    backgroundColor: theme.colors.backgroundTertiary,
+                  }}
+                >
+                  <View
+                    className="w-2 h-2 rounded-full mr-1.5"
+                    style={{ backgroundColor: stateColor }}
+                  />
+                  <Text className="text-[12px] font-semibold text-text-primary">
+                    {state.name}
+                  </Text>
+                </View>
+              ) : null}
+
+              {severity ? (
+                <View
+                  className="flex-row items-center px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: severityColor + "15" }}
+                >
+                  <Text
+                    className="text-[12px] font-semibold"
+                    style={{ color: severityColor }}
+                  >
+                    {severity.name}
+                  </Text>
+                </View>
+              ) : null}
+
+              {childCount > 0 ? (
+                <View
+                  className="flex-row items-center px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                >
+                  <Text className="text-[12px] font-semibold text-text-secondary">
+                    {childCount} {type === "incident" ? "incident" : "alert"}
+                    {childCount !== 1 ? "s" : ""}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
-        </View>
         </View>
       </GlassCard>
     </TouchableOpacity>

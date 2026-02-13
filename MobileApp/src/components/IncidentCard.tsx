@@ -57,85 +57,87 @@ export default function IncidentCard({
             style={{ width: 3 }}
           />
           <View className="flex-1 p-4">
-          {projectName ? (
-            <View className="mb-2">
-              <ProjectBadge name={projectName} />
+            {projectName ? (
+              <View className="mb-2">
+                <ProjectBadge name={projectName} />
+              </View>
+            ) : null}
+            <View className="flex-row justify-between items-center mb-2">
+              <View
+                className="px-2.5 py-0.5 rounded-full"
+                style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              >
+                <Text className="text-[12px] font-semibold text-text-tertiary">
+                  {incident.incidentNumberWithPrefix ||
+                    `#${incident.incidentNumber}`}
+                </Text>
+              </View>
+              <Text className="text-[12px] text-text-tertiary">
+                {timeString}
+              </Text>
             </View>
-          ) : null}
-          <View className="flex-row justify-between items-center mb-2">
-            <View
-              className="px-2.5 py-0.5 rounded-full"
-              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+
+            <Text
+              className="text-body-lg text-text-primary font-semibold mt-0.5"
+              numberOfLines={2}
             >
-              <Text className="text-[12px] font-semibold text-text-tertiary">
-                {incident.incidentNumberWithPrefix ||
-                  `#${incident.incidentNumber}`}
-              </Text>
-            </View>
-            <Text className="text-[12px] text-text-tertiary">{timeString}</Text>
-          </View>
+              {incident.title}
+            </Text>
 
-          <Text
-            className="text-body-lg text-text-primary font-semibold mt-0.5"
-            numberOfLines={2}
-          >
-            {incident.title}
-          </Text>
-
-          <View className="flex-row flex-wrap gap-2 mt-3">
-            {incident.currentIncidentState ? (
-              <View
-                className="flex-row items-center px-2.5 py-1 rounded-full"
-                style={{
-                  backgroundColor: theme.colors.backgroundTertiary,
-                }}
-              >
+            <View className="flex-row flex-wrap gap-2 mt-3">
+              {incident.currentIncidentState ? (
                 <View
-                  className="w-2 h-2 rounded-full mr-1.5"
-                  style={{ backgroundColor: stateColor }}
-                />
-                <Text className="text-[12px] font-semibold text-text-primary">
-                  {incident.currentIncidentState.name}
-                </Text>
-              </View>
-            ) : null}
-
-            {incident.incidentSeverity ? (
-              <View
-                className="flex-row items-center px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: severityColor + "15" }}
-              >
-                <Text
-                  className="text-[12px] font-semibold"
-                  style={{ color: severityColor }}
+                  className="flex-row items-center px-2.5 py-1 rounded-full"
+                  style={{
+                    backgroundColor: theme.colors.backgroundTertiary,
+                  }}
                 >
-                  {incident.incidentSeverity.name}
+                  <View
+                    className="w-2 h-2 rounded-full mr-1.5"
+                    style={{ backgroundColor: stateColor }}
+                  />
+                  <Text className="text-[12px] font-semibold text-text-primary">
+                    {incident.currentIncidentState.name}
+                  </Text>
+                </View>
+              ) : null}
+
+              {incident.incidentSeverity ? (
+                <View
+                  className="flex-row items-center px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: severityColor + "15" }}
+                >
+                  <Text
+                    className="text-[12px] font-semibold"
+                    style={{ color: severityColor }}
+                  >
+                    {incident.incidentSeverity.name}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {monitorCount > 0 ? (
+              <View className="flex-row items-center mt-3">
+                <Ionicons
+                  name="desktop-outline"
+                  size={12}
+                  color={theme.colors.textTertiary}
+                  style={{ marginRight: 5 }}
+                />
+                <Text
+                  className="text-[12px] text-text-secondary flex-1"
+                  numberOfLines={1}
+                >
+                  {incident.monitors
+                    .map((m: NamedEntity) => {
+                      return m.name;
+                    })
+                    .join(", ")}
                 </Text>
               </View>
             ) : null}
           </View>
-
-          {monitorCount > 0 ? (
-            <View className="flex-row items-center mt-3">
-              <Ionicons
-                name="desktop-outline"
-                size={12}
-                color={theme.colors.textTertiary}
-                style={{ marginRight: 5 }}
-              />
-              <Text
-                className="text-[12px] text-text-secondary flex-1"
-                numberOfLines={1}
-              >
-                {incident.monitors
-                  .map((m: NamedEntity) => {
-                    return m.name;
-                  })
-                  .join(", ")}
-              </Text>
-            </View>
-          ) : null}
-        </View>
         </View>
       </GlassCard>
     </TouchableOpacity>

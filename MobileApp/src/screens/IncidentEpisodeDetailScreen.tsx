@@ -26,7 +26,7 @@ import {
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { IncidentsStackParamList } from "../navigation/types";
-import type { IncidentState, NoteItem } from "../api/types";
+import type { IncidentState } from "../api/types";
 import { useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
 import FeedTimeline from "../components/FeedTimeline";
