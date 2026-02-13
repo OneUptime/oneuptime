@@ -6,6 +6,7 @@ import {
   useNavigationContainerRef,
 } from "@react-navigation/native";
 import * as Linking from "expo-linking";
+import * as SplashScreen from "expo-splash-screen";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
 import { useProject } from "../hooks/useProject";
@@ -51,6 +52,13 @@ export default function RootNavigator(): React.JSX.Element {
   const [biometricChecked, setBiometricChecked] = useState(false);
 
   usePushNotifications(navigationRef);
+
+  // Hide the native splash screen once initial loading completes
+  useEffect(() => {
+    if (!isLoading && biometricChecked) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoading, biometricChecked]);
 
   // Check biometric on app launch
   useEffect(() => {
