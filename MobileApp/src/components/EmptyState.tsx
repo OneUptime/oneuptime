@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import GradientButton from "./GradientButton";
 
@@ -38,32 +37,28 @@ export default function EmptyState({
       <View
         className="w-28 h-28 rounded-full items-center justify-center overflow-hidden"
       >
-        <LinearGradient
-          colors={[
-            theme.colors.accentGradientStart + "26",
-            theme.colors.accentGradientEnd + "26",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: theme.colors.surfaceGlow,
+            borderRadius: 56,
           }}
         />
         {/* Inner icon container */}
         <View
           className="w-20 h-20 rounded-full items-center justify-center"
           style={{
-            backgroundColor: theme.colors.accentGradientStart + "18",
+            backgroundColor: theme.colors.backgroundTertiary,
           }}
         >
           <Ionicons
             name={iconMap[icon]}
             size={36}
-            color={theme.colors.accentGradientStart}
+            color={theme.colors.textSecondary}
           />
         </View>
       </View>

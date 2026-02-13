@@ -50,20 +50,20 @@ export default function GradientButton({
       >
         <View className="flex-row items-center">
           {loading ? (
-            <ActivityIndicator color={theme.colors.accentGradientStart} />
+            <ActivityIndicator color={theme.colors.textPrimary} />
           ) : (
             <>
               {icon ? (
                 <Ionicons
                   name={icon}
                   size={18}
-                  color={theme.colors.accentGradientStart}
+                  color={theme.colors.textPrimary}
                   style={{ marginRight: 8 }}
                 />
               ) : null}
               <Text
                 className="text-[16px] font-bold"
-                style={{ color: theme.colors.accentGradientStart }}
+                style={{ color: theme.colors.textPrimary }}
               >
                 {label}
               </Text>
@@ -81,10 +81,10 @@ export default function GradientButton({
         {
           opacity: disabled || loading ? 0.6 : 1,
           shadowColor: theme.colors.accentGradientStart,
-          shadowOpacity: 0.4,
-          shadowOffset: { width: 0, height: 6 },
-          shadowRadius: 16,
-          elevation: 6,
+          shadowOpacity: theme.isDark ? 0.15 : 0.2,
+          shadowOffset: { width: 0, height: 4 },
+          shadowRadius: 12,
+          elevation: 4,
         },
         style,
       ]}
@@ -102,18 +102,23 @@ export default function GradientButton({
         className="flex-1 items-center justify-center flex-row"
       >
         {loading ? (
-          <ActivityIndicator color="#FFFFFF" />
+          <ActivityIndicator color={theme.colors.textInverse} />
         ) : (
           <>
             {icon ? (
               <Ionicons
                 name={icon}
                 size={18}
-                color="#FFFFFF"
+                color={theme.colors.textInverse}
                 style={{ marginRight: 8 }}
               />
             ) : null}
-            <Text className="text-[16px] font-bold text-white">{label}</Text>
+            <Text
+              className="text-[16px] font-bold"
+              style={{ color: theme.colors.textInverse }}
+            >
+              {label}
+            </Text>
           </>
         )}
       </LinearGradient>

@@ -160,12 +160,12 @@ export default function HomeScreen(): React.JSX.Element {
             <View
               className="w-20 h-20 rounded-[22px] items-center justify-center"
               style={{
-                backgroundColor: theme.colors.accentGradientStart + "18",
-                shadowColor: theme.colors.accentGradientStart,
-                shadowOpacity: 0.2,
-                shadowOffset: { width: 0, height: 8 },
-                shadowRadius: 24,
-                elevation: 8,
+                backgroundColor: theme.colors.backgroundTertiary,
+                shadowColor: "#000000",
+                shadowOpacity: 0.3,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 16,
+                elevation: 6,
               }}
             >
               <Logo size={48} />
@@ -233,7 +233,7 @@ export default function HomeScreen(): React.JSX.Element {
           <View
             className="w-10 h-10 rounded-full items-center justify-center mr-3"
             style={{
-              backgroundColor: theme.colors.accentGradientStart + "15",
+              backgroundColor: theme.colors.iconBackground,
             }}
           >
             <Logo size={24} />

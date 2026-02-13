@@ -4,17 +4,17 @@
 
 :root {
   --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F9FAFB;
-  --color-bg-tertiary: #F3F4F6;
+  --color-bg-secondary: #F8F8FA;
+  --color-bg-tertiary: #F0F0F2;
   --color-bg-elevated: #FFFFFF;
-  --color-card-accent: rgba(99, 102, 241, 0.10);
-  --color-bg-glass: rgba(255, 255, 255, 0.60);
-  --color-icon-bg: rgba(99, 102, 241, 0.10);
-  --color-border-default: #E5E7EB;
-  --color-border-subtle: #F3F4F6;
-  --color-text-primary: #111827;
-  --color-text-secondary: #6B7280;
-  --color-text-tertiary: #9CA3AF;
+  --color-card-accent: rgba(0, 0, 0, 0.04);
+  --color-bg-glass: rgba(255, 255, 255, 0.85);
+  --color-icon-bg: rgba(0, 0, 0, 0.05);
+  --color-border-default: #E5E5EA;
+  --color-border-subtle: #F0F0F2;
+  --color-text-primary: #111111;
+  --color-text-secondary: #6B6B6B;
+  --color-text-tertiary: #9A9A9A;
   --color-text-inverse: #FFFFFF;
   --color-severity-critical: #CF222E;
   --color-severity-critical-bg: #CF222E1A;
@@ -35,8 +35,8 @@
   --color-oncall-active-bg: #1A7F371A;
   --color-oncall-inactive: #8C959F;
   --color-oncall-inactive-bg: #8C959F1A;
-  --color-action-primary: #6366F1;
-  --color-action-primary-pressed: #4F46E5;
+  --color-action-primary: #1A1A1A;
+  --color-action-primary-pressed: #333333;
   --color-action-destructive: #CF222E;
   --color-action-destructive-pressed: #A40E26;
   --color-status-success: #1A7F37;
@@ -46,19 +46,19 @@
 }
 
 .dark {
-  --color-bg-primary: #0D1117;
-  --color-bg-secondary: #161B22;
-  --color-bg-tertiary: #21262D;
-  --color-bg-elevated: #1C2128;
-  --color-card-accent: rgba(99, 102, 241, 0.15);
-  --color-bg-glass: rgba(255, 255, 255, 0.08);
-  --color-icon-bg: rgba(99, 102, 241, 0.15);
-  --color-border-default: #30363D;
-  --color-border-subtle: #21262D;
-  --color-text-primary: #E6EDF3;
-  --color-text-secondary: #8B949E;
-  --color-text-tertiary: #6E7681;
-  --color-text-inverse: #0D1117;
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #0A0A0A;
+  --color-bg-tertiary: #161616;
+  --color-bg-elevated: #0F0F0F;
+  --color-card-accent: rgba(255, 255, 255, 0.07);
+  --color-bg-glass: rgba(255, 255, 255, 0.05);
+  --color-icon-bg: rgba(255, 255, 255, 0.07);
+  --color-border-default: #1C1C1E;
+  --color-border-subtle: #141414;
+  --color-text-primary: #F0F0F0;
+  --color-text-secondary: #8E8E93;
+  --color-text-tertiary: #636366;
+  --color-text-inverse: #000000;
   --color-severity-critical: #F85149;
   --color-severity-critical-bg: #F8514926;
   --color-severity-major: #F0883E;
@@ -73,13 +73,13 @@
   --color-state-acknowledged: #D29922;
   --color-state-resolved: #3FB950;
   --color-state-investigating: #F0883E;
-  --color-state-muted: #6E7681;
+  --color-state-muted: #636366;
   --color-oncall-active: #3FB950;
   --color-oncall-active-bg: #3FB95026;
-  --color-oncall-inactive: #6E7681;
-  --color-oncall-inactive-bg: #6E768126;
-  --color-action-primary: #6366F1;
-  --color-action-primary-pressed: #4F46E5;
+  --color-oncall-inactive: #636366;
+  --color-oncall-inactive-bg: #63636626;
+  --color-action-primary: #FFFFFF;
+  --color-action-primary-pressed: #D4D4D4;
   --color-action-destructive: #F85149;
   --color-action-destructive-pressed: #DA3633;
   --color-status-success: #3FB950;

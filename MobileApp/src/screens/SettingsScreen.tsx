@@ -136,7 +136,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <View
             className="w-16 h-16 rounded-full items-center justify-center mb-3"
             style={{
-              backgroundColor: theme.colors.accentGradientStart + "18",
+              backgroundColor: theme.colors.iconBackground,
             }}
           >
             <Logo size={32} />
@@ -172,8 +172,8 @@ export default function SettingsScreen(): React.JSX.Element {
                         !isActive
                           ? undefined
                           : {
-                              shadowColor: theme.colors.accentGradientStart,
-                              shadowOpacity: 0.3,
+                              shadowColor: "#000000",
+                              shadowOpacity: theme.isDark ? 0.4 : 0.15,
                               shadowOffset: { width: 0, height: 2 },
                               shadowRadius: 6,
                               elevation: 3,
@@ -211,14 +211,16 @@ export default function SettingsScreen(): React.JSX.Element {
                         }
                         size={16}
                         color={
-                          isActive ? "#FFFFFF" : theme.colors.textSecondary
+                          isActive
+                            ? theme.colors.textInverse
+                            : theme.colors.textSecondary
                         }
                       />
                       <Text
                         className="text-sm font-semibold"
                         style={{
                           color: isActive
-                            ? "#FFFFFF"
+                            ? theme.colors.textInverse
                             : theme.colors.textPrimary,
                         }}
                       >
@@ -314,7 +316,7 @@ export default function SettingsScreen(): React.JSX.Element {
         <View
           className="w-10 h-10 rounded-xl items-center justify-center mb-2"
           style={{
-            backgroundColor: theme.colors.accentGradientStart + "10",
+            backgroundColor: theme.colors.iconBackground,
           }}
         >
           <Logo size={28} />

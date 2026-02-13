@@ -90,12 +90,12 @@ export default function LoginScreen(): React.JSX.Element {
             <View
               className="w-20 h-20 rounded-[22px] items-center justify-center mb-6"
               style={{
-                backgroundColor: theme.colors.accentGradientStart + "15",
-                shadowColor: theme.colors.accentGradientStart,
-                shadowOpacity: 0.25,
-                shadowOffset: { width: 0, height: 8 },
-                shadowRadius: 24,
-                elevation: 8,
+                backgroundColor: theme.colors.backgroundTertiary,
+                shadowColor: "#000000",
+                shadowOpacity: 0.3,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 16,
+                elevation: 6,
               }}
             >
               <Logo size={48} />

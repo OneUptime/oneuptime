@@ -35,8 +35,8 @@ export default function SegmentedControl<T extends string>({
             style={
               isActive
                 ? {
-                    shadowColor: theme.colors.accentGradientStart,
-                    shadowOpacity: 0.3,
+                    shadowColor: "#000000",
+                    shadowOpacity: theme.isDark ? 0.4 : 0.15,
                     shadowOffset: { width: 0, height: 2 },
                     shadowRadius: 6,
                     elevation: 3,
@@ -68,7 +68,9 @@ export default function SegmentedControl<T extends string>({
             <Text
               className="text-body-sm font-semibold"
               style={{
-                color: isActive ? "#FFFFFF" : theme.colors.textTertiary,
+                color: isActive
+                  ? theme.colors.textInverse
+                  : theme.colors.textTertiary,
               }}
             >
               {segment.label}

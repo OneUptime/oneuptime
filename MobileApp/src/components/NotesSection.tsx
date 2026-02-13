@@ -52,10 +52,13 @@ export default function NotesSection({
             <Ionicons
               name="add"
               size={16}
-              color="#FFFFFF"
+              color={theme.colors.textInverse}
               style={{ marginRight: 4 }}
             />
-            <Text className="text-[13px] font-semibold text-white">
+            <Text
+              className="text-[13px] font-semibold"
+              style={{ color: theme.colors.textInverse }}
+            >
               Add Note
             </Text>
           </LinearGradient>

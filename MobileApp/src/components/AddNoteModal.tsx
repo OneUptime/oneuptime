@@ -81,13 +81,13 @@ export default function AddNoteModal({
             <View
               className="w-9 h-9 rounded-lg items-center justify-center mr-3"
               style={{
-                backgroundColor: theme.colors.accentGradientStart + "15",
+                backgroundColor: theme.colors.iconBackground,
               }}
             >
               <Ionicons
                 name="chatbubble-outline"
                 size={18}
-                color={theme.colors.accentGradientStart}
+                color={theme.colors.textPrimary}
               />
             </View>
             <Text
