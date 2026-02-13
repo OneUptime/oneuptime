@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import {
@@ -27,6 +28,9 @@ import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
+import SectionHeader from "../components/SectionHeader";
+import NotesSection from "../components/NotesSection";
+import GlassCard from "../components/GlassCard";
 import { useHaptics } from "../hooks/useHaptics";
 import type {
   IncidentItem,
@@ -36,29 +40,6 @@ import type {
 } from "../api/types";
 
 type Props = NativeStackScreenProps<IncidentsStackParamList, "IncidentDetail">;
-
-function SectionHeader({
-  title,
-  iconName,
-}: {
-  title: string;
-  iconName: keyof typeof Ionicons.glyphMap;
-}): React.JSX.Element {
-  const { theme } = useTheme();
-  return (
-    <View className="flex-row items-center mb-3">
-      <Ionicons
-        name={iconName}
-        size={15}
-        color={theme.colors.textSecondary}
-        style={{ marginRight: 6 }}
-      />
-      <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
-        {title}
-      </Text>
-    </View>
-  );
-}
 
 export default function IncidentDetailScreen({
   route,
@@ -221,69 +202,70 @@ export default function IncidentDetailScreen({
         <RefreshControl refreshing={false} onRefresh={onRefresh} />
       }
     >
-      {/* Header with gradient background */}
-      <View
-        className="rounded-2xl p-5 mb-5"
-        style={{
-          backgroundColor: theme.colors.surfaceGlow,
-        }}
-      >
-        <View
-          className="self-start px-3 py-1.5 rounded-full mb-3"
-          style={{ backgroundColor: stateColor + "1A" }}
+      {/* Header with glass card */}
+      <GlassCard style={{ marginBottom: 20 }}>
+        <LinearGradient
+          colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          className="p-5"
         >
-          <Text
-            className="text-[13px] font-bold"
-            style={{ color: stateColor }}
+          <View
+            className="self-start px-3 py-1.5 rounded-full mb-3"
+            style={{ backgroundColor: stateColor + "1A" }}
           >
-            {incident.incidentNumberWithPrefix ||
-              `#${incident.incidentNumber}`}
+            <Text
+              className="text-[13px] font-bold"
+              style={{ color: stateColor }}
+            >
+              {incident.incidentNumberWithPrefix ||
+                `#${incident.incidentNumber}`}
+            </Text>
+          </View>
+
+          <Text
+            className="text-title-lg text-text-primary"
+            style={{ letterSpacing: -0.5 }}
+          >
+            {incident.title}
           </Text>
-        </View>
 
-        <Text
-          className="text-title-lg text-text-primary"
-          style={{ letterSpacing: -0.5 }}
-        >
-          {incident.title}
-        </Text>
-
-        {/* Badges */}
-        <View className="flex-row flex-wrap gap-2 mt-3">
-          {incident.currentIncidentState ? (
-            <View
-              className="flex-row items-center px-3 py-1.5 rounded-full"
-              style={{
-                backgroundColor: theme.colors.backgroundElevated,
-                borderWidth: 1,
-                borderColor: theme.colors.borderSubtle,
-              }}
-            >
+          <View className="flex-row flex-wrap gap-2 mt-3">
+            {incident.currentIncidentState ? (
               <View
-                className="w-2.5 h-2.5 rounded-full mr-2"
-                style={{ backgroundColor: stateColor }}
-              />
-              <Text className="text-[13px] font-semibold text-text-primary">
-                {incident.currentIncidentState.name}
-              </Text>
-            </View>
-          ) : null}
-
-          {incident.incidentSeverity ? (
-            <View
-              className="flex-row items-center px-3 py-1.5 rounded-full"
-              style={{ backgroundColor: severityColor + "1A" }}
-            >
-              <Text
-                className="text-[13px] font-semibold"
-                style={{ color: severityColor }}
+                className="flex-row items-center px-3 py-1.5 rounded-full"
+                style={{
+                  backgroundColor: theme.colors.backgroundGlass,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderGlass,
+                }}
               >
-                {incident.incidentSeverity.name}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
+                <View
+                  className="w-2.5 h-2.5 rounded-full mr-2"
+                  style={{ backgroundColor: stateColor }}
+                />
+                <Text className="text-[13px] font-semibold text-text-primary">
+                  {incident.currentIncidentState.name}
+                </Text>
+              </View>
+            ) : null}
+
+            {incident.incidentSeverity ? (
+              <View
+                className="flex-row items-center px-3 py-1.5 rounded-full"
+                style={{ backgroundColor: severityColor + "1A" }}
+              >
+                <Text
+                  className="text-[13px] font-semibold"
+                  style={{ color: severityColor }}
+                >
+                  {incident.incidentSeverity.name}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </LinearGradient>
+      </GlassCard>
 
       {/* Description */}
       {incident.description ? (
@@ -298,55 +280,49 @@ export default function IncidentDetailScreen({
       {/* Details */}
       <View className="mb-6">
         <SectionHeader title="Details" iconName="information-circle-outline" />
-
-        <View
-          className="rounded-2xl p-4 overflow-hidden"
+        <GlassCard
           style={{
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderSubtle,
             borderLeftWidth: 3,
             borderLeftColor: theme.colors.actionPrimary,
-            shadowColor: "#000",
-            shadowOpacity: theme.isDark ? 0.15 : 0.04,
-            shadowOffset: { width: 0, height: 2 },
-            shadowRadius: 8,
-            elevation: 2,
           }}
         >
-          {incident.declaredAt ? (
+          <View className="p-4">
+            {incident.declaredAt ? (
+              <View className="flex-row mb-3">
+                <Text className="text-sm w-[90px] text-text-tertiary">
+                  Declared
+                </Text>
+                <Text className="text-sm text-text-primary">
+                  {formatDateTime(incident.declaredAt)}
+                </Text>
+              </View>
+            ) : null}
+
             <View className="flex-row mb-3">
               <Text className="text-sm w-[90px] text-text-tertiary">
-                Declared
+                Created
               </Text>
               <Text className="text-sm text-text-primary">
-                {formatDateTime(incident.declaredAt)}
+                {formatDateTime(incident.createdAt)}
               </Text>
             </View>
-          ) : null}
 
-          <View className="flex-row mb-3">
-            <Text className="text-sm w-[90px] text-text-tertiary">Created</Text>
-            <Text className="text-sm text-text-primary">
-              {formatDateTime(incident.createdAt)}
-            </Text>
+            {incident.monitors?.length > 0 ? (
+              <View className="flex-row">
+                <Text className="text-sm w-[90px] text-text-tertiary">
+                  Monitors
+                </Text>
+                <Text className="text-sm text-text-primary flex-1">
+                  {incident.monitors
+                    .map((m: NamedEntity) => {
+                      return m.name;
+                    })
+                    .join(", ")}
+                </Text>
+              </View>
+            ) : null}
           </View>
-
-          {incident.monitors?.length > 0 ? (
-            <View className="flex-row">
-              <Text className="text-sm w-[90px] text-text-tertiary">
-                Monitors
-              </Text>
-              <Text className="text-sm text-text-primary flex-1">
-                {incident.monitors
-                  .map((m: NamedEntity) => {
-                    return m.name;
-                  })
-                  .join(", ")}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+        </GlassCard>
       </View>
 
       {/* State Change Actions */}
@@ -449,98 +425,11 @@ export default function IncidentDetailScreen({
       ) : null}
 
       {/* Internal Notes */}
-      <View className="mb-2">
-        <View className="flex-row justify-between items-center mb-3">
-          <View className="flex-row items-center">
-            <Ionicons
-              name="chatbubble-outline"
-              size={15}
-              color={theme.colors.textSecondary}
-              style={{ marginRight: 6 }}
-            />
-            <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
-              Internal Notes
-            </Text>
-          </View>
-          <TouchableOpacity
-            className="flex-row items-center px-3.5 py-2 rounded-lg"
-            style={{
-              backgroundColor: theme.colors.actionPrimary,
-              shadowColor: theme.colors.actionPrimary,
-              shadowOpacity: 0.25,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 8,
-              elevation: 3,
-            }}
-            onPress={() => {
-              return setNoteModalVisible(true);
-            }}
-            activeOpacity={0.85}
-          >
-            <Ionicons
-              name="add"
-              size={16}
-              color={theme.colors.textInverse}
-              style={{ marginRight: 4 }}
-            />
-            <Text className="text-[13px] font-semibold text-text-inverse">
-              Add Note
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {notes && notes.length > 0
-          ? notes.map((note: NoteItem) => {
-              return (
-                <View
-                  key={note._id}
-                  className="rounded-xl p-4 mb-2.5"
-                  style={{
-                    backgroundColor: theme.colors.backgroundElevated,
-                    borderWidth: 1,
-                    borderColor: theme.colors.borderSubtle,
-                    borderTopWidth: 2,
-                    borderTopColor: theme.colors.actionPrimary + "30",
-                    shadowColor: "#000",
-                    shadowOpacity: theme.isDark ? 0.1 : 0.03,
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowRadius: 4,
-                    elevation: 1,
-                  }}
-                >
-                  <Text className="text-body-md text-text-primary leading-6">
-                    {note.note}
-                  </Text>
-                  <View className="flex-row justify-between mt-2.5">
-                    {note.createdByUser ? (
-                      <Text className="text-body-sm text-text-tertiary">
-                        {note.createdByUser.name}
-                      </Text>
-                    ) : null}
-                    <Text className="text-body-sm text-text-tertiary">
-                      {formatDateTime(note.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })
-          : null}
-
-        {notes && notes.length === 0 ? (
-          <View
-            className="rounded-xl p-4 items-center"
-            style={{
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
-            }}
-          >
-            <Text className="text-body-sm text-text-tertiary">
-              No notes yet.
-            </Text>
-          </View>
-        ) : null}
-      </View>
+      <NotesSection
+        notes={notes}
+        noteModalVisible={noteModalVisible}
+        setNoteModalVisible={setNoteModalVisible}
+      />
 
       <AddNoteModal
         visible={noteModalVisible}

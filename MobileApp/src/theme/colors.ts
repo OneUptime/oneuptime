@@ -12,13 +12,19 @@ export interface ColorTokens {
 
   // Gradient
   accentGradientStart: string;
+  accentGradientMid: string;
   accentGradientEnd: string;
+  accentCyan: string;
+  accentCyanBg: string;
   surfaceGlow: string;
   headerGradient: string;
+  gradientStart: string;
+  gradientEnd: string;
 
   // Border
   borderDefault: string;
   borderSubtle: string;
+  borderGlass: string;
 
   // Text
   textPrimary: string;
@@ -66,10 +72,10 @@ export interface ColorTokens {
 
 export const darkColors: ColorTokens = {
   // Background
-  backgroundPrimary: "#0A0E14",
-  backgroundSecondary: "#131920",
-  backgroundTertiary: "#1C2330",
-  backgroundElevated: "#141921",
+  backgroundPrimary: "#050810",
+  backgroundSecondary: "#0C1018",
+  backgroundTertiary: "#151B28",
+  backgroundElevated: "#111722",
 
   // Accent
   cardAccent: "rgba(99, 102, 241, 0.15)",
@@ -78,19 +84,25 @@ export const darkColors: ColorTokens = {
 
   // Gradient
   accentGradientStart: "#6366F1",
+  accentGradientMid: "#7C3AED",
   accentGradientEnd: "#8B5CF6",
+  accentCyan: "#06B6D4",
+  accentCyanBg: "rgba(6, 182, 212, 0.12)",
   surfaceGlow: "rgba(99, 102, 241, 0.08)",
   headerGradient: "rgba(99, 102, 241, 0.06)",
+  gradientStart: "rgba(99, 102, 241, 0.15)",
+  gradientEnd: "transparent",
 
   // Border
-  borderDefault: "#1E2632",
-  borderSubtle: "#171D28",
+  borderDefault: "#1A2030",
+  borderSubtle: "#131925",
+  borderGlass: "rgba(255, 255, 255, 0.06)",
 
   // Text
   textPrimary: "#E6EDF3",
   textSecondary: "#8B949E",
   textTertiary: "#6E7681",
-  textInverse: "#0A0E14",
+  textInverse: "#050810",
 
   // Severity
   severityCritical: "#F85149",
@@ -144,13 +156,19 @@ export const lightColors: ColorTokens = {
 
   // Gradient
   accentGradientStart: "#6366F1",
+  accentGradientMid: "#7C3AED",
   accentGradientEnd: "#8B5CF6",
+  accentCyan: "#0891B2",
+  accentCyanBg: "rgba(8, 145, 178, 0.08)",
   surfaceGlow: "rgba(99, 102, 241, 0.04)",
   headerGradient: "rgba(99, 102, 241, 0.03)",
+  gradientStart: "rgba(99, 102, 241, 0.08)",
+  gradientEnd: "transparent",
 
   // Border
   borderDefault: "#E5E7EB",
   borderSubtle: "#F0F1F5",
+  borderGlass: "rgba(0, 0, 0, 0.06)",
 
   // Text
   textPrimary: "#111827",

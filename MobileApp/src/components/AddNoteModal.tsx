@@ -5,12 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import GradientButton from "./GradientButton";
 
 interface AddNoteModalProps {
   visible: boolean;
@@ -56,7 +56,12 @@ export default function AddNoteModal({
         <View
           className="rounded-t-[28px] p-5 pb-9"
           style={{
-            backgroundColor: theme.colors.backgroundPrimary,
+            backgroundColor: theme.isDark
+              ? theme.colors.backgroundElevated
+              : theme.colors.backgroundPrimary,
+            borderWidth: 1,
+            borderBottomWidth: 0,
+            borderColor: theme.colors.borderGlass,
             shadowColor: "#000",
             shadowOpacity: 0.2,
             shadowOffset: { width: 0, height: -8 },
@@ -98,7 +103,7 @@ export default function AddNoteModal({
             style={{
               backgroundColor: theme.colors.backgroundSecondary,
               borderWidth: 1,
-              borderColor: theme.colors.borderDefault,
+              borderColor: theme.colors.borderGlass,
             }}
             placeholder="Write a note..."
             placeholderTextColor={theme.colors.textTertiary}
@@ -113,9 +118,9 @@ export default function AddNoteModal({
             <TouchableOpacity
               className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-[48px]"
               style={{
-                backgroundColor: theme.colors.backgroundTertiary,
+                backgroundColor: theme.colors.backgroundGlass,
                 borderWidth: 1,
-                borderColor: theme.colors.borderSubtle,
+                borderColor: theme.colors.borderGlass,
               }}
               onPress={handleClose}
               disabled={isSubmitting}
@@ -126,41 +131,14 @@ export default function AddNoteModal({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-[48px]"
-              style={{
-                backgroundColor:
-                  noteText.trim() && !isSubmitting
-                    ? theme.colors.actionPrimary
-                    : theme.colors.backgroundTertiary,
-                shadowColor: theme.colors.actionPrimary,
-                shadowOpacity: noteText.trim() && !isSubmitting ? 0.25 : 0,
-                shadowOffset: { width: 0, height: 4 },
-                shadowRadius: 12,
-                elevation: noteText.trim() && !isSubmitting ? 4 : 0,
-              }}
-              onPress={handleSubmit}
-              disabled={!noteText.trim() || isSubmitting}
-              activeOpacity={0.85}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator
-                  size="small"
-                  color={theme.colors.textInverse}
-                />
-              ) : (
-                <Text
-                  className="text-[15px] font-bold"
-                  style={{
-                    color: noteText.trim()
-                      ? theme.colors.textInverse
-                      : theme.colors.textTertiary,
-                  }}
-                >
-                  Submit
-                </Text>
-              )}
-            </TouchableOpacity>
+            <View className="flex-1">
+              <GradientButton
+                label="Submit"
+                onPress={handleSubmit}
+                loading={isSubmitting}
+                disabled={!noteText.trim() || isSubmitting}
+              />
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>

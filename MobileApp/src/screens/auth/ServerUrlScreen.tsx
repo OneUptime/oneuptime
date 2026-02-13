@@ -3,8 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +15,10 @@ import { useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import { setServerUrl } from "../../storage/serverUrl";
 import { validateServerUrl } from "../../api/auth";
+import Logo from "../../components/Logo";
+import GradientHeader from "../../components/GradientHeader";
+import GlassCard from "../../components/GlassCard";
+import GradientButton from "../../components/GradientButton";
 
 type ServerUrlNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -68,11 +70,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
       className="flex-1 bg-bg-primary"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Subtle gradient header overlay */}
-      <View
-        className="absolute top-0 left-0 right-0 h-[320px]"
-        style={{ backgroundColor: theme.colors.headerGradient }}
-      />
+      <GradientHeader />
 
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
@@ -80,23 +78,18 @@ export default function ServerUrlScreen(): React.JSX.Element {
       >
         <View className="flex-1 justify-center px-7">
           <View className="items-center mb-14">
-            {/* Logo icon */}
             <View
               className="w-20 h-20 rounded-[22px] items-center justify-center mb-6"
               style={{
                 backgroundColor: theme.colors.accentGradientStart + "15",
                 shadowColor: theme.colors.accentGradientStart,
-                shadowOpacity: 0.2,
+                shadowOpacity: 0.25,
                 shadowOffset: { width: 0, height: 8 },
                 shadowRadius: 24,
                 elevation: 8,
               }}
             >
-              <Ionicons
-                name="shield-checkmark"
-                size={40}
-                color={theme.colors.accentGradientStart}
-              />
+              <Logo size={48} />
             </View>
 
             <Text
@@ -110,20 +103,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
             </Text>
           </View>
 
-          {/* Form card */}
-          <View
-            className="w-full rounded-2xl p-5"
-            style={{
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
-              shadowColor: "#000",
-              shadowOpacity: theme.isDark ? 0.3 : 0.08,
-              shadowOffset: { width: 0, height: 8 },
-              shadowRadius: 24,
-              elevation: 6,
-            }}
-          >
+          <GlassCard style={{ padding: 20 }}>
             <Text className="text-body-sm text-text-secondary mb-2 font-semibold">
               Server URL
             </Text>
@@ -189,34 +169,28 @@ export default function ServerUrlScreen(): React.JSX.Element {
               </View>
             ) : null}
 
-            <TouchableOpacity
-              className="h-[52px] rounded-xl items-center justify-center mt-5"
-              style={{
-                backgroundColor: theme.colors.actionPrimary,
-                opacity: isLoading ? 0.7 : 1,
-                shadowColor: theme.colors.actionPrimary,
-                shadowOpacity: 0.35,
-                shadowOffset: { width: 0, height: 6 },
-                shadowRadius: 16,
-                elevation: 6,
-              }}
-              onPress={handleConnect}
-              disabled={isLoading}
-              activeOpacity={0.85}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={theme.colors.textInverse} />
-              ) : (
-                <Text className="text-[16px] text-text-inverse font-bold">
-                  Connect
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+            <View className="mt-5">
+              <GradientButton
+                label="Connect"
+                onPress={handleConnect}
+                loading={isLoading}
+                disabled={isLoading}
+              />
+            </View>
+          </GlassCard>
 
           <Text className="text-caption text-text-tertiary text-center mt-7 leading-5">
             Self-hosting? Enter your OneUptime server URL above.
           </Text>
+
+          <View className="items-center mt-10">
+            <View className="flex-row items-center">
+              <Logo size={16} style={{ marginRight: 6 }} />
+              <Text className="text-[11px] text-text-tertiary">
+                Powered by OneUptime
+              </Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

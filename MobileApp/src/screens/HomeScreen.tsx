@@ -7,6 +7,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useProject } from "../hooks/useProject";
@@ -14,6 +15,8 @@ import { useHaptics } from "../hooks/useHaptics";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
+import Logo from "../components/Logo";
+import GlassCard from "../components/GlassCard";
 
 type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
 
@@ -44,13 +47,8 @@ function StatCard({
 
   return (
     <TouchableOpacity
-      className="flex-1 p-4 rounded-2xl"
+      className="flex-1 overflow-hidden rounded-2xl"
       style={{
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: theme.colors.borderSubtle,
-        borderLeftWidth: 4,
-        borderLeftColor: accentColor,
         shadowColor: "#000",
         shadowOpacity: theme.isDark ? 0.2 : 0.06,
         shadowOffset: { width: 0, height: 4 },
@@ -62,32 +60,44 @@ function StatCard({
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
     >
-      <View className="flex-row items-center justify-between mb-3">
-        <View
-          className="w-10 h-10 rounded-xl items-center justify-center"
-          style={{ backgroundColor: accentColor + "18" }}
-        >
-          <Ionicons name={iconName} size={20} color={accentColor} />
+      <GlassCard>
+        <View className="flex-row">
+          <LinearGradient
+            colors={[accentColor, accentColor + "40"]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={{ width: 3 }}
+          />
+          <View className="flex-1 p-4">
+            <View className="flex-row items-center justify-between mb-3">
+              <View
+                className="w-10 h-10 rounded-xl items-center justify-center"
+                style={{ backgroundColor: accentColor + "18" }}
+              >
+                <Ionicons name={iconName} size={20} color={accentColor} />
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={theme.colors.textTertiary}
+              />
+            </View>
+            <Text
+              className="text-[32px] font-bold text-text-primary"
+              style={{ fontVariant: ["tabular-nums"], letterSpacing: -1.2 }}
+            >
+              {isLoading ? "--" : count ?? 0}
+            </Text>
+            <Text
+              className="text-[12px] font-medium text-text-secondary mt-0.5"
+              style={{ letterSpacing: 0.3 }}
+              numberOfLines={1}
+            >
+              {label}
+            </Text>
+          </View>
         </View>
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          color={theme.colors.textTertiary}
-        />
-      </View>
-      <Text
-        className="text-[32px] font-bold text-text-primary"
-        style={{ fontVariant: ["tabular-nums"], letterSpacing: -1.2 }}
-      >
-        {isLoading ? "--" : count ?? 0}
-      </Text>
-      <Text
-        className="text-[12px] font-medium text-text-secondary mt-0.5"
-        style={{ letterSpacing: 0.3 }}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
+      </GlassCard>
     </TouchableOpacity>
   );
 }
@@ -141,10 +151,12 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      {/* Header area with subtle background tint */}
-      <View
+      {/* Header area with gradient background */}
+      <LinearGradient
+        colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
         className="px-6 pt-6 pb-5"
-        style={{ backgroundColor: theme.colors.headerGradient }}
       >
         <View className="flex-row items-center mb-1">
           <View
@@ -153,13 +165,9 @@ export default function HomeScreen(): React.JSX.Element {
               backgroundColor: theme.colors.accentGradientStart + "15",
             }}
           >
-            <Ionicons
-              name="pulse"
-              size={20}
-              color={theme.colors.accentGradientStart}
-            />
+            <Logo size={24} />
           </View>
-          <View>
+          <View className="flex-1">
             <Text
               className="text-body-md text-text-secondary"
               style={{ letterSpacing: 0.2 }}
@@ -174,8 +182,14 @@ export default function HomeScreen(): React.JSX.Element {
               {subtitle}
             </Text>
           </View>
+          <Text
+            className="text-[11px] font-semibold text-text-tertiary"
+            style={{ letterSpacing: 0.5 }}
+          >
+            OneUptime
+          </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Stat Cards - 2x2 Grid */}
       <View className="gap-3 px-6 mt-2">

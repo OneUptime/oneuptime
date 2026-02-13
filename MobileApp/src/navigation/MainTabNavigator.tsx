@@ -35,7 +35,14 @@ function TabIcon({
       {focused ? (
         <View
           className="w-1 h-1 rounded-full mt-1"
-          style={{ backgroundColor: accentColor }}
+          style={{
+            backgroundColor: accentColor,
+            shadowColor: accentColor,
+            shadowOpacity: 0.6,
+            shadowOffset: { width: 0, height: 0 },
+            shadowRadius: 4,
+            elevation: 2,
+          }}
         />
       ) : null}
     </View>
@@ -69,8 +76,10 @@ export default function MainTabNavigator(): React.JSX.Element {
           letterSpacing: -0.3,
         },
         tabBarStyle: {
-          backgroundColor: theme.colors.backgroundPrimary,
-          borderTopColor: theme.colors.borderSubtle,
+          backgroundColor: theme.isDark
+            ? theme.colors.backgroundGlass
+            : theme.colors.backgroundPrimary,
+          borderTopColor: theme.colors.borderGlass,
           borderTopWidth: StyleSheet.hairlineWidth,
           height: Platform.OS === "ios" ? 88 : 64,
           paddingBottom: Platform.OS === "ios" ? 28 : 8,

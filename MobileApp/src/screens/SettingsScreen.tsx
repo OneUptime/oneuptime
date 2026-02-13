@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme, ThemeMode } from "../theme";
 import { useAuth } from "../hooks/useAuth";
 import { useBiometric } from "../hooks/useBiometric";
 import { useHaptics } from "../hooks/useHaptics";
 import { getServerUrl } from "../storage/serverUrl";
+import Logo from "../components/Logo";
+import GlassCard from "../components/GlassCard";
 
 const APP_VERSION: string = "1.0.0";
 
@@ -90,31 +93,6 @@ function SettingsRow({
   return content;
 }
 
-function SectionCard({
-  children,
-}: {
-  children: React.ReactNode;
-}): React.JSX.Element {
-  const { theme } = useTheme();
-  return (
-    <View
-      className="rounded-2xl overflow-hidden"
-      style={{
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: theme.colors.borderSubtle,
-        shadowColor: "#000",
-        shadowOpacity: theme.isDark ? 0.15 : 0.04,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 8,
-        elevation: 2,
-      }}
-    >
-      {children}
-    </View>
-  );
-}
-
 export default function SettingsScreen(): React.JSX.Element {
   const { theme, themeMode, setThemeMode } = useTheme();
   const { logout } = useAuth();
@@ -148,39 +126,39 @@ export default function SettingsScreen(): React.JSX.Element {
       contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
     >
       {/* Profile Header */}
-      <View
-        className="items-center py-6 mb-7 rounded-2xl"
-        style={{ backgroundColor: theme.colors.surfaceGlow }}
-      >
-        <View
-          className="w-16 h-16 rounded-full items-center justify-center mb-3"
-          style={{
-            backgroundColor: theme.colors.accentGradientStart + "18",
-          }}
+      <GlassCard style={{ marginBottom: 28 }}>
+        <LinearGradient
+          colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          className="items-center py-6"
         >
-          <Ionicons
-            name="person"
-            size={28}
-            color={theme.colors.accentGradientStart}
-          />
-        </View>
-        <Text
-          className="text-title-md text-text-primary"
-          style={{ letterSpacing: -0.3 }}
-        >
-          Settings
-        </Text>
-        <Text className="text-body-sm text-text-tertiary mt-1">
-          {serverUrl || "oneuptime.com"}
-        </Text>
-      </View>
+          <View
+            className="w-16 h-16 rounded-full items-center justify-center mb-3"
+            style={{
+              backgroundColor: theme.colors.accentGradientStart + "18",
+            }}
+          >
+            <Logo size={32} />
+          </View>
+          <Text
+            className="text-title-md text-text-primary"
+            style={{ letterSpacing: -0.3 }}
+          >
+            Settings
+          </Text>
+          <Text className="text-body-sm text-text-tertiary mt-1">
+            {serverUrl || "oneuptime.com"}
+          </Text>
+        </LinearGradient>
+      </GlassCard>
 
       {/* Appearance */}
       <View className="mb-7">
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Appearance
         </Text>
-        <SectionCard>
+        <GlassCard>
           <View className="p-1.5">
             <View className="flex-row rounded-xl gap-1">
               {(["dark", "light", "system"] as ThemeMode[]).map(
@@ -189,24 +167,40 @@ export default function SettingsScreen(): React.JSX.Element {
                   return (
                     <TouchableOpacity
                       key={mode}
-                      className="flex-1 flex-row items-center justify-center py-2.5 rounded-[10px] gap-1.5"
+                      className="flex-1 flex-row items-center justify-center py-2.5 rounded-[10px] gap-1.5 overflow-hidden"
                       style={
-                        isActive
-                          ? {
-                              backgroundColor: theme.colors.actionPrimary,
-                              shadowColor: theme.colors.actionPrimary,
+                        !isActive
+                          ? undefined
+                          : {
+                              shadowColor: theme.colors.accentGradientStart,
                               shadowOpacity: 0.3,
                               shadowOffset: { width: 0, height: 2 },
                               shadowRadius: 6,
                               elevation: 3,
                             }
-                          : undefined
                       }
                       onPress={() => {
                         return handleThemeChange(mode);
                       }}
                       activeOpacity={0.7}
                     >
+                      {isActive ? (
+                        <LinearGradient
+                          colors={[
+                            theme.colors.accentGradientStart,
+                            theme.colors.accentGradientEnd,
+                          ]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                          }}
+                        />
+                      ) : null}
                       <Ionicons
                         name={
                           mode === "dark"
@@ -236,7 +230,7 @@ export default function SettingsScreen(): React.JSX.Element {
               )}
             </View>
           </View>
-        </SectionCard>
+        </GlassCard>
       </View>
 
       {/* Security */}
@@ -245,7 +239,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
             Security
           </Text>
-          <SectionCard>
+          <GlassCard>
             <SettingsRow
               label="Biometrics Login"
               iconName="finger-print-outline"
@@ -262,7 +256,7 @@ export default function SettingsScreen(): React.JSX.Element {
                 />
               }
             />
-          </SectionCard>
+          </GlassCard>
           <Text className="text-xs mt-2 ml-1 leading-4 text-text-tertiary">
             Require biometrics to unlock the app
           </Text>
@@ -274,14 +268,14 @@ export default function SettingsScreen(): React.JSX.Element {
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Server
         </Text>
-        <SectionCard>
+        <GlassCard>
           <SettingsRow
             label="Server URL"
             iconName="globe-outline"
             value={serverUrl || "oneuptime.com"}
             isLast
           />
-        </SectionCard>
+        </GlassCard>
       </View>
 
       {/* Account */}
@@ -289,7 +283,7 @@ export default function SettingsScreen(): React.JSX.Element {
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           Account
         </Text>
-        <SectionCard>
+        <GlassCard>
           <SettingsRow
             label="Log Out"
             iconName="log-out-outline"
@@ -297,7 +291,7 @@ export default function SettingsScreen(): React.JSX.Element {
             destructive
             isLast
           />
-        </SectionCard>
+        </GlassCard>
       </View>
 
       {/* About */}
@@ -305,14 +299,14 @@ export default function SettingsScreen(): React.JSX.Element {
         <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
           About
         </Text>
-        <SectionCard>
+        <GlassCard>
           <SettingsRow
             label="Version"
             iconName="information-circle-outline"
             value={APP_VERSION}
             isLast
           />
-        </SectionCard>
+        </GlassCard>
       </View>
 
       {/* Footer branding */}
@@ -323,11 +317,7 @@ export default function SettingsScreen(): React.JSX.Element {
             backgroundColor: theme.colors.accentGradientStart + "10",
           }}
         >
-          <Ionicons
-            name="shield-checkmark"
-            size={20}
-            color={theme.colors.accentGradientStart}
-          />
+          <Logo size={28} />
         </View>
         <Text className="text-xs font-semibold text-text-tertiary">
           OneUptime

@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import {
@@ -30,35 +31,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
+import SectionHeader from "../components/SectionHeader";
+import NotesSection from "../components/NotesSection";
+import GlassCard from "../components/GlassCard";
 import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<
   IncidentsStackParamList,
   "IncidentEpisodeDetail"
 >;
-
-function SectionHeader({
-  title,
-  iconName,
-}: {
-  title: string;
-  iconName: keyof typeof Ionicons.glyphMap;
-}): React.JSX.Element {
-  const { theme } = useTheme();
-  return (
-    <View className="flex-row items-center mb-3">
-      <Ionicons
-        name={iconName}
-        size={15}
-        color={theme.colors.textSecondary}
-        style={{ marginRight: 6 }}
-      />
-      <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
-        {title}
-      </Text>
-    </View>
-  );
-}
 
 export default function IncidentEpisodeDetailScreen({
   route,
@@ -219,58 +200,73 @@ export default function IncidentEpisodeDetailScreen({
         <RefreshControl refreshing={false} onRefresh={onRefresh} />
       }
     >
-      {/* Header */}
-      <View
-        className="self-start px-2.5 py-1 rounded-full"
-        style={{ backgroundColor: stateColor + "1A" }}
-      >
-        <Text
-          className="text-[13px] font-semibold"
-          style={{ color: stateColor }}
+      {/* Header with glass card */}
+      <GlassCard style={{ marginBottom: 20 }}>
+        <LinearGradient
+          colors={[theme.colors.gradientStart, theme.colors.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          className="p-5"
         >
-          {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
-        </Text>
-      </View>
-
-      <Text
-        className="text-title-lg text-text-primary mt-2"
-        style={{ letterSpacing: -0.5 }}
-      >
-        {episode.title}
-      </Text>
-
-      {/* Badges */}
-      <View className="flex-row flex-wrap gap-2 mt-3">
-        {episode.currentIncidentState ? (
-          <View className="flex-row items-center px-2.5 py-1 rounded-full bg-bg-tertiary">
-            <View
-              className="w-2 h-2 rounded-full mr-1.5"
-              style={{ backgroundColor: stateColor }}
-            />
-            <Text className="text-[13px] font-semibold text-text-primary">
-              {episode.currentIncidentState.name}
-            </Text>
-          </View>
-        ) : null}
-
-        {episode.incidentSeverity ? (
           <View
-            className="flex-row items-center px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: severityColor + "1A" }}
+            className="self-start px-3 py-1.5 rounded-full mb-3"
+            style={{ backgroundColor: stateColor + "1A" }}
           >
             <Text
-              className="text-[13px] font-semibold"
-              style={{ color: severityColor }}
+              className="text-[13px] font-bold"
+              style={{ color: stateColor }}
             >
-              {episode.incidentSeverity.name}
+              {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
             </Text>
           </View>
-        ) : null}
-      </View>
+
+          <Text
+            className="text-title-lg text-text-primary"
+            style={{ letterSpacing: -0.5 }}
+          >
+            {episode.title}
+          </Text>
+
+          <View className="flex-row flex-wrap gap-2 mt-3">
+            {episode.currentIncidentState ? (
+              <View
+                className="flex-row items-center px-3 py-1.5 rounded-full"
+                style={{
+                  backgroundColor: theme.colors.backgroundGlass,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderGlass,
+                }}
+              >
+                <View
+                  className="w-2.5 h-2.5 rounded-full mr-2"
+                  style={{ backgroundColor: stateColor }}
+                />
+                <Text className="text-[13px] font-semibold text-text-primary">
+                  {episode.currentIncidentState.name}
+                </Text>
+              </View>
+            ) : null}
+
+            {episode.incidentSeverity ? (
+              <View
+                className="flex-row items-center px-3 py-1.5 rounded-full"
+                style={{ backgroundColor: severityColor + "1A" }}
+              >
+                <Text
+                  className="text-[13px] font-semibold"
+                  style={{ color: severityColor }}
+                >
+                  {episode.incidentSeverity.name}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </LinearGradient>
+      </GlassCard>
 
       {/* Description */}
       {episode.description ? (
-        <View className="mt-6">
+        <View className="mb-6">
           <SectionHeader title="Description" iconName="document-text-outline" />
           <Text className="text-body-md text-text-primary leading-6">
             {episode.description}
@@ -279,48 +275,50 @@ export default function IncidentEpisodeDetailScreen({
       ) : null}
 
       {/* Details */}
-      <View className="mt-6">
+      <View className="mb-6">
         <SectionHeader title="Details" iconName="information-circle-outline" />
-
-        <View
-          className="rounded-2xl p-4 bg-bg-elevated border border-border-subtle overflow-hidden"
+        <GlassCard
           style={{
             borderLeftWidth: 3,
             borderLeftColor: theme.colors.actionPrimary,
           }}
         >
-          {episode.declaredAt ? (
+          <View className="p-4">
+            {episode.declaredAt ? (
+              <View className="flex-row mb-3">
+                <Text className="text-sm w-[90px] text-text-tertiary">
+                  Declared
+                </Text>
+                <Text className="text-sm text-text-primary">
+                  {formatDateTime(episode.declaredAt)}
+                </Text>
+              </View>
+            ) : null}
+
             <View className="flex-row mb-3">
               <Text className="text-sm w-[90px] text-text-tertiary">
-                Declared
+                Created
               </Text>
               <Text className="text-sm text-text-primary">
-                {formatDateTime(episode.declaredAt)}
+                {formatDateTime(episode.createdAt)}
               </Text>
             </View>
-          ) : null}
 
-          <View className="flex-row mb-3">
-            <Text className="text-sm w-[90px] text-text-tertiary">Created</Text>
-            <Text className="text-sm text-text-primary">
-              {formatDateTime(episode.createdAt)}
-            </Text>
+            <View className="flex-row">
+              <Text className="text-sm w-[90px] text-text-tertiary">
+                Incidents
+              </Text>
+              <Text className="text-sm text-text-primary">
+                {episode.incidentCount ?? 0}
+              </Text>
+            </View>
           </View>
-
-          <View className="flex-row">
-            <Text className="text-sm w-[90px] text-text-tertiary">
-              Incidents
-            </Text>
-            <Text className="text-sm text-text-primary">
-              {episode.incidentCount ?? 0}
-            </Text>
-          </View>
-        </View>
+        </GlassCard>
       </View>
 
       {/* State Change Actions */}
       {!isResolved ? (
-        <View className="mt-6">
+        <View className="mb-6">
           <SectionHeader title="Actions" iconName="flash-outline" />
           <View className="flex-row gap-3">
             {!isAcknowledged && !isResolved && acknowledgeState ? (
@@ -405,78 +403,18 @@ export default function IncidentEpisodeDetailScreen({
 
       {/* Activity Feed */}
       {feed && feed.length > 0 ? (
-        <View className="mt-6">
+        <View className="mb-6">
           <SectionHeader title="Activity Feed" iconName="list-outline" />
           <FeedTimeline feed={feed} />
         </View>
       ) : null}
 
       {/* Internal Notes */}
-      <View className="mt-6">
-        <View className="flex-row justify-between items-center mb-3">
-          <View className="flex-row items-center">
-            <Ionicons
-              name="chatbubble-outline"
-              size={15}
-              color={theme.colors.textSecondary}
-              style={{ marginRight: 6 }}
-            />
-            <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
-              Internal Notes
-            </Text>
-          </View>
-          <TouchableOpacity
-            className="flex-row items-center px-3 py-1.5 rounded-lg"
-            style={{ backgroundColor: theme.colors.actionPrimary }}
-            onPress={() => {
-              return setNoteModalVisible(true);
-            }}
-          >
-            <Ionicons
-              name="add"
-              size={16}
-              color={theme.colors.textInverse}
-              style={{ marginRight: 2 }}
-            />
-            <Text className="text-[13px] font-semibold text-text-inverse">
-              Add Note
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {notes && notes.length > 0
-          ? notes.map((note: NoteItem) => {
-              return (
-                <View
-                  key={note._id}
-                  className="rounded-xl p-3.5 mb-2 bg-bg-elevated border border-border-subtle"
-                  style={{
-                    borderTopWidth: 2,
-                    borderTopColor: theme.colors.actionPrimary + "30",
-                  }}
-                >
-                  <Text className="text-body-md text-text-primary">
-                    {note.note}
-                  </Text>
-                  <View className="flex-row justify-between mt-2">
-                    {note.createdByUser ? (
-                      <Text className="text-body-sm text-text-tertiary">
-                        {note.createdByUser.name}
-                      </Text>
-                    ) : null}
-                    <Text className="text-body-sm text-text-tertiary">
-                      {formatDateTime(note.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })
-          : null}
-
-        {notes && notes.length === 0 ? (
-          <Text className="text-body-sm text-text-tertiary">No notes yet.</Text>
-        ) : null}
-      </View>
+      <NotesSection
+        notes={notes}
+        noteModalVisible={noteModalVisible}
+        setNoteModalVisible={setNoteModalVisible}
+      />
 
       <AddNoteModal
         visible={noteModalVisible}

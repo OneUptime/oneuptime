@@ -1,10 +1,12 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
 import ProjectBadge from "./ProjectBadge";
+import GlassCard from "./GlassCard";
 import type { AlertItem } from "../api/types";
 
 interface AlertCardProps {
@@ -34,29 +36,24 @@ export default function AlertCard({
 
   return (
     <TouchableOpacity
-      className="rounded-2xl mb-3 overflow-hidden"
+      className="mb-3"
       style={{
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: theme.colors.borderSubtle,
         opacity: muted ? 0.55 : 1,
-        shadowColor: "#000",
-        shadowOpacity: theme.isDark ? 0.2 : 0.06,
-        shadowOffset: { width: 0, height: 3 },
-        shadowRadius: 10,
-        elevation: 3,
       }}
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`Alert ${alert.alertNumberWithPrefix || alert.alertNumber}, ${alert.title}. State: ${alert.currentAlertState?.name ?? "unknown"}. Severity: ${alert.alertSeverity?.name ?? "unknown"}.`}
     >
-      <View className="flex-row">
-        <View
-          className="w-1"
-          style={{ backgroundColor: stateColor }}
-        />
-        <View className="flex-1 p-4">
+      <GlassCard>
+        <View className="flex-row">
+          <LinearGradient
+            colors={[stateColor, stateColor + "40"]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={{ width: 3 }}
+          />
+          <View className="flex-1 p-4">
           {projectName ? (
             <View className="mb-2">
               <ProjectBadge name={projectName} />
@@ -131,7 +128,8 @@ export default function AlertCard({
             </View>
           ) : null}
         </View>
-      </View>
+        </View>
+      </GlassCard>
     </TouchableOpacity>
   );
 }

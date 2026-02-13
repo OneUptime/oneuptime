@@ -1,8 +1,11 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import * as LocalAuthentication from "expo-local-authentication";
+import Logo from "../components/Logo";
+import GradientHeader from "../components/GradientHeader";
+import GradientButton from "../components/GradientButton";
 
 interface BiometricLockScreenProps {
   onSuccess: () => void;
@@ -27,13 +30,14 @@ export default function BiometricLockScreen({
     }
   };
 
-  // Auto-prompt on mount
   useEffect(() => {
     authenticate();
   }, []);
 
   return (
     <View className="flex-1 items-center justify-center px-10 bg-bg-primary">
+      <GradientHeader height={400} />
+
       {/* Outer glow ring */}
       <View
         className="w-[120px] h-[120px] rounded-full items-center justify-center"
@@ -51,11 +55,7 @@ export default function BiometricLockScreen({
             elevation: 8,
           }}
         >
-          <Ionicons
-            name="lock-closed"
-            size={40}
-            color={theme.colors.actionPrimary}
-          />
+          <Logo size={48} />
         </View>
       </View>
 
@@ -70,30 +70,13 @@ export default function BiometricLockScreen({
         Use {biometricType.toLowerCase()} to unlock
       </Text>
 
-      <TouchableOpacity
-        className="mt-10 py-4 w-full rounded-xl items-center"
-        style={{
-          backgroundColor: theme.colors.actionPrimary,
-          shadowColor: theme.colors.actionPrimary,
-          shadowOpacity: 0.35,
-          shadowOffset: { width: 0, height: 6 },
-          shadowRadius: 16,
-          elevation: 6,
-          maxWidth: 280,
-        }}
-        onPress={authenticate}
-        activeOpacity={0.85}
-      >
-        <View className="flex-row items-center">
-          <Ionicons
-            name="finger-print-outline"
-            size={20}
-            color="#FFFFFF"
-            style={{ marginRight: 8 }}
-          />
-          <Text className="text-[17px] font-semibold text-white">Unlock</Text>
-        </View>
-      </TouchableOpacity>
+      <View className="mt-10 w-full" style={{ maxWidth: 280 }}>
+        <GradientButton
+          label="Unlock"
+          onPress={authenticate}
+          icon="finger-print-outline"
+        />
+      </View>
     </View>
   );
 }

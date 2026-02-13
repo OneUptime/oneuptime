@@ -25,6 +25,7 @@
     "expo-device": "~8.0.10",
     "expo-font": "~14.0.11",
     "expo-haptics": "~15.0.8",
+    "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.11",
     "expo-local-authentication": "~17.0.8",
     "expo-notifications": "~0.32.0",
@@ -38,6 +39,7 @@
     "react-native": "0.81.5",
     "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
     "tailwindcss": "^3.4.19"
   },

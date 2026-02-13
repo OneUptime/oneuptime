@@ -105,7 +105,6 @@ function SectionHeader({
 }
 
 export default function IncidentsScreen(): React.JSX.Element {
-  const { theme } = useTheme();
   const navigation: NavProp = useNavigation<NavProp>();
 
   const [segment, setSegment] = useState<Segment>("incidents");

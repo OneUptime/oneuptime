@@ -3,8 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +15,10 @@ import { getServerUrl } from "../../storage/serverUrl";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
+import Logo from "../../components/Logo";
+import GradientHeader from "../../components/GradientHeader";
+import GlassCard from "../../components/GlassCard";
+import GradientButton from "../../components/GradientButton";
 
 type LoginNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -77,11 +79,7 @@ export default function LoginScreen(): React.JSX.Element {
       className="flex-1 bg-bg-primary"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Subtle gradient header overlay */}
-      <View
-        className="absolute top-0 left-0 right-0 h-[320px]"
-        style={{ backgroundColor: theme.colors.headerGradient }}
-      />
+      <GradientHeader />
 
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
@@ -89,23 +87,18 @@ export default function LoginScreen(): React.JSX.Element {
       >
         <View className="flex-1 justify-center px-7">
           <View className="items-center mb-12">
-            {/* Logo icon */}
             <View
               className="w-20 h-20 rounded-[22px] items-center justify-center mb-6"
               style={{
                 backgroundColor: theme.colors.accentGradientStart + "15",
                 shadowColor: theme.colors.accentGradientStart,
-                shadowOpacity: 0.2,
+                shadowOpacity: 0.25,
                 shadowOffset: { width: 0, height: 8 },
                 shadowRadius: 24,
                 elevation: 8,
               }}
             >
-              <Ionicons
-                name="shield-checkmark"
-                size={40}
-                color={theme.colors.accentGradientStart}
-              />
+              <Logo size={48} />
             </View>
 
             <Text
@@ -117,25 +110,24 @@ export default function LoginScreen(): React.JSX.Element {
             <Text className="text-body-md text-text-secondary mt-1">
               On-Call Management
             </Text>
-            <Text className="text-body-sm text-text-tertiary mt-1.5">
-              {serverUrl}
-            </Text>
+
+            {serverUrl ? (
+              <View
+                className="mt-2 px-4 py-1.5 rounded-full"
+                style={{
+                  backgroundColor: theme.colors.backgroundGlass,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderGlass,
+                }}
+              >
+                <Text className="text-body-sm text-text-tertiary">
+                  {serverUrl}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
-          {/* Form card */}
-          <View
-            className="w-full rounded-2xl p-5"
-            style={{
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
-              shadowColor: "#000",
-              shadowOpacity: theme.isDark ? 0.3 : 0.08,
-              shadowOffset: { width: 0, height: 8 },
-              shadowRadius: 24,
-              elevation: 6,
-            }}
-          >
+          <GlassCard style={{ padding: 20 }}>
             <Text className="text-body-sm text-text-secondary mb-2 font-semibold">
               Email
             </Text>
@@ -244,50 +236,24 @@ export default function LoginScreen(): React.JSX.Element {
               </View>
             ) : null}
 
-            <TouchableOpacity
-              className="h-[52px] rounded-xl items-center justify-center mt-5"
-              style={{
-                backgroundColor: theme.colors.actionPrimary,
-                opacity: isLoading ? 0.7 : 1,
-                shadowColor: theme.colors.actionPrimary,
-                shadowOpacity: 0.35,
-                shadowOffset: { width: 0, height: 6 },
-                shadowRadius: 16,
-                elevation: 6,
-              }}
-              onPress={handleLogin}
-              disabled={isLoading}
-              activeOpacity={0.85}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={theme.colors.textInverse} />
-              ) : (
-                <Text className="text-[16px] text-text-inverse font-bold">
-                  Log In
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            className="items-center mt-7 py-2"
-            onPress={handleChangeServer}
-          >
-            <View className="flex-row items-center">
-              <Ionicons
-                name="swap-horizontal-outline"
-                size={16}
-                color={theme.colors.actionPrimary}
-                style={{ marginRight: 6 }}
+            <View className="mt-5">
+              <GradientButton
+                label="Log In"
+                onPress={handleLogin}
+                loading={isLoading}
+                disabled={isLoading}
               />
-              <Text
-                className="text-body-sm font-semibold"
-                style={{ color: theme.colors.actionPrimary }}
-              >
-                Change Server
-              </Text>
             </View>
-          </TouchableOpacity>
+          </GlassCard>
+
+          <View className="mt-5">
+            <GradientButton
+              label="Change Server"
+              onPress={handleChangeServer}
+              variant="secondary"
+              icon="swap-horizontal-outline"
+            />
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

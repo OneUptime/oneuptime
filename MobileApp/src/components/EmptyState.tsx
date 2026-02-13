@@ -1,7 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
+import GradientButton from "./GradientButton";
 
 type EmptyIcon = "incidents" | "alerts" | "episodes" | "notes" | "default";
 
@@ -32,11 +34,25 @@ export default function EmptyState({
 
   return (
     <View className="flex-1 items-center justify-center px-10 py-28">
-      {/* Outer glow ring */}
+      {/* Outer gradient glow ring */}
       <View
-        className="w-28 h-28 rounded-full items-center justify-center"
-        style={{ backgroundColor: theme.colors.surfaceGlow }}
+        className="w-28 h-28 rounded-full items-center justify-center overflow-hidden"
       >
+        <LinearGradient
+          colors={[
+            theme.colors.accentGradientStart + "26",
+            theme.colors.accentGradientEnd + "26",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
         {/* Inner icon container */}
         <View
           className="w-20 h-20 rounded-full items-center justify-center"
@@ -66,23 +82,9 @@ export default function EmptyState({
       ) : null}
 
       {actionLabel && onAction ? (
-        <TouchableOpacity
-          className="mt-6 px-8 py-3 rounded-xl items-center"
-          style={{
-            backgroundColor: theme.colors.actionPrimary,
-            shadowColor: theme.colors.actionPrimary,
-            shadowOpacity: 0.25,
-            shadowOffset: { width: 0, height: 4 },
-            shadowRadius: 12,
-            elevation: 4,
-          }}
-          onPress={onAction}
-          activeOpacity={0.8}
-        >
-          <Text className="text-body-md text-text-inverse font-semibold">
-            {actionLabel}
-          </Text>
-        </TouchableOpacity>
+        <View className="mt-6 w-[200px]">
+          <GradientButton label={actionLabel} onPress={onAction} />
+        </View>
       ) : null}
     </View>
   );
