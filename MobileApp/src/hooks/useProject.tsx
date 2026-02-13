@@ -7,6 +7,7 @@ import React, {
   ReactNode,
 } from "react";
 import { fetchProjects } from "../api/projects";
+import { useAuth } from "./useAuth";
 import type { ProjectItem } from "../api/types";
 
 interface ProjectContextValue {
@@ -25,6 +26,7 @@ interface ProjectProviderProps {
 export function ProjectProvider({
   children,
 }: ProjectProviderProps): React.JSX.Element {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [projectList, setProjectList] = useState<ProjectItem[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
 
@@ -42,8 +44,16 @@ export function ProjectProvider({
     }, []);
 
   useEffect((): void => {
+    if (authLoading) {
+      return;
+    }
+    if (!isAuthenticated) {
+      setProjectList([]);
+      setIsLoadingProjects(false);
+      return;
+    }
     loadProjects();
-  }, [loadProjects]);
+  }, [isAuthenticated, authLoading, loadProjects]);
 
   return (
     <ProjectContext.Provider
