@@ -26,6 +26,9 @@ enum MonitorType {
 
   // Network device monitoring
   SNMP = "SNMP",
+
+  // DNS monitoring
+  DNS = "DNS",
 }
 
 export default MonitorType;
@@ -179,6 +182,13 @@ export class MonitorTypeHelper {
           "This monitor type lets you monitor network devices like switches, routers, and firewalls via SNMP.",
         icon: IconProp.Signal,
       },
+      {
+        monitorType: MonitorType.DNS,
+        title: "DNS",
+        description:
+          "This monitor type lets you monitor DNS resolution for your domains, verify record values, and check DNSSEC validity.",
+        icon: IconProp.GlobeAlt,
+      },
     ];
 
     return monitorTypeProps;
@@ -224,7 +234,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.SyntheticMonitor ||
       monitorType === MonitorType.CustomJavaScriptCode ||
-      monitorType === MonitorType.SNMP;
+      monitorType === MonitorType.SNMP ||
+      monitorType === MonitorType.DNS;
     return isProbeableMonitor;
   }
 
@@ -246,6 +257,7 @@ export class MonitorTypeHelper {
       MonitorType.Traces,
       MonitorType.Exceptions,
       MonitorType.SNMP,
+      MonitorType.DNS,
     ];
   }
 
@@ -278,7 +290,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.SyntheticMonitor ||
       monitorType === MonitorType.CustomJavaScriptCode ||
-      monitorType === MonitorType.SNMP
+      monitorType === MonitorType.SNMP ||
+      monitorType === MonitorType.DNS
     ) {
       return true;
     }

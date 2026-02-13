@@ -8,7 +8,6 @@ import {
   type PanResponderGestureState,
   type PanResponderInstance,
 } from "react-native";
-import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
 
 interface SwipeAction {
@@ -30,7 +29,6 @@ export default function SwipeableCard({
   leftAction,
   rightAction,
 }: SwipeableCardProps): React.JSX.Element {
-  const { theme } = useTheme();
   const { mediumImpact } = useHaptics();
   const translateX: Animated.Value = useRef(new Animated.Value(0)).current;
   const hasTriggeredHaptic: React.MutableRefObject<boolean> = useRef(false);

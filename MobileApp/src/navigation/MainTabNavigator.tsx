@@ -68,7 +68,6 @@ export default function MainTabNavigator(): React.JSX.Element {
             focused,
           }: {
             color: string;
-            size: number;
             focused: boolean;
           }) => {
             return (
@@ -91,7 +90,6 @@ export default function MainTabNavigator(): React.JSX.Element {
             focused,
           }: {
             color: string;
-            size: number;
             focused: boolean;
           }) => {
             return (
@@ -114,7 +112,6 @@ export default function MainTabNavigator(): React.JSX.Element {
             focused,
           }: {
             color: string;
-            size: number;
             focused: boolean;
           }) => {
             return (
@@ -132,19 +129,12 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={SettingsStackNavigator}
         options={{
           headerShown: false,
-          tabBarIcon: ({
-            color,
-            focused,
-          }: {
-            color: string;
-            size: number;
-            focused: boolean;
-          }) => {
+          tabBarIcon: (props: { color: string; focused: boolean }) => {
             return (
               <Ionicons
-                name={focused ? "settings" : "settings-outline"}
+                name={props.focused ? "settings" : "settings-outline"}
                 size={24}
-                color={color}
+                color={props.color}
               />
             );
           },

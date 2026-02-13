@@ -127,6 +127,14 @@ export class Service extends DatabaseService<Model> {
             monitorDestination = `${monitorDestination}:${port}`;
           }
         }
+
+        // For DNS monitors, use the queryName from dnsMonitor config
+        if (monitorType === MonitorType.DNS && firstStep?.data?.dnsMonitor) {
+          monitorDestination = firstStep.data.dnsMonitor.queryName || "";
+          if (firstStep.data.dnsMonitor.hostname) {
+            monitorDestination = `${monitorDestination} @${firstStep.data.dnsMonitor.hostname}`;
+          }
+        }
       }
     }
 

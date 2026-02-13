@@ -25,18 +25,20 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
   const { projectList } = useProject();
   const enabled: boolean = projectList.length > 0;
 
-  const incidentQuery: UseQueryResult<ListResponse<IncidentItem>, Error> =
-    useQuery({
-      queryKey: ["incidents", "unresolved-count", "all-projects"],
-      queryFn: () => {
-        return fetchAllIncidents({
-          skip: 0,
-          limit: 1,
-          unresolvedOnly: true,
-        });
-      },
-      enabled,
-    });
+  const incidentQuery: UseQueryResult<
+    ListResponse<IncidentItem>,
+    Error
+  > = useQuery({
+    queryKey: ["incidents", "unresolved-count", "all-projects"],
+    queryFn: () => {
+      return fetchAllIncidents({
+        skip: 0,
+        limit: 1,
+        unresolvedOnly: true,
+      });
+    },
+    enabled,
+  });
 
   const alertQuery: UseQueryResult<ListResponse<AlertItem>, Error> = useQuery({
     queryKey: ["alerts", "unresolved-count", "all-projects"],

@@ -21,14 +21,16 @@ interface UseAllProjectIncidentEpisodesResult {
 export function useAllProjectIncidentEpisodes(): UseAllProjectIncidentEpisodesResult {
   const { projectList } = useProject();
 
-  const query: UseQueryResult<ListResponse<IncidentEpisodeItem>, Error> =
-    useQuery({
-      queryKey: ["incident-episodes", "all-projects"],
-      queryFn: () => {
-        return fetchAllIncidentEpisodes({ skip: 0, limit: FETCH_LIMIT });
-      },
-      enabled: projectList.length > 0,
-    });
+  const query: UseQueryResult<
+    ListResponse<IncidentEpisodeItem>,
+    Error
+  > = useQuery({
+    queryKey: ["incident-episodes", "all-projects"],
+    queryFn: () => {
+      return fetchAllIncidentEpisodes({ skip: 0, limit: FETCH_LIMIT });
+    },
+    enabled: projectList.length > 0,
+  });
 
   const projectMap: Map<string, string> = useMemo(() => {
     const map: Map<string, string> = new Map();

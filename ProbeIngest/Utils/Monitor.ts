@@ -196,6 +196,45 @@ export default class MonitorUtil {
       }
     }
 
+    if (monitorType === MonitorType.DNS) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        // Handle DNS hostname secrets (custom DNS server)
+        if (
+          monitorStep.data?.dnsMonitor?.hostname &&
+          this.hasSecrets(monitorStep.data.dnsMonitor.hostname)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
+          }
+
+          monitorStep.data.dnsMonitor.hostname =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.dnsMonitor.hostname,
+            })) as string;
+        }
+
+        // Handle DNS query name secrets
+        if (
+          monitorStep.data?.dnsMonitor?.queryName &&
+          this.hasSecrets(monitorStep.data.dnsMonitor.queryName)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
+          }
+
+          monitorStep.data.dnsMonitor.queryName =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.dnsMonitor.queryName,
+            })) as string;
+        }
+      }
+    }
+
     return monitorSteps;
   }
 
