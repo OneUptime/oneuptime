@@ -9,7 +9,6 @@ import type { NoteItem } from "../api/types";
 
 interface NotesSectionProps {
   notes: NoteItem[] | undefined;
-  noteModalVisible: boolean;
   setNoteModalVisible: (visible: boolean) => void;
 }
 

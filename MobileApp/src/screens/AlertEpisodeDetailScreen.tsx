@@ -391,11 +391,7 @@ export default function AlertEpisodeDetailScreen({
       ) : null}
 
       {/* Internal Notes */}
-      <NotesSection
-        notes={notes}
-        noteModalVisible={noteModalVisible}
-        setNoteModalVisible={setNoteModalVisible}
-      />
+      <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
 
       <AddNoteModal
         visible={noteModalVisible}

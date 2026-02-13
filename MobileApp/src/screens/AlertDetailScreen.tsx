@@ -390,11 +390,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       ) : null}
 
       {/* Internal Notes */}
-      <NotesSection
-        notes={notes}
-        noteModalVisible={noteModalVisible}
-        setNoteModalVisible={setNoteModalVisible}
-      />
+      <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
 
       <AddNoteModal
         visible={noteModalVisible}
