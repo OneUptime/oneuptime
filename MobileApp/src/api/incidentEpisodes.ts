@@ -6,6 +6,7 @@ import type {
   IncidentState,
   StateTimelineItem,
   NoteItem,
+  FeedItem,
 } from "./types";
 
 export async function fetchIncidentEpisodes(
@@ -148,6 +149,31 @@ export async function fetchIncidentEpisodeStateTimeline(
         incidentState: { _id: true, name: true, color: true },
       },
       sort: { createdAt: "DESC" },
+    },
+    {
+      headers: { tenantid: projectId },
+    },
+  );
+  return response.data.data;
+}
+
+export async function fetchIncidentEpisodeFeed(
+  projectId: string,
+  episodeId: string,
+): Promise<FeedItem[]> {
+  const response: AxiosResponse = await apiClient.post(
+    "/api/incident-episode-feed/get-list?skip=0&limit=50",
+    {
+      query: { incidentEpisodeId: episodeId },
+      select: {
+        _id: true,
+        feedInfoInMarkdown: true,
+        moreInformationInMarkdown: true,
+        displayColor: true,
+        postedAt: true,
+        createdAt: true,
+      },
+      sort: { postedAt: "DESC" },
     },
     {
       headers: { tenantid: projectId },

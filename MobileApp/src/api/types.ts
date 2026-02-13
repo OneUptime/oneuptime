@@ -116,6 +116,15 @@ export interface NoteItem {
   createdByUser: { _id: string; name: string } | null;
 }
 
+export interface FeedItem {
+  _id: string;
+  feedInfoInMarkdown: string;
+  moreInformationInMarkdown?: string;
+  displayColor: ColorField;
+  postedAt?: string;
+  createdAt: string;
+}
+
 export interface WithProject<T> {
   item: T;
   projectId: string;

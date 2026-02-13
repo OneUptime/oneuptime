@@ -5,6 +5,7 @@ import type {
   AlertItem,
   AlertState,
   StateTimelineItem,
+  FeedItem,
 } from "./types";
 
 export async function fetchAlerts(
@@ -144,6 +145,31 @@ export async function fetchAlertStateTimeline(
         alertState: { _id: true, name: true, color: true },
       },
       sort: { createdAt: "DESC" },
+    },
+    {
+      headers: { tenantid: projectId },
+    },
+  );
+  return response.data.data;
+}
+
+export async function fetchAlertFeed(
+  projectId: string,
+  alertId: string,
+): Promise<FeedItem[]> {
+  const response: AxiosResponse = await apiClient.post(
+    "/api/alert-feed/get-list?skip=0&limit=50",
+    {
+      query: { alertId },
+      select: {
+        _id: true,
+        feedInfoInMarkdown: true,
+        moreInformationInMarkdown: true,
+        displayColor: true,
+        postedAt: true,
+        createdAt: true,
+      },
+      sort: { postedAt: "DESC" },
     },
     {
       headers: { tenantid: projectId },

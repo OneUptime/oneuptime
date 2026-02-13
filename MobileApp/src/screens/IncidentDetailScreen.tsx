@@ -15,6 +15,7 @@ import {
   useIncidentDetail,
   useIncidentStates,
   useIncidentStateTimeline,
+  useIncidentFeed,
 } from "../hooks/useIncidentDetail";
 import { useIncidentNotes } from "../hooks/useIncidentNotes";
 import { changeIncidentState } from "../api/incidents";
@@ -24,12 +25,12 @@ import { formatDateTime } from "../utils/date";
 import type { IncidentsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
+import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
 import type {
   IncidentItem,
   IncidentState,
-  StateTimelineItem,
   NoteItem,
   NamedEntity,
 } from "../api/types";
@@ -76,6 +77,10 @@ export default function IncidentDetailScreen({
     projectId,
     incidentId,
   );
+  const { data: feed, refetch: refetchFeed } = useIncidentFeed(
+    projectId,
+    incidentId,
+  );
   const { data: notes, refetch: refetchNotes } = useIncidentNotes(
     projectId,
     incidentId,
@@ -87,8 +92,13 @@ export default function IncidentDetailScreen({
   const [submittingNote, setSubmittingNote] = useState(false);
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([refetchIncident(), refetchTimeline(), refetchNotes()]);
-  }, [refetchIncident, refetchTimeline, refetchNotes]);
+    await Promise.all([
+      refetchIncident(),
+      refetchTimeline(),
+      refetchFeed(),
+      refetchNotes(),
+    ]);
+  }, [refetchIncident, refetchTimeline, refetchFeed, refetchNotes]);
 
   const handleStateChange: (
     stateId: string,
@@ -120,7 +130,7 @@ export default function IncidentDetailScreen({
       try {
         await changeIncidentState(projectId, incidentId, stateId);
         await successFeedback();
-        await Promise.all([refetchIncident(), refetchTimeline()]);
+        await Promise.all([refetchIncident(), refetchTimeline(), refetchFeed()]);
         await queryClient.invalidateQueries({ queryKey: ["incidents"] });
       } catch {
         queryClient.setQueryData(queryKey, previousData);
@@ -137,6 +147,7 @@ export default function IncidentDetailScreen({
       states,
       refetchIncident,
       refetchTimeline,
+      refetchFeed,
       queryClient,
     ],
   );
@@ -402,46 +413,11 @@ export default function IncidentDetailScreen({
         </View>
       ) : null}
 
-      {/* State Timeline */}
-      {timeline && timeline.length > 0 ? (
+      {/* Activity Feed */}
+      {feed && feed.length > 0 ? (
         <View className="mt-6">
-          <SectionHeader title="State Timeline" iconName="time-outline" />
-          <View className="ml-1">
-            {timeline.map((entry: StateTimelineItem, index: number) => {
-              const entryColor: string = entry.incidentState?.color
-                ? rgbToHex(entry.incidentState.color)
-                : theme.colors.textTertiary;
-              const isLast: boolean = index === timeline.length - 1;
-              return (
-                <View key={entry._id} className="flex-row">
-                  {/* Timeline connector */}
-                  <View className="items-center mr-3">
-                    <View
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: entryColor }}
-                    />
-                    {!isLast ? (
-                      <View
-                        className="w-0.5 flex-1 my-1"
-                        style={{
-                          backgroundColor: theme.colors.borderDefault,
-                        }}
-                      />
-                    ) : null}
-                  </View>
-                  {/* Content */}
-                  <View className="flex-1 pb-4">
-                    <Text className="text-body-md text-text-primary font-semibold">
-                      {entry.incidentState?.name ?? "Unknown"}
-                    </Text>
-                    <Text className="text-body-sm text-text-tertiary">
-                      {formatDateTime(entry.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+          <SectionHeader title="Activity Feed" iconName="list-outline" />
+          <FeedTimeline feed={feed} />
         </View>
       ) : null}
 

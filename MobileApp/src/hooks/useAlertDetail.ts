@@ -3,8 +3,14 @@ import {
   fetchAlertById,
   fetchAlertStates,
   fetchAlertStateTimeline,
+  fetchAlertFeed,
 } from "../api/alerts";
-import type { AlertItem, AlertState, StateTimelineItem } from "../api/types";
+import type {
+  AlertItem,
+  AlertState,
+  StateTimelineItem,
+  FeedItem,
+} from "../api/types";
 
 export function useAlertDetail(
   projectId: string,
@@ -39,6 +45,19 @@ export function useAlertStateTimeline(
     queryKey: ["alert-state-timeline", projectId, alertId],
     queryFn: () => {
       return fetchAlertStateTimeline(projectId, alertId);
+    },
+    enabled: Boolean(projectId) && Boolean(alertId),
+  });
+}
+
+export function useAlertFeed(
+  projectId: string,
+  alertId: string,
+): UseQueryResult<FeedItem[], Error> {
+  return useQuery({
+    queryKey: ["alert-feed", projectId, alertId],
+    queryFn: () => {
+      return fetchAlertFeed(projectId, alertId);
     },
     enabled: Boolean(projectId) && Boolean(alertId),
   });

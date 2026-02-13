@@ -3,11 +3,13 @@ import {
   fetchIncidentById,
   fetchIncidentStates,
   fetchIncidentStateTimeline,
+  fetchIncidentFeed,
 } from "../api/incidents";
 import type {
   IncidentItem,
   IncidentState,
   StateTimelineItem,
+  FeedItem,
 } from "../api/types";
 
 export function useIncidentDetail(
@@ -43,6 +45,19 @@ export function useIncidentStateTimeline(
     queryKey: ["incident-state-timeline", projectId, incidentId],
     queryFn: () => {
       return fetchIncidentStateTimeline(projectId, incidentId);
+    },
+    enabled: Boolean(projectId) && Boolean(incidentId),
+  });
+}
+
+export function useIncidentFeed(
+  projectId: string,
+  incidentId: string,
+): UseQueryResult<FeedItem[], Error> {
+  return useQuery({
+    queryKey: ["incident-feed", projectId, incidentId],
+    queryFn: () => {
+      return fetchIncidentFeed(projectId, incidentId);
     },
     enabled: Boolean(projectId) && Boolean(incidentId),
   });

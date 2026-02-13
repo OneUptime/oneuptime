@@ -16,6 +16,7 @@ import {
   useIncidentEpisodeStates,
   useIncidentEpisodeStateTimeline,
   useIncidentEpisodeNotes,
+  useIncidentEpisodeFeed,
 } from "../hooks/useIncidentEpisodeDetail";
 import {
   changeIncidentEpisodeState,
@@ -24,9 +25,10 @@ import {
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { IncidentsStackParamList } from "../navigation/types";
-import type { IncidentState, StateTimelineItem, NoteItem } from "../api/types";
+import type { IncidentState, NoteItem } from "../api/types";
 import { useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
+import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
 
@@ -73,6 +75,10 @@ export default function IncidentEpisodeDetailScreen({
   const { data: states } = useIncidentEpisodeStates(projectId);
   const { data: timeline, refetch: refetchTimeline } =
     useIncidentEpisodeStateTimeline(projectId, episodeId);
+  const { data: feed, refetch: refetchFeed } = useIncidentEpisodeFeed(
+    projectId,
+    episodeId,
+  );
   const { data: notes, refetch: refetchNotes } = useIncidentEpisodeNotes(
     projectId,
     episodeId,
@@ -85,8 +91,13 @@ export default function IncidentEpisodeDetailScreen({
 
   const onRefresh: () => Promise<void> =
     useCallback(async (): Promise<void> => {
-      await Promise.all([refetchEpisode(), refetchTimeline(), refetchNotes()]);
-    }, [refetchEpisode, refetchTimeline, refetchNotes]);
+      await Promise.all([
+        refetchEpisode(),
+        refetchTimeline(),
+        refetchFeed(),
+        refetchNotes(),
+      ]);
+    }, [refetchEpisode, refetchTimeline, refetchFeed, refetchNotes]);
 
   const handleStateChange: (
     stateId: string,
@@ -117,7 +128,7 @@ export default function IncidentEpisodeDetailScreen({
       try {
         await changeIncidentEpisodeState(projectId, episodeId, stateId);
         await successFeedback();
-        await Promise.all([refetchEpisode(), refetchTimeline()]);
+        await Promise.all([refetchEpisode(), refetchTimeline(), refetchFeed()]);
         await queryClient.invalidateQueries({
           queryKey: ["incident-episodes"],
         });
@@ -136,6 +147,7 @@ export default function IncidentEpisodeDetailScreen({
       states,
       refetchEpisode,
       refetchTimeline,
+      refetchFeed,
       queryClient,
     ],
   );
@@ -391,44 +403,11 @@ export default function IncidentEpisodeDetailScreen({
         </View>
       ) : null}
 
-      {/* State Timeline */}
-      {timeline && timeline.length > 0 ? (
+      {/* Activity Feed */}
+      {feed && feed.length > 0 ? (
         <View className="mt-6">
-          <SectionHeader title="State Timeline" iconName="time-outline" />
-          <View className="ml-1">
-            {timeline.map((entry: StateTimelineItem, index: number) => {
-              const entryColor: string = entry.incidentState?.color
-                ? rgbToHex(entry.incidentState.color)
-                : theme.colors.textTertiary;
-              const isLast: boolean = index === timeline.length - 1;
-              return (
-                <View key={entry._id} className="flex-row">
-                  <View className="items-center mr-3">
-                    <View
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: entryColor }}
-                    />
-                    {!isLast ? (
-                      <View
-                        className="w-0.5 flex-1 my-1"
-                        style={{
-                          backgroundColor: theme.colors.borderDefault,
-                        }}
-                      />
-                    ) : null}
-                  </View>
-                  <View className="flex-1 pb-4">
-                    <Text className="text-body-md text-text-primary font-semibold">
-                      {entry.incidentState?.name ?? "Unknown"}
-                    </Text>
-                    <Text className="text-body-sm text-text-tertiary">
-                      {formatDateTime(entry.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+          <SectionHeader title="Activity Feed" iconName="list-outline" />
+          <FeedTimeline feed={feed} />
         </View>
       ) : null}
 

@@ -15,6 +15,7 @@ import {
   useAlertDetail,
   useAlertStates,
   useAlertStateTimeline,
+  useAlertFeed,
 } from "../hooks/useAlertDetail";
 import { useAlertNotes } from "../hooks/useAlertNotes";
 import { changeAlertState } from "../api/alerts";
@@ -23,8 +24,9 @@ import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import type { AlertState, StateTimelineItem, NoteItem } from "../api/types";
+import type { AlertState, NoteItem } from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
+import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
 
@@ -68,6 +70,10 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     projectId,
     alertId,
   );
+  const { data: feed, refetch: refetchFeed } = useAlertFeed(
+    projectId,
+    alertId,
+  );
   const { data: notes, refetch: refetchNotes } = useAlertNotes(
     projectId,
     alertId,
@@ -79,8 +85,13 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   const [submittingNote, setSubmittingNote] = useState(false);
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([refetchAlert(), refetchTimeline(), refetchNotes()]);
-  }, [refetchAlert, refetchTimeline, refetchNotes]);
+    await Promise.all([
+      refetchAlert(),
+      refetchTimeline(),
+      refetchFeed(),
+      refetchNotes(),
+    ]);
+  }, [refetchAlert, refetchTimeline, refetchFeed, refetchNotes]);
 
   const handleStateChange: (
     stateId: string,
@@ -109,7 +120,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       try {
         await changeAlertState(projectId, alertId, stateId);
         await successFeedback();
-        await Promise.all([refetchAlert(), refetchTimeline()]);
+        await Promise.all([refetchAlert(), refetchTimeline(), refetchFeed()]);
         await queryClient.invalidateQueries({ queryKey: ["alerts"] });
       } catch {
         queryClient.setQueryData(queryKey, previousData);
@@ -126,6 +137,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       states,
       refetchAlert,
       refetchTimeline,
+      refetchFeed,
       queryClient,
     ],
   );
@@ -374,44 +386,11 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
         </View>
       ) : null}
 
-      {/* State Timeline */}
-      {timeline && timeline.length > 0 ? (
+      {/* Activity Feed */}
+      {feed && feed.length > 0 ? (
         <View className="mt-6">
-          <SectionHeader title="State Timeline" iconName="time-outline" />
-          <View className="ml-1">
-            {timeline.map((entry: StateTimelineItem, index: number) => {
-              const entryColor: string = entry.alertState?.color
-                ? rgbToHex(entry.alertState.color)
-                : theme.colors.textTertiary;
-              const isLast: boolean = index === timeline.length - 1;
-              return (
-                <View key={entry._id} className="flex-row">
-                  <View className="items-center mr-3">
-                    <View
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: entryColor }}
-                    />
-                    {!isLast ? (
-                      <View
-                        className="w-0.5 flex-1 my-1"
-                        style={{
-                          backgroundColor: theme.colors.borderDefault,
-                        }}
-                      />
-                    ) : null}
-                  </View>
-                  <View className="flex-1 pb-4">
-                    <Text className="text-body-md text-text-primary font-semibold">
-                      {entry.alertState?.name ?? "Unknown"}
-                    </Text>
-                    <Text className="text-body-sm text-text-tertiary">
-                      {formatDateTime(entry.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+          <SectionHeader title="Activity Feed" iconName="list-outline" />
+          <FeedTimeline feed={feed} />
         </View>
       ) : null}
 
