@@ -4,12 +4,14 @@ import {
   fetchIncidentEpisodeStates,
   fetchIncidentEpisodeStateTimeline,
   fetchIncidentEpisodeNotes,
+  fetchIncidentEpisodeFeed,
 } from "../api/incidentEpisodes";
 import type {
   IncidentEpisodeItem,
   IncidentState,
   StateTimelineItem,
   NoteItem,
+  FeedItem,
 } from "../api/types";
 
 export function useIncidentEpisodeDetail(
@@ -58,6 +60,19 @@ export function useIncidentEpisodeNotes(
     queryKey: ["incident-episode-notes", projectId, episodeId],
     queryFn: () => {
       return fetchIncidentEpisodeNotes(projectId, episodeId);
+    },
+    enabled: Boolean(projectId) && Boolean(episodeId),
+  });
+}
+
+export function useIncidentEpisodeFeed(
+  projectId: string,
+  episodeId: string,
+): UseQueryResult<FeedItem[], Error> {
+  return useQuery({
+    queryKey: ["incident-episode-feed", projectId, episodeId],
+    queryFn: () => {
+      return fetchIncidentEpisodeFeed(projectId, episodeId);
     },
     enabled: Boolean(projectId) && Boolean(episodeId),
   });

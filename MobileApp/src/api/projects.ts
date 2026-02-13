@@ -12,7 +12,7 @@ export async function fetchProjects(): Promise<ListResponse<ProjectItem>> {
     },
     {
       headers: {
-        // Multi-tenant request — no tenantid needed, user token determines access
+        "is-multi-tenant-query": "true",
       },
     },
   );

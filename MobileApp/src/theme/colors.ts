@@ -5,9 +5,26 @@ export interface ColorTokens {
   backgroundTertiary: string;
   backgroundElevated: string;
 
+  // Accent
+  cardAccent: string;
+  backgroundGlass: string;
+  iconBackground: string;
+
+  // Gradient
+  accentGradientStart: string;
+  accentGradientMid: string;
+  accentGradientEnd: string;
+  accentCyan: string;
+  accentCyanBg: string;
+  surfaceGlow: string;
+  headerGradient: string;
+  gradientStart: string;
+  gradientEnd: string;
+
   // Border
   borderDefault: string;
   borderSubtle: string;
+  borderGlass: string;
 
   // Text
   textPrimary: string;
@@ -55,20 +72,37 @@ export interface ColorTokens {
 
 export const darkColors: ColorTokens = {
   // Background
-  backgroundPrimary: "#0D1117",
-  backgroundSecondary: "#161B22",
-  backgroundTertiary: "#21262D",
-  backgroundElevated: "#1C2128",
+  backgroundPrimary: "#000000",
+  backgroundSecondary: "#0A0A0A",
+  backgroundTertiary: "#161616",
+  backgroundElevated: "#0F0F0F",
+
+  // Accent
+  cardAccent: "rgba(255, 255, 255, 0.07)",
+  backgroundGlass: "rgba(255, 255, 255, 0.05)",
+  iconBackground: "rgba(255, 255, 255, 0.07)",
+
+  // Gradient
+  accentGradientStart: "#FFFFFF",
+  accentGradientMid: "#E0E0E0",
+  accentGradientEnd: "#C8C8C8",
+  accentCyan: "#06B6D4",
+  accentCyanBg: "rgba(6, 182, 212, 0.12)",
+  surfaceGlow: "rgba(255, 255, 255, 0.04)",
+  headerGradient: "rgba(255, 255, 255, 0.03)",
+  gradientStart: "rgba(255, 255, 255, 0.05)",
+  gradientEnd: "transparent",
 
   // Border
-  borderDefault: "#30363D",
-  borderSubtle: "#21262D",
+  borderDefault: "#1C1C1E",
+  borderSubtle: "#141414",
+  borderGlass: "rgba(255, 255, 255, 0.08)",
 
   // Text
-  textPrimary: "#E6EDF3",
-  textSecondary: "#8B949E",
-  textTertiary: "#6E7681",
-  textInverse: "#0D1117",
+  textPrimary: "#F0F0F0",
+  textSecondary: "#8E8E93",
+  textTertiary: "#636366",
+  textInverse: "#000000",
 
   // Severity
   severityCritical: "#F85149",
@@ -87,17 +121,17 @@ export const darkColors: ColorTokens = {
   stateAcknowledged: "#D29922",
   stateResolved: "#3FB950",
   stateInvestigating: "#F0883E",
-  stateMuted: "#6E7681",
+  stateMuted: "#636366",
 
   // On-Call
   oncallActive: "#3FB950",
   oncallActiveBg: "#3FB95026",
-  oncallInactive: "#6E7681",
-  oncallInactiveBg: "#6E768126",
+  oncallInactive: "#636366",
+  oncallInactiveBg: "#63636626",
 
   // Action
-  actionPrimary: "#6366F1",
-  actionPrimaryPressed: "#4F46E5",
+  actionPrimary: "#FFFFFF",
+  actionPrimaryPressed: "#D4D4D4",
   actionDestructive: "#F85149",
   actionDestructivePressed: "#DA3633",
 
@@ -111,18 +145,35 @@ export const darkColors: ColorTokens = {
 export const lightColors: ColorTokens = {
   // Background
   backgroundPrimary: "#FFFFFF",
-  backgroundSecondary: "#F6F8FA",
-  backgroundTertiary: "#EAEEF2",
+  backgroundSecondary: "#F8F8FA",
+  backgroundTertiary: "#F0F0F2",
   backgroundElevated: "#FFFFFF",
 
+  // Accent
+  cardAccent: "rgba(0, 0, 0, 0.04)",
+  backgroundGlass: "rgba(255, 255, 255, 0.85)",
+  iconBackground: "rgba(0, 0, 0, 0.05)",
+
+  // Gradient
+  accentGradientStart: "#1A1A1A",
+  accentGradientMid: "#2D2D2D",
+  accentGradientEnd: "#3A3A3A",
+  accentCyan: "#0891B2",
+  accentCyanBg: "rgba(8, 145, 178, 0.08)",
+  surfaceGlow: "rgba(0, 0, 0, 0.03)",
+  headerGradient: "rgba(0, 0, 0, 0.02)",
+  gradientStart: "rgba(0, 0, 0, 0.03)",
+  gradientEnd: "transparent",
+
   // Border
-  borderDefault: "#D0D7DE",
-  borderSubtle: "#EAEEF2",
+  borderDefault: "#E5E5EA",
+  borderSubtle: "#F0F0F2",
+  borderGlass: "rgba(0, 0, 0, 0.06)",
 
   // Text
-  textPrimary: "#1F2328",
-  textSecondary: "#656D76",
-  textTertiary: "#8C959F",
+  textPrimary: "#111111",
+  textSecondary: "#6B6B6B",
+  textTertiary: "#9A9A9A",
   textInverse: "#FFFFFF",
 
   // Severity
@@ -151,8 +202,8 @@ export const lightColors: ColorTokens = {
   oncallInactiveBg: "#8C959F1A",
 
   // Action
-  actionPrimary: "#6366F1",
-  actionPrimaryPressed: "#4F46E5",
+  actionPrimary: "#1A1A1A",
+  actionPrimaryPressed: "#333333",
   actionDestructive: "#CF222E",
   actionDestructivePressed: "#A40E26",
 

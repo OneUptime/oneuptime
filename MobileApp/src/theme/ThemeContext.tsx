@@ -6,10 +6,8 @@ import React, {
   useMemo,
   ReactNode,
 } from "react";
-import { useColorScheme } from "react-native";
+import { View, useColorScheme } from "react-native";
 import { ColorTokens, darkColors, lightColors } from "./colors";
-import { typography } from "./typography";
-import { spacing, radius } from "./spacing";
 import {
   getThemeMode as loadThemeMode,
   setThemeMode as saveThemeMode,
@@ -19,9 +17,6 @@ export type ThemeMode = "dark" | "light" | "system";
 
 export interface Theme {
   colors: ColorTokens;
-  typography: typeof typography;
-  spacing: typeof spacing;
-  radius: typeof radius;
   isDark: boolean;
 }
 
@@ -43,7 +38,7 @@ export function ThemeProvider({
 }: ThemeProviderProps): React.JSX.Element {
   const systemColorScheme: "light" | "dark" | null | undefined =
     useColorScheme();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>("dark");
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
 
   // Load persisted theme on mount
   useEffect(() => {
@@ -68,9 +63,6 @@ export function ThemeProvider({
 
     return {
       colors: isDark ? darkColors : lightColors,
-      typography,
-      spacing,
-      radius,
       isDark,
     };
   }, [themeMode, systemColorScheme]);
@@ -84,7 +76,14 @@ export function ThemeProvider({
   }, [theme, themeMode]);
 
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>
+      <View
+        className={theme.isDark ? "dark flex-1" : "flex-1"}
+        style={{ flex: 1 }}
+      >
+        {children}
+      </View>
+    </ThemeContext.Provider>
   );
 }
 

@@ -1,8 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
+import ProjectBadge from "./ProjectBadge";
+import GlassCard from "./GlassCard";
 import type {
   IncidentEpisodeItem,
   AlertEpisodeItem,
@@ -14,17 +17,21 @@ type EpisodeCardProps =
       episode: IncidentEpisodeItem;
       type: "incident";
       onPress: () => void;
+      projectName?: string;
+      muted?: boolean;
     }
   | {
       episode: AlertEpisodeItem;
       type: "alert";
       onPress: () => void;
+      projectName?: string;
+      muted?: boolean;
     };
 
 export default function EpisodeCard(
   props: EpisodeCardProps,
 ): React.JSX.Element {
-  const { episode, type, onPress } = props;
+  const { episode, type, onPress, projectName, muted } = props;
   const { theme } = useTheme();
 
   const state: NamedEntityWithColor =
@@ -56,120 +63,96 @@ export default function EpisodeCard(
 
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderColor: theme.colors.borderSubtle,
-        },
-      ]}
+      className="mb-3"
+      style={{
+        opacity: muted ? 0.55 : 1,
+      }}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={styles.topRow}>
-        <Text style={[styles.number, { color: theme.colors.textTertiary }]}>
-          {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
-        </Text>
-        <Text style={[styles.time, { color: theme.colors.textTertiary }]}>
-          {timeString}
-        </Text>
-      </View>
+      <GlassCard opaque>
+        <View className="flex-row">
+          <LinearGradient
+            colors={[stateColor, stateColor + "40"]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={{ width: 3 }}
+          />
+          <View className="flex-1 p-4">
+            {projectName ? (
+              <View className="mb-2">
+                <ProjectBadge name={projectName} />
+              </View>
+            ) : null}
+            <View className="flex-row justify-between items-center mb-2">
+              <View
+                className="px-2.5 py-0.5 rounded-full"
+                style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              >
+                <Text className="text-[12px] font-semibold text-text-tertiary">
+                  {episode.episodeNumberWithPrefix ||
+                    `#${episode.episodeNumber}`}
+                </Text>
+              </View>
+              <Text className="text-[12px] text-text-tertiary">
+                {timeString}
+              </Text>
+            </View>
 
-      <Text
-        style={[
-          theme.typography.bodyLarge,
-          { color: theme.colors.textPrimary, fontWeight: "600" },
-        ]}
-        numberOfLines={2}
-      >
-        {episode.title}
-      </Text>
-
-      <View style={styles.badgeRow}>
-        {state ? (
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: theme.colors.backgroundTertiary },
-            ]}
-          >
-            <View style={[styles.dot, { backgroundColor: stateColor }]} />
             <Text
-              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
+              className="text-body-lg text-text-primary font-semibold mt-0.5"
+              numberOfLines={2}
             >
-              {state.name}
+              {episode.title}
             </Text>
-          </View>
-        ) : null}
 
-        {severity ? (
-          <View
-            style={[styles.badge, { backgroundColor: severityColor + "26" }]}
-          >
-            <Text style={[styles.badgeText, { color: severityColor }]}>
-              {severity.name}
-            </Text>
-          </View>
-        ) : null}
-      </View>
+            <View className="flex-row flex-wrap gap-2 mt-3">
+              {state ? (
+                <View
+                  className="flex-row items-center px-2.5 py-1 rounded-full"
+                  style={{
+                    backgroundColor: theme.colors.backgroundTertiary,
+                  }}
+                >
+                  <View
+                    className="w-2 h-2 rounded-full mr-1.5"
+                    style={{ backgroundColor: stateColor }}
+                  />
+                  <Text className="text-[12px] font-semibold text-text-primary">
+                    {state.name}
+                  </Text>
+                </View>
+              ) : null}
 
-      {childCount > 0 ? (
-        <Text
-          style={[styles.childCount, { color: theme.colors.textSecondary }]}
-        >
-          {childCount} {type === "incident" ? "incident" : "alert"}
-          {childCount !== 1 ? "s" : ""}
-        </Text>
-      ) : null}
+              {severity ? (
+                <View
+                  className="flex-row items-center px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: severityColor + "15" }}
+                >
+                  <Text
+                    className="text-[12px] font-semibold"
+                    style={{ color: severityColor }}
+                  >
+                    {severity.name}
+                  </Text>
+                </View>
+              ) : null}
+
+              {childCount > 0 ? (
+                <View
+                  className="flex-row items-center px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                >
+                  <Text className="text-[12px] font-semibold text-text-secondary">
+                    {childCount} {type === "incident" ? "incident" : "alert"}
+                    {childCount !== 1 ? "s" : ""}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </GlassCard>
     </TouchableOpacity>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  card: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  number: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  time: {
-    fontSize: 12,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 10,
-  },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  childCount: {
-    fontSize: 12,
-    marginTop: 8,
-  },
-});

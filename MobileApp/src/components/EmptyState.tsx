@@ -1,6 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import GradientButton from "./GradientButton";
 
 type EmptyIcon = "incidents" | "alerts" | "episodes" | "notes" | "default";
 
@@ -8,178 +10,75 @@ interface EmptyStateProps {
   title: string;
   subtitle?: string;
   icon?: EmptyIcon;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
-function EmptyIcon({
-  icon,
-  color,
-}: {
-  icon: EmptyIcon;
-  color: string;
-}): React.JSX.Element {
-  /*
-   * Simple geometric SVG-style icons using View primitives
-   * Monochrome, clean, professional — not cartoon/playful
-   */
-  if (icon === "incidents") {
-    return (
-      <View style={styles.iconContainer}>
-        <View style={[styles.iconShield, { borderColor: color }]}>
-          <View style={[styles.iconCheckmark, { backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  }
-
-  if (icon === "alerts") {
-    return (
-      <View style={styles.iconContainer}>
-        <View style={[styles.iconBell, { borderColor: color }]}>
-          <View style={[styles.iconBellClapper, { backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  }
-
-  if (icon === "episodes") {
-    return (
-      <View style={styles.iconContainer}>
-        <View style={[styles.iconStack, { borderColor: color }]} />
-        <View
-          style={[styles.iconStackBack, { borderColor: color, opacity: 0.4 }]}
-        />
-      </View>
-    );
-  }
-
-  // Default: simple circle with line through it
-  return (
-    <View style={styles.iconContainer}>
-      <View style={[styles.iconCircle, { borderColor: color }]}>
-        <View style={[styles.iconLine, { backgroundColor: color }]} />
-      </View>
-    </View>
-  );
-}
+const iconMap: Record<EmptyIcon, keyof typeof Ionicons.glyphMap> = {
+  incidents: "warning-outline",
+  alerts: "notifications-outline",
+  episodes: "layers-outline",
+  notes: "document-text-outline",
+  default: "remove-circle-outline",
+};
 
 export default function EmptyState({
   title,
   subtitle,
   icon = "default",
+  actionLabel,
+  onAction,
 }: EmptyStateProps): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
-    <View style={styles.container}>
-      <EmptyIcon icon={icon} color={theme.colors.textTertiary} />
+    <View className="flex-1 items-center justify-center px-10 py-28">
+      {/* Outer gradient glow ring */}
+      <View className="w-28 h-28 rounded-full items-center justify-center overflow-hidden">
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: theme.colors.surfaceGlow,
+            borderRadius: 56,
+          }}
+        />
+        {/* Inner icon container */}
+        <View
+          className="w-20 h-20 rounded-full items-center justify-center"
+          style={{
+            backgroundColor: theme.colors.backgroundTertiary,
+          }}
+        >
+          <Ionicons
+            name={iconMap[icon]}
+            size={36}
+            color={theme.colors.textSecondary}
+          />
+        </View>
+      </View>
+
       <Text
-        style={[
-          theme.typography.titleSmall,
-          {
-            color: theme.colors.textPrimary,
-            textAlign: "center",
-            marginTop: 20,
-          },
-        ]}
+        className="text-title-md text-text-primary text-center mt-7"
+        style={{ letterSpacing: -0.3 }}
       >
         {title}
       </Text>
+
       {subtitle ? (
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            {
-              color: theme.colors.textSecondary,
-              textAlign: "center",
-              marginTop: theme.spacing.sm,
-              lineHeight: 20,
-            },
-          ]}
-        >
+        <Text className="text-body-md text-text-secondary text-center mt-2.5 leading-6 max-w-[280px]">
           {subtitle}
         </Text>
+      ) : null}
+
+      {actionLabel && onAction ? (
+        <View className="mt-6 w-[200px]">
+          <GradientButton label={actionLabel} onPress={onAction} />
+        </View>
       ) : null}
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 40,
-    paddingVertical: 60,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  // Shield icon (incidents)
-  iconShield: {
-    width: 44,
-    height: 52,
-    borderWidth: 2,
-    borderRadius: 6,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconCheckmark: {
-    width: 16,
-    height: 3,
-    borderRadius: 1.5,
-    transform: [{ rotate: "-45deg" }],
-  },
-  // Bell icon (alerts)
-  iconBell: {
-    width: 36,
-    height: 36,
-    borderWidth: 2,
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 4,
-  },
-  iconBellClapper: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  // Stack icon (episodes)
-  iconStack: {
-    width: 40,
-    height: 32,
-    borderWidth: 2,
-    borderRadius: 8,
-    position: "absolute",
-    top: 12,
-  },
-  iconStackBack: {
-    width: 32,
-    height: 28,
-    borderWidth: 2,
-    borderRadius: 6,
-    position: "absolute",
-    top: 6,
-  },
-  // Default circle icon
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderWidth: 2,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconLine: {
-    width: 20,
-    height: 2,
-    borderRadius: 1,
-  },
-});

@@ -85,7 +85,8 @@ class MonitorMetricTypeUtil {
       monitorType === MonitorType.Ping ||
       monitorType === MonitorType.IP ||
       monitorType === MonitorType.Port ||
-      monitorType === MonitorType.SNMP
+      monitorType === MonitorType.SNMP ||
+      monitorType === MonitorType.DNS
     ) {
       return [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime];
     }

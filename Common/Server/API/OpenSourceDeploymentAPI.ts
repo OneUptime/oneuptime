@@ -39,6 +39,14 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
             (body["oneuptimeVersion"] as string) || "unknown";
           deployment.instanceUrl = (body["instanceUrl"] as string) || "";
 
+          // Skip localhost instances - these are default/unconfigured deployments.
+          if (
+            deployment.instanceUrl === "http://localhost/" ||
+            deployment.instanceUrl === "http://localhost"
+          ) {
+            return Response.sendEmptySuccessResponse(req, res);
+          }
+
           await OpenSourceDeploymentService.create({
             data: deployment,
             props: {

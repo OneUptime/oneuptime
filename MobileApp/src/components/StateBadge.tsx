@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
 import { useTheme } from "../theme";
 
 export type StateType =
@@ -32,39 +32,14 @@ export default function StateBadge({
   const displayLabel: string = label || state;
 
   return (
-    <View
-      style={[
-        styles.badge,
-        {
-          backgroundColor: theme.colors.backgroundTertiary,
-        },
-      ]}
-    >
-      <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={[styles.text, { color: theme.colors.textPrimary }]}>
+    <View className="flex-row items-center px-2 py-1 rounded-md self-start bg-bg-tertiary">
+      <View
+        className="w-2 h-2 rounded-full mr-1.5"
+        style={{ backgroundColor: color }}
+      />
+      <Text className="text-xs font-semibold text-text-primary">
         {displayLabel.charAt(0).toUpperCase() + displayLabel.slice(1)}
       </Text>
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  text: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-});

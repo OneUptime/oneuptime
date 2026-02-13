@@ -6,19 +6,14 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchProjects } from "../api/projects";
+import { useAuth } from "./useAuth";
 import type { ProjectItem } from "../api/types";
 
-const PROJECT_STORAGE_KEY: string = "oneuptime_selected_project_id";
-
 interface ProjectContextValue {
-  selectedProject: ProjectItem | null;
   projectList: ProjectItem[];
   isLoadingProjects: boolean;
-  selectProject: (project: ProjectItem) => Promise<void>;
   refreshProjects: () => Promise<void>;
-  clearProject: () => Promise<void>;
 }
 
 const ProjectContext: React.Context<ProjectContextValue | undefined> =
@@ -31,9 +26,7 @@ interface ProjectProviderProps {
 export function ProjectProvider({
   children,
 }: ProjectProviderProps): React.JSX.Element {
-  const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(
-    null,
-  );
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [projectList, setProjectList] = useState<ProjectItem[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
 
@@ -43,27 +36,6 @@ export function ProjectProvider({
         setIsLoadingProjects(true);
         const response: { data: ProjectItem[] } = await fetchProjects();
         setProjectList(response.data);
-
-        // Try to restore previously selected project
-        const savedId: string | null =
-          await AsyncStorage.getItem(PROJECT_STORAGE_KEY);
-        if (savedId) {
-          const saved: ProjectItem | undefined = response.data.find(
-            (p: ProjectItem): boolean => {
-              return p._id === savedId;
-            },
-          );
-          if (saved) {
-            setSelectedProject(saved);
-          }
-        }
-
-        // Auto-select if only one project
-        if (!savedId && response.data.length === 1) {
-          const project: ProjectItem = response.data[0]!;
-          setSelectedProject(project);
-          await AsyncStorage.setItem(PROJECT_STORAGE_KEY, project._id);
-        }
       } catch {
         // Projects will be empty, user can retry
       } finally {
@@ -72,32 +44,23 @@ export function ProjectProvider({
     }, []);
 
   useEffect((): void => {
+    if (authLoading) {
+      return;
+    }
+    if (!isAuthenticated) {
+      setProjectList([]);
+      setIsLoadingProjects(false);
+      return;
+    }
     loadProjects();
-  }, [loadProjects]);
-
-  const selectProject: (project: ProjectItem) => Promise<void> = useCallback(
-    async (project: ProjectItem): Promise<void> => {
-      setSelectedProject(project);
-      await AsyncStorage.setItem(PROJECT_STORAGE_KEY, project._id);
-    },
-    [],
-  );
-
-  const clearProject: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
-      setSelectedProject(null);
-      await AsyncStorage.removeItem(PROJECT_STORAGE_KEY);
-    }, []);
+  }, [isAuthenticated, authLoading, loadProjects]);
 
   return (
     <ProjectContext.Provider
       value={{
-        selectedProject,
         projectList,
         isLoadingProjects,
-        selectProject,
         refreshProjects: loadProjects,
-        clearProject,
       }}
     >
       {children}

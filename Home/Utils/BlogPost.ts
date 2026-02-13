@@ -128,9 +128,13 @@ export default class BlogPostUtil {
   }
 
   public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
-    const blogPost: BlogPost | null = await this.getBlogPostFromFile(fileName);
-
-    return blogPost;
+    try {
+      const blogPost: BlogPost | null =
+        await this.getBlogPostFromFile(fileName);
+      return blogPost;
+    } catch {
+      return null;
+    }
   }
 
   public static async getTags(): Promise<string[]> {

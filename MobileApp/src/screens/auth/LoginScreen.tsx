@@ -3,15 +3,11 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ViewStyle,
-  TextStyle,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import { LoginResponse } from "../../api/auth";
@@ -19,6 +15,10 @@ import { getServerUrl } from "../../storage/serverUrl";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
+import Logo from "../../components/Logo";
+import GradientHeader from "../../components/GradientHeader";
+import GlassCard from "../../components/GlassCard";
+import GradientButton from "../../components/GradientButton";
 
 type LoginNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -34,6 +34,8 @@ export default function LoginScreen(): React.JSX.Element {
   const [serverUrl, setServerUrlState] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   useEffect(() => {
     getServerUrl().then(setServerUrlState);
@@ -74,209 +76,186 @@ export default function LoginScreen(): React.JSX.Element {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: theme.colors.backgroundPrimary }]}
+      className="flex-1 bg-bg-primary"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      <GradientHeader />
+
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.container}>
-          <View style={styles.header}>
+        <View className="flex-1 justify-center px-7">
+          <View className="items-center mb-12">
+            <View
+              className="w-20 h-20 rounded-[22px] items-center justify-center mb-6"
+              style={{
+                backgroundColor: theme.colors.backgroundTertiary,
+                shadowColor: "#000000",
+                shadowOpacity: 0.3,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 16,
+                elevation: 6,
+              }}
+            >
+              <Logo size={48} />
+            </View>
+
             <Text
-              style={[
-                theme.typography.titleLarge,
-                { color: theme.colors.textPrimary },
-              ]}
+              className="text-text-primary font-extrabold text-[34px]"
+              style={{ letterSpacing: -1.2 }}
             >
               OneUptime
             </Text>
-            <Text
-              style={[
-                theme.typography.bodySmall,
-                {
-                  color: theme.colors.textTertiary,
-                  marginTop: theme.spacing.xs,
-                },
-              ]}
-            >
-              {serverUrl}
+            <Text className="text-body-md text-text-secondary mt-1">
+              On-Call Management
             </Text>
+
+            {serverUrl ? (
+              <View
+                className="mt-2 px-4 py-1.5 rounded-full"
+                style={{
+                  backgroundColor: theme.colors.backgroundGlass,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderGlass,
+                }}
+              >
+                <Text className="text-body-sm text-text-tertiary">
+                  {serverUrl}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
-          <View style={styles.form}>
-            <Text
-              style={[
-                theme.typography.bodySmall,
-                {
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing.xs,
-                },
-              ]}
-            >
+          <GlassCard style={{ padding: 20 }}>
+            <Text className="text-body-sm text-text-secondary mb-2 font-semibold">
               Email
             </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderColor: theme.colors.borderDefault,
-                  color: theme.colors.textPrimary,
-                },
-              ]}
-              value={email}
-              onChangeText={(text: string) => {
-                setEmail(text);
-                setError(null);
+            <View
+              className="flex-row items-center h-[52px] rounded-xl px-3.5"
+              style={{
+                backgroundColor: theme.colors.backgroundPrimary,
+                borderWidth: 1.5,
+                borderColor: emailFocused
+                  ? theme.colors.actionPrimary
+                  : theme.colors.borderDefault,
               }}
-              placeholder="you@example.com"
-              placeholderTextColor={theme.colors.textTertiary}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              returnKeyType="next"
-            />
-
-            <Text
-              style={[
-                theme.typography.bodySmall,
-                {
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing.xs,
-                  marginTop: theme.spacing.md,
-                },
-              ]}
             >
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={
+                  emailFocused
+                    ? theme.colors.actionPrimary
+                    : theme.colors.textTertiary
+                }
+                style={{ marginRight: 10 }}
+              />
+              <TextInput
+                className="flex-1 text-base text-text-primary"
+                value={email}
+                onChangeText={(text: string) => {
+                  setEmail(text);
+                  setError(null);
+                }}
+                onFocus={() => {
+                  return setEmailFocused(true);
+                }}
+                onBlur={() => {
+                  return setEmailFocused(false);
+                }}
+                placeholder="you@example.com"
+                placeholderTextColor={theme.colors.textTertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                returnKeyType="next"
+              />
+            </View>
+
+            <Text className="text-body-sm text-text-secondary mb-2 mt-4 font-semibold">
               Password
             </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderColor: theme.colors.borderDefault,
-                  color: theme.colors.textPrimary,
-                },
-              ]}
-              value={password}
-              onChangeText={(text: string) => {
-                setPassword(text);
-                setError(null);
+            <View
+              className="flex-row items-center h-[52px] rounded-xl px-3.5"
+              style={{
+                backgroundColor: theme.colors.backgroundPrimary,
+                borderWidth: 1.5,
+                borderColor: passwordFocused
+                  ? theme.colors.actionPrimary
+                  : theme.colors.borderDefault,
               }}
-              placeholder="Your password"
-              placeholderTextColor={theme.colors.textTertiary}
-              secureTextEntry
-              textContentType="password"
-              returnKeyType="go"
-              onSubmitEditing={handleLogin}
-            />
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={
+                  passwordFocused
+                    ? theme.colors.actionPrimary
+                    : theme.colors.textTertiary
+                }
+                style={{ marginRight: 10 }}
+              />
+              <TextInput
+                className="flex-1 text-base text-text-primary"
+                value={password}
+                onChangeText={(text: string) => {
+                  setPassword(text);
+                  setError(null);
+                }}
+                onFocus={() => {
+                  return setPasswordFocused(true);
+                }}
+                onBlur={() => {
+                  return setPasswordFocused(false);
+                }}
+                placeholder="Your password"
+                placeholderTextColor={theme.colors.textTertiary}
+                secureTextEntry
+                textContentType="password"
+                returnKeyType="go"
+                onSubmitEditing={handleLogin}
+              />
+            </View>
 
             {error ? (
-              <Text
-                style={[
-                  theme.typography.bodySmall,
-                  {
-                    color: theme.colors.statusError,
-                    marginTop: theme.spacing.sm,
-                  },
-                ]}
-              >
-                {error}
-              </Text>
+              <View className="flex-row items-start mt-2.5">
+                <Ionicons
+                  name="alert-circle"
+                  size={14}
+                  color={theme.colors.statusError}
+                  style={{ marginRight: 6, marginTop: 2 }}
+                />
+                <Text
+                  className="text-body-sm flex-1"
+                  style={{ color: theme.colors.statusError }}
+                >
+                  {error}
+                </Text>
+              </View>
             ) : null}
 
-            <TouchableOpacity
-              style={[
-                styles.button,
-                {
-                  backgroundColor: theme.colors.actionPrimary,
-                  opacity: isLoading ? 0.7 : 1,
-                },
-              ]}
-              onPress={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={theme.colors.textInverse} />
-              ) : (
-                <Text
-                  style={[
-                    theme.typography.bodyMedium,
-                    { color: theme.colors.textInverse, fontWeight: "600" },
-                  ]}
-                >
-                  Log In
-                </Text>
-              )}
-            </TouchableOpacity>
+            <View className="mt-5">
+              <GradientButton
+                label="Log In"
+                onPress={handleLogin}
+                loading={isLoading}
+                disabled={isLoading}
+              />
+            </View>
+          </GlassCard>
 
-            <TouchableOpacity
-              style={styles.changeServer}
+          <View className="mt-5">
+            <GradientButton
+              label="Change Server"
               onPress={handleChangeServer}
-            >
-              <Text
-                style={[
-                  theme.typography.bodySmall,
-                  { color: theme.colors.actionPrimary },
-                ]}
-              >
-                Change Server
-              </Text>
-            </TouchableOpacity>
+              variant="secondary"
+              icon="swap-horizontal-outline"
+            />
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles: {
-  flex: ViewStyle;
-  scrollContent: ViewStyle;
-  container: ViewStyle;
-  header: ViewStyle;
-  form: ViewStyle;
-  input: TextStyle;
-  button: ViewStyle;
-  changeServer: ViewStyle;
-} = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 48,
-  },
-  form: {
-    width: "100%",
-  },
-  input: {
-    height: 56,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  button: {
-    height: 56,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 24,
-  },
-  changeServer: {
-    alignItems: "center",
-    marginTop: 24,
-    paddingVertical: 8,
-  },
-});

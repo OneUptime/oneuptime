@@ -75,6 +75,10 @@ import SnmpMonitorStepForm from "./SnmpMonitor/SnmpMonitorStepForm";
 import MonitorStepSnmpMonitor, {
   MonitorStepSnmpMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepSnmpMonitor";
+import DnsMonitorStepForm from "./DnsMonitor/DnsMonitorStepForm";
+import MonitorStepDnsMonitor, {
+  MonitorStepDnsMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepDnsMonitor";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -784,6 +788,24 @@ return {
             }
             onChange={(value: MonitorStepSnmpMonitor) => {
               monitorStep.setSnmpMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.DNS && (
+        <Card
+          title="DNS Monitor Configuration"
+          description="Configure the DNS monitoring settings"
+        >
+          <DnsMonitorStepForm
+            monitorStepDnsMonitor={
+              monitorStep.data?.dnsMonitor ||
+              MonitorStepDnsMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepDnsMonitor) => {
+              monitorStep.setDnsMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

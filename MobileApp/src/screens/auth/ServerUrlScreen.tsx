@@ -3,15 +3,11 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ViewStyle,
-  TextStyle,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
@@ -19,6 +15,10 @@ import { useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 import { setServerUrl } from "../../storage/serverUrl";
 import { validateServerUrl } from "../../api/auth";
+import Logo from "../../components/Logo";
+import GradientHeader from "../../components/GradientHeader";
+import GlassCard from "../../components/GlassCard";
+import GradientButton from "../../components/GradientButton";
 
 type ServerUrlNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -33,6 +33,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
   const [url, setUrl] = useState("https://oneuptime.com");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [urlFocused, setUrlFocused] = useState(false);
 
   const handleConnect: () => Promise<void> = async (): Promise<void> => {
     if (!url.trim()) {
@@ -66,171 +67,132 @@ export default function ServerUrlScreen(): React.JSX.Element {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: theme.colors.backgroundPrimary }]}
+      className="flex-1 bg-bg-primary"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      <GradientHeader />
+
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.container}>
-          <View style={styles.header}>
+        <View className="flex-1 justify-center px-7">
+          <View className="items-center mb-14">
+            <View
+              className="w-20 h-20 rounded-[22px] items-center justify-center mb-6"
+              style={{
+                backgroundColor: theme.colors.backgroundTertiary,
+                shadowColor: "#000000",
+                shadowOpacity: 0.3,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 16,
+                elevation: 6,
+              }}
+            >
+              <Logo size={48} />
+            </View>
+
             <Text
-              style={[
-                theme.typography.titleLarge,
-                { color: theme.colors.textPrimary },
-              ]}
+              className="text-text-primary font-extrabold text-[34px]"
+              style={{ letterSpacing: -1.2 }}
             >
               OneUptime
             </Text>
-            <Text
-              style={[
-                theme.typography.bodyMedium,
-                {
-                  color: theme.colors.textSecondary,
-                  marginTop: theme.spacing.sm,
-                  textAlign: "center",
-                },
-              ]}
-            >
+            <Text className="text-body-md text-text-secondary mt-2 text-center leading-6">
               Connect to your OneUptime instance
             </Text>
           </View>
 
-          <View style={styles.form}>
-            <Text
-              style={[
-                theme.typography.bodySmall,
-                {
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing.xs,
-                },
-              ]}
-            >
+          <GlassCard style={{ padding: 20 }}>
+            <Text className="text-body-sm text-text-secondary mb-2 font-semibold">
               Server URL
             </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderColor: error
-                    ? theme.colors.statusError
+            <View
+              className="flex-row items-center h-[52px] rounded-xl px-3.5"
+              style={{
+                backgroundColor: theme.colors.backgroundPrimary,
+                borderWidth: 1.5,
+                borderColor: error
+                  ? theme.colors.statusError
+                  : urlFocused
+                    ? theme.colors.actionPrimary
                     : theme.colors.borderDefault,
-                  color: theme.colors.textPrimary,
-                },
-              ]}
-              value={url}
-              onChangeText={(text: string) => {
-                setUrl(text);
-                setError(null);
               }}
-              placeholder="https://oneuptime.com"
-              placeholderTextColor={theme.colors.textTertiary}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              returnKeyType="go"
-              onSubmitEditing={handleConnect}
-            />
+            >
+              <Ionicons
+                name="globe-outline"
+                size={20}
+                color={
+                  urlFocused
+                    ? theme.colors.actionPrimary
+                    : theme.colors.textTertiary
+                }
+                style={{ marginRight: 10 }}
+              />
+              <TextInput
+                className="flex-1 text-base text-text-primary"
+                value={url}
+                onChangeText={(text: string) => {
+                  setUrl(text);
+                  setError(null);
+                }}
+                onFocus={() => {
+                  return setUrlFocused(true);
+                }}
+                onBlur={() => {
+                  return setUrlFocused(false);
+                }}
+                placeholder="https://oneuptime.com"
+                placeholderTextColor={theme.colors.textTertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                returnKeyType="go"
+                onSubmitEditing={handleConnect}
+              />
+            </View>
 
             {error ? (
-              <Text
-                style={[
-                  theme.typography.bodySmall,
-                  {
-                    color: theme.colors.statusError,
-                    marginTop: theme.spacing.sm,
-                  },
-                ]}
-              >
-                {error}
-              </Text>
+              <View className="flex-row items-center mt-2.5">
+                <Ionicons
+                  name="alert-circle"
+                  size={14}
+                  color={theme.colors.statusError}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  className="text-body-sm flex-1"
+                  style={{ color: theme.colors.statusError }}
+                >
+                  {error}
+                </Text>
+              </View>
             ) : null}
 
-            <TouchableOpacity
-              style={[
-                styles.button,
-                {
-                  backgroundColor: theme.colors.actionPrimary,
-                  opacity: isLoading ? 0.7 : 1,
-                },
-              ]}
-              onPress={handleConnect}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={theme.colors.textInverse} />
-              ) : (
-                <Text
-                  style={[
-                    theme.typography.bodyMedium,
-                    { color: theme.colors.textInverse, fontWeight: "600" },
-                  ]}
-                >
-                  Connect
-                </Text>
-              )}
-            </TouchableOpacity>
+            <View className="mt-5">
+              <GradientButton
+                label="Connect"
+                onPress={handleConnect}
+                loading={isLoading}
+                disabled={isLoading}
+              />
+            </View>
+          </GlassCard>
 
-            <Text
-              style={[
-                theme.typography.caption,
-                {
-                  color: theme.colors.textTertiary,
-                  textAlign: "center",
-                  marginTop: theme.spacing.lg,
-                },
-              ]}
-            >
-              Self-hosting? Enter your OneUptime server URL above.
-            </Text>
+          <Text className="text-caption text-text-tertiary text-center mt-7 leading-5">
+            Self-hosting? Enter your OneUptime server URL above.
+          </Text>
+
+          <View className="items-center mt-10">
+            <View className="flex-row items-center">
+              <Logo size={16} style={{ marginRight: 6 }} />
+              <Text className="text-[11px] text-text-tertiary">
+                Powered by OneUptime
+              </Text>
+            </View>
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles: {
-  flex: ViewStyle;
-  scrollContent: ViewStyle;
-  container: ViewStyle;
-  header: ViewStyle;
-  form: ViewStyle;
-  input: TextStyle;
-  button: ViewStyle;
-} = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 48,
-  },
-  form: {
-    width: "100%",
-  },
-  input: {
-    height: 56,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  button: {
-    height: 56,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 16,
-  },
-});

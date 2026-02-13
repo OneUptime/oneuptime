@@ -1,5 +1,6 @@
 import React from "react";
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -30,10 +31,8 @@ function AppContent(): React.JSX.Element {
 
   return (
     <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.backgroundPrimary },
-      ]}
+      className="flex-1 bg-bg-primary"
+      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
     >
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <RootNavigator />
@@ -44,23 +43,19 @@ function AppContent(): React.JSX.Element {
 
 export default function App(): React.JSX.Element {
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{ persister: asyncStoragePersister }}
-    >
-      <ThemeProvider>
-        <AuthProvider>
-          <ProjectProvider>
-            <AppContent />
-          </ProjectProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </PersistQueryClientProvider>
+    <SafeAreaProvider>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: asyncStoragePersister }}
+      >
+        <ThemeProvider>
+          <AuthProvider>
+            <ProjectProvider>
+              <AppContent />
+            </ProjectProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </PersistQueryClientProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles: { container: ViewStyle } = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

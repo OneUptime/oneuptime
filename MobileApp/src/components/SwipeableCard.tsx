@@ -2,7 +2,6 @@ import React, { useRef } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   Animated,
   PanResponder,
   type GestureResponderEvent,
@@ -48,7 +47,6 @@ export default function SwipeableCard({
         _: GestureResponderEvent,
         gestureState: PanResponderGestureState,
       ) => {
-        // Limit swipe range
         const maxSwipe: number = 120;
         let dx: number = gestureState.dx;
         if (!rightAction && dx < 0) {
@@ -60,7 +58,6 @@ export default function SwipeableCard({
         dx = Math.max(-maxSwipe, Math.min(maxSwipe, dx));
         translateX.setValue(dx);
 
-        // Haptic feedback at threshold
         if (Math.abs(dx) >= SWIPE_THRESHOLD && !hasTriggeredHaptic.current) {
           hasTriggeredHaptic.current = true;
           mediumImpact();
@@ -97,34 +94,38 @@ export default function SwipeableCard({
   ).current;
 
   return (
-    <View style={styles.container}>
+    <View className="overflow-hidden rounded-xl">
       {/* Background actions */}
-      <View style={styles.actionsContainer}>
+      <View className="absolute inset-0 flex-row justify-between items-center">
         {leftAction ? (
           <View
-            style={[styles.actionLeft, { backgroundColor: leftAction.color }]}
+            className="flex-1 h-full justify-center pl-5 rounded-xl"
+            style={{ backgroundColor: leftAction.color }}
           >
-            <Text style={styles.actionText}>{leftAction.label}</Text>
+            <Text className="text-white text-sm font-bold tracking-tight">
+              {leftAction.label}
+            </Text>
           </View>
         ) : null}
         {rightAction ? (
           <View
-            style={[styles.actionRight, { backgroundColor: rightAction.color }]}
+            className="flex-1 h-full justify-center items-end pr-5 rounded-xl"
+            style={{ backgroundColor: rightAction.color }}
           >
-            <Text style={styles.actionText}>{rightAction.label}</Text>
+            <Text className="text-white text-sm font-bold tracking-tight">
+              {rightAction.label}
+            </Text>
           </View>
         ) : null}
       </View>
 
       {/* Foreground content */}
       <Animated.View
-        style={[
-          styles.foreground,
-          {
-            backgroundColor: theme.colors.backgroundPrimary,
-            transform: [{ translateX }],
-          },
-        ]}
+        className="z-[1]"
+        style={{
+          transform: [{ translateX }],
+          backgroundColor: theme.colors.backgroundPrimary,
+        }}
         {...panResponder.panHandlers}
       >
         {children}
@@ -132,40 +133,3 @@ export default function SwipeableCard({
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    overflow: "hidden",
-    borderRadius: 12,
-  },
-  actionsContainer: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  actionLeft: {
-    flex: 1,
-    height: "100%",
-    justifyContent: "center",
-    paddingLeft: 20,
-    borderRadius: 12,
-  },
-  actionRight: {
-    flex: 1,
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "flex-end",
-    paddingRight: 20,
-    borderRadius: 12,
-  },
-  actionText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  foreground: {
-    zIndex: 1,
-  },
-});

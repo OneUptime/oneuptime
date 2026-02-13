@@ -1,7 +1,10 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
 import { useTheme } from "../theme";
 import * as LocalAuthentication from "expo-local-authentication";
+import Logo from "../components/Logo";
+import GradientHeader from "../components/GradientHeader";
+import GradientButton from "../components/GradientButton";
 
 interface BiometricLockScreenProps {
   onSuccess: () => void;
@@ -26,122 +29,53 @@ export default function BiometricLockScreen({
     }
   };
 
-  // Auto-prompt on mount
   useEffect(() => {
     authenticate();
   }, []);
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.backgroundPrimary },
-      ]}
-    >
-      {/* Lock icon */}
+    <View className="flex-1 items-center justify-center px-10 bg-bg-primary">
+      <GradientHeader height={400} />
+
+      {/* Outer glow ring */}
       <View
-        style={[
-          styles.iconContainer,
-          { borderColor: theme.colors.borderDefault },
-        ]}
+        className="w-[120px] h-[120px] rounded-full items-center justify-center"
+        style={{ backgroundColor: theme.colors.surfaceGlow }}
       >
+        {/* Inner icon container */}
         <View
-          style={[
-            styles.lockBody,
-            { backgroundColor: theme.colors.textTertiary },
-          ]}
-        />
-        <View
-          style={[
-            styles.lockShackle,
-            { borderColor: theme.colors.textTertiary },
-          ]}
-        />
+          className="w-[88px] h-[88px] rounded-[22px] items-center justify-center"
+          style={{
+            backgroundColor: theme.colors.actionPrimary + "18",
+            shadowColor: theme.colors.actionPrimary,
+            shadowOpacity: 0.2,
+            shadowOffset: { width: 0, height: 8 },
+            shadowRadius: 24,
+            elevation: 8,
+          }}
+        >
+          <Logo size={48} />
+        </View>
       </View>
 
       <Text
-        style={[
-          theme.typography.titleMedium,
-          {
-            color: theme.colors.textPrimary,
-            marginTop: 24,
-            textAlign: "center",
-          },
-        ]}
+        className="text-title-md text-text-primary mt-7 text-center"
+        style={{ letterSpacing: -0.3 }}
       >
         OneUptime is Locked
       </Text>
 
-      <Text
-        style={[
-          theme.typography.bodyMedium,
-          {
-            color: theme.colors.textSecondary,
-            marginTop: 8,
-            textAlign: "center",
-          },
-        ]}
-      >
+      <Text className="text-body-md text-text-secondary mt-2.5 text-center leading-6">
         Use {biometricType.toLowerCase()} to unlock
       </Text>
 
-      <TouchableOpacity
-        style={[
-          styles.unlockButton,
-          { backgroundColor: theme.colors.actionPrimary },
-        ]}
-        onPress={authenticate}
-        activeOpacity={0.8}
-      >
-        <Text style={[styles.unlockButtonText, { color: "#FFFFFF" }]}>
-          Unlock
-        </Text>
-      </TouchableOpacity>
+      <View className="mt-10 w-full" style={{ maxWidth: 280 }}>
+        <GradientButton
+          label="Unlock"
+          onPress={authenticate}
+          icon="finger-print-outline"
+        />
+      </View>
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 40,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  lockBody: {
-    width: 28,
-    height: 22,
-    borderRadius: 4,
-    marginTop: 8,
-  },
-  lockShackle: {
-    width: 20,
-    height: 16,
-    borderWidth: 3,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    position: "absolute",
-    top: 16,
-  },
-  unlockButton: {
-    marginTop: 32,
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 12,
-    minWidth: 200,
-    alignItems: "center",
-  },
-  unlockButtonText: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-});

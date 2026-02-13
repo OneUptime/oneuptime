@@ -4,12 +4,14 @@ import {
   fetchAlertEpisodeStates,
   fetchAlertEpisodeStateTimeline,
   fetchAlertEpisodeNotes,
+  fetchAlertEpisodeFeed,
 } from "../api/alertEpisodes";
 import type {
   AlertEpisodeItem,
   AlertState,
   StateTimelineItem,
   NoteItem,
+  FeedItem,
 } from "../api/types";
 
 export function useAlertEpisodeDetail(
@@ -58,6 +60,19 @@ export function useAlertEpisodeNotes(
     queryKey: ["alert-episode-notes", projectId, episodeId],
     queryFn: () => {
       return fetchAlertEpisodeNotes(projectId, episodeId);
+    },
+    enabled: Boolean(projectId) && Boolean(episodeId),
+  });
+}
+
+export function useAlertEpisodeFeed(
+  projectId: string,
+  episodeId: string,
+): UseQueryResult<FeedItem[], Error> {
+  return useQuery({
+    queryKey: ["alert-episode-feed", projectId, episodeId],
+    queryFn: () => {
+      return fetchAlertEpisodeFeed(projectId, episodeId);
     },
     enabled: Boolean(projectId) && Boolean(episodeId),
   });

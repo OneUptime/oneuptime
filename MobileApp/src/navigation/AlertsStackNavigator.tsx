@@ -1,8 +1,10 @@
 import React from "react";
+import { Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import AlertsScreen from "../screens/AlertsScreen";
 import AlertDetailScreen from "../screens/AlertDetailScreen";
+import AlertEpisodeDetailScreen from "../screens/AlertEpisodeDetailScreen";
 import type { AlertsStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -16,10 +18,18 @@ export default function AlertsStackNavigator(): React.JSX.Element {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: theme.colors.backgroundSecondary,
+          backgroundColor: theme.colors.backgroundPrimary,
         },
         headerTintColor: theme.colors.textPrimary,
         headerShadowVisible: false,
+        ...(Platform.OS === "ios"
+          ? {
+              headerLargeTitle: true,
+              headerLargeStyle: {
+                backgroundColor: theme.colors.backgroundPrimary,
+              },
+            }
+          : {}),
       }}
     >
       <Stack.Screen
@@ -30,7 +40,18 @@ export default function AlertsStackNavigator(): React.JSX.Element {
       <Stack.Screen
         name="AlertDetail"
         component={AlertDetailScreen}
-        options={{ title: "Alert" }}
+        options={{
+          title: "Alert",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
+      />
+      <Stack.Screen
+        name="AlertEpisodeDetail"
+        component={AlertEpisodeDetailScreen}
+        options={{
+          title: "Episode",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
       />
     </Stack.Navigator>
   );
