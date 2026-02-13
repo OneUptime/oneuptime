@@ -299,9 +299,7 @@ export default function IncidentEpisodeDetailScreen({
           ) : null}
 
           <View className="flex-row mb-3">
-            <Text className="text-sm w-[90px] text-text-tertiary">
-              Created
-            </Text>
+            <Text className="text-sm w-[90px] text-text-tertiary">Created</Text>
             <Text className="text-sm text-text-primary">
               {formatDateTime(episode.createdAt)}
             </Text>
@@ -474,9 +472,7 @@ export default function IncidentEpisodeDetailScreen({
           : null}
 
         {notes && notes.length === 0 ? (
-          <Text className="text-body-sm text-text-tertiary">
-            No notes yet.
-          </Text>
+          <Text className="text-body-sm text-text-tertiary">No notes yet.</Text>
         ) : null}
       </View>
 

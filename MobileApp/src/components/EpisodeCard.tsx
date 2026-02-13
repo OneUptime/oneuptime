@@ -74,10 +74,7 @@ export default function EpisodeCard(
       activeOpacity={0.7}
     >
       <View className="flex-row">
-        <View
-          className="w-1"
-          style={{ backgroundColor: stateColor }}
-        />
+        <View className="w-1" style={{ backgroundColor: stateColor }} />
         <View className="flex-1 p-4">
           {projectName ? (
             <View className="mb-1.5">

@@ -32,10 +32,7 @@ import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
 
-type Props = NativeStackScreenProps<
-  AlertsStackParamList,
-  "AlertEpisodeDetail"
->;
+type Props = NativeStackScreenProps<AlertsStackParamList, "AlertEpisodeDetail">;
 
 function SectionHeader({
   title,
@@ -283,18 +280,14 @@ export default function AlertEpisodeDetailScreen({
           }}
         >
           <View className="flex-row mb-3">
-            <Text className="text-sm w-[90px] text-text-tertiary">
-              Created
-            </Text>
+            <Text className="text-sm w-[90px] text-text-tertiary">Created</Text>
             <Text className="text-sm text-text-primary">
               {formatDateTime(episode.createdAt)}
             </Text>
           </View>
 
           <View className="flex-row">
-            <Text className="text-sm w-[90px] text-text-tertiary">
-              Alerts
-            </Text>
+            <Text className="text-sm w-[90px] text-text-tertiary">Alerts</Text>
             <Text className="text-sm text-text-primary">
               {episode.alertCount ?? 0}
             </Text>
@@ -458,9 +451,7 @@ export default function AlertEpisodeDetailScreen({
           : null}
 
         {notes && notes.length === 0 ? (
-          <Text className="text-body-sm text-text-tertiary">
-            No notes yet.
-          </Text>
+          <Text className="text-body-sm text-text-tertiary">No notes yet.</Text>
         ) : null}
       </View>
 

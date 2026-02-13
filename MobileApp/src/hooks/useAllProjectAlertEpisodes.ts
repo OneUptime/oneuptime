@@ -21,14 +21,15 @@ interface UseAllProjectAlertEpisodesResult {
 export function useAllProjectAlertEpisodes(): UseAllProjectAlertEpisodesResult {
   const { projectList } = useProject();
 
-  const query: UseQueryResult<ListResponse<AlertEpisodeItem>, Error> =
-    useQuery({
+  const query: UseQueryResult<ListResponse<AlertEpisodeItem>, Error> = useQuery(
+    {
       queryKey: ["alert-episodes", "all-projects"],
       queryFn: () => {
         return fetchAllAlertEpisodes({ skip: 0, limit: FETCH_LIMIT });
       },
       enabled: projectList.length > 0,
-    });
+    },
+  );
 
   const projectMap: Map<string, string> = useMemo(() => {
     const map: Map<string, string> = new Map();

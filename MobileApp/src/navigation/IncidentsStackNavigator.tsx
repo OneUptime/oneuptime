@@ -22,7 +22,14 @@ export default function IncidentsStackNavigator(): React.JSX.Element {
         },
         headerTintColor: theme.colors.textPrimary,
         headerShadowVisible: false,
-        ...(Platform.OS === "ios" ? { headerLargeTitle: true, headerLargeStyle: { backgroundColor: theme.colors.backgroundPrimary } } : {}),
+        ...(Platform.OS === "ios"
+          ? {
+              headerLargeTitle: true,
+              headerLargeStyle: {
+                backgroundColor: theme.colors.backgroundPrimary,
+              },
+            }
+          : {}),
       }}
     >
       <Stack.Screen

@@ -64,7 +64,9 @@ function SectionHeader({
       <Ionicons
         name={isActive ? "flame" : "checkmark-done"}
         size={14}
-        color={isActive ? theme.colors.severityCritical : theme.colors.textTertiary}
+        color={
+          isActive ? theme.colors.severityCritical : theme.colors.textTertiary
+        }
         style={{ marginRight: 6 }}
       />
       <Text
@@ -169,8 +171,7 @@ export default function AlertsScreen(): React.JSX.Element {
     const active: ProjectAlertEpisodeItem[] = [];
     const resolved: ProjectAlertEpisodeItem[] = [];
     for (const wrapped of allEpisodes) {
-      const stateId: string | undefined =
-        wrapped.item.currentAlertState?._id;
+      const stateId: string | undefined = wrapped.item.currentAlertState?._id;
       if (stateId && resolvedStateIds.has(stateId)) {
         resolved.push(wrapped);
       } else {
@@ -216,14 +217,18 @@ export default function AlertsScreen(): React.JSX.Element {
           return prev + PAGE_SIZE;
         });
       }
-    } else {
-      if (visibleEpisodeCount < totalEpisodeCount) {
-        setVisibleEpisodeCount((prev: number) => {
-          return prev + PAGE_SIZE;
-        });
-      }
+    } else if (visibleEpisodeCount < totalEpisodeCount) {
+      setVisibleEpisodeCount((prev: number) => {
+        return prev + PAGE_SIZE;
+      });
     }
-  }, [segment, visibleCount, totalAlertCount, visibleEpisodeCount, totalEpisodeCount]);
+  }, [
+    segment,
+    visibleCount,
+    totalAlertCount,
+    visibleEpisodeCount,
+    totalEpisodeCount,
+  ]);
 
   const handlePress: (wrapped: ProjectAlertItem) => void = useCallback(
     (wrapped: ProjectAlertItem) => {

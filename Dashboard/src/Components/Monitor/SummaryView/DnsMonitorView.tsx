@@ -23,7 +23,9 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
     responseTimeInMs = Math.round(responseTimeInMs);
   }
 
-  const getDnssecStatusText = (): string => {
+  type GetDnssecStatusText = () => string;
+
+  const getDnssecStatusText: GetDnssecStatusText = (): string => {
     if (dnsResponse?.isDnssecValid === undefined) {
       return "Unknown";
     }

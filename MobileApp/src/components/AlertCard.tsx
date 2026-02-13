@@ -49,10 +49,7 @@ export default function AlertCard({
       accessibilityLabel={`Alert ${alert.alertNumberWithPrefix || alert.alertNumber}, ${alert.title}. State: ${alert.currentAlertState?.name ?? "unknown"}. Severity: ${alert.alertSeverity?.name ?? "unknown"}.`}
     >
       <View className="flex-row">
-        <View
-          className="w-1"
-          style={{ backgroundColor: stateColor }}
-        />
+        <View className="w-1" style={{ backgroundColor: stateColor }} />
         <View className="flex-1 p-4">
           {projectName ? (
             <View className="mb-1.5">

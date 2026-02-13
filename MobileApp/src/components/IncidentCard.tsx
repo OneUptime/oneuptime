@@ -52,10 +52,7 @@ export default function IncidentCard({
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
     >
       <View className="flex-row">
-        <View
-          className="w-1"
-          style={{ backgroundColor: stateColor }}
-        />
+        <View className="w-1" style={{ backgroundColor: stateColor }} />
         <View className="flex-1 p-4">
           {projectName ? (
             <View className="mb-1.5">
@@ -68,7 +65,8 @@ export default function IncidentCard({
               style={{ backgroundColor: theme.colors.backgroundTertiary }}
             >
               <Text className="text-[12px] font-semibold text-text-tertiary">
-                {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
+                {incident.incidentNumberWithPrefix ||
+                  `#${incident.incidentNumber}`}
               </Text>
             </View>
             <Text className="text-[12px] text-text-tertiary">{timeString}</Text>

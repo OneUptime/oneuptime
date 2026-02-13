@@ -3172,8 +3172,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "queryName",
         type: "string",
         required: true,
-        description:
-          "The domain name to query (e.g., 'example.com').",
+        description: "The domain name to query (e.g., 'example.com').",
       },
       {
         name: "recordType",

@@ -70,10 +70,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     projectId,
     alertId,
   );
-  const { data: feed, refetch: refetchFeed } = useAlertFeed(
-    projectId,
-    alertId,
-  );
+  const { data: feed, refetch: refetchFeed } = useAlertFeed(projectId, alertId);
   const { data: notes, refetch: refetchNotes } = useAlertNotes(
     projectId,
     alertId,
@@ -276,9 +273,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
           }}
         >
           <View className="flex-row mb-3">
-            <Text className="text-sm w-[90px] text-text-tertiary">
-              Created
-            </Text>
+            <Text className="text-sm w-[90px] text-text-tertiary">Created</Text>
             <Text className="text-sm text-text-primary">
               {formatDateTime(alert.createdAt)}
             </Text>
@@ -457,9 +452,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
           : null}
 
         {notes && notes.length === 0 ? (
-          <Text className="text-body-sm text-text-tertiary">
-            No notes yet.
-          </Text>
+          <Text className="text-body-sm text-text-tertiary">No notes yet.</Text>
         ) : null}
       </View>
 

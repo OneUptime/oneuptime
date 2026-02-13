@@ -1,5 +1,10 @@
 import React, { useEffect, useRef } from "react";
-import { View, Animated, DimensionValue, AccessibilityInfo } from "react-native";
+import {
+  View,
+  Animated,
+  DimensionValue,
+  AccessibilityInfo,
+} from "react-native";
 import { useTheme } from "../theme";
 
 interface SkeletonCardProps {

@@ -45,9 +45,10 @@ export default class DnsMonitorUtil {
       }
 
       if (config.hostname) {
-        const server: string = config.port && config.port !== 53
-          ? `${config.hostname}:${config.port}`
-          : config.hostname;
+        const server: string =
+          config.port && config.port !== 53
+            ? `${config.hostname}:${config.port}`
+            : config.hostname;
         resolver.setServers([server]);
       }
 
@@ -162,8 +163,10 @@ export default class DnsMonitorUtil {
 
     switch (recordType) {
       case DnsRecordType.A: {
-        const results: Array<dns.RecordWithTtl> =
-          await resolver.resolve4(queryName, { ttl: true });
+        const results: Array<dns.RecordWithTtl> = await resolver.resolve4(
+          queryName,
+          { ttl: true },
+        );
         for (const result of results) {
           records.push({
             type: DnsRecordType.A,
@@ -174,8 +177,10 @@ export default class DnsMonitorUtil {
         break;
       }
       case DnsRecordType.AAAA: {
-        const results: Array<dns.RecordWithTtl> =
-          await resolver.resolve6(queryName, { ttl: true });
+        const results: Array<dns.RecordWithTtl> = await resolver.resolve6(
+          queryName,
+          { ttl: true },
+        );
         for (const result of results) {
           records.push({
             type: DnsRecordType.AAAA,
@@ -196,7 +201,8 @@ export default class DnsMonitorUtil {
         break;
       }
       case DnsRecordType.MX: {
-        const results: Array<dns.MxRecord> = await resolver.resolveMx(queryName);
+        const results: Array<dns.MxRecord> =
+          await resolver.resolveMx(queryName);
         for (const result of results) {
           records.push({
             type: DnsRecordType.MX,
@@ -262,7 +268,8 @@ export default class DnsMonitorUtil {
         for (const result of results) {
           records.push({
             type: DnsRecordType.CAA,
-            value: `${result.critical} ${result.issue || result.issuewild || result.iodef || ""}`.trim(),
+            value:
+              `${result.critical} ${result.issue || result.issuewild || result.iodef || ""}`.trim(),
           });
         }
         break;
@@ -277,39 +284,30 @@ export default class DnsMonitorUtil {
     recordType: DnsRecordType,
     dnsServer?: string | undefined,
   ): Promise<boolean | undefined> {
-    return new Promise(
-      (resolve: (value: boolean | undefined) => void) => {
-        const args: Array<string> = [
-          "+dnssec",
-          "+cd",
-          queryName,
-          recordType,
-        ];
+    return new Promise((resolve: (value: boolean | undefined) => void) => {
+      const args: Array<string> = ["+dnssec", "+cd", queryName, recordType];
 
-        if (dnsServer) {
-          args.push(`@${dnsServer}`);
-        }
+      if (dnsServer) {
+        args.push(`@${dnsServer}`);
+      }
 
-        execFile(
-          "dig",
-          args,
-          { timeout: 10000 },
-          (
-            error: Error | null,
-            stdout: string,
-          ) => {
-            if (error) {
-              // dig not available, return undefined
-              resolve(undefined);
-              return;
-            }
+      execFile(
+        "dig",
+        args,
+        { timeout: 10000 },
+        (error: Error | null, stdout: string) => {
+          if (error) {
+            // dig not available, return undefined
+            resolve(undefined);
+            return;
+          }
 
-            // Check for the AD (Authenticated Data) flag in the response
-            const hasAdFlag: boolean = /flags:.*\bad\b/i.test(stdout);
-            resolve(hasAdFlag);
-          },
-        );
-      },
-    );
+          // Check for the AD (Authenticated Data) flag in the response
+          const adFlagPattern: RegExp = /flags:.*\bad\b/i;
+          const hasAdFlag: boolean = adFlagPattern.test(stdout);
+          resolve(hasAdFlag);
+        },
+      );
+    });
   }
 }

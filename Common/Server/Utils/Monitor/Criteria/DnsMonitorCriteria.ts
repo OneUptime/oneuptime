@@ -5,9 +5,7 @@ import {
   CriteriaFilter,
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
-import DnsMonitorResponse, {
-  DnsRecordResponse,
-} from "../../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
+import DnsMonitorResponse from "../../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -154,13 +152,12 @@ export default class DnsMonitorCriteria {
             CompareCriteria.convertToNumber(threshold);
 
           if (numericThreshold !== null && !isNaN(Number(recordValue))) {
-            const result: string | null = CompareCriteria.compareCriteriaNumbers(
-              {
+            const result: string | null =
+              CompareCriteria.compareCriteriaNumbers({
                 value: Number(recordValue),
                 threshold: numericThreshold,
                 criteriaFilter: input.criteriaFilter,
-              },
-            );
+              });
 
             if (result) {
               return `DNS record (${record.type}): ${result}`;
