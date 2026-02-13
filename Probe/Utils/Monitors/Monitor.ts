@@ -13,6 +13,9 @@ import WebsiteMonitor, {
 import SnmpMonitor from "./MonitorTypes/SnmpMonitor";
 import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
+import DnsMonitorUtil from "./MonitorTypes/DnsMonitor";
+import DnsMonitorResponse from "Common/Types/Monitor/DnsMonitor/DnsMonitorResponse";
+import MonitorStepDnsMonitor from "Common/Types/Monitor/MonitorStepDnsMonitor";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
@@ -508,6 +511,39 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.snmpResponse = response;
+    }
+
+    if (monitorType === MonitorType.DNS) {
+      if (!monitorStep.data?.dnsMonitor) {
+        result.failureCause = "DNS configuration not specified";
+        return result;
+      }
+
+      const dnsConfig: MonitorStepDnsMonitor = monitorStep.data.dnsMonitor;
+
+      if (!dnsConfig.queryName) {
+        result.failureCause = "DNS query name (domain) not specified";
+        return result;
+      }
+
+      const response: DnsMonitorResponse | null = await DnsMonitorUtil.query(
+        dnsConfig,
+        {
+          retry: PROBE_MONITOR_RETRY_LIMIT,
+          monitorId: monitorId,
+          timeout: dnsConfig.timeout || 5000,
+        },
+      );
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.responseTimeInMs;
+      result.failureCause = response.failureCause;
+      result.dnsResponse = response;
     }
 
     // update the monitoredAt time to the current time.

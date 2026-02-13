@@ -60,6 +60,13 @@ export enum CheckOn {
   SnmpOidExists = "SNMP OID Exists",
   SnmpResponseTime = "SNMP Response Time (in ms)",
   SnmpIsOnline = "SNMP Device Is Online",
+
+  // DNS monitors.
+  DnsResponseTime = "DNS Response Time (in ms)",
+  DnsIsOnline = "DNS Is Online",
+  DnsRecordValue = "DNS Record Value",
+  DnssecIsValid = "DNSSEC Is Valid",
+  DnsRecordExists = "DNS Record Exists",
 }
 
 export interface ServerMonitorOptions {
@@ -141,7 +148,11 @@ export class CriteriaFilterUtil {
   }): boolean {
     const { checkOn } = data;
 
-    if (checkOn === CheckOn.IsOnline || checkOn === CheckOn.SnmpIsOnline) {
+    if (
+      checkOn === CheckOn.IsOnline ||
+      checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.DnsIsOnline
+    ) {
       return false;
     }
 
@@ -149,7 +160,11 @@ export class CriteriaFilterUtil {
       return false;
     }
 
-    if (checkOn === CheckOn.SnmpOidExists) {
+    if (
+      checkOn === CheckOn.SnmpOidExists ||
+      checkOn === CheckOn.DnssecIsValid ||
+      checkOn === CheckOn.DnsRecordExists
+    ) {
       return false;
     }
 
@@ -204,7 +219,9 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.MemoryUsagePercent ||
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpResponseTime ||
-      checkOn === CheckOn.SnmpIsOnline
+      checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.DnsResponseTime ||
+      checkOn === CheckOn.DnsIsOnline
     );
   }
 }

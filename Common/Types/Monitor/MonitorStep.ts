@@ -29,6 +29,9 @@ import MonitorStepExceptionMonitor, {
 import MonitorStepSnmpMonitor, {
   MonitorStepSnmpMonitorUtil,
 } from "./MonitorStepSnmpMonitor";
+import MonitorStepDnsMonitor, {
+  MonitorStepDnsMonitorUtil,
+} from "./MonitorStepDnsMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorStepType {
@@ -72,6 +75,9 @@ export interface MonitorStepType {
 
   // SNMP monitor
   snmpMonitor?: MonitorStepSnmpMonitor | undefined;
+
+  // DNS monitor
+  dnsMonitor?: MonitorStepDnsMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -98,6 +104,7 @@ export default class MonitorStep extends DatabaseProperty {
       metricMonitor: undefined,
       exceptionMonitor: undefined,
       snmpMonitor: undefined,
+      dnsMonitor: undefined,
     };
   }
 
@@ -129,6 +136,7 @@ export default class MonitorStep extends DatabaseProperty {
       metricMonitor: undefined,
       exceptionMonitor: undefined,
       snmpMonitor: undefined,
+      dnsMonitor: undefined,
     };
 
     return monitorStep;
@@ -221,6 +229,11 @@ export default class MonitorStep extends DatabaseProperty {
 
   public setSnmpMonitor(snmpMonitor: MonitorStepSnmpMonitor): MonitorStep {
     this.data!.snmpMonitor = snmpMonitor;
+    return this;
+  }
+
+  public setDnsMonitor(dnsMonitor: MonitorStepDnsMonitor): MonitorStep {
+    this.data!.dnsMonitor = dnsMonitor;
     return this;
   }
 
@@ -332,6 +345,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.DNS) {
+      if (!value.data.dnsMonitor) {
+        return "DNS configuration is required";
+      }
+
+      if (!value.data.dnsMonitor.queryName) {
+        return "DNS query name (domain) is required";
+      }
+    }
+
     return null;
   }
 
@@ -376,6 +399,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           snmpMonitor: this.data.snmpMonitor
             ? MonitorStepSnmpMonitorUtil.toJSON(this.data.snmpMonitor)
+            : undefined,
+          dnsMonitor: this.data.dnsMonitor
+            ? MonitorStepDnsMonitorUtil.toJSON(this.data.dnsMonitor)
             : undefined,
         },
       });
@@ -482,6 +508,9 @@ export default class MonitorStep extends DatabaseProperty {
       snmpMonitor: json["snmpMonitor"]
         ? (json["snmpMonitor"] as JSONObject)
         : undefined,
+      dnsMonitor: json["dnsMonitor"]
+        ? (json["dnsMonitor"] as JSONObject)
+        : undefined,
     }) as any;
 
     return monitorStep;
@@ -507,6 +536,7 @@ export default class MonitorStep extends DatabaseProperty {
         traceMonitor: Zod.any().optional(),
         metricMonitor: Zod.any().optional(),
         snmpMonitor: Zod.any().optional(),
+        dnsMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",
         example: {

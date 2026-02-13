@@ -283,6 +283,18 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.DNS) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.DnsIsOnline ||
+          i.value === CheckOn.DnsResponseTime ||
+          i.value === CheckOn.DnsRecordValue ||
+          i.value === CheckOn.DnssecIsValid ||
+          i.value === CheckOn.DnsRecordExists
+        );
+      });
+    }
+
     return options;
   }
 
@@ -498,6 +510,40 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (
+      checkOn === CheckOn.DnsIsOnline ||
+      checkOn === CheckOn.DnssecIsValid ||
+      checkOn === CheckOn.DnsRecordExists
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    if (checkOn === CheckOn.DnsResponseTime) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.DnsRecordValue) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.StartsWith ||
+          i.value === FilterType.EndsWith
+        );
+      });
+    }
+
     if (checkOn === CheckOn.SnmpResponseTime) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -653,6 +699,14 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SnmpOidValue) {
       return "1";
+    }
+
+    if (checkOn === CheckOn.DnsResponseTime) {
+      return "5000";
+    }
+
+    if (checkOn === CheckOn.DnsRecordValue) {
+      return "192.168.1.1";
     }
 
     return "";
