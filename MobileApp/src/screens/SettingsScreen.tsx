@@ -247,8 +247,7 @@ export default function SettingsScreen(): React.JSX.Element {
           About
         </Text>
         <SectionCard>
-          <SettingsRow label="Version" value={APP_VERSION} />
-          <SettingsRow label="Build" value="1" isLast />
+          <SettingsRow label="Version" value={APP_VERSION} isLast />
         </SectionCard>
       </View>
 
