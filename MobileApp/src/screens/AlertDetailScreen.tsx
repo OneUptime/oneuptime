@@ -11,7 +11,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import { useProject } from "../hooks/useProject";
 import {
   useAlertDetail,
   useAlertStates,
@@ -55,10 +54,8 @@ function SectionHeader({
 }
 
 export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
-  const { alertId } = route.params;
+  const { alertId, projectId } = route.params;
   const { theme } = useTheme();
-  const { selectedProject } = useProject();
-  const projectId: string = selectedProject?._id ?? "";
   const queryClient: QueryClient = useQueryClient();
 
   const {

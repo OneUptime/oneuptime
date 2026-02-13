@@ -13,7 +13,6 @@ import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useBiometric } from "../hooks/useBiometric";
 import AuthStackNavigator from "./AuthStackNavigator";
 import MainTabNavigator from "./MainTabNavigator";
-import ProjectSelectionScreen from "../screens/ProjectSelectionScreen";
 import BiometricLockScreen from "../screens/BiometricLockScreen";
 import { View, ActivityIndicator } from "react-native";
 
@@ -26,14 +25,14 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
       Home: "home",
       Incidents: {
         screens: {
-          IncidentDetail: "incident/:incidentId",
-          IncidentEpisodeDetail: "incident-episode/:episodeId",
+          IncidentDetail: "incident/:projectId/:incidentId",
+          IncidentEpisodeDetail: "incident-episode/:projectId/:episodeId",
         },
       },
       Alerts: {
         screens: {
-          AlertDetail: "alert/:alertId",
-          AlertEpisodeDetail: "alert-episode/:episodeId",
+          AlertDetail: "alert/:projectId/:alertId",
+          AlertEpisodeDetail: "alert-episode/:projectId/:episodeId",
         },
       },
     },
@@ -43,7 +42,7 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
 export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
-  const { selectedProject, isLoadingProjects } = useProject();
+  const { isLoadingProjects } = useProject();
   const navigationRef: ReturnType<typeof useNavigationContainerRef> =
     useNavigationContainerRef();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
@@ -121,10 +120,6 @@ export default function RootNavigator(): React.JSX.Element {
           <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
         </View>
       );
-    }
-
-    if (!selectedProject) {
-      return <ProjectSelectionScreen />;
     }
 
     return <MainTabNavigator />;

@@ -8,11 +8,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useProject } from "../hooks/useProject";
-import { useUnresolvedIncidentCount } from "../hooks/useIncidents";
-import { useUnresolvedAlertCount } from "../hooks/useAlerts";
-import { useUnresolvedIncidentEpisodeCount } from "../hooks/useIncidentEpisodes";
-import { useUnresolvedAlertEpisodeCount } from "../hooks/useAlertEpisodes";
 import { useHaptics } from "../hooks/useHaptics";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -105,57 +102,32 @@ function getGreeting(): string {
 
 export default function HomeScreen(): React.JSX.Element {
   const { theme } = useTheme();
-  const { selectedProject } = useProject();
-  const projectId: string = selectedProject?._id ?? "";
+  const { projectList } = useProject();
   const navigation: HomeNavProp = useNavigation<HomeNavProp>();
 
   const {
-    data: incidentCount,
-    isLoading: loadingIncidents,
-    refetch: refetchIncidents,
-  } = useUnresolvedIncidentCount(projectId);
-
-  const {
-    data: alertCount,
-    isLoading: loadingAlerts,
-    refetch: refetchAlerts,
-  } = useUnresolvedAlertCount(projectId);
-
-  const {
-    data: incidentEpisodeCount,
-    isLoading: loadingIncidentEpisodes,
-    refetch: refetchIncidentEpisodes,
-  } = useUnresolvedIncidentEpisodeCount(projectId);
-
-  const {
-    data: alertEpisodeCount,
-    isLoading: loadingAlertEpisodes,
-    refetch: refetchAlertEpisodes,
-  } = useUnresolvedAlertEpisodeCount(projectId);
+    incidentCount,
+    alertCount,
+    incidentEpisodeCount,
+    alertEpisodeCount,
+    isLoading: anyLoading,
+    refetch,
+  } = useAllProjectCounts();
 
   const { lightImpact } = useHaptics();
 
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
-    await Promise.all([
-      refetchIncidents(),
-      refetchAlerts(),
-      refetchIncidentEpisodes(),
-      refetchAlertEpisodes(),
-    ]);
+    await refetch();
   };
 
   const totalActive: number =
-    (incidentCount ?? 0) +
-    (alertCount ?? 0) +
-    (incidentEpisodeCount ?? 0) +
-    (alertEpisodeCount ?? 0);
+    incidentCount + alertCount + incidentEpisodeCount + alertEpisodeCount;
 
-  const anyLoading: boolean =
-    loadingIncidents ||
-    loadingAlerts ||
-    loadingIncidentEpisodes ||
-    loadingAlertEpisodes;
+  const subtitle: string =
+    projectList.length === 1
+      ? projectList[0]!.name
+      : `${projectList.length} Projects`;
 
   return (
     <ScrollView
@@ -181,7 +153,7 @@ export default function HomeScreen(): React.JSX.Element {
         accessibilityRole="header"
         style={{ letterSpacing: -0.5 }}
       >
-        {selectedProject?.name ?? "OneUptime"}
+        {subtitle}
       </Text>
 
       {/* Active Issues Summary Pill */}
@@ -213,7 +185,7 @@ export default function HomeScreen(): React.JSX.Element {
             label="Active Incidents"
             accentColor={theme.colors.severityCritical}
             iconName="warning"
-            isLoading={loadingIncidents}
+            isLoading={anyLoading}
             onPress={() => {
               return navigation.navigate("Incidents");
             }}
@@ -223,7 +195,7 @@ export default function HomeScreen(): React.JSX.Element {
             label="Active Alerts"
             accentColor={theme.colors.severityMajor}
             iconName="notifications"
-            isLoading={loadingAlerts}
+            isLoading={anyLoading}
             onPress={() => {
               return navigation.navigate("Alerts");
             }}
@@ -236,7 +208,7 @@ export default function HomeScreen(): React.JSX.Element {
             label="Inc. Episodes"
             accentColor={theme.colors.severityInfo}
             iconName="layers"
-            isLoading={loadingIncidentEpisodes}
+            isLoading={anyLoading}
             onPress={() => {
               return navigation.navigate("Incidents");
             }}
@@ -246,7 +218,7 @@ export default function HomeScreen(): React.JSX.Element {
             label="Alert Episodes"
             accentColor={theme.colors.severityWarning}
             iconName="albums"
-            isLoading={loadingAlertEpisodes}
+            isLoading={anyLoading}
             onPress={() => {
               return navigation.navigate("Alerts");
             }}

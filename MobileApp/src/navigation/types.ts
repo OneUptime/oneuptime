@@ -16,12 +16,12 @@ export type SettingsStackParamList = {
 
 export type IncidentsStackParamList = {
   IncidentsList: undefined;
-  IncidentDetail: { incidentId: string };
-  IncidentEpisodeDetail: { episodeId: string };
+  IncidentDetail: { incidentId: string; projectId: string };
+  IncidentEpisodeDetail: { episodeId: string; projectId: string };
 };
 
 export type AlertsStackParamList = {
   AlertsList: undefined;
-  AlertDetail: { alertId: string };
-  AlertEpisodeDetail: { episodeId: string };
+  AlertDetail: { alertId: string; projectId: string };
+  AlertEpisodeDetail: { episodeId: string; projectId: string };
 };

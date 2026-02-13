@@ -19,29 +19,31 @@ function navigateToEntity(data: NotificationData): void {
     return;
   }
 
+  const projectId: string = data.projectId ?? "";
+
   switch (data.entityType) {
     case "incident":
       navigationRef.navigate("Incidents", {
         screen: "IncidentDetail",
-        params: { incidentId: data.entityId },
+        params: { incidentId: data.entityId, projectId },
       });
       break;
     case "alert":
       navigationRef.navigate("Alerts", {
         screen: "AlertDetail",
-        params: { alertId: data.entityId },
+        params: { alertId: data.entityId, projectId },
       });
       break;
     case "incident-episode":
       navigationRef.navigate("Incidents", {
         screen: "IncidentEpisodeDetail",
-        params: { episodeId: data.entityId },
+        params: { episodeId: data.entityId, projectId },
       });
       break;
     case "alert-episode":
       navigationRef.navigate("Alerts", {
         screen: "AlertEpisodeDetail",
-        params: { episodeId: data.entityId },
+        params: { episodeId: data.entityId, projectId },
       });
       break;
     default:

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
+import ProjectBadge from "./ProjectBadge";
 import type {
   IncidentEpisodeItem,
   AlertEpisodeItem,
@@ -14,17 +15,19 @@ type EpisodeCardProps =
       episode: IncidentEpisodeItem;
       type: "incident";
       onPress: () => void;
+      projectName?: string;
     }
   | {
       episode: AlertEpisodeItem;
       type: "alert";
       onPress: () => void;
+      projectName?: string;
     };
 
 export default function EpisodeCard(
   props: EpisodeCardProps,
 ): React.JSX.Element {
-  const { episode, type, onPress } = props;
+  const { episode, type, onPress, projectName } = props;
   const { theme } = useTheme();
 
   const state: NamedEntityWithColor =
@@ -73,6 +76,11 @@ export default function EpisodeCard(
           style={{ backgroundColor: stateColor }}
         />
         <View className="flex-1 p-4">
+          {projectName ? (
+            <View className="mb-1.5">
+              <ProjectBadge name={projectName} />
+            </View>
+          ) : null}
           <View className="flex-row justify-between items-center mb-1.5">
             <View
               className="px-2 py-0.5 rounded-full"

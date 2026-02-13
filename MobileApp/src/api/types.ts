@@ -111,3 +111,14 @@ export interface NoteItem {
   createdAt: string;
   createdByUser: { _id: string; name: string } | null;
 }
+
+export interface WithProject<T> {
+  item: T;
+  projectId: string;
+  projectName: string;
+}
+
+export type ProjectIncidentItem = WithProject<IncidentItem>;
+export type ProjectAlertItem = WithProject<AlertItem>;
+export type ProjectIncidentEpisodeItem = WithProject<IncidentEpisodeItem>;
+export type ProjectAlertEpisodeItem = WithProject<AlertEpisodeItem>;

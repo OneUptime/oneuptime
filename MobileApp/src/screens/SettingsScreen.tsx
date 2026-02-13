@@ -9,7 +9,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme, ThemeMode } from "../theme";
 import { useAuth } from "../hooks/useAuth";
-import { useProject } from "../hooks/useProject";
 import { useBiometric } from "../hooks/useBiometric";
 import { useHaptics } from "../hooks/useHaptics";
 import { getServerUrl } from "../storage/serverUrl";
@@ -103,7 +102,6 @@ function SectionCard({
 export default function SettingsScreen(): React.JSX.Element {
   const { theme, themeMode, setThemeMode } = useTheme();
   const { logout } = useAuth();
-  const { selectedProject, clearProject } = useProject();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
   const { selectionFeedback } = useHaptics();
   const [serverUrl, setServerUrlState] = useState("");
@@ -111,10 +109,6 @@ export default function SettingsScreen(): React.JSX.Element {
   useEffect(() => {
     getServerUrl().then(setServerUrlState);
   }, []);
-
-  const handleChangeProject: () => Promise<void> = async (): Promise<void> => {
-    await clearProject();
-  };
 
   const handleThemeChange: (mode: ThemeMode) => void = (
     mode: ThemeMode,
@@ -220,22 +214,6 @@ export default function SettingsScreen(): React.JSX.Element {
           <Text className="text-xs mt-2 ml-1 leading-4 text-text-tertiary">
             Require biometrics to unlock the app
           </Text>
-        </View>
-      ) : null}
-
-      {/* Project */}
-      {selectedProject ? (
-        <View className="mb-7">
-          <Text className="text-[13px] font-semibold uppercase tracking-widest mb-2.5 ml-1 text-text-secondary">
-            Project
-          </Text>
-          <SectionCard>
-            <SettingsRow
-              label={selectedProject.name}
-              onPress={handleChangeProject}
-              isLast
-            />
-          </SectionCard>
         </View>
       ) : null}
 

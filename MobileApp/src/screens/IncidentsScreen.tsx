@@ -10,11 +10,10 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import { useProject } from "../hooks/useProject";
-import { useIncidents } from "../hooks/useIncidents";
-import { useIncidentStates } from "../hooks/useIncidentDetail";
+import { useAllProjectIncidents } from "../hooks/useAllProjectIncidents";
+import { useAllProjectIncidentEpisodes } from "../hooks/useAllProjectIncidentEpisodes";
+import { useAllProjectIncidentStates } from "../hooks/useAllProjectIncidentStates";
 import { changeIncidentState } from "../api/incidents";
-import { useIncidentEpisodes } from "../hooks/useIncidentEpisodes";
 import { useHaptics } from "../hooks/useHaptics";
 import IncidentCard from "../components/IncidentCard";
 import EpisodeCard from "../components/EpisodeCard";
@@ -23,7 +22,11 @@ import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import SegmentedControl from "../components/SegmentedControl";
 import type { IncidentsStackParamList } from "../navigation/types";
-import type { IncidentItem, IncidentState, IncidentEpisodeItem } from "../api/types";
+import type {
+  IncidentState,
+  ProjectIncidentItem,
+  ProjectIncidentEpisodeItem,
+} from "../api/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
 const PAGE_SIZE: number = 20;
@@ -37,99 +40,100 @@ type NavProp = NativeStackNavigationProp<
 
 export default function IncidentsScreen(): React.JSX.Element {
   const { theme } = useTheme();
-  const { selectedProject } = useProject();
-  const projectId: string = selectedProject?._id ?? "";
   const navigation: NavProp = useNavigation<NavProp>();
 
   const [segment, setSegment] = useState<Segment>("incidents");
-  const [page, setPage] = useState(0);
-  const [episodePage, setEpisodePage] = useState(0);
-  const skip: number = page * PAGE_SIZE;
-  const episodeSkip: number = episodePage * PAGE_SIZE;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [visibleEpisodeCount, setVisibleEpisodeCount] = useState(PAGE_SIZE);
 
-  const { data, isLoading, isError, refetch } = useIncidents(
-    projectId,
-    skip,
-    PAGE_SIZE,
-  );
-  const { data: states } = useIncidentStates(projectId);
   const {
-    data: episodeData,
+    items: allIncidents,
+    isLoading,
+    isError,
+    refetch,
+  } = useAllProjectIncidents();
+  const { statesMap } = useAllProjectIncidentStates();
+  const {
+    items: allEpisodes,
     isLoading: episodesLoading,
     isError: episodesError,
     refetch: refetchEpisodes,
-  } = useIncidentEpisodes(projectId, episodeSkip, PAGE_SIZE);
+  } = useAllProjectIncidentEpisodes();
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
   const queryClient: QueryClient = useQueryClient();
 
-  const acknowledgeState: IncidentState | undefined = states?.find(
-    (s: IncidentState) => {
-      return s.isAcknowledgedState;
-    },
+  const incidents: ProjectIncidentItem[] = allIncidents.slice(0, visibleCount);
+  const episodes: ProjectIncidentEpisodeItem[] = allEpisodes.slice(
+    0,
+    visibleEpisodeCount,
   );
-
-  const incidents: IncidentItem[] = data?.data ?? [];
-  const totalCount: number = data?.count ?? 0;
-  const hasMore: boolean = skip + PAGE_SIZE < totalCount;
-
-  const episodes: IncidentEpisodeItem[] = episodeData?.data ?? [];
-  const episodeTotalCount: number = episodeData?.count ?? 0;
-  const episodeHasMore: boolean = episodeSkip + PAGE_SIZE < episodeTotalCount;
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
     if (segment === "incidents") {
-      setPage(0);
+      setVisibleCount(PAGE_SIZE);
       await refetch();
     } else {
-      setEpisodePage(0);
+      setVisibleEpisodeCount(PAGE_SIZE);
       await refetchEpisodes();
     }
   }, [refetch, refetchEpisodes, lightImpact, segment]);
 
   const loadMore: () => void = useCallback(() => {
     if (segment === "incidents") {
-      if (hasMore && !isLoading) {
-        setPage((prev: number) => {
-          return prev + 1;
+      if (visibleCount < allIncidents.length) {
+        setVisibleCount((prev: number) => {
+          return prev + PAGE_SIZE;
         });
       }
     } else {
-      if (episodeHasMore && !episodesLoading) {
-        setEpisodePage((prev: number) => {
-          return prev + 1;
+      if (visibleEpisodeCount < allEpisodes.length) {
+        setVisibleEpisodeCount((prev: number) => {
+          return prev + PAGE_SIZE;
         });
       }
     }
-  }, [segment, hasMore, isLoading, episodeHasMore, episodesLoading]);
+  }, [segment, visibleCount, allIncidents.length, visibleEpisodeCount, allEpisodes.length]);
 
-  const handlePress: (incident: IncidentItem) => void = useCallback(
-    (incident: IncidentItem) => {
-      navigation.navigate("IncidentDetail", { incidentId: incident._id });
+  const handlePress: (wrapped: ProjectIncidentItem) => void = useCallback(
+    (wrapped: ProjectIncidentItem) => {
+      navigation.navigate("IncidentDetail", {
+        incidentId: wrapped.item._id,
+        projectId: wrapped.projectId,
+      });
     },
     [navigation],
   );
 
-  const handleEpisodePress: (episode: IncidentEpisodeItem) => void =
+  const handleEpisodePress: (wrapped: ProjectIncidentEpisodeItem) => void =
     useCallback(
-      (episode: IncidentEpisodeItem) => {
+      (wrapped: ProjectIncidentEpisodeItem) => {
         navigation.navigate("IncidentEpisodeDetail", {
-          episodeId: episode._id,
+          episodeId: wrapped.item._id,
+          projectId: wrapped.projectId,
         });
       },
       [navigation],
     );
 
-  const handleAcknowledge: (incident: IncidentItem) => Promise<void> =
+  const handleAcknowledge: (wrapped: ProjectIncidentItem) => Promise<void> =
     useCallback(
-      async (incident: IncidentItem) => {
+      async (wrapped: ProjectIncidentItem) => {
+        const projectStates: IncidentState[] | undefined = statesMap.get(
+          wrapped.projectId,
+        );
+        const acknowledgeState: IncidentState | undefined = projectStates?.find(
+          (s: IncidentState) => {
+            return s.isAcknowledgedState;
+          },
+        );
         if (!acknowledgeState) {
           return;
         }
         try {
           await changeIncidentState(
-            projectId,
-            incident._id,
+            wrapped.projectId,
+            wrapped.item._id,
             acknowledgeState._id,
           );
           await successFeedback();
@@ -139,20 +143,13 @@ export default function IncidentsScreen(): React.JSX.Element {
           await errorFeedback();
         }
       },
-      [
-        projectId,
-        acknowledgeState,
-        successFeedback,
-        errorFeedback,
-        refetch,
-        queryClient,
-      ],
+      [statesMap, successFeedback, errorFeedback, refetch, queryClient],
     );
 
   const showLoading: boolean =
     segment === "incidents"
-      ? isLoading && incidents.length === 0
-      : episodesLoading && episodes.length === 0;
+      ? isLoading && allIncidents.length === 0
+      : episodesLoading && allEpisodes.length === 0;
 
   const showError: boolean =
     segment === "incidents" ? isError : episodesError;
@@ -229,32 +226,43 @@ export default function IncidentsScreen(): React.JSX.Element {
       {segment === "incidents" ? (
         <FlatList
           data={incidents}
-          keyExtractor={(item: IncidentItem) => {
-            return item._id;
+          keyExtractor={(wrapped: ProjectIncidentItem) => {
+            return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
           contentContainerStyle={
             incidents.length === 0 ? { flex: 1 } : { padding: 16 }
           }
-          renderItem={({ item }: ListRenderItemInfo<IncidentItem>) => {
+          renderItem={({
+            item: wrapped,
+          }: ListRenderItemInfo<ProjectIncidentItem>) => {
+            const projectStates: IncidentState[] | undefined = statesMap.get(
+              wrapped.projectId,
+            );
+            const acknowledgeState: IncidentState | undefined =
+              projectStates?.find((s: IncidentState) => {
+                return s.isAcknowledgedState;
+              });
             return (
               <SwipeableCard
                 rightAction={
                   acknowledgeState &&
-                  item.currentIncidentState?._id !== acknowledgeState._id
+                  wrapped.item.currentIncidentState?._id !==
+                    acknowledgeState._id
                     ? {
                         label: "Acknowledge",
                         color: "#2EA043",
                         onAction: () => {
-                          return handleAcknowledge(item);
+                          return handleAcknowledge(wrapped);
                         },
                       }
                     : undefined
                 }
               >
                 <IncidentCard
-                  incident={item}
+                  incident={wrapped.item}
+                  projectName={wrapped.projectName}
                   onPress={() => {
-                    return handlePress(item);
+                    return handlePress(wrapped);
                   }}
                 />
               </SwipeableCard>
@@ -276,21 +284,22 @@ export default function IncidentsScreen(): React.JSX.Element {
       ) : (
         <FlatList
           data={episodes}
-          keyExtractor={(item: IncidentEpisodeItem) => {
-            return item._id;
+          keyExtractor={(wrapped: ProjectIncidentEpisodeItem) => {
+            return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
           contentContainerStyle={
             episodes.length === 0 ? { flex: 1 } : { padding: 16 }
           }
           renderItem={({
-            item,
-          }: ListRenderItemInfo<IncidentEpisodeItem>) => {
+            item: wrapped,
+          }: ListRenderItemInfo<ProjectIncidentEpisodeItem>) => {
             return (
               <EpisodeCard
-                episode={item}
+                episode={wrapped.item}
                 type="incident"
+                projectName={wrapped.projectName}
                 onPress={() => {
-                  return handleEpisodePress(item);
+                  return handleEpisodePress(wrapped);
                 }}
               />
             );
@@ -298,7 +307,7 @@ export default function IncidentsScreen(): React.JSX.Element {
           ListEmptyComponent={
             <EmptyState
               title="No incident episodes"
-              subtitle="Incident episodes for this project will appear here."
+              subtitle="Incident episodes will appear here."
               icon="episodes"
             />
           }

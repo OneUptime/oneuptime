@@ -4,16 +4,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
+import ProjectBadge from "./ProjectBadge";
 import type { IncidentItem, NamedEntity } from "../api/types";
 
 interface IncidentCardProps {
   incident: IncidentItem;
   onPress: () => void;
+  projectName?: string;
 }
 
 export default function IncidentCard({
   incident,
   onPress,
+  projectName,
 }: IncidentCardProps): React.JSX.Element {
   const { theme } = useTheme();
 
@@ -51,6 +54,11 @@ export default function IncidentCard({
           style={{ backgroundColor: stateColor }}
         />
         <View className="flex-1 p-4">
+          {projectName ? (
+            <View className="mb-1.5">
+              <ProjectBadge name={projectName} />
+            </View>
+          ) : null}
           <View className="flex-row justify-between items-center mb-1.5">
             <View
               className="px-2 py-0.5 rounded-full"

@@ -11,7 +11,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import { useProject } from "../hooks/useProject";
 import {
   useIncidentDetail,
   useIncidentStates,
@@ -63,10 +62,8 @@ function SectionHeader({
 export default function IncidentDetailScreen({
   route,
 }: Props): React.JSX.Element {
-  const { incidentId } = route.params;
+  const { incidentId, projectId } = route.params;
   const { theme } = useTheme();
-  const { selectedProject } = useProject();
-  const projectId: string = selectedProject?._id ?? "";
   const queryClient: QueryClient = useQueryClient();
 
   const {

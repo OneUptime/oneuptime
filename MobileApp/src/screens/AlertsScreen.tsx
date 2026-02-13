@@ -10,11 +10,10 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import { useProject } from "../hooks/useProject";
-import { useAlerts } from "../hooks/useAlerts";
-import { useAlertStates } from "../hooks/useAlertDetail";
+import { useAllProjectAlerts } from "../hooks/useAllProjectAlerts";
+import { useAllProjectAlertEpisodes } from "../hooks/useAllProjectAlertEpisodes";
+import { useAllProjectAlertStates } from "../hooks/useAllProjectAlertStates";
 import { changeAlertState } from "../api/alerts";
-import { useAlertEpisodes } from "../hooks/useAlertEpisodes";
 import { useHaptics } from "../hooks/useHaptics";
 import AlertCard from "../components/AlertCard";
 import EpisodeCard from "../components/EpisodeCard";
@@ -23,7 +22,11 @@ import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import SegmentedControl from "../components/SegmentedControl";
 import type { AlertsStackParamList } from "../navigation/types";
-import type { AlertItem, AlertState, AlertEpisodeItem } from "../api/types";
+import type {
+  AlertState,
+  ProjectAlertItem,
+  ProjectAlertEpisodeItem,
+} from "../api/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
 const PAGE_SIZE: number = 20;
@@ -34,116 +37,116 @@ type NavProp = NativeStackNavigationProp<AlertsStackParamList, "AlertsList">;
 
 export default function AlertsScreen(): React.JSX.Element {
   const { theme } = useTheme();
-  const { selectedProject } = useProject();
-  const projectId: string = selectedProject?._id ?? "";
   const navigation: NavProp = useNavigation<NavProp>();
 
   const [segment, setSegment] = useState<Segment>("alerts");
-  const [page, setPage] = useState(0);
-  const [episodePage, setEpisodePage] = useState(0);
-  const skip: number = page * PAGE_SIZE;
-  const episodeSkip: number = episodePage * PAGE_SIZE;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [visibleEpisodeCount, setVisibleEpisodeCount] = useState(PAGE_SIZE);
 
-  const { data, isLoading, isError, refetch } = useAlerts(
-    projectId,
-    skip,
-    PAGE_SIZE,
-  );
-  const { data: states } = useAlertStates(projectId);
   const {
-    data: episodeData,
+    items: allAlerts,
+    isLoading,
+    isError,
+    refetch,
+  } = useAllProjectAlerts();
+  const { statesMap } = useAllProjectAlertStates();
+  const {
+    items: allEpisodes,
     isLoading: episodesLoading,
     isError: episodesError,
     refetch: refetchEpisodes,
-  } = useAlertEpisodes(projectId, episodeSkip, PAGE_SIZE);
+  } = useAllProjectAlertEpisodes();
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
   const queryClient: QueryClient = useQueryClient();
 
-  const acknowledgeState: AlertState | undefined = states?.find(
-    (s: AlertState) => {
-      return s.isAcknowledgedState;
-    },
+  const alerts: ProjectAlertItem[] = allAlerts.slice(0, visibleCount);
+  const episodes: ProjectAlertEpisodeItem[] = allEpisodes.slice(
+    0,
+    visibleEpisodeCount,
   );
-
-  const alerts: AlertItem[] = data?.data ?? [];
-  const totalCount: number = data?.count ?? 0;
-  const hasMore: boolean = skip + PAGE_SIZE < totalCount;
-
-  const episodes: AlertEpisodeItem[] = episodeData?.data ?? [];
-  const episodeTotalCount: number = episodeData?.count ?? 0;
-  const episodeHasMore: boolean = episodeSkip + PAGE_SIZE < episodeTotalCount;
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
     if (segment === "alerts") {
-      setPage(0);
+      setVisibleCount(PAGE_SIZE);
       await refetch();
     } else {
-      setEpisodePage(0);
+      setVisibleEpisodeCount(PAGE_SIZE);
       await refetchEpisodes();
     }
   }, [refetch, refetchEpisodes, lightImpact, segment]);
 
   const loadMore: () => void = useCallback(() => {
     if (segment === "alerts") {
-      if (hasMore && !isLoading) {
-        setPage((prev: number) => {
-          return prev + 1;
+      if (visibleCount < allAlerts.length) {
+        setVisibleCount((prev: number) => {
+          return prev + PAGE_SIZE;
         });
       }
     } else {
-      if (episodeHasMore && !episodesLoading) {
-        setEpisodePage((prev: number) => {
-          return prev + 1;
+      if (visibleEpisodeCount < allEpisodes.length) {
+        setVisibleEpisodeCount((prev: number) => {
+          return prev + PAGE_SIZE;
         });
       }
     }
-  }, [segment, hasMore, isLoading, episodeHasMore, episodesLoading]);
+  }, [segment, visibleCount, allAlerts.length, visibleEpisodeCount, allEpisodes.length]);
 
-  const handlePress: (alert: AlertItem) => void = useCallback(
-    (alert: AlertItem) => {
-      navigation.navigate("AlertDetail", { alertId: alert._id });
-    },
-    [navigation],
-  );
-
-  const handleEpisodePress: (episode: AlertEpisodeItem) => void = useCallback(
-    (episode: AlertEpisodeItem) => {
-      navigation.navigate("AlertEpisodeDetail", {
-        episodeId: episode._id,
+  const handlePress: (wrapped: ProjectAlertItem) => void = useCallback(
+    (wrapped: ProjectAlertItem) => {
+      navigation.navigate("AlertDetail", {
+        alertId: wrapped.item._id,
+        projectId: wrapped.projectId,
       });
     },
     [navigation],
   );
 
-  const handleAcknowledge: (alert: AlertItem) => Promise<void> = useCallback(
-    async (alert: AlertItem) => {
-      if (!acknowledgeState) {
-        return;
-      }
-      try {
-        await changeAlertState(projectId, alert._id, acknowledgeState._id);
-        await successFeedback();
-        await refetch();
-        await queryClient.invalidateQueries({ queryKey: ["alerts"] });
-      } catch {
-        await errorFeedback();
-      }
-    },
-    [
-      projectId,
-      acknowledgeState,
-      successFeedback,
-      errorFeedback,
-      refetch,
-      queryClient,
-    ],
-  );
+  const handleEpisodePress: (wrapped: ProjectAlertEpisodeItem) => void =
+    useCallback(
+      (wrapped: ProjectAlertEpisodeItem) => {
+        navigation.navigate("AlertEpisodeDetail", {
+          episodeId: wrapped.item._id,
+          projectId: wrapped.projectId,
+        });
+      },
+      [navigation],
+    );
+
+  const handleAcknowledge: (wrapped: ProjectAlertItem) => Promise<void> =
+    useCallback(
+      async (wrapped: ProjectAlertItem) => {
+        const projectStates: AlertState[] | undefined = statesMap.get(
+          wrapped.projectId,
+        );
+        const acknowledgeState: AlertState | undefined = projectStates?.find(
+          (s: AlertState) => {
+            return s.isAcknowledgedState;
+          },
+        );
+        if (!acknowledgeState) {
+          return;
+        }
+        try {
+          await changeAlertState(
+            wrapped.projectId,
+            wrapped.item._id,
+            acknowledgeState._id,
+          );
+          await successFeedback();
+          await refetch();
+          await queryClient.invalidateQueries({ queryKey: ["alerts"] });
+        } catch {
+          await errorFeedback();
+        }
+      },
+      [statesMap, successFeedback, errorFeedback, refetch, queryClient],
+    );
 
   const showLoading: boolean =
     segment === "alerts"
-      ? isLoading && alerts.length === 0
-      : episodesLoading && episodes.length === 0;
+      ? isLoading && allAlerts.length === 0
+      : episodesLoading && allEpisodes.length === 0;
 
   const showError: boolean = segment === "alerts" ? isError : episodesError;
 
@@ -219,32 +222,42 @@ export default function AlertsScreen(): React.JSX.Element {
       {segment === "alerts" ? (
         <FlatList
           data={alerts}
-          keyExtractor={(item: AlertItem) => {
-            return item._id;
+          keyExtractor={(wrapped: ProjectAlertItem) => {
+            return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
           contentContainerStyle={
             alerts.length === 0 ? { flex: 1 } : { padding: 16 }
           }
-          renderItem={({ item }: ListRenderItemInfo<AlertItem>) => {
+          renderItem={({
+            item: wrapped,
+          }: ListRenderItemInfo<ProjectAlertItem>) => {
+            const projectStates: AlertState[] | undefined = statesMap.get(
+              wrapped.projectId,
+            );
+            const acknowledgeState: AlertState | undefined =
+              projectStates?.find((s: AlertState) => {
+                return s.isAcknowledgedState;
+              });
             return (
               <SwipeableCard
                 rightAction={
                   acknowledgeState &&
-                  item.currentAlertState?._id !== acknowledgeState._id
+                  wrapped.item.currentAlertState?._id !== acknowledgeState._id
                     ? {
                         label: "Acknowledge",
                         color: "#2EA043",
                         onAction: () => {
-                          return handleAcknowledge(item);
+                          return handleAcknowledge(wrapped);
                         },
                       }
                     : undefined
                 }
               >
                 <AlertCard
-                  alert={item}
+                  alert={wrapped.item}
+                  projectName={wrapped.projectName}
                   onPress={() => {
-                    return handlePress(item);
+                    return handlePress(wrapped);
                   }}
                 />
               </SwipeableCard>
@@ -266,19 +279,22 @@ export default function AlertsScreen(): React.JSX.Element {
       ) : (
         <FlatList
           data={episodes}
-          keyExtractor={(item: AlertEpisodeItem) => {
-            return item._id;
+          keyExtractor={(wrapped: ProjectAlertEpisodeItem) => {
+            return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
           contentContainerStyle={
             episodes.length === 0 ? { flex: 1 } : { padding: 16 }
           }
-          renderItem={({ item }: ListRenderItemInfo<AlertEpisodeItem>) => {
+          renderItem={({
+            item: wrapped,
+          }: ListRenderItemInfo<ProjectAlertEpisodeItem>) => {
             return (
               <EpisodeCard
-                episode={item}
+                episode={wrapped.item}
                 type="alert"
+                projectName={wrapped.projectName}
                 onPress={() => {
-                  return handleEpisodePress(item);
+                  return handleEpisodePress(wrapped);
                 }}
               />
             );
@@ -286,7 +302,7 @@ export default function AlertsScreen(): React.JSX.Element {
           ListEmptyComponent={
             <EmptyState
               title="No alert episodes"
-              subtitle="Alert episodes for this project will appear here."
+              subtitle="Alert episodes will appear here."
               icon="episodes"
             />
           }
