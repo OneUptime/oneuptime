@@ -77,10 +77,10 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
   });
 
   const isLoading: boolean =
-    incidentQuery.isLoading ||
-    alertQuery.isLoading ||
-    incidentEpisodeQuery.isLoading ||
-    alertEpisodeQuery.isLoading;
+    incidentQuery.isPending ||
+    alertQuery.isPending ||
+    incidentEpisodeQuery.isPending ||
+    alertEpisodeQuery.isPending;
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
     await Promise.all([

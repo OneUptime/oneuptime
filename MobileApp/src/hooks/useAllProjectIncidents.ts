@@ -57,7 +57,7 @@ export function useAllProjectIncidents(): UseAllProjectIncidentsResult {
 
   return {
     items,
-    isLoading: query.isLoading,
+    isLoading: query.isPending,
     isError: query.isError,
     refetch,
   };

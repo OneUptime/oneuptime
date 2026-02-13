@@ -60,7 +60,7 @@ export function useAllProjectIncidentEpisodes(): UseAllProjectIncidentEpisodesRe
 
   return {
     items,
-    isLoading: query.isLoading,
+    isLoading: query.isPending,
     isError: query.isError,
     refetch,
   };
