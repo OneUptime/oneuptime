@@ -435,6 +435,7 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelNames: Array<string>;
     projectId: ObjectID;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<Array<WorkspaceChannel>> {
     logger.debug("Creating channels if they do not exist with data:");
     logger.debug(data);
@@ -450,12 +451,24 @@ export default class SlackUtil extends WorkspaceBase {
       channelName = channelName.replace(/\s+/g, "-");
 
       // Check if channel exists using optimized method
+      const getChannelData: {
+        authToken: string;
+        channelName: string;
+        projectId: ObjectID;
+        workspaceProjectAuthTokenId?: ObjectID;
+      } = {
+        authToken: data.authToken,
+        channelName: channelName,
+        projectId: data.projectId,
+      };
+
+      if (data.workspaceProjectAuthTokenId) {
+        getChannelData.workspaceProjectAuthTokenId =
+          data.workspaceProjectAuthTokenId;
+      }
+
       const existingChannel: WorkspaceChannel | null =
-        await this.getWorkspaceChannelByName({
-          authToken: data.authToken,
-          channelName: channelName,
-          projectId: data.projectId,
-        });
+        await this.getWorkspaceChannelByName(getChannelData);
 
       if (existingChannel) {
         logger.debug(`Channel ${channelName} already exists.`);
@@ -486,16 +499,29 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<WorkspaceChannel> {
     logger.debug("Getting workspace channel ID from channel name with data:");
     logger.debug(data);
 
+    const channelLookupData: {
+      authToken: string;
+      channelName: string;
+      projectId: ObjectID;
+      workspaceProjectAuthTokenId?: ObjectID;
+    } = {
+      authToken: data.authToken,
+      channelName: data.channelName,
+      projectId: data.projectId,
+    };
+
+    if (data.workspaceProjectAuthTokenId) {
+      channelLookupData.workspaceProjectAuthTokenId =
+        data.workspaceProjectAuthTokenId;
+    }
+
     const channel: WorkspaceChannel | null =
-      await this.getWorkspaceChannelByName({
-        authToken: data.authToken,
-        channelName: data.channelName,
-        projectId: data.projectId,
-      });
+      await this.getWorkspaceChannelByName(channelLookupData);
 
     if (!channel) {
       logger.error("Channel not found.");
@@ -576,6 +602,7 @@ export default class SlackUtil extends WorkspaceBase {
   public static override async getAllWorkspaceChannels(data: {
     authToken: string;
     projectId: ObjectID;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<Dictionary<WorkspaceChannel>> {
     logger.debug("Getting all workspace channels with data:");
     logger.debug(data);
@@ -660,10 +687,21 @@ export default class SlackUtil extends WorkspaceBase {
 
     // Update cache in bulk
     try {
-      await this.updateChannelsInCache({
+      const updateCacheData: {
+        projectId: ObjectID;
+        channelCache: Dictionary<WorkspaceChannel>;
+        workspaceProjectAuthTokenId?: ObjectID;
+      } = {
         projectId: data.projectId,
         channelCache: localChannelCache,
-      });
+      };
+
+      if (data.workspaceProjectAuthTokenId) {
+        updateCacheData.workspaceProjectAuthTokenId =
+          data.workspaceProjectAuthTokenId;
+      }
+
+      await this.updateChannelsInCache(updateCacheData);
     } catch (error) {
       logger.error("Error bulk updating channel cache:");
       logger.error(error);
@@ -677,12 +715,24 @@ export default class SlackUtil extends WorkspaceBase {
   private static async updateChannelsInCache(data: {
     projectId: ObjectID;
     channelCache: Dictionary<WorkspaceChannel>;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<void> {
+    const projectAuthQuery: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      workspaceProjectAuthTokenId?: ObjectID;
+    } = {
+      projectId: data.projectId,
+      workspaceType: WorkspaceType.Slack,
+    };
+
+    if (data.workspaceProjectAuthTokenId) {
+      projectAuthQuery.workspaceProjectAuthTokenId =
+        data.workspaceProjectAuthTokenId;
+    }
+
     const projectAuth: any =
-      await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.Slack,
-      });
+      await WorkspaceProjectAuthTokenService.getProjectAuth(projectAuthQuery);
 
     if (!projectAuth) {
       logger.debug("No project auth found, cannot update cache");
@@ -705,6 +755,9 @@ export default class SlackUtil extends WorkspaceBase {
       authToken: projectAuth.authToken,
       workspaceProjectId: projectAuth.workspaceProjectId,
       miscData: miscData,
+      ...(data.workspaceProjectAuthTokenId && {
+        workspaceProjectAuthTokenId: data.workspaceProjectAuthTokenId,
+      }),
     });
 
     logger.debug("Channel cache updated successfully");
@@ -714,15 +767,27 @@ export default class SlackUtil extends WorkspaceBase {
   public static async getChannelFromCache(data: {
     projectId: ObjectID;
     channelName: string;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<WorkspaceChannel | null> {
     logger.debug("Getting channel from cache with data:");
     logger.debug(data);
 
+    const cacheAuthQuery: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      workspaceProjectAuthTokenId?: ObjectID;
+    } = {
+      projectId: data.projectId,
+      workspaceType: WorkspaceType.Slack,
+    };
+
+    if (data.workspaceProjectAuthTokenId) {
+      cacheAuthQuery.workspaceProjectAuthTokenId =
+        data.workspaceProjectAuthTokenId;
+    }
+
     const projectAuth: any =
-      await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.Slack,
-      });
+      await WorkspaceProjectAuthTokenService.getProjectAuth(cacheAuthQuery);
 
     if (!projectAuth || !projectAuth.miscData) {
       logger.debug("No project auth found or no misc data");
@@ -755,15 +820,29 @@ export default class SlackUtil extends WorkspaceBase {
     projectId: ObjectID;
     channelName: string;
     channel: WorkspaceChannel;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<void> {
     logger.debug("Updating channel cache with data:");
     logger.debug(data);
 
+    const updateCacheAuthQuery: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      workspaceProjectAuthTokenId?: ObjectID;
+    } = {
+      projectId: data.projectId,
+      workspaceType: WorkspaceType.Slack,
+    };
+
+    if (data.workspaceProjectAuthTokenId) {
+      updateCacheAuthQuery.workspaceProjectAuthTokenId =
+        data.workspaceProjectAuthTokenId;
+    }
+
     const projectAuth: any =
-      await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.Slack,
-      });
+      await WorkspaceProjectAuthTokenService.getProjectAuth(
+        updateCacheAuthQuery,
+      );
 
     if (!projectAuth) {
       logger.debug("No project auth found, cannot update cache");
@@ -790,6 +869,9 @@ export default class SlackUtil extends WorkspaceBase {
       authToken: projectAuth.authToken,
       workspaceProjectId: projectAuth.workspaceProjectId,
       miscData: miscData,
+      ...(data.workspaceProjectAuthTokenId && {
+        workspaceProjectAuthTokenId: data.workspaceProjectAuthTokenId,
+      }),
     });
 
     logger.debug("Channel cache updated successfully");
@@ -800,6 +882,7 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<WorkspaceChannel | null> {
     logger.debug("Getting workspace channel by name with data:");
     logger.debug(data);
@@ -813,11 +896,22 @@ export default class SlackUtil extends WorkspaceBase {
 
     // Try to get from cache first
     try {
+      const cachedChannelLookup: {
+        projectId: ObjectID;
+        channelName: string;
+        workspaceProjectAuthTokenId?: ObjectID;
+      } = {
+        projectId: data.projectId,
+        channelName: normalizedChannelName,
+      };
+
+      if (data.workspaceProjectAuthTokenId) {
+        cachedChannelLookup.workspaceProjectAuthTokenId =
+          data.workspaceProjectAuthTokenId;
+      }
+
       const cachedChannel: WorkspaceChannel | null =
-        await this.getChannelFromCache({
-          projectId: data.projectId,
-          channelName: normalizedChannelName,
-        });
+        await this.getChannelFromCache(cachedChannelLookup);
       if (cachedChannel) {
         logger.debug("Channel found in cache:");
         logger.debug(cachedChannel);
@@ -909,10 +1003,21 @@ export default class SlackUtil extends WorkspaceBase {
 
           // Update cache before returning
           try {
-            await this.updateChannelsInCache({
+            const updateCacheData: {
+              projectId: ObjectID;
+              channelCache: Dictionary<WorkspaceChannel>;
+              workspaceProjectAuthTokenId?: ObjectID;
+            } = {
               projectId: data.projectId,
               channelCache: localChannelCache,
-            });
+            };
+
+            if (data.workspaceProjectAuthTokenId) {
+              updateCacheData.workspaceProjectAuthTokenId =
+                data.workspaceProjectAuthTokenId;
+            }
+
+            await this.updateChannelsInCache(updateCacheData);
           } catch (error) {
             logger.error("Error bulk updating channel cache:");
             logger.error(error);
@@ -931,10 +1036,21 @@ export default class SlackUtil extends WorkspaceBase {
 
     // Update cache even if channel not found
     try {
-      await this.updateChannelsInCache({
+      const updateCacheData: {
+        projectId: ObjectID;
+        channelCache: Dictionary<WorkspaceChannel>;
+        workspaceProjectAuthTokenId?: ObjectID;
+      } = {
         projectId: data.projectId,
         channelCache: localChannelCache,
-      });
+      };
+
+      if (data.workspaceProjectAuthTokenId) {
+        updateCacheData.workspaceProjectAuthTokenId =
+          data.workspaceProjectAuthTokenId;
+      }
+
+      await this.updateChannelsInCache(updateCacheData);
     } catch (error) {
       logger.error("Error bulk updating channel cache:");
       logger.error(error);
@@ -1013,6 +1129,7 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<boolean> {
     // if channel name starts with #, remove it
     if (data.channelName && data.channelName.startsWith("#")) {
@@ -1023,12 +1140,24 @@ export default class SlackUtil extends WorkspaceBase {
     data.channelName = data.channelName.toLowerCase();
 
     // Check if channel exists using optimized method
+    const channelLookup: {
+      authToken: string;
+      channelName: string;
+      projectId: ObjectID;
+      workspaceProjectAuthTokenId?: ObjectID;
+    } = {
+      authToken: data.authToken,
+      channelName: data.channelName,
+      projectId: data.projectId,
+    };
+
+    if (data.workspaceProjectAuthTokenId) {
+      channelLookup.workspaceProjectAuthTokenId =
+        data.workspaceProjectAuthTokenId;
+    }
+
     const channel: WorkspaceChannel | null =
-      await this.getWorkspaceChannelByName({
-        authToken: data.authToken,
-        channelName: data.channelName,
-        projectId: data.projectId,
-      });
+      await this.getWorkspaceChannelByName(channelLookup);
 
     return channel !== null;
   }
@@ -1059,12 +1188,25 @@ export default class SlackUtil extends WorkspaceBase {
         channelName = channelName.substring(1);
       }
 
+      const channelLookup: {
+        authToken: string;
+        channelName: string;
+        projectId: ObjectID;
+        workspaceProjectAuthTokenId?: ObjectID;
+      } = {
+        authToken: data.authToken,
+        channelName: channelName,
+        projectId: data.projectId,
+      };
+
+      if (data.workspaceMessagePayload.workspaceProjectAuthTokenId) {
+        channelLookup.workspaceProjectAuthTokenId = new ObjectID(
+          data.workspaceMessagePayload.workspaceProjectAuthTokenId,
+        );
+      }
+
       const channel: WorkspaceChannel | null =
-        await this.getWorkspaceChannelByName({
-          authToken: data.authToken,
-          channelName: channelName,
-          projectId: data.projectId,
-        });
+        await this.getWorkspaceChannelByName(channelLookup);
 
       if (channel) {
         workspaceChannelsToPostTo.push(channel);

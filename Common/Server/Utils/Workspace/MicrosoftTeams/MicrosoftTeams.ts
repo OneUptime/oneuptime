@@ -892,6 +892,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     channelName: string;
     projectId: ObjectID;
     teamId: string;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<WorkspaceChannel> {
     const channel: WorkspaceChannel | null =
       await this.getWorkspaceChannelByName({
@@ -1547,6 +1548,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     projectId: ObjectID;
     teamId: string;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<Dictionary<WorkspaceChannel>> {
     logger.debug("Getting all workspace channels for team ID: " + data.teamId);
 
@@ -1600,6 +1602,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     channelName: string;
     projectId: ObjectID;
     teamId?: string;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<boolean> {
     if (!data.teamId) {
       throw new BadDataException(

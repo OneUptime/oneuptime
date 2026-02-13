@@ -24,6 +24,7 @@ export interface MiscData {
 
 export interface SlackMiscData extends MiscData {
   userId: string;
+  teamId?: string;
 }
 
 @TenantColumn("projectId")
@@ -152,6 +153,29 @@ class WorkspaceUserAuthToken extends BaseModel {
     nullable: false,
   })
   public workspaceType?: WorkspaceType = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    title: "Workspace Project ID",
+    description:
+      "Project ID in the Workspace (e.g., Slack team ID, Microsoft Teams team ID)",
+    required: false,
+    unique: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    unique: false,
+    nullable: true,
+  })
+  @Index()
+  public workspaceProjectId?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],

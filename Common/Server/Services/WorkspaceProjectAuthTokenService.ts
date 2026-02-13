@@ -17,6 +17,8 @@ export class Service extends DatabaseService<Model> {
   public async getProjectAuth(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
+    workspaceProjectAuthTokenId?: ObjectID;
+    workspaceProjectId?: string;
   }): Promise<Model | null> {
     if (!data.projectId) {
       throw new BadDataException("projectId is required");
@@ -26,12 +28,30 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("workspaceType is required");
     }
 
+    const query: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      _id?: ObjectID;
+      workspaceProjectId?: string;
+    } = {
+      projectId: data.projectId,
+      workspaceType: data.workspaceType,
+    };
+
+    if (data.workspaceProjectAuthTokenId) {
+      query._id = data.workspaceProjectAuthTokenId;
+    }
+
+    if (data.workspaceProjectId) {
+      query.workspaceProjectId = data.workspaceProjectId;
+    }
+
     return await this.findOneBy({
       query: {
-        projectId: data.projectId,
-        workspaceType: data.workspaceType,
+        ...query,
       },
       select: {
+        _id: true,
         authToken: true,
         workspaceProjectId: true,
         miscData: true,
@@ -46,16 +66,29 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async getProjectAuths(data: {
     projectId: ObjectID;
+    workspaceType?: WorkspaceType;
   }): Promise<Array<Model>> {
     if (!data.projectId) {
       throw new BadDataException("projectId is required");
     }
 
+    const query: {
+      projectId: ObjectID;
+      workspaceType?: WorkspaceType;
+    } = {
+      projectId: data.projectId,
+    };
+
+    if (data.workspaceType) {
+      query.workspaceType = data.workspaceType;
+    }
+
     return await this.findBy({
       query: {
-        projectId: data.projectId,
+        ...query,
       },
       select: {
+        _id: true,
         authToken: true,
         workspaceProjectId: true,
         miscData: true,
@@ -84,6 +117,7 @@ export class Service extends DatabaseService<Model> {
     authToken: string;
     workspaceProjectId: string;
     miscData: WorkspaceMiscData;
+    workspaceProjectAuthTokenId?: ObjectID;
   }): Promise<void> {
     if (!data.projectId) {
       throw new BadDataException("projectId is required");
@@ -105,11 +139,26 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("miscData is required");
     }
 
+    const query: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      workspaceProjectId?: string;
+      _id?: ObjectID;
+    } = {
+      projectId: data.projectId,
+      workspaceType: data.workspaceType,
+    };
+
+    if (data.workspaceProjectId) {
+      query.workspaceProjectId = data.workspaceProjectId;
+    }
+
+    if (data.workspaceProjectAuthTokenId) {
+      query._id = data.workspaceProjectAuthTokenId;
+    }
+
     let projectAuth: Model | null = await this.findOneBy({
-      query: {
-        projectId: data.projectId,
-        workspaceType: data.workspaceType,
-      },
+      query: query,
       select: {
         _id: true,
       },

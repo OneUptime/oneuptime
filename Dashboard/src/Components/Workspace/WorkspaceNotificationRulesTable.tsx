@@ -54,7 +54,11 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
-import { MicrosoftTeamsTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthToken, {
+  MicrosoftTeamsMiscData,
+  MicrosoftTeamsTeam,
+  SlackMiscData,
+} from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 export interface ComponentProps {
   workspaceType: WorkspaceType;
   eventType: NotificationRuleEventType;
@@ -87,6 +91,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<
     Array<MicrosoftTeamsTeam>
   >([]);
+  const [workspaceProjectAuthTokens, setWorkspaceProjectAuthTokens] =
+    React.useState<Array<WorkspaceProjectAuthToken>>([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
@@ -372,6 +378,27 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           setMicrosoftTeams(teamsData);
         }
       }
+
+      const workspaceAuths: ListResult<WorkspaceProjectAuthToken> =
+        await ModelAPI.getList<WorkspaceProjectAuthToken>({
+          modelType: WorkspaceProjectAuthToken,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            workspaceType: props.workspaceType,
+          },
+          select: {
+            _id: true,
+            miscData: true,
+            workspaceProjectId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
+        });
+
+      setWorkspaceProjectAuthTokens(workspaceAuths.data);
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
@@ -391,6 +418,70 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   if (error) {
     return <ErrorMessage message={error} />;
   }
+
+  type GetWorkspaceDisplayName = (
+    workspace: WorkspaceProjectAuthToken,
+  ) => string;
+
+  const getWorkspaceDisplayName: GetWorkspaceDisplayName = (
+    workspace: WorkspaceProjectAuthToken,
+  ): string => {
+    if (props.workspaceType === WorkspaceType.Slack) {
+      const teamName: string | undefined = (workspace.miscData as SlackMiscData)
+        ?.teamName;
+      return teamName || workspace.workspaceProjectId || "Slack Workspace";
+    }
+
+    if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
+      const teamName: string | undefined = (
+        workspace.miscData as MicrosoftTeamsMiscData
+      )?.teamName;
+      return (
+        teamName ||
+        workspace.workspaceProjectId ||
+        `${getWorkspaceTypeDisplayName(props.workspaceType)} Workspace`
+      );
+    }
+
+    return (
+      workspace.workspaceProjectId ||
+      `${getWorkspaceTypeDisplayName(props.workspaceType)} Workspace`
+    );
+  };
+
+  const workspaceOptions: Array<{ label: string; value: string }> =
+    workspaceProjectAuthTokens.map((workspace: WorkspaceProjectAuthToken) => {
+      return {
+        label: getWorkspaceDisplayName(workspace),
+        value: workspace.id?.toString() || "",
+      };
+    });
+
+  const defaultWorkspaceAuthTokenId: string | undefined =
+    workspaceProjectAuthTokens.length === 1
+      ? workspaceProjectAuthTokens[0]?.id?.toString()
+      : undefined;
+
+  type GetWorkspaceNameById = (id?: string) => string;
+
+  const getWorkspaceNameById: GetWorkspaceNameById = (id?: string): string => {
+    if (!id) {
+      return "-";
+    }
+
+    const match: WorkspaceProjectAuthToken | undefined =
+      workspaceProjectAuthTokens.find(
+        (workspace: WorkspaceProjectAuthToken) => {
+          return workspace.id?.toString() === id.toString();
+        },
+      );
+
+    if (!match) {
+      return "-";
+    }
+
+    return getWorkspaceDisplayName(match);
+  };
 
   type RemoveFilterWithNoValues = (
     notificationRule: IncidentNotificationRule,
@@ -473,18 +564,48 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           values.eventType = props.eventType;
           values.projectId = ProjectUtil.getCurrentProjectId()!;
           values.workspaceType = props.workspaceType;
+          if (
+            !values.workspaceProjectAuthTokenId &&
+            defaultWorkspaceAuthTokenId
+          ) {
+            values.workspaceProjectAuthTokenId = new ObjectID(
+              defaultWorkspaceAuthTokenId,
+            );
+          }
           values.notificationRule = removeFiltersWithNoValues(
             values.notificationRule as IncidentNotificationRule,
           );
           return Promise.resolve(values);
         }}
         onBeforeEdit={(values: WorkspaceNotificationRule) => {
+          if (
+            !values.workspaceProjectAuthTokenId &&
+            defaultWorkspaceAuthTokenId
+          ) {
+            values.workspaceProjectAuthTokenId = new ObjectID(
+              defaultWorkspaceAuthTokenId,
+            );
+          }
           values.notificationRule = removeFiltersWithNoValues(
             values.notificationRule as IncidentNotificationRule,
           );
           return Promise.resolve(values);
         }}
         formFields={[
+          {
+            field: {
+              workspaceProjectAuthTokenId: true,
+            },
+            title: `${getWorkspaceTypeDisplayName(props.workspaceType)} Workspace`,
+            description: `Select the ${getWorkspaceTypeDisplayName(props.workspaceType)} workspace where this rule should post notifications.`,
+            fieldType: FormFieldSchemaType.Dropdown,
+            required: true,
+            stepId: "basic",
+            showIf: () => {
+              return workspaceProjectAuthTokens.length > 1;
+            },
+            dropdownOptions: workspaceOptions,
+          },
           {
             field: {
               name: true,
@@ -599,6 +720,28 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: "Rule Description",
             type: FieldType.Text,
           },
+          ...(workspaceProjectAuthTokens.length > 1
+            ? [
+                {
+                  field: {
+                    workspaceProjectAuthTokenId: true,
+                  },
+                  title: `${getWorkspaceTypeDisplayName(props.workspaceType)} Workspace`,
+                  type: FieldType.Element,
+                  getElement: (
+                    value: WorkspaceNotificationRule,
+                  ): ReactElement => {
+                    return (
+                      <Fragment>
+                        {getWorkspaceNameById(
+                          value.workspaceProjectAuthTokenId?.toString(),
+                        )}
+                      </Fragment>
+                    );
+                  },
+                },
+              ]
+            : []),
           {
             field: {
               notificationRule: true,

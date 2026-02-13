@@ -422,7 +422,25 @@ export default class MicrosoftTeamsAPI {
           logger.debug("User Profile: ");
           logger.debug(userProfile);
 
-          await WorkspaceUserAuthTokenService.refreshAuthToken({
+          const existingProjectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: new ObjectID(projectId),
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            });
+
+          const userAuthData: {
+            projectId: ObjectID;
+            userId: ObjectID;
+            workspaceType: WorkspaceType;
+            authToken: string;
+            workspaceUserId: string;
+            miscData: {
+              userId: string;
+              displayName?: string;
+              email?: string;
+            };
+            workspaceProjectId?: string;
+          } = {
             projectId: new ObjectID(projectId),
             userId: new ObjectID(userId),
             workspaceType: WorkspaceType.MicrosoftTeams,
@@ -435,15 +453,16 @@ export default class MicrosoftTeamsAPI {
                 (userProfile["mail"] as string) ||
                 (userProfile["userPrincipalName"] as string),
             },
-          });
+          };
+
+          if (existingProjectAuth?.workspaceProjectId) {
+            userAuthData.workspaceProjectId =
+              existingProjectAuth.workspaceProjectId;
+          }
+
+          await WorkspaceUserAuthTokenService.refreshAuthToken(userAuthData);
 
           // Check if admin consent is already granted
-          const existingProjectAuth: WorkspaceProjectAuthToken | null =
-            await WorkspaceProjectAuthTokenService.getProjectAuth({
-              projectId: new ObjectID(projectId),
-              workspaceType: WorkspaceType.MicrosoftTeams,
-            });
-
           if (
             existingProjectAuth &&
             (existingProjectAuth.miscData as any)?.adminConsentGranted
@@ -774,6 +793,22 @@ export default class MicrosoftTeamsAPI {
             authToken: appAccessToken,
             workspaceProjectId: tenantId, // Use tenant ID as the workspace project identifier
             miscData: mergedMiscData,
+          });
+
+          await WorkspaceUserAuthTokenService.updateBy({
+            query: {
+              projectId: new ObjectID(projectId),
+              userId: new ObjectID(userId),
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            },
+            data: {
+              workspaceProjectId: tenantId,
+            },
+            skip: 0,
+            limit: 1,
+            props: {
+              isRoot: true,
+            },
           });
 
           return Response.redirect(

@@ -342,6 +342,43 @@ class WorkspaceNotificationRule extends BaseModel {
       Permission.EditWorkspaceNotificationRule,
     ],
   })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Workspace Project Auth Token ID",
+    description:
+      "Workspace project auth token ID for this rule (used when multiple workspaces are connected)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public workspaceProjectAuthTokenId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateWorkspaceNotificationRule,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadWorkspaceNotificationRule,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditWorkspaceNotificationRule,
+    ],
+  })
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,

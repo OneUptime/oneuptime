@@ -275,16 +275,39 @@ export default class SlackAPI {
           },
         });
 
-        await WorkspaceUserAuthTokenService.refreshAuthToken({
+        const userMiscData: {
+          userId: string;
+          teamId?: string;
+        } = {
+          userId: slackUserId || "",
+        };
+
+        if (slackTeamId) {
+          userMiscData.teamId = slackTeamId;
+        }
+
+        const userAuthData: {
+          projectId: ObjectID;
+          userId: ObjectID;
+          workspaceType: WorkspaceType;
+          authToken: string;
+          workspaceUserId: string;
+          miscData: typeof userMiscData;
+          workspaceProjectId?: string;
+        } = {
           projectId: new ObjectID(projectId),
           userId: new ObjectID(userId),
           workspaceType: WorkspaceType.Slack,
           authToken: slackUserAccessToken || "",
           workspaceUserId: slackUserId || "",
-          miscData: {
-            userId: slackUserId || "",
-          },
-        });
+          miscData: userMiscData,
+        };
+
+        if (slackTeamId) {
+          userAuthData.workspaceProjectId = slackTeamId;
+        }
+
+        await WorkspaceUserAuthTokenService.refreshAuthToken(userAuthData);
 
         // return back to dashboard after successful auth.
         Response.redirect(req, res, slackIntegrationPageUrl);
@@ -441,15 +464,36 @@ export default class SlackAPI {
          */
 
         /*
-         * check if the team id matches the project id.
-         * get project auth.
+         * check if the team id matches the project workspace.
+         * get project auth based on team id.
          */
+
+        const teamIdFromSlack: string | undefined =
+          idToken["https://slack.com/team_id"]?.toString();
+
+        // If state is provided, enforce workspace selection.
+        const expectedTeamId: string | undefined =
+          req.query["state"]?.toString();
+
+        if (expectedTeamId && teamIdFromSlack) {
+          if (expectedTeamId !== teamIdFromSlack) {
+            return Response.redirect(
+              req,
+              res,
+              slackIntegrationPageUrl.addQueryParam(
+                "error",
+                "Looks like you are trying to sign in to a different slack workspace. Please try again and sign in to the selected workspace.",
+              ),
+            );
+          }
+        }
 
         const projectAuth: WorkspaceProjectAuthToken | null =
           await WorkspaceProjectAuthTokenService.findOneBy({
             query: {
               projectId: new ObjectID(projectId),
               workspaceType: WorkspaceType.Slack,
+              workspaceProjectId: teamIdFromSlack,
             },
             select: {
               workspaceProjectId: true,
@@ -460,19 +504,16 @@ export default class SlackAPI {
             },
           });
 
-        // cehck if the workspace project id is same as the team id.
+        // check if the workspace project id is same as the team id.
         if (projectAuth) {
           logger.debug("Project Auth: ");
           logger.debug(projectAuth.workspaceProjectId);
           logger.debug("Response Team ID: ");
-          logger.debug(idToken["https://slack.com/team_id"]);
+          logger.debug(teamIdFromSlack);
           logger.debug("Response User ID: ");
           logger.debug(idToken["https://slack.com/user_id"]);
 
-          if (
-            projectAuth.workspaceProjectId?.toString() !==
-            idToken["https://slack.com/team_id"]?.toString()
-          ) {
+          if (projectAuth.workspaceProjectId?.toString() !== teamIdFromSlack) {
             const teamName: string | undefined = (
               projectAuth.miscData as SlackMiscData
             )?.teamName;
@@ -495,7 +536,7 @@ export default class SlackAPI {
             res,
             slackIntegrationPageUrl.addQueryParam(
               "error",
-              "Looks like this OneUptime project is not connected to any slack workspace. Please try again and sign in to the workspace",
+              "Looks like this OneUptime project is not connected to the selected slack workspace. Please connect the workspace first.",
             ),
           );
         }
@@ -524,7 +565,9 @@ export default class SlackAPI {
           workspaceUserId: slackUserId || "",
           miscData: {
             userId: slackUserId || "",
+            teamId: teamIdFromSlack || "",
           },
+          workspaceProjectId: teamIdFromSlack || "",
         });
 
         // return back to dashboard after successful auth.
@@ -714,12 +757,29 @@ export default class SlackAPI {
           );
         }
 
+        const workspaceProjectAuthTokenId: string | undefined =
+          req.query["workspaceProjectAuthTokenId"]?.toString();
+
         // Get Slack project auth
+        const projectAuthQuery: {
+          projectId: ObjectID;
+          workspaceType: WorkspaceType;
+          workspaceProjectAuthTokenId?: ObjectID;
+        } = {
+          projectId: props.tenantId,
+          workspaceType: WorkspaceType.Slack,
+        };
+
+        if (workspaceProjectAuthTokenId) {
+          projectAuthQuery.workspaceProjectAuthTokenId = new ObjectID(
+            workspaceProjectAuthTokenId,
+          );
+        }
+
         const projectAuth: WorkspaceProjectAuthToken | null =
-          await WorkspaceProjectAuthTokenService.getProjectAuth({
-            projectId: props.tenantId,
-            workspaceType: WorkspaceType.Slack,
-          });
+          await WorkspaceProjectAuthTokenService.getProjectAuth(
+            projectAuthQuery,
+          );
 
         if (!projectAuth || !projectAuth.authToken) {
           return Response.sendErrorResponse(
@@ -736,17 +796,28 @@ export default class SlackAPI {
         let updatedProjectAuth: WorkspaceProjectAuthToken | null = projectAuth;
 
         if (!(projectAuth.miscData as SlackMiscData)?.channelCache) {
-          await SlackUtil.getAllWorkspaceChannels({
+          const getChannelsData: {
+            authToken: string;
+            projectId: ObjectID;
+            workspaceProjectAuthTokenId?: ObjectID;
+          } = {
             authToken: projectAuth.authToken,
             projectId: props.tenantId,
-          });
+          };
+
+          if (workspaceProjectAuthTokenId) {
+            getChannelsData.workspaceProjectAuthTokenId = new ObjectID(
+              workspaceProjectAuthTokenId,
+            );
+          }
+
+          await SlackUtil.getAllWorkspaceChannels(getChannelsData);
 
           // Re-fetch to return the latest cached object
           updatedProjectAuth =
-            await WorkspaceProjectAuthTokenService.getProjectAuth({
-              projectId: props.tenantId,
-              workspaceType: WorkspaceType.Slack,
-            });
+            await WorkspaceProjectAuthTokenService.getProjectAuth(
+              projectAuthQuery,
+            );
         }
 
         const channelCache: {

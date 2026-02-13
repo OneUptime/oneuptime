@@ -106,4 +106,5 @@ export default interface WorkspaceMessagePayload {
   messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks.
   workspaceType: WorkspaceType;
   teamId?: string | undefined; // Team ID for Microsoft Teams
+  workspaceProjectAuthTokenId?: string | undefined; // Workspace project auth token to use (for multi-workspace support)
 }

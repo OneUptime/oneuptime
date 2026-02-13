@@ -30,6 +30,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
 import SlackChannelCacheModal from "./SlackChannelCacheModal";
@@ -47,18 +48,19 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   const [manifest, setManifest] = React.useState<JSONObject | null>(null);
-  const [isUserAccountConnected, setIsUserAccountConnected] =
-    React.useState<boolean>(false);
-  const [userAuthTokenId, setWorkspaceUserAuthTokenId] =
-    React.useState<ObjectID | null>(null);
-  const [projectAuthTokenId, setWorkspaceProjectAuthTokenId] =
-    React.useState<ObjectID | null>(null);
-  const [isProjectAccountConnected, setIsProjectAccountConnected] =
-    React.useState<boolean>(false);
+  const [projectAuthTokens, setProjectAuthTokens] = React.useState<
+    Array<WorkspaceProjectAuthToken>
+  >([]);
+  const [userAuthTokens, setUserAuthTokens] = React.useState<
+    Array<WorkspaceUserAuthToken>
+  >([]);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
-  const [slackTeamName, setSlackTeamName] = React.useState<string | null>(null);
   const [showChannelsModal, setShowChannelsModal] =
     React.useState<boolean>(false);
+  const [selectedProjectAuthTokenId, setSelectedProjectAuthTokenId] =
+    React.useState<ObjectID | null>(null);
+
+  const isProjectAccountConnected: boolean = projectAuthTokens.length > 0;
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -73,75 +75,81 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       setError(null);
       setIsLoading(true);
 
-      // check if the project is already connected with slack.
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      const userId: ObjectID | null = UserUtil.getUserId();
+
+      if (!projectId) {
+        setError(
+          <div>
+            Looks like you have not selected any project. Please select a
+            project to continue.
+          </div>,
+        );
+        return;
+      }
+
+      if (!userId) {
+        setError(
+          <div>
+            Looks like you are not logged in. Please login to continue.
+          </div>,
+        );
+        return;
+      }
+
       const projectAuth: ListResult<WorkspaceProjectAuthToken> =
         await ModelAPI.getList<WorkspaceProjectAuthToken>({
           modelType: WorkspaceProjectAuthToken,
           query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
+            projectId: projectId,
             workspaceType: WorkspaceType.Slack,
           },
           select: {
             _id: true,
             miscData: true,
+            workspaceProjectId: true,
           },
-          limit: 1,
+          limit: LIMIT_PER_PROJECT,
           skip: 0,
           sort: {
-            createdAt: SortOrder.Descending,
+            createdAt: SortOrder.Ascending,
           },
         });
 
-      if (projectAuth.data.length > 0) {
-        setIsProjectAccountConnected(true);
-        const slackTeamName: string | undefined = (
-          projectAuth.data[0]!.miscData! as SlackMiscData
-        ).teamName;
-        setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
-        setSlackTeamName(slackTeamName);
-      }
-
-      // fetch user auth token.
+      setProjectAuthTokens(projectAuth.data);
 
       const userAuth: ListResult<WorkspaceUserAuthToken> =
         await ModelAPI.getList<WorkspaceUserAuthToken>({
           modelType: WorkspaceUserAuthToken,
           query: {
-            userId: UserUtil.getUserId()!,
+            userId: userId,
+            projectId: projectId,
             workspaceType: WorkspaceType.Slack,
           },
           select: {
             _id: true,
+            workspaceProjectId: true,
+            miscData: true,
           },
-          limit: 1,
+          limit: LIMIT_PER_PROJECT,
           skip: 0,
           sort: {
             createdAt: SortOrder.Descending,
           },
         });
 
-      if (userAuth.data.length > 0) {
-        setIsUserAccountConnected(true);
-        setWorkspaceUserAuthTokenId(userAuth.data[0]!.id);
+      setUserAuthTokens(userAuth.data);
+
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(`${HOME_URL.toString()}/api/slack/app-manifest`),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
       }
 
-      if (!isUserAccountConnected || !isProjectAccountConnected) {
-        // if any of this is not connected then fetch the app manifest, so we can connect with slack.
-
-        // fetch app manifest.
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get<JSONObject>({
-            url: URL.fromString(
-              `${HOME_URL.toString()}/api/slack/app-manifest`,
-            ),
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        setManifest(response.data);
-      }
+      setManifest(response.data);
     } catch (error) {
       setError(<div>{API.getFriendlyErrorMessage(error as Error)}</div>);
     } finally {
@@ -175,91 +183,57 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  let cardTitle: string = "";
-  let cardDescription: string = "";
-  let cardButtons: Array<CardButtonSchema> = [];
-
-  // if user and project both connected with slack, then.
-  if (isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are connected with ${slackTeamName} team on Slack`;
-    cardDescription = `Your account is already connected with Slack.`;
-    cardButtons = [
-      {
-        title: `View Channels`,
-        isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.NORMAL,
-        onClick: async () => {
-          try {
-            setError(null);
-            setShowChannelsModal(true);
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-        },
-        icon: IconProp.Slack,
-      },
-      {
-        title: `Disconnect`,
-        isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.DANGER,
-        onClick: async () => {
-          try {
-            setIsButtonLoading(true);
-            setError(null);
-            if (userAuthTokenId) {
-              await ModelAPI.deleteItem({
-                modelType: WorkspaceUserAuthToken,
-                id: userAuthTokenId!,
-              });
-
-              setIsUserAccountConnected(false);
-              setWorkspaceUserAuthTokenId(null);
-            } else {
-              setError(
-                <div>
-                  Looks like the user auth token id is not set properly. Please
-                  try again.
-                </div>,
-              );
-            }
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-          setIsButtonLoading(false);
-        },
-        icon: IconProp.Close,
-      },
-    ];
+  interface ConnectWithSlackData {
+    mode: "workspace" | "user";
+    expectedWorkspaceProjectId?: string;
   }
 
-  const connectWithSlack: VoidFunction = (): void => {
-    if (SlackAppClientId) {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      const userId: ObjectID | null = UserUtil.getUserId();
+  type ConnectWithSlack = (data: ConnectWithSlackData) => void;
 
-      if (!projectId) {
-        setError(
-          <div>
-            Looks like you have not selected any project. Please select a
-            project to continue.
-          </div>,
-        );
-        return;
-      }
+  const connectWithSlack: ConnectWithSlack = (
+    data: ConnectWithSlackData,
+  ): void => {
+    if (!SlackAppClientId) {
+      setError(
+        <div>
+          Looks like the Slack App Client ID is not set in the environment
+          variables when you installed OneUptime. For more information, please
+          check this guide to set up Slack App properly:{" "}
+          <Link
+            to={new Route("/docs/self-hosted/slack-integration")}
+            openInNewTab={true}
+          >
+            Slack Integration
+          </Link>
+        </div>,
+      );
+      return;
+    }
 
-      if (!userId) {
-        setError(
-          <div>
-            Looks like you are not logged in. Please login to continue.
-          </div>,
-        );
-        return;
-      }
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    const userId: ObjectID | null = UserUtil.getUserId();
 
+    if (!projectId) {
+      setError(
+        <div>
+          Looks like you have not selected any project. Please select a project
+          to continue.
+        </div>,
+      );
+      return;
+    }
+
+    if (!userId) {
+      setError(
+        <div>Looks like you are not logged in. Please login to continue.</div>,
+      );
+      return;
+    }
+
+    const projectInstallRedirectUri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}`;
+    const userSigninRedirectUri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}/user`;
+
+    if (data.mode === "workspace") {
       const userScopes: Array<string> = [];
 
       if (
@@ -304,7 +278,6 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         );
       }
 
-      // if any of the user or bot scopes length = = then error.
       if (userScopes.length === 0 || botScopes.length === 0) {
         setError(
           <div>
@@ -321,75 +294,126 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const project_install_redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}`;
-      const user_signin_redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}/user`;
-
-      if (!isProjectAccountConnected) {
-        Navigation.navigate(
-          URL.fromString(
-            `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
-              ",",
-            )}&user_scope=${userScopes.join(
-              ",",
-            )}&client_id=${SlackAppClientId}&redirect_uri=${project_install_redirect_uri}`,
-          ),
-        );
-      } else {
-        // if project account is not connected then we just need to sign in with slack and not install the app.
-        Navigation.navigate(
-          URL.fromString(
-            `https://slack.com/openid/connect/authorize?response_type=code&scope=openid%20profile%20email&client_id=${SlackAppClientId}&redirect_uri=${user_signin_redirect_uri}`,
-          ),
-        );
-      }
-    } else {
-      setError(
-        <div>
-          Looks like the Slack App Client ID is not set in the environment
-          variables when you installed OneUptime. For more information, please
-          check this guide to set up Slack App properly:{" "}
-          <Link
-            to={new Route("/docs/self-hosted/slack-integration")}
-            openInNewTab={true}
-          >
-            Slack Integration
-          </Link>
-        </div>,
+      Navigation.navigate(
+        URL.fromString(
+          `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
+            ",",
+          )}&user_scope=${userScopes.join(
+            ",",
+          )}&client_id=${SlackAppClientId}&redirect_uri=${projectInstallRedirectUri}`,
+        ),
       );
+      return;
     }
+
+    const stateParam: string | undefined = data.expectedWorkspaceProjectId;
+    const stateQuery: string = stateParam
+      ? `&state=${encodeURIComponent(stateParam)}`
+      : "";
+
+    Navigation.navigate(
+      URL.fromString(
+        `https://slack.com/openid/connect/authorize?response_type=code&scope=openid%20profile%20email&client_id=${SlackAppClientId}&redirect_uri=${userSigninRedirectUri}${stateQuery}`,
+      ),
+    );
   };
 
-  type GetConnectWithSlackButtonFunction = (title: string) => CardButtonSchema;
+  type GetConnectWithSlackButtonFunction = (
+    title: string,
+    onClick: VoidFunction,
+  ) => CardButtonSchema;
 
   const getConnectWithSlackButton: GetConnectWithSlackButtonFunction = (
     title: string,
+    onClick: VoidFunction,
   ): CardButtonSchema => {
     return {
       title: title || `Connect with Slack`,
       buttonStyle: ButtonStyleType.PRIMARY,
       onClick: () => {
-        return connectWithSlack();
+        return onClick();
       },
 
       icon: IconProp.Slack,
     };
   };
 
-  // if user is not connected and the project is connected with slack.
-  if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are disconnected from Slack (but OneUptime is already installed in ${slackTeamName} team)`;
-    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
-    cardButtons = [
-      // connect with slack button.
-      getConnectWithSlackButton(`Connect my account with Slack`),
-      {
+  const userAuthByWorkspaceProjectId: Map<string, WorkspaceUserAuthToken> =
+    new Map();
+
+  userAuthTokens.forEach((token: WorkspaceUserAuthToken) => {
+    if (token.workspaceProjectId) {
+      userAuthByWorkspaceProjectId.set(token.workspaceProjectId, token);
+    }
+  });
+
+  const workspaceCards: Array<ReactElement> = projectAuthTokens.map(
+    (workspace: WorkspaceProjectAuthToken) => {
+      const teamName: string | undefined = (workspace.miscData as SlackMiscData)
+        ?.teamName;
+
+      const workspaceProjectId: string | undefined =
+        workspace.workspaceProjectId;
+
+      const userAuth: WorkspaceUserAuthToken | undefined = workspaceProjectId
+        ? userAuthByWorkspaceProjectId.get(workspaceProjectId)
+        : undefined;
+
+      const buttons: Array<CardButtonSchema> = [];
+
+      if (userAuth) {
+        buttons.push({
+          title: `Disconnect My Account`,
+          isLoading: isButtonLoading,
+          buttonStyle: ButtonStyleType.DANGER,
+          onClick: async () => {
+            try {
+              setIsButtonLoading(true);
+              setError(null);
+              await ModelAPI.deleteItem({
+                modelType: WorkspaceUserAuthToken,
+                id: userAuth.id!,
+              });
+              await loadItems();
+            } catch (error) {
+              setError(
+                <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+              );
+            }
+            setIsButtonLoading(false);
+          },
+          icon: IconProp.Close,
+        });
+      } else {
+        buttons.push(
+          getConnectWithSlackButton(`Connect My Account`, () => {
+            const connectData: {
+              mode: "user" | "workspace";
+              expectedWorkspaceProjectId?: string;
+            } = {
+              mode: "user",
+            };
+
+            if (workspaceProjectId) {
+              connectData.expectedWorkspaceProjectId = workspaceProjectId;
+            }
+
+            return connectWithSlack(connectData);
+          }),
+        );
+      }
+
+      buttons.push({
         title: `View Channels`,
         isLoading: isButtonLoading,
         buttonStyle: ButtonStyleType.NORMAL,
         onClick: async () => {
           try {
             setError(null);
-            setShowChannelsModal(true);
+            if (workspace.id) {
+              setSelectedProjectAuthTokenId(workspace.id);
+              setShowChannelsModal(true);
+            }
           } catch (error) {
             setError(
               <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
@@ -397,8 +421,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           }
         },
         icon: IconProp.Slack,
-      },
-      {
+      });
+
+      buttons.push({
         title: `Uninstall OneUptime from Slack`,
         isLoading: isButtonLoading,
         buttonStyle: ButtonStyleType.DANGER,
@@ -406,21 +431,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           try {
             setIsButtonLoading(true);
             setError(null);
-            if (projectAuthTokenId) {
+            if (workspace.id) {
               await ModelAPI.deleteItem({
                 modelType: WorkspaceProjectAuthToken,
-                id: projectAuthTokenId!,
+                id: workspace.id,
               });
-
-              setIsProjectAccountConnected(false);
-              setWorkspaceProjectAuthTokenId(null);
-            } else {
-              setError(
-                <div>
-                  Looks like the user auth token id is not set properly. Please
-                  try again.
-                </div>,
-              );
+              await loadItems();
             }
           } catch (error) {
             setError(
@@ -430,15 +446,47 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           setIsButtonLoading(false);
         },
         icon: IconProp.Trash,
-      },
-    ];
-  }
+      });
 
-  if (!isProjectAccountConnected) {
-    cardTitle = `Connect with Slack`;
-    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
-    cardButtons = [getConnectWithSlackButton(`Connect with Slack`)];
-  }
+      return (
+        <Card
+          key={workspace.id?.toString()}
+          title={`Slack Workspace: ${teamName || workspaceProjectId || "Slack"}`}
+          description={
+            userAuth
+              ? "Your account is connected to this Slack workspace."
+              : "Connect your account to enable personalized Slack actions."
+          }
+          buttons={buttons}
+        />
+      );
+    },
+  );
+
+  const connectWorkspaceCard: ReactElement = (
+    <Card
+      title={
+        isProjectAccountConnected
+          ? "Connect Another Slack Workspace"
+          : "Connect with Slack"
+      }
+      description={
+        isProjectAccountConnected
+          ? "Install OneUptime in another Slack workspace."
+          : "Install OneUptime in your Slack workspace."
+      }
+      buttons={[
+        getConnectWithSlackButton(
+          isProjectAccountConnected
+            ? "Connect Another Workspace"
+            : "Connect with Slack",
+          () => {
+            return connectWithSlack({ mode: "workspace" });
+          },
+        ),
+      ]}
+    />
+  );
 
   if (!SlackAppClientId) {
     return <SlackIntegrationDocumentation manifest={manifest as JSONObject} />;
@@ -446,18 +494,16 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      <div>
-        <Card
-          title={cardTitle}
-          description={cardDescription}
-          buttons={cardButtons}
-        />
+      <div className="space-y-4">
+        {connectWorkspaceCard}
+        {workspaceCards}
       </div>
-      {showChannelsModal && projectAuthTokenId ? (
+      {showChannelsModal && selectedProjectAuthTokenId ? (
         <SlackChannelCacheModal
-          projectAuthTokenId={projectAuthTokenId}
+          projectAuthTokenId={selectedProjectAuthTokenId}
           onClose={() => {
-            return setShowChannelsModal(false);
+            setShowChannelsModal(false);
+            setSelectedProjectAuthTokenId(null);
           }}
         />
       ) : null}

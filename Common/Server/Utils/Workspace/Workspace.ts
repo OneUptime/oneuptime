@@ -163,11 +163,27 @@ export default class WorkspaceUtil {
     const responses: Array<WorkspaceSendMessageResponse> = [];
 
     for (const messagePayloadByWorkspace of data.messagePayloadsByWorkspace) {
+      const workspaceProjectAuthTokenId: ObjectID | undefined =
+        messagePayloadByWorkspace.workspaceProjectAuthTokenId
+          ? new ObjectID(messagePayloadByWorkspace.workspaceProjectAuthTokenId)
+          : undefined;
+
+      const projectAuthQuery: {
+        projectId: ObjectID;
+        workspaceType: WorkspaceType;
+        workspaceProjectAuthTokenId?: ObjectID;
+      } = {
+        projectId: data.projectId,
+        workspaceType: messagePayloadByWorkspace.workspaceType,
+      };
+
+      if (workspaceProjectAuthTokenId) {
+        projectAuthQuery.workspaceProjectAuthTokenId =
+          workspaceProjectAuthTokenId;
+      }
+
       const projectAuthToken: WorkspaceProjectAuthToken | null =
-        await WorkspaceProjectAuthTokenService.getProjectAuth({
-          projectId: data.projectId,
-          workspaceType: messagePayloadByWorkspace.workspaceType,
-        });
+        await WorkspaceProjectAuthTokenService.getProjectAuth(projectAuthQuery);
 
       if (!projectAuthToken) {
         responses.push({
