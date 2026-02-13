@@ -263,13 +263,14 @@ export default class DnsMonitorUtil {
         break;
       }
       case DnsRecordType.CAA: {
+        // resolveCaa is not on the Resolver class type, use standalone function
         const results: Array<dns.CaaRecord> =
-          await resolver.resolveCaa(queryName);
+          await dns.promises.resolveCaa(queryName);
         for (const result of results) {
           records.push({
             type: DnsRecordType.CAA,
             value:
-              `${result.critical} ${result.issue || result.issuewild || result.iodef || ""}`.trim(),
+              `${result.critial} ${result.issue || result.issuewild || result.iodef || ""}`.trim(),
           });
         }
         break;
