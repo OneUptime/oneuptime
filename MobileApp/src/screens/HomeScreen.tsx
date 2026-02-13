@@ -121,9 +121,6 @@ export default function HomeScreen(): React.JSX.Element {
     await refetch();
   };
 
-  const totalActive: number =
-    incidentCount + alertCount + incidentEpisodeCount + alertEpisodeCount;
-
   const subtitle: string =
     projectList.length === 1
       ? projectList[0]!.name
@@ -155,27 +152,6 @@ export default function HomeScreen(): React.JSX.Element {
       >
         {subtitle}
       </Text>
-
-      {/* Active Issues Summary Pill */}
-      {!anyLoading ? (
-        <View className="self-start mt-3 mb-1">
-          <View
-            className="flex-row items-center px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: theme.colors.actionPrimary + "18" }}
-          >
-            <View
-              className="w-2 h-2 rounded-full mr-2"
-              style={{ backgroundColor: theme.colors.actionPrimary }}
-            />
-            <Text
-              className="text-[13px] font-semibold"
-              style={{ color: theme.colors.actionPrimary }}
-            >
-              {totalActive} active issue{totalActive !== 1 ? "s" : ""}
-            </Text>
-          </View>
-        </View>
-      ) : null}
 
       {/* Stat Cards - 2x2 Grid */}
       <View className="gap-3 mt-5">
