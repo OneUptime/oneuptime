@@ -14,6 +14,7 @@ import Response from "../../../Server/Utils/Response";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
 import HashedString from "../../../Types/HashedString";
 import JSONFunctions from "../../../Types/JSONFunctions";
@@ -330,7 +331,7 @@ describe("UserMiddleware", () => {
       expect(JSONWebToken.decode).not.toHaveBeenCalled();
     });
 
-    test("should call function 'next' and return, when accessToken can not be decoded", async () => {
+    test("should call Response.sendErrorResponse with NotAuthenticatedException, when accessToken can not be decoded", async () => {
       const error: Error = new Error("Invalid access token");
 
       const spyJWTDecode: jest.SpyInstance = getJestSpyOn(
@@ -342,7 +343,14 @@ describe("UserMiddleware", () => {
 
       await UserMiddleware.getUserMiddleware(req, res, next);
 
-      expect(next).toHaveBeenCalled();
+      expect(Response.sendErrorResponse).toHaveBeenCalledWith(
+        req,
+        res,
+        new NotAuthenticatedException(
+          "AccessToken is invalid or expired. Please refresh your token.",
+        ),
+      );
+      expect(next).not.toHaveBeenCalled();
       expect(spyJWTDecode).toHaveBeenCalledWith(mockedAccessToken);
       expect(UserService.updateOneBy).not.toHaveBeenCalled();
     });
