@@ -5,14 +5,11 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useProject } from "../hooks/useProject";
-import { useUnresolvedIncidentCount } from "../hooks/useIncidents";
-import { useUnresolvedAlertCount } from "../hooks/useAlerts";
-import { useUnresolvedIncidentEpisodeCount } from "../hooks/useIncidentEpisodes";
-import { useUnresolvedAlertEpisodeCount } from "../hooks/useAlertEpisodes";
 import { useHaptics } from "../hooks/useHaptics";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -23,7 +20,8 @@ type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
 interface StatCardProps {
   count: number | undefined;
   label: string;
-  color: string;
+  accentColor: string;
+  iconName: keyof typeof Ionicons.glyphMap;
   isLoading: boolean;
   onPress: () => void;
 }
@@ -31,7 +29,8 @@ interface StatCardProps {
 function StatCard({
   count,
   label,
-  color,
+  accentColor,
+  iconName,
   isLoading,
   onPress,
 }: StatCardProps): React.JSX.Element {
@@ -45,105 +44,92 @@ function StatCard({
 
   return (
     <TouchableOpacity
-      style={[
-        styles.summaryCard,
-        theme.shadows.md,
-        {
-          backgroundColor: theme.colors.backgroundElevated,
-        },
-      ]}
+      className="flex-1 flex-row items-center p-4 rounded-2xl bg-bg-elevated border border-border-subtle"
+      style={{
+        borderLeftWidth: 4,
+        borderLeftColor: accentColor,
+        shadowColor: "#000",
+        shadowOpacity: 0.04,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 8,
+        elevation: 2,
+      }}
       onPress={handlePress}
       activeOpacity={0.7}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
     >
-      <Text style={[styles.cardCount, { color }]}>
-        {isLoading ? "--" : count ?? 0}
-      </Text>
-      <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
-        {label}
-      </Text>
+      <View
+        className="w-11 h-11 rounded-xl items-center justify-center mr-3"
+        style={{ backgroundColor: accentColor + "1A" }}
+      >
+        <Ionicons name={iconName} size={22} color={accentColor} />
+      </View>
+      <View className="flex-1">
+        <Text
+          className="text-[28px] font-bold text-text-primary"
+          style={{ fontVariant: ["tabular-nums"], letterSpacing: -1 }}
+        >
+          {isLoading ? "--" : count ?? 0}
+        </Text>
+        <Text
+          className="text-[12px] font-medium text-text-secondary"
+          style={{ letterSpacing: 0.2 }}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </View>
+      <Ionicons
+        name="chevron-forward"
+        size={16}
+        color={theme.colors.textTertiary}
+      />
     </TouchableOpacity>
   );
 }
 
-interface QuickLinkProps {
-  label: string;
-  onPress: () => void;
-}
-
-function QuickLink({ label, onPress }: QuickLinkProps): React.JSX.Element {
-  const { theme } = useTheme();
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.linkCard,
-        theme.shadows.sm,
-        {
-          backgroundColor: theme.colors.backgroundElevated,
-        },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-    >
-      <Text style={[styles.linkLabel, { color: theme.colors.textPrimary }]}>
-        {label}
-      </Text>
-      <Text style={[styles.chevron, { color: theme.colors.textTertiary }]}>
-        ›
-      </Text>
-    </TouchableOpacity>
-  );
+function getGreeting(): string {
+  const hour: number = new Date().getHours();
+  if (hour < 12) {
+    return "Good morning";
+  }
+  if (hour < 17) {
+    return "Good afternoon";
+  }
+  return "Good evening";
 }
 
 export default function HomeScreen(): React.JSX.Element {
   const { theme } = useTheme();
-  const { selectedProject } = useProject();
-  const projectId: string = selectedProject?._id ?? "";
+  const { projectList } = useProject();
   const navigation: HomeNavProp = useNavigation<HomeNavProp>();
 
   const {
-    data: incidentCount,
-    isLoading: loadingIncidents,
-    refetch: refetchIncidents,
-  } = useUnresolvedIncidentCount(projectId);
-
-  const {
-    data: alertCount,
-    isLoading: loadingAlerts,
-    refetch: refetchAlerts,
-  } = useUnresolvedAlertCount(projectId);
-
-  const {
-    data: incidentEpisodeCount,
-    isLoading: loadingIncidentEpisodes,
-    refetch: refetchIncidentEpisodes,
-  } = useUnresolvedIncidentEpisodeCount(projectId);
-
-  const {
-    data: alertEpisodeCount,
-    isLoading: loadingAlertEpisodes,
-    refetch: refetchAlertEpisodes,
-  } = useUnresolvedAlertEpisodeCount(projectId);
+    incidentCount,
+    alertCount,
+    incidentEpisodeCount,
+    alertEpisodeCount,
+    isLoading: anyLoading,
+    refetch,
+  } = useAllProjectCounts();
 
   const { lightImpact } = useHaptics();
 
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
-    await Promise.all([
-      refetchIncidents(),
-      refetchAlerts(),
-      refetchIncidentEpisodes(),
-      refetchAlertEpisodes(),
-    ]);
+    await refetch();
   };
+
+  const subtitle: string =
+    projectList.length === 1
+      ? projectList[0]!.name
+      : `${projectList.length} Projects`;
 
   return (
     <ScrollView
-      style={[{ backgroundColor: theme.colors.backgroundPrimary }]}
-      contentContainerStyle={styles.content}
+      className="bg-bg-primary"
+      contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -152,155 +138,69 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      {/* Header */}
+      {/* Greeting Header */}
       <Text
-        style={[
-          theme.typography.titleLarge,
-          { color: theme.colors.textPrimary },
-        ]}
+        className="text-body-md text-text-secondary"
+        style={{ letterSpacing: 0.2 }}
+      >
+        {getGreeting()}
+      </Text>
+      <Text
+        className="text-title-lg text-text-primary mt-0.5"
         accessibilityRole="header"
+        style={{ letterSpacing: -0.5 }}
       >
-        {selectedProject?.name ?? "OneUptime"}
-      </Text>
-      <Text
-        style={[
-          theme.typography.bodyMedium,
-          { color: theme.colors.textSecondary, marginTop: theme.spacing.xs },
-        ]}
-      >
-        Project overview
+        {subtitle}
       </Text>
 
-      {/* Stats Grid */}
-      <View style={styles.cardRow}>
-        <StatCard
-          count={incidentCount}
-          label="Active Incidents"
-          color={theme.colors.severityCritical}
-          isLoading={loadingIncidents}
-          onPress={() => {
-            return navigation.navigate("Incidents");
-          }}
-        />
-        <StatCard
-          count={alertCount}
-          label="Active Alerts"
-          color={theme.colors.severityMajor}
-          isLoading={loadingAlerts}
-          onPress={() => {
-            return navigation.navigate("Alerts");
-          }}
-        />
-      </View>
+      {/* Stat Cards - 2x2 Grid */}
+      <View className="gap-3 mt-5">
+        <View className="flex-row gap-3">
+          <StatCard
+            count={incidentCount}
+            label="Active Incidents"
+            accentColor={theme.colors.severityCritical}
+            iconName="warning"
+            isLoading={anyLoading}
+            onPress={() => {
+              return navigation.navigate("Incidents");
+            }}
+          />
+          <StatCard
+            count={alertCount}
+            label="Active Alerts"
+            accentColor={theme.colors.severityMajor}
+            iconName="notifications"
+            isLoading={anyLoading}
+            onPress={() => {
+              return navigation.navigate("Alerts");
+            }}
+          />
+        </View>
 
-      <View style={styles.cardRow}>
-        <StatCard
-          count={incidentEpisodeCount}
-          label="Inc Episodes"
-          color={theme.colors.severityCritical}
-          isLoading={loadingIncidentEpisodes}
-          onPress={() => {
-            return navigation.navigate("IncidentEpisodes");
-          }}
-        />
-        <StatCard
-          count={alertEpisodeCount}
-          label="Alert Episodes"
-          color={theme.colors.severityMajor}
-          isLoading={loadingAlertEpisodes}
-          onPress={() => {
-            return navigation.navigate("AlertEpisodes");
-          }}
-        />
-      </View>
-
-      {/* Quick Links */}
-      <View style={styles.quickLinksSection}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
-          Quick Links
-        </Text>
-        <QuickLink
-          label="View All Incidents"
-          onPress={() => {
-            return navigation.navigate("Incidents");
-          }}
-        />
-        <QuickLink
-          label="View All Alerts"
-          onPress={() => {
-            return navigation.navigate("Alerts");
-          }}
-        />
-        <QuickLink
-          label="Incident Episodes"
-          onPress={() => {
-            return navigation.navigate("IncidentEpisodes");
-          }}
-        />
-        <QuickLink
-          label="Alert Episodes"
-          onPress={() => {
-            return navigation.navigate("AlertEpisodes");
-          }}
-        />
+        <View className="flex-row gap-3">
+          <StatCard
+            count={incidentEpisodeCount}
+            label="Inc. Episodes"
+            accentColor={theme.colors.severityInfo}
+            iconName="layers"
+            isLoading={anyLoading}
+            onPress={() => {
+              return navigation.navigate("Incidents");
+            }}
+          />
+          <StatCard
+            count={alertEpisodeCount}
+            label="Alert Episodes"
+            accentColor={theme.colors.severityWarning}
+            iconName="albums"
+            isLoading={anyLoading}
+            onPress={() => {
+              return navigation.navigate("Alerts");
+            }}
+          />
+        </View>
       </View>
     </ScrollView>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  content: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  cardRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
-  },
-  summaryCard: {
-    flex: 1,
-    padding: 20,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  cardCount: {
-    fontSize: 40,
-    fontWeight: "700",
-    fontVariant: ["tabular-nums"],
-  },
-  cardLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginTop: 4,
-  },
-  quickLinksSection: {
-    marginTop: 32,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  linkCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 10,
-  },
-  linkLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  chevron: {
-    fontSize: 24,
-    fontWeight: "300",
-  },
-});

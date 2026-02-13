@@ -39,6 +39,7 @@ export interface IncidentItem {
   currentIncidentState: NamedEntityWithColor;
   incidentSeverity: NamedEntityWithColor;
   monitors: NamedEntity[];
+  projectId?: string;
 }
 
 export interface AlertItem {
@@ -51,6 +52,7 @@ export interface AlertItem {
   currentAlertState: NamedEntityWithColor;
   alertSeverity: NamedEntityWithColor;
   monitor: NamedEntity | null;
+  projectId?: string;
 }
 
 export interface IncidentState {
@@ -91,6 +93,7 @@ export interface IncidentEpisodeItem {
   incidentCount: number;
   currentIncidentState: NamedEntityWithColor;
   incidentSeverity: NamedEntityWithColor;
+  projectId?: string;
 }
 
 export interface AlertEpisodeItem {
@@ -103,6 +106,7 @@ export interface AlertEpisodeItem {
   alertCount: number;
   currentAlertState: NamedEntityWithColor;
   alertSeverity: NamedEntityWithColor;
+  projectId?: string;
 }
 
 export interface NoteItem {
@@ -111,3 +115,23 @@ export interface NoteItem {
   createdAt: string;
   createdByUser: { _id: string; name: string } | null;
 }
+
+export interface FeedItem {
+  _id: string;
+  feedInfoInMarkdown: string;
+  moreInformationInMarkdown?: string;
+  displayColor: ColorField;
+  postedAt?: string;
+  createdAt: string;
+}
+
+export interface WithProject<T> {
+  item: T;
+  projectId: string;
+  projectName: string;
+}
+
+export type ProjectIncidentItem = WithProject<IncidentItem>;
+export type ProjectAlertItem = WithProject<AlertItem>;
+export type ProjectIncidentEpisodeItem = WithProject<IncidentEpisodeItem>;
+export type ProjectAlertEpisodeItem = WithProject<AlertEpisodeItem>;

@@ -7,15 +7,15 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import { useProject } from "../hooks/useProject";
 import {
   useAlertDetail,
   useAlertStates,
   useAlertStateTimeline,
+  useAlertFeed,
 } from "../hooks/useAlertDetail";
 import { useAlertNotes } from "../hooks/useAlertNotes";
 import { changeAlertState } from "../api/alerts";
@@ -24,18 +24,40 @@ import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import type { AlertState, StateTimelineItem, NoteItem } from "../api/types";
+import type { AlertState, NoteItem } from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
+import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertDetail">;
 
-export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
-  const { alertId } = route.params;
+function SectionHeader({
+  title,
+  iconName,
+}: {
+  title: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+}): React.JSX.Element {
   const { theme } = useTheme();
-  const { selectedProject } = useProject();
-  const projectId: string = selectedProject?._id ?? "";
+  return (
+    <View className="flex-row items-center mb-3">
+      <Ionicons
+        name={iconName}
+        size={15}
+        color={theme.colors.textSecondary}
+        style={{ marginRight: 6 }}
+      />
+      <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
+        {title}
+      </Text>
+    </View>
+  );
+}
+
+export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
+  const { alertId, projectId } = route.params;
+  const { theme } = useTheme();
   const queryClient: QueryClient = useQueryClient();
 
   const {
@@ -45,6 +67,10 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   } = useAlertDetail(projectId, alertId);
   const { data: states } = useAlertStates(projectId);
   const { data: timeline, refetch: refetchTimeline } = useAlertStateTimeline(
+    projectId,
+    alertId,
+  );
+  const { data: feed, refetch: refetchFeed } = useAlertFeed(
     projectId,
     alertId,
   );
@@ -59,8 +85,13 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   const [submittingNote, setSubmittingNote] = useState(false);
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([refetchAlert(), refetchTimeline(), refetchNotes()]);
-  }, [refetchAlert, refetchTimeline, refetchNotes]);
+    await Promise.all([
+      refetchAlert(),
+      refetchTimeline(),
+      refetchFeed(),
+      refetchNotes(),
+    ]);
+  }, [refetchAlert, refetchTimeline, refetchFeed, refetchNotes]);
 
   const handleStateChange: (
     stateId: string,
@@ -89,7 +120,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       try {
         await changeAlertState(projectId, alertId, stateId);
         await successFeedback();
-        await Promise.all([refetchAlert(), refetchTimeline()]);
+        await Promise.all([refetchAlert(), refetchTimeline(), refetchFeed()]);
         await queryClient.invalidateQueries({ queryKey: ["alerts"] });
       } catch {
         queryClient.setQueryData(queryKey, previousData);
@@ -106,6 +137,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       states,
       refetchAlert,
       refetchTimeline,
+      refetchFeed,
       queryClient,
     ],
   );
@@ -128,9 +160,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <View
-        style={[{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }]}
-      >
+      <View className="flex-1 bg-bg-primary">
         <SkeletonCard variant="detail" />
       </View>
     );
@@ -138,18 +168,8 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
 
   if (!alert) {
     return (
-      <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            { color: theme.colors.textSecondary },
-          ]}
-        >
+      <View className="flex-1 items-center justify-center bg-bg-primary">
+        <Text className="text-body-md text-text-secondary">
           Alert not found.
         </Text>
       </View>
@@ -164,7 +184,6 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     ? rgbToHex(alert.alertSeverity.color)
     : theme.colors.textTertiary;
 
-  // Find acknowledge and resolve states from fetched state definitions
   const acknowledgeState: AlertState | undefined = states?.find(
     (s: AlertState) => {
       return s.isAcknowledgedState;
@@ -180,46 +199,41 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
 
   return (
     <ScrollView
-      style={[{ backgroundColor: theme.colors.backgroundPrimary }]}
-      contentContainerStyle={styles.content}
+      className="bg-bg-primary"
+      contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
       refreshControl={
         <RefreshControl refreshing={false} onRefresh={onRefresh} />
       }
     >
       {/* Header */}
       <View
-        style={[
-          styles.numberBadge,
-          { backgroundColor: theme.colors.backgroundTertiary },
-        ]}
+        className="self-start px-2.5 py-1 rounded-full"
+        style={{ backgroundColor: stateColor + "1A" }}
       >
-        <Text style={[styles.number, { color: theme.colors.textSecondary }]}>
+        <Text
+          className="text-[13px] font-semibold"
+          style={{ color: stateColor }}
+        >
           {alert.alertNumberWithPrefix || `#${alert.alertNumber}`}
         </Text>
       </View>
 
       <Text
-        style={[
-          theme.typography.titleLarge,
-          { color: theme.colors.textPrimary, marginTop: 4 },
-        ]}
+        className="text-title-lg text-text-primary mt-2"
+        style={{ letterSpacing: -0.5 }}
       >
         {alert.title}
       </Text>
 
       {/* Badges */}
-      <View style={styles.badgeRow}>
+      <View className="flex-row flex-wrap gap-2 mt-3">
         {alert.currentAlertState ? (
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: theme.colors.backgroundTertiary },
-            ]}
-          >
-            <View style={[styles.dot, { backgroundColor: stateColor }]} />
-            <Text
-              style={[styles.badgeText, { color: theme.colors.textPrimary }]}
-            >
+          <View className="flex-row items-center px-2.5 py-1 rounded-full bg-bg-tertiary">
+            <View
+              className="w-2 h-2 rounded-full mr-1.5"
+              style={{ backgroundColor: stateColor }}
+            />
+            <Text className="text-[13px] font-semibold text-text-primary">
               {alert.currentAlertState.name}
             </Text>
           </View>
@@ -227,9 +241,13 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
 
         {alert.alertSeverity ? (
           <View
-            style={[styles.badge, { backgroundColor: severityColor + "26" }]}
+            className="flex-row items-center px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: severityColor + "1A" }}
           >
-            <Text style={[styles.badgeText, { color: severityColor }]}>
+            <Text
+              className="text-[13px] font-semibold"
+              style={{ color: severityColor }}
+            >
               {alert.alertSeverity.name}
             </Text>
           </View>
@@ -238,69 +256,40 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
 
       {/* Description */}
       {alert.description ? (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
-            Description
-          </Text>
-          <Text
-            style={[
-              theme.typography.bodyMedium,
-              { color: theme.colors.textPrimary },
-            ]}
-          >
+        <View className="mt-6">
+          <SectionHeader title="Description" iconName="document-text-outline" />
+          <Text className="text-body-md text-text-primary leading-6">
             {alert.description}
           </Text>
         </View>
       ) : null}
 
       {/* Details */}
-      <View style={styles.section}>
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
-          Details
-        </Text>
+      <View className="mt-6">
+        <SectionHeader title="Details" iconName="information-circle-outline" />
 
         <View
-          style={[
-            styles.detailCard,
-            theme.shadows.sm,
-            {
-              backgroundColor: theme.colors.backgroundElevated,
-            },
-          ]}
+          className="rounded-2xl p-4 bg-bg-elevated border border-border-subtle overflow-hidden"
+          style={{
+            borderLeftWidth: 3,
+            borderLeftColor: theme.colors.actionPrimary,
+          }}
         >
-          <View style={styles.detailRow}>
-            <Text
-              style={[styles.detailLabel, { color: theme.colors.textTertiary }]}
-            >
+          <View className="flex-row mb-3">
+            <Text className="text-sm w-[90px] text-text-tertiary">
               Created
             </Text>
-            <Text
-              style={[styles.detailValue, { color: theme.colors.textPrimary }]}
-            >
+            <Text className="text-sm text-text-primary">
               {formatDateTime(alert.createdAt)}
             </Text>
           </View>
 
           {alert.monitor ? (
-            <View style={styles.detailRow}>
-              <Text
-                style={[
-                  styles.detailLabel,
-                  { color: theme.colors.textTertiary },
-                ]}
-              >
+            <View className="flex-row">
+              <Text className="text-sm w-[90px] text-text-tertiary">
                 Monitor
               </Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  { color: theme.colors.textPrimary },
-                ]}
-              >
+              <Text className="text-sm text-text-primary">
                 {alert.monitor.name}
               </Text>
             </View>
@@ -310,20 +299,20 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
 
       {/* State Change Actions */}
       {!isResolved ? (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
-            Actions
-          </Text>
-          <View style={styles.actionRow}>
+        <View className="mt-6">
+          <SectionHeader title="Actions" iconName="flash-outline" />
+          <View className="flex-row gap-3">
             {!isAcknowledged && !isResolved && acknowledgeState ? (
               <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  theme.shadows.md,
-                  { backgroundColor: theme.colors.stateAcknowledged },
-                ]}
+                className="flex-1 flex-row py-3.5 rounded-xl items-center justify-center min-h-[50px]"
+                style={{
+                  backgroundColor: theme.colors.stateAcknowledged,
+                  shadowColor: theme.colors.stateAcknowledged,
+                  shadowOpacity: 0.3,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
                 onPress={() => {
                   return handleStateChange(
                     acknowledgeState._id,
@@ -340,25 +329,32 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
                     color={theme.colors.textInverse}
                   />
                 ) : (
-                  <Text
-                    style={[
-                      styles.actionButtonText,
-                      { color: theme.colors.textInverse },
-                    ]}
-                  >
-                    Acknowledge
-                  </Text>
+                  <>
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={18}
+                      color={theme.colors.textInverse}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text className="text-[15px] font-bold text-text-inverse">
+                      Acknowledge
+                    </Text>
+                  </>
                 )}
               </TouchableOpacity>
             ) : null}
 
             {resolveState ? (
               <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  theme.shadows.md,
-                  { backgroundColor: theme.colors.stateResolved },
-                ]}
+                className="flex-1 flex-row py-3.5 rounded-xl items-center justify-center min-h-[50px]"
+                style={{
+                  backgroundColor: theme.colors.stateResolved,
+                  shadowColor: theme.colors.stateResolved,
+                  shadowOpacity: 0.3,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
                 onPress={() => {
                   return handleStateChange(resolveState._id, resolveState.name);
                 }}
@@ -372,14 +368,17 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
                     color={theme.colors.textInverse}
                   />
                 ) : (
-                  <Text
-                    style={[
-                      styles.actionButtonText,
-                      { color: theme.colors.textInverse },
-                    ]}
-                  >
-                    Resolve
-                  </Text>
+                  <>
+                    <Ionicons
+                      name="checkmark-done-outline"
+                      size={18}
+                      color={theme.colors.textInverse}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text className="text-[15px] font-bold text-text-inverse">
+                      Resolve
+                    </Text>
+                  </>
                 )}
               </TouchableOpacity>
             ) : null}
@@ -387,82 +386,42 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
         </View>
       ) : null}
 
-      {/* State Timeline */}
-      {timeline && timeline.length > 0 ? (
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
-            State Timeline
-          </Text>
-          {timeline.map((entry: StateTimelineItem) => {
-            const entryColor: string = entry.alertState?.color
-              ? rgbToHex(entry.alertState.color)
-              : theme.colors.textTertiary;
-            return (
-              <View
-                key={entry._id}
-                style={[
-                  styles.timelineEntry,
-                  theme.shadows.sm,
-                  {
-                    backgroundColor: theme.colors.backgroundElevated,
-                  },
-                ]}
-              >
-                <View
-                  style={[styles.timelineDot, { backgroundColor: entryColor }]}
-                />
-                <View style={styles.timelineInfo}>
-                  <Text
-                    style={[
-                      theme.typography.bodyMedium,
-                      { color: theme.colors.textPrimary, fontWeight: "600" },
-                    ]}
-                  >
-                    {entry.alertState?.name ?? "Unknown"}
-                  </Text>
-                  <Text
-                    style={[
-                      theme.typography.bodySmall,
-                      { color: theme.colors.textTertiary },
-                    ]}
-                  >
-                    {formatDateTime(entry.createdAt)}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
+      {/* Activity Feed */}
+      {feed && feed.length > 0 ? (
+        <View className="mt-6">
+          <SectionHeader title="Activity Feed" iconName="list-outline" />
+          <FeedTimeline feed={feed} />
         </View>
       ) : null}
 
       {/* Internal Notes */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme.colors.textSecondary, marginBottom: 0 },
-            ]}
-          >
-            Internal Notes
-          </Text>
+      <View className="mt-6">
+        <View className="flex-row justify-between items-center mb-3">
+          <View className="flex-row items-center">
+            <Ionicons
+              name="chatbubble-outline"
+              size={15}
+              color={theme.colors.textSecondary}
+              style={{ marginRight: 6 }}
+            />
+            <Text className="text-[13px] font-semibold uppercase tracking-wide text-text-secondary">
+              Internal Notes
+            </Text>
+          </View>
           <TouchableOpacity
-            style={[
-              styles.addNoteButton,
-              { backgroundColor: theme.colors.actionPrimary },
-            ]}
+            className="flex-row items-center px-3 py-1.5 rounded-lg"
+            style={{ backgroundColor: theme.colors.actionPrimary }}
             onPress={() => {
               return setNoteModalVisible(true);
             }}
           >
-            <Text
-              style={[
-                styles.addNoteButtonText,
-                { color: theme.colors.textInverse },
-              ]}
-            >
+            <Ionicons
+              name="add"
+              size={16}
+              color={theme.colors.textInverse}
+              style={{ marginRight: 2 }}
+            />
+            <Text className="text-[13px] font-semibold text-text-inverse">
               Add Note
             </Text>
           </TouchableOpacity>
@@ -473,39 +432,22 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
               return (
                 <View
                   key={note._id}
-                  style={[
-                    styles.noteCard,
-                    theme.shadows.sm,
-                    {
-                      backgroundColor: theme.colors.backgroundElevated,
-                    },
-                  ]}
+                  className="rounded-xl p-3.5 mb-2 bg-bg-elevated border border-border-subtle"
+                  style={{
+                    borderTopWidth: 2,
+                    borderTopColor: theme.colors.actionPrimary + "30",
+                  }}
                 >
-                  <Text
-                    style={[
-                      theme.typography.bodyMedium,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                  >
+                  <Text className="text-body-md text-text-primary">
                     {note.note}
                   </Text>
-                  <View style={styles.noteMeta}>
+                  <View className="flex-row justify-between mt-2">
                     {note.createdByUser ? (
-                      <Text
-                        style={[
-                          theme.typography.bodySmall,
-                          { color: theme.colors.textTertiary },
-                        ]}
-                      >
+                      <Text className="text-body-sm text-text-tertiary">
                         {note.createdByUser.name}
                       </Text>
                     ) : null}
-                    <Text
-                      style={[
-                        theme.typography.bodySmall,
-                        { color: theme.colors.textTertiary },
-                      ]}
-                    >
+                    <Text className="text-body-sm text-text-tertiary">
                       {formatDateTime(note.createdAt)}
                     </Text>
                   </View>
@@ -515,12 +457,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
           : null}
 
         {notes && notes.length === 0 ? (
-          <Text
-            style={[
-              theme.typography.bodySmall,
-              { color: theme.colors.textTertiary },
-            ]}
-          >
+          <Text className="text-body-sm text-text-tertiary">
             No notes yet.
           </Text>
         ) : null}
@@ -537,130 +474,3 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     </ScrollView>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  numberBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  number: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 12,
-  },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  badgeText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  section: {
-    marginTop: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
-  detailCard: {
-    borderRadius: 16,
-    padding: 16,
-  },
-  detailRow: {
-    flexDirection: "row",
-    marginBottom: 10,
-  },
-  detailLabel: {
-    fontSize: 14,
-    width: 90,
-  },
-  detailValue: {
-    fontSize: 14,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 50,
-  },
-  actionButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  timelineEntry: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 12,
-  },
-  timelineInfo: {
-    flex: 1,
-  },
-  addNoteButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  addNoteButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  noteCard: {
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-  },
-  noteMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-});

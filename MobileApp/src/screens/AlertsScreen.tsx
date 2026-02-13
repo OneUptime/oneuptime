@@ -1,115 +1,300 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
-  FlatList,
+  SectionList,
   RefreshControl,
   TouchableOpacity,
   Text,
-  StyleSheet,
-  ListRenderItemInfo,
+  SectionListRenderItemInfo,
+  DefaultSectionT,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import { useProject } from "../hooks/useProject";
-import { useAlerts } from "../hooks/useAlerts";
-import { useAlertStates } from "../hooks/useAlertDetail";
+import { useAllProjectAlerts } from "../hooks/useAllProjectAlerts";
+import { useAllProjectAlertEpisodes } from "../hooks/useAllProjectAlertEpisodes";
+import { useAllProjectAlertStates } from "../hooks/useAllProjectAlertStates";
 import { changeAlertState } from "../api/alerts";
 import { useHaptics } from "../hooks/useHaptics";
 import AlertCard from "../components/AlertCard";
+import EpisodeCard from "../components/EpisodeCard";
 import SwipeableCard from "../components/SwipeableCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
+import SegmentedControl from "../components/SegmentedControl";
 import type { AlertsStackParamList } from "../navigation/types";
-import type { AlertItem, AlertState } from "../api/types";
+import type {
+  AlertState,
+  ProjectAlertItem,
+  ProjectAlertEpisodeItem,
+} from "../api/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
 const PAGE_SIZE: number = 20;
 
+type Segment = "alerts" | "episodes";
+
 type NavProp = NativeStackNavigationProp<AlertsStackParamList, "AlertsList">;
+
+interface AlertSection {
+  title: string;
+  isActive: boolean;
+  data: ProjectAlertItem[];
+}
+
+interface EpisodeSection {
+  title: string;
+  isActive: boolean;
+  data: ProjectAlertEpisodeItem[];
+}
+
+function SectionHeader({
+  title,
+  count,
+  isActive,
+}: {
+  title: string;
+  count: number;
+  isActive: boolean;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View className="flex-row items-center pb-2 pt-1 bg-bg-primary">
+      <Ionicons
+        name={isActive ? "flame" : "checkmark-done"}
+        size={14}
+        color={isActive ? theme.colors.severityCritical : theme.colors.textTertiary}
+        style={{ marginRight: 6 }}
+      />
+      <Text
+        className="text-[13px] font-semibold uppercase tracking-wide"
+        style={{
+          color: isActive
+            ? theme.colors.textPrimary
+            : theme.colors.textTertiary,
+        }}
+      >
+        {title}
+      </Text>
+      <View
+        className="ml-2 px-1.5 py-0.5 rounded-full"
+        style={{
+          backgroundColor: isActive
+            ? theme.colors.severityCritical + "1A"
+            : theme.colors.backgroundTertiary,
+        }}
+      >
+        <Text
+          className="text-[11px] font-bold"
+          style={{
+            color: isActive
+              ? theme.colors.severityCritical
+              : theme.colors.textTertiary,
+          }}
+        >
+          {count}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 export default function AlertsScreen(): React.JSX.Element {
   const { theme } = useTheme();
-  const { selectedProject } = useProject();
-  const projectId: string = selectedProject?._id ?? "";
   const navigation: NavProp = useNavigation<NavProp>();
 
-  const [page, setPage] = useState(0);
-  const skip: number = page * PAGE_SIZE;
+  const [segment, setSegment] = useState<Segment>("alerts");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [visibleEpisodeCount, setVisibleEpisodeCount] = useState(PAGE_SIZE);
 
-  const { data, isLoading, isError, refetch } = useAlerts(
-    projectId,
-    skip,
-    PAGE_SIZE,
-  );
-  const { data: states } = useAlertStates(projectId);
+  const {
+    items: allAlerts,
+    isLoading,
+    isError,
+    refetch,
+  } = useAllProjectAlerts();
+  const { statesMap } = useAllProjectAlertStates();
+  const {
+    items: allEpisodes,
+    isLoading: episodesLoading,
+    isError: episodesError,
+    refetch: refetchEpisodes,
+  } = useAllProjectAlertEpisodes();
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
   const queryClient: QueryClient = useQueryClient();
 
-  const acknowledgeState: AlertState | undefined = states?.find(
-    (s: AlertState) => {
-      return s.isAcknowledgedState;
-    },
-  );
+  const resolvedStateIds: Set<string> = useMemo(() => {
+    const ids: Set<string> = new Set();
+    statesMap.forEach((states: AlertState[]) => {
+      states.forEach((s: AlertState) => {
+        if (s.isResolvedState) {
+          ids.add(s._id);
+        }
+      });
+    });
+    return ids;
+  }, [statesMap]);
 
-  const alerts: AlertItem[] = data?.data ?? [];
-  const totalCount: number = data?.count ?? 0;
-  const hasMore: boolean = skip + PAGE_SIZE < totalCount;
+  const alertSections: AlertSection[] = useMemo(() => {
+    const active: ProjectAlertItem[] = [];
+    const resolved: ProjectAlertItem[] = [];
+    for (const wrapped of allAlerts) {
+      const stateId: string | undefined = wrapped.item.currentAlertState?._id;
+      if (stateId && resolvedStateIds.has(stateId)) {
+        resolved.push(wrapped);
+      } else {
+        active.push(wrapped);
+      }
+    }
+    const sections: AlertSection[] = [];
+    if (active.length > 0) {
+      sections.push({
+        title: "Active",
+        isActive: true,
+        data: active.slice(0, visibleCount),
+      });
+    }
+    if (resolved.length > 0) {
+      sections.push({
+        title: "Resolved",
+        isActive: false,
+        data: resolved.slice(0, visibleCount),
+      });
+    }
+    return sections;
+  }, [allAlerts, resolvedStateIds, visibleCount]);
+
+  const episodeSections: EpisodeSection[] = useMemo(() => {
+    const active: ProjectAlertEpisodeItem[] = [];
+    const resolved: ProjectAlertEpisodeItem[] = [];
+    for (const wrapped of allEpisodes) {
+      const stateId: string | undefined =
+        wrapped.item.currentAlertState?._id;
+      if (stateId && resolvedStateIds.has(stateId)) {
+        resolved.push(wrapped);
+      } else {
+        active.push(wrapped);
+      }
+    }
+    const sections: EpisodeSection[] = [];
+    if (active.length > 0) {
+      sections.push({
+        title: "Active",
+        isActive: true,
+        data: active.slice(0, visibleEpisodeCount),
+      });
+    }
+    if (resolved.length > 0) {
+      sections.push({
+        title: "Resolved",
+        isActive: false,
+        data: resolved.slice(0, visibleEpisodeCount),
+      });
+    }
+    return sections;
+  }, [allEpisodes, resolvedStateIds, visibleEpisodeCount]);
+
+  const totalAlertCount: number = allAlerts.length;
+  const totalEpisodeCount: number = allEpisodes.length;
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
-    setPage(0);
-    await refetch();
-  }, [refetch, lightImpact]);
+    if (segment === "alerts") {
+      setVisibleCount(PAGE_SIZE);
+      await refetch();
+    } else {
+      setVisibleEpisodeCount(PAGE_SIZE);
+      await refetchEpisodes();
+    }
+  }, [refetch, refetchEpisodes, lightImpact, segment]);
 
   const loadMore: () => void = useCallback(() => {
-    if (hasMore && !isLoading) {
-      setPage((prev: number) => {
-        return prev + 1;
-      });
+    if (segment === "alerts") {
+      if (visibleCount < totalAlertCount) {
+        setVisibleCount((prev: number) => {
+          return prev + PAGE_SIZE;
+        });
+      }
+    } else {
+      if (visibleEpisodeCount < totalEpisodeCount) {
+        setVisibleEpisodeCount((prev: number) => {
+          return prev + PAGE_SIZE;
+        });
+      }
     }
-  }, [hasMore, isLoading]);
+  }, [segment, visibleCount, totalAlertCount, visibleEpisodeCount, totalEpisodeCount]);
 
-  const handlePress: (alert: AlertItem) => void = useCallback(
-    (alert: AlertItem) => {
-      navigation.navigate("AlertDetail", { alertId: alert._id });
+  const handlePress: (wrapped: ProjectAlertItem) => void = useCallback(
+    (wrapped: ProjectAlertItem) => {
+      navigation.navigate("AlertDetail", {
+        alertId: wrapped.item._id,
+        projectId: wrapped.projectId,
+      });
     },
     [navigation],
   );
 
-  const handleAcknowledge: (alert: AlertItem) => Promise<void> = useCallback(
-    async (alert: AlertItem) => {
-      if (!acknowledgeState) {
-        return;
-      }
-      try {
-        await changeAlertState(projectId, alert._id, acknowledgeState._id);
-        await successFeedback();
-        await refetch();
-        await queryClient.invalidateQueries({ queryKey: ["alerts"] });
-      } catch {
-        await errorFeedback();
-      }
-    },
-    [
-      projectId,
-      acknowledgeState,
-      successFeedback,
-      errorFeedback,
-      refetch,
-      queryClient,
-    ],
-  );
+  const handleEpisodePress: (wrapped: ProjectAlertEpisodeItem) => void =
+    useCallback(
+      (wrapped: ProjectAlertEpisodeItem) => {
+        navigation.navigate("AlertEpisodeDetail", {
+          episodeId: wrapped.item._id,
+          projectId: wrapped.projectId,
+        });
+      },
+      [navigation],
+    );
 
-  if (isLoading && alerts.length === 0) {
+  const handleAcknowledge: (wrapped: ProjectAlertItem) => Promise<void> =
+    useCallback(
+      async (wrapped: ProjectAlertItem) => {
+        const projectStates: AlertState[] | undefined = statesMap.get(
+          wrapped.projectId,
+        );
+        const acknowledgeState: AlertState | undefined = projectStates?.find(
+          (s: AlertState) => {
+            return s.isAcknowledgedState;
+          },
+        );
+        if (!acknowledgeState) {
+          return;
+        }
+        try {
+          await changeAlertState(
+            wrapped.projectId,
+            wrapped.item._id,
+            acknowledgeState._id,
+          );
+          await successFeedback();
+          await refetch();
+          await queryClient.invalidateQueries({ queryKey: ["alerts"] });
+        } catch {
+          await errorFeedback();
+        }
+      },
+      [statesMap, successFeedback, errorFeedback, refetch, queryClient],
+    );
+
+  const showLoading: boolean =
+    segment === "alerts"
+      ? isLoading && allAlerts.length === 0
+      : episodesLoading && allEpisodes.length === 0;
+
+  const showError: boolean = segment === "alerts" ? isError : episodesError;
+
+  if (showLoading) {
     return (
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
-        <View style={styles.skeletonList}>
+      <View className="flex-1 bg-bg-primary">
+        <SegmentedControl
+          segments={[
+            { key: "alerts" as const, label: "Alerts" },
+            { key: "episodes" as const, label: "Episodes" },
+          ]}
+          selected={segment}
+          onSelect={setSegment}
+        />
+        <View className="p-4">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -118,125 +303,192 @@ export default function AlertsScreen(): React.JSX.Element {
     );
   }
 
-  if (isError) {
-    return (
-      <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
-      >
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            { color: theme.colors.textSecondary, textAlign: "center" },
-          ]}
-        >
-          Failed to load alerts.
-        </Text>
-        <TouchableOpacity
-          style={[
-            styles.retryButton,
-            theme.shadows.md,
-            { backgroundColor: theme.colors.actionPrimary },
-          ]}
-          onPress={() => {
+  if (showError) {
+    const retryFn: () => void =
+      segment === "alerts"
+        ? () => {
             return refetch();
-          }}
-        >
-          <Text
-            style={[
-              theme.typography.bodyMedium,
-              { color: theme.colors.textInverse, fontWeight: "600" },
-            ]}
-          >
-            Retry
+          }
+        : () => {
+            return refetchEpisodes();
+          };
+    return (
+      <View className="flex-1 bg-bg-primary">
+        <SegmentedControl
+          segments={[
+            { key: "alerts" as const, label: "Alerts" },
+            { key: "episodes" as const, label: "Episodes" },
+          ]}
+          selected={segment}
+          onSelect={setSegment}
+        />
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-body-md text-text-secondary text-center">
+            {segment === "alerts"
+              ? "Failed to load alerts."
+              : "Failed to load alert episodes."}
           </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className="mt-4 px-6 py-3 rounded-[10px] shadow-md"
+            style={{ backgroundColor: theme.colors.actionPrimary }}
+            onPress={retryFn}
+          >
+            <Text className="text-body-md text-text-inverse font-semibold">
+              Retry
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.backgroundPrimary },
-      ]}
-    >
-      <FlatList
-        data={alerts}
-        keyExtractor={(item: AlertItem) => {
-          return item._id;
-        }}
-        contentContainerStyle={
-          alerts.length === 0 ? styles.emptyContainer : styles.list
-        }
-        renderItem={({ item }: ListRenderItemInfo<AlertItem>) => {
-          return (
-            <SwipeableCard
-              rightAction={
-                acknowledgeState &&
-                item.currentAlertState?._id !== acknowledgeState._id
-                  ? {
-                      label: "Acknowledge",
-                      color: "#2EA043",
-                      onAction: () => {
-                        return handleAcknowledge(item);
-                      },
-                    }
-                  : undefined
-              }
-            >
-              <AlertCard
-                alert={item}
+    <View className="flex-1 bg-bg-primary">
+      <SegmentedControl
+        segments={[
+          { key: "alerts" as const, label: "Alerts" },
+          { key: "episodes" as const, label: "Episodes" },
+        ]}
+        selected={segment}
+        onSelect={setSegment}
+      />
+      {segment === "alerts" ? (
+        <SectionList
+          sections={alertSections}
+          style={{ flex: 1 }}
+          keyExtractor={(wrapped: ProjectAlertItem) => {
+            return `${wrapped.projectId}-${wrapped.item._id}`;
+          }}
+          contentContainerStyle={
+            alertSections.length === 0 ? { flex: 1 } : { padding: 16 }
+          }
+          renderSectionHeader={({
+            section,
+          }: {
+            section: DefaultSectionT & AlertSection;
+          }) => {
+            return (
+              <SectionHeader
+                title={section.title}
+                count={section.data.length}
+                isActive={section.isActive}
+              />
+            );
+          }}
+          renderItem={({
+            item: wrapped,
+            section,
+          }: SectionListRenderItemInfo<
+            ProjectAlertItem,
+            DefaultSectionT & AlertSection
+          >) => {
+            const isResolved: boolean = !section.isActive;
+            const projectStates: AlertState[] | undefined = statesMap.get(
+              wrapped.projectId,
+            );
+            const acknowledgeState: AlertState | undefined =
+              projectStates?.find((s: AlertState) => {
+                return s.isAcknowledgedState;
+              });
+            return (
+              <SwipeableCard
+                rightAction={
+                  !isResolved &&
+                  acknowledgeState &&
+                  wrapped.item.currentAlertState?._id !== acknowledgeState._id
+                    ? {
+                        label: "Acknowledge",
+                        color: "#2EA043",
+                        onAction: () => {
+                          return handleAcknowledge(wrapped);
+                        },
+                      }
+                    : undefined
+                }
+              >
+                <AlertCard
+                  alert={wrapped.item}
+                  projectName={wrapped.projectName}
+                  muted={isResolved}
+                  onPress={() => {
+                    return handlePress(wrapped);
+                  }}
+                />
+              </SwipeableCard>
+            );
+          }}
+          ListEmptyComponent={
+            <EmptyState
+              title="No alerts"
+              subtitle="Alerts assigned to you will appear here."
+              icon="alerts"
+            />
+          }
+          stickySectionHeadersEnabled={false}
+          refreshControl={
+            <RefreshControl refreshing={false} onRefresh={onRefresh} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+        />
+      ) : (
+        <SectionList
+          sections={episodeSections}
+          style={{ flex: 1 }}
+          keyExtractor={(wrapped: ProjectAlertEpisodeItem) => {
+            return `${wrapped.projectId}-${wrapped.item._id}`;
+          }}
+          contentContainerStyle={
+            episodeSections.length === 0 ? { flex: 1 } : { padding: 16 }
+          }
+          renderSectionHeader={({
+            section,
+          }: {
+            section: DefaultSectionT & EpisodeSection;
+          }) => {
+            return (
+              <SectionHeader
+                title={section.title}
+                count={section.data.length}
+                isActive={section.isActive}
+              />
+            );
+          }}
+          renderItem={({
+            item: wrapped,
+            section,
+          }: SectionListRenderItemInfo<
+            ProjectAlertEpisodeItem,
+            DefaultSectionT & EpisodeSection
+          >) => {
+            const isResolved: boolean = !section.isActive;
+            return (
+              <EpisodeCard
+                episode={wrapped.item}
+                type="alert"
+                projectName={wrapped.projectName}
+                muted={isResolved}
                 onPress={() => {
-                  return handlePress(item);
+                  return handleEpisodePress(wrapped);
                 }}
               />
-            </SwipeableCard>
-          );
-        }}
-        ListEmptyComponent={
-          <EmptyState
-            title="No active alerts"
-            subtitle="Alerts assigned to you will appear here."
-            icon="alerts"
-          />
-        }
-        refreshControl={
-          <RefreshControl refreshing={false} onRefresh={onRefresh} />
-        }
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-      />
+            );
+          }}
+          ListEmptyComponent={
+            <EmptyState
+              title="No alert episodes"
+              subtitle="Alert episodes will appear here."
+              icon="episodes"
+            />
+          }
+          stickySectionHeadersEnabled={false}
+          refreshControl={
+            <RefreshControl refreshing={false} onRefresh={onRefresh} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+        />
+      )}
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-  },
-  list: {
-    padding: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-  },
-  skeletonList: {
-    padding: 16,
-  },
-  retryButton: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-});

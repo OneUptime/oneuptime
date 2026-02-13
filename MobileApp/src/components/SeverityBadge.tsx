@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
 import { useTheme } from "../theme";
 
 export type SeverityLevel = "critical" | "major" | "minor" | "warning" | "info";
@@ -42,24 +42,16 @@ export default function SeverityBadge({
   const displayLabel: string = label || severity;
 
   return (
-    <View style={[styles.badge, { backgroundColor: colors.bg }]}>
-      <Text style={[styles.text, { color: colors.text }]}>
+    <View
+      className="px-2 py-1 rounded-md self-start"
+      style={{ backgroundColor: colors.bg }}
+    >
+      <Text
+        className="text-xs font-semibold tracking-wide"
+        style={{ color: colors.text }}
+      >
         {displayLabel.toUpperCase()}
       </Text>
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-  },
-  text: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-});

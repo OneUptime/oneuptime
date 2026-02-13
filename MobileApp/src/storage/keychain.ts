@@ -1,6 +1,6 @@
-import * as Keychain from "react-native-keychain";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SERVICE_NAME: string = "com.oneuptime.oncall.tokens";
+const STORAGE_KEY: string = "com.oneuptime.oncall.tokens";
 
 export interface StoredTokens {
   accessToken: string;
@@ -17,24 +17,19 @@ export function getCachedAccessToken(): string | null {
 
 export async function storeTokens(tokens: StoredTokens): Promise<void> {
   cachedAccessToken = tokens.accessToken;
-  await Keychain.setGenericPassword("tokens", JSON.stringify(tokens), {
-    service: SERVICE_NAME,
-  });
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
 }
 
 export async function getTokens(): Promise<StoredTokens | null> {
-  const credentials: false | Keychain.UserCredentials =
-    await Keychain.getGenericPassword({
-      service: SERVICE_NAME,
-    });
+  const value: string | null = await AsyncStorage.getItem(STORAGE_KEY);
 
-  if (!credentials || typeof credentials === "boolean") {
+  if (!value) {
     cachedAccessToken = null;
     return null;
   }
 
   try {
-    const tokens: StoredTokens = JSON.parse(credentials.password);
+    const tokens: StoredTokens = JSON.parse(value);
     cachedAccessToken = tokens.accessToken;
     return tokens;
   } catch {
@@ -45,5 +40,5 @@ export async function getTokens(): Promise<StoredTokens | null> {
 
 export async function clearTokens(): Promise<void> {
   cachedAccessToken = null;
-  await Keychain.resetGenericPassword({ service: SERVICE_NAME });
+  await AsyncStorage.removeItem(STORAGE_KEY);
 }

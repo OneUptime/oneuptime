@@ -7,32 +7,21 @@ export type MainTabParamList = {
   Home: undefined;
   Incidents: undefined;
   Alerts: undefined;
-  IncidentEpisodes: undefined;
-  AlertEpisodes: undefined;
   Settings: undefined;
 };
 
 export type SettingsStackParamList = {
   SettingsList: undefined;
-  NotificationPreferences: undefined;
 };
 
 export type IncidentsStackParamList = {
   IncidentsList: undefined;
-  IncidentDetail: { incidentId: string };
+  IncidentDetail: { incidentId: string; projectId: string };
+  IncidentEpisodeDetail: { episodeId: string; projectId: string };
 };
 
 export type AlertsStackParamList = {
   AlertsList: undefined;
-  AlertDetail: { alertId: string };
-};
-
-export type IncidentEpisodesStackParamList = {
-  IncidentEpisodesList: undefined;
-  IncidentEpisodeDetail: { episodeId: string };
-};
-
-export type AlertEpisodesStackParamList = {
-  AlertEpisodesList: undefined;
-  AlertEpisodeDetail: { episodeId: string };
+  AlertDetail: { alertId: string; projectId: string };
+  AlertEpisodeDetail: { episodeId: string; projectId: string };
 };

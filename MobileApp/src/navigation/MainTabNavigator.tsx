@@ -1,12 +1,11 @@
 import React from "react";
 import { StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
 import IncidentsStackNavigator from "./IncidentsStackNavigator";
 import AlertsStackNavigator from "./AlertsStackNavigator";
-import IncidentEpisodesStackNavigator from "./IncidentEpisodesStackNavigator";
-import AlertEpisodesStackNavigator from "./AlertEpisodesStackNavigator";
 import SettingsStackNavigator from "./SettingsStackNavigator";
 import { useTheme } from "../theme";
 
@@ -37,16 +36,16 @@ export default function MainTabNavigator(): React.JSX.Element {
         headerTintColor: theme.colors.textPrimary,
         tabBarStyle: {
           backgroundColor: theme.colors.backgroundPrimary,
-          borderTopColor: theme.colors.borderSubtle,
+          borderTopColor: theme.colors.borderDefault,
           borderTopWidth: StyleSheet.hairlineWidth,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
-              shadowOpacity: 0.04,
-              shadowOffset: { width: 0, height: -1 },
-              shadowRadius: 6,
+              shadowOpacity: 0.06,
+              shadowOffset: { width: 0, height: -2 },
+              shadowRadius: 8,
             },
-            default: { elevation: 3 },
+            default: { elevation: 4 },
           }),
         },
         tabBarActiveTintColor: theme.colors.actionPrimary,
@@ -60,31 +59,96 @@ export default function MainTabNavigator(): React.JSX.Element {
         },
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => {
+            return (
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={24}
+                color={color}
+              />
+            );
+          },
+        }}
+      />
       <Tab.Screen
         name="Incidents"
         component={IncidentsStackNavigator}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => {
+            return (
+              <Ionicons
+                name={focused ? "warning" : "warning-outline"}
+                size={24}
+                color={color}
+              />
+            );
+          },
+        }}
       />
       <Tab.Screen
         name="Alerts"
         component={AlertsStackNavigator}
-        options={{ headerShown: false }}
-      />
-      <Tab.Screen
-        name="IncidentEpisodes"
-        component={IncidentEpisodesStackNavigator}
-        options={{ headerShown: false, title: "Inc Episodes" }}
-      />
-      <Tab.Screen
-        name="AlertEpisodes"
-        component={AlertEpisodesStackNavigator}
-        options={{ headerShown: false, title: "Alert Episodes" }}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => {
+            return (
+              <Ionicons
+                name={focused ? "notifications" : "notifications-outline"}
+                size={24}
+                color={color}
+              />
+            );
+          },
+        }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsStackNavigator}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            size: number;
+            focused: boolean;
+          }) => {
+            return (
+              <Ionicons
+                name={focused ? "settings" : "settings-outline"}
+                size={24}
+                color={color}
+              />
+            );
+          },
+        }}
       />
     </Tab.Navigator>
   );

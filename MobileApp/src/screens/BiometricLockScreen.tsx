@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import * as LocalAuthentication from "expo-local-authentication";
 
@@ -32,117 +33,45 @@ export default function BiometricLockScreen({
   }, []);
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.backgroundPrimary },
-      ]}
-    >
-      {/* Lock icon */}
+    <View className="flex-1 items-center justify-center px-10 bg-bg-primary">
       <View
-        style={[
-          styles.iconContainer,
-          { borderColor: theme.colors.borderDefault },
-        ]}
+        className="w-[88px] h-[88px] rounded-[22px] items-center justify-center"
+        style={{ backgroundColor: theme.colors.actionPrimary + "18" }}
       >
-        <View
-          style={[
-            styles.lockBody,
-            { backgroundColor: theme.colors.textTertiary },
-          ]}
-        />
-        <View
-          style={[
-            styles.lockShackle,
-            { borderColor: theme.colors.textTertiary },
-          ]}
+        <Ionicons
+          name="lock-closed"
+          size={40}
+          color={theme.colors.actionPrimary}
         />
       </View>
 
       <Text
-        style={[
-          theme.typography.titleMedium,
-          {
-            color: theme.colors.textPrimary,
-            marginTop: 24,
-            textAlign: "center",
-          },
-        ]}
+        className="text-title-md text-text-primary mt-6 text-center"
+        style={{ letterSpacing: -0.3 }}
       >
         OneUptime is Locked
       </Text>
 
-      <Text
-        style={[
-          theme.typography.bodyMedium,
-          {
-            color: theme.colors.textSecondary,
-            marginTop: 8,
-            textAlign: "center",
-          },
-        ]}
-      >
+      <Text className="text-body-md text-text-secondary mt-2 text-center leading-6">
         Use {biometricType.toLowerCase()} to unlock
       </Text>
 
       <TouchableOpacity
-        style={[
-          styles.unlockButton,
-          theme.shadows.md,
-          { backgroundColor: theme.colors.actionPrimary },
-        ]}
+        className="mt-8 py-4 w-full rounded-xl items-center"
+        style={{
+          backgroundColor: theme.colors.actionPrimary,
+          shadowColor: theme.colors.actionPrimary,
+          shadowOpacity: 0.3,
+          shadowOffset: { width: 0, height: 4 },
+          shadowRadius: 12,
+          elevation: 4,
+          maxWidth: 280,
+        }}
         onPress={authenticate}
         activeOpacity={0.8}
       >
-        <Text style={[styles.unlockButtonText, { color: "#FFFFFF" }]}>
-          Unlock
-        </Text>
+        <Text className="text-[17px] font-semibold text-white">Unlock</Text>
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 40,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  lockBody: {
-    width: 28,
-    height: 22,
-    borderRadius: 4,
-    marginTop: 8,
-  },
-  lockShackle: {
-    width: 20,
-    height: 16,
-    borderWidth: 3,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    position: "absolute",
-    top: 16,
-  },
-  unlockButton: {
-    marginTop: 32,
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 14,
-    minWidth: 200,
-    alignItems: "center",
-  },
-  unlockButtonText: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-});

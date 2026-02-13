@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -49,35 +48,28 @@ export default function AddNoteModal({
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
-        style={styles.overlay}
+        className="flex-1 justify-end"
+        style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View
-          style={[
-            styles.container,
-            {
-              backgroundColor: theme.colors.backgroundPrimary,
-            },
-          ]}
-        >
+        <View className="rounded-t-[28px] p-5 pb-9 bg-bg-primary">
+          {/* Drag Handle */}
+          <View className="items-center pt-1 pb-4">
+            <View
+              className="w-9 h-1 rounded-full"
+              style={{ backgroundColor: theme.colors.borderDefault }}
+            />
+          </View>
+
           <Text
-            style={[
-              theme.typography.titleMedium,
-              { color: theme.colors.textPrimary, marginBottom: 16 },
-            ]}
+            className="text-title-md text-text-primary mb-4"
+            style={{ letterSpacing: -0.3 }}
           >
             Add Note
           </Text>
 
           <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: theme.colors.backgroundPrimary,
-                color: theme.colors.textPrimary,
-                borderColor: theme.colors.borderDefault,
-              },
-            ]}
+            className="min-h-[120px] rounded-xl border p-3 text-[15px] bg-bg-primary text-text-primary border-border-default"
             placeholder="Add a note..."
             placeholderTextColor={theme.colors.textTertiary}
             value={noteText}
@@ -87,39 +79,25 @@ export default function AddNoteModal({
             editable={!isSubmitting}
           />
 
-          <View style={styles.buttonRow}>
+          <View className="flex-row gap-3 mt-4">
             <TouchableOpacity
-              style={[
-                styles.button,
-                {
-                  backgroundColor: theme.colors.backgroundTertiary,
-                  borderColor: theme.colors.borderSubtle,
-                  borderWidth: 1,
-                },
-              ]}
+              className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-[48px] bg-bg-tertiary border border-border-subtle"
               onPress={handleClose}
               disabled={isSubmitting}
             >
-              <Text
-                style={[
-                  styles.buttonText,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
+              <Text className="text-[15px] font-bold text-text-secondary">
                 Cancel
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.button,
-                {
-                  backgroundColor:
-                    noteText.trim() && !isSubmitting
-                      ? theme.colors.actionPrimary
-                      : theme.colors.backgroundTertiary,
-                },
-              ]}
+              className="flex-1 py-3.5 rounded-xl items-center justify-center min-h-[48px]"
+              style={{
+                backgroundColor:
+                  noteText.trim() && !isSubmitting
+                    ? theme.colors.actionPrimary
+                    : theme.colors.backgroundTertiary,
+              }}
               onPress={handleSubmit}
               disabled={!noteText.trim() || isSubmitting}
             >
@@ -130,14 +108,12 @@ export default function AddNoteModal({
                 />
               ) : (
                 <Text
-                  style={[
-                    styles.buttonText,
-                    {
-                      color: noteText.trim()
-                        ? theme.colors.textInverse
-                        : theme.colors.textTertiary,
-                    },
-                  ]}
+                  className="text-[15px] font-bold"
+                  style={{
+                    color: noteText.trim()
+                      ? theme.colors.textInverse
+                      : theme.colors.textTertiary,
+                  }}
                 >
                   Submit
                 </Text>
@@ -149,41 +125,3 @@ export default function AddNoteModal({
     </Modal>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
-  },
-  container: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 36,
-  },
-  input: {
-    minHeight: 120,
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 12,
-    fontSize: 15,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 48,
-  },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-});

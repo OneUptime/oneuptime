@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 
 type EmptyIcon = "incidents" | "alerts" | "episodes" | "notes" | "default";
@@ -10,57 +11,13 @@ interface EmptyStateProps {
   icon?: EmptyIcon;
 }
 
-function EmptyIcon({
-  icon,
-  color,
-}: {
-  icon: EmptyIcon;
-  color: string;
-}): React.JSX.Element {
-  /*
-   * Simple geometric SVG-style icons using View primitives
-   * Monochrome, clean, professional — not cartoon/playful
-   */
-  if (icon === "incidents") {
-    return (
-      <View style={styles.iconContainer}>
-        <View style={[styles.iconShield, { borderColor: color }]}>
-          <View style={[styles.iconCheckmark, { backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  }
-
-  if (icon === "alerts") {
-    return (
-      <View style={styles.iconContainer}>
-        <View style={[styles.iconBell, { borderColor: color }]}>
-          <View style={[styles.iconBellClapper, { backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  }
-
-  if (icon === "episodes") {
-    return (
-      <View style={styles.iconContainer}>
-        <View style={[styles.iconStack, { borderColor: color }]} />
-        <View
-          style={[styles.iconStackBack, { borderColor: color, opacity: 0.4 }]}
-        />
-      </View>
-    );
-  }
-
-  // Default: simple circle with line through it
-  return (
-    <View style={styles.iconContainer}>
-      <View style={[styles.iconCircle, { borderColor: color }]}>
-        <View style={[styles.iconLine, { backgroundColor: color }]} />
-      </View>
-    </View>
-  );
-}
+const iconMap: Record<EmptyIcon, keyof typeof Ionicons.glyphMap> = {
+  incidents: "warning-outline",
+  alerts: "notifications-outline",
+  episodes: "layers-outline",
+  notes: "document-text-outline",
+  default: "remove-circle-outline",
+};
 
 export default function EmptyState({
   title,
@@ -70,116 +27,28 @@ export default function EmptyState({
   const { theme } = useTheme();
 
   return (
-    <View style={styles.container}>
-      <EmptyIcon icon={icon} color={theme.colors.textTertiary} />
+    <View className="flex-1 items-center justify-center px-10 py-24">
+      <View
+        className="w-16 h-16 rounded-2xl items-center justify-center"
+        style={{ backgroundColor: theme.colors.backgroundTertiary }}
+      >
+        <Ionicons
+          name={iconMap[icon]}
+          size={32}
+          color={theme.colors.textTertiary}
+        />
+      </View>
       <Text
-        style={[
-          theme.typography.titleSmall,
-          {
-            color: theme.colors.textPrimary,
-            textAlign: "center",
-            marginTop: 20,
-          },
-        ]}
+        className="text-title-md text-text-primary text-center mt-5"
+        style={{ letterSpacing: -0.3 }}
       >
         {title}
       </Text>
       {subtitle ? (
-        <Text
-          style={[
-            theme.typography.bodyMedium,
-            {
-              color: theme.colors.textSecondary,
-              textAlign: "center",
-              marginTop: theme.spacing.sm,
-              lineHeight: 20,
-            },
-          ]}
-        >
+        <Text className="text-body-md text-text-secondary text-center mt-2 leading-6">
           {subtitle}
         </Text>
       ) : null}
     </View>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 40,
-    paddingVertical: 80,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  // Shield icon (incidents)
-  iconShield: {
-    width: 44,
-    height: 52,
-    borderWidth: 1.5,
-    borderRadius: 6,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconCheckmark: {
-    width: 16,
-    height: 3,
-    borderRadius: 1.5,
-    transform: [{ rotate: "-45deg" }],
-  },
-  // Bell icon (alerts)
-  iconBell: {
-    width: 36,
-    height: 36,
-    borderWidth: 1.5,
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 4,
-  },
-  iconBellClapper: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  // Stack icon (episodes)
-  iconStack: {
-    width: 40,
-    height: 32,
-    borderWidth: 1.5,
-    borderRadius: 8,
-    position: "absolute",
-    top: 12,
-  },
-  iconStackBack: {
-    width: 32,
-    height: 28,
-    borderWidth: 1.5,
-    borderRadius: 6,
-    position: "absolute",
-    top: 6,
-  },
-  // Default circle icon
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderWidth: 1.5,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconLine: {
-    width: 20,
-    height: 2,
-    borderRadius: 1,
-  },
-});

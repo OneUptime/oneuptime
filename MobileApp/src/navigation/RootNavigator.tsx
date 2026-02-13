@@ -6,16 +6,15 @@ import {
   useNavigationContainerRef,
 } from "@react-navigation/native";
 import * as Linking from "expo-linking";
+import * as SplashScreen from "expo-splash-screen";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
-import { useProject } from "../hooks/useProject";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useBiometric } from "../hooks/useBiometric";
 import AuthStackNavigator from "./AuthStackNavigator";
 import MainTabNavigator from "./MainTabNavigator";
-import ProjectSelectionScreen from "../screens/ProjectSelectionScreen";
 import BiometricLockScreen from "../screens/BiometricLockScreen";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 
 const prefix: string = Linking.createURL("/");
 
@@ -26,22 +25,14 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
       Home: "home",
       Incidents: {
         screens: {
-          IncidentDetail: "incident/:incidentId",
+          IncidentDetail: "incident/:projectId/:incidentId",
+          IncidentEpisodeDetail: "incident-episode/:projectId/:episodeId",
         },
       },
       Alerts: {
         screens: {
-          AlertDetail: "alert/:alertId",
-        },
-      },
-      IncidentEpisodes: {
-        screens: {
-          IncidentEpisodeDetail: "incident-episode/:episodeId",
-        },
-      },
-      AlertEpisodes: {
-        screens: {
-          AlertEpisodeDetail: "alert-episode/:episodeId",
+          AlertDetail: "alert/:projectId/:alertId",
+          AlertEpisodeDetail: "alert-episode/:projectId/:episodeId",
         },
       },
     },
@@ -51,7 +42,6 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
 export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
-  const { selectedProject, isLoadingProjects } = useProject();
   const navigationRef: ReturnType<typeof useNavigationContainerRef> =
     useNavigationContainerRef();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
@@ -60,6 +50,13 @@ export default function RootNavigator(): React.JSX.Element {
   const [biometricChecked, setBiometricChecked] = useState(false);
 
   usePushNotifications(navigationRef);
+
+  // Hide the native splash screen once initial loading completes
+  useEffect(() => {
+    if (!isLoading && biometricChecked) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoading, biometricChecked]);
 
   // Check biometric on app launch
   useEffect(() => {
@@ -97,10 +94,13 @@ export default function RootNavigator(): React.JSX.Element {
   if (isLoading || !biometricChecked) {
     return (
       <View
-        style={[
-          styles.loading,
-          { backgroundColor: theme.colors.backgroundPrimary },
-        ]}
+        className="flex-1 items-center justify-center bg-bg-primary"
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.colors.backgroundPrimary,
+        }}
       >
         <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
       </View>
@@ -128,23 +128,6 @@ export default function RootNavigator(): React.JSX.Element {
       );
     }
 
-    if (isLoadingProjects) {
-      return (
-        <View
-          style={[
-            styles.loading,
-            { backgroundColor: theme.colors.backgroundPrimary },
-          ]}
-        >
-          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
-        </View>
-      );
-    }
-
-    if (!selectedProject) {
-      return <ProjectSelectionScreen />;
-    }
-
     return <MainTabNavigator />;
   };
 
@@ -158,11 +141,3 @@ export default function RootNavigator(): React.JSX.Element {
     </NavigationContainer>
   );
 }
-
-const styles: ReturnType<typeof StyleSheet.create> = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
