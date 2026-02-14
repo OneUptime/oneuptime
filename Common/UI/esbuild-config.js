@@ -53,21 +53,32 @@ function createMermaidPlugin() {
       if (!mermaidRoot) return;
       const bundlePath = path.join(mermaidRoot, 'dist', 'mermaid.min.js');
 
-      // Intercept bare "mermaid" imports and serve a thin ESM wrapper
+      // Intercept bare "mermaid" imports and serve the pre-bundled CJS file
+      // with an ESM export appended. The CJS file declares a local var
+      // __esbuild_esm_mermaid_nm and assigns .mermaid on it, so we inline
+      // the file contents and export from the same scope.
       build.onResolve({ filter: /^mermaid$/ }, () => {
         return { path: 'mermaid-wrapper', namespace: 'mermaid-ns' };
       });
 
       build.onLoad({ filter: /^mermaid-wrapper$/, namespace: 'mermaid-ns' }, () => {
-        // The CJS bundle assigns to exports.default – re-export it as ESM
+        let cjsSource = fs.readFileSync(bundlePath, 'utf8');
+        // The CJS bundle ends with a line that tries globalThis.__esbuild_esm_mermaid_nm
+        // which fails because the var is local-scoped when bundled. Strip it and
+        // expose the local var on globalThis ourselves before that line.
+        cjsSource = cjsSource.replace(
+          /globalThis\["mermaid"\]\s*=\s*globalThis\.__esbuild_esm_mermaid_nm\["mermaid"\]\.default;?\s*$/,
+          ''
+        );
+        const contents = cjsSource + `
+;globalThis.__esbuild_esm_mermaid_nm = typeof __esbuild_esm_mermaid_nm !== "undefined" ? __esbuild_esm_mermaid_nm : {};
+var _mermaid_export = __esbuild_esm_mermaid_nm.mermaid;
+if (_mermaid_export && _mermaid_export.default) { _mermaid_export = _mermaid_export.default; }
+export default _mermaid_export;
+export { _mermaid_export as mermaid };
+`;
         return {
-          contents: `
-            import "${bundlePath}";
-            var _g = globalThis.__esbuild_esm_mermaid_nm || globalThis;
-            var mermaid = _g.mermaid || (_g.__esbuild_esm_mermaid_nm && _g.__esbuild_esm_mermaid_nm.mermaid);
-            export default mermaid;
-            export { mermaid };
-          `,
+          contents,
           loader: 'js',
           resolveDir: path.dirname(bundlePath),
         };
