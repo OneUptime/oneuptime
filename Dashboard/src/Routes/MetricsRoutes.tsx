@@ -22,9 +22,9 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <MetricsPage
-                {...props}
-                pageRoute={RouteMap[PageMap.METRICS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.METRICS] as Route}
+            />
           }
         />
       </PageRoute>
@@ -38,9 +38,9 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <MetricViewPage
-                {...props}
-                pageRoute={RouteMap[PageMap.METRIC_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.METRIC_VIEW] as Route}
+            />
           }
         />
 
@@ -48,9 +48,9 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.METRIC_VIEW)}
           element={
             <MetricViewPage
-                {...props}
-                pageRoute={RouteMap[PageMap.METRIC_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.METRIC_VIEW] as Route}
+            />
           }
         />
       </PageRoute>

@@ -18,10 +18,7 @@ const LogsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <LogsPage
-                {...props}
-                pageRoute={RouteMap[PageMap.LOGS] as Route}
-              />
+            <LogsPage {...props} pageRoute={RouteMap[PageMap.LOGS] as Route} />
           }
         />
       </PageRoute>

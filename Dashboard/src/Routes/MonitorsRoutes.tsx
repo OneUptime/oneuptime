@@ -72,18 +72,18 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <MonitorPage
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITORS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS] as Route}
+            />
           }
         />
         <PageRoute
           path={MonitorsRoutePath[PageMap.MONITORS_DISABLED] || ""}
           element={
             <MonitorDisabled
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITORS_DISABLED] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS_DISABLED] as Route}
+            />
           }
         />
 
@@ -91,11 +91,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISCONNECTED] || ""}
           element={
             <MonitorprobeDisconnected
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route}
+            />
           }
         />
 
@@ -103,9 +101,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISABLED] || ""}
           element={
             <MonitorProbeDisabled
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISABLED] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISABLED] as Route}
+            />
           }
         />
 
@@ -113,9 +111,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={MonitorsRoutePath[PageMap.MONITORS_INOPERATIONAL] || ""}
           element={
             <MonitorInoperational
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route}
+            />
           }
         />
 
@@ -125,11 +123,11 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <WorkspaceConnectionSlack
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route
+              }
+            />
           }
         />
 
@@ -141,13 +139,13 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <WorkspaceConnectionTeams
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                ] as Route
+              }
+            />
           }
         />
 
@@ -155,9 +153,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={MonitorsRoutePath[PageMap.MONITOR_CREATE] || ""}
           element={
             <MonitorCreate
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_CREATE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_CREATE] as Route}
+            />
           }
         />
 
@@ -166,9 +164,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS] || ""}
           element={
             <MonitorSettingsStatus
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITORS_SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS_SETTINGS] as Route}
+            />
           }
         />
 
@@ -178,11 +176,11 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <MonitorSettingsCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] as Route
+              }
+            />
           }
         />
 
@@ -190,9 +188,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_SECRETS] || ""}
           element={
             <MonitorSettingsSecrets
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_SECRETS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_SECRETS] as Route}
+            />
           }
         />
       </PageRoute>
@@ -205,36 +203,36 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <MonitorView
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_SETTINGS)}
           element={
             <MonitorViewSettings
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_SETTINGS] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_OWNERS)}
           element={
             <MonitorViewOwner
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_OWNERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_OWNERS] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_CRITERIA)}
           element={
             <MonitorViewCriteria
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route}
+            />
           }
         />
 
@@ -242,9 +240,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_METRICS)}
           element={
             <MonitorViewMetrics
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_METRICS] as Route}
+            />
           }
         />
 
@@ -252,9 +250,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_INTERVAL)}
           element={
             <MonitorViewInterval
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route}
+            />
           }
         />
 
@@ -262,11 +260,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_DOCUMENTATION)}
           element={
             <MonitorViewDocumentation
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITOR_VIEW_DOCUMENTATION] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_DOCUMENTATION] as Route}
+            />
           }
         />
 
@@ -276,11 +272,11 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <MonitorViewStatusTimeline
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route
+              }
+            />
           }
         />
 
@@ -288,9 +284,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_INCIDENTS)}
           element={
             <MonitorIncidents
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route}
+            />
           }
         />
 
@@ -298,9 +294,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_ALERTS)}
           element={
             <MonitorAlerts
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_ALERTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_ALERTS] as Route}
+            />
           }
         />
 
@@ -308,9 +304,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_DELETE)}
           element={
             <MonitorViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route}
+            />
           }
         />
 
@@ -318,11 +314,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_CUSTOM_FIELDS)}
           element={
             <MonitorViewCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITOR_VIEW_CUSTOM_FIELDS] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_CUSTOM_FIELDS] as Route}
+            />
           }
         />
 
@@ -330,9 +324,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_PROBES)}
           element={
             <MonitorViewProbes
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route}
+            />
           }
         />
 
@@ -340,9 +334,9 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_LOGS)}
           element={
             <MonitorViewLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_VIEW_LOGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_LOGS] as Route}
+            />
           }
         />
 
@@ -352,11 +346,11 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <MonitorViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITOR_VIEW_NOTIFICATION_LOGS] as Route
+              }
+            />
           }
         />
       </PageRoute>

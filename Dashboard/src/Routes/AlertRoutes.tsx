@@ -102,10 +102,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS] || ""}
           element={
-            <Alerts
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERTS] as Route}
-              />
+            <Alerts {...props} pageRoute={RouteMap[PageMap.ALERTS] as Route} />
           }
         />
 
@@ -113,9 +110,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.UNRESOLVED_ALERTS] || ""}
           element={
             <UnresolvedAlerts
-                {...props}
-                pageRoute={RouteMap[PageMap.UNRESOLVED_ALERTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.UNRESOLVED_ALERTS] as Route}
+            />
           }
         />
 
@@ -125,11 +122,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <AlertsWorkspaceConnectionSlack
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] as Route
+              }
+            />
           }
         />
 
@@ -141,13 +138,13 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <AlertsWorkspaceConnectionMicrosoftTeams
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                ] as Route
+              }
+            />
           }
         />
 
@@ -155,9 +152,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERT_CREATE] || ""}
           element={
             <AlertCreate
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
+            />
           }
         />
 
@@ -166,9 +163,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_STATE] || ""}
           element={
             <AlertSettingsState
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_STATE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_STATE] as Route}
+            />
           }
         />
 
@@ -176,9 +173,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_SEVERITY] || ""}
           element={
             <AlertSettingsSeverity
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_SEVERITY] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_SEVERITY] as Route}
+            />
           }
         />
 
@@ -186,11 +183,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] || ""}
           element={
             <AlertSettingsNoteTemplates
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] as Route
+              }
+            />
           }
         />
 
@@ -200,11 +197,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <AlertSettingsNoteTemplatesView
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW] as Route
+              }
+            />
           }
         />
 
@@ -212,11 +209,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] || ""}
           element={
             <AlertSettingsCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] as Route
+              }
+            />
           }
         />
 
@@ -224,11 +221,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_GROUPING_RULES] || ""}
           element={
             <AlertSettingsGroupingRules
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERTS_SETTINGS_GROUPING_RULES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_GROUPING_RULES] as Route
+              }
+            />
           }
         />
 
@@ -236,9 +233,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE] || ""}
           element={
             <AlertSettingsMore
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route}
+            />
           }
         />
 
@@ -247,9 +244,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERT_EPISODE_CREATE] || ""}
           element={
             <EpisodeCreate
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route}
+            />
           }
         />
 
@@ -257,9 +254,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERT_EPISODES] || ""}
           element={
             <Episodes
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_EPISODES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_EPISODES] as Route}
+            />
           }
         />
 
@@ -267,9 +264,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.UNRESOLVED_ALERT_EPISODES] || ""}
           element={
             <UnresolvedEpisodes
-                {...props}
-                pageRoute={RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route}
+            />
           }
         />
 
@@ -277,9 +274,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS] || ""}
           element={
             <AlertEpisodeDocs
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_EPISODE_DOCS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_EPISODE_DOCS] as Route}
+            />
           }
         />
       </PageRoute>
@@ -292,9 +289,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <AlertView
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW] as Route}
+            />
           }
         />
         <PageRoute
@@ -303,11 +300,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <AlertViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_VIEW_NOTIFICATION_LOGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERT_VIEW_NOTIFICATION_LOGS] as Route
+              }
+            />
           }
         />
 
@@ -315,9 +312,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_AI_LOGS)}
           element={
             <AlertViewAILogs
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_AI_LOGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_AI_LOGS] as Route}
+            />
           }
         />
 
@@ -325,9 +322,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_DESCRIPTION)}
           element={
             <AlertDescription
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_DESCRIPTION] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_DESCRIPTION] as Route}
+            />
           }
         />
 
@@ -335,54 +332,54 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_ROOT_CAUSE)}
           element={
             <AlertViewRootCause
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_ROOT_CAUSE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_ROOT_CAUSE] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_REMEDIATION)}
           element={
             <AlertViewRemediation
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_REMEDIATION] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_REMEDIATION] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_STATE_TIMELINE)}
           element={
             <AlertViewStateTimeline
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_STATE_TIMELINE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_STATE_TIMELINE] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_INTERNAL_NOTE)}
           element={
             <AlertInternalNote
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_INTERNAL_NOTE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_INTERNAL_NOTE] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_CUSTOM_FIELDS)}
           element={
             <AlertViewCustomFields
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_CUSTOM_FIELDS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_CUSTOM_FIELDS] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_OWNERS)}
           element={
             <AlertViewOwner
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_OWNERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_OWNERS] as Route}
+            />
           }
         />
         <PageRoute
@@ -391,22 +388,22 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <AlertOnCallPolicyExecutionLogs
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
+                ] as Route
+              }
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_DELETE)}
           element={
             <AlertViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_VIEW_DELETE] as Route}
+            />
           }
         />
       </PageRoute>
@@ -420,9 +417,9 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <EpisodeView
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW] as Route}
+            />
           }
         />
         <PageRoute
@@ -431,11 +428,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <EpisodeViewDescription
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_EPISODE_VIEW_DESCRIPTION] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERT_EPISODE_VIEW_DESCRIPTION] as Route
+              }
+            />
           }
         />
         <PageRoute
@@ -444,20 +441,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <EpisodeViewRootCause
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE] as Route
+              }
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_OWNERS)}
           element={
             <EpisodeViewOwners
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route}
+            />
           }
         />
         <PageRoute
@@ -466,20 +463,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <EpisodeViewStateTimeline
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE] as Route
+              }
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_ALERTS)}
           element={
             <EpisodeViewAlerts
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_ALERTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_ALERTS] as Route}
+            />
           }
         />
         <PageRoute
@@ -488,11 +485,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <EpisodeViewInternalNote
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE] as Route
+              }
+            />
           }
         />
         <PageRoute
@@ -501,20 +498,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <EpisodeViewRemediation
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_EPISODE_VIEW_REMEDIATION] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERT_EPISODE_VIEW_REMEDIATION] as Route
+              }
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_DELETE)}
           element={
             <EpisodeViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_DELETE] as Route}
+            />
           }
         />
       </PageRoute>

@@ -22,9 +22,9 @@ const TracesRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <TracesPage
-                {...props}
-                pageRoute={RouteMap[PageMap.TRACES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.TRACES] as Route}
+            />
           }
         />
       </PageRoute>
@@ -38,9 +38,9 @@ const TracesRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <TraceViewPage
-                {...props}
-                pageRoute={RouteMap[PageMap.TRACE_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.TRACE_VIEW] as Route}
+            />
           }
         />
 
@@ -48,9 +48,9 @@ const TracesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.TRACE_VIEW)}
           element={
             <TraceViewPage
-                {...props}
-                pageRoute={RouteMap[PageMap.TRACE_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.TRACE_VIEW] as Route}
+            />
           }
         />
       </PageRoute>

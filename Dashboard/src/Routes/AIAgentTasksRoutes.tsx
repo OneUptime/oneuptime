@@ -28,18 +28,18 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
           path={AIAgentTasksRoutePath[PageMap.AI_AGENT_TASKS] || ""}
           element={
             <AIAgentTasks
-                {...props}
-                pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
+            />
           }
         />
         <PageRoute
           index
           element={
             <AIAgentTasks
-                {...props}
-                pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
+            />
           }
         />
       </PageRoute>
@@ -52,18 +52,18 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <AIAgentTaskView
-                {...props}
-                pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASK_VIEW_LOGS)}
           element={
             <AIAgentTaskViewLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW_LOGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW_LOGS] as Route}
+            />
           }
         />
         <PageRoute
@@ -72,20 +72,20 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <AIAgentTaskViewPullRequests
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS] as Route
+              }
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASK_VIEW_DELETE)}
           element={
             <AIAgentTaskViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW_DELETE] as Route}
+            />
           }
         />
       </PageRoute>

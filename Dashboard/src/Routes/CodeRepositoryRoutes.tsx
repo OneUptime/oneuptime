@@ -31,9 +31,9 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
           path={CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY] || ""}
           element={
             <CodeRepository
-                {...props}
-                pageRoute={RouteMap[PageMap.CODE_REPOSITORY] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.CODE_REPOSITORY] as Route}
+            />
           }
         />
       </PageRoute>
@@ -46,9 +46,9 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <CodeRepositoryView
-                {...props}
-                pageRoute={RouteMap[PageMap.CODE_REPOSITORY_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.CODE_REPOSITORY_VIEW] as Route}
+            />
           }
         />
 
@@ -58,11 +58,9 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <CodeRepositoryViewDelete
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.CODE_REPOSITORY_VIEW_DELETE] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.CODE_REPOSITORY_VIEW_DELETE] as Route}
+            />
           }
         />
 
@@ -72,11 +70,11 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <CodeRepositoryViewSettings
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route
+              }
+            />
           }
         />
 
@@ -86,11 +84,11 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <CodeRepositoryViewServices
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.CODE_REPOSITORY_VIEW_SERVICES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CODE_REPOSITORY_VIEW_SERVICES] as Route
+              }
+            />
           }
         />
       </PageRoute>

@@ -26,9 +26,9 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
         path={MonitorGroupRoutePath[PageMap.MONITOR_GROUPS] || ""}
         element={
           <MonitorGroups
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITOR_GROUPS] as Route}
-            />
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITOR_GROUPS] as Route}
+          />
         }
       />
 
@@ -40,18 +40,18 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <MonitorGroupView
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_GROUP_VIEW_DELETE)}
           element={
             <MonitorGroupViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_DELETE] as Route}
+            />
           }
         />
 
@@ -59,9 +59,9 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_GROUP_VIEW_ALERTS)}
           element={
             <MonitorGroupAlerts
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_ALERTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_ALERTS] as Route}
+            />
           }
         />
 
@@ -71,11 +71,9 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <MonitorGroupViewMonitors
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITOR_GROUP_VIEW_MONITORS] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_MONITORS] as Route}
+            />
           }
         />
 
@@ -85,11 +83,11 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <MonitorGroupViewIncidents
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.MONITOR_GROUP_VIEW_INCIDENTS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MONITOR_GROUP_VIEW_INCIDENTS] as Route
+              }
+            />
           }
         />
 
@@ -97,9 +95,9 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_GROUP_VIEW_OWNERS)}
           element={
             <MonitorGroupViewOwners
-                {...props}
-                pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route}
+            />
           }
         />
       </PageRoute>

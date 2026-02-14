@@ -85,18 +85,18 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={StatusPagesRoutePath[PageMap.STATUS_PAGES] || ""}
           element={
             <StatusPages
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
+            />
           }
         />
         <PageRoute
           path={StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS] || ""}
           element={
             <StatusPageAnnouncements
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
+            />
           }
         />
 
@@ -109,13 +109,13 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <StatusPagesSettingsAnnouncementTemplates
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
+                ] as Route
+              }
+            />
           }
         />
 
@@ -127,13 +127,13 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <StatusPagesSettingsAnnouncementTemplatesView
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES_VIEW
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES_VIEW
+                ] as Route
+              }
+            />
           }
         />
 
@@ -145,14 +145,14 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <StatusPagesSettingsSubscriberTemplates
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap
-                      .STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
+                ] as Route
+              }
+            />
           }
         />
 
@@ -165,14 +165,14 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <StatusPagesSettingsSubscriberTemplatesView
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap
-                      .STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
+                ] as Route
+              }
+            />
           }
         />
 
@@ -183,11 +183,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <StatusPagesSettingsCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS] as Route
+              }
+            />
           }
         />
       </PageRoute>
@@ -196,25 +196,23 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}
         element={
           <AnnouncementCreate
-              {...props}
-              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
-            />
+            {...props}
+            pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
+          />
         }
       />
 
       <PageRoute
         path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW] || ""}
-        element={
-          <AnnouncementViewLayout {...props} />
-        }
+        element={<AnnouncementViewLayout {...props} />}
       >
         <PageRoute
           index
           element={
             <AnnouncementView
-                {...props}
-                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW] as Route}
+            />
           }
         />
         <PageRoute
@@ -223,20 +221,20 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <AnnouncementViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS] as Route
+              }
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_DELETE)}
           element={
             <AnnouncementViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_DELETE] as Route}
+            />
           }
         />
       </PageRoute>
@@ -249,9 +247,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <StatusPagesView
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW] as Route}
+            />
           }
         />
         <PageRoute
@@ -260,11 +258,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPageViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS] as Route
+              }
+            />
           }
         />
         <PageRoute
@@ -273,31 +271,29 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPageViewSubscriberSettings
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS] as Route
+              }
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_DELETE)}
           element={
             <StatusPagesViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_BRANDING)}
           element={
             <StatusPagesViewBranding
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route}
+            />
           }
         />
 
@@ -307,11 +303,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewCustomHtmlCss
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS] as Route
+              }
+            />
           }
         />
 
@@ -321,11 +317,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewAdvancedOptions
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS] as Route
+              }
+            />
           }
         />
 
@@ -335,11 +331,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPageViewCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS] as Route
+              }
+            />
           }
         />
 
@@ -347,9 +343,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_OWNERS)}
           element={
             <StatusPageViewOwners
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_OWNERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_OWNERS] as Route}
+            />
           }
         />
 
@@ -357,9 +353,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SSO)}
           element={
             <StatusPageViewSSO
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route}
+            />
           }
         />
 
@@ -367,9 +363,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SCIM)}
           element={
             <StatusPageViewSCIM
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SCIM] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SCIM] as Route}
+            />
           }
         />
 
@@ -379,11 +375,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewEmailSubscribers
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS] as Route
+              }
+            />
           }
         />
 
@@ -393,13 +389,13 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPageViewAuthenticationSettings
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                ] as Route
+              }
+            />
           }
         />
 
@@ -407,9 +403,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_REPORTS)}
           element={
             <StatusPageViewReports
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_REPORTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_REPORTS] as Route}
+            />
           }
         />
 
@@ -417,9 +413,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SETTINGS)}
           element={
             <StatusPageViewSettings
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SETTINGS] as Route}
+            />
           }
         />
 
@@ -429,11 +425,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPageViewPrivateUser
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS] as Route
+              }
+            />
           }
         />
 
@@ -443,11 +439,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewSMSSubscribers
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS] as Route
+              }
+            />
           }
         />
 
@@ -457,11 +453,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewHeaderStyle
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route
+              }
+            />
           }
         />
 
@@ -471,11 +467,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewFooterStyle
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route
+              }
+            />
           }
         />
 
@@ -485,13 +481,13 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewOverviewPageBranding
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
+                ] as Route
+              }
+            />
           }
         />
 
@@ -501,11 +497,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewNavBarStyle
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE] as Route
+              }
+            />
           }
         />
 
@@ -515,13 +511,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewWebhookSubscribers
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS] as Route
+              }
+            />
           }
         />
 
@@ -531,11 +525,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewSlackSubscribers
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS] as Route
+              }
+            />
           }
         />
 
@@ -545,13 +539,13 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewMicrosoftTeamsSubscribers
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS
+                ] as Route
+              }
+            />
           }
         />
 
@@ -559,9 +553,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_EMBEDDED)}
           element={
             <StatusPagesViewEmbedded
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_EMBEDDED] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_EMBEDDED] as Route}
+            />
           }
         />
 
@@ -569,11 +563,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_RESOURCES)}
           element={
             <StatusPagesViewResources
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_RESOURCES] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_RESOURCES] as Route}
+            />
           }
         />
 
@@ -581,9 +573,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_DOMAINS)}
           element={
             <StatusPagesViewDomains
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route}
+            />
           }
         />
 
@@ -591,9 +583,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_GROUPS)}
           element={
             <StatusPagesViewGroups
-                {...props}
-                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route}
+            />
           }
         />
 
@@ -603,11 +595,11 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <StatusPagesViewAnnouncement
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route
+              }
+            />
           }
         />
       </PageRoute>

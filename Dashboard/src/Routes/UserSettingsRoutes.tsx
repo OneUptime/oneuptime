@@ -37,9 +37,9 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           path={UserSettingsRoutePath[PageMap.USER_SETTINGS] || ""}
           element={
             <UserSettingsNotificationMethods
-                {...props}
-                pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
+            />
           }
         />
         <PageRoute
@@ -48,22 +48,18 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_CUSTOM_FIELDS] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.USER_SETTINGS_CUSTOM_FIELDS] as Route}
+            />
           }
         />
         <PageRoute
           path={UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_LOGS] || ""}
           element={
             <UserSettingsNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS] as Route}
+            />
           }
         />
 
@@ -75,11 +71,11 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsNotificationLogsTimeline
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE] as Route
+              }
+            />
           }
         />
 
@@ -91,11 +87,11 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsNotiifcationSetting
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS] as Route
+              }
+            />
           }
         />
 
@@ -106,11 +102,11 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsNotificationMethods
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_METHODS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_METHODS] as Route
+              }
+            />
           }
         />
 
@@ -122,13 +118,11 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsIncidentNotificationRules
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route
+              }
+            />
           }
         />
 
@@ -138,11 +132,11 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsSlackIntegration
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route
+              }
+            />
           }
         />
 
@@ -154,13 +148,13 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsMicrosoftTeamsIntegration
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
+                ] as Route
+              }
+            />
           }
         />
 
@@ -171,11 +165,11 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsAlertNotificationRules
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route
+              }
+            />
           }
         />
 
@@ -187,13 +181,13 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsAlertEpisodeNotificationRules
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES
+                ] as Route
+              }
+            />
           }
         />
 
@@ -205,13 +199,13 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsIncidentEpisodeNotificationRules
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
+                ] as Route
+              }
+            />
           }
         />
 
@@ -223,13 +217,13 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <UserSettingsIncomingCallPhoneNumbers
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS
+                ] as Route
+              }
+            />
           }
         />
       </PageRoute>

@@ -137,9 +137,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENTS] || ""}
           element={
             <Incidents
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+            />
           }
         />
 
@@ -147,9 +147,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENTS] || ""}
           element={
             <UnresolvedIncidents
-                {...props}
-                pageRoute={RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route}
+            />
           }
         />
 
@@ -160,13 +160,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentWorkspaceConnectionSlack
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] as Route
+              }
+            />
           }
         />
 
@@ -178,13 +176,13 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentWorkspaceConnectionMicrosoftTeams
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                ] as Route
+              }
+            />
           }
         />
 
@@ -192,9 +190,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
           element={
             <IncidentCreate
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
+            />
           }
         />
 
@@ -203,9 +201,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_STATE] || ""}
           element={
             <IncidentSettingsState
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_STATE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_STATE] as Route}
+            />
           }
         />
 
@@ -213,11 +211,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SEVERITY] || ""}
           element={
             <IncidentSettingsSeverity
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_SEVERITY] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_SEVERITY] as Route}
+            />
           }
         />
 
@@ -225,11 +221,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_TEMPLATES] || ""}
           element={
             <IncidentSettingsTemplates
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route
+              }
+            />
           }
         />
 
@@ -239,11 +235,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentSettingsTemplatesView
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] as Route
+              }
+            />
           }
         />
 
@@ -253,11 +249,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentSettingsNoteTemplates
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route
+              }
+            />
           }
         />
 
@@ -269,13 +265,13 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentSettingsNoteTemplatesView
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW
+                ] as Route
+              }
+            />
           }
         />
 
@@ -287,13 +283,13 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentSettingsPostmortemTemplates
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES
+                ] as Route
+              }
+            />
           }
         />
 
@@ -305,13 +301,13 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentSettingsPostmortemTemplatesView
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW
+                ] as Route
+              }
+            />
           }
         />
 
@@ -321,11 +317,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentSettingsCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS] as Route
+              }
+            />
           }
         />
 
@@ -335,11 +331,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <IncidentSettingsGroupingRules
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route
+              }
+            />
           }
         />
 
@@ -347,11 +343,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SLA_RULES] || ""}
           element={
             <IncidentSettingsSlaRules
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route
+              }
+            />
           }
         />
 
@@ -359,9 +355,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ROLES] || ""}
           element={
             <IncidentSettingsRoles
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_ROLES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_ROLES] as Route}
+            />
           }
         />
 
@@ -369,9 +365,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE] || ""}
           element={
             <IncidentSettingsMore
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route}
+            />
           }
         />
 
@@ -380,9 +376,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENT_EPISODES] || ""}
           element={
             <IncidentEpisodes
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_EPISODES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_EPISODES] as Route}
+            />
           }
         />
 
@@ -390,11 +386,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENT_EPISODES] || ""}
           element={
             <UnresolvedIncidentEpisodes
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.UNRESOLVED_INCIDENT_EPISODES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.UNRESOLVED_INCIDENT_EPISODES] as Route
+              }
+            />
           }
         />
 
@@ -402,9 +398,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_CREATE] || ""}
           element={
             <IncidentEpisodeCreate
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route}
+            />
           }
         />
 
@@ -412,9 +408,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS] || ""}
           element={
             <IncidentEpisodeDocs
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route}
+            />
           }
         />
       </PageRoute>
@@ -428,9 +424,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <IncidentEpisodeView
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_VIEW] as Route}
+            />
           }
         />
 
@@ -440,11 +436,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewDelete
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_DELETE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_DELETE] as Route
+              }
+            />
           }
         />
 
@@ -454,11 +450,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewDescription
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION] as Route
+              }
+            />
           }
         />
 
@@ -468,11 +464,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewRootCause
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE] as Route
+              }
+            />
           }
         />
 
@@ -482,11 +478,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewPostmortem
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM] as Route
+              }
+            />
           }
         />
 
@@ -496,11 +492,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewRemediation
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION] as Route
+              }
+            />
           }
         />
 
@@ -510,11 +506,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewOwners
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_OWNERS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_OWNERS] as Route
+              }
+            />
           }
         />
 
@@ -524,13 +520,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewStateTimeline
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE] as Route
+              }
+            />
           }
         />
 
@@ -540,11 +534,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewIncidents
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS] as Route
+              }
+            />
           }
         />
 
@@ -554,11 +548,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewInternalNote
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE] as Route
+              }
+            />
           }
         />
 
@@ -568,11 +562,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewPublicNote
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE] as Route
+              }
+            />
           }
         />
 
@@ -582,11 +576,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewMembers
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_MEMBERS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_MEMBERS] as Route
+              }
+            />
           }
         />
 
@@ -596,11 +590,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentEpisodeViewSettings
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_EPISODE_VIEW_SETTINGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_EPISODE_VIEW_SETTINGS] as Route
+              }
+            />
           }
         />
       </PageRoute>
@@ -613,18 +607,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <IncidentView
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_DELETE)}
           element={
             <IncidentViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route}
+            />
           }
         />
 
@@ -632,9 +626,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SETTINGS)}
           element={
             <IncidentViewSettings
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SETTINGS] as Route}
+            />
           }
         />
 
@@ -644,11 +638,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentViewStateTimeline
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route
+              }
+            />
           }
         />
 
@@ -656,9 +650,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SLA)}
           element={
             <IncidentViewSla
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SLA] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SLA] as Route}
+            />
           }
         />
 
@@ -666,9 +660,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_REMEDIATION)}
           element={
             <IncidentViewRemediation
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_REMEDIATION] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_REMEDIATION] as Route}
+            />
           }
         />
 
@@ -676,9 +670,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_ROOT_CAUSE)}
           element={
             <IncidentViewRootCause
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ROOT_CAUSE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ROOT_CAUSE] as Route}
+            />
           }
         />
 
@@ -686,9 +680,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_POSTMORTEM)}
           element={
             <IncidentViewPostmortem
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_POSTMORTEM] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_POSTMORTEM] as Route}
+            />
           }
         />
 
@@ -696,9 +690,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_DESCRIPTION)}
           element={
             <IncidentViewDescription
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DESCRIPTION] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DESCRIPTION] as Route}
+            />
           }
         />
 
@@ -708,11 +702,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentInternalNote
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_VIEW_INTERNAL_NOTE] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_INTERNAL_NOTE] as Route}
+            />
           }
         />
 
@@ -722,11 +714,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentViewCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_VIEW_CUSTOM_FIELDS] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_CUSTOM_FIELDS] as Route}
+            />
           }
         />
 
@@ -734,9 +724,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_PUBLIC_NOTE)}
           element={
             <IncidentPublicNote
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_PUBLIC_NOTE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_PUBLIC_NOTE] as Route}
+            />
           }
         />
 
@@ -744,9 +734,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_OWNERS)}
           element={
             <IncidentViewOwner
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route}
+            />
           }
         />
 
@@ -754,9 +744,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_ROLES)}
           element={
             <IncidentViewRoles
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ROLES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ROLES] as Route}
+            />
           }
         />
 
@@ -766,13 +756,13 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentViewOnCallPolicyExecutionLogs
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
+                ] as Route
+              }
+            />
           }
         />
 
@@ -782,11 +772,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <IncidentViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS] as Route
+              }
+            />
           }
         />
 
@@ -794,9 +784,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_AI_LOGS)}
           element={
             <IncidentViewAILogs
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_AI_LOGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_VIEW_AI_LOGS] as Route}
+            />
           }
         />
       </PageRoute>

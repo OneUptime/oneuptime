@@ -72,29 +72,27 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <ProjectSettings
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_NOTIFICATION_LOGS)}
           element={
             <SettingsNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_LOGS)}
           element={
             <SettingsAILogs
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_AI_LOGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_LOGS] as Route}
+            />
           }
         />
 
@@ -102,9 +100,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USAGE_HISTORY)}
           element={
             <SettingsUsageHistory
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route}
+            />
           }
         />
 
@@ -112,9 +110,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_FEATURE_FLAGS)}
           element={
             <SettingFeatureFlags
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route}
+            />
           }
         />
 
@@ -124,11 +122,11 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <SettingsNotifications
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route
+              }
+            />
           }
         />
 
@@ -136,11 +134,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SLACK_INTEGRATION)}
           element={
             <SettingsSlackIntegration
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route}
+            />
           }
         />
 
@@ -150,13 +146,11 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <SettingsMicrosoftTeamsIntegration
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route
+              }
+            />
           }
         />
 
@@ -164,9 +158,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SSO)}
           element={
             <SettingsSSO
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
+            />
           }
         />
 
@@ -174,9 +168,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SCIM)}
           element={
             <SettingsSCIM
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_SCIM] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_SCIM] as Route}
+            />
           }
         />
 
@@ -184,9 +178,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_DOMAINS)}
           element={
             <SettingsDomains
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_DOMAINS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_DOMAINS] as Route}
+            />
           }
         />
 
@@ -194,9 +188,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_APIKEYS)}
           element={
             <SettingsApiKeys
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_APIKEYS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_APIKEYS] as Route}
+            />
           }
         />
 
@@ -204,9 +198,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_APIKEY_VIEW, 2)}
           element={
             <SettingsApiKeyView
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route}
+            />
           }
         />
 
@@ -216,11 +210,11 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <SettingsIngestionKeys
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route
+              }
+            />
           }
         />
 
@@ -231,13 +225,11 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <SettingsIngestionKeyView
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW] as Route
+              }
+            />
           }
         />
 
@@ -245,9 +237,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_BILLING)}
           element={
             <SettingsBilling
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_BILLING] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_BILLING] as Route}
+            />
           }
         />
 
@@ -255,9 +247,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_BILLING_INVOICES)}
           element={
             <SettingsInvoices
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route}
+            />
           }
         />
 
@@ -265,9 +257,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LABELS)}
           element={
             <SettingLabels
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
+            />
           }
         />
 
@@ -275,9 +267,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PROBES)}
           element={
             <SettingProbes
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_PROBES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_PROBES] as Route}
+            />
           }
         />
 
@@ -285,9 +277,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENTS)}
           element={
             <SettingAIAgents
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route}
+            />
           }
         />
 
@@ -295,9 +287,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENT_VIEW, 2)}
           element={
             <SettingsAIAgentView
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENT_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENT_VIEW] as Route}
+            />
           }
         />
 
@@ -305,9 +297,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LLM_PROVIDERS)}
           element={
             <SettingLlmProviders
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route}
+            />
           }
         />
 
@@ -315,9 +307,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAMS)}
           element={
             <SettingsTeams
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_TEAMS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TEAMS] as Route}
+            />
           }
         />
 
@@ -325,9 +317,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USERS)}
           element={
             <SettingsUsers
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_USERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_USERS] as Route}
+            />
           }
         />
 
@@ -335,9 +327,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAM_VIEW, 2)}
           element={
             <SettingsTeamView
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route}
+            />
           }
         />
 
@@ -345,9 +337,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_USER_VIEW, 2)}
           element={
             <SettingsUserView
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_USER_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_USER_VIEW] as Route}
+            />
           }
         />
 
@@ -355,9 +347,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PROBE_VIEW, 2)}
           element={
             <SettingsProbeView
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_PROBE_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_PROBE_VIEW] as Route}
+            />
           }
         />
 
@@ -368,11 +360,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <SettingsLlmProviderView
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SETTINGS_LLM_PROVIDER_VIEW] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDER_VIEW] as Route}
+            />
           }
         />
 
@@ -380,9 +370,9 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_BILLING)}
           element={
             <SettingsAIBilling
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_AI_BILLING] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_BILLING] as Route}
+            />
           }
         />
       </PageRoute>

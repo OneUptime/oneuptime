@@ -79,11 +79,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <ScheduledMaintenanceEvents
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
+              }
+            />
           }
         />
         <PageRoute
@@ -94,13 +94,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <OngoingScheduledMaintenanceEvents
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route
+              }
+            />
           }
         />
 
@@ -112,14 +110,14 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceEventsWorkspaceConnectionSlack
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap
-                      .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
+                ] as Route
+              }
+            />
           }
         />
 
@@ -132,14 +130,14 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceEventsWorkspaceConnectionMicrosoftTeams
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap
-                      .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                ] as Route
+              }
+            />
           }
         />
 
@@ -151,11 +149,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceEventCreate
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route
+              }
+            />
           }
         />
 
@@ -168,13 +166,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceSettingsState
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE
+                ] as Route
+              }
+            />
           }
         />
 
@@ -186,13 +184,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceSettingsTemplates
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
+                ] as Route
+              }
+            />
           }
         />
 
@@ -204,13 +202,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceSettingsTemplatesView
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES_VIEW
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES_VIEW
+                ] as Route
+              }
+            />
           }
         />
 
@@ -222,13 +220,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceSettingsNoteTemplates
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES
+                ] as Route
+              }
+            />
           }
         />
 
@@ -240,14 +238,14 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceSettingsNoteTemplatesView
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap
-                      .SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES_VIEW
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES_VIEW
+                ] as Route
+              }
+            />
           }
         />
 
@@ -259,13 +257,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceSettingsCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS
+                ] as Route
+              }
+            />
           }
         />
 
@@ -277,13 +275,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           }
           element={
             <ScheduledMaintenanceSettingsMore
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+                ] as Route
+              }
+            />
           }
         />
       </PageRoute>
@@ -300,11 +298,9 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <ScheduledMaintenanceEventView
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route
-                }
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route}
+            />
           }
         />
         <PageRoute
@@ -313,13 +309,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventsViewCustomFields
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS
+                ] as Route
+              }
+            />
           }
         />
         <PageRoute
@@ -328,13 +324,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS
+                ] as Route
+              }
+            />
           }
         />
         <PageRoute
@@ -343,11 +339,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventViewAILogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS] as Route
+              }
+            />
           }
         />
         <PageRoute
@@ -356,11 +352,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventsViewSettings
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS] as Route
+              }
+            />
           }
         />
         <PageRoute
@@ -369,11 +365,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventViewDelete
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE] as Route
+              }
+            />
           }
         />
 
@@ -383,13 +379,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventViewDescription
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_VIEW_DESCRIPTION
+                ] as Route
+              }
+            />
           }
         />
 
@@ -399,11 +395,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventViewOwner
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route
+              }
+            />
           }
         />
 
@@ -413,13 +409,13 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventViewStateTimeline
-                {...props}
-                pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
-                  ] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                ] as Route
+              }
+            />
           }
         />
 
@@ -429,11 +425,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventInternalNote
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE] as Route
+              }
+            />
           }
         />
 
@@ -443,11 +439,11 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ScheduledMaintenanceEventPublicNote
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route
+              }
+            />
           }
         />
       </PageRoute>

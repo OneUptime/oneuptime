@@ -17,80 +17,137 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { SubscribePageProps } from "./Pages/Subscribe/SubscribePageUtils";
-import { ComponentProps as ForgotPasswordComponentProps } from "./Pages/Accounts/ForgotPassword";
-import { ComponentProps as LoginComponentProps } from "./Pages/Accounts/Login";
-import { ComponentProps as ResetPasswordComponentProps } from "./Pages/Accounts/ResetPassword";
-import { ComponentProps as MasterPasswordComponentProps } from "./Pages/Accounts/MasterPassword";
-import { ComponentProps as SsoComponentProps } from "./Pages/Accounts/SSO";
-import PageComponentProps from "./Pages/PageComponentProps";
 
 // Lazy load all page components from a single barrel (minimizes chunk count)
-const ForgotPassword = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.ForgotPassword })),
-);
-const Login = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.Login })),
-);
-const Logout = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.Logout })),
-);
-const ResetPassword = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.ResetPassword })),
-);
-const MasterPassword = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.MasterPassword })),
-);
-const Sso = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.Sso })),
-);
-const AnnouncementDetail = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.AnnouncementDetail })),
-);
-const AnnouncementList = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.AnnouncementList })),
-);
-const IncidentDetail = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.IncidentDetail })),
-);
-const IncidentList = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.IncidentList })),
-);
-const PageNotFound = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.PageNotFound })),
-);
-const Overview = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.Overview })),
-);
-const ScheduledEventDetail = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.ScheduledEventDetail })),
-);
-const ScheduledEventList = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.ScheduledEventList })),
-);
-const EmailSubscribe = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.EmailSubscribe })),
-);
-const SMSSubscribe = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.SMSSubscribe })),
-);
-const UpdateSubscription = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.UpdateSubscription })),
-);
-const ConfirmSubscription = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.ConfirmSubscription })),
-);
-const SlackSubscribe = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.SlackSubscribe })),
-);
-const MicrosoftTeamsSubscribe = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({
-    default: m.MicrosoftTeamsSubscribe,
-  })),
-);
-const PageForbidden = lazy(() =>
-  import("./Pages/AllPages").then((m) => ({ default: m.PageForbidden })),
-);
+const ForgotPassword = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.ForgotPassword,
+    };
+  });
+});
+const Login = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.Login };
+  });
+});
+const Logout = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.Logout };
+  });
+});
+const ResetPassword = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.ResetPassword };
+  });
+});
+const MasterPassword = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.MasterPassword,
+    };
+  });
+});
+const Sso = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.Sso };
+  });
+});
+const AnnouncementDetail = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.AnnouncementDetail,
+    };
+  });
+});
+const AnnouncementList = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.AnnouncementList,
+    };
+  });
+});
+const IncidentDetail = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.IncidentDetail,
+    };
+  });
+});
+const IncidentList = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.IncidentList };
+  });
+});
+const PageNotFound = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.PageNotFound };
+  });
+});
+const Overview = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.Overview };
+  });
+});
+const ScheduledEventDetail = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.ScheduledEventDetail,
+    };
+  });
+});
+const ScheduledEventList = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.ScheduledEventList,
+    };
+  });
+});
+const EmailSubscribe = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.EmailSubscribe,
+    };
+  });
+});
+const SMSSubscribe = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.SMSSubscribe };
+  });
+});
+const UpdateSubscription = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.UpdateSubscription,
+    };
+  });
+});
+const ConfirmSubscription = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.ConfirmSubscription,
+    };
+  });
+});
+const SlackSubscribe = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.SlackSubscribe,
+    };
+  });
+});
+const MicrosoftTeamsSubscribe = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return {
+      default: m.MicrosoftTeamsSubscribe,
+    };
+  });
+});
+const PageForbidden = lazy(() => {
+  return import("./Pages/AllPages").then((m) => {
+    return { default: m.PageForbidden };
+  });
+});
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());

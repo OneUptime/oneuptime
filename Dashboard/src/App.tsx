@@ -59,72 +59,130 @@ const InitRoutes: React.LazyExoticComponent<
   return import("./Routes/InitRoutes");
 });
 
-const LogsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.LogsRoutes })),
-);
-const MetricsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.MetricsRoutes })),
-);
-const TracesRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.TracesRoutes })),
-);
-const ExceptionsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.ExceptionsRoutes })),
-);
-const IncidentsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.IncidentsRoutes })),
-);
-const AlertsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.AlertsRoutes })),
-);
-const ScheduledMaintenanceEventsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({
-    default: m.ScheduledMaintenanceEventsRoutes,
-  })),
-);
-const OnCallDutyRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.OnCallDutyRoutes })),
-);
-const MonitorsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.MonitorsRoutes })),
-);
-const MonitorGroupRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({
-    default: m.MonitorGroupRoutes,
-  })),
-);
-const WorkflowRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.WorkflowRoutes })),
-);
-const StatusPagesRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({
-    default: m.StatusPagesRoutes,
-  })),
-);
-const DashboardRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.DashboardRoutes })),
-);
-const ServiceRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.ServiceRoutes })),
-);
-const CodeRepositoryRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({
-    default: m.CodeRepositoryRoutes,
-  })),
-);
-const AIAgentTasksRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({
-    default: m.AIAgentTasksRoutes,
-  })),
-);
-const SettingsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({ default: m.SettingsRoutes })),
-);
-const UserSettingsRoutes = lazy(() =>
-  import("./Routes/AllRoutes").then((m) => ({
-    default: m.UserSettingsRoutes,
-  })),
-);
+const LogsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return { default: m.LogsRoutes };
+  });
+});
+const MetricsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.MetricsRoutes,
+    };
+  });
+});
+const TracesRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.TracesRoutes,
+    };
+  });
+});
+const ExceptionsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.ExceptionsRoutes,
+    };
+  });
+});
+const IncidentsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.IncidentsRoutes,
+    };
+  });
+});
+const AlertsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.AlertsRoutes,
+    };
+  });
+});
+const ScheduledMaintenanceEventsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.ScheduledMaintenanceEventsRoutes,
+    };
+  });
+});
+const OnCallDutyRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.OnCallDutyRoutes,
+    };
+  });
+});
+const MonitorsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.MonitorsRoutes,
+    };
+  });
+});
+const MonitorGroupRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.MonitorGroupRoutes,
+    };
+  });
+});
+const WorkflowRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.WorkflowRoutes,
+    };
+  });
+});
+const StatusPagesRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.StatusPagesRoutes,
+    };
+  });
+});
+const DashboardRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.DashboardRoutes,
+    };
+  });
+});
+const ServiceRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.ServiceRoutes,
+    };
+  });
+});
+const CodeRepositoryRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.CodeRepositoryRoutes,
+    };
+  });
+});
+const AIAgentTasksRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.AIAgentTasksRoutes,
+    };
+  });
+});
+const SettingsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.SettingsRoutes,
+    };
+  });
+});
+const UserSettingsRoutes = lazy(() => {
+  return import("./Routes/AllRoutes").then((m) => {
+    return {
+      default: m.UserSettingsRoutes,
+    };
+  });
+});
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());

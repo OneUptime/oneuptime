@@ -17,11 +17,11 @@ const InitRoutes: FunctionComponent<RoutesProps> = (
         path={RouteMap[PageMap.INIT]?.toString() || ""}
         element={
           <Init
-              {...rest}
-              pageRoute={RouteMap[PageMap.INIT] as Route}
-              projects={projects}
-              isLoadingProjects={isLoading}
-            />
+            {...rest}
+            pageRoute={RouteMap[PageMap.INIT] as Route}
+            projects={projects}
+            isLoadingProjects={isLoading}
+          />
         }
       />
 
@@ -29,11 +29,11 @@ const InitRoutes: FunctionComponent<RoutesProps> = (
         path={RouteMap[PageMap.INIT_PROJECT]?.toString() || ""}
         element={
           <Init
-              {...rest}
-              pageRoute={RouteMap[PageMap.INIT_PROJECT] as Route}
-              projects={projects}
-              isLoadingProjects={isLoading}
-            />
+            {...rest}
+            pageRoute={RouteMap[PageMap.INIT_PROJECT] as Route}
+            projects={projects}
+            isLoadingProjects={isLoading}
+          />
         }
       />
     </Routes>

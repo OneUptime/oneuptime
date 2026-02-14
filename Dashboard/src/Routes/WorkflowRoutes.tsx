@@ -28,9 +28,9 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <Workflows
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
+            />
           }
         />
 
@@ -38,9 +38,9 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           path={WorkflowRoutePath[PageMap.WORKFLOWS_VARIABLES] || ""}
           element={
             <WorkflowsVariables
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route}
+            />
           }
         />
 
@@ -48,9 +48,9 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           path={WorkflowRoutePath[PageMap.WORKFLOWS_LOGS] || ""}
           element={
             <WorkflowsLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOWS_LOGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOWS_LOGS] as Route}
+            />
           }
         />
       </PageRoute>
@@ -63,18 +63,18 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <WorkflowOverview
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOW_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_VIEW] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_VIEW_SETTINGS)}
           element={
             <WorkflowSettings
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOW_VIEW_SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_VIEW_SETTINGS] as Route}
+            />
           }
         />
 
@@ -82,9 +82,9 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_VARIABLES)}
           element={
             <WorkflowVariables
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOW_VARIABLES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_VARIABLES] as Route}
+            />
           }
         />
 
@@ -92,9 +92,9 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_BUILDER)}
           element={
             <WorkflowBuilder
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOW_BUILDER] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_BUILDER] as Route}
+            />
           }
         />
 
@@ -102,9 +102,9 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_LOGS)}
           element={
             <WorkflowLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOW_LOGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_LOGS] as Route}
+            />
           }
         />
 
@@ -112,9 +112,9 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_DELETE)}
           element={
             <WorkflowDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.WORKFLOW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_DELETE] as Route}
+            />
           }
         />
       </PageRoute>

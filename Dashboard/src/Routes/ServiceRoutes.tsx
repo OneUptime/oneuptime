@@ -44,18 +44,18 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={ServiceRoutePath[PageMap.SERVICES] || ""}
           element={
             <Services
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICES] as Route}
+            />
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_DEPENDENCY_GRAPH)}
           element={
             <ServiceDependencyGraph
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_DEPENDENCY_GRAPH] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_DEPENDENCY_GRAPH] as Route}
+            />
           }
         />
       </PageRoute>
@@ -68,9 +68,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <ServiceView
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW] as Route}
+            />
           }
         />
 
@@ -78,9 +78,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_DELETE)}
           element={
             <ServiceViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_DELETE] as Route}
+            />
           }
         />
 
@@ -88,9 +88,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_SETTINGS)}
           element={
             <ServiceViewSettings
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_SETTINGS] as Route}
+            />
           }
         />
 
@@ -98,9 +98,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_MONITORS)}
           element={
             <ServiceViewMonitors
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_MONITORS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_MONITORS] as Route}
+            />
           }
         />
 
@@ -108,9 +108,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_ALERTS)}
           element={
             <ServiceViewAlerts
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route}
+            />
           }
         />
 
@@ -118,9 +118,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_INCIDENTS)}
           element={
             <ServiceViewIncidents
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route}
+            />
           }
         />
 
@@ -128,9 +128,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_LOGS)}
           element={
             <ServiceViewLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_LOGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_LOGS] as Route}
+            />
           }
         />
 
@@ -138,9 +138,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_TRACES)}
           element={
             <ServiceViewTraces
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route}
+            />
           }
         />
 
@@ -148,9 +148,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_METRICS)}
           element={
             <ServiceViewMetrics
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_METRICS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_METRICS] as Route}
+            />
           }
         />
 
@@ -158,9 +158,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_OWNERS)}
           element={
             <ServiceViewOwners
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_OWNERS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_OWNERS] as Route}
+            />
           }
         />
 
@@ -168,9 +168,9 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_DEPENDENCIES)}
           element={
             <ServiceViewDependencies
-                {...props}
-                pageRoute={RouteMap[PageMap.SERVICE_VIEW_DEPENDENCIES] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_DEPENDENCIES] as Route}
+            />
           }
         />
 
@@ -180,11 +180,11 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <ServiceViewCodeRepositories
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route
-                }
-              />
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route
+              }
+            />
           }
         />
       </PageRoute>

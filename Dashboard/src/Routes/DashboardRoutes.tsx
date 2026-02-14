@@ -25,9 +25,9 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
         path={DashboardsRoutePath[PageMap.DASHBOARDS] || ""}
         element={
           <Dashboards
-              {...props}
-              pageRoute={RouteMap[PageMap.DASHBOARDS] as Route}
-            />
+            {...props}
+            pageRoute={RouteMap[PageMap.DASHBOARDS] as Route}
+          />
         }
       />
 
@@ -39,9 +39,9 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <DashboardView
-                {...props}
-                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_VIEW] as Route}
+            />
           }
         />
 
@@ -49,9 +49,9 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_OVERVIEW)}
           element={
             <DashboardViewOverview
-                {...props}
-                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_OVERVIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_OVERVIEW] as Route}
+            />
           }
         />
 
@@ -59,9 +59,9 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_DELETE)}
           element={
             <DashboardViewDelete
-                {...props}
-                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route}
+            />
           }
         />
 
@@ -69,9 +69,9 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.DASHBOARD_VIEW_SETTINGS)}
           element={
             <DashboardViewSettings
-                {...props}
-                pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_SETTINGS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_VIEW_SETTINGS] as Route}
+            />
           }
         />
       </PageRoute>

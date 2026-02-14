@@ -26,9 +26,9 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <ExceptionsUnresolved
-                {...props}
-                pageRoute={RouteMap[PageMap.EXCEPTIONS] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.EXCEPTIONS] as Route}
+            />
           }
         />
 
@@ -36,9 +36,9 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           path={ExceptionsRoutePath[PageMap.EXCEPTIONS_UNRESOLVED] || ""}
           element={
             <ExceptionsUnresolved
-                {...props}
-                pageRoute={RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route}
+            />
           }
         />
 
@@ -46,9 +46,9 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           path={ExceptionsRoutePath[PageMap.EXCEPTIONS_RESOLVED] || ""}
           element={
             <ExceptionsResolved
-                {...props}
-                pageRoute={RouteMap[PageMap.EXCEPTIONS_RESOLVED] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_RESOLVED] as Route}
+            />
           }
         />
 
@@ -56,9 +56,9 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           path={ExceptionsRoutePath[PageMap.EXCEPTIONS_ARCHIVED] || ""}
           element={
             <ExceptionsArchived
-                {...props}
-                pageRoute={RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route}
+            />
           }
         />
       </PageRoute>
@@ -72,9 +72,9 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <ExceptionView
-                {...props}
-                pageRoute={RouteMap[PageMap.EXCEPTIONS_VIEW] as Route}
-              />
+              {...props}
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_VIEW] as Route}
+            />
           }
         />
       </PageRoute>
