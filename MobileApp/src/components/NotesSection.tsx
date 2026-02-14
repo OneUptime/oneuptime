@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { formatDateTime } from "../utils/date";
 import type { NoteItem } from "../api/types";
@@ -35,34 +34,27 @@ export default function NotesSection({
           </Text>
         </View>
         <TouchableOpacity
-          className="flex-row items-center rounded-lg overflow-hidden"
+          className="flex-row items-center rounded-lg px-3 py-1.5"
+          style={{
+            backgroundColor: theme.colors.actionPrimary,
+          }}
           onPress={() => {
             return setNoteModalVisible(true);
           }}
           activeOpacity={0.85}
         >
-          <LinearGradient
-            colors={[
-              theme.colors.accentGradientStart,
-              theme.colors.accentGradientEnd,
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="flex-row items-center px-3 py-1.5"
+          <Ionicons
+            name="add"
+            size={14}
+            color="#FFFFFF"
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            className="text-[12px] font-semibold"
+            style={{ color: "#FFFFFF" }}
           >
-            <Ionicons
-              name="add"
-              size={14}
-              color="#FFFFFF"
-              style={{ marginRight: 4 }}
-            />
-            <Text
-              className="text-[12px] font-semibold"
-              style={{ color: "#FFFFFF" }}
-            >
-              Add Note
-            </Text>
-          </LinearGradient>
+            Add Note
+          </Text>
         </TouchableOpacity>
       </View>
 

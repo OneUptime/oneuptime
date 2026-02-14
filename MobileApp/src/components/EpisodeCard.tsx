@@ -129,12 +129,24 @@ export default function EpisodeCard(
                   {type === "incident" ? "INCIDENT EPISODE" : "ALERT EPISODE"}
                 </Text>
               </View>
-              <Text
-                className="text-[11px] font-semibold"
-                style={{ color: theme.colors.textTertiary }}
+              <View
+                className="px-2.5 py-1 rounded-full"
+                style={{
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderDefault,
+                }}
               >
-                {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
-              </Text>
+                <Text
+                  className="text-[12px] font-bold"
+                  style={{
+                    color: theme.colors.textPrimary,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
+                </Text>
+              </View>
             </View>
             <View className="flex-row items-center">
               <Ionicons

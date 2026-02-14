@@ -405,6 +405,9 @@ export default function IncidentEpisodeDetailScreen({
             {!isAcknowledged && !isResolved && acknowledgeState ? (
               <TouchableOpacity
                 className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
+                style={{
+                  backgroundColor: theme.colors.stateAcknowledged,
+                }}
                 onPress={() => {
                   return handleStateChange(
                     acknowledgeState._id,
@@ -413,21 +416,6 @@ export default function IncidentEpisodeDetailScreen({
                 }}
                 disabled={changingState}
               >
-                <LinearGradient
-                  colors={[
-                    theme.colors.stateAcknowledged,
-                    theme.colors.accentGradientEnd,
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                  }}
-                />
                 {changingState ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
@@ -451,26 +439,14 @@ export default function IncidentEpisodeDetailScreen({
             {resolveState ? (
               <TouchableOpacity
                 className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
+                style={{
+                  backgroundColor: theme.colors.stateResolved,
+                }}
                 onPress={() => {
                   return handleStateChange(resolveState._id, resolveState.name);
                 }}
                 disabled={changingState}
               >
-                <LinearGradient
-                  colors={[
-                    theme.colors.stateResolved,
-                    theme.colors.accentCyan,
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                  }}
-                />
                 {changingState ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (

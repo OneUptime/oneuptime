@@ -105,13 +105,25 @@ export default function IncidentCard({
                   INCIDENT
                 </Text>
               </View>
-              <Text
-                className="text-[11px] font-semibold"
-                style={{ color: theme.colors.textTertiary }}
+              <View
+                className="px-2.5 py-1 rounded-full"
+                style={{
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderDefault,
+                }}
               >
-                {incident.incidentNumberWithPrefix ||
-                  `#${incident.incidentNumber}`}
-              </Text>
+                <Text
+                  className="text-[12px] font-bold"
+                  style={{
+                    color: theme.colors.textPrimary,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  {incident.incidentNumberWithPrefix ||
+                    `#${incident.incidentNumber}`}
+                </Text>
+              </View>
             </View>
             <View className="flex-row items-center">
               <Ionicons

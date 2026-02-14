@@ -255,7 +255,8 @@ export default function SettingsScreen(): React.JSX.Element {
                       style={
                         isActive
                           ? {
-                              shadowColor: theme.colors.accentGradientMid,
+                              backgroundColor: theme.colors.actionPrimary,
+                              shadowColor: theme.colors.actionPrimary,
                               shadowOpacity: 0.3,
                               shadowOffset: { width: 0, height: 2 },
                               shadowRadius: 6,
@@ -268,23 +269,6 @@ export default function SettingsScreen(): React.JSX.Element {
                       }}
                       activeOpacity={0.7}
                     >
-                      {isActive ? (
-                        <LinearGradient
-                          colors={[
-                            theme.colors.accentGradientStart,
-                            theme.colors.accentGradientEnd,
-                          ]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                          }}
-                        />
-                      ) : null}
                       <Ionicons
                         name={
                           mode === "dark"
