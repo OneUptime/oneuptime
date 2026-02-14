@@ -297,7 +297,7 @@ export default function HomeScreen(): React.JSX.Element {
             </View>
           </View>
 
-          <View className="mt-4 flex-row items-center justify-between">
+          <View className="mt-4">
             <View>
               <Text
                 className="text-[12px]"
@@ -314,22 +314,6 @@ export default function HomeScreen(): React.JSX.Element {
                 }}
               >
                 {(incidentCount ?? 0) + (alertCount ?? 0)}
-              </Text>
-            </View>
-
-            <View
-              className="px-3 py-2 rounded-xl"
-              style={{
-                backgroundColor: theme.colors.accentCyanBg,
-                borderWidth: 1,
-                borderColor: theme.colors.borderGlass,
-              }}
-            >
-              <Text
-                className="text-[11px] font-semibold"
-                style={{ color: theme.colors.accentCyan }}
-              >
-                Live
               </Text>
             </View>
           </View>
