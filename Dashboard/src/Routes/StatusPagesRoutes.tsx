@@ -1,246 +1,70 @@
-import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import StatusPageViewLayout from "../Pages/StatusPages/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, StatusPagesRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, {
-  FunctionComponent,
-  LazyExoticComponent,
-  ReactElement,
-  Suspense,
-  lazy,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 import StatusPageLayout from "../Pages/StatusPages/Layout";
 import Navigation from "Common/UI/Utils/Navigation";
 
 // Pages
-const StatusPages: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/StatusPages/StatusPages");
-  });
-const StatusPagesView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/StatusPages/View/Index");
-  });
-const StatusPagesViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/Delete");
-});
-const StatusPagesViewBranding: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/Branding");
-});
-const StatusPagesViewEmailSubscribers: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/EmailSubscribers");
-});
-const StatusPagesViewSMSSubscribers: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/SMSSubscribers");
-});
-const StatusPagesViewSlackSubscribers: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/SlackSubscribers");
-});
-const StatusPagesViewMicrosoftTeamsSubscribers: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/MicrosoftTeamsSubscribers");
-});
-const StatusPagesViewWebhookSubscribers: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/WebhookSubscribers");
-});
-const StatusPagesViewEmbedded: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/EmbeddedStatus");
-});
-const StatusPagesViewDomains: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/Domains");
-});
-const StatusPagesViewResources: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/Resources");
-});
-const StatusPagesViewAnnouncement: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/Announcements");
-});
-const StatusPagesViewAdvancedOptions: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/AdvancedOptions");
-});
-const StatusPagesViewCustomHtmlCss: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/CustomHtmlCss");
-});
-const StatusPagesViewHeaderStyle: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/HeaderStyle");
-});
-const StatusPagesViewFooterStyle: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/FooterStyle");
-});
-const StatusPagesViewNavBarStyle: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/NavBarStyle");
-});
-const StatusPagesViewGroups: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/Groups");
-});
-const StatusPageViewSubscriberSettings: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/SubscriberSettings");
-});
-const StatusPageViewCustomFields: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/CustomFields");
-});
-const StatusPageViewSSO: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/SSO");
-});
-const StatusPageViewSCIM: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/SCIM");
-});
-const StatusPageViewPrivateUser: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/PrivateUser");
-});
-const StatusPageViewOwners: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/Owners");
-});
-const StatusPageViewAuthenticationSettings: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/AuthenticationSettings");
-});
+import StatusPages from "../Pages/StatusPages/StatusPages";
+import StatusPagesView from "../Pages/StatusPages/View/Index";
+import StatusPagesViewDelete from "../Pages/StatusPages/View/Delete";
+import StatusPagesViewBranding from "../Pages/StatusPages/View/Branding";
+import StatusPagesViewEmailSubscribers from "../Pages/StatusPages/View/EmailSubscribers";
+import StatusPagesViewSMSSubscribers from "../Pages/StatusPages/View/SMSSubscribers";
+import StatusPagesViewSlackSubscribers from "../Pages/StatusPages/View/SlackSubscribers";
+import StatusPagesViewMicrosoftTeamsSubscribers from "../Pages/StatusPages/View/MicrosoftTeamsSubscribers";
+import StatusPagesViewWebhookSubscribers from "../Pages/StatusPages/View/WebhookSubscribers";
+import StatusPagesViewEmbedded from "../Pages/StatusPages/View/EmbeddedStatus";
+import StatusPagesViewDomains from "../Pages/StatusPages/View/Domains";
+import StatusPagesViewResources from "../Pages/StatusPages/View/Resources";
+import StatusPagesViewAnnouncement from "../Pages/StatusPages/View/Announcements";
+import StatusPagesViewAdvancedOptions from "../Pages/StatusPages/View/AdvancedOptions";
+import StatusPagesViewCustomHtmlCss from "../Pages/StatusPages/View/CustomHtmlCss";
+import StatusPagesViewHeaderStyle from "../Pages/StatusPages/View/HeaderStyle";
+import StatusPagesViewFooterStyle from "../Pages/StatusPages/View/FooterStyle";
+import StatusPagesViewNavBarStyle from "../Pages/StatusPages/View/NavBarStyle";
+import StatusPagesViewGroups from "../Pages/StatusPages/View/Groups";
+import StatusPageViewSubscriberSettings from "../Pages/StatusPages/View/SubscriberSettings";
+import StatusPageViewCustomFields from "../Pages/StatusPages/View/CustomFields";
+import StatusPageViewSSO from "../Pages/StatusPages/View/SSO";
+import StatusPageViewSCIM from "../Pages/StatusPages/View/SCIM";
+import StatusPageViewPrivateUser from "../Pages/StatusPages/View/PrivateUser";
+import StatusPageViewOwners from "../Pages/StatusPages/View/Owners";
+import StatusPageViewAuthenticationSettings from "../Pages/StatusPages/View/AuthenticationSettings";
 
-const StatusPageViewReports: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/Reports");
-});
+import StatusPageViewReports from "../Pages/StatusPages/View/Reports";
 
-const StatusPageViewSettings: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/StatusPageSettings");
-});
+import StatusPageViewSettings from "../Pages/StatusPages/View/StatusPageSettings";
 
-const StatusPagesViewOverviewPageBranding: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/OverviewPageBranding");
-});
+import StatusPagesViewOverviewPageBranding from "../Pages/StatusPages/View/OverviewPageBranding";
 
-const StatusPageAnnouncements: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements");
-});
+import StatusPageAnnouncements from "../Pages/StatusPages/Announcements";
 
-const AnnouncementCreate: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/AnnouncementCreate");
-});
+import AnnouncementCreate from "../Pages/StatusPages/AnnouncementCreate";
 
-const AnnouncementView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/StatusPages/AnnouncementView");
-  });
+import AnnouncementView from "../Pages/StatusPages/AnnouncementView";
 
-const AnnouncementViewLayout: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/AnnouncementLayout");
-});
+import AnnouncementViewLayout from "../Pages/StatusPages/AnnouncementLayout";
 
-const AnnouncementViewNotificationLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements/View/NotificationLogs");
-});
-const AnnouncementViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements/View/Delete");
-});
+import AnnouncementViewNotificationLogs from "../Pages/StatusPages/Announcements/View/NotificationLogs";
+import AnnouncementViewDelete from "../Pages/StatusPages/Announcements/View/Delete";
 
-const StatusPageViewNotificationLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/View/NotificationLogs");
-});
+import StatusPageViewNotificationLogs from "../Pages/StatusPages/View/NotificationLogs";
 
 // Settings Pages
-const StatusPagesSettingsAnnouncementTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import(
-    "../Pages/StatusPages/Settings/StatusPageAnnouncementTemplates"
-  );
-});
+import StatusPagesSettingsAnnouncementTemplates from "../Pages/StatusPages/Settings/StatusPageAnnouncementTemplates";
 
-const StatusPagesSettingsAnnouncementTemplatesView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import(
-    "../Pages/StatusPages/Settings/StatusPageAnnouncementTemplateView"
-  );
-});
+import StatusPagesSettingsAnnouncementTemplatesView from "../Pages/StatusPages/Settings/StatusPageAnnouncementTemplateView";
 
-const StatusPagesSettingsSubscriberTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import(
-    "../Pages/StatusPages/Settings/SubscriberNotificationTemplates"
-  );
-});
+import StatusPagesSettingsSubscriberTemplates from "../Pages/StatusPages/Settings/SubscriberNotificationTemplates";
 
-const StatusPagesSettingsSubscriberTemplatesView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import(
-    "../Pages/StatusPages/Settings/SubscriberNotificationTemplateView"
-  );
-});
+import StatusPagesSettingsSubscriberTemplatesView from "../Pages/StatusPages/Settings/SubscriberNotificationTemplateView";
 
-const StatusPagesSettingsCustomFields: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/Settings/StatusPageCustomFields");
-});
+import StatusPagesSettingsCustomFields from "../Pages/StatusPages/Settings/StatusPageCustomFields";
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -260,23 +84,19 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={StatusPagesRoutePath[PageMap.STATUS_PAGES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPages
+            <StatusPages
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageAnnouncements
+            <StatusPageAnnouncements
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -288,8 +108,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesSettingsAnnouncementTemplates
+            <StatusPagesSettingsAnnouncementTemplates
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -297,7 +116,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -308,8 +126,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesSettingsAnnouncementTemplatesView
+            <StatusPagesSettingsAnnouncementTemplatesView
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -317,7 +134,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -328,8 +144,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesSettingsSubscriberTemplates
+            <StatusPagesSettingsSubscriberTemplates
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -338,7 +153,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -350,8 +164,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesSettingsSubscriberTemplatesView
+            <StatusPagesSettingsSubscriberTemplatesView
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -360,7 +173,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -370,14 +182,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesSettingsCustomFields
+            <StatusPagesSettingsCustomFields
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS] as Route
                 }
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -385,32 +195,26 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}
         element={
-          <Suspense fallback={Loader}>
-            <AnnouncementCreate
+          <AnnouncementCreate
               {...props}
               pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
             />
-          </Suspense>
         }
       />
 
       <PageRoute
         path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW] || ""}
         element={
-          <Suspense fallback={Loader}>
-            <AnnouncementViewLayout {...props} />
-          </Suspense>
+          <AnnouncementViewLayout {...props} />
         }
       >
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <AnnouncementView
+            <AnnouncementView
                 {...props}
                 pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -418,25 +222,21 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <AnnouncementViewNotificationLogs
+            <AnnouncementViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_DELETE)}
           element={
-            <Suspense fallback={Loader}>
-              <AnnouncementViewDelete
+            <AnnouncementViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_DELETE] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -448,12 +248,10 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesView
+            <StatusPagesView
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -461,14 +259,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewNotificationLogs
+            <StatusPageViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -476,8 +272,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewSubscriberSettings
+            <StatusPageViewSubscriberSettings
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -485,29 +280,24 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_DELETE)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewDelete
+            <StatusPagesViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_BRANDING)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewBranding
+            <StatusPagesViewBranding
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -516,14 +306,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewCustomHtmlCss
+            <StatusPagesViewCustomHtmlCss
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -532,14 +320,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewAdvancedOptions
+            <StatusPagesViewAdvancedOptions
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -548,50 +334,42 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewCustomFields
+            <StatusPageViewCustomFields
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_OWNERS)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewOwners
+            <StatusPageViewOwners
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_OWNERS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SSO)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewSSO
+            <StatusPageViewSSO
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SCIM)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewSCIM
+            <StatusPageViewSCIM
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SCIM] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -600,14 +378,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewEmailSubscribers
+            <StatusPagesViewEmailSubscribers
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -616,8 +392,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewAuthenticationSettings
+            <StatusPageViewAuthenticationSettings
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -625,31 +400,26 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_REPORTS)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewReports
+            <StatusPageViewReports
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_REPORTS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SETTINGS)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewSettings
+            <StatusPageViewSettings
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SETTINGS] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -658,14 +428,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPageViewPrivateUser
+            <StatusPageViewPrivateUser
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -674,14 +442,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewSMSSubscribers
+            <StatusPagesViewSMSSubscribers
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -690,14 +456,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_HEADER_STYLE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewHeaderStyle
+            <StatusPagesViewHeaderStyle
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -706,14 +470,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewFooterStyle
+            <StatusPagesViewFooterStyle
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -722,8 +484,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewOverviewPageBranding
+            <StatusPagesViewOverviewPageBranding
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -731,7 +492,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -740,14 +500,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewNavBarStyle
+            <StatusPagesViewNavBarStyle
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -756,8 +514,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewWebhookSubscribers
+            <StatusPagesViewWebhookSubscribers
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -765,7 +522,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -774,14 +530,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewSlackSubscribers
+            <StatusPagesViewSlackSubscribers
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -790,8 +544,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewMicrosoftTeamsSubscribers
+            <StatusPagesViewMicrosoftTeamsSubscribers
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -799,57 +552,48 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_EMBEDDED)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewEmbedded
+            <StatusPagesViewEmbedded
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_EMBEDDED] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_RESOURCES)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewResources
+            <StatusPagesViewResources
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_RESOURCES] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_DOMAINS)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewDomains
+            <StatusPagesViewDomains
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_GROUPS)}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewGroups
+            <StatusPagesViewGroups
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -858,14 +602,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <StatusPagesViewAnnouncement
+            <StatusPagesViewAnnouncement
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route
                 }
               />
-            </Suspense>
           }
         />
       </PageRoute>

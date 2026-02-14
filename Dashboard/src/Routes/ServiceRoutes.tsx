@@ -1,99 +1,38 @@
-import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import StatusPageViewLayout from "../Pages/Service/View/Layout";
 import ServiceLayout from "../Pages/Service/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, ServiceRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, {
-  FunctionComponent,
-  LazyExoticComponent,
-  ReactElement,
-  Suspense,
-  lazy,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
-const Services: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
-  () => {
-    return import("../Pages/Service/Services");
-  },
-);
-const ServiceDependencyGraph: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/DependencyGraph");
-});
-const ServiceView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Service/View/Index");
-  });
+import Services from "../Pages/Service/Services";
+import ServiceDependencyGraph from "../Pages/Service/DependencyGraph";
+import ServiceView from "../Pages/Service/View/Index";
 
-const ServiceViewMonitors: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Monitors");
-});
+import ServiceViewMonitors from "../Pages/Service/View/Monitors";
 
-const ServiceViewIncidents: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Incidents");
-});
+import ServiceViewIncidents from "../Pages/Service/View/Incidents";
 
-const ServiceViewAlerts: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Alerts");
-});
+import ServiceViewAlerts from "../Pages/Service/View/Alerts";
 
-const ServiceViewLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Service/View/Logs");
-  });
+import ServiceViewLogs from "../Pages/Service/View/Logs";
 
-const ServiceViewTraces: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Traces");
-});
+import ServiceViewTraces from "../Pages/Service/View/Traces";
 
-const ServiceViewMetrics: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Metrics");
-});
+import ServiceViewMetrics from "../Pages/Service/View/Metrics";
 
-const ServiceViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Delete");
-});
+import ServiceViewDelete from "../Pages/Service/View/Delete";
 
-const ServiceViewSettings: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Settings");
-});
+import ServiceViewSettings from "../Pages/Service/View/Settings";
 
-const ServiceViewOwners: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Owners");
-});
+import ServiceViewOwners from "../Pages/Service/View/Owners";
 
-const ServiceViewDependencies: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/Dependencies");
-});
+import ServiceViewDependencies from "../Pages/Service/View/Dependencies";
 
-const ServiceViewCodeRepositories: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/CodeRepositories");
-});
+import ServiceViewCodeRepositories from "../Pages/Service/View/CodeRepositories";
 
 const ServiceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -104,23 +43,19 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={ServiceRoutePath[PageMap.SERVICES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <Services
+            <Services
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICES] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_DEPENDENCY_GRAPH)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceDependencyGraph
+            <ServiceDependencyGraph
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_DEPENDENCY_GRAPH] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -132,132 +67,110 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <ServiceView
+            <ServiceView
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_DELETE)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewDelete
+            <ServiceViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_DELETE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_SETTINGS)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewSettings
+            <ServiceViewSettings
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_SETTINGS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_MONITORS)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewMonitors
+            <ServiceViewMonitors
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_MONITORS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_ALERTS)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewAlerts
+            <ServiceViewAlerts
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_INCIDENTS)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewIncidents
+            <ServiceViewIncidents
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_LOGS)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewLogs
+            <ServiceViewLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_LOGS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_TRACES)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewTraces
+            <ServiceViewTraces
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_TRACES] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_METRICS)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewMetrics
+            <ServiceViewMetrics
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_METRICS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_OWNERS)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewOwners
+            <ServiceViewOwners
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_OWNERS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_DEPENDENCIES)}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewDependencies
+            <ServiceViewDependencies
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_DEPENDENCIES] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -266,14 +179,12 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             PageMap.SERVICE_VIEW_CODE_REPOSITORIES,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <ServiceViewCodeRepositories
+            <ServiceViewCodeRepositories
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route
                 }
               />
-            </Suspense>
           }
         />
       </PageRoute>

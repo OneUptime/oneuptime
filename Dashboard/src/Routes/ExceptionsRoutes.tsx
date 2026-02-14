@@ -1,42 +1,20 @@
-import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import ExceptionsLayout from "../Pages/Exceptions/Layout";
 import ExceptionViewLayout from "../Pages/Exceptions/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { ExceptionsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, {
-  FunctionComponent,
-  LazyExoticComponent,
-  ReactElement,
-  Suspense,
-  lazy,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
-// Lazy Pages
-const ExceptionsUnresolved: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Exceptions/Unresolved");
-});
+// Pages
+import ExceptionsUnresolved from "../Pages/Exceptions/Unresolved";
 
-const ExceptionsResolved: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Exceptions/Resolved");
-});
+import ExceptionsResolved from "../Pages/Exceptions/Resolved";
 
-const ExceptionsArchived: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Exceptions/Archived");
-});
+import ExceptionsArchived from "../Pages/Exceptions/Archived";
 
-const ExceptionView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Exceptions/View/Index");
-  });
+import ExceptionView from "../Pages/Exceptions/View/Index";
 
 const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -47,48 +25,40 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <ExceptionsUnresolved
+            <ExceptionsUnresolved
                 {...props}
                 pageRoute={RouteMap[PageMap.EXCEPTIONS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={ExceptionsRoutePath[PageMap.EXCEPTIONS_UNRESOLVED] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <ExceptionsUnresolved
+            <ExceptionsUnresolved
                 {...props}
                 pageRoute={RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={ExceptionsRoutePath[PageMap.EXCEPTIONS_RESOLVED] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <ExceptionsResolved
+            <ExceptionsResolved
                 {...props}
                 pageRoute={RouteMap[PageMap.EXCEPTIONS_RESOLVED] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={ExceptionsRoutePath[PageMap.EXCEPTIONS_ARCHIVED] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <ExceptionsArchived
+            <ExceptionsArchived
                 {...props}
                 pageRoute={RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -101,12 +71,10 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <ExceptionView
+            <ExceptionView
                 {...props}
                 pageRoute={RouteMap[PageMap.EXCEPTIONS_VIEW] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>

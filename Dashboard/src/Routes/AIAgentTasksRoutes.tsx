@@ -1,47 +1,22 @@
-import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import AIAgentTasksLayout from "../Pages/AIAgentTasks/Layout";
 import AIAgentTaskViewLayout from "../Pages/AIAgentTasks/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, AIAgentTasksRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, {
-  FunctionComponent,
-  LazyExoticComponent,
-  ReactElement,
-  Suspense,
-  lazy,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
-const AIAgentTasks: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/AIAgentTasks/AIAgentTasks");
-  });
+import AIAgentTasks from "../Pages/AIAgentTasks/AIAgentTasks";
 
-const AIAgentTaskView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/AIAgentTasks/View/Index");
-  });
+import AIAgentTaskView from "../Pages/AIAgentTasks/View/Index";
 
-const AIAgentTaskViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/AIAgentTasks/View/Delete");
-});
+import AIAgentTaskViewDelete from "../Pages/AIAgentTasks/View/Delete";
 
-const AIAgentTaskViewLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/AIAgentTasks/View/Logs");
-});
+import AIAgentTaskViewLogs from "../Pages/AIAgentTasks/View/Logs";
 
-const AIAgentTaskViewPullRequests: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/AIAgentTasks/View/PullRequests");
-});
+import AIAgentTaskViewPullRequests from "../Pages/AIAgentTasks/View/PullRequests";
 
 const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -52,23 +27,19 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={AIAgentTasksRoutePath[PageMap.AI_AGENT_TASKS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AIAgentTasks
+            <AIAgentTasks
                 {...props}
                 pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <AIAgentTasks
+            <AIAgentTasks
                 {...props}
                 pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -80,23 +51,19 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <AIAgentTaskView
+            <AIAgentTaskView
                 {...props}
                 pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASK_VIEW_LOGS)}
           element={
-            <Suspense fallback={Loader}>
-              <AIAgentTaskViewLogs
+            <AIAgentTaskViewLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW_LOGS] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -104,25 +71,21 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
             PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <AIAgentTaskViewPullRequests
+            <AIAgentTaskViewPullRequests
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASK_VIEW_DELETE)}
           element={
-            <Suspense fallback={Loader}>
-              <AIAgentTaskViewDelete
+            <AIAgentTaskViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW_DELETE] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>

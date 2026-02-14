@@ -1,54 +1,21 @@
-import Loader from "../Components/Loader/Loader";
 import MonitorGroupViewLayout from "../Pages/MonitorGroup/View/Layout";
 import ComponentProps from "../Pages/PageComponentProps";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { MonitorGroupRoutePath, RouteUtil } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, {
-  FunctionComponent,
-  LazyExoticComponent,
-  ReactElement,
-  Suspense,
-  lazy,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
-const MonitorGroups: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/MonitorGroup/MonitorGroups");
-  });
-const MonitorGroupView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/MonitorGroup/View/Index");
-  });
-const MonitorGroupViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/MonitorGroup/View/Delete");
-});
+import MonitorGroups from "../Pages/MonitorGroup/MonitorGroups";
+import MonitorGroupView from "../Pages/MonitorGroup/View/Index";
+import MonitorGroupViewDelete from "../Pages/MonitorGroup/View/Delete";
 
-const MonitorGroupAlerts: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/MonitorGroup/View/Alerts");
-});
+import MonitorGroupAlerts from "../Pages/MonitorGroup/View/Alerts";
 
-const MonitorGroupViewMonitors: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/MonitorGroup/View/Monitors");
-});
-const MonitorGroupViewIncidents: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/MonitorGroup/View/Incidents");
-});
-const MonitorGroupViewOwners: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/MonitorGroup/View/Owners");
-});
+import MonitorGroupViewMonitors from "../Pages/MonitorGroup/View/Monitors";
+import MonitorGroupViewIncidents from "../Pages/MonitorGroup/View/Incidents";
+import MonitorGroupViewOwners from "../Pages/MonitorGroup/View/Owners";
 
 const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -58,12 +25,10 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MonitorGroupRoutePath[PageMap.MONITOR_GROUPS] || ""}
         element={
-          <Suspense fallback={Loader}>
-            <MonitorGroups
+          <MonitorGroups
               {...props}
               pageRoute={RouteMap[PageMap.MONITOR_GROUPS] as Route}
             />
-          </Suspense>
         }
       />
 
@@ -74,35 +39,29 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <MonitorGroupView
+            <MonitorGroupView
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_GROUP_VIEW_DELETE)}
           element={
-            <Suspense fallback={Loader}>
-              <MonitorGroupViewDelete
+            <MonitorGroupViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_DELETE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_GROUP_VIEW_ALERTS)}
           element={
-            <Suspense fallback={Loader}>
-              <MonitorGroupAlerts
+            <MonitorGroupAlerts
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_ALERTS] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -111,14 +70,12 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
             PageMap.MONITOR_GROUP_VIEW_MONITORS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <MonitorGroupViewMonitors
+            <MonitorGroupViewMonitors
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.MONITOR_GROUP_VIEW_MONITORS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -127,26 +84,22 @@ const MonitorGroupRoutes: FunctionComponent<ComponentProps> = (
             PageMap.MONITOR_GROUP_VIEW_INCIDENTS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <MonitorGroupViewIncidents
+            <MonitorGroupViewIncidents
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.MONITOR_GROUP_VIEW_INCIDENTS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.MONITOR_GROUP_VIEW_OWNERS)}
           element={
-            <Suspense fallback={Loader}>
-              <MonitorGroupViewOwners
+            <MonitorGroupViewOwners
                 {...props}
                 pageRoute={RouteMap[PageMap.MONITOR_GROUP_VIEW_OWNERS] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>

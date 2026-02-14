@@ -27,51 +27,36 @@ import useAsyncEffect from "use-async-effect";
 import PageComponentProps from "./Pages/PageComponentProps";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { RoutesProps } from "./Types/RoutesProps";
-// Lazy load route components
+
+// Static page imports
+import Welcome from "./Pages/Onboarding/Welcome";
+import Home from "./Pages/Home/Home";
+import Sso from "./Pages/Onboarding/SSO";
+import NotOperationalMonitors from "./Pages/Home/NotOperationalMonitors";
+import HomeActiveAlerts from "./Pages/Home/ActiveAlerts";
+import OngoingScheduledEvents from "./Pages/Home/OngoingScheduledMaintenance";
+import HomeActiveEpisodes from "./Pages/Home/ActiveEpisodes";
+import HomeActiveIncidentEpisodes from "./Pages/Home/ActiveIncidentEpisodes";
+import SettingsDangerZone from "./Pages/Settings/DangerZone";
+import Logout from "./Pages/Logout/Logout";
+import UserProfilePicture from "./Pages/Global/UserProfile/Picture";
+import UserProfileOverview from "./Pages/Global/UserProfile/Index";
+import UserProfilePassword from "./Pages/Global/UserProfile/Password";
+import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
+import UserProfileDelete from "./Pages/Global/UserProfile/DeleteAccount";
+import ProjectInvitations from "./Pages/Global/ProjectInvitations";
+import ActiveIncidents from "./Pages/Global/ActiveIncidents";
+import ActiveAlerts from "./Pages/Global/ActiveAlerts";
+import ActiveAlertEpisodes from "./Pages/Global/ActiveAlertEpisodes";
+import ActiveIncidentEpisodes from "./Pages/Global/ActiveIncidentEpisodes";
+import MyOnCallPolicies from "./Pages/Global/MyOnCallPolicies";
+import PageNotFound from "./Pages/PageNotFound/PageNotFound";
+
+// Lazy-loaded route groups (keep code splitting at route-group level)
 const InitRoutes: React.LazyExoticComponent<
   React.FunctionComponent<RoutesProps>
 > = lazy(() => {
   return import("./Routes/InitRoutes");
-});
-const Welcome: React.LazyExoticComponent<React.FunctionComponent<any>> = lazy(
-  () => {
-    return import("./Pages/Onboarding/Welcome");
-  },
-);
-const Home: React.LazyExoticComponent<React.FunctionComponent<any>> = lazy(
-  () => {
-    return import("./Pages/Home/Home");
-  },
-);
-const Sso: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Onboarding/SSO");
-});
-const NotOperationalMonitors: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Home/NotOperationalMonitors");
-});
-const HomeActiveAlerts: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Home/ActiveAlerts");
-});
-const OngoingScheduledEvents: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Home/OngoingScheduledMaintenance");
-});
-const HomeActiveEpisodes: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Home/ActiveEpisodes");
-});
-const HomeActiveIncidentEpisodes: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Home/ActiveIncidentEpisodes");
 });
 const LogsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
@@ -138,75 +123,10 @@ const SettingsRoutes: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Routes/SettingsRoutes");
 });
-const SettingsDangerZone: React.LazyExoticComponent<
-  React.FunctionComponent<any>
-> = lazy(() => {
-  return import("./Pages/Settings/DangerZone");
-});
 const OnCallDutyRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
   return import("./Routes/OnCallDutyRoutes");
-});
-const Logout: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Logout/Logout");
-});
-const UserProfilePicture: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/UserProfile/Picture");
-});
-const UserProfileOverview: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/UserProfile/Index");
-});
-const UserProfilePassword: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/UserProfile/Password");
-});
-const UseTwoFactorAuth: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/UserProfile/TwoFactorAuth");
-});
-const UserProfileDelete: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/UserProfile/DeleteAccount");
-});
-const ProjectInvitations: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/ProjectInvitations");
-});
-const ActiveIncidents: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/ActiveIncidents");
-});
-const ActiveAlerts: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/ActiveAlerts");
-});
-const ActiveAlertEpisodes: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/ActiveAlertEpisodes");
-});
-const ActiveIncidentEpisodes: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/ActiveIncidentEpisodes");
-});
-const MyOnCallPolicies: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Global/MyOnCallPolicies");
 });
 const UserSettingsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
@@ -227,11 +147,6 @@ const ExceptionsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
   return import("./Routes/ExceptionsRoutes");
-});
-const PageNotFound: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/PageNotFound/PageNotFound");
 });
 
 const App: () => JSX.Element = () => {

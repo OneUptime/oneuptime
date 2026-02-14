@@ -1,237 +1,88 @@
 import Navigation from "Common/UI/Utils/Navigation";
-import Loader from "../Components/Loader/Loader";
 import Layout from "../Pages/Alerts/Layout";
 import AlertViewLayout from "../Pages/Alerts/View/Layout";
 import ComponentProps from "../Pages/PageComponentProps";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { AlertsRoutePath, RouteUtil } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, {
-  FunctionComponent,
-  LazyExoticComponent,
-  Suspense,
-  lazy,
-} from "react";
+import React, { FunctionComponent } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
-const Alerts: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
-  () => {
-    return import("../Pages/Alerts/Alerts");
-  },
-);
+import Alerts from "../Pages/Alerts/Alerts";
 
-const AlertCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/Create");
-  });
-const AlertView: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
-  () => {
-    return import("../Pages/Alerts/View/Index");
-  },
-);
+import AlertCreate from "../Pages/Alerts/Create";
+import AlertView from "../Pages/Alerts/View/Index";
 
-const AlertViewNotificationLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/NotificationLogs");
-});
+import AlertViewNotificationLogs from "../Pages/Alerts/View/NotificationLogs";
 
-const AlertViewAILogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/View/AILogs");
-  });
+import AlertViewAILogs from "../Pages/Alerts/View/AILogs";
 
-const AlertsWorkspaceConnectionSlack: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/WorkspaceConnectionSlack");
-});
+import AlertsWorkspaceConnectionSlack from "../Pages/Alerts/WorkspaceConnectionSlack";
 
-const AlertsWorkspaceConnectionMicrosoftTeams: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/WorkspaceConnectionMicrosoftTeams");
-});
+import AlertsWorkspaceConnectionMicrosoftTeams from "../Pages/Alerts/WorkspaceConnectionMicrosoftTeams";
 
-const AlertOnCallPolicyExecutionLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/OnCallPolicyExecutionLogs");
-});
+import AlertOnCallPolicyExecutionLogs from "../Pages/Alerts/View/OnCallPolicyExecutionLogs";
 
-const AlertViewDelete: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/View/Delete");
-  });
-const AlertViewStateTimeline: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/StateTimeline");
-});
+import AlertViewDelete from "../Pages/Alerts/View/Delete";
+import AlertViewStateTimeline from "../Pages/Alerts/View/StateTimeline";
 
-const AlertInternalNote: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/InternalNote");
-});
+import AlertInternalNote from "../Pages/Alerts/View/InternalNote";
 
-const UnresolvedAlerts: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/Unresolved");
-  });
-const AlertViewCustomFields: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/CustomFields");
-});
-const AlertViewOwner: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/View/Owners");
-  });
+import UnresolvedAlerts from "../Pages/Alerts/Unresolved";
+import AlertViewCustomFields from "../Pages/Alerts/View/CustomFields";
+import AlertViewOwner from "../Pages/Alerts/View/Owners";
 
-const AlertViewRootCause: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/RootCause");
-});
+import AlertViewRootCause from "../Pages/Alerts/View/RootCause";
 
-const AlertViewRemediation: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/Remediation");
-});
+import AlertViewRemediation from "../Pages/Alerts/View/Remediation";
 
-const AlertDescription: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/View/Description");
-  });
+import AlertDescription from "../Pages/Alerts/View/Description";
 
 // Settings Pages
-const AlertSettingsState: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/Settings/AlertState");
-});
+import AlertSettingsState from "../Pages/Alerts/Settings/AlertState";
 
-const AlertSettingsSeverity: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/Settings/AlertSeverity");
-});
+import AlertSettingsSeverity from "../Pages/Alerts/Settings/AlertSeverity";
 
-const AlertSettingsNoteTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/Settings/AlertNoteTemplates");
-});
+import AlertSettingsNoteTemplates from "../Pages/Alerts/Settings/AlertNoteTemplates";
 
-const AlertSettingsNoteTemplatesView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/Settings/AlertNoteTemplateDetail");
-});
+import AlertSettingsNoteTemplatesView from "../Pages/Alerts/Settings/AlertNoteTemplateDetail";
 
-const AlertSettingsCustomFields: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/Settings/AlertCustomFields");
-});
+import AlertSettingsCustomFields from "../Pages/Alerts/Settings/AlertCustomFields";
 
-const AlertSettingsGroupingRules: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/Settings/AlertGroupingRules");
-});
+import AlertSettingsGroupingRules from "../Pages/Alerts/Settings/AlertGroupingRules";
 
-const AlertSettingsMore: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/Settings/AlertMoreSettings");
-});
+import AlertSettingsMore from "../Pages/Alerts/Settings/AlertMoreSettings";
 
 // Episode Pages
-const Episodes: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
-  () => {
-    return import("../Pages/Alerts/Episodes");
-  },
-);
+import Episodes from "../Pages/Alerts/Episodes";
 
-const EpisodeCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/EpisodeCreate");
-  });
+import EpisodeCreate from "../Pages/Alerts/EpisodeCreate";
 
-const UnresolvedEpisodes: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/UnresolvedEpisodes");
-});
+import UnresolvedEpisodes from "../Pages/Alerts/UnresolvedEpisodes";
 
 // Episode View Pages
-const EpisodeViewLayout: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/Layout");
-});
+import EpisodeViewLayout from "../Pages/Alerts/EpisodeView/Layout";
 
-const EpisodeView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/EpisodeView/Index");
-  });
+import EpisodeView from "../Pages/Alerts/EpisodeView/Index";
 
-const EpisodeViewDescription: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/Description");
-});
+import EpisodeViewDescription from "../Pages/Alerts/EpisodeView/Description";
 
-const EpisodeViewRootCause: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/RootCause");
-});
+import EpisodeViewRootCause from "../Pages/Alerts/EpisodeView/RootCause";
 
-const EpisodeViewOwners: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/Owners");
-});
+import EpisodeViewOwners from "../Pages/Alerts/EpisodeView/Owners";
 
-const EpisodeViewStateTimeline: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/StateTimeline");
-});
+import EpisodeViewStateTimeline from "../Pages/Alerts/EpisodeView/StateTimeline";
 
-const EpisodeViewAlerts: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/Alerts");
-});
+import EpisodeViewAlerts from "../Pages/Alerts/EpisodeView/Alerts";
 
-const EpisodeViewInternalNote: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/InternalNote");
-});
+import EpisodeViewInternalNote from "../Pages/Alerts/EpisodeView/InternalNote";
 
-const EpisodeViewRemediation: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/Remediation");
-});
+import EpisodeViewRemediation from "../Pages/Alerts/EpisodeView/Remediation";
 
-const EpisodeViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/EpisodeView/Delete");
-});
+import EpisodeViewDelete from "../Pages/Alerts/EpisodeView/Delete";
 
-const AlertEpisodeDocs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Alerts/EpisodeDocs");
-  });
+import AlertEpisodeDocs from "../Pages/Alerts/EpisodeDocs";
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -251,24 +102,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <Alerts
+            <Alerts
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERTS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.UNRESOLVED_ALERTS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <UnresolvedAlerts
+            <UnresolvedAlerts
                 {...props}
                 pageRoute={RouteMap[PageMap.UNRESOLVED_ALERTS] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -277,14 +124,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <AlertsWorkspaceConnectionSlack
+            <AlertsWorkspaceConnectionSlack
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -295,8 +140,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <AlertsWorkspaceConnectionMicrosoftTeams
+            <AlertsWorkspaceConnectionMicrosoftTeams
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -304,19 +148,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_CREATE] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AlertCreate
+            <AlertCreate
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -324,38 +165,32 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_STATE] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AlertSettingsState
+            <AlertSettingsState
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_STATE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_SEVERITY] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AlertSettingsSeverity
+            <AlertSettingsSeverity
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_SEVERITY] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AlertSettingsNoteTemplates
+            <AlertSettingsNoteTemplates
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -364,54 +199,46 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             AlertsRoutePath[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <AlertSettingsNoteTemplatesView
+            <AlertSettingsNoteTemplatesView
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERTS_SETTINGS_NOTE_TEMPLATES_VIEW] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AlertSettingsCustomFields
+            <AlertSettingsCustomFields
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_GROUPING_RULES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AlertSettingsGroupingRules
+            <AlertSettingsGroupingRules
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERTS_SETTINGS_GROUPING_RULES] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AlertSettingsMore
+            <AlertSettingsMore
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -419,48 +246,40 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_EPISODE_CREATE] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeCreate
+            <EpisodeCreate
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_EPISODES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <Episodes
+            <Episodes
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_EPISODES] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.UNRESOLVED_ALERT_EPISODES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <UnresolvedEpisodes
+            <UnresolvedEpisodes
                 {...props}
                 pageRoute={RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <AlertEpisodeDocs
+            <AlertEpisodeDocs
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_EPISODE_DOCS] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -472,12 +291,10 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <AlertView
+            <AlertView
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -485,105 +302,87 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.ALERT_VIEW_NOTIFICATION_LOGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <AlertViewNotificationLogs
+            <AlertViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERT_VIEW_NOTIFICATION_LOGS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_AI_LOGS)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertViewAILogs
+            <AlertViewAILogs
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_AI_LOGS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_DESCRIPTION)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertDescription
+            <AlertDescription
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_DESCRIPTION] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_ROOT_CAUSE)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertViewRootCause
+            <AlertViewRootCause
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_ROOT_CAUSE] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_REMEDIATION)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertViewRemediation
+            <AlertViewRemediation
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_REMEDIATION] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_STATE_TIMELINE)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertViewStateTimeline
+            <AlertViewStateTimeline
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_STATE_TIMELINE] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_INTERNAL_NOTE)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertInternalNote
+            <AlertInternalNote
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_INTERNAL_NOTE] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_CUSTOM_FIELDS)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertViewCustomFields
+            <AlertViewCustomFields
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_CUSTOM_FIELDS] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_OWNERS)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertViewOwner
+            <AlertViewOwner
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_OWNERS] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -591,8 +390,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <AlertOnCallPolicyExecutionLogs
+            <AlertOnCallPolicyExecutionLogs
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -600,18 +398,15 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_DELETE)}
           element={
-            <Suspense fallback={Loader}>
-              <AlertViewDelete
+            <AlertViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_DELETE] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -624,12 +419,10 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeView
+            <EpisodeView
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -637,14 +430,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.ALERT_EPISODE_VIEW_DESCRIPTION,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeViewDescription
+            <EpisodeViewDescription
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERT_EPISODE_VIEW_DESCRIPTION] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -652,25 +443,21 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeViewRootCause
+            <EpisodeViewRootCause
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERT_EPISODE_VIEW_ROOT_CAUSE] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_OWNERS)}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeViewOwners
+            <EpisodeViewOwners
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -678,25 +465,21 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeViewStateTimeline
+            <EpisodeViewStateTimeline
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_ALERTS)}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeViewAlerts
+            <EpisodeViewAlerts
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_ALERTS] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -704,14 +487,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeViewInternalNote
+            <EpisodeViewInternalNote
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
@@ -719,25 +500,21 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.ALERT_EPISODE_VIEW_REMEDIATION,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeViewRemediation
+            <EpisodeViewRemediation
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ALERT_EPISODE_VIEW_REMEDIATION] as Route
                 }
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_EPISODE_VIEW_DELETE)}
           element={
-            <Suspense fallback={Loader}>
-              <EpisodeViewDelete
+            <EpisodeViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_EPISODE_VIEW_DELETE] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>

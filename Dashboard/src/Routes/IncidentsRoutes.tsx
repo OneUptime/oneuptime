@@ -1,5 +1,4 @@
 import Navigation from "Common/UI/Utils/Navigation";
-import Loader from "../Components/Loader/Loader";
 import Layout from "../Pages/Incidents/Layout";
 import IncidentViewLayout from "../Pages/Incidents/View/Layout";
 import IncidentEpisodeViewLayout from "../Pages/Incidents/EpisodeView/Layout";
@@ -7,320 +6,111 @@ import ComponentProps from "../Pages/PageComponentProps";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { IncidentsRoutePath, RouteUtil } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, {
-  FunctionComponent,
-  LazyExoticComponent,
-  Suspense,
-  lazy,
-} from "react";
+import React, { FunctionComponent } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
-const Incidents: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
-  () => {
-    return import("../Pages/Incidents/Incidents");
-  },
-);
+import Incidents from "../Pages/Incidents/Incidents";
 
-const IncidentViewSettings: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/Settings");
-});
+import IncidentViewSettings from "../Pages/Incidents/View/Settings";
 
-const IncidentViewOnCallPolicyExecutionLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/OnCallPolicyExecutionLogs");
-});
+import IncidentViewOnCallPolicyExecutionLogs from "../Pages/Incidents/View/OnCallPolicyExecutionLogs";
 
-const IncidentView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Incidents/View/Index");
-  });
+import IncidentView from "../Pages/Incidents/View/Index";
 
-const IncidentViewNotificationLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogs");
-});
+import IncidentViewNotificationLogs from "../Pages/Incidents/View/NotificationLogs";
 
-const IncidentViewAILogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/AILogs");
-});
+import IncidentViewAILogs from "../Pages/Incidents/View/AILogs";
 
-const IncidentViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/Delete");
-});
+import IncidentViewDelete from "../Pages/Incidents/View/Delete";
 
-const IncidentWorkspaceConnectionSlack: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/WorkspaceConnectionSlack");
-});
+import IncidentWorkspaceConnectionSlack from "../Pages/Incidents/WorkspaceConnectionSlack";
 
-const IncidentWorkspaceConnectionMicrosoftTeams: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/WorkspaceConnectionMicrosoftTeams");
-});
+import IncidentWorkspaceConnectionMicrosoftTeams from "../Pages/Incidents/WorkspaceConnectionMicrosoftTeams";
 
-const IncidentViewStateTimeline: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/StateTimeline");
-});
+import IncidentViewStateTimeline from "../Pages/Incidents/View/StateTimeline";
 
-const IncidentViewSla: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Incidents/View/Sla");
-  });
+import IncidentViewSla from "../Pages/Incidents/View/Sla";
 
-const IncidentInternalNote: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/InternalNote");
-});
-const IncidentPublicNote: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/PublicNote");
-});
-const UnresolvedIncidents: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Unresolved");
-});
-const IncidentViewCustomFields: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/CustomFields");
-});
-const IncidentViewOwner: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/Owners");
-});
+import IncidentInternalNote from "../Pages/Incidents/View/InternalNote";
+import IncidentPublicNote from "../Pages/Incidents/View/PublicNote";
+import UnresolvedIncidents from "../Pages/Incidents/Unresolved";
+import IncidentViewCustomFields from "../Pages/Incidents/View/CustomFields";
+import IncidentViewOwner from "../Pages/Incidents/View/Owners";
 
-const IncidentViewRoles: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/Roles");
-});
+import IncidentViewRoles from "../Pages/Incidents/View/Roles";
 
-const IncidentViewRemediation: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/Remediation");
-});
+import IncidentViewRemediation from "../Pages/Incidents/View/Remediation";
 
-const IncidentViewRootCause: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/RootCause");
-});
+import IncidentViewRootCause from "../Pages/Incidents/View/RootCause";
 
-const IncidentViewPostmortem: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/Postmortem");
-});
+import IncidentViewPostmortem from "../Pages/Incidents/View/Postmortem";
 
-const IncidentViewDescription: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/Description");
-});
+import IncidentViewDescription from "../Pages/Incidents/View/Description";
 
-const IncidentCreate: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Incidents/Create");
-  });
+import IncidentCreate from "../Pages/Incidents/Create";
 
 // Settings Pages
-const IncidentSettingsState: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentState");
-});
+import IncidentSettingsState from "../Pages/Incidents/Settings/IncidentState";
 
-const IncidentSettingsSeverity: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentSeverity");
-});
+import IncidentSettingsSeverity from "../Pages/Incidents/Settings/IncidentSeverity";
 
-const IncidentSettingsTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentTemplates");
-});
+import IncidentSettingsTemplates from "../Pages/Incidents/Settings/IncidentTemplates";
 
-const IncidentSettingsTemplatesView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentTemplatesView");
-});
+import IncidentSettingsTemplatesView from "../Pages/Incidents/Settings/IncidentTemplatesView";
 
-const IncidentSettingsNoteTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentNoteTemplates");
-});
+import IncidentSettingsNoteTemplates from "../Pages/Incidents/Settings/IncidentNoteTemplates";
 
-const IncidentSettingsNoteTemplatesView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentNoteTemplateView");
-});
+import IncidentSettingsNoteTemplatesView from "../Pages/Incidents/Settings/IncidentNoteTemplateView";
 
-const IncidentSettingsPostmortemTemplates: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentPostmortemTemplates");
-});
+import IncidentSettingsPostmortemTemplates from "../Pages/Incidents/Settings/IncidentPostmortemTemplates";
 
-const IncidentSettingsPostmortemTemplatesView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentPostmortemTemplateView");
-});
+import IncidentSettingsPostmortemTemplatesView from "../Pages/Incidents/Settings/IncidentPostmortemTemplateView";
 
-const IncidentSettingsCustomFields: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentCustomFields");
-});
+import IncidentSettingsCustomFields from "../Pages/Incidents/Settings/IncidentCustomFields";
 
-const IncidentSettingsGroupingRules: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentGroupingRules");
-});
+import IncidentSettingsGroupingRules from "../Pages/Incidents/Settings/IncidentGroupingRules";
 
-const IncidentSettingsSlaRules: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentSlaRules");
-});
+import IncidentSettingsSlaRules from "../Pages/Incidents/Settings/IncidentSlaRules";
 
-const IncidentSettingsRoles: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentRoles");
-});
+import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 
-const IncidentSettingsMore: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/Settings/IncidentMoreSettings");
-});
+import IncidentSettingsMore from "../Pages/Incidents/Settings/IncidentMoreSettings";
 
 // Incident Episode Pages
-const IncidentEpisodes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Incidents/Episodes");
-  });
+import IncidentEpisodes from "../Pages/Incidents/Episodes";
 
-const UnresolvedIncidentEpisodes: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/UnresolvedEpisodes");
-});
+import UnresolvedIncidentEpisodes from "../Pages/Incidents/UnresolvedEpisodes";
 
-const IncidentEpisodeView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Index");
-});
+import IncidentEpisodeView from "../Pages/Incidents/EpisodeView/Index";
 
-const IncidentEpisodeViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Delete");
-});
+import IncidentEpisodeViewDelete from "../Pages/Incidents/EpisodeView/Delete";
 
-const IncidentEpisodeViewDescription: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Description");
-});
+import IncidentEpisodeViewDescription from "../Pages/Incidents/EpisodeView/Description";
 
-const IncidentEpisodeViewRootCause: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/RootCause");
-});
+import IncidentEpisodeViewRootCause from "../Pages/Incidents/EpisodeView/RootCause";
 
-const IncidentEpisodeViewPostmortem: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Postmortem");
-});
+import IncidentEpisodeViewPostmortem from "../Pages/Incidents/EpisodeView/Postmortem";
 
-const IncidentEpisodeViewRemediation: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Remediation");
-});
+import IncidentEpisodeViewRemediation from "../Pages/Incidents/EpisodeView/Remediation";
 
-const IncidentEpisodeViewOwners: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Owners");
-});
+import IncidentEpisodeViewOwners from "../Pages/Incidents/EpisodeView/Owners";
 
-const IncidentEpisodeViewStateTimeline: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/StateTimeline");
-});
+import IncidentEpisodeViewStateTimeline from "../Pages/Incidents/EpisodeView/StateTimeline";
 
-const IncidentEpisodeViewIncidents: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Incidents");
-});
+import IncidentEpisodeViewIncidents from "../Pages/Incidents/EpisodeView/Incidents";
 
-const IncidentEpisodeViewInternalNote: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/InternalNote");
-});
+import IncidentEpisodeViewInternalNote from "../Pages/Incidents/EpisodeView/InternalNote";
 
-const IncidentEpisodeViewPublicNote: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/PublicNote");
-});
+import IncidentEpisodeViewPublicNote from "../Pages/Incidents/EpisodeView/PublicNote";
 
-const IncidentEpisodeViewSettings: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Settings");
-});
+import IncidentEpisodeViewSettings from "../Pages/Incidents/EpisodeView/Settings";
 
-const IncidentEpisodeViewMembers: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeView/Members");
-});
+import IncidentEpisodeViewMembers from "../Pages/Incidents/EpisodeView/Members";
 
-const IncidentEpisodeCreate: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeCreate");
-});
+import IncidentEpisodeCreate from "../Pages/Incidents/EpisodeCreate";
 
-const IncidentEpisodeDocs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/EpisodeDocs");
-});
+import IncidentEpisodeDocs from "../Pages/Incidents/EpisodeDocs";
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -346,24 +136,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <Incidents
+            <Incidents
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENTS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <UnresolvedIncidents
+            <UnresolvedIncidents
                 {...props}
                 pageRoute={RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -373,8 +159,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentWorkspaceConnectionSlack
+            <IncidentWorkspaceConnectionSlack
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -382,7 +167,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -393,8 +177,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentWorkspaceConnectionMicrosoftTeams
+            <IncidentWorkspaceConnectionMicrosoftTeams
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -402,19 +185,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentCreate
+            <IncidentCreate
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -422,40 +202,34 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_STATE] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsState
+            <IncidentSettingsState
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_STATE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SEVERITY] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsSeverity
+            <IncidentSettingsSeverity
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_SEVERITY] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_TEMPLATES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsTemplates
+            <IncidentSettingsTemplates
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -464,14 +238,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsTemplatesView
+            <IncidentSettingsTemplatesView
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -480,14 +252,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsNoteTemplates
+            <IncidentSettingsNoteTemplates
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -498,8 +268,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsNoteTemplatesView
+            <IncidentSettingsNoteTemplatesView
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -507,7 +276,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -518,8 +286,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsPostmortemTemplates
+            <IncidentSettingsPostmortemTemplates
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -527,7 +294,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -538,8 +304,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsPostmortemTemplatesView
+            <IncidentSettingsPostmortemTemplatesView
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -547,7 +312,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -556,14 +320,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsCustomFields
+            <IncidentSettingsCustomFields
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -572,52 +334,44 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] || ""
           }
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsGroupingRules
+            <IncidentSettingsGroupingRules
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_SLA_RULES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsSlaRules
+            <IncidentSettingsSlaRules
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ROLES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsRoles
+            <IncidentSettingsRoles
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_ROLES] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentSettingsMore
+            <IncidentSettingsMore
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -625,50 +379,42 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_EPISODES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodes
+            <IncidentEpisodes
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_EPISODES] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.UNRESOLVED_INCIDENT_EPISODES] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <UnresolvedIncidentEpisodes
+            <UnresolvedIncidentEpisodes
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.UNRESOLVED_INCIDENT_EPISODES] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_CREATE] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeCreate
+            <IncidentEpisodeCreate
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS] || ""}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeDocs
+            <IncidentEpisodeDocs
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -681,12 +427,10 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeView
+            <IncidentEpisodeView
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_VIEW] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -695,14 +439,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_DELETE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewDelete
+            <IncidentEpisodeViewDelete
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_DELETE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -711,14 +453,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewDescription
+            <IncidentEpisodeViewDescription
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_DESCRIPTION] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -727,14 +467,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewRootCause
+            <IncidentEpisodeViewRootCause
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_ROOT_CAUSE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -743,14 +481,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewPostmortem
+            <IncidentEpisodeViewPostmortem
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_POSTMORTEM] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -759,14 +495,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewRemediation
+            <IncidentEpisodeViewRemediation
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_REMEDIATION] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -775,14 +509,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_OWNERS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewOwners
+            <IncidentEpisodeViewOwners
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_OWNERS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -791,8 +523,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewStateTimeline
+            <IncidentEpisodeViewStateTimeline
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -800,7 +531,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -809,14 +539,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewIncidents
+            <IncidentEpisodeViewIncidents
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -825,14 +553,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewInternalNote
+            <IncidentEpisodeViewInternalNote
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -841,14 +567,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewPublicNote
+            <IncidentEpisodeViewPublicNote
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -857,14 +581,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_MEMBERS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewMembers
+            <IncidentEpisodeViewMembers
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_MEMBERS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -873,14 +595,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_EPISODE_VIEW_SETTINGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentEpisodeViewSettings
+            <IncidentEpisodeViewSettings
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_EPISODE_VIEW_SETTINGS] as Route
                 }
               />
-            </Suspense>
           }
         />
       </PageRoute>
@@ -892,35 +612,29 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <IncidentView
+            <IncidentView
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
               />
-            </Suspense>
           }
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_DELETE)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewDelete
+            <IncidentViewDelete
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SETTINGS)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewSettings
+            <IncidentViewSettings
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SETTINGS] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -929,74 +643,62 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_VIEW_STATE_TIMELINE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewStateTimeline
+            <IncidentViewStateTimeline
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SLA)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewSla
+            <IncidentViewSla
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SLA] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_REMEDIATION)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewRemediation
+            <IncidentViewRemediation
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_REMEDIATION] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_ROOT_CAUSE)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewRootCause
+            <IncidentViewRootCause
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ROOT_CAUSE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_POSTMORTEM)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewPostmortem
+            <IncidentViewPostmortem
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_POSTMORTEM] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_DESCRIPTION)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewDescription
+            <IncidentViewDescription
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DESCRIPTION] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -1005,14 +707,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_VIEW_INTERNAL_NOTE,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentInternalNote
+            <IncidentInternalNote
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_VIEW_INTERNAL_NOTE] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -1021,50 +721,42 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_VIEW_CUSTOM_FIELDS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewCustomFields
+            <IncidentViewCustomFields
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_VIEW_CUSTOM_FIELDS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_PUBLIC_NOTE)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentPublicNote
+            <IncidentPublicNote
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_PUBLIC_NOTE] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_OWNERS)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewOwner
+            <IncidentViewOwner
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route}
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_ROLES)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewRoles
+            <IncidentViewRoles
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_ROLES] as Route}
               />
-            </Suspense>
           }
         />
 
@@ -1073,8 +765,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewOnCallPolicyExecutionLogs
+            <IncidentViewOnCallPolicyExecutionLogs
                 {...props}
                 pageRoute={
                   RouteMap[
@@ -1082,7 +773,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                   ] as Route
                 }
               />
-            </Suspense>
           }
         />
 
@@ -1091,26 +781,22 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS,
           )}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogs
+            <IncidentViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS] as Route
                 }
               />
-            </Suspense>
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_AI_LOGS)}
           element={
-            <Suspense fallback={Loader}>
-              <IncidentViewAILogs
+            <IncidentViewAILogs
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_AI_LOGS] as Route}
               />
-            </Suspense>
           }
         />
       </PageRoute>
