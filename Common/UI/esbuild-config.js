@@ -214,6 +214,7 @@ function createConfig(options) {
     target: 'es2017',
     sourcemap: isDev ? 'inline' : false,
     minify: false,
+    treeShaking: true,
     splitting: true,
     publicPath,
     define: {
