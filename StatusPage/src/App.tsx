@@ -17,119 +17,170 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { SubscribePageProps } from "./Pages/Subscribe/SubscribePageUtils";
-import { ComponentProps as ForgotPasswordComponentProps } from "./Pages/Accounts/ForgotPassword";
-import { ComponentProps as LoginComponentProps } from "./Pages/Accounts/Login";
-import { ComponentProps as ResetPasswordComponentProps } from "./Pages/Accounts/ResetPassword";
-import { ComponentProps as MasterPasswordComponentProps } from "./Pages/Accounts/MasterPassword";
-import { ComponentProps as SsoComponentProps } from "./Pages/Accounts/SSO";
-import PageComponentProps from "./Pages/PageComponentProps";
 
-// Lazy load components
+// Lazy load all page components from a single barrel (minimizes chunk count)
+type AllPagesModule = typeof import("./Pages/AllPages");
 const ForgotPassword: React.LazyExoticComponent<
-  React.FunctionComponent<ForgotPasswordComponentProps>
+  AllPagesModule["ForgotPassword"]
 > = lazy(() => {
-  return import("./Pages/Accounts/ForgotPassword");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.ForgotPassword,
+    };
+  });
 });
-const Login: React.LazyExoticComponent<
-  React.FunctionComponent<LoginComponentProps>
-> = lazy(() => {
-  return import("./Pages/Accounts/Login");
+const Login: React.LazyExoticComponent<AllPagesModule["Login"]> = lazy(() => {
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return { default: m.Login };
+  });
 });
-const Logout: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
-  return import("./Pages/Accounts/Logout");
+const Logout: React.LazyExoticComponent<AllPagesModule["Logout"]> = lazy(() => {
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return { default: m.Logout };
+  });
 });
 const ResetPassword: React.LazyExoticComponent<
-  React.FunctionComponent<ResetPasswordComponentProps>
+  AllPagesModule["ResetPassword"]
 > = lazy(() => {
-  return import("./Pages/Accounts/ResetPassword");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return { default: m.ResetPassword };
+  });
 });
 const MasterPassword: React.LazyExoticComponent<
-  React.FunctionComponent<MasterPasswordComponentProps>
+  AllPagesModule["MasterPassword"]
 > = lazy(() => {
-  return import("./Pages/Accounts/MasterPassword");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.MasterPassword,
+    };
+  });
 });
-const Sso: React.LazyExoticComponent<
-  React.FunctionComponent<SsoComponentProps>
-> = lazy(() => {
-  return import("./Pages/Accounts/SSO");
+const Sso: React.LazyExoticComponent<AllPagesModule["Sso"]> = lazy(() => {
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return { default: m.Sso };
+  });
 });
 const AnnouncementDetail: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
+  AllPagesModule["AnnouncementDetail"]
 > = lazy(() => {
-  return import("./Pages/Announcement/Detail");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.AnnouncementDetail,
+    };
+  });
 });
 const AnnouncementList: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
+  AllPagesModule["AnnouncementList"]
 > = lazy(() => {
-  return import("./Pages/Announcement/List");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.AnnouncementList,
+    };
+  });
 });
 const IncidentDetail: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
+  AllPagesModule["IncidentDetail"]
 > = lazy(() => {
-  return import("./Pages/Incidents/Detail");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.IncidentDetail,
+    };
+  });
 });
-const IncidentList: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Incidents/List");
-});
-const PageNotFound: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/NotFound/PageNotFound");
-});
-const Overview: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Pages/Overview/Overview");
-});
+const IncidentList: React.LazyExoticComponent<AllPagesModule["IncidentList"]> =
+  lazy(() => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.IncidentList };
+    });
+  });
+const PageNotFound: React.LazyExoticComponent<AllPagesModule["PageNotFound"]> =
+  lazy(() => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.PageNotFound };
+    });
+  });
+const Overview: React.LazyExoticComponent<AllPagesModule["Overview"]> = lazy(
+  () => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.Overview };
+    });
+  },
+);
 const ScheduledEventDetail: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
+  AllPagesModule["ScheduledEventDetail"]
 > = lazy(() => {
-  return import("./Pages/ScheduledEvent/Detail");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.ScheduledEventDetail,
+    };
+  });
 });
 const ScheduledEventList: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
+  AllPagesModule["ScheduledEventList"]
 > = lazy(() => {
-  return import("./Pages/ScheduledEvent/List");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.ScheduledEventList,
+    };
+  });
 });
 const EmailSubscribe: React.LazyExoticComponent<
-  React.FunctionComponent<SubscribePageProps>
+  AllPagesModule["EmailSubscribe"]
 > = lazy(() => {
-  return import("./Pages/Subscribe/EmailSubscribe");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.EmailSubscribe,
+    };
+  });
 });
-const SMSSubscribe: React.LazyExoticComponent<
-  React.FunctionComponent<SubscribePageProps>
-> = lazy(() => {
-  return import("./Pages/Subscribe/SmsSubscribe");
-});
+const SMSSubscribe: React.LazyExoticComponent<AllPagesModule["SMSSubscribe"]> =
+  lazy(() => {
+    return import("./Pages/AllPages").then((m: AllPagesModule) => {
+      return { default: m.SMSSubscribe };
+    });
+  });
 const UpdateSubscription: React.LazyExoticComponent<
-  React.FunctionComponent<SubscribePageProps>
+  AllPagesModule["UpdateSubscription"]
 > = lazy(() => {
-  return import("./Pages/Subscribe/UpdateSubscription");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.UpdateSubscription,
+    };
+  });
 });
 const ConfirmSubscription: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
+  AllPagesModule["ConfirmSubscription"]
 > = lazy(() => {
-  return import("./Pages/Subscribe/ConfirmSubscription");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.ConfirmSubscription,
+    };
+  });
 });
 const SlackSubscribe: React.LazyExoticComponent<
-  React.FunctionComponent<SubscribePageProps>
+  AllPagesModule["SlackSubscribe"]
 > = lazy(() => {
-  return import("./Pages/Subscribe/SlackSubscribe");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.SlackSubscribe,
+    };
+  });
 });
 const MicrosoftTeamsSubscribe: React.LazyExoticComponent<
-  React.FunctionComponent<SubscribePageProps>
+  AllPagesModule["MicrosoftTeamsSubscribe"]
 > = lazy(() => {
-  return import("./Pages/Subscribe/MicrosoftTeamsSubscribe");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return {
+      default: m.MicrosoftTeamsSubscribe,
+    };
+  });
 });
-
-// forbidden page
 const PageForbidden: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
+  AllPagesModule["PageForbidden"]
 > = lazy(() => {
-  return import("./Pages/Forbidden/Forbidden");
+  return import("./Pages/AllPages").then((m: AllPagesModule) => {
+    return { default: m.PageForbidden };
+  });
 });
 
 const App: () => JSX.Element = () => {

@@ -1,29 +1,16 @@
-import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import MetricsLayout from "../Pages/Metrics/Layout";
 import MetricsViewLayout from "../Pages/Metrics/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, MetricsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, {
-  FunctionComponent,
-  LazyExoticComponent,
-  ReactElement,
-  Suspense,
-  lazy,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
-// Lazy Pages
-const MetricsPage: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Metrics/Index");
-  });
+// Pages
+import MetricsPage from "../Pages/Metrics/Index";
 
-const MetricViewPage: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Metrics/View/Index");
-  });
+import MetricViewPage from "../Pages/Metrics/View/Index";
 
 const MetricsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -34,12 +21,10 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <MetricsPage
-                {...props}
-                pageRoute={RouteMap[PageMap.METRICS] as Route}
-              />
-            </Suspense>
+            <MetricsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.METRICS] as Route}
+            />
           }
         />
       </PageRoute>
@@ -52,24 +37,20 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <Suspense fallback={Loader}>
-              <MetricViewPage
-                {...props}
-                pageRoute={RouteMap[PageMap.METRIC_VIEW] as Route}
-              />
-            </Suspense>
+            <MetricViewPage
+              {...props}
+              pageRoute={RouteMap[PageMap.METRIC_VIEW] as Route}
+            />
           }
         />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.METRIC_VIEW)}
           element={
-            <Suspense fallback={Loader}>
-              <MetricViewPage
-                {...props}
-                pageRoute={RouteMap[PageMap.METRIC_VIEW] as Route}
-              />
-            </Suspense>
+            <MetricViewPage
+              {...props}
+              pageRoute={RouteMap[PageMap.METRIC_VIEW] as Route}
+            />
           }
         />
       </PageRoute>
