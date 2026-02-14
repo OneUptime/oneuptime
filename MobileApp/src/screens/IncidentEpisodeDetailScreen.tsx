@@ -310,7 +310,7 @@ export default function IncidentEpisodeDetailScreen({
       ) : null}
 
       <View className="mb-6">
-        <SectionHeader title="Root Cause" iconName="git-branch-outline" />
+        <SectionHeader title="Root Cause" iconName="bulb-outline" />
         <RootCauseCard rootCauseText={rootCauseText} />
       </View>
 
