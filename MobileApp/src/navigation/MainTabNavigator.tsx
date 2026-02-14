@@ -156,8 +156,8 @@ export default function MainTabNavigator(): React.JSX.Element {
           }) => {
             return (
               <TabIcon
-                name="notifications-outline"
-                focusedName="notifications"
+                name="alert-circle-outline"
+                focusedName="alert-circle"
                 color={color}
                 focused={focused}
                 accentColor={theme.colors.actionPrimary}
