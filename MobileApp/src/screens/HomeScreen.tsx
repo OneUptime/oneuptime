@@ -323,51 +323,73 @@ export default function HomeScreen(): React.JSX.Element {
         </View>
       </View>
 
-      <View className="gap-3 px-5">
-        <View className="flex-row gap-3">
-          <StatCard
-            count={incidentCount}
-            label="Active Incidents"
-            accentColor={theme.colors.severityCritical}
-            iconName="warning"
-            isLoading={anyLoading}
-            onPress={() => {
-              return navigation.navigate("Incidents");
+      <View className="gap-4 px-5">
+        <View>
+          <Text
+            className="text-[12px] font-semibold uppercase mb-2"
+            style={{
+              color: theme.colors.textSecondary,
+              letterSpacing: 1,
             }}
-          />
-          <StatCard
-            count={alertCount}
-            label="Active Alerts"
-            accentColor={theme.colors.severityMajor}
-            iconName="notifications"
-            isLoading={anyLoading}
-            onPress={() => {
-              return navigation.navigate("Alerts");
-            }}
-          />
+          >
+            Incidents
+          </Text>
+          <View className="flex-row gap-3">
+            <StatCard
+              count={incidentCount}
+              label="Active Incidents"
+              accentColor={theme.colors.severityCritical}
+              iconName="warning"
+              isLoading={anyLoading}
+              onPress={() => {
+                return navigation.navigate("Incidents");
+              }}
+            />
+            <StatCard
+              count={incidentEpisodeCount}
+              label="Inc. Episodes"
+              accentColor={theme.colors.severityInfo}
+              iconName="layers"
+              isLoading={anyLoading}
+              onPress={() => {
+                return navigation.navigate("Incidents");
+              }}
+            />
+          </View>
         </View>
 
-        <View className="flex-row gap-3">
-          <StatCard
-            count={incidentEpisodeCount}
-            label="Inc. Episodes"
-            accentColor={theme.colors.severityInfo}
-            iconName="layers"
-            isLoading={anyLoading}
-            onPress={() => {
-              return navigation.navigate("Incidents");
+        <View>
+          <Text
+            className="text-[12px] font-semibold uppercase mb-2"
+            style={{
+              color: theme.colors.textSecondary,
+              letterSpacing: 1,
             }}
-          />
-          <StatCard
-            count={alertEpisodeCount}
-            label="Alert Episodes"
-            accentColor={theme.colors.severityWarning}
-            iconName="albums"
-            isLoading={anyLoading}
-            onPress={() => {
-              return navigation.navigate("Alerts");
-            }}
-          />
+          >
+            Alerts
+          </Text>
+          <View className="flex-row gap-3">
+            <StatCard
+              count={alertCount}
+              label="Active Alerts"
+              accentColor={theme.colors.severityMajor}
+              iconName="notifications"
+              isLoading={anyLoading}
+              onPress={() => {
+                return navigation.navigate("Alerts");
+              }}
+            />
+            <StatCard
+              count={alertEpisodeCount}
+              label="Alert Episodes"
+              accentColor={theme.colors.severityWarning}
+              iconName="albums"
+              isLoading={anyLoading}
+              onPress={() => {
+                return navigation.navigate("Alerts");
+              }}
+            />
+          </View>
         </View>
       </View>
     </ScrollView>
