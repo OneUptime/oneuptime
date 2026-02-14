@@ -80,17 +80,17 @@ export const darkColors: ColorTokens = {
   // Accent
   cardAccent: "rgba(255, 255, 255, 0.04)",
   backgroundGlass: "rgba(255, 255, 255, 0.03)",
-  iconBackground: "rgba(99, 102, 241, 0.12)",
+  iconBackground: "rgba(255, 255, 255, 0.08)",
 
-  // Gradient — indigo-based brand accent
-  accentGradientStart: "#818CF8",
-  accentGradientMid: "#6366F1",
-  accentGradientEnd: "#4F46E5",
-  accentCyan: "#06B6D4",
-  accentCyanBg: "rgba(6, 182, 212, 0.10)",
-  surfaceGlow: "rgba(99, 102, 241, 0.06)",
-  headerGradient: "rgba(99, 102, 241, 0.04)",
-  gradientStart: "rgba(99, 102, 241, 0.08)",
+  // Gradient — neutral monochrome accent
+  accentGradientStart: "#52525B",
+  accentGradientMid: "#3F3F46",
+  accentGradientEnd: "#27272A",
+  accentCyan: "#A1A1AA",
+  accentCyanBg: "rgba(161, 161, 170, 0.12)",
+  surfaceGlow: "rgba(255, 255, 255, 0.05)",
+  headerGradient: "rgba(255, 255, 255, 0.03)",
+  gradientStart: "rgba(255, 255, 255, 0.07)",
   gradientEnd: "transparent",
 
   // Border
@@ -129,9 +129,9 @@ export const darkColors: ColorTokens = {
   oncallInactive: "#52525B",
   oncallInactiveBg: "rgba(82, 82, 91, 0.12)",
 
-  // Action — indigo accent is the signature change
-  actionPrimary: "#6366F1",
-  actionPrimaryPressed: "#4F46E5",
+  // Action — neutral accent
+  actionPrimary: "#D4D4D8",
+  actionPrimaryPressed: "#A1A1AA",
   actionDestructive: "#EF4444",
   actionDestructivePressed: "#DC2626",
 
@@ -152,17 +152,17 @@ export const lightColors: ColorTokens = {
   // Accent
   cardAccent: "rgba(0, 0, 0, 0.02)",
   backgroundGlass: "rgba(255, 255, 255, 0.80)",
-  iconBackground: "rgba(99, 102, 241, 0.08)",
+  iconBackground: "rgba(0, 0, 0, 0.05)",
 
-  // Gradient — indigo-based brand accent
-  accentGradientStart: "#6366F1",
-  accentGradientMid: "#4F46E5",
-  accentGradientEnd: "#4338CA",
-  accentCyan: "#0891B2",
-  accentCyanBg: "rgba(8, 145, 178, 0.06)",
-  surfaceGlow: "rgba(99, 102, 241, 0.04)",
-  headerGradient: "rgba(99, 102, 241, 0.03)",
-  gradientStart: "rgba(99, 102, 241, 0.04)",
+  // Gradient — neutral monochrome accent
+  accentGradientStart: "#52525B",
+  accentGradientMid: "#3F3F46",
+  accentGradientEnd: "#27272A",
+  accentCyan: "#52525B",
+  accentCyanBg: "rgba(82, 82, 91, 0.08)",
+  surfaceGlow: "rgba(0, 0, 0, 0.04)",
+  headerGradient: "rgba(0, 0, 0, 0.03)",
+  gradientStart: "rgba(0, 0, 0, 0.04)",
   gradientEnd: "transparent",
 
   // Border
@@ -201,9 +201,9 @@ export const lightColors: ColorTokens = {
   oncallInactive: "#9CA3AF",
   oncallInactiveBg: "rgba(156, 163, 175, 0.08)",
 
-  // Action — indigo accent
-  actionPrimary: "#4F46E5",
-  actionPrimaryPressed: "#4338CA",
+  // Action — neutral accent
+  actionPrimary: "#27272A",
+  actionPrimaryPressed: "#3F3F46",
   actionDestructive: "#DC2626",
   actionDestructivePressed: "#B91C1C",
 
