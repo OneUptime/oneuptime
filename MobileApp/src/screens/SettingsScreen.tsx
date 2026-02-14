@@ -436,53 +436,74 @@ export default function SettingsScreen(): React.JSX.Element {
             borderColor: theme.colors.borderGlass,
           }}
         >
-          <LinearGradient
-            colors={[
-              theme.colors.accentGradientStart + "1A",
-              theme.colors.accentGradientEnd + "08",
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
+            className="absolute top-0 left-0 right-0"
             style={{
-              position: "absolute",
-              top: -20,
-              left: -20,
-              right: -20,
-              height: 120,
+              height: 3,
+              backgroundColor: theme.colors.actionPrimary,
+              opacity: theme.isDark ? 0.45 : 0.85,
             }}
           />
 
-          <View className="items-center mb-2">
-            <View
-              className="w-8 h-8 rounded-full items-center justify-center"
-              style={{ backgroundColor: theme.colors.iconBackground }}
-            >
-              <Ionicons
-                name="heart-outline"
-                size={16}
-                color={theme.colors.actionPrimary}
-              />
+          <View className="items-center mt-1 mb-2.5">
+            <View className="flex-row items-center gap-2">
+              <View
+                className="w-8 h-8 rounded-full items-center justify-center"
+                style={{ backgroundColor: theme.colors.iconBackground }}
+              >
+                <Ionicons
+                  name="heart-outline"
+                  size={16}
+                  color={theme.colors.actionPrimary}
+                />
+              </View>
+              <View
+                className="px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: theme.colors.iconBackground }}
+              >
+                <Text
+                  className="text-[10px] font-semibold"
+                  style={{
+                    color: theme.colors.textSecondary,
+                    letterSpacing: 0.4,
+                  }}
+                >
+                  OPEN SOURCE
+                </Text>
+              </View>
             </View>
           </View>
 
           <Text
-            className="text-[13px] font-semibold"
+            className="text-[14px] font-semibold"
             style={{ color: theme.colors.textPrimary, textAlign: "center" }}
           >
             Thank you for supporting open source software.
           </Text>
           <Text
-            className="text-[12px] mt-1.5 leading-5"
+            className="text-[12px] mt-2 leading-5"
             style={{ color: theme.colors.textSecondary, textAlign: "center" }}
           >
-            This app is built by hundreds of contributors all over the world.
+            Built and maintained by contributors around the world.
           </Text>
-          <Text
-            className="text-[11px] mt-2"
-            style={{ color: theme.colors.textTertiary, textAlign: "center" }}
-          >
-            Licensed under Apache 2.0
-          </Text>
+
+          <View className="items-center mt-3">
+            <View
+              className="px-2.5 py-1 rounded-full"
+              style={{
+                backgroundColor: theme.colors.backgroundTertiary,
+                borderWidth: 1,
+                borderColor: theme.colors.borderSubtle,
+              }}
+            >
+              <Text
+                className="text-[11px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
+                Licensed under Apache 2.0
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
     </ScrollView>
