@@ -303,7 +303,7 @@ export default function HomeScreen(): React.JSX.Element {
                 className="text-[12px]"
                 style={{ color: theme.colors.textTertiary }}
               >
-                Total active issues
+                Total active items
               </Text>
               <Text
                 className="text-[30px] font-bold"
@@ -313,7 +313,10 @@ export default function HomeScreen(): React.JSX.Element {
                   letterSpacing: -1,
                 }}
               >
-                {(incidentCount ?? 0) + (alertCount ?? 0)}
+                {(incidentCount ?? 0) +
+                  (alertCount ?? 0) +
+                  (incidentEpisodeCount ?? 0) +
+                  (alertEpisodeCount ?? 0)}
               </Text>
             </View>
           </View>
