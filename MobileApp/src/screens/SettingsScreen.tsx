@@ -441,9 +441,9 @@ export default function SettingsScreen(): React.JSX.Element {
       <View className="items-center pt-4 pb-2">
         <Text
           className="text-[11px] font-medium"
-          style={{ color: theme.colors.textTertiary }}
+          style={{ color: theme.colors.textTertiary, textAlign: "center" }}
         >
-          OneUptime
+          OneUptime is open source under the Apache 2.0 License.
         </Text>
       </View>
     </ScrollView>
