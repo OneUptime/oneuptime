@@ -39,6 +39,43 @@ function createRefractorCompatibilityPlugin() {
   };
 }
 
+// Plugin to force mermaid to use its pre-bundled CJS build (no dynamic imports)
+function createMermaidPlugin() {
+  const candidateRoots = [
+    path.resolve(__dirname, '../node_modules/mermaid'),
+    path.resolve(__dirname, '../../node_modules/mermaid'),
+  ];
+  const mermaidRoot = candidateRoots.find((p) => fs.existsSync(p));
+
+  return {
+    name: 'mermaid-prebundled',
+    setup(build) {
+      if (!mermaidRoot) return;
+      const bundlePath = path.join(mermaidRoot, 'dist', 'mermaid.min.js');
+
+      // Intercept bare "mermaid" imports and serve a thin ESM wrapper
+      build.onResolve({ filter: /^mermaid$/ }, () => {
+        return { path: 'mermaid-wrapper', namespace: 'mermaid-ns' };
+      });
+
+      build.onLoad({ filter: /^mermaid-wrapper$/, namespace: 'mermaid-ns' }, () => {
+        // The CJS bundle assigns to exports.default – re-export it as ESM
+        return {
+          contents: `
+            import "${bundlePath}";
+            var _g = globalThis.__esbuild_esm_mermaid_nm || globalThis;
+            var mermaid = _g.mermaid || (_g.__esbuild_esm_mermaid_nm && _g.__esbuild_esm_mermaid_nm.mermaid);
+            export default mermaid;
+            export { mermaid };
+          `,
+          loader: 'js',
+          resolveDir: path.dirname(bundlePath),
+        };
+      });
+    },
+  };
+}
+
 // CSS Plugin to handle CSS/SCSS files
 function createCSSPlugin() {
   return {
@@ -161,12 +198,12 @@ function createConfig(options) {
     entryPoints: [entryPoint],
     bundle: true,
     outdir,
-    format: 'esm', // Changed from 'iife' to 'esm' to support splitting
+    format: 'esm',
     platform: 'browser',
     target: 'es2017',
     sourcemap: isDev ? 'inline' : false,
     minify: false,
-    splitting: true, // Now supported with ESM format
+    splitting: true,
     publicPath,
     define: {
       'process.env.NODE_ENV': JSON.stringify(isDev ? 'development' : 'production'),
@@ -177,7 +214,7 @@ function createConfig(options) {
       'react': path.resolve('./node_modules/react'),
       ...additionalAlias,
     },
-    plugins: [createRefractorCompatibilityPlugin(), createCSSPlugin(), createFileLoaderPlugin()],
+    plugins: [createMermaidPlugin(), createRefractorCompatibilityPlugin(), createCSSPlugin(), createFileLoaderPlugin()],
     loader: {
       '.tsx': 'tsx',
       '.ts': 'ts',
