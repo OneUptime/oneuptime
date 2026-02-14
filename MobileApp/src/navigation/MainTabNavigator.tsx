@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Platform } from "react-native";
+import { View, Platform, useWindowDimensions } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { MainTabParamList } from "./types";
@@ -42,6 +42,8 @@ function TabIcon({
 
 export default function MainTabNavigator(): React.JSX.Element {
   const { theme } = useTheme();
+  const { width } = useWindowDimensions();
+  const isMobileWidth: boolean = width < 768;
 
   return (
     <Tab.Navigator
@@ -79,6 +81,7 @@ export default function MainTabNavigator(): React.JSX.Element {
         },
         tabBarActiveTintColor: theme.colors.actionPrimary,
         tabBarInactiveTintColor: theme.colors.textTertiary,
+        tabBarShowLabel: !isMobileWidth,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: "600",
