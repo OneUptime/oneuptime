@@ -169,14 +169,14 @@ export default function SettingsScreen(): React.JSX.Element {
 
         <View className="flex-row items-center">
           <View
-            className="h-14 min-w-[124px] px-2 rounded-2xl items-center justify-center"
+            className="w-14 h-14 rounded-2xl items-center justify-center"
             style={{
               backgroundColor: "#000000",
               borderWidth: 1,
               borderColor: "#1F1F1F",
             }}
           >
-            <Logo size={46} />
+            <Logo size={52} />
           </View>
 
           <View className="ml-3 flex-1">

@@ -166,14 +166,14 @@ export default function HomeScreen(): React.JSX.Element {
       >
         <View className="flex-1 items-center justify-center px-8">
           <View
-            className="h-16 min-w-[170px] px-3 rounded-2xl items-center justify-center mb-6"
+            className="w-20 h-20 rounded-2xl items-center justify-center mb-6"
             style={{
               backgroundColor: "#000000",
               borderWidth: 1,
               borderColor: "#1F1F1F",
             }}
           >
-            <Logo size={52} />
+            <Logo size={76} />
           </View>
 
           <Text
@@ -265,14 +265,14 @@ export default function HomeScreen(): React.JSX.Element {
 
           <View className="flex-row items-center">
             <View
-              className="h-12 min-w-[112px] px-2 rounded-2xl items-center justify-center mr-3"
+              className="w-12 h-12 rounded-2xl items-center justify-center mr-3"
               style={{
                 backgroundColor: "#000000",
                 borderWidth: 1,
                 borderColor: "#1F1F1F",
               }}
             >
-              <Logo size={42} />
+              <Logo size={44} />
             </View>
             <View className="flex-1">
               <Text
