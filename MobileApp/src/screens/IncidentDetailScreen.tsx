@@ -23,6 +23,7 @@ import { changeIncidentState } from "../api/incidents";
 import { createIncidentNote } from "../api/incidentNotes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
+import { toPlainText } from "../utils/text";
 import type { IncidentsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
@@ -197,7 +198,9 @@ export default function IncidentDetailScreen({
   const currentStateId: string | undefined = incident.currentIncidentState?._id;
   const isResolved: boolean = resolveState?._id === currentStateId;
   const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
-  const rootCauseText: string | undefined = incident.rootCause?.trim();
+  const rootCauseTextRaw: string = toPlainText(incident.rootCause);
+  const rootCauseText: string | undefined = rootCauseTextRaw.trim() || undefined;
+  const descriptionText: string = toPlainText(incident.description);
 
   return (
     <ScrollView
@@ -298,7 +301,7 @@ export default function IncidentDetailScreen({
       </View>
 
       {/* Description */}
-      {incident.description ? (
+      {descriptionText ? (
         <View className="mb-6">
           <SectionHeader title="Description" iconName="document-text-outline" />
           <View
@@ -313,7 +316,7 @@ export default function IncidentDetailScreen({
               className="text-[14px] leading-[22px]"
               style={{ color: theme.colors.textPrimary }}
             >
-              {incident.description}
+              {descriptionText}
             </Text>
           </View>
         </View>

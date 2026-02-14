@@ -3,9 +3,10 @@ import { StyleSheet } from "react-native";
 import Markdown from "react-native-markdown-display";
 import * as Linking from "expo-linking";
 import { useTheme } from "../theme";
+import { toPlainText } from "../utils/text";
 
 export interface MarkdownContentProps {
-  content: string;
+  content: unknown;
   variant?: "primary" | "secondary";
 }
 
@@ -14,6 +15,7 @@ export default function MarkdownContent({
   variant = "primary",
 }: MarkdownContentProps): React.JSX.Element {
   const { theme } = useTheme();
+  const markdownText: string = toPlainText(content);
   const isSecondary: boolean = variant === "secondary";
   const textColor: string = isSecondary
     ? theme.colors.textSecondary
@@ -91,7 +93,7 @@ export default function MarkdownContent({
         return false;
       }}
     >
-      {content}
+      {markdownText}
     </Markdown>
   );
 }

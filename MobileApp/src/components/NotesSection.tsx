@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { formatDateTime } from "../utils/date";
+import { toPlainText } from "../utils/text";
 import type { NoteItem } from "../api/types";
 
 interface NotesSectionProps {
@@ -62,10 +63,13 @@ export default function NotesSection({
       </View>
 
       {notes && notes.length > 0
-        ? notes.map((note: NoteItem) => {
+        ? notes.map((note: NoteItem, index: number) => {
+            const noteText: string = toPlainText(note.note);
+            const authorName: string = toPlainText(note.createdByUser?.name);
+
             return (
               <View
-                key={note._id}
+                key={note._id || `${note.createdAt}-${index}`}
                 className="rounded-2xl overflow-hidden mb-2.5"
                 style={{
                   backgroundColor: theme.colors.backgroundElevated,
@@ -83,7 +87,7 @@ export default function NotesSection({
                     className="text-[14px] leading-[22px]"
                     style={{ color: theme.colors.textPrimary }}
                   >
-                    {note.note}
+                    {noteText}
                   </Text>
                   <View className="flex-row justify-between mt-2.5">
                     {note.createdByUser ? (
@@ -91,7 +95,7 @@ export default function NotesSection({
                         className="text-[12px]"
                         style={{ color: theme.colors.textTertiary }}
                       >
-                        {note.createdByUser.name}
+                        {authorName}
                       </Text>
                     ) : null}
                     <Text

@@ -25,6 +25,7 @@ import {
 } from "../api/incidentEpisodes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
+import { toPlainText } from "../utils/text";
 import type { IncidentsStackParamList } from "../navigation/types";
 import type { IncidentState } from "../api/types";
 import { useQueryClient } from "@tanstack/react-query";
@@ -200,7 +201,9 @@ export default function IncidentEpisodeDetailScreen({
   const currentStateId: string | undefined = episode.currentIncidentState?._id;
   const isResolved: boolean = resolveState?._id === currentStateId;
   const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
-  const rootCauseText: string | undefined = episode.rootCause?.trim();
+  const rootCauseTextRaw: string = toPlainText(episode.rootCause);
+  const rootCauseText: string | undefined = rootCauseTextRaw.trim() || undefined;
+  const descriptionText: string = toPlainText(episode.description);
 
   return (
     <ScrollView
@@ -288,7 +291,7 @@ export default function IncidentEpisodeDetailScreen({
         </View>
       </View>
 
-      {episode.description ? (
+      {descriptionText ? (
         <View className="mb-6">
           <SectionHeader title="Description" iconName="document-text-outline" />
           <View
@@ -303,7 +306,7 @@ export default function IncidentEpisodeDetailScreen({
               className="text-[14px] leading-[22px]"
               style={{ color: theme.colors.textPrimary }}
             >
-              {episode.description}
+              {descriptionText}
             </Text>
           </View>
         </View>

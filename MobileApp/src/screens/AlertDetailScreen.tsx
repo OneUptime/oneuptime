@@ -23,6 +23,7 @@ import { changeAlertState } from "../api/alerts";
 import { createAlertNote } from "../api/alertNotes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
+import { toPlainText } from "../utils/text";
 import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { AlertState } from "../api/types";
@@ -183,7 +184,9 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   const currentStateId: string | undefined = alert.currentAlertState?._id;
   const isResolved: boolean = resolveState?._id === currentStateId;
   const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
-  const rootCauseText: string | undefined = alert.rootCause?.trim();
+  const rootCauseTextRaw: string = toPlainText(alert.rootCause);
+  const rootCauseText: string | undefined = rootCauseTextRaw.trim() || undefined;
+  const descriptionText: string = toPlainText(alert.description);
 
   return (
     <ScrollView
@@ -284,7 +287,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       </View>
 
       {/* Description */}
-      {alert.description ? (
+      {descriptionText ? (
         <View className="mb-6">
           <SectionHeader title="Description" iconName="document-text-outline" />
           <View
@@ -299,7 +302,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
               className="text-[14px] leading-[22px]"
               style={{ color: theme.colors.textPrimary }}
             >
-              {alert.description}
+              {descriptionText}
             </Text>
           </View>
         </View>

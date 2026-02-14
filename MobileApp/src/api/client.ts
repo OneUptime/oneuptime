@@ -33,10 +33,12 @@ function normalizeResponseData(data: unknown): unknown {
     // Check for serialized OneUptime types
     if (
       typeof obj["_type"] === "string" &&
-      typeof obj["value"] === "string" &&
-      (obj["_type"] === "ObjectID" || obj["_type"] === "DateTime")
+      Object.prototype.hasOwnProperty.call(obj, "value") &&
+      (obj["_type"] === "ObjectID" ||
+        obj["_type"] === "DateTime" ||
+        obj["_type"] === "Markdown")
     ) {
-      return obj["value"];
+      return normalizeResponseData(obj["value"]);
     }
 
     const normalized: Record<string, unknown> = {};
