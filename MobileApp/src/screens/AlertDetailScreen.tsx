@@ -31,6 +31,7 @@ import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
 import NotesSection from "../components/NotesSection";
+import MarkdownContent from "../components/MarkdownContent";
 import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertDetail">;
@@ -314,16 +315,16 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
             borderColor: theme.colors.borderGlass,
           }}
         >
-          <Text
-            className="text-[14px] leading-[22px]"
-            style={{
-              color: rootCauseText
-                ? theme.colors.textPrimary
-                : theme.colors.textTertiary,
-            }}
-          >
-            {rootCauseText || "No root cause documented yet."}
-          </Text>
+          {rootCauseText ? (
+            <MarkdownContent content={rootCauseText} />
+          ) : (
+            <Text
+              className="text-[14px] leading-[22px]"
+              style={{ color: theme.colors.textTertiary }}
+            >
+              No root cause documented yet.
+            </Text>
+          )}
         </View>
       </View>
 

@@ -4,20 +4,10 @@ import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import type { FeedItem } from "../api/types";
+import MarkdownContent from "./MarkdownContent";
 
 interface FeedTimelineProps {
   feed: FeedItem[];
-}
-
-function stripMarkdown(md: string): string {
-  return md
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/`(.*?)`/g, "$1")
-    .replace(/#{1,6}\s/g, "")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/\n{2,}/g, "\n")
-    .trim();
 }
 
 export default function FeedTimeline({
@@ -35,10 +25,7 @@ export default function FeedTimeline({
         const timeString: string = formatDateTime(
           entry.postedAt || entry.createdAt,
         );
-        const mainText: string = stripMarkdown(entry.feedInfoInMarkdown);
-        const moreText: string | undefined = entry.moreInformationInMarkdown
-          ? stripMarkdown(entry.moreInformationInMarkdown)
-          : undefined;
+        const moreText: string | undefined = entry.moreInformationInMarkdown;
 
         return (
           <View key={entry._id} className="flex-row">
@@ -64,20 +51,11 @@ export default function FeedTimeline({
                 borderColor: theme.colors.borderGlass,
               }}
             >
-              <Text
-                className="text-[14px] leading-5"
-                style={{ color: theme.colors.textPrimary }}
-              >
-                {mainText}
-              </Text>
+              <MarkdownContent content={entry.feedInfoInMarkdown} />
               {moreText ? (
-                <Text
-                  className="text-[13px] mt-1.5 leading-5"
-                  style={{ color: theme.colors.textSecondary }}
-                  numberOfLines={3}
-                >
-                  {moreText}
-                </Text>
+                <View className="mt-1.5">
+                  <MarkdownContent content={moreText} variant="secondary" />
+                </View>
               ) : null}
               <Text
                 className="text-[12px] mt-2"
