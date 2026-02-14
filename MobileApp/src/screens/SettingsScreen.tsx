@@ -438,13 +438,63 @@ export default function SettingsScreen(): React.JSX.Element {
       </View>
 
       {/* Footer */}
-      <View className="items-center pt-4 pb-2">
-        <Text
-          className="text-[11px] font-medium"
-          style={{ color: theme.colors.textTertiary, textAlign: "center" }}
+      <View className="pt-2 pb-2">
+        <View
+          className="rounded-2xl overflow-hidden px-4 py-4"
+          style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+          }}
         >
-          OneUptime is open source under the Apache 2.0 License.
-        </Text>
+          <LinearGradient
+            colors={[
+              theme.colors.accentGradientStart + "1A",
+              theme.colors.accentGradientEnd + "08",
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              position: "absolute",
+              top: -20,
+              left: -20,
+              right: -20,
+              height: 120,
+            }}
+          />
+
+          <View className="items-center mb-2">
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center"
+              style={{ backgroundColor: theme.colors.iconBackground }}
+            >
+              <Ionicons
+                name="heart-outline"
+                size={16}
+                color={theme.colors.actionPrimary}
+              />
+            </View>
+          </View>
+
+          <Text
+            className="text-[13px] font-semibold"
+            style={{ color: theme.colors.textPrimary, textAlign: "center" }}
+          >
+            Thank you for supporting open source software.
+          </Text>
+          <Text
+            className="text-[12px] mt-1.5 leading-5"
+            style={{ color: theme.colors.textSecondary, textAlign: "center" }}
+          >
+            This app is built by hundreds of contributors all over the world.
+          </Text>
+          <Text
+            className="text-[11px] mt-2"
+            style={{ color: theme.colors.textTertiary, textAlign: "center" }}
+          >
+            Licensed under Apache 2.0
+          </Text>
+        </View>
       </View>
     </ScrollView>
   );
