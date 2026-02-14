@@ -23,23 +23,27 @@ export default function SegmentedControl<T extends string>({
 
   return (
     <View
-      className="flex-row mx-4 mt-3 mb-1 rounded-xl p-1"
-      style={{ backgroundColor: theme.colors.backgroundTertiary }}
+      className="flex-row mx-4 mt-3 mb-2 rounded-2xl p-1.5"
+      style={{
+        backgroundColor: theme.colors.backgroundElevated,
+        borderWidth: 1,
+        borderColor: theme.colors.borderGlass,
+      }}
     >
       {segments.map((segment: Segment<T>) => {
         const isActive: boolean = segment.key === selected;
         return (
           <TouchableOpacity
             key={segment.key}
-            className="flex-1 items-center py-2.5 rounded-[10px] overflow-hidden"
+            className="flex-1 items-center py-2.5 rounded-xl overflow-hidden"
             style={
               isActive
                 ? {
                     shadowColor: theme.colors.accentGradientMid,
-                    shadowOpacity: 0.3,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowRadius: 6,
-                    elevation: 3,
+                    shadowOpacity: theme.isDark ? 0.35 : 0.2,
+                    shadowOffset: { width: 0, height: 5 },
+                    shadowRadius: 10,
+                    elevation: 4,
                   }
                 : undefined
             }
@@ -52,6 +56,7 @@ export default function SegmentedControl<T extends string>({
               <LinearGradient
                 colors={[
                   theme.colors.accentGradientStart,
+                  theme.colors.accentGradientMid,
                   theme.colors.accentGradientEnd,
                 ]}
                 start={{ x: 0, y: 0 }}
@@ -68,7 +73,8 @@ export default function SegmentedControl<T extends string>({
             <Text
               className="text-body-sm font-semibold"
               style={{
-                color: isActive ? "#FFFFFF" : theme.colors.textTertiary,
+                color: isActive ? "#FFFFFF" : theme.colors.textSecondary,
+                letterSpacing: 0.2,
               }}
             >
               {segment.label}

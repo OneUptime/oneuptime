@@ -26,11 +26,11 @@ function TabIcon({
   accentColor: string;
 }): React.JSX.Element {
   return (
-    <View className="items-center">
+    <View className="items-center justify-center">
       <Ionicons name={focused ? focusedName : name} size={22} color={color} />
       {focused ? (
         <View
-          className="w-1 h-1 rounded-full mt-1"
+          className="w-1 h-1 rounded-full mt-0.5"
           style={{
             backgroundColor: accentColor,
           }}
@@ -55,25 +55,39 @@ export default function MainTabNavigator(): React.JSX.Element {
         headerTintColor: theme.colors.textPrimary,
         headerTitleStyle: {
           fontWeight: "700",
-          fontSize: 17,
-          letterSpacing: -0.3,
+          fontSize: 18,
+          letterSpacing: -0.4,
         },
         tabBarStyle: {
-          backgroundColor: theme.colors.backgroundPrimary,
-          borderTopColor: theme.colors.borderSubtle,
-          borderTopWidth: 1,
-          height: Platform.OS === "ios" ? 88 : 64,
-          paddingBottom: Platform.OS === "ios" ? 28 : 8,
-          paddingTop: 8,
+          position: "absolute",
+          left: 14,
+          right: 14,
+          bottom: Platform.OS === "ios" ? 14 : 10,
+          backgroundColor: theme.colors.backgroundElevated,
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: theme.colors.borderGlass,
+          borderRadius: 22,
+          height: Platform.OS === "ios" ? 78 : 68,
+          paddingBottom: Platform.OS === "ios" ? 18 : 10,
+          paddingTop: 10,
+          shadowColor: theme.isDark ? "#000000" : theme.colors.accentGradientMid,
+          shadowOpacity: theme.isDark ? 0.35 : 0.12,
+          shadowOffset: { width: 0, height: 8 },
+          shadowRadius: 18,
+          elevation: 16,
         },
         tabBarActiveTintColor: theme.colors.actionPrimary,
         tabBarInactiveTintColor: theme.colors.textTertiary,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: "600",
-          marginTop: 2,
+          marginTop: 1,
+          letterSpacing: 0.2,
         },
         tabBarItemStyle: {
+          borderRadius: 14,
+          marginHorizontal: 2,
           paddingVertical: 2,
         },
       }}

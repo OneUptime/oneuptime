@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useProject } from "../hooks/useProject";
@@ -47,24 +48,42 @@ function StatCard({
 
   return (
     <TouchableOpacity
-      className="flex-1 rounded-2xl overflow-hidden"
+      className="flex-1 rounded-3xl overflow-hidden"
       onPress={handlePress}
       activeOpacity={0.7}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
     >
+      <LinearGradient
+        colors={[theme.colors.accentGradientStart + "2B", theme.colors.accentGradientEnd + "1A"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          position: "absolute",
+          top: -36,
+          left: -20,
+          width: 160,
+          height: 160,
+          borderRadius: 999,
+        }}
+      />
       <View
         className="p-4"
         style={{
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
-          borderRadius: 16,
+          borderRadius: 22,
+          shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
+          shadowOpacity: theme.isDark ? 0.25 : 0.1,
+          shadowOffset: { width: 0, height: 8 },
+          shadowRadius: 16,
+          elevation: 6,
         }}
       >
         <View className="flex-row items-center justify-between mb-3">
           <View
-            className="w-9 h-9 rounded-xl items-center justify-center"
+            className="w-10 h-10 rounded-2xl items-center justify-center"
             style={{ backgroundColor: accentColor + "14" }}
           >
             <Ionicons name={iconName} size={18} color={accentColor} />
@@ -76,20 +95,20 @@ function StatCard({
           />
         </View>
         <Text
-          className="text-[28px] font-bold"
+          className="text-[30px] font-bold"
           style={{
             color: theme.colors.textPrimary,
             fontVariant: ["tabular-nums"],
-            letterSpacing: -1,
+            letterSpacing: -1.1,
           }}
         >
           {isLoading ? "--" : count ?? 0}
         </Text>
         <Text
-          className="text-[12px] font-medium mt-1"
+          className="text-[12px] font-semibold mt-1"
           style={{
             color: theme.colors.textSecondary,
-            letterSpacing: 0.2,
+            letterSpacing: 0.3,
           }}
           numberOfLines={1}
         >
@@ -213,34 +232,104 @@ export default function HomeScreen(): React.JSX.Element {
       }
     >
       <View className="px-5 pt-4 pb-4">
-        <View className="flex-row items-center">
-          <View
-            className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+        <View
+          className="rounded-3xl overflow-hidden p-5"
+          style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+            shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
+            shadowOpacity: theme.isDark ? 0.3 : 0.12,
+            shadowOffset: { width: 0, height: 10 },
+            shadowRadius: 18,
+            elevation: 7,
+          }}
+        >
+          <LinearGradient
+            colors={[
+              theme.colors.accentGradientStart + "2B",
+              theme.colors.accentGradientEnd + "08",
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={{
-              backgroundColor: theme.colors.iconBackground,
+              position: "absolute",
+              top: -60,
+              left: -20,
+              right: -20,
+              height: 220,
             }}
-          >
-            <Logo size={22} />
+          />
+
+          <View className="flex-row items-center">
+            <View
+              className="w-12 h-12 rounded-2xl items-center justify-center mr-3"
+              style={{
+                backgroundColor: theme.colors.iconBackground,
+                borderWidth: 1,
+                borderColor: theme.colors.borderGlass,
+              }}
+            >
+              <Logo size={24} />
+            </View>
+            <View className="flex-1">
+              <Text
+                className="text-[13px] font-medium"
+                style={{
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                {getGreeting()}
+              </Text>
+              <Text
+                className="text-[24px] font-bold"
+                accessibilityRole="header"
+                style={{
+                  color: theme.colors.textPrimary,
+                  letterSpacing: -0.6,
+                }}
+                numberOfLines={1}
+              >
+                {subtitle}
+              </Text>
+            </View>
           </View>
-          <View className="flex-1">
-            <Text
-              className="text-[13px] font-medium"
+
+          <View className="mt-4 flex-row items-center justify-between">
+            <View>
+              <Text
+                className="text-[12px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
+                Total active issues
+              </Text>
+              <Text
+                className="text-[30px] font-bold"
+                style={{
+                  color: theme.colors.textPrimary,
+                  fontVariant: ["tabular-nums"],
+                  letterSpacing: -1,
+                }}
+              >
+                {(incidentCount ?? 0) + (alertCount ?? 0)}
+              </Text>
+            </View>
+
+            <View
+              className="px-3 py-2 rounded-xl"
               style={{
-                color: theme.colors.textTertiary,
+                backgroundColor: theme.colors.accentCyanBg,
+                borderWidth: 1,
+                borderColor: theme.colors.borderGlass,
               }}
             >
-              {getGreeting()}
-            </Text>
-            <Text
-              className="text-[22px] font-bold"
-              accessibilityRole="header"
-              style={{
-                color: theme.colors.textPrimary,
-                letterSpacing: -0.5,
-              }}
-            >
-              {subtitle}
-            </Text>
+              <Text
+                className="text-[11px] font-semibold"
+                style={{ color: theme.colors.accentCyan }}
+              >
+                Live
+              </Text>
+            </View>
           </View>
         </View>
       </View>

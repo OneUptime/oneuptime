@@ -34,7 +34,7 @@ function SettingsRow({
 
   const content: React.JSX.Element = (
     <View
-      className="flex-row justify-between items-center px-4 min-h-[48px]"
+      className="flex-row justify-between items-center px-4 min-h-[52px]"
       style={
         !isLast
           ? {
@@ -135,27 +135,96 @@ export default function SettingsScreen(): React.JSX.Element {
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
     >
       {/* Header */}
-      <View className="items-center py-4 mb-6">
-        <View
-          className="w-14 h-14 rounded-2xl items-center justify-center mb-3"
+      <View
+        className="rounded-3xl overflow-hidden p-5 mb-6"
+        style={{
+          backgroundColor: theme.colors.backgroundElevated,
+          borderWidth: 1,
+          borderColor: theme.colors.borderGlass,
+          shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
+          shadowOpacity: theme.isDark ? 0.28 : 0.12,
+          shadowOffset: { width: 0, height: 10 },
+          shadowRadius: 18,
+          elevation: 7,
+        }}
+      >
+        <LinearGradient
+          colors={[
+            theme.colors.accentGradientStart + "24",
+            theme.colors.accentGradientEnd + "08",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            backgroundColor: theme.colors.iconBackground,
+            position: "absolute",
+            top: -60,
+            left: -10,
+            right: -10,
+            height: 190,
           }}
-        >
-          <Logo size={28} />
+        />
+
+        <View className="flex-row items-center">
+          <View
+            className="w-14 h-14 rounded-2xl items-center justify-center"
+            style={{
+              backgroundColor: theme.colors.iconBackground,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
+          >
+            <Logo size={28} />
+          </View>
+
+          <View className="ml-3 flex-1">
+            <Text
+              className="text-[20px] font-bold"
+              style={{ color: theme.colors.textPrimary, letterSpacing: -0.3 }}
+            >
+              Preferences
+            </Text>
+            <Text
+              className="text-[12px] mt-0.5"
+              style={{
+                color: theme.colors.textSecondary,
+                letterSpacing: 0.2,
+              }}
+            >
+              Personalize your OneUptime experience
+            </Text>
+          </View>
         </View>
-        <Text
-          className="text-[11px] font-semibold uppercase"
-          style={{
-            color: theme.colors.textTertiary,
-            letterSpacing: 1.2,
-          }}
-        >
-          {serverUrl || "oneuptime.com"}
-        </Text>
+
+        <View className="mt-4 flex-row items-center justify-between">
+          <Text
+            className="text-[11px] font-semibold uppercase"
+            style={{
+              color: theme.colors.textTertiary,
+              letterSpacing: 1,
+            }}
+          >
+            Connected to
+          </Text>
+
+          <View
+            className="px-2.5 py-1 rounded-lg"
+            style={{
+              backgroundColor: theme.colors.accentCyanBg,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
+          >
+            <Text
+              className="text-[11px] font-semibold"
+              style={{ color: theme.colors.accentCyan }}
+            >
+              {serverUrl || "oneuptime.com"}
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* Appearance */}
@@ -235,6 +304,7 @@ export default function SettingsScreen(): React.JSX.Element {
                           color: isActive
                             ? "#FFFFFF"
                             : theme.colors.textPrimary,
+                          letterSpacing: 0.2,
                         }}
                       >
                         {mode.charAt(0).toUpperCase() + mode.slice(1)}

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
@@ -47,13 +48,30 @@ export default function IncidentCard({
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
     >
       <View
-        className="rounded-2xl overflow-hidden"
+        className="rounded-3xl overflow-hidden"
         style={{
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
+          shadowColor: theme.isDark ? "#000" : stateColor,
+          shadowOpacity: theme.isDark ? 0.22 : 0.1,
+          shadowOffset: { width: 0, height: 8 },
+          shadowRadius: 14,
+          elevation: 5,
         }}
       >
+        <LinearGradient
+          colors={[stateColor + "22", "transparent"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            position: "absolute",
+            top: -40,
+            left: -10,
+            right: -10,
+            height: 150,
+          }}
+        />
         <View
           style={{
             height: 3,
