@@ -53,131 +53,165 @@ import MyOnCallPolicies from "./Pages/Global/MyOnCallPolicies";
 import PageNotFound from "./Pages/PageNotFound/PageNotFound";
 
 // Lazy-loaded route bundles (all routes in one bundle to minimize chunk count)
+type AllRoutesModule = typeof import("./Routes/AllRoutes");
 const InitRoutes: React.LazyExoticComponent<
   React.FunctionComponent<RoutesProps>
 > = lazy(() => {
   return import("./Routes/InitRoutes");
 });
 
-const LogsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
-    return { default: m.LogsRoutes };
+const LogsRoutes: React.LazyExoticComponent<AllRoutesModule["LogsRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return { default: m.LogsRoutes };
+    });
   });
-});
-const MetricsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const MetricsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["MetricsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.MetricsRoutes,
     };
   });
 });
-const TracesRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
-    return {
-      default: m.TracesRoutes,
-    };
+const TracesRoutes: React.LazyExoticComponent<AllRoutesModule["TracesRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.TracesRoutes,
+      };
+    });
   });
-});
-const ExceptionsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const ExceptionsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ExceptionsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.ExceptionsRoutes,
     };
   });
 });
-const IncidentsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const IncidentsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["IncidentsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.IncidentsRoutes,
     };
   });
 });
-const AlertsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
-    return {
-      default: m.AlertsRoutes,
-    };
+const AlertsRoutes: React.LazyExoticComponent<AllRoutesModule["AlertsRoutes"]> =
+  lazy(() => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.AlertsRoutes,
+      };
+    });
   });
-});
-const ScheduledMaintenanceEventsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const ScheduledMaintenanceEventsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ScheduledMaintenanceEventsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.ScheduledMaintenanceEventsRoutes,
     };
   });
 });
-const OnCallDutyRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const OnCallDutyRoutes: React.LazyExoticComponent<
+  AllRoutesModule["OnCallDutyRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.OnCallDutyRoutes,
     };
   });
 });
-const MonitorsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const MonitorsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["MonitorsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.MonitorsRoutes,
     };
   });
 });
-const MonitorGroupRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const MonitorGroupRoutes: React.LazyExoticComponent<
+  AllRoutesModule["MonitorGroupRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.MonitorGroupRoutes,
     };
   });
 });
-const WorkflowRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const WorkflowRoutes: React.LazyExoticComponent<
+  AllRoutesModule["WorkflowRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.WorkflowRoutes,
     };
   });
 });
-const StatusPagesRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const StatusPagesRoutes: React.LazyExoticComponent<
+  AllRoutesModule["StatusPagesRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.StatusPagesRoutes,
     };
   });
 });
-const DashboardRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const DashboardRoutes: React.LazyExoticComponent<
+  AllRoutesModule["DashboardRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.DashboardRoutes,
     };
   });
 });
-const ServiceRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const ServiceRoutes: React.LazyExoticComponent<
+  AllRoutesModule["ServiceRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.ServiceRoutes,
     };
   });
 });
-const CodeRepositoryRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const CodeRepositoryRoutes: React.LazyExoticComponent<
+  AllRoutesModule["CodeRepositoryRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.CodeRepositoryRoutes,
     };
   });
 });
-const AIAgentTasksRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const AIAgentTasksRoutes: React.LazyExoticComponent<
+  AllRoutesModule["AIAgentTasksRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.AIAgentTasksRoutes,
     };
   });
 });
-const SettingsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const SettingsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["SettingsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.SettingsRoutes,
     };
   });
 });
-const UserSettingsRoutes = lazy(() => {
-  return import("./Routes/AllRoutes").then((m) => {
+const UserSettingsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["UserSettingsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
       default: m.UserSettingsRoutes,
     };
