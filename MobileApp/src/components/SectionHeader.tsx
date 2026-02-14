@@ -14,18 +14,22 @@ export default function SectionHeader({
 }: SectionHeaderProps): React.JSX.Element {
   const { theme } = useTheme();
   return (
-    <View className="flex-row items-center mb-3">
-      <Ionicons
-        name={iconName}
-        size={14}
-        color={theme.colors.textTertiary}
-        style={{ marginRight: 6 }}
-      />
+    <View className="flex-row items-center mb-3.5">
+      <View
+        className="w-6 h-6 rounded-lg items-center justify-center mr-2"
+        style={{
+          backgroundColor: theme.colors.iconBackground,
+          borderWidth: 1,
+          borderColor: theme.colors.borderGlass,
+        }}
+      >
+        <Ionicons name={iconName} size={13} color={theme.colors.actionPrimary} />
+      </View>
       <Text
         className="text-[12px] font-semibold uppercase"
         style={{
-          color: theme.colors.textTertiary,
-          letterSpacing: 0.8,
+          color: theme.colors.textSecondary,
+          letterSpacing: 1,
         }}
       >
         {title}

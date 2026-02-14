@@ -18,18 +18,18 @@ export default function NotesSection({
   const { theme } = useTheme();
 
   return (
-    <View className="mb-2">
-      <View className="flex-row justify-between items-center mb-3">
+    <View className="mb-2 mt-1">
+      <View className="flex-row justify-between items-center mb-3.5">
         <View className="flex-row items-center">
           <Ionicons
             name="chatbubble-outline"
             size={14}
-            color={theme.colors.textTertiary}
+            color={theme.colors.textSecondary}
             style={{ marginRight: 6 }}
           />
           <Text
             className="text-[12px] font-semibold uppercase"
-            style={{ color: theme.colors.textTertiary, letterSpacing: 0.8 }}
+            style={{ color: theme.colors.textSecondary, letterSpacing: 1 }}
           >
             Internal Notes
           </Text>
@@ -71,11 +71,16 @@ export default function NotesSection({
             return (
               <View
                 key={note._id}
-                className="rounded-xl overflow-hidden mb-2.5"
+                className="rounded-2xl overflow-hidden mb-2.5"
                 style={{
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
+                  shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
+                  shadowOpacity: theme.isDark ? 0.16 : 0.06,
+                  shadowOffset: { width: 0, height: 5 },
+                  shadowRadius: 10,
+                  elevation: 3,
                 }}
               >
                 <View className="p-4">
@@ -109,7 +114,7 @@ export default function NotesSection({
 
       {notes && notes.length === 0 ? (
         <View
-          className="rounded-xl p-4 items-center"
+          className="rounded-2xl p-4 items-center"
           style={{
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,

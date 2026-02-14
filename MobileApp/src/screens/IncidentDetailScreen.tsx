@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import {
@@ -199,20 +200,41 @@ export default function IncidentDetailScreen({
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 48 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
       refreshControl={
-        <RefreshControl refreshing={false} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={false}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.actionPrimary}
+        />
       }
     >
       {/* Header card */}
       <View
-        className="rounded-2xl overflow-hidden mb-5"
+        className="rounded-3xl overflow-hidden mb-5"
         style={{
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
+          shadowColor: theme.isDark ? "#000" : stateColor,
+          shadowOpacity: theme.isDark ? 0.28 : 0.12,
+          shadowOffset: { width: 0, height: 10 },
+          shadowRadius: 18,
+          elevation: 7,
         }}
       >
+        <LinearGradient
+          colors={[stateColor + "26", "transparent"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            position: "absolute",
+            top: -50,
+            left: -10,
+            right: -10,
+            height: 190,
+          }}
+        />
         <View
           style={{
             height: 3,
@@ -228,10 +250,10 @@ export default function IncidentDetailScreen({
           </Text>
 
           <Text
-            className="text-[22px] font-bold"
+            className="text-[24px] font-bold"
             style={{
               color: theme.colors.textPrimary,
-              letterSpacing: -0.5,
+              letterSpacing: -0.6,
             }}
           >
             {incident.title}
@@ -277,12 +299,21 @@ export default function IncidentDetailScreen({
       {incident.description ? (
         <View className="mb-6">
           <SectionHeader title="Description" iconName="document-text-outline" />
-          <Text
-            className="text-[14px] leading-[22px]"
-            style={{ color: theme.colors.textPrimary }}
+          <View
+            className="rounded-2xl p-4"
+            style={{
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
           >
-            {incident.description}
-          </Text>
+            <Text
+              className="text-[14px] leading-[22px]"
+              style={{ color: theme.colors.textPrimary }}
+            >
+              {incident.description}
+            </Text>
+          </View>
         </View>
       ) : null}
 
@@ -290,13 +321,11 @@ export default function IncidentDetailScreen({
       <View className="mb-6">
         <SectionHeader title="Details" iconName="information-circle-outline" />
         <View
-          className="rounded-xl overflow-hidden"
+          className="rounded-2xl overflow-hidden"
           style={{
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
-            borderLeftWidth: 3,
-            borderLeftColor: theme.colors.actionPrimary,
           }}
         >
           <View className="p-4">
@@ -360,13 +389,18 @@ export default function IncidentDetailScreen({
       {!isResolved ? (
         <View className="mb-6">
           <SectionHeader title="Actions" iconName="flash-outline" />
-          <View className="flex-row gap-3">
+          <View
+            className="rounded-2xl p-3"
+            style={{
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
+          >
+            <View className="flex-row gap-3">
             {!isAcknowledged && !isResolved && acknowledgeState ? (
               <TouchableOpacity
-                className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px]"
-                style={{
-                  backgroundColor: theme.colors.stateAcknowledged,
-                }}
+                className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
                 onPress={() => {
                   return handleStateChange(
                     acknowledgeState._id,
@@ -378,6 +412,21 @@ export default function IncidentDetailScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Acknowledge incident"
               >
+                <LinearGradient
+                  colors={[
+                    theme.colors.stateAcknowledged,
+                    theme.colors.accentGradientEnd,
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}
+                />
                 {changingState ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
@@ -401,10 +450,7 @@ export default function IncidentDetailScreen({
 
             {resolveState ? (
               <TouchableOpacity
-                className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px]"
-                style={{
-                  backgroundColor: theme.colors.stateResolved,
-                }}
+                className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
                 onPress={() => {
                   return handleStateChange(resolveState._id, resolveState.name);
                 }}
@@ -413,6 +459,21 @@ export default function IncidentDetailScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Resolve incident"
               >
+                <LinearGradient
+                  colors={[
+                    theme.colors.stateResolved,
+                    theme.colors.accentCyan,
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}
+                />
                 {changingState ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
@@ -433,6 +494,7 @@ export default function IncidentDetailScreen({
                 )}
               </TouchableOpacity>
             ) : null}
+            </View>
           </View>
         </View>
       ) : null}

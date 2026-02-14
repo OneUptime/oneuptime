@@ -26,7 +26,7 @@ export default function FeedTimeline({
   const { theme } = useTheme();
 
   return (
-    <View className="ml-1">
+    <View>
       {feed.map((entry: FeedItem, index: number) => {
         const entryColor: string = entry.displayColor
           ? rgbToHex(entry.displayColor)
@@ -44,7 +44,7 @@ export default function FeedTimeline({
           <View key={entry._id} className="flex-row">
             <View className="items-center mr-3.5">
               <View
-                className="w-2.5 h-2.5 rounded-full mt-1"
+                className="w-2.5 h-2.5 rounded-full mt-2"
                 style={{ backgroundColor: entryColor }}
               />
               {!isLast ? (
@@ -56,7 +56,14 @@ export default function FeedTimeline({
                 />
               ) : null}
             </View>
-            <View className="flex-1 pb-5">
+            <View
+              className="flex-1 pb-3 mb-2.5 rounded-2xl p-3"
+              style={{
+                backgroundColor: theme.colors.backgroundElevated,
+                borderWidth: 1,
+                borderColor: theme.colors.borderGlass,
+              }}
+            >
               <Text
                 className="text-[14px] leading-5"
                 style={{ color: theme.colors.textPrimary }}
@@ -73,7 +80,7 @@ export default function FeedTimeline({
                 </Text>
               ) : null}
               <Text
-                className="text-[12px] mt-1.5"
+                className="text-[12px] mt-2"
                 style={{ color: theme.colors.textTertiary }}
               >
                 {timeString}
