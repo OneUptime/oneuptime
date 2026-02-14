@@ -19,6 +19,9 @@ export default function SegmentedControl<T extends string>({
   onSelect,
 }: SegmentedControlProps<T>): React.JSX.Element {
   const { theme } = useTheme();
+  const activeContentColor: string = theme.isDark
+    ? theme.colors.backgroundPrimary
+    : "#FFFFFF";
 
   return (
     <View
@@ -55,7 +58,7 @@ export default function SegmentedControl<T extends string>({
             <Text
               className="text-body-sm font-semibold"
               style={{
-                color: isActive ? "#FFFFFF" : theme.colors.textSecondary,
+                color: isActive ? activeContentColor : theme.colors.textSecondary,
                 letterSpacing: 0.2,
               }}
             >

@@ -15,6 +15,9 @@ export default function NotesSection({
   setNoteModalVisible,
 }: NotesSectionProps): React.JSX.Element {
   const { theme } = useTheme();
+  const addNoteContentColor: string = theme.isDark
+    ? theme.colors.backgroundPrimary
+    : "#FFFFFF";
 
   return (
     <View className="mb-2 mt-1">
@@ -46,12 +49,12 @@ export default function NotesSection({
           <Ionicons
             name="add"
             size={14}
-            color="#FFFFFF"
+            color={addNoteContentColor}
             style={{ marginRight: 4 }}
           />
           <Text
             className="text-[12px] font-semibold"
-            style={{ color: "#FFFFFF" }}
+            style={{ color: addNoteContentColor }}
           >
             Add Note
           </Text>

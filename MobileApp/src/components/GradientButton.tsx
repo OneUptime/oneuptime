@@ -29,6 +29,9 @@ export default function GradientButton({
   style,
 }: GradientButtonProps): React.JSX.Element {
   const { theme } = useTheme();
+  const primaryContentColor: string = theme.isDark
+    ? theme.colors.backgroundPrimary
+    : "#FFFFFF";
 
   if (variant === "secondary") {
     return (
@@ -93,20 +96,20 @@ export default function GradientButton({
       activeOpacity={0.85}
     >
       {loading ? (
-        <ActivityIndicator color="#FFFFFF" />
+        <ActivityIndicator color={primaryContentColor} />
       ) : (
         <>
           {icon ? (
             <Ionicons
               name={icon}
               size={18}
-              color="#FFFFFF"
+              color={primaryContentColor}
               style={{ marginRight: 8 }}
             />
           ) : null}
           <Text
             className="text-[15px] font-bold"
-            style={{ color: "#FFFFFF", letterSpacing: 0.2 }}
+            style={{ color: primaryContentColor, letterSpacing: 0.2 }}
           >
             {label}
           </Text>

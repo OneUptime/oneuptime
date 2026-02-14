@@ -111,6 +111,9 @@ export default function SettingsScreen(): React.JSX.Element {
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
   const { selectionFeedback } = useHaptics();
   const [serverUrl, setServerUrlState] = useState("");
+  const activeThemeOptionColor: string = theme.isDark
+    ? theme.colors.backgroundPrimary
+    : "#FFFFFF";
 
   useEffect(() => {
     getServerUrl().then(setServerUrlState);
@@ -279,14 +282,16 @@ export default function SettingsScreen(): React.JSX.Element {
                         }
                         size={15}
                         color={
-                          isActive ? "#FFFFFF" : theme.colors.textSecondary
+                          isActive
+                            ? activeThemeOptionColor
+                            : theme.colors.textSecondary
                         }
                       />
                       <Text
                         className="text-[13px] font-semibold"
                         style={{
                           color: isActive
-                            ? "#FFFFFF"
+                            ? activeThemeOptionColor
                             : theme.colors.textPrimary,
                           letterSpacing: 0.2,
                         }}
