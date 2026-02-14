@@ -30,7 +30,7 @@ import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
 import NotesSection from "../components/NotesSection";
-import MarkdownContent from "../components/MarkdownContent";
+import RootCauseCard from "../components/RootCauseCard";
 import { useHaptics } from "../hooks/useHaptics";
 import type { IncidentItem, IncidentState, NamedEntity } from "../api/types";
 
@@ -321,25 +321,7 @@ export default function IncidentDetailScreen({
 
       <View className="mb-6">
         <SectionHeader title="Root Cause" iconName="git-branch-outline" />
-        <View
-          className="rounded-2xl p-4"
-          style={{
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          {rootCauseText ? (
-            <MarkdownContent content={rootCauseText} />
-          ) : (
-            <Text
-              className="text-[14px] leading-[22px]"
-              style={{ color: theme.colors.textTertiary }}
-            >
-              No root cause documented yet.
-            </Text>
-          )}
-        </View>
+        <RootCauseCard rootCauseText={rootCauseText} />
       </View>
 
       {/* Details */}
