@@ -80,39 +80,72 @@ export default function AlertCard({
           <View className="flex-row justify-between items-center mb-2.5">
             <View className="flex-row items-center gap-2">
               {projectName ? <ProjectBadge name={projectName} /> : null}
+              <View
+                className="flex-row items-center px-2 py-1 rounded-full"
+                style={{ backgroundColor: theme.colors.iconBackground }}
+              >
+                <Ionicons
+                  name="notifications-outline"
+                  size={10}
+                  color={theme.colors.textSecondary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  className="text-[10px] font-semibold"
+                  style={{ color: theme.colors.textSecondary, letterSpacing: 0.3 }}
+                >
+                  ALERT
+                </Text>
+              </View>
               <Text
-                className="text-[12px] font-medium"
+                className="text-[11px] font-semibold"
                 style={{ color: theme.colors.textTertiary }}
               >
                 {alert.alertNumberWithPrefix || `#${alert.alertNumber}`}
               </Text>
             </View>
-            <Text
-              className="text-[12px]"
-              style={{ color: theme.colors.textTertiary }}
-            >
-              {timeString}
-            </Text>
+            <View className="flex-row items-center">
+              <Ionicons
+                name="time-outline"
+                size={12}
+                color={theme.colors.textTertiary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                className="text-[12px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
+                {timeString}
+              </Text>
+            </View>
           </View>
 
-          <Text
-            className="text-[16px] font-semibold mt-0.5"
-            style={{ color: theme.colors.textPrimary, letterSpacing: -0.2 }}
-            numberOfLines={2}
-          >
-            {alert.title}
-          </Text>
+          <View className="flex-row items-start mt-0.5">
+            <Text
+              className="text-[16px] font-semibold flex-1 pr-2"
+              style={{ color: theme.colors.textPrimary, letterSpacing: -0.2 }}
+              numberOfLines={2}
+            >
+              {alert.title}
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.colors.textTertiary}
+              style={{ marginTop: 2 }}
+            />
+          </View>
 
           <View className="flex-row flex-wrap gap-2 mt-3">
             {alert.currentAlertState ? (
               <View
-                className="flex-row items-center px-2 py-1 rounded-md"
+                className="flex-row items-center px-2.5 py-1 rounded-full"
                 style={{
                   backgroundColor: stateColor + "14",
                 }}
               >
                 <View
-                  className="w-1.5 h-1.5 rounded-full mr-1.5"
+                  className="w-2 h-2 rounded-full mr-1.5"
                   style={{ backgroundColor: stateColor }}
                 />
                 <Text
@@ -126,7 +159,7 @@ export default function AlertCard({
 
             {alert.alertSeverity ? (
               <View
-                className="flex-row items-center px-2 py-1 rounded-md"
+                className="flex-row items-center px-2.5 py-1 rounded-full"
                 style={{ backgroundColor: severityColor + "14" }}
               >
                 <Text
@@ -141,25 +174,37 @@ export default function AlertCard({
 
           {alert.monitor ? (
             <View
-              className="flex-row items-center mt-2.5 pt-2.5"
+              className="flex-row items-center mt-3 pt-3"
               style={{
                 borderTopWidth: 1,
                 borderTopColor: theme.colors.borderSubtle,
               }}
             >
-              <Ionicons
-                name="desktop-outline"
-                size={11}
-                color={theme.colors.textTertiary}
-                style={{ marginRight: 5 }}
-              />
-              <Text
-                className="text-[12px] flex-1"
-                style={{ color: theme.colors.textTertiary }}
-                numberOfLines={1}
+              <View
+                className="w-6 h-6 rounded-full items-center justify-center mr-2"
+                style={{ backgroundColor: theme.colors.iconBackground }}
               >
-                {alert.monitor.name}
-              </Text>
+                <Ionicons
+                  name="desktop-outline"
+                  size={12}
+                  color={theme.colors.textSecondary}
+                />
+              </View>
+              <View className="flex-1">
+                <Text
+                  className="text-[12px]"
+                  style={{ color: theme.colors.textSecondary }}
+                  numberOfLines={1}
+                >
+                  {alert.monitor.name}
+                </Text>
+                <Text
+                  className="text-[11px] mt-0.5"
+                  style={{ color: theme.colors.textTertiary }}
+                >
+                  Linked monitor
+                </Text>
+              </View>
             </View>
           ) : null}
         </View>

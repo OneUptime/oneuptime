@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
@@ -68,6 +69,8 @@ export default function EpisodeCard(
       }}
       onPress={onPress}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${type === "incident" ? "Incident" : "Alert"} episode ${episode.episodeNumberWithPrefix || episode.episodeNumber}, ${episode.title}. State: ${state?.name ?? "unknown"}. Severity: ${severity?.name ?? "unknown"}.`}
     >
       <View
         className="rounded-3xl overflow-hidden"
@@ -105,39 +108,76 @@ export default function EpisodeCard(
           <View className="flex-row justify-between items-center mb-2.5">
             <View className="flex-row items-center gap-2">
               {projectName ? <ProjectBadge name={projectName} /> : null}
+              <View
+                className="flex-row items-center px-2 py-1 rounded-full"
+                style={{ backgroundColor: theme.colors.iconBackground }}
+              >
+                <Ionicons
+                  name={
+                    type === "incident"
+                      ? "warning-outline"
+                      : "notifications-outline"
+                  }
+                  size={10}
+                  color={theme.colors.textSecondary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  className="text-[10px] font-semibold"
+                  style={{ color: theme.colors.textSecondary, letterSpacing: 0.3 }}
+                >
+                  {type === "incident" ? "INCIDENT EPISODE" : "ALERT EPISODE"}
+                </Text>
+              </View>
               <Text
-                className="text-[12px] font-medium"
+                className="text-[11px] font-semibold"
                 style={{ color: theme.colors.textTertiary }}
               >
                 {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
               </Text>
             </View>
-            <Text
-              className="text-[12px]"
-              style={{ color: theme.colors.textTertiary }}
-            >
-              {timeString}
-            </Text>
+            <View className="flex-row items-center">
+              <Ionicons
+                name="time-outline"
+                size={12}
+                color={theme.colors.textTertiary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                className="text-[12px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
+                {timeString}
+              </Text>
+            </View>
           </View>
 
-          <Text
-            className="text-[16px] font-semibold mt-0.5"
-            style={{ color: theme.colors.textPrimary, letterSpacing: -0.2 }}
-            numberOfLines={2}
-          >
-            {episode.title}
-          </Text>
+          <View className="flex-row items-start mt-0.5">
+            <Text
+              className="text-[16px] font-semibold flex-1 pr-2"
+              style={{ color: theme.colors.textPrimary, letterSpacing: -0.2 }}
+              numberOfLines={2}
+            >
+              {episode.title}
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.colors.textTertiary}
+              style={{ marginTop: 2 }}
+            />
+          </View>
 
           <View className="flex-row flex-wrap gap-2 mt-3">
             {state ? (
               <View
-                className="flex-row items-center px-2 py-1 rounded-md"
+                className="flex-row items-center px-2.5 py-1 rounded-full"
                 style={{
                   backgroundColor: stateColor + "14",
                 }}
               >
                 <View
-                  className="w-1.5 h-1.5 rounded-full mr-1.5"
+                  className="w-2 h-2 rounded-full mr-1.5"
                   style={{ backgroundColor: stateColor }}
                 />
                 <Text
@@ -151,7 +191,7 @@ export default function EpisodeCard(
 
             {severity ? (
               <View
-                className="flex-row items-center px-2 py-1 rounded-md"
+                className="flex-row items-center px-2.5 py-1 rounded-full"
                 style={{ backgroundColor: severityColor + "14" }}
               >
                 <Text
@@ -165,7 +205,7 @@ export default function EpisodeCard(
 
             {childCount > 0 ? (
               <View
-                className="flex-row items-center px-2 py-1 rounded-md"
+                className="flex-row items-center px-2.5 py-1 rounded-full"
                 style={{ backgroundColor: theme.colors.iconBackground }}
               >
                 <Text
