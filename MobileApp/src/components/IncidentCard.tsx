@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
@@ -58,30 +57,18 @@ export default function IncidentCard({
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
-          shadowColor: theme.isDark ? "#000" : stateColor,
-          shadowOpacity: theme.isDark ? 0.22 : 0.1,
+          shadowColor: theme.isDark ? "#000" : "#111827",
+          shadowOpacity: theme.isDark ? 0.22 : 0.08,
           shadowOffset: { width: 0, height: 8 },
           shadowRadius: 14,
           elevation: 5,
         }}
       >
-        <LinearGradient
-          colors={[stateColor + "22", "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: -40,
-            left: -10,
-            right: -10,
-            height: 150,
-          }}
-        />
         <View
           style={{
             height: 3,
-            backgroundColor: stateColor,
-            opacity: 0.8,
+            backgroundColor: theme.colors.borderSubtle,
+            opacity: 1,
           }}
         />
         <View className="p-4">
@@ -162,7 +149,7 @@ export default function IncidentCard({
               <View
                 className="flex-row items-center px-2.5 py-1 rounded-full"
                 style={{
-                  backgroundColor: stateColor + "14",
+                  backgroundColor: theme.colors.backgroundTertiary,
                 }}
               >
                 <View
@@ -181,7 +168,7 @@ export default function IncidentCard({
             {incident.incidentSeverity ? (
               <View
                 className="flex-row items-center px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: severityColor + "14" }}
+                style={{ backgroundColor: theme.colors.backgroundTertiary }}
               >
                 <Text
                   className="text-[11px] font-semibold"
