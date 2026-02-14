@@ -291,17 +291,47 @@ export default function IncidentEpisodeDetailScreen({
           <View className="p-4">
             {episode.declaredAt ? (
               <View className="flex-row mb-3">
-                <Text className="text-[13px] w-[90px]" style={{ color: theme.colors.textTertiary }}>Declared</Text>
-                <Text className="text-[13px]" style={{ color: theme.colors.textPrimary }}>{formatDateTime(episode.declaredAt)}</Text>
+                <Text
+                  className="text-[13px] w-[90px]"
+                  style={{ color: theme.colors.textTertiary }}
+                >
+                  Declared
+                </Text>
+                <Text
+                  className="text-[13px]"
+                  style={{ color: theme.colors.textPrimary }}
+                >
+                  {formatDateTime(episode.declaredAt)}
+                </Text>
               </View>
             ) : null}
             <View className="flex-row mb-3">
-              <Text className="text-[13px] w-[90px]" style={{ color: theme.colors.textTertiary }}>Created</Text>
-              <Text className="text-[13px]" style={{ color: theme.colors.textPrimary }}>{formatDateTime(episode.createdAt)}</Text>
+              <Text
+                className="text-[13px] w-[90px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
+                Created
+              </Text>
+              <Text
+                className="text-[13px]"
+                style={{ color: theme.colors.textPrimary }}
+              >
+                {formatDateTime(episode.createdAt)}
+              </Text>
             </View>
             <View className="flex-row">
-              <Text className="text-[13px] w-[90px]" style={{ color: theme.colors.textTertiary }}>Incidents</Text>
-              <Text className="text-[13px]" style={{ color: theme.colors.textPrimary }}>{episode.incidentCount ?? 0}</Text>
+              <Text
+                className="text-[13px] w-[90px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
+                Incidents
+              </Text>
+              <Text
+                className="text-[13px]"
+                style={{ color: theme.colors.textPrimary }}
+              >
+                {episode.incidentCount ?? 0}
+              </Text>
             </View>
           </View>
         </View>
@@ -315,13 +345,30 @@ export default function IncidentEpisodeDetailScreen({
               <TouchableOpacity
                 className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px]"
                 style={{ backgroundColor: theme.colors.stateAcknowledged }}
-                onPress={() => { return handleStateChange(acknowledgeState._id, acknowledgeState.name); }}
+                onPress={() => {
+                  return handleStateChange(
+                    acknowledgeState._id,
+                    acknowledgeState.name,
+                  );
+                }}
                 disabled={changingState}
               >
-                {changingState ? (<ActivityIndicator size="small" color="#FFFFFF" />) : (
+                {changingState ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
                   <>
-                    <Ionicons name="checkmark-circle-outline" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text className="text-[14px] font-bold" style={{ color: "#FFFFFF" }}>Acknowledge</Text>
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={17}
+                      color="#FFFFFF"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      className="text-[14px] font-bold"
+                      style={{ color: "#FFFFFF" }}
+                    >
+                      Acknowledge
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -330,13 +377,27 @@ export default function IncidentEpisodeDetailScreen({
               <TouchableOpacity
                 className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px]"
                 style={{ backgroundColor: theme.colors.stateResolved }}
-                onPress={() => { return handleStateChange(resolveState._id, resolveState.name); }}
+                onPress={() => {
+                  return handleStateChange(resolveState._id, resolveState.name);
+                }}
                 disabled={changingState}
               >
-                {changingState ? (<ActivityIndicator size="small" color="#FFFFFF" />) : (
+                {changingState ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
                   <>
-                    <Ionicons name="checkmark-done-outline" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text className="text-[14px] font-bold" style={{ color: "#FFFFFF" }}>Resolve</Text>
+                    <Ionicons
+                      name="checkmark-done-outline"
+                      size={17}
+                      color="#FFFFFF"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      className="text-[14px] font-bold"
+                      style={{ color: "#FFFFFF" }}
+                    >
+                      Resolve
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -353,7 +414,14 @@ export default function IncidentEpisodeDetailScreen({
       ) : null}
 
       <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
-      <AddNoteModal visible={noteModalVisible} onClose={() => { return setNoteModalVisible(false); }} onSubmit={handleAddNote} isSubmitting={submittingNote} />
+      <AddNoteModal
+        visible={noteModalVisible}
+        onClose={() => {
+          return setNoteModalVisible(false);
+        }}
+        onSubmit={handleAddNote}
+        isSubmitting={submittingNote}
+      />
     </ScrollView>
   );
 }

@@ -224,8 +224,7 @@ export default function IncidentDetailScreen({
             className="text-[13px] font-semibold mb-2"
             style={{ color: stateColor }}
           >
-            {incident.incidentNumberWithPrefix ||
-              `#${incident.incidentNumber}`}
+            {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
           </Text>
 
           <Text

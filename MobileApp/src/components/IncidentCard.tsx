@@ -64,9 +64,7 @@ export default function IncidentCard({
         <View className="p-4">
           <View className="flex-row justify-between items-center mb-2.5">
             <View className="flex-row items-center gap-2">
-              {projectName ? (
-                <ProjectBadge name={projectName} />
-              ) : null}
+              {projectName ? <ProjectBadge name={projectName} /> : null}
               <Text
                 className="text-[12px] font-medium"
                 style={{ color: theme.colors.textTertiary }}
@@ -128,8 +126,12 @@ export default function IncidentCard({
           </View>
 
           {monitorCount > 0 ? (
-            <View className="flex-row items-center mt-2.5 pt-2.5"
-              style={{ borderTopWidth: 1, borderTopColor: theme.colors.borderSubtle }}
+            <View
+              className="flex-row items-center mt-2.5 pt-2.5"
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: theme.colors.borderSubtle,
+              }}
             >
               <Ionicons
                 name="desktop-outline"

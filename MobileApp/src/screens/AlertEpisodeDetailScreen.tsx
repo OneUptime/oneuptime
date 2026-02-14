@@ -227,8 +227,16 @@ export default function AlertEpisodeDetailScreen({
                 className="flex-row items-center px-2.5 py-1 rounded-md"
                 style={{ backgroundColor: stateColor + "14" }}
               >
-                <View className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: stateColor }} />
-                <Text className="text-[12px] font-semibold" style={{ color: stateColor }}>{episode.currentAlertState.name}</Text>
+                <View
+                  className="w-2 h-2 rounded-full mr-1.5"
+                  style={{ backgroundColor: stateColor }}
+                />
+                <Text
+                  className="text-[12px] font-semibold"
+                  style={{ color: stateColor }}
+                >
+                  {episode.currentAlertState.name}
+                </Text>
               </View>
             ) : null}
             {episode.alertSeverity ? (
@@ -236,7 +244,12 @@ export default function AlertEpisodeDetailScreen({
                 className="flex-row items-center px-2.5 py-1 rounded-md"
                 style={{ backgroundColor: severityColor + "14" }}
               >
-                <Text className="text-[12px] font-semibold" style={{ color: severityColor }}>{episode.alertSeverity.name}</Text>
+                <Text
+                  className="text-[12px] font-semibold"
+                  style={{ color: severityColor }}
+                >
+                  {episode.alertSeverity.name}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -246,7 +259,12 @@ export default function AlertEpisodeDetailScreen({
       {episode.description ? (
         <View className="mb-6">
           <SectionHeader title="Description" iconName="document-text-outline" />
-          <Text className="text-[14px] leading-[22px]" style={{ color: theme.colors.textPrimary }}>{episode.description}</Text>
+          <Text
+            className="text-[14px] leading-[22px]"
+            style={{ color: theme.colors.textPrimary }}
+          >
+            {episode.description}
+          </Text>
         </View>
       ) : null}
 
@@ -264,12 +282,32 @@ export default function AlertEpisodeDetailScreen({
         >
           <View className="p-4">
             <View className="flex-row mb-3">
-              <Text className="text-[13px] w-[90px]" style={{ color: theme.colors.textTertiary }}>Created</Text>
-              <Text className="text-[13px]" style={{ color: theme.colors.textPrimary }}>{formatDateTime(episode.createdAt)}</Text>
+              <Text
+                className="text-[13px] w-[90px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
+                Created
+              </Text>
+              <Text
+                className="text-[13px]"
+                style={{ color: theme.colors.textPrimary }}
+              >
+                {formatDateTime(episode.createdAt)}
+              </Text>
             </View>
             <View className="flex-row">
-              <Text className="text-[13px] w-[90px]" style={{ color: theme.colors.textTertiary }}>Alerts</Text>
-              <Text className="text-[13px]" style={{ color: theme.colors.textPrimary }}>{episode.alertCount ?? 0}</Text>
+              <Text
+                className="text-[13px] w-[90px]"
+                style={{ color: theme.colors.textTertiary }}
+              >
+                Alerts
+              </Text>
+              <Text
+                className="text-[13px]"
+                style={{ color: theme.colors.textPrimary }}
+              >
+                {episode.alertCount ?? 0}
+              </Text>
             </View>
           </View>
         </View>
@@ -283,13 +321,30 @@ export default function AlertEpisodeDetailScreen({
               <TouchableOpacity
                 className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px]"
                 style={{ backgroundColor: theme.colors.stateAcknowledged }}
-                onPress={() => { return handleStateChange(acknowledgeState._id, acknowledgeState.name); }}
+                onPress={() => {
+                  return handleStateChange(
+                    acknowledgeState._id,
+                    acknowledgeState.name,
+                  );
+                }}
                 disabled={changingState}
               >
-                {changingState ? (<ActivityIndicator size="small" color="#FFFFFF" />) : (
+                {changingState ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
                   <>
-                    <Ionicons name="checkmark-circle-outline" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text className="text-[14px] font-bold" style={{ color: "#FFFFFF" }}>Acknowledge</Text>
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={17}
+                      color="#FFFFFF"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      className="text-[14px] font-bold"
+                      style={{ color: "#FFFFFF" }}
+                    >
+                      Acknowledge
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -298,13 +353,27 @@ export default function AlertEpisodeDetailScreen({
               <TouchableOpacity
                 className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px]"
                 style={{ backgroundColor: theme.colors.stateResolved }}
-                onPress={() => { return handleStateChange(resolveState._id, resolveState.name); }}
+                onPress={() => {
+                  return handleStateChange(resolveState._id, resolveState.name);
+                }}
                 disabled={changingState}
               >
-                {changingState ? (<ActivityIndicator size="small" color="#FFFFFF" />) : (
+                {changingState ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
                   <>
-                    <Ionicons name="checkmark-done-outline" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text className="text-[14px] font-bold" style={{ color: "#FFFFFF" }}>Resolve</Text>
+                    <Ionicons
+                      name="checkmark-done-outline"
+                      size={17}
+                      color="#FFFFFF"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      className="text-[14px] font-bold"
+                      style={{ color: "#FFFFFF" }}
+                    >
+                      Resolve
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -321,7 +390,14 @@ export default function AlertEpisodeDetailScreen({
       ) : null}
 
       <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
-      <AddNoteModal visible={noteModalVisible} onClose={() => { return setNoteModalVisible(false); }} onSubmit={handleAddNote} isSubmitting={submittingNote} />
+      <AddNoteModal
+        visible={noteModalVisible}
+        onClose={() => {
+          return setNoteModalVisible(false);
+        }}
+        onSubmit={handleAddNote}
+        isSubmitting={submittingNote}
+      />
     </ScrollView>
   );
 }

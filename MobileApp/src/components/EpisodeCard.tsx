@@ -86,15 +86,12 @@ export default function EpisodeCard(
         <View className="p-4">
           <View className="flex-row justify-between items-center mb-2.5">
             <View className="flex-row items-center gap-2">
-              {projectName ? (
-                <ProjectBadge name={projectName} />
-              ) : null}
+              {projectName ? <ProjectBadge name={projectName} /> : null}
               <Text
                 className="text-[12px] font-medium"
                 style={{ color: theme.colors.textTertiary }}
               >
-                {episode.episodeNumberWithPrefix ||
-                  `#${episode.episodeNumber}`}
+                {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
               </Text>
             </View>
             <Text
