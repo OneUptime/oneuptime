@@ -34,6 +34,7 @@ export interface IncidentItem {
   incidentNumber: number;
   incidentNumberWithPrefix: string;
   description: string;
+  rootCause?: string;
   declaredAt: string;
   createdAt: string;
   currentIncidentState: NamedEntityWithColor;
@@ -48,6 +49,7 @@ export interface AlertItem {
   alertNumber: number;
   alertNumberWithPrefix: string;
   description: string;
+  rootCause?: string;
   createdAt: string;
   currentAlertState: NamedEntityWithColor;
   alertSeverity: NamedEntityWithColor;
@@ -88,6 +90,7 @@ export interface IncidentEpisodeItem {
   episodeNumber: number;
   episodeNumberWithPrefix: string;
   description: string;
+  rootCause?: string;
   createdAt: string;
   declaredAt: string;
   incidentCount: number;
@@ -102,6 +105,7 @@ export interface AlertEpisodeItem {
   episodeNumber: number;
   episodeNumberWithPrefix: string;
   description: string;
+  rootCause?: string;
   createdAt: string;
   alertCount: number;
   currentAlertState: NamedEntityWithColor;

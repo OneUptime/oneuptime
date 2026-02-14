@@ -196,6 +196,7 @@ export default function IncidentDetailScreen({
   const currentStateId: string | undefined = incident.currentIncidentState?._id;
   const isResolved: boolean = resolveState?._id === currentStateId;
   const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
+  const rootCauseText: string | undefined = incident.rootCause?.trim();
 
   return (
     <ScrollView
@@ -316,6 +317,29 @@ export default function IncidentDetailScreen({
           </View>
         </View>
       ) : null}
+
+      <View className="mb-6">
+        <SectionHeader title="Root Cause" iconName="git-branch-outline" />
+        <View
+          className="rounded-2xl p-4"
+          style={{
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+          }}
+        >
+          <Text
+            className="text-[14px] leading-[22px]"
+            style={{
+              color: rootCauseText
+                ? theme.colors.textPrimary
+                : theme.colors.textTertiary,
+            }}
+          >
+            {rootCauseText || "No root cause documented yet."}
+          </Text>
+        </View>
+      </View>
 
       {/* Details */}
       <View className="mb-6">
