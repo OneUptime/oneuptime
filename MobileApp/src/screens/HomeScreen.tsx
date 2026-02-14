@@ -339,7 +339,7 @@ export default function HomeScreen(): React.JSX.Element {
               count={incidentCount}
               label="Active Incidents"
               accentColor={theme.colors.severityCritical}
-              iconName="warning"
+              iconName="warning-outline"
               isLoading={anyLoading}
               onPress={() => {
                 return navigation.navigate("Incidents");
@@ -349,7 +349,7 @@ export default function HomeScreen(): React.JSX.Element {
               count={incidentEpisodeCount}
               label="Inc. Episodes"
               accentColor={theme.colors.severityInfo}
-              iconName="layers"
+              iconName="layers-outline"
               isLoading={anyLoading}
               onPress={() => {
                 return navigation.navigate("Incidents");
@@ -373,7 +373,7 @@ export default function HomeScreen(): React.JSX.Element {
               count={alertCount}
               label="Active Alerts"
               accentColor={theme.colors.severityMajor}
-              iconName="notifications"
+              iconName="alert-circle-outline"
               isLoading={anyLoading}
               onPress={() => {
                 return navigation.navigate("Alerts");
@@ -383,7 +383,7 @@ export default function HomeScreen(): React.JSX.Element {
               count={alertEpisodeCount}
               label="Alert Episodes"
               accentColor={theme.colors.severityWarning}
-              iconName="albums"
+              iconName="layers-outline"
               isLoading={anyLoading}
               onPress={() => {
                 return navigation.navigate("Alerts");
