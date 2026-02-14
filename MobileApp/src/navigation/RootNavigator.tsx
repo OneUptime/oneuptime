@@ -35,6 +35,11 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
           AlertEpisodeDetail: "alert-episode/:projectId/:episodeId",
         },
       },
+      OnCall: {
+        screens: {
+          OnCallList: "on-call",
+        },
+      },
     },
   },
 };

@@ -7,11 +7,16 @@ export type MainTabParamList = {
   Home: undefined;
   Incidents: undefined;
   Alerts: undefined;
+  OnCall: undefined;
   Settings: undefined;
 };
 
 export type SettingsStackParamList = {
   SettingsList: undefined;
+};
+
+export type OnCallStackParamList = {
+  OnCallList: undefined;
 };
 
 export type IncidentsStackParamList = {

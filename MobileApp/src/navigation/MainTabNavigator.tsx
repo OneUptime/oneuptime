@@ -6,6 +6,7 @@ import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
 import IncidentsStackNavigator from "./IncidentsStackNavigator";
 import AlertsStackNavigator from "./AlertsStackNavigator";
+import OnCallStackNavigator from "./OnCallStackNavigator";
 import SettingsStackNavigator from "./SettingsStackNavigator";
 import { useTheme } from "../theme";
 
@@ -158,6 +159,31 @@ export default function MainTabNavigator(): React.JSX.Element {
               <TabIcon
                 name="alert-circle-outline"
                 focusedName="alert-circle"
+                color={color}
+                focused={focused}
+                accentColor={theme.colors.actionPrimary}
+              />
+            );
+          },
+        }}
+      />
+      <Tab.Screen
+        name="OnCall"
+        component={OnCallStackNavigator}
+        options={{
+          headerShown: false,
+          title: "On-Call",
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => {
+            return (
+              <TabIcon
+                name="call-outline"
+                focusedName="call"
                 color={color}
                 focused={focused}
                 accentColor={theme.colors.actionPrimary}

@@ -12,7 +12,11 @@ import type IncidentSeverityModel from "Common/Models/DatabaseModels/IncidentSev
 import type IncidentStateModelClass from "Common/Models/DatabaseModels/IncidentState.js";
 import type IncidentStateTimelineModel from "Common/Models/DatabaseModels/IncidentStateTimeline.js";
 import type MonitorModel from "Common/Models/DatabaseModels/Monitor.js";
+import type OnCallDutyPolicyModel from "Common/Models/DatabaseModels/OnCallDutyPolicy.js";
+import type OnCallDutyPolicyEscalationRuleModel from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule.js";
+import type OnCallDutyPolicyScheduleModel from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule.js";
 import type ProjectModel from "Common/Models/DatabaseModels/Project.js";
+import type TeamModel from "Common/Models/DatabaseModels/Team.js";
 import type UserModel from "Common/Models/DatabaseModels/User.js";
 
 type Alert = InstanceType<typeof AlertModel>;
@@ -31,7 +35,13 @@ type IncidentSeverity = InstanceType<typeof IncidentSeverityModel>;
 type IncidentStateModel = InstanceType<typeof IncidentStateModelClass>;
 type IncidentStateTimeline = InstanceType<typeof IncidentStateTimelineModel>;
 type Monitor = InstanceType<typeof MonitorModel>;
+type OnCallDutyPolicy = InstanceType<typeof OnCallDutyPolicyModel>;
+type OnCallDutyPolicyEscalationRule = InstanceType<
+  typeof OnCallDutyPolicyEscalationRuleModel
+>;
+type OnCallDutyPolicySchedule = InstanceType<typeof OnCallDutyPolicyScheduleModel>;
 type Project = InstanceType<typeof ProjectModel>;
+type Team = InstanceType<typeof TeamModel>;
 type User = InstanceType<typeof UserModel>;
 
 type RequiredModelFields<T, K extends keyof T> = {
@@ -232,3 +242,67 @@ export type ProjectIncidentItem = WithProject<IncidentItem>;
 export type ProjectAlertItem = WithProject<AlertItem>;
 export type ProjectIncidentEpisodeItem = WithProject<IncidentEpisodeItem>;
 export type ProjectAlertEpisodeItem = WithProject<AlertEpisodeItem>;
+
+interface OnCallPolicyRef
+  extends RequiredModelFields<OnCallDutyPolicy, "name"> {
+  _id?: string;
+  id?: string;
+}
+
+interface OnCallEscalationRuleRef
+  extends RequiredModelFields<OnCallDutyPolicyEscalationRule, "name"> {
+  _id?: string;
+  id?: string;
+}
+
+interface TeamRef extends RequiredModelFields<Team, "name"> {
+  _id?: string;
+  id?: string;
+}
+
+interface OnCallScheduleRef
+  extends RequiredModelFields<OnCallDutyPolicySchedule, "name"> {
+  _id?: string;
+  id?: string;
+}
+
+export interface OnCallDutyEscalationRuleUserItem {
+  onCallDutyPolicy?: OnCallPolicyRef;
+  onCallDutyPolicyEscalationRule?: OnCallEscalationRuleRef;
+}
+
+export interface OnCallDutyEscalationRuleTeamItem {
+  onCallDutyPolicy?: OnCallPolicyRef;
+  onCallDutyPolicyEscalationRule?: OnCallEscalationRuleRef;
+  team?: TeamRef;
+}
+
+export interface OnCallDutyEscalationRuleScheduleItem {
+  onCallDutyPolicy?: OnCallPolicyRef;
+  onCallDutyPolicyEscalationRule?: OnCallEscalationRuleRef;
+  onCallDutyPolicySchedule?: OnCallScheduleRef;
+}
+
+export interface CurrentOnDutyEscalationPoliciesResponse {
+  escalationRulesByUser: OnCallDutyEscalationRuleUserItem[];
+  escalationRulesByTeam: OnCallDutyEscalationRuleTeamItem[];
+  escalationRulesBySchedule: OnCallDutyEscalationRuleScheduleItem[];
+}
+
+export type OnCallAssignmentType = "user" | "team" | "schedule";
+
+export interface OnCallAssignmentItem {
+  projectId: string;
+  projectName: string;
+  policyId?: string;
+  policyName: string;
+  escalationRuleName: string;
+  assignmentType: OnCallAssignmentType;
+  assignmentDetail: string;
+}
+
+export interface ProjectOnCallAssignments {
+  projectId: string;
+  projectName: string;
+  assignments: OnCallAssignmentItem[];
+}

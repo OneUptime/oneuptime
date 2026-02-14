@@ -18,6 +18,7 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
 import Logo from "../components/Logo";
 import GradientButton from "../components/GradientButton";
+import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
 
 type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
 
@@ -144,11 +145,18 @@ export default function HomeScreen(): React.JSX.Element {
     refetch,
   } = useAllProjectCounts();
 
+  const {
+    totalAssignments,
+    projects: onCallProjects,
+    isLoading: onCallLoading,
+    refetch: refetchOnCall,
+  } = useAllProjectOnCallPolicies();
+
   const { lightImpact } = useHaptics();
 
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
-    await Promise.all([refetch(), refreshProjects()]);
+    await Promise.all([refetch(), refreshProjects(), refetchOnCall()]);
   };
 
   if (!isLoadingProjects && projectList.length === 0) {
@@ -324,6 +332,105 @@ export default function HomeScreen(): React.JSX.Element {
       </View>
 
       <View className="gap-4 px-5">
+        <View>
+          <Text
+            className="text-[12px] font-semibold uppercase mb-2"
+            style={{
+              color: theme.colors.textSecondary,
+              letterSpacing: 1,
+            }}
+          >
+            On-Call
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              lightImpact();
+              navigation.navigate("OnCall");
+            }}
+            className="rounded-3xl overflow-hidden p-4"
+            style={{
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+              shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
+              shadowOpacity: theme.isDark ? 0.24 : 0.09,
+              shadowOffset: { width: 0, height: 8 },
+              shadowRadius: 14,
+              elevation: 5,
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="View my on-call assignments"
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.oncallActiveBg,
+                theme.colors.accentGradientEnd + "06",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                position: "absolute",
+                top: -20,
+                left: -10,
+                right: -10,
+                height: 120,
+              }}
+            />
+
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1">
+                <View
+                  className="w-10 h-10 rounded-2xl items-center justify-center mr-3"
+                  style={{ backgroundColor: theme.colors.oncallActiveBg }}
+                >
+                  <Ionicons
+                    name="call-outline"
+                    size={18}
+                    color={theme.colors.oncallActive}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text
+                    className="text-[15px] font-bold"
+                    style={{ color: theme.colors.textPrimary }}
+                  >
+                    My On-Call Policies
+                  </Text>
+                  <Text
+                    className="text-[12px] mt-0.5"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    {onCallLoading
+                      ? "Loading assignments..."
+                      : totalAssignments > 0
+                        ? `${totalAssignments} active ${totalAssignments === 1 ? "assignment" : "assignments"} across ${onCallProjects.length} ${onCallProjects.length === 1 ? "project" : "projects"}`
+                        : "You are not currently on-call"}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="items-end ml-3">
+                <Text
+                  className="text-[28px] font-bold"
+                  style={{
+                    color: theme.colors.textPrimary,
+                    fontVariant: ["tabular-nums"],
+                    letterSpacing: -1,
+                  }}
+                >
+                  {onCallLoading ? "--" : totalAssignments}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={theme.colors.textTertiary}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <View>
           <Text
             className="text-[12px] font-semibold uppercase mb-2"
