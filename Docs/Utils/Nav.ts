@@ -131,6 +131,35 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "CLI",
+    links: [
+      {
+        title: "Overview",
+        url: "/docs/cli/index",
+      },
+      {
+        title: "Authentication",
+        url: "/docs/cli/authentication",
+      },
+      {
+        title: "Resource Operations",
+        url: "/docs/cli/resource-operations",
+      },
+      {
+        title: "Output Formats",
+        url: "/docs/cli/output-formats",
+      },
+      {
+        title: "Scripting & CI/CD",
+        url: "/docs/cli/scripting",
+      },
+      {
+        title: "Command Reference",
+        url: "/docs/cli/command-reference",
+      },
+    ],
+  },
+  {
     title: "Monitor",
     links: [
       {
