@@ -6,7 +6,9 @@
         "**/*.ts",
         "!**/*.d.ts",
         "!**/node_modules/**",
-        "!**/build/**"
+        "!**/build/**",
+        "!**/Tests/**",
+        "!Index.ts"
     ],
     "setupFilesAfterEnv": [],
     "testTimeout": 30000,
@@ -23,6 +25,8 @@
                 "noUnusedLocals": false,
                 "noUnusedParameters": false,
                 "strict": false,
+                "noImplicitAny": false,
+                "noImplicitThis": false,
                 "noPropertyAccessFromIndexSignature": false,
                 "module": "commonjs"
             }
