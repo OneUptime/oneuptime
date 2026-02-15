@@ -1,0 +1,42 @@
+{
+    "name": "@oneuptime/cli",
+    "version": "1.0.0",
+    "description": "OneUptime CLI - Command-line interface for managing OneUptime resources",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/OneUptime/oneuptime"
+    },
+    "main": "Index.ts",
+    "bin": {
+        "oneuptime": "./Index.ts"
+    },
+    "scripts": {
+        "start": "node --require ts-node/register Index.ts",
+        "build": "npm run compile",
+        "compile": "tsc",
+        "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
+        "dev": "npx nodemon",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
+        "test": "jest --passWithNoTests",
+        "link": "npm link"
+    },
+    "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "Common": "file:../Common",
+        "commander": "^12.1.0",
+        "chalk": "^4.1.2",
+        "cli-table3": "^0.6.5",
+        "ora": "^5.4.1",
+        "ts-node": "^10.9.2"
+    },
+    "devDependencies": {
+        "@types/jest": "^29.5.14",
+        "@types/node": "^22.15.21",
+        "jest": "^29.7.0",
+        "nodemon": "^3.1.11",
+        "ts-jest": "^29.4.6",
+        "typescript": "^5.9.3"
+    }
+}
