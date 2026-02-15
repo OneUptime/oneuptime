@@ -398,6 +398,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
+      - run: cd Common && npm install && npm run compile
       - name: Compile MobileApp
         uses: nick-fields/retry@v3
         with:
