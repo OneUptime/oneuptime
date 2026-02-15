@@ -35,8 +35,9 @@ publish_to_npm() {
 
     npm version $package_version
 
-    # Before npm install, replace "Common": "file:../Common" with "@oneuptime/common": "$package_version" in package.json
+    # Replace any Common dependency with the pinned version being published
     sed -i "s/\"Common\": \"file:..\/Common\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
+    sed -i "s/\"Common\": \"npm:@oneuptime\/common@latest\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
 
     npm install
     npm run compile
@@ -46,4 +47,8 @@ publish_to_npm() {
 }
 
 
+# Publish Common first - other packages depend on it
 publish_to_npm "Common"
+
+# Publish packages that depend on Common (after Common is available on npm)
+publish_to_npm "CLI"

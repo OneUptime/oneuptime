@@ -39,5 +39,6 @@
         "noPropertyAccessFromIndexSignature": true,
         "skipLibCheck": true,
         "resolveJsonModule": true
-    }
+    },
+    "exclude": ["Tests", "build", "node_modules", "jest.config.json"]
 }

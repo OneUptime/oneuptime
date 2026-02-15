@@ -24,7 +24,7 @@
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "Apache-2.0",
     "dependencies": {
-        "Common": "file:../Common",
+        "Common": "npm:@oneuptime/common@latest",
         "commander": "^12.1.0",
         "chalk": "^4.1.2",
         "cli-table3": "^0.6.5",
