@@ -5,8 +5,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-const CONFIG_DIR = path.join(os.homedir(), ".oneuptime");
-const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+const CONFIG_DIR: string = path.join(os.homedir(), ".oneuptime");
+const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
 
 describe("ConfigCommands", () => {
   let originalConfigContent: string | null = null;
@@ -42,7 +42,7 @@ describe("ConfigCommands", () => {
   });
 
   function createProgram(): Command {
-    const program = new Command();
+    const program: Command = new Command();
     program.exitOverride(); // Prevent commander from calling process.exit
     program.configureOutput({
       writeOut: () => {},
@@ -54,7 +54,7 @@ describe("ConfigCommands", () => {
 
   describe("login command", () => {
     it("should create a context and set it as current", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync([
         "node",
         "test",
@@ -63,7 +63,8 @@ describe("ConfigCommands", () => {
         "https://example.com",
       ]);
 
-      const ctx = ConfigManager.getCurrentContext();
+      const ctx: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(ctx).not.toBeNull();
       expect(ctx!.name).toBe("default");
       expect(ctx!.apiUrl).toBe("https://example.com");
@@ -71,7 +72,7 @@ describe("ConfigCommands", () => {
     });
 
     it("should use custom context name", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync([
         "node",
         "test",
@@ -82,19 +83,20 @@ describe("ConfigCommands", () => {
         "production",
       ]);
 
-      const ctx = ConfigManager.getCurrentContext();
+      const ctx: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(ctx!.name).toBe("production");
     });
 
     it("should handle login errors gracefully", async () => {
       // Mock addContext to throw
-      const addCtxSpy = jest
+      const addCtxSpy: jest.SpyInstance = jest
         .spyOn(ConfigManager, "addContext")
         .mockImplementation(() => {
           throw new Error("Permission denied");
         });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync([
         "node",
         "test",
@@ -108,7 +110,7 @@ describe("ConfigCommands", () => {
     });
 
     it("should strip trailing slashes from URL", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync([
         "node",
         "test",
@@ -117,14 +119,15 @@ describe("ConfigCommands", () => {
         "https://example.com///",
       ]);
 
-      const ctx = ConfigManager.getCurrentContext();
+      const ctx: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(ctx!.apiUrl).toBe("https://example.com");
     });
   });
 
   describe("context list command", () => {
     it("should show message when no contexts exist", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "context", "list"]);
       expect(consoleLogSpy).toHaveBeenCalled();
     });
@@ -141,7 +144,7 @@ describe("ConfigCommands", () => {
         apiKey: "k2",
       });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "context", "list"]);
       expect(consoleLogSpy).toHaveBeenCalled();
     });
@@ -160,15 +163,16 @@ describe("ConfigCommands", () => {
         apiKey: "k2",
       });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "context", "use", "b"]);
 
-      const current = ConfigManager.getCurrentContext();
+      const current: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(current!.name).toBe("b");
     });
 
     it("should handle non-existent context", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "context", "use", "nope"]);
 
       expect(exitSpy).toHaveBeenCalledWith(1);
@@ -183,7 +187,7 @@ describe("ConfigCommands", () => {
         apiKey: "abcdefghijklm",
       });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "context", "current"]);
 
       // Check that masked key is shown
@@ -196,7 +200,7 @@ describe("ConfigCommands", () => {
     });
 
     it("should show message when no current context", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "context", "current"]);
       expect(consoleLogSpy).toHaveBeenCalled();
     });
@@ -208,7 +212,7 @@ describe("ConfigCommands", () => {
         apiKey: "abc",
       });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "context", "current"]);
 
       expect(consoleLogSpy).toHaveBeenCalledWith("API Key: ****");
@@ -223,7 +227,7 @@ describe("ConfigCommands", () => {
         apiKey: "k1",
       });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync([
         "node",
         "test",
@@ -232,12 +236,13 @@ describe("ConfigCommands", () => {
         "todelete",
       ]);
 
-      const contexts = ConfigManager.listContexts();
+      const contexts: ReturnType<typeof ConfigManager.listContexts> =
+        ConfigManager.listContexts();
       expect(contexts).toHaveLength(0);
     });
 
     it("should handle deletion of non-existent context", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync([
         "node",
         "test",

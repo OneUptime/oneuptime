@@ -3,7 +3,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const DisabledMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const DisabledMonitors: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <MonitorTable
       query={{

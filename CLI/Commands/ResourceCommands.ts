@@ -3,10 +3,9 @@ import DatabaseModels from "Common/Models/DatabaseModels/Index";
 import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import { ResourceInfo } from "../Types/CLITypes";
+import { ResourceInfo, ResolvedCredentials } from "../Types/CLITypes";
 import { executeApiRequest, ApiOperation } from "../Core/ApiClient";
 import { CLIOptions, getResolvedCredentials } from "../Core/ConfigManager";
-import { ResolvedCredentials } from "../Types/CLITypes";
 import { formatOutput, printSuccess } from "../Core/OutputFormatter";
 import { handleError } from "../Core/ErrorHandler";
 import { generateAllFieldsSelect } from "../Utils/SelectFieldGenerator";
@@ -118,8 +117,7 @@ function registerListCommand(
       }) => {
         try {
           const parentOpts: CLIOptions = getParentOptions(resourceCmd);
-          const creds: ResolvedCredentials =
-            getResolvedCredentials(parentOpts);
+          const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
           const select: JSONObject = generateAllFieldsSelect(
             resource.tableName,
             resource.modelType,
@@ -130,15 +128,11 @@ function registerListCommand(
             apiKey: creds.apiKey,
             apiPath: resource.apiPath,
             operation: "list" as ApiOperation,
-            query: options.query
-              ? parseJsonArg(options.query)
-              : undefined,
+            query: options.query ? parseJsonArg(options.query) : undefined,
             select,
             skip: parseInt(options.skip, 10),
             limit: parseInt(options.limit, 10),
-            sort: options.sort
-              ? parseJsonArg(options.sort)
-              : undefined,
+            sort: options.sort ? parseJsonArg(options.sort) : undefined,
           });
 
           // Extract data array from response
@@ -147,6 +141,7 @@ function registerListCommand(
               ? ((result as JSONObject)["data"] as JSONValue) || result
               : result;
 
+          // eslint-disable-next-line no-console
           console.log(formatOutput(responseData, options.output));
         } catch (error) {
           handleError(error);
@@ -166,8 +161,7 @@ function registerGetCommand(
     .action(async (id: string, options: { output?: string }) => {
       try {
         const parentOpts: CLIOptions = getParentOptions(resourceCmd);
-        const creds: ResolvedCredentials =
-          getResolvedCredentials(parentOpts);
+        const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
         const select: JSONObject = generateAllFieldsSelect(
           resource.tableName,
           resource.modelType,
@@ -182,6 +176,7 @@ function registerGetCommand(
           select,
         });
 
+        // eslint-disable-next-line no-console
         console.log(formatOutput(result, options.output));
       } catch (error) {
         handleError(error);
@@ -200,31 +195,21 @@ function registerCreateCommand(
     .option("--file <path>", "Read resource data from a JSON file")
     .option("-o, --output <format>", "Output format: json, table, wide")
     .action(
-      async (options: {
-        data?: string;
-        file?: string;
-        output?: string;
-      }) => {
+      async (options: { data?: string; file?: string; output?: string }) => {
         try {
           let data: JSONObject;
 
           if (options.file) {
-            const fileContent: string = fs.readFileSync(
-              options.file,
-              "utf-8",
-            );
+            const fileContent: string = fs.readFileSync(options.file, "utf-8");
             data = JSON.parse(fileContent) as JSONObject;
           } else if (options.data) {
             data = parseJsonArg(options.data);
           } else {
-            throw new Error(
-              "Either --data or --file is required for create.",
-            );
+            throw new Error("Either --data or --file is required for create.");
           }
 
           const parentOpts: CLIOptions = getParentOptions(resourceCmd);
-          const creds: ResolvedCredentials =
-            getResolvedCredentials(parentOpts);
+          const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
 
           const result: JSONValue = await executeApiRequest({
             apiUrl: creds.apiUrl,
@@ -234,6 +219,7 @@ function registerCreateCommand(
             data,
           });
 
+          // eslint-disable-next-line no-console
           console.log(formatOutput(result, options.output));
         } catch (error) {
           handleError(error);
@@ -251,32 +237,27 @@ function registerUpdateCommand(
     .description(`Update an existing ${resource.singularName}`)
     .requiredOption("--data <json>", "Fields to update as JSON")
     .option("-o, --output <format>", "Output format: json, table, wide")
-    .action(
-      async (
-        id: string,
-        options: { data: string; output?: string },
-      ) => {
-        try {
-          const data: JSONObject = parseJsonArg(options.data);
-          const parentOpts: CLIOptions = getParentOptions(resourceCmd);
-          const creds: ResolvedCredentials =
-            getResolvedCredentials(parentOpts);
+    .action(async (id: string, options: { data: string; output?: string }) => {
+      try {
+        const data: JSONObject = parseJsonArg(options.data);
+        const parentOpts: CLIOptions = getParentOptions(resourceCmd);
+        const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
 
-          const result: JSONValue = await executeApiRequest({
-            apiUrl: creds.apiUrl,
-            apiKey: creds.apiKey,
-            apiPath: resource.apiPath,
-            operation: "update" as ApiOperation,
-            id,
-            data,
-          });
+        const result: JSONValue = await executeApiRequest({
+          apiUrl: creds.apiUrl,
+          apiKey: creds.apiKey,
+          apiPath: resource.apiPath,
+          operation: "update" as ApiOperation,
+          id,
+          data,
+        });
 
-          console.log(formatOutput(result, options.output));
-        } catch (error) {
-          handleError(error);
-        }
-      },
-    );
+        // eslint-disable-next-line no-console
+        console.log(formatOutput(result, options.output));
+      } catch (error) {
+        handleError(error);
+      }
+    });
 }
 
 function registerDeleteCommand(
@@ -290,8 +271,7 @@ function registerDeleteCommand(
     .action(async (id: string, _options: { force?: boolean }) => {
       try {
         const parentOpts: CLIOptions = getParentOptions(resourceCmd);
-        const creds: ResolvedCredentials =
-          getResolvedCredentials(parentOpts);
+        const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
 
         await executeApiRequest({
           apiUrl: creds.apiUrl,
@@ -301,9 +281,7 @@ function registerDeleteCommand(
           id,
         });
 
-        printSuccess(
-          `${resource.singularName} ${id} deleted successfully.`,
-        );
+        printSuccess(`${resource.singularName} ${id} deleted successfully.`);
       } catch (error) {
         handleError(error);
       }
@@ -321,17 +299,14 @@ function registerCountCommand(
     .action(async (options: { query?: string }) => {
       try {
         const parentOpts: CLIOptions = getParentOptions(resourceCmd);
-        const creds: ResolvedCredentials =
-          getResolvedCredentials(parentOpts);
+        const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
 
         const result: JSONValue = await executeApiRequest({
           apiUrl: creds.apiUrl,
           apiKey: creds.apiKey,
           apiPath: resource.apiPath,
           operation: "count" as ApiOperation,
-          query: options.query
-            ? parseJsonArg(options.query)
-            : undefined,
+          query: options.query ? parseJsonArg(options.query) : undefined,
         });
 
         // Count response is typically { count: number }
@@ -341,8 +316,10 @@ function registerCountCommand(
           !Array.isArray(result) &&
           "count" in (result as JSONObject)
         ) {
+          // eslint-disable-next-line no-console
           console.log((result as JSONObject)["count"]);
         } else {
+          // eslint-disable-next-line no-console
           console.log(result);
         }
       } catch (error) {
@@ -357,9 +334,7 @@ export function registerResourceCommands(program: Command): void {
   for (const resource of resources) {
     const resourceCmd: Command = program
       .command(resource.name)
-      .description(
-        `Manage ${resource.pluralName} (${resource.modelType})`,
-      );
+      .description(`Manage ${resource.pluralName} (${resource.modelType})`);
 
     // Database models get full CRUD
     if (resource.modelType === "database") {

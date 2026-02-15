@@ -56,7 +56,10 @@ function StatCard({
       accessibilityRole="button"
     >
       <LinearGradient
-        colors={[theme.colors.accentGradientStart + "2B", theme.colors.accentGradientEnd + "1A"]}
+        colors={[
+          theme.colors.accentGradientStart + "2B",
+          theme.colors.accentGradientEnd + "1A",
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
@@ -353,7 +356,9 @@ export default function HomeScreen(): React.JSX.Element {
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
               borderColor: theme.colors.borderGlass,
-              shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
+              shadowColor: theme.isDark
+                ? "#000"
+                : theme.colors.accentGradientMid,
               shadowOpacity: theme.isDark ? 0.24 : 0.09,
               shadowOffset: { width: 0, height: 8 },
               shadowRadius: 14,

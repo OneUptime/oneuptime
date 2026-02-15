@@ -11,14 +11,17 @@ export function registerConfigCommands(program: Command): void {
     .command("login")
     .description("Authenticate with a OneUptime instance")
     .argument("<api-key>", "API key for authentication")
-    .argument("<instance-url>", "OneUptime instance URL (e.g. https://oneuptime.com)")
-    .option(
-      "--context-name <name>",
-      "Name for this context",
-      "default",
+    .argument(
+      "<instance-url>",
+      "OneUptime instance URL (e.g. https://oneuptime.com)",
     )
+    .option("--context-name <name>", "Name for this context", "default")
     .action(
-      (apiKey: string, instanceUrl: string, options: { contextName: string }) => {
+      (
+        apiKey: string,
+        instanceUrl: string,
+        options: { contextName: string },
+      ) => {
         try {
           const context: CLIContext = {
             name: options.contextName,
@@ -68,20 +71,17 @@ export function registerConfigCommands(program: Command): void {
         process.argv.includes("--no-color");
 
       const table: Table.Table = new Table({
-        head: ["", "Name", "URL"].map((h: string) =>
-          noColor ? h : chalk.cyan(h),
-        ),
+        head: ["", "Name", "URL"].map((h: string) => {
+          return noColor ? h : chalk.cyan(h);
+        }),
         style: { head: [], border: [] },
       });
 
       for (const ctx of contexts) {
-        table.push([
-          ctx.isCurrent ? "*" : "",
-          ctx.name,
-          ctx.apiUrl,
-        ]);
+        table.push([ctx.isCurrent ? "*" : "", ctx.name, ctx.apiUrl]);
       }
 
+      // eslint-disable-next-line no-console
       console.log(table.toString());
     });
 
@@ -93,9 +93,7 @@ export function registerConfigCommands(program: Command): void {
         ConfigManager.setCurrentContext(name);
         printSuccess(`Switched to context "${name}".`);
       } catch (error) {
-        printError(
-          error instanceof Error ? error.message : String(error),
-        );
+        printError(error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -119,8 +117,11 @@ export function registerConfigCommands(program: Command): void {
             ctx.apiKey.substring(ctx.apiKey.length - 4)
           : "****";
 
+      // eslint-disable-next-line no-console
       console.log(`Context: ${ctx.name}`);
+      // eslint-disable-next-line no-console
       console.log(`URL:     ${ctx.apiUrl}`);
+      // eslint-disable-next-line no-console
       console.log(`API Key: ${maskedKey}`);
     });
 
@@ -132,9 +133,7 @@ export function registerConfigCommands(program: Command): void {
         ConfigManager.removeContext(name);
         printSuccess(`Context "${name}" deleted.`);
       } catch (error) {
-        printError(
-          error instanceof Error ? error.message : String(error),
-        );
+        printError(error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

@@ -39,7 +39,9 @@ type OnCallDutyPolicy = InstanceType<typeof OnCallDutyPolicyModel>;
 type OnCallDutyPolicyEscalationRule = InstanceType<
   typeof OnCallDutyPolicyEscalationRuleModel
 >;
-type OnCallDutyPolicySchedule = InstanceType<typeof OnCallDutyPolicyScheduleModel>;
+type OnCallDutyPolicySchedule = InstanceType<
+  typeof OnCallDutyPolicyScheduleModel
+>;
 type Project = InstanceType<typeof ProjectModel>;
 type Team = InstanceType<typeof TeamModel>;
 type User = InstanceType<typeof UserModel>;
@@ -90,7 +92,12 @@ type IncidentItemFromCommon = RequiredModelFields<
 export interface IncidentItem
   extends Omit<
     IncidentItemFromCommon,
-    "declaredAt" | "createdAt" | "currentIncidentState" | "incidentSeverity" | "monitors" | "projectId"
+    | "declaredAt"
+    | "createdAt"
+    | "currentIncidentState"
+    | "incidentSeverity"
+    | "monitors"
+    | "projectId"
   > {
   rootCause?: string;
   declaredAt: string;
@@ -115,7 +122,11 @@ type AlertItemFromCommon = RequiredModelFields<
 export interface AlertItem
   extends Omit<
     AlertItemFromCommon,
-    "createdAt" | "currentAlertState" | "alertSeverity" | "monitor" | "projectId"
+    | "createdAt"
+    | "currentAlertState"
+    | "alertSeverity"
+    | "monitor"
+    | "projectId"
   > {
   rootCause?: string;
   createdAt: string;
@@ -129,7 +140,12 @@ export interface AlertItem
 export interface IncidentState
   extends RequiredModelFields<
     IncidentStateModel,
-    "_id" | "name" | "isResolvedState" | "isAcknowledgedState" | "isCreatedState" | "order"
+    | "_id"
+    | "name"
+    | "isResolvedState"
+    | "isAcknowledgedState"
+    | "isCreatedState"
+    | "order"
   > {
   color: ColorField;
 }
@@ -137,7 +153,12 @@ export interface IncidentState
 export interface AlertState
   extends RequiredModelFields<
     AlertStateModel,
-    "_id" | "name" | "isResolvedState" | "isAcknowledgedState" | "isCreatedState" | "order"
+    | "_id"
+    | "name"
+    | "isResolvedState"
+    | "isAcknowledgedState"
+    | "isCreatedState"
+    | "order"
   > {
   color: ColorField;
 }
@@ -170,7 +191,11 @@ type IncidentEpisodeItemFromCommon = RequiredModelFields<
 export interface IncidentEpisodeItem
   extends Omit<
     IncidentEpisodeItemFromCommon,
-    "createdAt" | "declaredAt" | "currentIncidentState" | "incidentSeverity" | "projectId"
+    | "createdAt"
+    | "declaredAt"
+    | "currentIncidentState"
+    | "incidentSeverity"
+    | "projectId"
   > {
   rootCause?: string;
   createdAt: string;
@@ -212,7 +237,8 @@ type NoteItemFromCommon = RequiredModelFields<
   "_id" | "note" | "createdAt"
 >;
 
-export interface NoteItem extends Omit<NoteItemFromCommon, "createdAt" | "createdByUser"> {
+export interface NoteItem
+  extends Omit<NoteItemFromCommon, "createdAt" | "createdByUser"> {
   createdAt: string;
   createdByUser:
     | (RequiredModelFields<User, "_id" | "name"> & {
@@ -222,9 +248,13 @@ export interface NoteItem extends Omit<NoteItemFromCommon, "createdAt" | "create
     | null;
 }
 
-type FeedItemFromCommon = RequiredModelFields<AlertFeed | IncidentFeed, "_id" | "feedInfoInMarkdown" | "createdAt">;
+type FeedItemFromCommon = RequiredModelFields<
+  AlertFeed | IncidentFeed,
+  "_id" | "feedInfoInMarkdown" | "createdAt"
+>;
 
-export interface FeedItem extends Omit<FeedItemFromCommon, "createdAt" | "displayColor" | "postedAt"> {
+export interface FeedItem
+  extends Omit<FeedItemFromCommon, "createdAt" | "displayColor" | "postedAt"> {
   feedInfoInMarkdown: string;
   moreInformationInMarkdown?: string;
   displayColor: ColorField;

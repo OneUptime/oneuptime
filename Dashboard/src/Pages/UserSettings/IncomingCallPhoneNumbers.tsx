@@ -2,7 +2,9 @@ import IncomingCallNumber from "../../Components/NotificationMethods/IncomingCal
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const IncomingCallPhoneNumbers: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const IncomingCallPhoneNumbers: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return <IncomingCallNumber />;
 };
 

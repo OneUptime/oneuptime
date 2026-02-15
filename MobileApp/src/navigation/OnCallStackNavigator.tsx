@@ -5,8 +5,9 @@ import { useTheme } from "../theme";
 import MyOnCallPoliciesScreen from "../screens/MyOnCallPoliciesScreen";
 import type { OnCallStackParamList } from "./types";
 
-const Stack: ReturnType<typeof createNativeStackNavigator<OnCallStackParamList>> =
-  createNativeStackNavigator<OnCallStackParamList>();
+const Stack: ReturnType<
+  typeof createNativeStackNavigator<OnCallStackParamList>
+> = createNativeStackNavigator<OnCallStackParamList>();
 
 export default function OnCallStackNavigator(): React.JSX.Element {
   const { theme } = useTheme();

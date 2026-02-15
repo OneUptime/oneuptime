@@ -2,10 +2,10 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import * as ConfigManager from "../Core/ConfigManager";
-import { CLIContext, CLIConfig, ResolvedCredentials } from "../Types/CLITypes";
+import { CLIConfig, ResolvedCredentials } from "../Types/CLITypes";
 
-const CONFIG_DIR = path.join(os.homedir(), ".oneuptime");
-const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+const CONFIG_DIR: string = path.join(os.homedir(), ".oneuptime");
+const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
 
 describe("ConfigManager", () => {
   let originalConfigContent: string | null = null;
@@ -39,7 +39,7 @@ describe("ConfigManager", () => {
 
   describe("load", () => {
     it("should return default config when no config file exists", () => {
-      const config = ConfigManager.load();
+      const config: CLIConfig = ConfigManager.load();
       expect(config.currentContext).toBe("");
       expect(config.contexts).toEqual({});
       expect(config.defaults.output).toBe("table");
@@ -61,7 +61,7 @@ describe("ConfigManager", () => {
         mode: 0o600,
       });
 
-      const config = ConfigManager.load();
+      const config: CLIConfig = ConfigManager.load();
       expect(config.currentContext).toBe("test");
       expect(config.contexts["test"]?.apiKey).toBe("key123");
     });
@@ -72,7 +72,7 @@ describe("ConfigManager", () => {
       }
       fs.writeFileSync(CONFIG_FILE, "not valid json {{{", { mode: 0o600 });
 
-      const config = ConfigManager.load();
+      const config: CLIConfig = ConfigManager.load();
       expect(config.currentContext).toBe("");
       expect(config.contexts).toEqual({});
     });
@@ -81,9 +81,14 @@ describe("ConfigManager", () => {
   describe("save", () => {
     it("should create config directory if it does not exist", () => {
       // Remove the dir if it exists (we'll restore after)
-      const tmpDir = path.join(os.tmpdir(), ".oneuptime-test-" + Date.now());
-      // We can't easily test this with the real path, but we verify save works
-      // when the dir already exists (which it does after beforeAll).
+      const tmpDir: string = path.join(
+        os.tmpdir(),
+        ".oneuptime-test-" + Date.now(),
+      );
+      /*
+       * We can't easily test this with the real path, but we verify save works
+       * when the dir already exists (which it does after beforeAll).
+       */
       const config: CLIConfig = {
         currentContext: "",
         contexts: {},
@@ -103,8 +108,8 @@ describe("ConfigManager", () => {
         defaults: { output: "table", limit: 10 },
       };
       ConfigManager.save(config);
-      const content = fs.readFileSync(CONFIG_FILE, "utf-8");
-      const parsed = JSON.parse(content);
+      const content: string = fs.readFileSync(CONFIG_FILE, "utf-8");
+      const parsed: CLIConfig = JSON.parse(content);
       expect(parsed.currentContext).toBe("x");
     });
   });
@@ -131,7 +136,8 @@ describe("ConfigManager", () => {
         apiUrl: "https://prod.com",
         apiKey: "k1",
       });
-      const ctx = ConfigManager.getCurrentContext();
+      const ctx: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(ctx).not.toBeNull();
       expect(ctx!.name).toBe("prod");
     });
@@ -145,7 +151,8 @@ describe("ConfigManager", () => {
         apiKey: "sk-prod-123",
       });
 
-      const current = ConfigManager.getCurrentContext();
+      const current: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(current).not.toBeNull();
       expect(current!.name).toBe("prod");
     });
@@ -162,7 +169,8 @@ describe("ConfigManager", () => {
         apiKey: "key2",
       });
 
-      const current = ConfigManager.getCurrentContext();
+      const current: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(current!.name).toBe("prod"); // First one remains current
     });
 
@@ -178,7 +186,8 @@ describe("ConfigManager", () => {
         apiKey: "key2",
       });
 
-      const contexts = ConfigManager.listContexts();
+      const contexts: ReturnType<typeof ConfigManager.listContexts> =
+        ConfigManager.listContexts();
       expect(contexts).toHaveLength(2);
     });
   });
@@ -197,14 +206,15 @@ describe("ConfigManager", () => {
       });
 
       ConfigManager.setCurrentContext("b");
-      const current = ConfigManager.getCurrentContext();
+      const current: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(current!.name).toBe("b");
     });
 
     it("should throw for non-existent context", () => {
-      expect(() => ConfigManager.setCurrentContext("nonexistent")).toThrow(
-        'Context "nonexistent" does not exist',
-      );
+      expect(() => {
+        return ConfigManager.setCurrentContext("nonexistent");
+      }).toThrow('Context "nonexistent" does not exist');
     });
   });
 
@@ -217,14 +227,15 @@ describe("ConfigManager", () => {
       });
       ConfigManager.removeContext("test");
 
-      const contexts = ConfigManager.listContexts();
+      const contexts: ReturnType<typeof ConfigManager.listContexts> =
+        ConfigManager.listContexts();
       expect(contexts).toHaveLength(0);
     });
 
     it("should throw for non-existent context", () => {
-      expect(() => ConfigManager.removeContext("nonexistent")).toThrow(
-        'Context "nonexistent" does not exist',
-      );
+      expect(() => {
+        return ConfigManager.removeContext("nonexistent");
+      }).toThrow('Context "nonexistent" does not exist');
     });
 
     it("should update current context when removing the current one", () => {
@@ -241,7 +252,8 @@ describe("ConfigManager", () => {
       ConfigManager.setCurrentContext("a");
       ConfigManager.removeContext("a");
 
-      const current = ConfigManager.getCurrentContext();
+      const current: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(current).not.toBeNull();
       expect(current!.name).toBe("b");
     });
@@ -255,7 +267,7 @@ describe("ConfigManager", () => {
       ConfigManager.removeContext("only");
 
       expect(ConfigManager.getCurrentContext()).toBeNull();
-      const config = ConfigManager.load();
+      const config: CLIConfig = ConfigManager.load();
       expect(config.currentContext).toBe("");
     });
 
@@ -273,7 +285,8 @@ describe("ConfigManager", () => {
       ConfigManager.setCurrentContext("a");
       ConfigManager.removeContext("b");
 
-      const current = ConfigManager.getCurrentContext();
+      const current: ReturnType<typeof ConfigManager.getCurrentContext> =
+        ConfigManager.getCurrentContext();
       expect(current!.name).toBe("a");
     });
   });
@@ -296,9 +309,22 @@ describe("ConfigManager", () => {
       });
       ConfigManager.setCurrentContext("b");
 
-      const contexts = ConfigManager.listContexts();
-      const a = contexts.find((c) => c.name === "a");
-      const b = contexts.find((c) => c.name === "b");
+      const contexts: ReturnType<typeof ConfigManager.listContexts> =
+        ConfigManager.listContexts();
+      const a:
+        | ReturnType<typeof ConfigManager.listContexts>[number]
+        | undefined = contexts.find(
+        (c: ReturnType<typeof ConfigManager.listContexts>[number]) => {
+          return c.name === "a";
+        },
+      );
+      const b:
+        | ReturnType<typeof ConfigManager.listContexts>[number]
+        | undefined = contexts.find(
+        (c: ReturnType<typeof ConfigManager.listContexts>[number]) => {
+          return c.name === "b";
+        },
+      );
       expect(a!.isCurrent).toBe(false);
       expect(b!.isCurrent).toBe(true);
     });
@@ -340,9 +366,9 @@ describe("ConfigManager", () => {
     });
 
     it("should throw when --context flag references non-existent context", () => {
-      expect(() =>
-        ConfigManager.getResolvedCredentials({ context: "nope" }),
-      ).toThrow('Context "nope" does not exist');
+      expect(() => {
+        return ConfigManager.getResolvedCredentials({ context: "nope" });
+      }).toThrow('Context "nope" does not exist');
     });
 
     it("should resolve from current context in config", () => {
@@ -390,17 +416,19 @@ describe("ConfigManager", () => {
       const creds: ResolvedCredentials = ConfigManager.getResolvedCredentials(
         {},
       );
-      // env vars take priority: both are set so goes through priority 2
-      // Actually, only ONEUPTIME_API_KEY is set, not ONEUPTIME_URL
-      // So it falls through to priority 4 (current context)
+      /*
+       * env vars take priority: both are set so goes through priority 2
+       * Actually, only ONEUPTIME_API_KEY is set, not ONEUPTIME_URL
+       * So it falls through to priority 4 (current context)
+       */
       expect(creds.apiKey).toBe("ctx-key");
       expect(creds.apiUrl).toBe("https://ctx.com");
     });
 
     it("should throw when no credentials available at all", () => {
-      expect(() => ConfigManager.getResolvedCredentials({})).toThrow(
-        "No credentials found",
-      );
+      expect(() => {
+        return ConfigManager.getResolvedCredentials({});
+      }).toThrow("No credentials found");
     });
 
     it("should prefer CLI flags over env vars", () => {

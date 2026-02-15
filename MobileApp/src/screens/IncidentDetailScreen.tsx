@@ -199,7 +199,8 @@ export default function IncidentDetailScreen({
   const isResolved: boolean = resolveState?._id === currentStateId;
   const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
   const rootCauseTextRaw: string = toPlainText(incident.rootCause);
-  const rootCauseText: string | undefined = rootCauseTextRaw.trim() || undefined;
+  const rootCauseText: string | undefined =
+    rootCauseTextRaw.trim() || undefined;
   const descriptionText: string = toPlainText(incident.description);
 
   return (
@@ -408,78 +409,81 @@ export default function IncidentDetailScreen({
             }}
           >
             <View className="flex-row gap-3">
-            {!isAcknowledged && !isResolved && acknowledgeState ? (
-              <TouchableOpacity
-                className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
-                style={{
-                  backgroundColor: theme.colors.stateAcknowledged,
-                }}
-                onPress={() => {
-                  return handleStateChange(
-                    acknowledgeState._id,
-                    acknowledgeState.name,
-                  );
-                }}
-                disabled={changingState}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Acknowledge incident"
-              >
-                {changingState ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={17}
-                      color="#FFFFFF"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      className="text-[14px] font-bold"
-                      style={{ color: "#FFFFFF" }}
-                    >
-                      Acknowledge
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            ) : null}
+              {!isAcknowledged && !isResolved && acknowledgeState ? (
+                <TouchableOpacity
+                  className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
+                  style={{
+                    backgroundColor: theme.colors.stateAcknowledged,
+                  }}
+                  onPress={() => {
+                    return handleStateChange(
+                      acknowledgeState._id,
+                      acknowledgeState.name,
+                    );
+                  }}
+                  disabled={changingState}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Acknowledge incident"
+                >
+                  {changingState ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={17}
+                        color="#FFFFFF"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        className="text-[14px] font-bold"
+                        style={{ color: "#FFFFFF" }}
+                      >
+                        Acknowledge
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : null}
 
-            {resolveState ? (
-              <TouchableOpacity
-                className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
-                style={{
-                  backgroundColor: theme.colors.stateResolved,
-                }}
-                onPress={() => {
-                  return handleStateChange(resolveState._id, resolveState.name);
-                }}
-                disabled={changingState}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Resolve incident"
-              >
-                {changingState ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="checkmark-done-outline"
-                      size={17}
-                      color="#FFFFFF"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      className="text-[14px] font-bold"
-                      style={{ color: "#FFFFFF" }}
-                    >
-                      Resolve
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            ) : null}
+              {resolveState ? (
+                <TouchableOpacity
+                  className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
+                  style={{
+                    backgroundColor: theme.colors.stateResolved,
+                  }}
+                  onPress={() => {
+                    return handleStateChange(
+                      resolveState._id,
+                      resolveState.name,
+                    );
+                  }}
+                  disabled={changingState}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Resolve incident"
+                >
+                  {changingState ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="checkmark-done-outline"
+                        size={17}
+                        color="#FFFFFF"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        className="text-[14px] font-bold"
+                        style={{ color: "#FFFFFF" }}
+                      >
+                        Resolve
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         </View>

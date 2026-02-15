@@ -9,7 +9,9 @@ const program: Command = new Command();
 
 program
   .name("oneuptime")
-  .description("OneUptime CLI - Manage your OneUptime resources from the command line")
+  .description(
+    "OneUptime CLI - Manage your OneUptime resources from the command line",
+  )
   .version("1.0.0")
   .option("--api-key <key>", "API key (overrides config)")
   .option("--url <url>", "OneUptime instance URL (overrides config)")

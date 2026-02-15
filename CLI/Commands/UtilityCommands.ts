@@ -1,10 +1,16 @@
 import { Command } from "commander";
-import { CLIContext } from "../Types/CLITypes";
-import { getCurrentContext, CLIOptions, getResolvedCredentials } from "../Core/ConfigManager";
-import { ResolvedCredentials } from "../Types/CLITypes";
+import {
+  CLIContext,
+  ResolvedCredentials,
+  ResourceInfo,
+} from "../Types/CLITypes";
+import {
+  getCurrentContext,
+  CLIOptions,
+  getResolvedCredentials,
+} from "../Core/ConfigManager";
 import { printInfo, printError } from "../Core/OutputFormatter";
 import { discoverResources } from "./ResourceCommands";
-import { ResourceInfo } from "../Types/CLITypes";
 import Table from "cli-table3";
 import chalk from "chalk";
 
@@ -15,11 +21,15 @@ export function registerUtilityCommands(program: Command): void {
     .description("Print CLI version")
     .action(() => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const pkg: { version: string } = require("../package.json") as { version: string };
+        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+        const pkg: { version: string } = require("../package.json") as {
+          version: string;
+        };
+        // eslint-disable-next-line no-console
         console.log(pkg.version);
       } catch {
         // Fallback if package.json can't be loaded at runtime
+        // eslint-disable-next-line no-console
         console.log("1.0.0");
       }
     });
@@ -42,7 +52,9 @@ export function registerUtilityCommands(program: Command): void {
         try {
           creds = getResolvedCredentials(cliOpts);
         } catch {
-          printInfo("Not authenticated. Run `oneuptime login` to authenticate.");
+          printInfo(
+            "Not authenticated. Run `oneuptime login` to authenticate.",
+          );
           return;
         }
 
@@ -53,9 +65,12 @@ export function registerUtilityCommands(program: Command): void {
               creds.apiKey.substring(creds.apiKey.length - 4)
             : "****";
 
+        // eslint-disable-next-line no-console
         console.log(`URL:     ${creds.apiUrl}`);
+        // eslint-disable-next-line no-console
         console.log(`API Key: ${maskedKey}`);
         if (ctx) {
+          // eslint-disable-next-line no-console
           console.log(`Context: ${ctx.name}`);
         }
       } catch (error) {
@@ -73,7 +88,9 @@ export function registerUtilityCommands(program: Command): void {
       const resources: ResourceInfo[] = discoverResources();
 
       const filtered: ResourceInfo[] = options.type
-        ? resources.filter((r: ResourceInfo) => r.modelType === options.type)
+        ? resources.filter((r: ResourceInfo) => {
+            return r.modelType === options.type;
+          })
         : resources;
 
       if (filtered.length === 0) {
@@ -87,16 +104,26 @@ export function registerUtilityCommands(program: Command): void {
 
       const table: Table.Table = new Table({
         head: ["Command", "Singular", "Plural", "Type", "API Path"].map(
-          (h: string) => (noColor ? h : chalk.cyan(h)),
+          (h: string) => {
+            return noColor ? h : chalk.cyan(h);
+          },
         ),
         style: { head: [], border: [] },
       });
 
       for (const r of filtered) {
-        table.push([r.name, r.singularName, r.pluralName, r.modelType, r.apiPath]);
+        table.push([
+          r.name,
+          r.singularName,
+          r.pluralName,
+          r.modelType,
+          r.apiPath,
+        ]);
       }
 
+      // eslint-disable-next-line no-console
       console.log(table.toString());
+      // eslint-disable-next-line no-console
       console.log(`\nTotal: ${filtered.length} resources`);
     });
 }

@@ -126,9 +126,7 @@ export async function executeApiRequest(
     case "count":
     case "list":
     case "read":
-      response = await API.post(
-        data ? { ...baseOptions, data } : baseOptions,
-      );
+      response = await API.post(data ? { ...baseOptions, data } : baseOptions);
       break;
     case "update":
       response = await API.put(data ? { ...baseOptions, data } : baseOptions);

@@ -17,7 +17,10 @@ interface UseAllProjectOnCallPoliciesResult {
   refetch: () => Promise<void>;
 }
 
-function getEntityId(entity?: { _id?: string; id?: string }): string | undefined {
+function getEntityId(entity?: {
+  _id?: string;
+  id?: string;
+}): string | undefined {
   return entity?._id ?? entity?.id;
 }
 
@@ -33,7 +36,8 @@ function toAssignments(
       projectName: project.name,
       policyId: getEntityId(rule.onCallDutyPolicy),
       policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
-      escalationRuleName: rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
+      escalationRuleName:
+        rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
       assignmentType: "user",
       assignmentDetail: "You are directly assigned",
     });
@@ -45,7 +49,8 @@ function toAssignments(
       projectName: project.name,
       policyId: getEntityId(rule.onCallDutyPolicy),
       policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
-      escalationRuleName: rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
+      escalationRuleName:
+        rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
       assignmentType: "team",
       assignmentDetail: `Via team: ${rule.team?.name ?? "Unknown"}`,
     });
@@ -57,7 +62,8 @@ function toAssignments(
       projectName: project.name,
       policyId: getEntityId(rule.onCallDutyPolicy),
       policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
-      escalationRuleName: rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
+      escalationRuleName:
+        rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
       assignmentType: "schedule",
       assignmentDetail: `Via schedule: ${rule.onCallDutyPolicySchedule?.name ?? "Unknown"}`,
     });
@@ -107,15 +113,19 @@ export function useAllProjectOnCallPolicies(): UseAllProjectOnCallPoliciesResult
 
       const projects: ProjectOnCallAssignments[] = [];
 
-      results.forEach((result: PromiseSettledResult<ProjectOnCallAssignments | null>) => {
-        if (result.status === "fulfilled" && result.value) {
-          projects.push(result.value);
-        }
-      });
+      results.forEach(
+        (result: PromiseSettledResult<ProjectOnCallAssignments | null>) => {
+          if (result.status === "fulfilled" && result.value) {
+            projects.push(result.value);
+          }
+        },
+      );
 
-      return projects.sort((a: ProjectOnCallAssignments, b: ProjectOnCallAssignments) => {
-        return a.projectName.localeCompare(b.projectName);
-      });
+      return projects.sort(
+        (a: ProjectOnCallAssignments, b: ProjectOnCallAssignments) => {
+          return a.projectName.localeCompare(b.projectName);
+        },
+      );
     },
   });
 

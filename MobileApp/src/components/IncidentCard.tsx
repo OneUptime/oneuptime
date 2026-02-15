@@ -87,7 +87,10 @@ export default function IncidentCard({
                 />
                 <Text
                   className="text-[10px] font-semibold"
-                  style={{ color: theme.colors.textSecondary, letterSpacing: 0.3 }}
+                  style={{
+                    color: theme.colors.textSecondary,
+                    letterSpacing: 0.3,
+                  }}
                 >
                   INCIDENT
                 </Text>

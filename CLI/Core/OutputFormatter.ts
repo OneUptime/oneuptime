@@ -5,8 +5,7 @@ import chalk from "chalk";
 
 function isColorDisabled(): boolean {
   return (
-    process.env["NO_COLOR"] !== undefined ||
-    process.argv.includes("--no-color")
+    process.env["NO_COLOR"] !== undefined || process.argv.includes("--no-color")
   );
 }
 
@@ -69,21 +68,21 @@ function formatTable(data: JSONValue, wide: boolean): string {
       "createdAt",
       "updatedAt",
     ];
-    const prioritized: string[] = priority.filter((col: string) =>
-      columns.includes(col),
-    );
-    const remaining: string[] = columns.filter(
-      (col: string) => !priority.includes(col),
-    );
+    const prioritized: string[] = priority.filter((col: string) => {
+      return columns.includes(col);
+    });
+    const remaining: string[] = columns.filter((col: string) => {
+      return !priority.includes(col);
+    });
     columns = [...prioritized, ...remaining].slice(0, 6);
   }
 
   const useColor: boolean = !isColorDisabled();
 
   const table: Table.Table = new Table({
-    head: columns.map((col: string) =>
-      useColor ? chalk.cyan(col) : col,
-    ),
+    head: columns.map((col: string) => {
+      return useColor ? chalk.cyan(col) : col;
+    }),
     style: {
       head: [],
       border: [],
@@ -154,8 +153,10 @@ export function formatOutput(data: JSONValue, format?: string): string {
 export function printSuccess(message: string): void {
   const useColor: boolean = !isColorDisabled();
   if (useColor) {
+    // eslint-disable-next-line no-console
     console.log(chalk.green(message));
   } else {
+    // eslint-disable-next-line no-console
     console.log(message);
   }
 }
@@ -163,8 +164,10 @@ export function printSuccess(message: string): void {
 export function printError(message: string): void {
   const useColor: boolean = !isColorDisabled();
   if (useColor) {
+    // eslint-disable-next-line no-console
     console.error(chalk.red(message));
   } else {
+    // eslint-disable-next-line no-console
     console.error(message);
   }
 }
@@ -172,8 +175,10 @@ export function printError(message: string): void {
 export function printWarning(message: string): void {
   const useColor: boolean = !isColorDisabled();
   if (useColor) {
+    // eslint-disable-next-line no-console
     console.error(chalk.yellow(message));
   } else {
+    // eslint-disable-next-line no-console
     console.error(message);
   }
 }
@@ -181,8 +186,10 @@ export function printWarning(message: string): void {
 export function printInfo(message: string): void {
   const useColor: boolean = !isColorDisabled();
   if (useColor) {
+    // eslint-disable-next-line no-console
     console.log(chalk.blue(message));
   } else {
+    // eslint-disable-next-line no-console
     console.log(message);
   }
 }

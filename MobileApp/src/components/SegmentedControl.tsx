@@ -58,7 +58,9 @@ export default function SegmentedControl<T extends string>({
             <Text
               className="text-body-sm font-semibold"
               style={{
-                color: isActive ? activeContentColor : theme.colors.textSecondary,
+                color: isActive
+                  ? activeContentColor
+                  : theme.colors.textSecondary,
                 letterSpacing: 0.2,
               }}
             >

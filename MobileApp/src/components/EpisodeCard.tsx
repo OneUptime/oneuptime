@@ -111,7 +111,10 @@ export default function EpisodeCard(
                 />
                 <Text
                   className="text-[10px] font-semibold"
-                  style={{ color: theme.colors.textSecondary, letterSpacing: 0.3 }}
+                  style={{
+                    color: theme.colors.textSecondary,
+                    letterSpacing: 0.3,
+                  }}
                 >
                   {type === "incident" ? "INCIDENT EPISODE" : "ALERT EPISODE"}
                 </Text>
@@ -131,7 +134,8 @@ export default function EpisodeCard(
                     letterSpacing: 0.2,
                   }}
                 >
-                  {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
+                  {episode.episodeNumberWithPrefix ||
+                    `#${episode.episodeNumber}`}
                 </Text>
               </View>
             </View>

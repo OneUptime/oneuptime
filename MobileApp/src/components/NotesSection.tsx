@@ -75,7 +75,9 @@ export default function NotesSection({
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
-                  shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
+                  shadowColor: theme.isDark
+                    ? "#000"
+                    : theme.colors.accentGradientMid,
                   shadowOpacity: theme.isDark ? 0.16 : 0.06,
                   shadowOffset: { width: 0, height: 5 },
                   shadowRadius: 10,

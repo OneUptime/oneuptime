@@ -9,9 +9,11 @@ describe("ErrorHandler", () => {
     exitSpy = jest.spyOn(process, "exit").mockImplementation((() => {
       // no-op
     }) as any);
-    printErrorSpy = jest.spyOn(OutputFormatter, "printError").mockImplementation(() => {
-      // no-op
-    });
+    printErrorSpy = jest
+      .spyOn(OutputFormatter, "printError")
+      .mockImplementation(() => {
+        // no-op
+      });
   });
 
   afterEach(() => {
@@ -44,9 +46,7 @@ describe("ErrorHandler", () => {
 
   it("should exit with NotFound for 404 errors", () => {
     handleError(new Error("HTTP 404 response"));
-    expect(printErrorSpy).toHaveBeenCalledWith(
-      "Not found: HTTP 404 response",
-    );
+    expect(printErrorSpy).toHaveBeenCalledWith("Not found: HTTP 404 response");
     expect(exitSpy).toHaveBeenCalledWith(ExitCode.NotFound);
   });
 
@@ -65,9 +65,7 @@ describe("ErrorHandler", () => {
 
   it("should exit with GeneralError for generic Error objects", () => {
     handleError(new Error("Something went wrong"));
-    expect(printErrorSpy).toHaveBeenCalledWith(
-      "Error: Something went wrong",
-    );
+    expect(printErrorSpy).toHaveBeenCalledWith("Error: Something went wrong");
     expect(exitSpy).toHaveBeenCalledWith(ExitCode.GeneralError);
   });
 

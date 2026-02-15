@@ -34,9 +34,7 @@ export function generateAllFieldsSelect(
 ): JSONObject {
   try {
     if (modelType === "database") {
-      const ModelClass:
-        | (new () => BaseModel)
-        | undefined = DatabaseModels.find(
+      const ModelClass: (new () => BaseModel) | undefined = DatabaseModels.find(
         (Model: new () => BaseModel): boolean => {
           try {
             const instance: BaseModel = new Model();
@@ -85,18 +83,15 @@ export function generateAllFieldsSelect(
     }
 
     if (modelType === "analytics") {
-      const ModelClass:
-        | (new () => AnalyticsBaseModel)
-        | undefined = AnalyticsModels.find(
-        (Model: new () => AnalyticsBaseModel): boolean => {
+      const ModelClass: (new () => AnalyticsBaseModel) | undefined =
+        AnalyticsModels.find((Model: new () => AnalyticsBaseModel): boolean => {
           try {
             const instance: AnalyticsBaseModel = new Model();
             return instance.tableName === tableName;
           } catch {
             return false;
           }
-        },
-      );
+        });
 
       if (!ModelClass) {
         return getDefaultSelect();

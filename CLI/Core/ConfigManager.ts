@@ -80,10 +80,12 @@ export function removeContext(name: string): void {
 export function listContexts(): Array<CLIContext & { isCurrent: boolean }> {
   const config: CLIConfig = load();
   return Object.values(config.contexts).map(
-    (ctx: CLIContext): CLIContext & { isCurrent: boolean } => ({
-      ...ctx,
-      isCurrent: ctx.name === config.currentContext,
-    }),
+    (ctx: CLIContext): CLIContext & { isCurrent: boolean } => {
+      return {
+        ...ctx,
+        isCurrent: ctx.name === config.currentContext,
+      };
+    },
   );
 }
 

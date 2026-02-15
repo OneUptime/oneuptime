@@ -6,11 +6,15 @@ import * as path from "path";
 import * as os from "os";
 
 // Mock the ApiClient module before it's imported by ResourceCommands
-const mockExecuteApiRequest = jest.fn();
-jest.mock("../Core/ApiClient", () => ({
-  ...jest.requireActual("../Core/ApiClient"),
-  executeApiRequest: (...args) => mockExecuteApiRequest(...args),
-}));
+const mockExecuteApiRequest: jest.Mock = jest.fn();
+jest.mock("../Core/ApiClient", () => {
+  return {
+    ...jest.requireActual("../Core/ApiClient"),
+    executeApiRequest: (...args: unknown[]): unknown => {
+      return mockExecuteApiRequest(...args);
+    },
+  };
+});
 
 // Import after mock setup
 import {
@@ -18,8 +22,8 @@ import {
   registerResourceCommands,
 } from "../Commands/ResourceCommands";
 
-const CONFIG_DIR = path.join(os.homedir(), ".oneuptime");
-const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+const CONFIG_DIR: string = path.join(os.homedir(), ".oneuptime");
+const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
 
 describe("ResourceCommands", () => {
   let originalConfigContent: string | null = null;
@@ -68,20 +72,32 @@ describe("ResourceCommands", () => {
     });
 
     it("should discover the Incident resource", () => {
-      const incident = resources.find((r) => r.singularName === "Incident");
+      const incident: ResourceInfo | undefined = resources.find(
+        (r: ResourceInfo) => {
+          return r.singularName === "Incident";
+        },
+      );
       expect(incident).toBeDefined();
       expect(incident!.modelType).toBe("database");
       expect(incident!.apiPath).toBe("/incident");
     });
 
     it("should discover the Monitor resource", () => {
-      const monitor = resources.find((r) => r.singularName === "Monitor");
+      const monitor: ResourceInfo | undefined = resources.find(
+        (r: ResourceInfo) => {
+          return r.singularName === "Monitor";
+        },
+      );
       expect(monitor).toBeDefined();
       expect(monitor!.modelType).toBe("database");
     });
 
     it("should discover the Alert resource", () => {
-      const alert = resources.find((r) => r.singularName === "Alert");
+      const alert: ResourceInfo | undefined = resources.find(
+        (r: ResourceInfo) => {
+          return r.singularName === "Alert";
+        },
+      );
       expect(alert).toBeDefined();
     });
 
@@ -107,28 +123,34 @@ describe("ResourceCommands", () => {
 
   describe("registerResourceCommands", () => {
     it("should register commands for all discovered resources", () => {
-      const program = new Command();
+      const program: Command = new Command();
       program.exitOverride();
       registerResourceCommands(program);
 
-      const resources = discoverResources();
+      const resources: ResourceInfo[] = discoverResources();
       for (const resource of resources) {
-        const cmd = program.commands.find((c) => c.name() === resource.name);
+        const cmd: Command | undefined = program.commands.find((c: Command) => {
+          return c.name() === resource.name;
+        });
         expect(cmd).toBeDefined();
       }
     });
 
     it("should register list, get, create, update, delete, count subcommands for database resources", () => {
-      const program = new Command();
+      const program: Command = new Command();
       program.exitOverride();
       registerResourceCommands(program);
 
-      const incidentCmd = program.commands.find(
-        (c) => c.name() === "incident",
+      const incidentCmd: Command | undefined = program.commands.find(
+        (c: Command) => {
+          return c.name() === "incident";
+        },
       );
       expect(incidentCmd).toBeDefined();
 
-      const subcommands = incidentCmd!.commands.map((c) => c.name());
+      const subcommands: string[] = incidentCmd!.commands.map((c: Command) => {
+        return c.name();
+      });
       expect(subcommands).toContain("list");
       expect(subcommands).toContain("get");
       expect(subcommands).toContain("create");
@@ -140,7 +162,7 @@ describe("ResourceCommands", () => {
 
   describe("resource command actions", () => {
     function createProgramWithResources(): Command {
-      const program = new Command();
+      const program: Command = new Command();
       program.exitOverride();
       program.configureOutput({
         writeOut: () => {},
@@ -165,16 +187,18 @@ describe("ResourceCommands", () => {
 
     describe("list subcommand", () => {
       it("should call API with list operation", async () => {
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "list"]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
         expect(mockExecuteApiRequest.mock.calls[0][0].operation).toBe("list");
-        expect(mockExecuteApiRequest.mock.calls[0][0].apiPath).toBe("/incident");
+        expect(mockExecuteApiRequest.mock.calls[0][0].apiPath).toBe(
+          "/incident",
+        );
       });
 
       it("should pass query, limit, skip, sort options", async () => {
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -191,7 +215,8 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts = mockExecuteApiRequest.mock.calls[0][0];
+        const opts: Record<string, unknown> =
+          mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.query).toEqual({ status: "active" });
         expect(opts.limit).toBe(20);
         expect(opts.skip).toBe(5);
@@ -203,7 +228,7 @@ describe("ResourceCommands", () => {
           data: [{ _id: "1", name: "Test" }],
         });
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -213,13 +238,14 @@ describe("ResourceCommands", () => {
           "json",
         ]);
 
+        // eslint-disable-next-line no-console
         expect(console.log).toHaveBeenCalled();
       });
 
       it("should handle response that is already an array", async () => {
         mockExecuteApiRequest.mockResolvedValue([{ _id: "1" }]);
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -229,6 +255,7 @@ describe("ResourceCommands", () => {
           "json",
         ]);
 
+        // eslint-disable-next-line no-console
         expect(console.log).toHaveBeenCalled();
       });
 
@@ -237,7 +264,7 @@ describe("ResourceCommands", () => {
           new Error("API error (500): Server Error"),
         );
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "list"]);
 
         expect(process.exit).toHaveBeenCalled();
@@ -251,7 +278,7 @@ describe("ResourceCommands", () => {
           name: "Test",
         });
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -261,7 +288,8 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts = mockExecuteApiRequest.mock.calls[0][0];
+        const opts: Record<string, unknown> =
+          mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("read");
         expect(opts.id).toBe("abc-123");
       });
@@ -269,7 +297,7 @@ describe("ResourceCommands", () => {
       it("should support output format flag", async () => {
         mockExecuteApiRequest.mockResolvedValue({ _id: "abc-123" });
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -280,13 +308,14 @@ describe("ResourceCommands", () => {
           "json",
         ]);
 
+        // eslint-disable-next-line no-console
         expect(console.log).toHaveBeenCalled();
       });
 
       it("should handle get errors", async () => {
         mockExecuteApiRequest.mockRejectedValue(new Error("not found 404"));
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -303,7 +332,7 @@ describe("ResourceCommands", () => {
       it("should call API with create operation and data", async () => {
         mockExecuteApiRequest.mockResolvedValue({ _id: "new-123" });
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -314,7 +343,8 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts = mockExecuteApiRequest.mock.calls[0][0];
+        const opts: Record<string, unknown> =
+          mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("create");
         expect(opts.data).toEqual({ name: "New Incident" });
       });
@@ -322,14 +352,14 @@ describe("ResourceCommands", () => {
       it("should support reading data from a file", async () => {
         mockExecuteApiRequest.mockResolvedValue({ _id: "new-123" });
 
-        const tmpFile = path.join(
+        const tmpFile: string = path.join(
           os.tmpdir(),
           "cli-test-" + Date.now() + ".json",
         );
         fs.writeFileSync(tmpFile, '{"name":"From File"}');
 
         try {
-          const program = createProgramWithResources();
+          const program: Command = createProgramWithResources();
           await program.parseAsync([
             "node",
             "test",
@@ -349,14 +379,14 @@ describe("ResourceCommands", () => {
       });
 
       it("should error when neither --data nor --file is provided", async () => {
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "create"]);
 
         expect(process.exit).toHaveBeenCalled();
       });
 
       it("should error on invalid JSON in --data", async () => {
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -374,7 +404,7 @@ describe("ResourceCommands", () => {
       it("should call API with update operation, id, and data", async () => {
         mockExecuteApiRequest.mockResolvedValue({ _id: "abc-123" });
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -386,7 +416,8 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts = mockExecuteApiRequest.mock.calls[0][0];
+        const opts: Record<string, unknown> =
+          mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("update");
         expect(opts.id).toBe("abc-123");
         expect(opts.data).toEqual({ name: "Updated" });
@@ -395,7 +426,7 @@ describe("ResourceCommands", () => {
       it("should handle update errors", async () => {
         mockExecuteApiRequest.mockRejectedValue(new Error("API error"));
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -414,7 +445,7 @@ describe("ResourceCommands", () => {
       it("should call API with delete operation and id", async () => {
         mockExecuteApiRequest.mockResolvedValue({});
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -424,7 +455,8 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts = mockExecuteApiRequest.mock.calls[0][0];
+        const opts: Record<string, unknown> =
+          mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("delete");
         expect(opts.id).toBe("abc-123");
       });
@@ -432,7 +464,7 @@ describe("ResourceCommands", () => {
       it("should handle API errors", async () => {
         mockExecuteApiRequest.mockRejectedValue(new Error("not found 404"));
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -449,18 +481,19 @@ describe("ResourceCommands", () => {
       it("should call API with count operation", async () => {
         mockExecuteApiRequest.mockResolvedValue({ count: 42 });
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "count"]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
         expect(mockExecuteApiRequest.mock.calls[0][0].operation).toBe("count");
+        // eslint-disable-next-line no-console
         expect(console.log).toHaveBeenCalledWith(42);
       });
 
       it("should pass query filter", async () => {
         mockExecuteApiRequest.mockResolvedValue({ count: 5 });
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",
@@ -478,25 +511,27 @@ describe("ResourceCommands", () => {
       it("should handle response without count field", async () => {
         mockExecuteApiRequest.mockResolvedValue(99);
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "count"]);
 
+        // eslint-disable-next-line no-console
         expect(console.log).toHaveBeenCalledWith(99);
       });
 
       it("should handle non-object response in count", async () => {
         mockExecuteApiRequest.mockResolvedValue("some-string");
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "count"]);
 
+        // eslint-disable-next-line no-console
         expect(console.log).toHaveBeenCalledWith("some-string");
       });
 
       it("should handle count errors", async () => {
         mockExecuteApiRequest.mockRejectedValue(new Error("API error"));
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "count"]);
 
         expect(process.exit).toHaveBeenCalled();
@@ -508,7 +543,7 @@ describe("ResourceCommands", () => {
         ConfigManager.removeContext("test");
         mockExecuteApiRequest.mockResolvedValue({ data: [] });
 
-        const program = createProgramWithResources();
+        const program: Command = createProgramWithResources();
         await program.parseAsync([
           "node",
           "test",

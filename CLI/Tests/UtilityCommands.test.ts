@@ -1,13 +1,12 @@
 import { Command } from "commander";
 import { registerUtilityCommands } from "../Commands/UtilityCommands";
-import { registerResourceCommands } from "../Commands/ResourceCommands";
 import * as ConfigManager from "../Core/ConfigManager";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-const CONFIG_DIR = path.join(os.homedir(), ".oneuptime");
-const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+const CONFIG_DIR: string = path.join(os.homedir(), ".oneuptime");
+const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
 
 describe("UtilityCommands", () => {
   let originalConfigContent: string | null = null;
@@ -46,7 +45,7 @@ describe("UtilityCommands", () => {
   });
 
   function createProgram(): Command {
-    const program = new Command();
+    const program: Command = new Command();
     program.exitOverride();
     program.configureOutput({
       writeOut: () => {},
@@ -62,18 +61,18 @@ describe("UtilityCommands", () => {
 
   describe("version command", () => {
     it("should print version", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "version"]);
       expect(consoleLogSpy).toHaveBeenCalled();
       // Should print a version string (either from package.json or fallback)
-      const versionArg = consoleLogSpy.mock.calls[0][0];
+      const versionArg: string = consoleLogSpy.mock.calls[0][0];
       expect(typeof versionArg).toBe("string");
     });
   });
 
   describe("whoami command", () => {
     it("should show not authenticated when no credentials", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "whoami"]);
       expect(consoleLogSpy).toHaveBeenCalled();
     });
@@ -85,7 +84,7 @@ describe("UtilityCommands", () => {
         apiKey: "abcdefghijklm",
       });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "whoami"]);
 
       expect(consoleLogSpy).toHaveBeenCalledWith("URL:     https://test.com");
@@ -102,7 +101,7 @@ describe("UtilityCommands", () => {
         apiKey: "abc",
       });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "whoami"]);
 
       expect(consoleLogSpy).toHaveBeenCalledWith("API Key: ****");
@@ -112,7 +111,7 @@ describe("UtilityCommands", () => {
       process.env["ONEUPTIME_API_KEY"] = "env-key-long-enough";
       process.env["ONEUPTIME_URL"] = "https://env.com";
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "whoami"]);
 
       expect(consoleLogSpy).toHaveBeenCalledWith("URL:     https://env.com");
@@ -120,13 +119,13 @@ describe("UtilityCommands", () => {
 
     it("should handle whoami outer catch block", async () => {
       // Mock getCurrentContext to throw an unexpected error
-      const spy = jest
+      const spy: jest.SpyInstance = jest
         .spyOn(ConfigManager, "getCurrentContext")
         .mockImplementation(() => {
           throw new Error("Unexpected crash");
         });
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "whoami"]);
 
       expect(exitSpy).toHaveBeenCalledWith(1);
@@ -137,12 +136,14 @@ describe("UtilityCommands", () => {
       process.env["ONEUPTIME_API_KEY"] = "env-key-long-enough";
       process.env["ONEUPTIME_URL"] = "https://env.com";
 
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "whoami"]);
 
       // Should NOT have a "Context:" call since no context is set
-      const contextCalls = consoleLogSpy.mock.calls.filter(
-        (call: any[]) => typeof call[0] === "string" && call[0].startsWith("Context:"),
+      const contextCalls: any[][] = consoleLogSpy.mock.calls.filter(
+        (call: any[]) => {
+          return typeof call[0] === "string" && call[0].startsWith("Context:");
+        },
       );
       expect(contextCalls).toHaveLength(0);
     });
@@ -150,20 +151,22 @@ describe("UtilityCommands", () => {
 
   describe("resources command", () => {
     it("should list all resources", async () => {
-      // We need registerResourceCommands for discoverResources to work
-      // but discoverResources is imported directly, so it should work
-      const program = createProgram();
+      /*
+       * We need registerResourceCommands for discoverResources to work
+       * but discoverResources is imported directly, so it should work
+       */
+      const program: Command = createProgram();
       await program.parseAsync(["node", "test", "resources"]);
 
       expect(consoleLogSpy).toHaveBeenCalled();
       // Should show total count
-      const lastCall =
+      const lastCall: string =
         consoleLogSpy.mock.calls[consoleLogSpy.mock.calls.length - 1][0];
       expect(lastCall).toContain("Total:");
     });
 
     it("should filter by type", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync([
         "node",
         "test",
@@ -176,7 +179,7 @@ describe("UtilityCommands", () => {
     });
 
     it("should show message when filter returns no results", async () => {
-      const program = createProgram();
+      const program: Command = createProgram();
       await program.parseAsync([
         "node",
         "test",

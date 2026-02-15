@@ -23,7 +23,11 @@ export default function SectionHeader({
           borderColor: theme.colors.borderGlass,
         }}
       >
-        <Ionicons name={iconName} size={13} color={theme.colors.actionPrimary} />
+        <Ionicons
+          name={iconName}
+          size={13}
+          color={theme.colors.actionPrimary}
+        />
       </View>
       <Text
         className="text-[12px] font-semibold uppercase"
