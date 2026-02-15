@@ -5,6 +5,9 @@ import { fetchCurrentOnDutyEscalationPolicies } from "../api/onCallPolicies";
 import type {
   CurrentOnDutyEscalationPoliciesResponse,
   OnCallAssignmentItem,
+  OnCallDutyEscalationRuleUserItem,
+  OnCallDutyEscalationRuleTeamItem,
+  OnCallDutyEscalationRuleScheduleItem,
   ProjectItem,
   ProjectOnCallAssignments,
 } from "../api/types";
@@ -30,44 +33,50 @@ function toAssignments(
 ): OnCallAssignmentItem[] {
   const assignments: OnCallAssignmentItem[] = [];
 
-  response.escalationRulesByUser.forEach((rule) => {
-    assignments.push({
-      projectId: project._id,
-      projectName: project.name,
-      policyId: getEntityId(rule.onCallDutyPolicy),
-      policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
-      escalationRuleName:
-        rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
-      assignmentType: "user",
-      assignmentDetail: "You are directly assigned",
-    });
-  });
+  response.escalationRulesByUser.forEach(
+    (rule: OnCallDutyEscalationRuleUserItem) => {
+      assignments.push({
+        projectId: project._id,
+        projectName: project.name,
+        policyId: getEntityId(rule.onCallDutyPolicy),
+        policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
+        escalationRuleName:
+          rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
+        assignmentType: "user",
+        assignmentDetail: "You are directly assigned",
+      });
+    },
+  );
 
-  response.escalationRulesByTeam.forEach((rule) => {
-    assignments.push({
-      projectId: project._id,
-      projectName: project.name,
-      policyId: getEntityId(rule.onCallDutyPolicy),
-      policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
-      escalationRuleName:
-        rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
-      assignmentType: "team",
-      assignmentDetail: `Via team: ${rule.team?.name ?? "Unknown"}`,
-    });
-  });
+  response.escalationRulesByTeam.forEach(
+    (rule: OnCallDutyEscalationRuleTeamItem) => {
+      assignments.push({
+        projectId: project._id,
+        projectName: project.name,
+        policyId: getEntityId(rule.onCallDutyPolicy),
+        policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
+        escalationRuleName:
+          rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
+        assignmentType: "team",
+        assignmentDetail: `Via team: ${rule.team?.name ?? "Unknown"}`,
+      });
+    },
+  );
 
-  response.escalationRulesBySchedule.forEach((rule) => {
-    assignments.push({
-      projectId: project._id,
-      projectName: project.name,
-      policyId: getEntityId(rule.onCallDutyPolicy),
-      policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
-      escalationRuleName:
-        rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
-      assignmentType: "schedule",
-      assignmentDetail: `Via schedule: ${rule.onCallDutyPolicySchedule?.name ?? "Unknown"}`,
-    });
-  });
+  response.escalationRulesBySchedule.forEach(
+    (rule: OnCallDutyEscalationRuleScheduleItem) => {
+      assignments.push({
+        projectId: project._id,
+        projectName: project.name,
+        policyId: getEntityId(rule.onCallDutyPolicy),
+        policyName: rule.onCallDutyPolicy?.name ?? "Unknown policy",
+        escalationRuleName:
+          rule.onCallDutyPolicyEscalationRule?.name ?? "Unknown rule",
+        assignmentType: "schedule",
+        assignmentDetail: `Via schedule: ${rule.onCallDutyPolicySchedule?.name ?? "Unknown"}`,
+      });
+    },
+  );
 
   return assignments;
 }

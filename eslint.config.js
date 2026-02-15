@@ -233,7 +233,8 @@ export default tseslint.config(
         module: true,
         __dirname: true,
         exports: true,
-        "NodeJS": true
+        "NodeJS": true,
+        "PromiseSettledResult": true
       },
       parserOptions: {
         projectService: true,
