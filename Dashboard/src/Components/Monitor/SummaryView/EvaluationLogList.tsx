@@ -396,7 +396,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="space-y-4">
+    <div className="mt-6 space-y-4">
       <div className="text-base font-semibold text-gray-900">
         {getSummaryTitle}
       </div>

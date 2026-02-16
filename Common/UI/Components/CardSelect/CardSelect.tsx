@@ -68,11 +68,21 @@ const CardSelect: FunctionComponent<ComponentProps> = (
       <div role="radiogroup" aria-label="Select an option">
         {groups.map((group: RenderGroup, groupIndex: number) => {
           return (
-            <div key={groupIndex} className={groupIndex > 0 ? "mt-6" : ""}>
+            <div key={groupIndex} className={groupIndex > 0 ? "mt-8" : ""}>
               {group.label && (
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  {group.label}
-                </h3>
+                <div className="relative mb-4">
+                  <div
+                    className="absolute inset-0 flex items-center"
+                    aria-hidden="true"
+                  >
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative flex justify-start">
+                    <span className="bg-white pr-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                      {group.label}
+                    </span>
+                  </div>
+                </div>
               )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {group.options.map((option: CardSelectOption) => {
