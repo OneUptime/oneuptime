@@ -72,7 +72,7 @@ const MonitorCreate: FunctionComponent<
               fieldType: FormFieldSchemaType.CardSelect,
               required: true,
               cardSelectOptions:
-                MonitorTypeUtil.monitorTypesAsCardSelectOptions(),
+                MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
             },
             {
               field: {

@@ -40,7 +40,57 @@ export interface MonitorTypeProps {
   icon: IconProp;
 }
 
+export interface MonitorTypeCategory {
+  label: string;
+  monitorTypes: Array<MonitorType>;
+}
+
 export class MonitorTypeHelper {
+  public static getMonitorTypeCategories(): Array<MonitorTypeCategory> {
+    return [
+      {
+        label: "Active Monitoring",
+        monitorTypes: [
+          MonitorType.Website,
+          MonitorType.API,
+          MonitorType.Ping,
+          MonitorType.IP,
+          MonitorType.Port,
+          MonitorType.DNS,
+          MonitorType.SSLCertificate,
+        ],
+      },
+      {
+        label: "Synthetic Monitoring",
+        monitorTypes: [
+          MonitorType.SyntheticMonitor,
+          MonitorType.CustomJavaScriptCode,
+        ],
+      },
+      {
+        label: "Inbound Monitoring",
+        monitorTypes: [MonitorType.IncomingRequest, MonitorType.IncomingEmail],
+      },
+      {
+        label: "Infrastructure",
+        monitorTypes: [MonitorType.Server, MonitorType.SNMP],
+      },
+      {
+        label: "Telemetry",
+        monitorTypes: [
+          MonitorType.Logs,
+          MonitorType.Metrics,
+          MonitorType.Traces,
+          MonitorType.Exceptions,
+        ],
+      },
+      {
+        label: "Other",
+        monitorTypes: [MonitorType.Manual],
+      },
+    ];
+  }
+
   public static isTelemetryMonitor(monitorType: MonitorType): boolean {
     return (
       monitorType === MonitorType.Logs ||

@@ -3,7 +3,10 @@ import {
   CategoryCheckboxOption,
   CheckboxCategory,
 } from "../../CategoryCheckbox/CategoryCheckboxTypes";
-import { CardSelectOption } from "../../CardSelect/CardSelect";
+import {
+  CardSelectOption,
+  CardSelectOptionGroup,
+} from "../../CardSelect/CardSelect";
 import { DropdownOption, DropdownOptionGroup } from "../../Dropdown/Dropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
@@ -51,7 +54,9 @@ export default interface Field<TEntity> {
   stepId?: string | undefined;
   required?: boolean | ((item: FormValues<TEntity>) => boolean) | undefined;
   dropdownOptions?: Array<DropdownOption | DropdownOptionGroup> | undefined;
-  cardSelectOptions?: Array<CardSelectOption> | undefined;
+  cardSelectOptions?:
+    | Array<CardSelectOption | CardSelectOptionGroup>
+    | undefined;
   fetchDropdownOptions?:
     | ((
         item: FormValues<TEntity>,
