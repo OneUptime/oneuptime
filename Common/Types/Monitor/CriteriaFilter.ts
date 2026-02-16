@@ -67,6 +67,13 @@ export enum CheckOn {
   DnsRecordValue = "DNS Record Value",
   DnssecIsValid = "DNSSEC Is Valid",
   DnsRecordExists = "DNS Record Exists",
+
+  // Domain monitors.
+  DomainExpiresDaysIn = "Domain Expires In Days",
+  DomainRegistrar = "Domain Registrar",
+  DomainNameServer = "Domain Name Server",
+  DomainStatusCode = "Domain Status Code",
+  DomainIsExpired = "Domain Is Expired",
 }
 
 export interface ServerMonitorOptions {
@@ -151,7 +158,8 @@ export class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
-      checkOn === CheckOn.DnsIsOnline
+      checkOn === CheckOn.DnsIsOnline ||
+      checkOn === CheckOn.DomainIsExpired
     ) {
       return false;
     }

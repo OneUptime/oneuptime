@@ -310,6 +310,20 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         placeholder: "0",
       },
     ];
+  } else if (props.monitorType === MonitorType.Domain) {
+    fields = [
+      {
+        key: "domainMonitor",
+        title: "Domain Name",
+        description: "The domain name being monitored via WHOIS.",
+        fieldType: FieldType.Element,
+        placeholder: "No data entered",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const domainMonitor: any = item.domainMonitor;
+          return <p>{domainMonitor?.domainName || "-"}</p>;
+        },
+      },
+    ];
   } else if (props.monitorType === MonitorType.Logs) {
     logFields = [];
 
