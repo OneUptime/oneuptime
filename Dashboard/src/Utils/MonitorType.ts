@@ -1,8 +1,12 @@
-import {
+import MonitorType, {
+  MonitorTypeCategory,
   MonitorTypeHelper,
   MonitorTypeProps,
 } from "Common/Types/Monitor/MonitorType";
-import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
+import {
+  CardSelectOption,
+  CardSelectOptionGroup,
+} from "Common/UI/Components/CardSelect/CardSelect";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 export default class MonitorTypeUtil {
@@ -30,5 +34,41 @@ export default class MonitorTypeUtil {
         icon: props.icon,
       };
     });
+  }
+
+  public static monitorTypesAsCategorizedCardSelectOptions(): Array<CardSelectOptionGroup> {
+    const categories: Array<MonitorTypeCategory> =
+      MonitorTypeHelper.getMonitorTypeCategories();
+    const allProps: Array<MonitorTypeProps> =
+      MonitorTypeHelper.getAllMonitorTypeProps();
+
+    return categories.map(
+      (category: MonitorTypeCategory): CardSelectOptionGroup => {
+        return {
+          label: category.label,
+          options: category.monitorTypes
+            .map((monitorType: MonitorType): CardSelectOption | null => {
+              const typeProps: MonitorTypeProps | undefined = allProps.find(
+                (p: MonitorTypeProps) => p.monitorType === monitorType,
+              );
+
+              if (!typeProps) {
+                return null;
+              }
+
+              return {
+                value: typeProps.monitorType,
+                title: typeProps.title,
+                description: typeProps.description,
+                icon: typeProps.icon,
+              };
+            })
+            .filter(
+              (option: CardSelectOption | null): option is CardSelectOption =>
+                option !== null,
+            ),
+        };
+      },
+    );
   }
 }

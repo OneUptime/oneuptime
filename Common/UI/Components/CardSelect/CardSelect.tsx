@@ -9,8 +9,22 @@ export interface CardSelectOption {
   icon: IconProp;
 }
 
-export interface ComponentProps {
+export interface CardSelectOptionGroup {
+  label: string;
   options: Array<CardSelectOption>;
+}
+
+export function isCardSelectOptionGroup(
+  option: CardSelectOption | CardSelectOptionGroup,
+): option is CardSelectOptionGroup {
+  return (
+    (option as CardSelectOptionGroup).label !== undefined &&
+    Array.isArray((option as CardSelectOptionGroup).options)
+  );
+}
+
+export interface ComponentProps {
+  options: Array<CardSelectOption | CardSelectOptionGroup>;
   value?: string | undefined;
   onChange: (value: string) => void;
   error?: string | undefined;
@@ -18,80 +32,132 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
 }
 
+interface RenderGroup {
+  label: string | null;
+  options: Array<CardSelectOption>;
+}
+
 const CardSelect: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Normalize options into render groups
+  const groups: Array<RenderGroup> = [];
+  let ungroupedOptions: Array<CardSelectOption> = [];
+
+  for (const option of props.options) {
+    if (isCardSelectOptionGroup(option)) {
+      // Flush any accumulated ungrouped options first
+      if (ungroupedOptions.length > 0) {
+        groups.push({ label: null, options: ungroupedOptions });
+        ungroupedOptions = [];
+      }
+      groups.push({ label: option.label, options: option.options });
+    } else {
+      ungroupedOptions.push(option);
+    }
+  }
+
+  if (ungroupedOptions.length > 0) {
+    groups.push({ label: null, options: ungroupedOptions });
+  }
+
+  let cardIndex: number = 0;
+
   return (
     <div data-testid={props.dataTestId}>
-      <div
-        role="radiogroup"
-        aria-label="Select an option"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      >
-        {props.options.map((option: CardSelectOption, index: number) => {
-          const isSelected: boolean = props.value === option.value;
-
+      <div role="radiogroup" aria-label="Select an option">
+        {groups.map((group: RenderGroup, groupIndex: number) => {
           return (
-            <div
-              key={index}
-              tabIndex={props.tabIndex ? props.tabIndex + index : index}
-              onClick={() => {
-                props.onChange(option.value);
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  props.onChange(option.value);
-                }
-              }}
-              className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none transition-all duration-200 hover:border-indigo-400 hover:shadow-md ${
-                isSelected
-                  ? "border-indigo-500 bg-indigo-50/50"
-                  : "border-gray-200 bg-white"
-              }`}
-              role="radio"
-              aria-checked={isSelected}
-              data-testid={`card-select-option-${option.value}`}
-            >
-              <div className="flex w-full items-start">
-                <div
-                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                    isSelected ? "bg-indigo-100" : "bg-gray-100"
-                  }`}
-                >
-                  <Icon
-                    icon={option.icon}
-                    size={SizeProp.Large}
-                    className={`h-5 w-5 ${
-                      isSelected ? "text-indigo-600" : "text-gray-600"
-                    }`}
-                  />
-                </div>
-                <div className="ml-4 flex-1">
-                  <span
-                    className={`block text-sm font-semibold ${
-                      isSelected ? "text-gray-900" : "text-gray-900"
-                    }`}
+            <div key={groupIndex} className={groupIndex > 0 ? "mt-8" : ""}>
+              {group.label && (
+                <div className="relative mb-4">
+                  <div
+                    className="absolute inset-0 flex items-center"
+                    aria-hidden="true"
                   >
-                    {option.title}
-                  </span>
-                  <span
-                    className={`mt-1 block text-sm ${
-                      isSelected ? "text-gray-600" : "text-gray-500"
-                    }`}
-                  >
-                    {option.description}
-                  </span>
-                </div>
-                {isSelected && (
-                  <div className="flex-shrink-0 ml-2">
-                    <Icon
-                      icon={IconProp.CheckCircle}
-                      size={SizeProp.Large}
-                      className="h-5 w-5 text-indigo-500"
-                    />
+                    <div className="w-full border-t border-gray-200"></div>
                   </div>
-                )}
+                  <div className="relative flex justify-start">
+                    <span className="bg-white pr-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                      {group.label}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {group.options.map((option: CardSelectOption) => {
+                  const isSelected: boolean = props.value === option.value;
+                  const currentIndex: number = cardIndex++;
+
+                  return (
+                    <div
+                      key={option.value}
+                      tabIndex={
+                        props.tabIndex
+                          ? props.tabIndex + currentIndex
+                          : currentIndex
+                      }
+                      onClick={() => {
+                        props.onChange(option.value);
+                      }}
+                      onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          props.onChange(option.value);
+                        }
+                      }}
+                      className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none transition-all duration-200 hover:border-indigo-400 hover:shadow-md ${
+                        isSelected
+                          ? "border-indigo-500 bg-indigo-50/50"
+                          : "border-gray-200 bg-white"
+                      }`}
+                      role="radio"
+                      aria-checked={isSelected}
+                      data-testid={`card-select-option-${option.value}`}
+                    >
+                      <div className="flex w-full items-start">
+                        <div
+                          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
+                            isSelected ? "bg-indigo-100" : "bg-gray-100"
+                          }`}
+                        >
+                          <Icon
+                            icon={option.icon}
+                            size={SizeProp.Large}
+                            className={`h-5 w-5 ${
+                              isSelected ? "text-indigo-600" : "text-gray-600"
+                            }`}
+                          />
+                        </div>
+                        <div className="ml-4 flex-1">
+                          <span
+                            className={`block text-sm font-semibold ${
+                              isSelected ? "text-gray-900" : "text-gray-900"
+                            }`}
+                          >
+                            {option.title}
+                          </span>
+                          <span
+                            className={`mt-1 block text-sm ${
+                              isSelected ? "text-gray-600" : "text-gray-500"
+                            }`}
+                          >
+                            {option.description}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <div className="flex-shrink-0 ml-2">
+                            <Icon
+                              icon={IconProp.CheckCircle}
+                              size={SizeProp.Large}
+                              className="h-5 w-5 text-indigo-500"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

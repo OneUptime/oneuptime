@@ -305,6 +305,72 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/tool/mcp-server": {
+    title: "MCP Server | Model Context Protocol for AI Agents | OneUptime",
+    description:
+      "Connect AI agents and LLMs to your OneUptime observability data via Model Context Protocol (MCP). Query incidents, monitors, logs, metrics, and traces directly from your AI tools.",
+    canonicalPath: "/tool/mcp-server",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "MCP Server", url: "/tool/mcp-server" },
+    ],
+    softwareApplication: {
+      name: "OneUptime MCP Server",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Model Context Protocol server that connects AI agents and LLMs to OneUptime observability data for querying incidents, monitors, logs, metrics, and traces.",
+      features: [
+        "Incident querying and management",
+        "Monitor status and health checks",
+        "Log search and filtering",
+        "Metrics time series retrieval",
+        "Distributed trace analysis",
+        "Compatible with Claude, Cursor, Windsurf",
+        "API key authentication",
+        "Fine-grained permissions",
+        "Real-time data access",
+        "Open protocol standard",
+      ],
+    },
+  },
+
+  "/tool/cli": {
+    title: "CLI | Command Line Interface for Observability | OneUptime",
+    description:
+      "OneUptime CLI lets you manage monitors, incidents, status pages, and observability data from your terminal. Deploy, configure, and automate your monitoring infrastructure with simple commands.",
+    canonicalPath: "/tool/cli",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "CLI", url: "/tool/cli" },
+    ],
+    softwareApplication: {
+      name: "OneUptime CLI",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "macOS, Linux, Windows",
+      description:
+        "Command line interface for managing OneUptime monitors, incidents, status pages, and observability data from your terminal.",
+      features: [
+        "Monitor creation and management",
+        "Incident response from terminal",
+        "Status page management",
+        "Real-time log tailing",
+        "CI/CD pipeline integration",
+        "Scriptable JSON output",
+        "YAML configuration support",
+        "Bulk operations",
+        "npm, Homebrew, and Docker install",
+        "API key and browser authentication",
+      ],
+    },
+  },
+
   "/product/metrics": {
     title: "Metrics | Application & Infrastructure Metrics | OneUptime",
     description:

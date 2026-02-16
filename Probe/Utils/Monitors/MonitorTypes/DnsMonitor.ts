@@ -38,11 +38,9 @@ export default class DnsMonitorUtil {
     const startTime: [number, number] = process.hrtime();
 
     try {
-      const resolver: dns.promises.Resolver = new dns.promises.Resolver();
-
-      if (config.timeout) {
-        resolver.setLocalAddress(undefined as any); // ensure default
-      }
+      const resolver: dns.promises.Resolver = new dns.promises.Resolver({
+        timeout: config.timeout || 5000,
+      });
 
       if (config.hostname) {
         const server: string =
