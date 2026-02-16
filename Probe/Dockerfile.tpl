@@ -46,8 +46,8 @@ RUN apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
-# Install iputils
-RUN apt-get install net-tools -y
+# Install iputils and dnsutils (for dig, used in DNSSEC validation)
+RUN apt-get install net-tools dnsutils -y
 
 RUN mkdir -p /usr/src
 
