@@ -58,6 +58,25 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public disableSignup?: boolean = undefined;
 
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Disable User Project Creation",
+    description: "Only master admins can create projects when enabled.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+    unique: true,
+  })
+  public disableUserProjectCreation?: boolean = undefined;
+
   // SMTP Settings.
 
   @ColumnAccessControl({

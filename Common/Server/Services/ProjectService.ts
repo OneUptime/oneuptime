@@ -124,6 +124,7 @@ export class ProjectService extends DatabaseService<Model> {
       select: {
         name: true,
         email: true,
+        isMasterAdmin: true,
         companyPhoneNumber: true,
         companyName: true,
         utmCampaign: true,
@@ -140,6 +141,15 @@ export class ProjectService extends DatabaseService<Model> {
 
     if (!user) {
       throw new BadDataException("User not found.");
+    }
+
+    // Check if project creation is restricted to admins only
+    const shouldDisableProjectCreation: boolean =
+      await DatabaseConfig.shouldDisableUserProjectCreation();
+    if (shouldDisableProjectCreation && !user.isMasterAdmin) {
+      throw new NotAuthorizedException(
+        "Project creation is restricted to admin users only on this OneUptime Server. Please contact your server admin.",
+      );
     }
 
     if (IsBillingEnabled) {

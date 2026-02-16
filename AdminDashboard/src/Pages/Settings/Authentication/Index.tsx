@@ -73,6 +73,46 @@ const Settings: FunctionComponent = (): ReactElement => {
           modelId: ObjectID.getZeroObjectID(),
         }}
       />
+
+      <CardModelDetail
+        name="Project Creation Settings"
+        cardProps={{
+          title: "Project Creation",
+          description:
+            "Control who can create new projects on this OneUptime Server.",
+        }}
+        isEditable={true}
+        editButtonText="Edit Settings"
+        formFields={[
+          {
+            field: {
+              disableUserProjectCreation: true,
+            },
+            title: "Restrict Project Creation to Admins Only",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, only master admin users can create new projects.",
+          },
+        ]}
+        modelDetailProps={{
+          modelType: GlobalConfig,
+          id: "model-detail-project-creation",
+          fields: [
+            {
+              field: {
+                disableUserProjectCreation: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Restrict Project Creation to Admins Only",
+              placeholder: "No",
+              description:
+                "When enabled, only master admin users can create new projects.",
+            },
+          ],
+          modelId: ObjectID.getZeroObjectID(),
+        }}
+      />
     </Page>
   );
 };

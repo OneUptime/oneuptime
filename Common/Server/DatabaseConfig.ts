@@ -80,4 +80,11 @@ export default class DatabaseConfig {
       "disableSignup",
     )) as boolean;
   }
+
+  @CaptureSpan()
+  public static async shouldDisableUserProjectCreation(): Promise<boolean> {
+    return (await DatabaseConfig.getFromGlobalConfig(
+      "disableUserProjectCreation",
+    )) as boolean;
+  }
 }
