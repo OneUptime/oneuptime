@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime | CLI - Command Line Interface for Observability</title>
+    <meta name="description"
+        content="OneUptime CLI lets you manage monitors, incidents, status pages, and observability data from your terminal. Deploy, configure, and automate your monitoring infrastructure with simple commands.">
+        <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+  <main id="main-content">
+
+  <!-- Hero Section -->
+  <div class="relative isolate overflow-hidden bg-white" id="cli-hero-section">
+    <!-- Subtle grid pattern background -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+    <!-- Grid glow effect that follows cursor -->
+    <div id="cli-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(16, 185, 129, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(16, 185, 129, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+    <div class="py-20 sm:py-28 lg:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Minimal badge -->
+          <p class="text-sm font-medium text-emerald-600 mb-4">Command Line Interface</p>
+
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+            Observability from your terminal
+          </h1>
+          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+            Manage monitors, incidents, status pages, and your entire observability stack from the command line. Automate workflows, integrate with CI/CD, and stay in your terminal.
+          </p>
+
+          <div class="mt-10 flex items-center justify-center gap-x-6">
+            <a href="/accounts/register"
+              class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+              Get started
+            </a>
+            <a href="/docs" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+              Read docs <span aria-hidden="true">&rarr;</span>
+            </a>
+          </div>
+
+          <!-- Subtle feature list -->
+          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+            <span>Monitor management</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Incident response</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>CI/CD integration</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Scriptable</span>
+          </div>
+        </div>
+
+        <!-- Terminal mockup -->
+        <div class="mt-16 sm:mt-20">
+          <div class="relative mx-auto max-w-3xl">
+            <div class="rounded-xl bg-gray-900 p-1.5 ring-1 ring-gray-900/10 shadow-2xl">
+              <!-- Terminal header -->
+              <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-700/50">
+                <div class="flex gap-1.5">
+                  <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <span class="text-gray-400 text-xs font-mono ml-2">Terminal</span>
+              </div>
+              <!-- Terminal content -->
+              <div class="p-6 font-mono text-sm space-y-3">
+                <div>
+                  <span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime monitor list</span>
+                </div>
+                <div class="text-gray-400 pl-2 space-y-1">
+                  <div class="flex items-center gap-3">
+                    <span class="text-emerald-400">&#9679;</span>
+                    <span class="text-gray-300 w-40">API Gateway</span>
+                    <span class="text-emerald-400">Up</span>
+                    <span class="text-gray-500">99.98%</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span class="text-emerald-400">&#9679;</span>
+                    <span class="text-gray-300 w-40">Web App</span>
+                    <span class="text-emerald-400">Up</span>
+                    <span class="text-gray-500">99.95%</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span class="text-red-400">&#9679;</span>
+                    <span class="text-gray-300 w-40">Payment Service</span>
+                    <span class="text-red-400">Down</span>
+                    <span class="text-gray-500">98.50%</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span class="text-emerald-400">&#9679;</span>
+                    <span class="text-gray-300 w-40">Database</span>
+                    <span class="text-emerald-400">Up</span>
+                    <span class="text-gray-500">99.99%</span>
+                  </div>
+                </div>
+                <div class="mt-4">
+                  <span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime incident create --title "Payment Service Down" --severity critical</span>
+                </div>
+                <div class="text-emerald-400 pl-2">
+                  Incident INC-2847 created successfully. On-call team notified.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('logo-roll') -%>
+
+  <!-- How It Works -->
+  <div class="relative bg-gray-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <p class="text-sm font-medium text-emerald-600 uppercase tracking-wide mb-3">Get Started</p>
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+          Up and running in seconds
+        </h2>
+        <p class="mt-4 text-lg text-gray-600">
+          Install, authenticate, and start managing your infrastructure from the terminal.
+        </p>
+      </div>
+
+      <div class="mx-auto max-w-5xl">
+        <!-- Connecting line for desktop -->
+        <div class="hidden lg:block relative">
+          <div class="absolute top-8 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px bg-emerald-200"></div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- Step 1 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">1</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Install</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">Install the CLI via npm, Homebrew, or download the binary directly.</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">2</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Authenticate</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">Login with your API key or authenticate via the browser.</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-emerald-600 ring-2 ring-emerald-600">3</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Run</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">Start managing your monitors, incidents, and observability data from the terminal.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Why CLI Section -->
+  <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <!-- Section Header -->
+      <div class="mx-auto max-w-2xl text-center mb-20">
+        <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 mb-6">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          Why CLI
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+          Power users love the terminal
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Everything you can do in the dashboard, now available as commands you can script, pipe, and automate.
+        </p>
+      </div>
+
+      <!-- Feature Blocks -->
+      <div class="space-y-24 lg:space-y-32">
+        <!-- Feature 1: Monitor Management -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">Monitor Management</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Create and Manage Monitors</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Create, update, and manage monitors directly from the command line. List monitor statuses, view uptime history, and configure alerts without opening a browser.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Create monitors from YAML configs
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                View real-time status and uptime
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Bulk operations for large setups
+              </li>
+            </ul>
+            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+          <div class="mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Terminal Mockup -->
+              <div class="relative bg-gray-900 rounded-xl shadow-lg overflow-hidden max-w-md mx-auto ring-1 ring-gray-700/50">
+                <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-700/50">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+                  </div>
+                  <span class="text-gray-400 text-xs font-mono ml-2">Terminal</span>
+                </div>
+
+                <div class="p-4 font-mono text-xs space-y-2">
+                  <div><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime monitor create \</span></div>
+                  <div class="text-gray-300 pl-4">--name "API Health Check" \</div>
+                  <div class="text-gray-300 pl-4">--type http \</div>
+                  <div class="text-gray-300 pl-4">--url https://api.example.com/health \</div>
+                  <div class="text-gray-300 pl-4">--interval 30s</div>
+                  <div class="mt-2 text-emerald-400">Monitor created: mon_8x7k2m9p</div>
+                  <div class="text-gray-500">Type: HTTP | Interval: 30s | Status: Active</div>
+                  <div class="mt-3"><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime monitor status mon_8x7k2m9p</span></div>
+                  <div class="mt-1 text-emerald-400">&#9679; Up - 200 OK (45ms)</div>
+                  <div class="text-gray-500">Last checked: 12s ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 2: Incident Response -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Terminal Mockup -->
+              <div class="relative bg-gray-900 rounded-xl shadow-lg overflow-hidden max-w-md mx-auto ring-1 ring-gray-700/50">
+                <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-700/50">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+                  </div>
+                  <span class="text-gray-400 text-xs font-mono ml-2">Terminal</span>
+                </div>
+
+                <div class="p-4 font-mono text-xs space-y-2">
+                  <div><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime incident list --state active</span></div>
+                  <div class="mt-1 space-y-1.5">
+                    <div class="flex items-center gap-2">
+                      <span class="text-red-400">&#9679;</span>
+                      <span class="text-gray-300">INC-2847</span>
+                      <span class="text-red-400 text-[10px] px-1.5 py-0.5 bg-red-900/30 rounded">Critical</span>
+                      <span class="text-gray-400">Payment Service Down</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-amber-400">&#9679;</span>
+                      <span class="text-gray-300">INC-2846</span>
+                      <span class="text-amber-400 text-[10px] px-1.5 py-0.5 bg-amber-900/30 rounded">Warning</span>
+                      <span class="text-gray-400">High latency on DB</span>
+                    </div>
+                  </div>
+                  <div class="mt-3"><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime incident acknowledge INC-2847</span></div>
+                  <div class="text-emerald-400 mt-1">Incident INC-2847 acknowledged.</div>
+                  <div class="mt-3"><span class="text-emerald-400">$</span> <span class="text-gray-300">oneuptime incident resolve INC-2847 \</span></div>
+                  <div class="text-gray-300 pl-4">--note "Restarted payment service pod"</div>
+                  <div class="text-emerald-400 mt-1">Incident INC-2847 resolved.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="relative order-1 lg:order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">Incident Response</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Respond to Incidents Faster</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Acknowledge, investigate, and resolve incidents without leaving your terminal. Add notes, change severity, and notify your team all from the command line.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Acknowledge and resolve incidents
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Add investigation notes
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Trigger on-call escalations
+              </li>
+            </ul>
+            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Grid Section -->
+  <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 mb-6">
+          <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <span class="text-sm font-medium text-emerald-700">Capabilities</span>
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          Everything you need in the terminal
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          A complete command-line toolkit for managing your observability infrastructure.
+        </p>
+      </div>
+
+      <div class="mx-auto max-w-7xl">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Monitor Management</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Create, list, update, and delete monitors. Support for HTTP, TCP, UDP, ping, and custom monitors.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-red-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Incident Response</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Create, acknowledge, and resolve incidents. Add notes, change severity, and manage the full incident lifecycle.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                <svg class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Status Pages</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Manage status pages, update component statuses, and post status updates from the command line.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Log Tailing</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Tail logs in real-time, search with filters, and pipe output to other tools for advanced analysis.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">CI/CD Integration</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Integrate with GitHub Actions, GitLab CI, Jenkins, and more. Automate monitor creation on deployment.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Scriptable Output</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">JSON output mode for scripting. Pipe output to jq, grep, or your own tools for custom workflows.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Install Section -->
+  <div class="relative bg-gray-900 py-24 sm:py-32 overflow-hidden">
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur border border-white/20 mb-6">
+          <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          <span class="text-sm font-medium text-white">Installation</span>
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+          Install in one command
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-300">
+          Choose your preferred package manager and get started in seconds.
+        </p>
+      </div>
+
+      <div class="mx-auto max-w-2xl">
+        <div class="space-y-4">
+          <div class="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-6">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium text-gray-300">npm</span>
+            </div>
+            <div class="font-mono text-sm text-emerald-400">
+              npm install -g oneuptime-cli
+            </div>
+          </div>
+
+          <div class="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-6">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium text-gray-300">Homebrew</span>
+            </div>
+            <div class="font-mono text-sm text-emerald-400">
+              brew install oneuptime/tap/oneuptime
+            </div>
+          </div>
+
+          <div class="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-6">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium text-gray-300">Docker</span>
+            </div>
+            <div class="font-mono text-sm text-emerald-400">
+              docker run --rm oneuptime/cli monitor list
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('./Partials/enterprise-ready') -%>
+  <%- include('features-table') -%>
+  <%- include('cta') -%>
+  </main>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <script>
+    // Grid glow effect for CLI hero section
+    (function() {
+      const heroSection = document.getElementById('cli-hero-section');
+      const gridGlow = document.getElementById('cli-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          gridGlow.style.setProperty('--mouse-x', `${x}px`);
+          gridGlow.style.setProperty('--mouse-y', `${y}px`);
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+
+</body>
+
+</html>

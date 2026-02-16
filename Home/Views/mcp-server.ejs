@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime | MCP Server - Model Context Protocol for AI Agents</title>
+    <meta name="description"
+        content="Connect AI agents and LLMs to your OneUptime observability data via Model Context Protocol (MCP). Query incidents, monitors, logs, metrics, and traces directly from your AI tools.">
+        <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+  <main id="main-content">
+
+  <!-- Hero Section -->
+  <div class="relative isolate overflow-hidden bg-white" id="mcp-hero-section">
+    <!-- Subtle grid pattern background -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+    <!-- Grid glow effect that follows cursor -->
+    <div id="mcp-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(14, 165, 233, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(14, 165, 233, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+    <div class="py-20 sm:py-28 lg:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Minimal badge -->
+          <p class="text-sm font-medium text-sky-600 mb-4">Model Context Protocol</p>
+
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+            Connect AI agents to your observability data
+          </h1>
+          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+            OneUptime MCP Server lets AI agents and LLMs query your incidents, monitors, logs, metrics, and traces directly. Give your AI tools real-time context about your infrastructure.
+          </p>
+
+          <div class="mt-10 flex items-center justify-center gap-x-6">
+            <a href="/accounts/register"
+              class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+              Get started
+            </a>
+            <a href="/docs" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+              Read docs <span aria-hidden="true">&rarr;</span>
+            </a>
+          </div>
+
+          <!-- Subtle feature list -->
+          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+            <span>Incidents & Monitors</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Logs & Metrics</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Traces & Spans</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Open Protocol</span>
+          </div>
+        </div>
+
+        <!-- Terminal mockup -->
+        <div class="mt-16 sm:mt-20">
+          <div class="relative mx-auto max-w-3xl">
+            <div class="rounded-xl bg-gray-900 p-1.5 ring-1 ring-gray-900/10 shadow-2xl">
+              <!-- Terminal header -->
+              <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-700/50">
+                <div class="flex gap-1.5">
+                  <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <span class="text-gray-400 text-xs font-mono ml-2">MCP Server Configuration</span>
+              </div>
+              <!-- Terminal content -->
+              <div class="p-6 font-mono text-sm">
+                <div class="text-gray-400">// Add to your MCP client config</div>
+                <div class="mt-2 text-gray-300">{</div>
+                <div class="text-gray-300 ml-4">"<span class="text-sky-400">mcpServers</span>": {</div>
+                <div class="text-gray-300 ml-8">"<span class="text-sky-400">oneuptime</span>": {</div>
+                <div class="text-gray-300 ml-12">"<span class="text-emerald-400">url</span>": "<span class="text-amber-300">https://your-oneuptime.com/mcp</span>",</div>
+                <div class="text-gray-300 ml-12">"<span class="text-emerald-400">headers</span>": {</div>
+                <div class="text-gray-300 ml-16">"<span class="text-emerald-400">Authorization</span>": "<span class="text-amber-300">Bearer &lt;API_KEY&gt;</span>"</div>
+                <div class="text-gray-300 ml-12">}</div>
+                <div class="text-gray-300 ml-8">}</div>
+                <div class="text-gray-300 ml-4">}</div>
+                <div class="text-gray-300">}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('logo-roll') -%>
+
+  <!-- How It Works -->
+  <div class="relative bg-gray-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">How It Works</p>
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+          From AI query to actionable insight
+        </h2>
+        <p class="mt-4 text-lg text-gray-600">
+          MCP Server bridges the gap between your AI tools and your observability platform.
+        </p>
+      </div>
+
+      <div class="mx-auto max-w-5xl">
+        <!-- Connecting line for desktop -->
+        <div class="hidden lg:block relative">
+          <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-sky-200"></div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <!-- Step 1 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.314a4.5 4.5 0 00-6.364-6.364L4.5 8.257m6.364 6.364l4.5-4.5" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">1</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Connect</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">Point your AI tool to your OneUptime MCP Server endpoint with your API key.</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">2</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Query</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">AI agents ask questions about your infrastructure in natural language.</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">3</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Retrieve</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">MCP Server fetches real-time data from your OneUptime instance.</p>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="text-center">
+            <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">4</span>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">Act</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">AI responds with context-aware insights and can take actions on your behalf.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Why OneUptime MCP Section -->
+  <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <!-- Section Header -->
+      <div class="mx-auto max-w-2xl text-center mb-20">
+        <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-600/20 mb-6">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.314a4.5 4.5 0 00-6.364-6.364L4.5 8.257m6.364 6.364l4.5-4.5" />
+          </svg>
+          Why MCP Server
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+          Your observability data, AI-ready
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Give AI agents the full context they need to understand and resolve incidents faster.
+        </p>
+      </div>
+
+      <!-- Feature Blocks -->
+      <div class="space-y-24 lg:space-y-32">
+        <!-- Feature 1: Query Incidents -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Incident Intelligence</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Query Incidents in Real-Time</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              AI agents can list active incidents, get incident details, check monitor statuses, and understand the current state of your infrastructure without leaving their workflow.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                List active and resolved incidents
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Get monitor health status
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                View incident timelines and notes
+              </li>
+            </ul>
+            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+          <div class="mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- AI Chat Mockup -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-sky-600 px-4 py-3 flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-white font-semibold text-sm">AI Agent + MCP</div>
+                    <div class="text-sky-200 text-xs">Connected to OneUptime</div>
+                  </div>
+                </div>
+
+                <div class="p-4 space-y-4 bg-gray-50">
+                  <div class="flex justify-end">
+                    <div class="bg-sky-600 text-white px-4 py-2 rounded-2xl rounded-br-md max-w-[80%] text-sm">
+                      What incidents are currently active?
+                    </div>
+                  </div>
+
+                  <div class="flex justify-start">
+                    <div class="bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-bl-md max-w-[85%] shadow-sm">
+                      <div class="text-sm text-gray-700 space-y-2">
+                        <p>Found <span class="font-semibold text-sky-600">2 active incidents</span>:</p>
+                        <div class="space-y-2">
+                          <div class="bg-red-50 rounded-lg p-2 border border-red-100">
+                            <div class="flex items-center gap-2">
+                              <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                              <span class="text-xs font-medium text-red-700">Critical</span>
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1">API Gateway - High error rate (5xx)</p>
+                          </div>
+                          <div class="bg-amber-50 rounded-lg p-2 border border-amber-100">
+                            <div class="flex items-center gap-2">
+                              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                              <span class="text-xs font-medium text-amber-700">Warning</span>
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1">Database - High latency detected</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="px-4 py-3 border-t border-gray-100 bg-white">
+                  <div class="flex items-center gap-2 bg-gray-50 rounded-full px-4 py-2 border border-gray-200">
+                    <input type="text" placeholder="Ask about your infrastructure..." class="flex-1 bg-transparent text-sm text-gray-600 outline-none" disabled>
+                    <button class="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 2: Observability Data -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Data Visualization -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+                  </div>
+                  <span class="text-xs text-gray-500 font-medium">MCP Tools Available</span>
+                </div>
+
+                <div class="p-4 space-y-3">
+                  <div class="flex items-center gap-3 p-3 rounded-lg bg-sky-50 border border-sky-100">
+                    <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-gray-900">list_incidents</div>
+                      <div class="text-xs text-gray-500">Query active and past incidents</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-gray-900">get_monitor_status</div>
+                      <div class="text-xs text-gray-500">Check health of any monitor</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-gray-900">query_logs</div>
+                      <div class="text-xs text-gray-500">Search and filter log entries</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 p-3 rounded-lg bg-violet-50 border border-violet-100">
+                    <div class="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-gray-900">get_metrics</div>
+                      <div class="text-xs text-gray-500">Retrieve metric time series data</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 p-3 rounded-lg bg-rose-50 border border-rose-100">
+                    <div class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-gray-900">search_traces</div>
+                      <div class="text-xs text-gray-500">Find and analyze distributed traces</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="relative order-1 lg:order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Full Data Access</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">All Your Observability Tools</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              MCP Server exposes a rich set of tools that let AI agents access every part of your observability stack - incidents, monitors, logs, metrics, traces, and more.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Structured tool definitions
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Type-safe parameters
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time data access
+              </li>
+            </ul>
+            <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Grid Section -->
+  <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-600/20 mb-6">
+          <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          <span class="text-sm font-medium text-sky-700">Capabilities</span>
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          Built for the AI-native workflow
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Everything your AI agents need to understand and act on your observability data.
+        </p>
+      </div>
+
+      <div class="mx-auto max-w-7xl">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                <svg class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Incident Management</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">List, query, and get details about incidents. AI agents can understand the full context of any incident.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Monitor Status</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Query the health and status of all your monitors. Get uptime data, response times, and alert configurations.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Log Search</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Search and filter logs with full-text search. AI agents can correlate log entries with incidents and traces.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Metrics Queries</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Retrieve metric time series data. AI agents can analyze trends, detect anomalies, and understand performance patterns.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Distributed Traces</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">Search and analyze distributed traces across services. Follow requests through your entire stack.</p>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+              </div>
+              <h3 class="mt-6 text-xl font-semibold text-gray-900">Secure by Default</h3>
+              <p class="mt-4 text-gray-600 leading-relaxed">API key authentication with fine-grained permissions. Control exactly what data AI agents can access.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compatible AI Tools -->
+  <div class="relative bg-gray-50 py-24 sm:py-32 overflow-hidden">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-600/20 mb-6">
+          <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.314a4.5 4.5 0 00-6.364-6.364L4.5 8.257m6.364 6.364l4.5-4.5" />
+          </svg>
+          <span class="text-sm font-medium text-sky-700">Compatible Tools</span>
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+          Works with any MCP-compatible client
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Use OneUptime MCP Server with your favorite AI tools and IDE extensions.
+        </p>
+      </div>
+
+      <div class="mx-auto max-w-4xl">
+        <div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
+          <div class="group relative">
+            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+              <div class="text-xl font-bold text-gray-900">Claude</div>
+              <span class="text-sm text-gray-500 mt-1">Desktop & API</span>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+              <div class="text-xl font-bold text-gray-900">Cursor</div>
+              <span class="text-sm text-gray-500 mt-1">AI IDE</span>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-blue-200 hover:shadow-lg">
+              <div class="text-xl font-bold text-gray-900">Windsurf</div>
+              <span class="text-sm text-gray-500 mt-1">AI IDE</span>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+              <div class="text-xl font-bold text-gray-900">Custom</div>
+              <span class="text-sm text-gray-500 mt-1">Any MCP Client</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('./Partials/enterprise-ready') -%>
+  <%- include('features-table') -%>
+  <%- include('cta') -%>
+  </main>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <script>
+    // Grid glow effect for MCP hero section
+    (function() {
+      const heroSection = document.getElementById('mcp-hero-section');
+      const gridGlow = document.getElementById('mcp-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          gridGlow.style.setProperty('--mouse-x', `${x}px`);
+          gridGlow.style.setProperty('--mouse-y', `${y}px`);
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+
+</body>
+
+</html>
