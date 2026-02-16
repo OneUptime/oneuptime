@@ -110,11 +110,11 @@ set -e
 export ONEUPTIME_API_KEY="$CI_ONEUPTIME_API_KEY"
 export ONEUPTIME_URL="$CI_ONEUPTIME_URL"
 
-# Create a deployment incident
-oneuptime incident create --data '{
+# Create a deployment incident and capture the ID
+INCIDENT_ID=$(oneuptime incident create --data '{
   "title": "Deployment Started",
   "status": "investigating"
-}'
+}' -o json | jq -r '._id')
 
 # Run deployment steps here...
 

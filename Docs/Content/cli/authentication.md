@@ -124,7 +124,7 @@ oneuptime whoami
 This displays:
 - Instance URL
 - Masked API key
-- Current context name
+- Current context name (only shown if a saved context is active)
 
 If not authenticated, the command shows a helpful message suggesting you run `oneuptime login`.
 

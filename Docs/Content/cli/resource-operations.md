@@ -162,7 +162,7 @@ oneuptime monitor update abc-123 --data '{"name":"Updated Monitor Name"}'
 Delete a resource by ID.
 
 ```bash
-oneuptime <resource> delete <id>
+oneuptime <resource> delete <id> [--force]
 ```
 
 **Arguments:**
@@ -171,11 +171,20 @@ oneuptime <resource> delete <id>
 |----------|-------------|
 | `<id>` | The resource ID |
 
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--force` | Skip confirmation prompt |
+
 **Examples:**
 
 ```bash
 oneuptime incident delete abc-123
 oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000
+
+# Skip confirmation
+oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000 --force
 ```
 
 ## Count Resources

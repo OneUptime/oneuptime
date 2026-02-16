@@ -142,12 +142,13 @@ oneuptime <resource> update <id> --data <json> [-o <format>]
 Delete a resource.
 
 ```bash
-oneuptime <resource> delete <id>
+oneuptime <resource> delete <id> [--force]
 ```
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `<id>` | argument | Yes | Resource ID |
+| `--force` | option | No | Skip confirmation prompt |
 
 ---
 
@@ -185,7 +186,7 @@ Show current authentication details.
 oneuptime whoami
 ```
 
-Displays the instance URL, masked API key, and context name.
+Displays the instance URL and masked API key. If a saved context is active, the context name is also shown.
 
 ---
 
