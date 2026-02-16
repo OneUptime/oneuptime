@@ -1,6 +1,14 @@
 # Images are pushed to both Docker Hub and Github Container Registry. If you're using Github Container Registry, you can change the image tag to use the Github Container Registry.
 # For example, if you want to use the image from Github Container Registry, you can change the image tag from oneuptime/dashboard:latest to ghcr.io/oneuptime/dashboard:latest
 
+x-common-depends-on: &common-depends-on
+    postgres:
+        condition: service_healthy
+    redis:
+        condition: service_healthy
+    clickhouse:
+        condition: service_healthy
+
 services:
 
     redis:
@@ -20,111 +28,140 @@ services:
             file: ./docker-compose.base.yml
             service: postgres
 
-    
+
     otel-collector:
         image:  oneuptime/otel-collector:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: otel-collector
-        
+
     accounts:
         image:  oneuptime/accounts:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: accounts
-       
+        depends_on:
+            <<: *common-depends-on
 
     dashboard:
         image:  oneuptime/dashboard:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: dashboard
-        
+        depends_on:
+            <<: *common-depends-on
+
     admin-dashboard:
         image:  oneuptime/admin-dashboard:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: admin-dashboard
+        depends_on:
+            <<: *common-depends-on
 
     status-page:
         image:  oneuptime/status-page:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: status-page
-            
-        
+        depends_on:
+            <<: *common-depends-on
 
     app:
         image:  oneuptime/app:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: app
-    
+        depends_on:
+            <<: *common-depends-on
+
     worker:
         image:  oneuptime/worker:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: worker
+        depends_on:
+            <<: *common-depends-on
 
     docs:
         image:  oneuptime/docs:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: docs
+        depends_on:
+            <<: *common-depends-on
 
     api-reference:
         image:  oneuptime/api-reference:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: api-reference
+        depends_on:
+            <<: *common-depends-on
 
     workflow:
         image:  oneuptime/workflow:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: workflow
+        depends_on:
+            <<: *common-depends-on
 
     home:
         image:  oneuptime/home:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: home
+        depends_on:
+            <<: *common-depends-on
 
-    probe-1:   
+    probe-1:
         image:  oneuptime/probe:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: probe-1
-        
+        depends_on:
+            <<: *common-depends-on
+
     probe-2:
-        image:  oneuptime/probe:${APP_TAG}   
+        image:  oneuptime/probe:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: probe-2
+        depends_on:
+            <<: *common-depends-on
 
     probe-ingest:
         image:  oneuptime/probe-ingest:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: probe-ingest
+        depends_on:
+            <<: *common-depends-on
 
     server-monitor-ingest:
         image:  oneuptime/server-monitor-ingest:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: server-monitor-ingest
+        depends_on:
+            <<: *common-depends-on
 
     telemetry:
         image:  oneuptime/telemetry:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: telemetry
-    
-    incoming-request-ingest: 
+        depends_on:
+            <<: *common-depends-on
+
+    incoming-request-ingest:
         image:  oneuptime/incoming-request-ingest:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: incoming-request-ingest
+        depends_on:
+            <<: *common-depends-on
 
     isolated-vm:
         image:  oneuptime/isolated-vm:${APP_TAG}
@@ -137,12 +174,16 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: mcp
+        depends_on:
+            <<: *common-depends-on
 
     ingress:
        image:  oneuptime/nginx:${APP_TAG}
        extends:
             file: ./docker-compose.base.yml
             service: ingress
+       depends_on:
+            <<: *common-depends-on
 
 volumes:
     postgres:

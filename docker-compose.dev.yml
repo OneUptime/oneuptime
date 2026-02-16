@@ -1,27 +1,35 @@
 
 
+x-common-depends-on: &common-depends-on
+    postgres:
+        condition: service_healthy
+    redis:
+        condition: service_healthy
+    clickhouse:
+        condition: service_healthy
+
 services:
-    
+
 
     redis:
-        ports: 
+        ports:
             - '6310:6379'
         extends:
             file: ./docker-compose.base.yml
             service: redis
 
     clickhouse:
-        ports: 
+        ports:
             - '9034:9000'
             - '8189:8123'
         extends:
             file: ./docker-compose.base.yml
             service: clickhouse
-        volumes: 
+        volumes:
             - ./Clickhouse/config.xml:/etc/clickhouse-server/config.xml
 
     postgres:
-        ports: 
+        ports:
             - '5400:5432'
         extends:
             file: ./docker-compose.base.yml
@@ -38,11 +46,13 @@ services:
             dockerfile: ./OTelCollector/Dockerfile
 
     accounts:
-        ports: 
+        ports:
             - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}'
         extends:
             file: ./docker-compose.base.yml
             service: accounts
+        depends_on:
+            <<: *common-depends-on
         volumes:
             - ./Accounts:/usr/src/app:cached
             # Use node modules of the container and not host system.
@@ -53,19 +63,21 @@ services:
 
             - /usr/src/Common/node_modules/
 
-            
+
         build:
             network: host
             context: .
             dockerfile: ./Accounts/Dockerfile
-       
+
 
     dashboard:
-        ports: 
+        ports:
             - '${DASHBOARD_PORT}:${DASHBOARD_PORT}'
         extends:
             file: ./docker-compose.base.yml
             service: dashboard
+        depends_on:
+            <<: *common-depends-on
         volumes:
             - ./Dashboard:/usr/src/app:cached
             # Use node modules of the container and not host system.
@@ -76,20 +88,22 @@ services:
 
             - /usr/src/Common/node_modules/
 
-            
+
         build:
             network: host
             context: .
             dockerfile: ./Dashboard/Dockerfile
-        
-    
+
+
 
     admin-dashboard:
-        ports: 
+        ports:
             - '${ADMIN_DASHBOARD_PORT}:${ADMIN_DASHBOARD_PORT}'
         extends:
             file: ./docker-compose.base.yml
             service: admin-dashboard
+        depends_on:
+            <<: *common-depends-on
         volumes:
             - ./AdminDashboard:/usr/src/app:cached
             # Use node modules of the container and not host system.
@@ -100,7 +114,7 @@ services:
 
             - /usr/src/Common/node_modules/
 
-            
+
         build:
             network: host
             context: .
@@ -108,11 +122,13 @@ services:
 
 
     status-page:
-        ports: 
+        ports:
             - '${STATUS_PAGE_PORT}:${STATUS_PAGE_PORT}'
         extends:
             file: ./docker-compose.base.yml
             service: status-page
+        depends_on:
+            <<: *common-depends-on
         volumes:
             - ./StatusPage:/usr/src/app:cached
             # Use node modules of the container and not host system.
@@ -123,13 +139,13 @@ services:
 
             - /usr/src/Common/node_modules/
 
-            
+
         build:
             network: host
             context: .
             dockerfile: ./StatusPage/Dockerfile
-            
-    
+
+
     test-server:
         volumes:
             - ./TestServer:/usr/src/app:cached
@@ -140,10 +156,12 @@ services:
 
             - /usr/src/Common/node_modules/
 
-            
+
         extends:
             file: ./docker-compose.base.yml
             service: test-server
+        depends_on:
+            <<: *common-depends-on
         ports:
             - '9141:9229' # Debugging port.
             - '3800:3800'
@@ -164,6 +182,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: home
+        depends_on:
+            <<: *common-depends-on
         ports:
             - '9212:9229' # Debugging port.
         build:
@@ -182,6 +202,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: worker
+        depends_on:
+            <<: *common-depends-on
         ports:
             - '8734:9229' # Debugging port.
         build:
@@ -201,6 +223,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: workflow
+        depends_on:
+            <<: *common-depends-on
         ports:
             - '8735:9229' # Debugging port.
         build:
@@ -219,6 +243,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: api-reference
+        depends_on:
+            <<: *common-depends-on
         ports:
             - '8737:9229' # Debugging port.
         build:
@@ -237,6 +263,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: docs
+        depends_on:
+            <<: *common-depends-on
         ports:
             - '8738:9229' # Debugging port.
         build:
@@ -255,15 +283,17 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: app
+        depends_on:
+            <<: *common-depends-on
         ports:
             - '9232:9229' # Debugging port.
         build:
             network: host
             context: .
             dockerfile: ./App/Dockerfile
-        
 
-    probe-1: 
+
+    probe-1:
         volumes:
             - ./Probe:/usr/src/app:cached
             # Use node modules of the container and not host system.
@@ -273,10 +303,12 @@ services:
 
             - /usr/src/Common/node_modules/
 
-              
+
         extends:
             file: ./docker-compose.base.yml
             service: probe-1
+        depends_on:
+            <<: *common-depends-on
         build:
             network: host
             context: .
@@ -296,6 +328,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: probe-2
+        depends_on:
+            <<: *common-depends-on
         build:
             network: host
             context: .
@@ -315,6 +349,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: ai-agent
+        depends_on:
+            <<: *common-depends-on
         build:
             network: host
             context: .
@@ -330,7 +366,7 @@ services:
 
             - /usr/src/Common/node_modules/
 
-            
+
         ports:
           - '9974:9229' # Debugging port.
         extends:
@@ -340,7 +376,7 @@ services:
             network: host
             context: .
             dockerfile: ./IsolatedVM/Dockerfile
-    
+
     probe-ingest:
         volumes:
             - ./ProbeIngest:/usr/src/app:cached
@@ -354,6 +390,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: probe-ingest
+        depends_on:
+            <<: *common-depends-on
         build:
             network: host
             context: .
@@ -372,6 +410,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: server-monitor-ingest
+        depends_on:
+            <<: *common-depends-on
         build:
             network: host
             context: .
@@ -390,6 +430,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: telemetry
+        depends_on:
+            <<: *common-depends-on
         build:
             network: host
             context: .
@@ -408,6 +450,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: incoming-request-ingest
+        depends_on:
+            <<: *common-depends-on
         build:
             network: host
             context: .
@@ -426,13 +470,15 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: mcp
+        depends_on:
+            <<: *common-depends-on
         build:
             network: host
             context: .
             dockerfile: ./MCP/Dockerfile
 
     # Fluentd. Required only for development. In  production its the responsibility of the customer to run fluentd and pipe logs to OneUptime.
-    # We run this container just for development, to see if logs are piped. 
+    # We run this container just for development, to see if logs are piped.
 
     fluentd:
         ports:
@@ -450,7 +496,7 @@ services:
             context: ./Fluentd
             dockerfile: ./Dockerfile
 
-    fluent-bit: 
+    fluent-bit:
         ports:
             - 24225:24224
             - 24285:24284
@@ -474,6 +520,8 @@ services:
         extends:
             file: ./docker-compose.base.yml
             service: ingress
+        depends_on:
+            <<: *common-depends-on
 
     # e2e tests
     e2e:
@@ -491,7 +539,7 @@ services:
 volumes:
     postgres:
     clickhouse:
-    
+
 networks:
-  oneuptime: 
+  oneuptime:
     driver: bridge

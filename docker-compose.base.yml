@@ -167,8 +167,14 @@ services:
         networks:
           - oneuptime
         command: redis-server --requirepass "${REDIS_PASSWORD}" --save "" --appendonly no
-        environment: 
+        environment:
             REDIS_PASSWORD: ${REDIS_PASSWORD}
+        healthcheck:
+            test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
         logging:
             driver: "local"
             options:
@@ -186,6 +192,12 @@ services:
           - oneuptime
         volumes:
             - clickhouse:/var/lib/clickhouse/
+        healthcheck:
+            test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 15s
         logging:
             driver: "local"
             options:
@@ -194,14 +206,20 @@ services:
     postgres:
         image: postgres:15
         restart: always
-        environment: 
+        environment:
             POSTGRES_USER: ${DATABASE_USERNAME}
             POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
             POSTGRES_DB: ${DATABASE_NAME}
         networks:
           - oneuptime
-        volumes: 
+        volumes:
             - postgres:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 15s
         logging:
             driver: "local"
             options:
