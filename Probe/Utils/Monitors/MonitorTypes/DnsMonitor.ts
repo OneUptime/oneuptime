@@ -286,11 +286,13 @@ export default class DnsMonitorUtil {
     return new Promise((resolve: (value: boolean | undefined) => void) => {
       const args: Array<string> = ["+dnssec", queryName, recordType];
 
-      // Always use a DNSSEC-validating resolver for the check.
-      // Docker's internal DNS and many default resolvers don't validate DNSSEC,
-      // so the AD flag would never be set. If the user specified a custom DNS
-      // server, use that (assuming they picked a validating resolver); otherwise
-      // fall back to Google Public DNS which supports DNSSEC validation.
+      /*
+       * Always use a DNSSEC-validating resolver for the check.
+       * Docker's internal DNS and many default resolvers don't validate DNSSEC,
+       * so the AD flag would never be set. If the user specified a custom DNS
+       * server, use that (assuming they picked a validating resolver); otherwise
+       * fall back to Google Public DNS which supports DNSSEC validation.
+       */
       args.push(`@${dnsServer || "8.8.8.8"}`);
 
       execFile(
