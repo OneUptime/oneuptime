@@ -1313,6 +1313,8 @@ export class ProjectService extends DatabaseService<Model> {
         paymentProviderSubscriptionId: true,
         paymentProviderMeteredSubscriptionId: true,
         name: true,
+        createdAt: true,
+        planName: true,
         createdByUser: {
           name: true,
           email: true,
@@ -1341,6 +1343,8 @@ export class ProjectService extends DatabaseService<Model> {
         let slackMessage: string = `*Project Deleted:*
 *Project Name:* ${project.name?.toString() || "N/A"}
 *Project ID:* ${project._id?.toString() || "N/A"}
+*Project Created Date:* ${project.createdAt ? new Date(project.createdAt).toUTCString() : "N/A"}
+*Project Plan Name:* ${project.planName?.toString() || "N/A"}
 `;
 
         if (subscriptionStatus) {
