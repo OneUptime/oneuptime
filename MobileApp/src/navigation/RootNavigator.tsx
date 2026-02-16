@@ -20,6 +20,14 @@ const prefix: string = Linking.createURL("/");
 
 const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
   prefixes: [prefix, "oneuptime://"],
+  // Disable automatic deep link URL resolution via NavigationContainer.
+  // On Android with React Native's new architecture (Fabric), the async
+  // getInitialURL resolution inside NavigationContainer's useLinking hook
+  // sets state inside a microtask callback which never triggers a re-render,
+  // causing screens to never appear (blank screen after loading).
+  // Deep link navigation from push notifications is handled separately in
+  // usePushNotifications via Notifications.getLastNotificationResponseAsync().
+  enabled: false,
   config: {
     screens: {
       Home: "home",
@@ -52,34 +60,15 @@ export default function RootNavigator(): React.JSX.Element {
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
 
   const [biometricPassed, setBiometricPassed] = useState(false);
-  const [biometricChecked, setBiometricChecked] = useState(false);
 
   usePushNotifications(navigationRef);
 
   // Hide the native splash screen once initial loading completes
   useEffect(() => {
-    if (!isLoading && biometricChecked) {
+    if (!isLoading) {
       SplashScreen.hideAsync();
     }
-  }, [isLoading, biometricChecked]);
-
-  // Check biometric on app launch
-  useEffect(() => {
-    const checkBiometric: () => Promise<void> = async (): Promise<void> => {
-      if (!isAuthenticated || !biometric.isEnabled) {
-        setBiometricPassed(true);
-        setBiometricChecked(true);
-        return;
-      }
-
-      setBiometricChecked(true);
-      // Don't auto-pass — show lock screen
-    };
-
-    if (!isLoading) {
-      checkBiometric();
-    }
-  }, [isAuthenticated, isLoading, biometric.isEnabled]);
+  }, [isLoading]);
 
   const navigationTheme: Theme = {
     ...DefaultTheme,
@@ -96,10 +85,9 @@ export default function RootNavigator(): React.JSX.Element {
     fonts: DefaultTheme.fonts,
   };
 
-  if (isLoading || !biometricChecked) {
+  if (isLoading) {
     return (
       <View
-        className="flex-1 items-center justify-center bg-bg-primary"
         style={{
           flex: 1,
           alignItems: "center",
