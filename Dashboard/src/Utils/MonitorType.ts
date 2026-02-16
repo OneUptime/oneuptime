@@ -49,7 +49,9 @@ export default class MonitorTypeUtil {
           options: category.monitorTypes
             .map((monitorType: MonitorType): CardSelectOption | null => {
               const typeProps: MonitorTypeProps | undefined = allProps.find(
-                (p: MonitorTypeProps) => p.monitorType === monitorType,
+                (p: MonitorTypeProps) => {
+                  return p.monitorType === monitorType;
+                },
               );
 
               if (!typeProps) {
@@ -64,8 +66,9 @@ export default class MonitorTypeUtil {
               };
             })
             .filter(
-              (option: CardSelectOption | null): option is CardSelectOption =>
-                option !== null,
+              (option: CardSelectOption | null): option is CardSelectOption => {
+                return option !== null;
+              },
             ),
         };
       },
