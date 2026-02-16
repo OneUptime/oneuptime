@@ -28,7 +28,6 @@
         "commander": "^12.1.0",
         "chalk": "^4.1.2",
         "cli-table3": "^0.6.5",
-        "ora": "^5.4.1",
         "ts-node": "^10.9.2"
     },
     "devDependencies": {
