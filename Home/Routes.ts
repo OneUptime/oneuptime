@@ -1271,19 +1271,16 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get(
-      "/tool/cli",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
-          "/tool/cli",
-          res.locals["homeUrl"] as string,
-        );
-        res.render(`${ViewsPath}/cli`, {
-          enableGoogleTagManager: IsBillingEnabled,
-          seo,
-        });
-      },
-    );
+    app.get("/tool/cli", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/tool/cli",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/cli`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
 
     app.get(
       "/enterprise/overview",
