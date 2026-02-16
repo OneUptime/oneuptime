@@ -49,7 +49,7 @@ export class MonitorTypeHelper {
   public static getMonitorTypeCategories(): Array<MonitorTypeCategory> {
     return [
       {
-        label: "Active Monitoring",
+        label: "Basic Monitoring",
         monitorTypes: [
           MonitorType.Website,
           MonitorType.API,
