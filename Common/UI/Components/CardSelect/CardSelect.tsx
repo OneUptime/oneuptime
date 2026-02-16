@@ -70,7 +70,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
           return (
             <div key={groupIndex} className={groupIndex > 0 ? "mt-6" : ""}>
               {group.label && (
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
                   {group.label}
                 </h3>
               )}
