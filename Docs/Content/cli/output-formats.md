@@ -11,16 +11,16 @@ oneuptime incident list
 ```
 
 ```
-┌──────────────────┬───────────────────────┬────────────┬─────────────────────┐
-│ _id              │ title                 │ status     │ createdAt           │
-├──────────────────┼───────────────────────┼────────────┼─────────────────────┤
-│ abc-123          │ API Outage            │ active     │ 2025-01-15T10:30:00 │
-│ def-456          │ Database Slowdown     │ resolved   │ 2025-01-14T08:15:00 │
-└──────────────────┴───────────────────────┴────────────┴─────────────────────┘
+┌──────────────────┬───────────────────────┬─────────────────────┬─────────────────────┐
+│ _id              │ title                 │ createdAt           │ updatedAt           │
+├──────────────────┼───────────────────────┼─────────────────────┼─────────────────────┤
+│ abc-123          │ API Outage            │ 2025-01-15T10:30:00 │ 2025-01-15T12:00:00 │
+│ def-456          │ Database Slowdown     │ 2025-01-14T08:15:00 │ 2025-01-14T09:30:00 │
+└──────────────────┴───────────────────────┴─────────────────────┴─────────────────────┘
 ```
 
 Table format behavior:
-- Selects up to 6 columns, prioritizing: `_id`, `name`, `title`, `status`, `createdAt`, `updatedAt`
+- Selects up to 6 columns, prioritizing: `_id`, `name`, `title`, `createdAt`, `updatedAt`
 - Truncates values longer than 60 characters with `...`
 - Uses color-coded headers (disable with `--no-color`)
 
@@ -37,7 +37,7 @@ oneuptime incident list -o json
   {
     "_id": "abc-123",
     "title": "API Outage",
-    "status": "active",
+    "currentIncidentStateId": "550e8400-e29b-41d4-a716-446655440000",
     "createdAt": "2025-01-15T10:30:00Z"
   }
 ]

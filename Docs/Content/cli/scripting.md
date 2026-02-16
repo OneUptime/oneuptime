@@ -43,8 +43,8 @@ oneuptime incident list -o json | jq '.[].title'
 NEW_ID=$(oneuptime monitor create --data '{"name":"API Health"}' -o json | jq -r '._id')
 echo "Created monitor: $NEW_ID"
 
-# Count incidents matching a filter
-oneuptime incident count --query '{"status":"active"}'
+# Count incidents by severity
+oneuptime incident count --query '{"incidentSeverityId":"<severity-id>"}'
 ```
 
 ## Creating Resources from Files
@@ -77,7 +77,7 @@ done
 ### GitHub Actions
 
 ```yaml
-name: Check Service Health
+name: Check Active Incidents
 on:
   schedule:
     - cron: '*/5 * * * *'
@@ -89,14 +89,14 @@ jobs:
       - name: Install OneUptime CLI
         run: npm install -g @oneuptime/cli
 
-      - name: Check for down monitors
+      - name: Check for active incidents
         env:
           ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
           ONEUPTIME_URL: https://oneuptime.com
         run: |
-          DOWN_COUNT=$(oneuptime monitor count --query '{"status":"down"}')
-          if [ "$DOWN_COUNT" -gt 0 ]; then
-            echo "WARNING: $DOWN_COUNT monitors are down"
+          INCIDENT_COUNT=$(oneuptime incident count)
+          if [ "$INCIDENT_COUNT" -gt 0 ]; then
+            echo "WARNING: $INCIDENT_COUNT incidents found"
             exit 1
           fi
 ```
@@ -111,15 +111,18 @@ export ONEUPTIME_API_KEY="$CI_ONEUPTIME_API_KEY"
 export ONEUPTIME_URL="$CI_ONEUPTIME_URL"
 
 # Create a deployment incident and capture the ID
+# Note: currentIncidentStateId and incidentSeverityId must reference existing state/severity IDs in your project
 INCIDENT_ID=$(oneuptime incident create --data '{
   "title": "Deployment Started",
-  "status": "investigating"
+  "currentIncidentStateId": "'"$INVESTIGATING_STATE_ID"'",
+  "incidentSeverityId": "'"$SEVERITY_ID"'",
+  "declaredAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
 }' -o json | jq -r '._id')
 
 # Run deployment steps here...
 
 # Resolve the incident after successful deployment
-oneuptime incident update "$INCIDENT_ID" --data '{"status":"resolved"}'
+oneuptime incident update "$INCIDENT_ID" --data '{"currentIncidentStateId":"'"$RESOLVED_STATE_ID"'"}'
 ```
 
 ### Docker

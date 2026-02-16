@@ -58,8 +58,8 @@ oneuptime <resource> list [options]
 # List the 10 most recent incidents
 oneuptime incident list
 
-# List active incidents
-oneuptime incident list --query '{"status":"active"}'
+# Filter incidents by state ID
+oneuptime incident list --query '{"currentIncidentStateId":"<state-id>"}'
 
 # List with pagination
 oneuptime incident list --limit 20 --skip 40
@@ -116,14 +116,14 @@ You must provide either `--data` or `--file`.
 **Examples:**
 
 ```bash
-# Create a monitor with inline JSON
-oneuptime monitor create --data '{"name":"API Health Check","projectId":"your-project-id"}'
+# Create an incident with inline JSON
+oneuptime incident create --data '{"title":"API Outage","currentIncidentStateId":"<state-id>","incidentSeverityId":"<severity-id>","declaredAt":"2025-01-15T10:30:00Z"}'
 
 # Create from a JSON file
-oneuptime monitor create --file monitor.json
+oneuptime incident create --file incident.json
 
 # Create and output as JSON to capture the ID
-oneuptime monitor create --data '{"name":"New Monitor"}' -o json
+oneuptime monitor create --data '{"name":"API Health Check"}' -o json
 ```
 
 ## Update a Resource
@@ -150,8 +150,8 @@ oneuptime <resource> update <id> [options]
 **Examples:**
 
 ```bash
-# Resolve an incident
-oneuptime incident update abc-123 --data '{"status":"resolved"}'
+# Change incident state (e.g., to resolved)
+oneuptime incident update abc-123 --data '{"currentIncidentStateId":"<resolved-state-id>"}'
 
 # Rename a monitor
 oneuptime monitor update abc-123 --data '{"name":"Updated Monitor Name"}'
@@ -207,8 +207,8 @@ oneuptime <resource> count [options]
 # Count all incidents
 oneuptime incident count
 
-# Count active incidents
-oneuptime incident count --query '{"status":"active"}'
+# Count incidents by state
+oneuptime incident count --query '{"currentIncidentStateId":"<state-id>"}'
 
 # Count monitors
 oneuptime monitor count
@@ -216,7 +216,7 @@ oneuptime monitor count
 
 ## Analytics Resources
 
-Analytics resources (e.g., logs, traces) support a limited set of operations:
+Analytics resources support a limited set of operations compared to database resources:
 
 | Operation | Supported |
 |-----------|-----------|
@@ -226,3 +226,5 @@ Analytics resources (e.g., logs, traces) support a limited set of operations:
 | `get` | No |
 | `update` | No |
 | `delete` | No |
+
+Use `oneuptime resources --type analytics` to see which analytics resources are available on your instance.
