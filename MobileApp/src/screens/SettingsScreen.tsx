@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, Switch, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Switch,
+  Pressable,
+  TouchableOpacity,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme, ThemeMode } from "../theme";
@@ -244,82 +251,70 @@ export default function SettingsScreen(): React.JSX.Element {
           Appearance
         </Text>
         <View
-          className="rounded-2xl overflow-hidden"
           style={{
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
+            borderRadius: 16,
+            padding: 6,
+            flexDirection: "row",
           }}
         >
-          <View className="p-1.5">
-            <View className="flex-row rounded-xl gap-1">
-              {(["dark", "light", "system"] as ThemeMode[]).map(
-                (mode: ThemeMode) => {
-                  const isActive: boolean = themeMode === mode;
-                  return (
-                    <Pressable
-                      key={mode}
-                      style={({ pressed }: { pressed: boolean }) => {
-                        return [
-                          {
-                            flex: 1,
-                            flexDirection: "row" as const,
-                            alignItems: "center" as const,
-                            justifyContent: "center" as const,
-                            paddingVertical: 10,
-                            borderRadius: 10,
-                            gap: 6,
-                            overflow: "hidden" as const,
-                            opacity: pressed ? 0.7 : 1,
-                          },
-                          isActive
-                            ? {
-                                backgroundColor: theme.colors.actionPrimary,
-                                shadowColor: theme.colors.actionPrimary,
-                                shadowOpacity: 0.3,
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowRadius: 6,
-                                elevation: 3,
-                              }
-                            : undefined,
-                        ];
-                      }}
-                      onPress={() => {
-                        return handleThemeChange(mode);
-                      }}
-                    >
-                      <Ionicons
-                        name={
-                          mode === "dark"
-                            ? "moon-outline"
-                            : mode === "light"
-                              ? "sunny-outline"
-                              : "phone-portrait-outline"
-                        }
-                        size={15}
-                        color={
-                          isActive
-                            ? activeThemeOptionColor
-                            : theme.colors.textSecondary
-                        }
-                      />
-                      <Text
-                        className="text-[13px] font-semibold"
-                        style={{
-                          color: isActive
-                            ? activeThemeOptionColor
-                            : theme.colors.textPrimary,
-                          letterSpacing: 0.2,
-                        }}
-                      >
-                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                      </Text>
-                    </Pressable>
-                  );
-                },
-              )}
-            </View>
-          </View>
+          {(["dark", "light", "system"] as ThemeMode[]).map(
+            (mode: ThemeMode, index: number) => {
+              const isActive: boolean = themeMode === mode;
+              return (
+                <TouchableOpacity
+                  key={mode}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    return handleThemeChange(mode);
+                  }}
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingVertical: 10,
+                    borderRadius: 10,
+                    marginLeft: index > 0 ? 4 : 0,
+                    backgroundColor: isActive
+                      ? theme.colors.actionPrimary
+                      : "transparent",
+                  }}
+                >
+                  <Ionicons
+                    name={
+                      mode === "dark"
+                        ? "moon-outline"
+                        : mode === "light"
+                          ? "sunny-outline"
+                          : "phone-portrait-outline"
+                    }
+                    size={15}
+                    color={
+                      isActive
+                        ? activeThemeOptionColor
+                        : theme.colors.textSecondary
+                    }
+                  />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      marginLeft: 6,
+                      color: isActive
+                        ? activeThemeOptionColor
+                        : theme.colors.textPrimary,
+                      letterSpacing: 0.2,
+                    }}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            },
+          )}
         </View>
       </View>
 
