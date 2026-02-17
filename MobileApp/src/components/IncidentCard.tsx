@@ -270,7 +270,7 @@ export default function IncidentCard({
                 }}
               >
                 <Ionicons
-                  name="desktop-outline"
+                  name="pulse-outline"
                   size={12}
                   color={theme.colors.textSecondary}
                 />
