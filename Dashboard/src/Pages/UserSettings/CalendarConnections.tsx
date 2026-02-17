@@ -17,7 +17,6 @@ const CalendarConnections: FunctionComponent<
             title: "Connect",
             buttonStyle: ButtonStyleType.PRIMARY,
             icon: IconProp.Calendar,
-            disabled: true,
             onClick: () => {},
           },
         ]}
@@ -30,7 +29,6 @@ const CalendarConnections: FunctionComponent<
             title: "Connect",
             buttonStyle: ButtonStyleType.PRIMARY,
             icon: IconProp.Calendar,
-            disabled: true,
             onClick: () => {},
           },
         ]}
