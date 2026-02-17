@@ -23,7 +23,6 @@ function AppContent(): React.JSX.Element {
 
   return (
     <View
-      className="flex-1 bg-bg-primary"
       style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
     >
       <LinearGradient

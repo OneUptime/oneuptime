@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { formatDateTime } from "../utils/date";
@@ -37,15 +37,19 @@ export default function NotesSection({
             Internal Notes
           </Text>
         </View>
-        <TouchableOpacity
-          className="flex-row items-center rounded-lg px-3 py-1.5"
-          style={{
+        <Pressable
+          style={({ pressed }) => ({
+            flexDirection: "row" as const,
+            alignItems: "center" as const,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
             backgroundColor: theme.colors.actionPrimary,
-          }}
+            opacity: pressed ? 0.85 : 1,
+          })}
           onPress={() => {
             return setNoteModalVisible(true);
           }}
-          activeOpacity={0.85}
         >
           <Ionicons
             name="add"
@@ -59,7 +63,7 @@ export default function NotesSection({
           >
             Add Note
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {notes && notes.length > 0

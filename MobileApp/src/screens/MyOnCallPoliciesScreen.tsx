@@ -4,7 +4,7 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -325,19 +325,22 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                       );
 
                       return (
-                        <TouchableOpacity
+                        <Pressable
                           key={`${assignment.projectId}-${assignment.policyId ?? assignmentIndex}`}
-                          activeOpacity={0.82}
-                          className="px-4 py-3.5"
-                          style={
+                          style={({ pressed }) => [
+                            {
+                              paddingHorizontal: 16,
+                              paddingVertical: 14,
+                              opacity: pressed ? 0.82 : 1,
+                            },
                             assignmentIndex !==
                             projectData.assignments.length - 1
                               ? {
                                   borderBottomWidth: 1,
                                   borderBottomColor: theme.colors.borderSubtle,
                                 }
-                              : undefined
-                          }
+                              : undefined,
+                          ]}
                         >
                           <View className="flex-row items-center justify-between">
                             <Text
@@ -398,7 +401,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                               </Text>
                             </View>
                           </View>
-                        </TouchableOpacity>
+                        </Pressable>
                       );
                     },
                   )}

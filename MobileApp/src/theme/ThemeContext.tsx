@@ -77,10 +77,7 @@ export function ThemeProvider({
 
   return (
     <ThemeContext.Provider value={value}>
-      <View
-        className={theme.isDark ? "dark flex-1" : "flex-1"}
-        style={{ flex: 1 }}
-      >
+      <View style={{ flex: 1 }}>
         {children}
       </View>
     </ThemeContext.Provider>

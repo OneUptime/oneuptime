@@ -2,10 +2,10 @@ import React from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -48,10 +48,14 @@ function StatCard({
   };
 
   return (
-    <TouchableOpacity
-      className="flex-1 rounded-3xl overflow-hidden"
+    <Pressable
+      style={({ pressed }) => ({
+        flex: 1,
+        borderRadius: 24,
+        overflow: "hidden" as const,
+        opacity: pressed ? 0.7 : 1,
+      })}
       onPress={handlePress}
-      activeOpacity={0.7}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
     >
@@ -119,7 +123,7 @@ function StatCard({
           {label}
         </Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -345,14 +349,15 @@ export default function HomeScreen(): React.JSX.Element {
           >
             On-Call
           </Text>
-          <TouchableOpacity
-            activeOpacity={0.8}
+          <Pressable
             onPress={() => {
               lightImpact();
               navigation.navigate("OnCall");
             }}
-            className="rounded-3xl overflow-hidden p-4"
-            style={{
+            style={({ pressed }) => ({
+              borderRadius: 24,
+              overflow: "hidden" as const,
+              padding: 16,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
               borderColor: theme.colors.borderGlass,
@@ -363,7 +368,8 @@ export default function HomeScreen(): React.JSX.Element {
               shadowOffset: { width: 0, height: 8 },
               shadowRadius: 14,
               elevation: 5,
-            }}
+              opacity: pressed ? 0.8 : 1,
+            })}
             accessibilityRole="button"
             accessibilityLabel="View my on-call assignments"
           >
@@ -433,7 +439,7 @@ export default function HomeScreen(): React.JSX.Element {
                 />
               </View>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         <View>

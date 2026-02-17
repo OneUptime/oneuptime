@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { useTheme } from "../theme";
 
 interface Segment<T extends string> {
@@ -35,10 +35,16 @@ export default function SegmentedControl<T extends string>({
       {segments.map((segment: Segment<T>) => {
         const isActive: boolean = segment.key === selected;
         return (
-          <TouchableOpacity
+          <Pressable
             key={segment.key}
-            className="flex-1 items-center py-2.5 rounded-xl"
-            style={
+            style={({ pressed }) => [
+              {
+                flex: 1,
+                alignItems: "center" as const,
+                paddingVertical: 10,
+                borderRadius: 12,
+                opacity: pressed ? 0.7 : 1,
+              },
               isActive
                 ? {
                     backgroundColor: theme.colors.actionPrimary,
@@ -48,12 +54,11 @@ export default function SegmentedControl<T extends string>({
                     shadowRadius: 10,
                     elevation: 4,
                   }
-                : undefined
-            }
+                : undefined,
+            ]}
             onPress={() => {
               return onSelect(segment.key);
             }}
-            activeOpacity={0.7}
           >
             <Text
               className="text-body-sm font-semibold"
@@ -66,7 +71,7 @@ export default function SegmentedControl<T extends string>({
             >
               {segment.label}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>

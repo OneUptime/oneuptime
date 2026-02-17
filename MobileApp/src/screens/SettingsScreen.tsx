@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Switch } from "react-native";
+import { View, Text, ScrollView, Switch, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme, ThemeMode } from "../theme";
@@ -96,9 +96,12 @@ function SettingsRow({
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      >
         {content}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
@@ -252,10 +255,20 @@ export default function SettingsScreen(): React.JSX.Element {
                 (mode: ThemeMode) => {
                   const isActive: boolean = themeMode === mode;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={mode}
-                      className="flex-1 flex-row items-center justify-center py-2.5 rounded-[10px] gap-1.5 overflow-hidden"
-                      style={
+                      style={({ pressed }) => [
+                        {
+                          flex: 1,
+                          flexDirection: "row" as const,
+                          alignItems: "center" as const,
+                          justifyContent: "center" as const,
+                          paddingVertical: 10,
+                          borderRadius: 10,
+                          gap: 6,
+                          overflow: "hidden" as const,
+                          opacity: pressed ? 0.7 : 1,
+                        },
                         isActive
                           ? {
                               backgroundColor: theme.colors.actionPrimary,
@@ -265,12 +278,11 @@ export default function SettingsScreen(): React.JSX.Element {
                               shadowRadius: 6,
                               elevation: 3,
                             }
-                          : undefined
-                      }
+                          : undefined,
+                      ]}
                       onPress={() => {
                         return handleThemeChange(mode);
                       }}
-                      activeOpacity={0.7}
                     >
                       <Ionicons
                         name={
@@ -298,7 +310,7 @@ export default function SettingsScreen(): React.JSX.Element {
                       >
                         {mode.charAt(0).toUpperCase() + mode.slice(1)}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 },
               )}

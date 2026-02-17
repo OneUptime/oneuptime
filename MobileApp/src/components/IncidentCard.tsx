@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
@@ -41,13 +41,12 @@ export default function IncidentCard({
   );
 
   return (
-    <TouchableOpacity
-      className="mb-3"
-      style={{
-        opacity: muted ? 0.5 : 1,
-      }}
+    <Pressable
+      style={({ pressed }) => ({
+        marginBottom: 12,
+        opacity: pressed ? 0.7 : muted ? 0.5 : 1,
+      })}
       onPress={onPress}
-      activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
     >
@@ -220,6 +219,6 @@ export default function IncidentCard({
           ) : null}
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }

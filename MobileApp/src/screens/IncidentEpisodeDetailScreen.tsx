@@ -3,10 +3,10 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -390,9 +390,16 @@ export default function IncidentEpisodeDetailScreen({
           >
             <View className="flex-row gap-3">
               {!isAcknowledged && !isResolved && acknowledgeState ? (
-                <TouchableOpacity
-                  className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
+                <Pressable
                   style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 48,
+                    overflow: "hidden",
                     backgroundColor: theme.colors.stateAcknowledged,
                   }}
                   onPress={() => {
@@ -421,12 +428,19 @@ export default function IncidentEpisodeDetailScreen({
                       </Text>
                     </>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               ) : null}
               {resolveState ? (
-                <TouchableOpacity
-                  className="flex-1 flex-row py-3 rounded-xl items-center justify-center min-h-[48px] overflow-hidden"
+                <Pressable
                   style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 48,
+                    overflow: "hidden",
                     backgroundColor: theme.colors.stateResolved,
                   }}
                   onPress={() => {
@@ -455,7 +469,7 @@ export default function IncidentEpisodeDetailScreen({
                       </Text>
                     </>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               ) : null}
             </View>
           </View>

@@ -3,10 +3,10 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
@@ -113,15 +113,20 @@ export default function AddNoteModal({
           />
 
           <View className="flex-row gap-3 mt-5">
-            <TouchableOpacity
-              className="flex-1 py-3 rounded-xl items-center justify-center min-h-[48px]"
-              style={{
+            <Pressable
+              style={({ pressed }) => ({
+                flex: 1,
+                paddingVertical: 12,
+                borderRadius: 12,
+                alignItems: "center" as const,
+                justifyContent: "center" as const,
+                minHeight: 48,
                 borderWidth: 1,
                 borderColor: theme.colors.borderDefault,
-              }}
+                opacity: pressed ? 0.7 : 1,
+              })}
               onPress={handleClose}
               disabled={isSubmitting}
-              activeOpacity={0.7}
             >
               <Text
                 className="text-[15px] font-semibold"
@@ -129,7 +134,7 @@ export default function AddNoteModal({
               >
                 Cancel
               </Text>
-            </TouchableOpacity>
+            </Pressable>
 
             <View className="flex-1">
               <GradientButton
