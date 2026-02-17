@@ -42,10 +42,12 @@ export default function IncidentCard({
 
   return (
     <Pressable
-      style={({ pressed }) => ({
-        marginBottom: 12,
-        opacity: pressed ? 0.7 : muted ? 0.5 : 1,
-      })}
+      style={({ pressed }: { pressed: boolean }) => {
+        return {
+          marginBottom: 12,
+          opacity: pressed ? 0.7 : muted ? 0.5 : 1,
+        };
+      }}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}

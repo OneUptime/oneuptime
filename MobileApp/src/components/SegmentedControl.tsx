@@ -37,25 +37,27 @@ export default function SegmentedControl<T extends string>({
         return (
           <Pressable
             key={segment.key}
-            style={({ pressed }) => [
-              {
-                flex: 1,
-                alignItems: "center" as const,
-                paddingVertical: 10,
-                borderRadius: 12,
-                opacity: pressed ? 0.7 : 1,
-              },
-              isActive
-                ? {
-                    backgroundColor: theme.colors.actionPrimary,
-                    shadowColor: theme.colors.actionPrimary,
-                    shadowOpacity: theme.isDark ? 0.28 : 0.18,
-                    shadowOffset: { width: 0, height: 5 },
-                    shadowRadius: 10,
-                    elevation: 4,
-                  }
-                : undefined,
-            ]}
+            style={({ pressed }: { pressed: boolean }) => {
+              return [
+                {
+                  flex: 1,
+                  alignItems: "center" as const,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  opacity: pressed ? 0.7 : 1,
+                },
+                isActive
+                  ? {
+                      backgroundColor: theme.colors.actionPrimary,
+                      shadowColor: theme.colors.actionPrimary,
+                      shadowOpacity: theme.isDark ? 0.28 : 0.18,
+                      shadowOffset: { width: 0, height: 5 },
+                      shadowRadius: 10,
+                      elevation: 4,
+                    }
+                  : undefined,
+              ];
+            }}
             onPress={() => {
               return onSelect(segment.key);
             }}

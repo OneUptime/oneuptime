@@ -38,15 +38,17 @@ export default function NotesSection({
           </Text>
         </View>
         <Pressable
-          style={({ pressed }) => ({
-            flexDirection: "row" as const,
-            alignItems: "center" as const,
-            borderRadius: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            backgroundColor: theme.colors.actionPrimary,
-            opacity: pressed ? 0.85 : 1,
-          })}
+          style={({ pressed }: { pressed: boolean }) => {
+            return {
+              flexDirection: "row" as const,
+              alignItems: "center" as const,
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              backgroundColor: theme.colors.actionPrimary,
+              opacity: pressed ? 0.85 : 1,
+            };
+          }}
           onPress={() => {
             return setNoteModalVisible(true);
           }}

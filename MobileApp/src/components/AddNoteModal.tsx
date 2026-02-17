@@ -114,17 +114,19 @@ export default function AddNoteModal({
 
           <View className="flex-row gap-3 mt-5">
             <Pressable
-              style={({ pressed }) => ({
-                flex: 1,
-                paddingVertical: 12,
-                borderRadius: 12,
-                alignItems: "center" as const,
-                justifyContent: "center" as const,
-                minHeight: 48,
-                borderWidth: 1,
-                borderColor: theme.colors.borderDefault,
-                opacity: pressed ? 0.7 : 1,
-              })}
+              style={({ pressed }: { pressed: boolean }) => {
+                return {
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  alignItems: "center" as const,
+                  justifyContent: "center" as const,
+                  minHeight: 48,
+                  borderWidth: 1,
+                  borderColor: theme.colors.borderDefault,
+                  opacity: pressed ? 0.7 : 1,
+                };
+              }}
               onPress={handleClose}
               disabled={isSubmitting}
             >

@@ -115,17 +115,15 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {domainResponse.nameServers.map(
-                  (ns: string, index: number) => {
-                    return (
-                      <tr key={index}>
-                        <td className="px-4 py-2 text-sm text-gray-900 font-mono">
-                          {ns}
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
+                {domainResponse.nameServers.map((ns: string, index: number) => {
+                  return (
+                    <tr key={index}>
+                      <td className="px-4 py-2 text-sm text-gray-900 font-mono">
+                        {ns}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -20,13 +20,15 @@ const prefix: string = Linking.createURL("/");
 
 const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
   prefixes: [prefix, "oneuptime://"],
-  // Disable automatic deep link URL resolution via NavigationContainer.
-  // On Android with React Native's new architecture (Fabric), the async
-  // getInitialURL resolution inside NavigationContainer's useLinking hook
-  // sets state inside a microtask callback which never triggers a re-render,
-  // causing screens to never appear (blank screen after loading).
-  // Deep link navigation from push notifications is handled separately in
-  // usePushNotifications via Notifications.getLastNotificationResponseAsync().
+  /*
+   * Disable automatic deep link URL resolution via NavigationContainer.
+   * On Android with React Native's new architecture (Fabric), the async
+   * getInitialURL resolution inside NavigationContainer's useLinking hook
+   * sets state inside a microtask callback which never triggers a re-render,
+   * causing screens to never appear (blank screen after loading).
+   * Deep link navigation from push notifications is handled separately in
+   * usePushNotifications via Notifications.getLastNotificationResponseAsync().
+   */
   enabled: false,
   config: {
     screens: {

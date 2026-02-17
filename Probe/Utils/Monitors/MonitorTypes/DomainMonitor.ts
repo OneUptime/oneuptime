@@ -61,7 +61,8 @@ export default class DomainMonitorUtil {
         responseTimeInMs: responseTimeInMs,
         failureCause: "",
         domainName: config.domainName,
-        registrar: whoisData?.registrar || whoisData?.registrarName || undefined,
+        registrar:
+          whoisData?.registrar || whoisData?.registrarName || undefined,
         registrarUrl:
           whoisData?.registrarUrl ||
           whoisData?.registrarURL ||

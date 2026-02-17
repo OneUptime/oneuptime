@@ -62,10 +62,12 @@ export default function EpisodeCard(
 
   return (
     <Pressable
-      style={({ pressed }) => ({
-        marginBottom: 12,
-        opacity: pressed ? 0.7 : muted ? 0.5 : 1,
-      })}
+      style={({ pressed }: { pressed: boolean }) => {
+        return {
+          marginBottom: 12,
+          opacity: pressed ? 0.7 : muted ? 0.5 : 1,
+        };
+      }}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${type === "incident" ? "Incident" : "Alert"} episode ${episode.episodeNumberWithPrefix || episode.episodeNumber}, ${episode.title}. State: ${state?.name ?? "unknown"}. Severity: ${severity?.name ?? "unknown"}.`}

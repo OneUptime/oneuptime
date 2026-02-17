@@ -22,9 +22,7 @@ function AppContent(): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-    >
+    <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
       <LinearGradient
         pointerEvents="none"
         colors={[theme.colors.accentGradientStart + "1C", "transparent"]}

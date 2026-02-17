@@ -49,12 +49,14 @@ function StatCard({
 
   return (
     <Pressable
-      style={({ pressed }) => ({
-        flex: 1,
-        borderRadius: 24,
-        overflow: "hidden" as const,
-        opacity: pressed ? 0.7 : 1,
-      })}
+      style={({ pressed }: { pressed: boolean }) => {
+        return {
+          flex: 1,
+          borderRadius: 24,
+          overflow: "hidden" as const,
+          opacity: pressed ? 0.7 : 1,
+        };
+      }}
       onPress={handlePress}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
@@ -354,22 +356,24 @@ export default function HomeScreen(): React.JSX.Element {
               lightImpact();
               navigation.navigate("OnCall");
             }}
-            style={({ pressed }) => ({
-              borderRadius: 24,
-              overflow: "hidden" as const,
-              padding: 16,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-              shadowColor: theme.isDark
-                ? "#000"
-                : theme.colors.accentGradientMid,
-              shadowOpacity: theme.isDark ? 0.24 : 0.09,
-              shadowOffset: { width: 0, height: 8 },
-              shadowRadius: 14,
-              elevation: 5,
-              opacity: pressed ? 0.8 : 1,
-            })}
+            style={({ pressed }: { pressed: boolean }) => {
+              return {
+                borderRadius: 24,
+                overflow: "hidden" as const,
+                padding: 16,
+                backgroundColor: theme.colors.backgroundElevated,
+                borderWidth: 1,
+                borderColor: theme.colors.borderGlass,
+                shadowColor: theme.isDark
+                  ? "#000"
+                  : theme.colors.accentGradientMid,
+                shadowOpacity: theme.isDark ? 0.24 : 0.09,
+                shadowOffset: { width: 0, height: 8 },
+                shadowRadius: 14,
+                elevation: 5,
+                opacity: pressed ? 0.8 : 1,
+              };
+            }}
             accessibilityRole="button"
             accessibilityLabel="View my on-call assignments"
           >

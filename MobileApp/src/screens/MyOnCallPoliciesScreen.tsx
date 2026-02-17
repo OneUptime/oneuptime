@@ -327,20 +327,23 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                       return (
                         <Pressable
                           key={`${assignment.projectId}-${assignment.policyId ?? assignmentIndex}`}
-                          style={({ pressed }) => [
-                            {
-                              paddingHorizontal: 16,
-                              paddingVertical: 14,
-                              opacity: pressed ? 0.82 : 1,
-                            },
-                            assignmentIndex !==
-                            projectData.assignments.length - 1
-                              ? {
-                                  borderBottomWidth: 1,
-                                  borderBottomColor: theme.colors.borderSubtle,
-                                }
-                              : undefined,
-                          ]}
+                          style={({ pressed }: { pressed: boolean }) => {
+                            return [
+                              {
+                                paddingHorizontal: 16,
+                                paddingVertical: 14,
+                                opacity: pressed ? 0.82 : 1,
+                              },
+                              assignmentIndex !==
+                              projectData.assignments.length - 1
+                                ? {
+                                    borderBottomWidth: 1,
+                                    borderBottomColor:
+                                      theme.colors.borderSubtle,
+                                  }
+                                : undefined,
+                            ];
+                          }}
                         >
                           <View className="flex-row items-center justify-between">
                             <Text

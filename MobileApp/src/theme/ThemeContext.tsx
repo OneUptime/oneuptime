@@ -77,9 +77,7 @@ export function ThemeProvider({
 
   return (
     <ThemeContext.Provider value={value}>
-      <View style={{ flex: 1 }}>
-        {children}
-      </View>
+      <View style={{ flex: 1 }}>{children}</View>
     </ThemeContext.Provider>
   );
 }

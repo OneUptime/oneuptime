@@ -98,7 +98,9 @@ function SettingsRow({
     return (
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+        style={({ pressed }: { pressed: boolean }) => {
+          return { opacity: pressed ? 0.7 : 1 };
+        }}
       >
         {content}
       </Pressable>
@@ -257,29 +259,31 @@ export default function SettingsScreen(): React.JSX.Element {
                   return (
                     <Pressable
                       key={mode}
-                      style={({ pressed }) => [
-                        {
-                          flex: 1,
-                          flexDirection: "row" as const,
-                          alignItems: "center" as const,
-                          justifyContent: "center" as const,
-                          paddingVertical: 10,
-                          borderRadius: 10,
-                          gap: 6,
-                          overflow: "hidden" as const,
-                          opacity: pressed ? 0.7 : 1,
-                        },
-                        isActive
-                          ? {
-                              backgroundColor: theme.colors.actionPrimary,
-                              shadowColor: theme.colors.actionPrimary,
-                              shadowOpacity: 0.3,
-                              shadowOffset: { width: 0, height: 2 },
-                              shadowRadius: 6,
-                              elevation: 3,
-                            }
-                          : undefined,
-                      ]}
+                      style={({ pressed }: { pressed: boolean }) => {
+                        return [
+                          {
+                            flex: 1,
+                            flexDirection: "row" as const,
+                            alignItems: "center" as const,
+                            justifyContent: "center" as const,
+                            paddingVertical: 10,
+                            borderRadius: 10,
+                            gap: 6,
+                            overflow: "hidden" as const,
+                            opacity: pressed ? 0.7 : 1,
+                          },
+                          isActive
+                            ? {
+                                backgroundColor: theme.colors.actionPrimary,
+                                shadowColor: theme.colors.actionPrimary,
+                                shadowOpacity: 0.3,
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowRadius: 6,
+                                elevation: 3,
+                              }
+                            : undefined,
+                        ];
+                      }}
                       onPress={() => {
                         return handleThemeChange(mode);
                       }}

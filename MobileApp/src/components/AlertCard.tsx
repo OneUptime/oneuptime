@@ -34,10 +34,12 @@ export default function AlertCard({
 
   return (
     <Pressable
-      style={({ pressed }) => ({
-        marginBottom: 12,
-        opacity: pressed ? 0.7 : muted ? 0.5 : 1,
-      })}
+      style={({ pressed }: { pressed: boolean }) => {
+        return {
+          marginBottom: 12,
+          opacity: pressed ? 0.7 : muted ? 0.5 : 1,
+        };
+      }}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Alert ${alert.alertNumberWithPrefix || alert.alertNumber}, ${alert.title}. State: ${alert.currentAlertState?.name ?? "unknown"}. Severity: ${alert.alertSeverity?.name ?? "unknown"}.`}
