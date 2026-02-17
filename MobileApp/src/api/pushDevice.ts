@@ -8,10 +8,10 @@ export async function registerPushDevice(params: {
 }): Promise<void> {
   const deviceType: string =
     Platform.OS === "ios"
-      ? "iOS"
+      ? "ios"
       : Platform.OS === "android"
-        ? "Android"
-        : "Web";
+        ? "android"
+        : "web";
 
   try {
     await apiClient.post("/api/user-push/register", {
