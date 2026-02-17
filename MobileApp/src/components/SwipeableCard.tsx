@@ -94,7 +94,7 @@ export default function SwipeableCard({
   ).current;
 
   return (
-    <View style={{ overflow: "hidden", borderRadius: 12 }}>
+    <View style={{ overflow: "hidden", borderRadius: 12, marginBottom: 12 }}>
       {/* Background actions */}
       <View
         style={{
