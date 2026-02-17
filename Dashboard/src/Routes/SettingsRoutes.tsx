@@ -59,6 +59,7 @@ import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
 
 import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
 import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
+import SettingsVaults from "../Pages/Settings/Vaults";
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -383,6 +384,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsAuditLogs
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_VAULTS)}
+          element={
+            <SettingsVaults
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_VAULTS] as Route}
             />
           }
         />

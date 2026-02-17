@@ -328,6 +328,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_LLM_PROVIDER_VIEW]: `llm-provider/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_BILLING]: "ai-credits",
   [PageMap.SETTINGS_AUDIT_LOGS]: "audit-logs",
+  [PageMap.SETTINGS_VAULTS]: "vaults",
 };
 
 export const OnCallDutyRoutePath: Dictionary<string> = {
@@ -2270,6 +2271,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_VAULTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_VAULTS]
     }`,
   ),
 

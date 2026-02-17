@@ -133,6 +133,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Audit Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_VAULTS, [
+      "Project",
+      "Settings",
+      "Vaults",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

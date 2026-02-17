@@ -203,6 +203,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
+            title: "Vaults",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_VAULTS] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
             title: "Audit Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route,
