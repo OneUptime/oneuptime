@@ -74,7 +74,7 @@ export default function RootNavigator(): React.JSX.Element {
 
   const navigationTheme: Theme = {
     ...DefaultTheme,
-    dark: theme.isDark,
+    dark: true,
     colors: {
       ...DefaultTheme.colors,
       primary: theme.colors.actionPrimary,

@@ -5,11 +5,10 @@ import {
   ScrollView,
   Switch,
   Pressable,
-  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useTheme, ThemeMode } from "../theme";
+import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
 import { useBiometric } from "../hooks/useBiometric";
 import { useHaptics } from "../hooks/useHaptics";
@@ -128,25 +127,15 @@ function SettingsRow({
 }
 
 export default function SettingsScreen(): React.JSX.Element {
-  const { theme, themeMode, setThemeMode } = useTheme();
+  const { theme } = useTheme();
   const { logout } = useAuth();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
   const { selectionFeedback } = useHaptics();
   const [serverUrl, setServerUrlState] = useState("");
-  const activeThemeOptionColor: string = theme.isDark
-    ? theme.colors.backgroundPrimary
-    : "#FFFFFF";
 
   useEffect(() => {
     getServerUrl().then(setServerUrlState);
   }, []);
-
-  const handleThemeChange: (mode: ThemeMode) => void = (
-    mode: ThemeMode,
-  ): void => {
-    selectionFeedback();
-    setThemeMode(mode);
-  };
 
   const handleBiometricToggle: (value: boolean) => Promise<void> = async (
     value: boolean,
@@ -172,8 +161,8 @@ export default function SettingsScreen(): React.JSX.Element {
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
-          shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
-          shadowOpacity: theme.isDark ? 0.28 : 0.12,
+          shadowColor: "#000",
+          shadowOpacity: 0.28,
           shadowOffset: { width: 0, height: 10 },
           shadowRadius: 18,
           elevation: 7,
@@ -264,89 +253,6 @@ export default function SettingsScreen(): React.JSX.Element {
               {serverUrl || "oneuptime.com"}
             </Text>
           </View>
-        </View>
-      </View>
-
-      {/* Appearance */}
-      <View style={{ marginBottom: 24 }}>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            textTransform: "uppercase",
-            marginBottom: 8,
-            marginLeft: 4,
-            color: theme.colors.textTertiary,
-            letterSpacing: 0.8,
-          }}
-        >
-          Appearance
-        </Text>
-        <View
-          style={{
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-            borderRadius: 16,
-            padding: 6,
-            flexDirection: "row",
-          }}
-        >
-          {(["dark", "light", "system"] as ThemeMode[]).map(
-            (mode: ThemeMode, index: number) => {
-              const isActive: boolean = themeMode === mode;
-              return (
-                <TouchableOpacity
-                  key={mode}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    return handleThemeChange(mode);
-                  }}
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                    marginLeft: index > 0 ? 4 : 0,
-                    backgroundColor: isActive
-                      ? theme.colors.actionPrimary
-                      : "transparent",
-                  }}
-                >
-                  <Ionicons
-                    name={
-                      mode === "dark"
-                        ? "moon-outline"
-                        : mode === "light"
-                          ? "sunny-outline"
-                          : "phone-portrait-outline"
-                    }
-                    size={15}
-                    color={
-                      isActive
-                        ? activeThemeOptionColor
-                        : theme.colors.textSecondary
-                    }
-                  />
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "600",
-                      marginLeft: 6,
-                      color: isActive
-                        ? activeThemeOptionColor
-                        : theme.colors.textPrimary,
-                      letterSpacing: 0.2,
-                    }}
-                  >
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            },
-          )}
         </View>
       </View>
 
@@ -527,7 +433,7 @@ export default function SettingsScreen(): React.JSX.Element {
               right: 0,
               height: 3,
               backgroundColor: theme.colors.actionPrimary,
-              opacity: theme.isDark ? 0.45 : 0.85,
+              opacity: 0.45,
             }}
           />
 

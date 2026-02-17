@@ -55,9 +55,7 @@ export default function NotesSection({
               borderRadius: 8,
               paddingHorizontal: 12,
               paddingVertical: 6,
-              backgroundColor: theme.isDark
-                ? theme.colors.accentGradientStart
-                : theme.colors.actionPrimary,
+              backgroundColor: theme.colors.accentGradientStart,
               opacity: pressed ? 0.85 : 1,
             };
           }}
@@ -98,10 +96,8 @@ export default function NotesSection({
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
-                  shadowColor: theme.isDark
-                    ? "#000"
-                    : theme.colors.accentGradientMid,
-                  shadowOpacity: theme.isDark ? 0.16 : 0.06,
+                  shadowColor: "#000",
+                  shadowOpacity: 0.16,
                   shadowOffset: { width: 0, height: 5 },
                   shadowRadius: 10,
                   elevation: 3,

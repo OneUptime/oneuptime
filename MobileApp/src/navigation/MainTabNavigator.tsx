@@ -77,10 +77,8 @@ export default function MainTabNavigator(): React.JSX.Element {
           height: Platform.OS === "ios" ? 78 : 68,
           paddingBottom: Platform.OS === "ios" ? 18 : 10,
           paddingTop: 10,
-          shadowColor: theme.isDark
-            ? "#000000"
-            : theme.colors.accentGradientMid,
-          shadowOpacity: theme.isDark ? 0.35 : 0.12,
+          shadowColor: "#000000",
+          shadowOpacity: 0.35,
           shadowOffset: { width: 0, height: 8 },
           shadowRadius: 18,
           elevation: 16,

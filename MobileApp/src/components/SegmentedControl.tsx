@@ -19,9 +19,7 @@ export default function SegmentedControl<T extends string>({
   onSelect,
 }: SegmentedControlProps<T>): React.JSX.Element {
   const { theme } = useTheme();
-  const activeContentColor: string = theme.isDark
-    ? theme.colors.backgroundPrimary
-    : "#FFFFFF";
+  const activeContentColor: string = theme.colors.backgroundPrimary;
 
   return (
     <View

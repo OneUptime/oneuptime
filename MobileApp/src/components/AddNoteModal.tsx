@@ -62,9 +62,7 @@ export default function AddNoteModal({
             borderTopRightRadius: 24,
             padding: 20,
             paddingBottom: 36,
-            backgroundColor: theme.isDark
-              ? theme.colors.backgroundElevated
-              : theme.colors.backgroundPrimary,
+            backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderBottomWidth: 0,
             borderColor: theme.colors.borderGlass,
