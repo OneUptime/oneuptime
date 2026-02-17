@@ -1,6 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const AuditLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -16,54 +18,34 @@ const AuditLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         title="Audit Logs"
         description="View audit logs for all actions performed in this project."
       >
-        <div className="rounded-md overflow-hidden -mt-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
+        <div className="mt-3 -mb-6 border-t border-gray-200 rounded-b-xl overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Resource
                 </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Resource ID
                 </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Action
                 </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Summary
                 </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
+                <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-6 py-12 text-center text-sm text-gray-500"
-                >
-                  No audit logs available. Enable audit logs to start tracking
-                  actions.
-                </td>
-              </tr>
-            </tbody>
           </table>
+          <EmptyState
+            id="audit-logs-empty"
+            icon={IconProp.Activity}
+            title="No Audit Logs"
+            description="No audit logs available. Enable audit logs in the Admin Dashboard to start tracking actions."
+          />
         </div>
       </Card>
     </Fragment>
