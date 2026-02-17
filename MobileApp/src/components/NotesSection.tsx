@@ -16,9 +16,7 @@ export default function NotesSection({
   setNoteModalVisible,
 }: NotesSectionProps): React.JSX.Element {
   const { theme } = useTheme();
-  const addNoteContentColor: string = theme.isDark
-    ? theme.colors.backgroundPrimary
-    : "#FFFFFF";
+  const addNoteContentColor: string = "#FFFFFF";
 
   return (
     <View style={{ marginBottom: 8, marginTop: 4 }}>
@@ -57,7 +55,9 @@ export default function NotesSection({
               borderRadius: 8,
               paddingHorizontal: 12,
               paddingVertical: 6,
-              backgroundColor: theme.colors.actionPrimary,
+              backgroundColor: theme.isDark
+                ? theme.colors.accentGradientStart
+                : theme.colors.actionPrimary,
               opacity: pressed ? 0.85 : 1,
             };
           }}

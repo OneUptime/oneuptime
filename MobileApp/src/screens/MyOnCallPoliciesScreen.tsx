@@ -243,7 +243,6 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                 key={projectData.projectId}
                 style={{
                   borderRadius: 24,
-                  overflow: "hidden",
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
@@ -259,6 +258,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                     borderBottomWidth: 1,
                     borderBottomColor: theme.colors.borderSubtle,
                     backgroundColor: theme.colors.backgroundSecondary,
+                    borderTopLeftRadius: 23,
+                    borderTopRightRadius: 23,
                   }}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>

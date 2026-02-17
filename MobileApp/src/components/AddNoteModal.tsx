@@ -140,17 +140,21 @@ export default function AddNoteModal({
           />
 
           <View
-            style={{ flexDirection: "row", gap: 12, marginTop: 20 }}
+            style={{
+              flexDirection: "row",
+              gap: 12,
+              marginTop: 20,
+              alignItems: "center",
+            }}
           >
             <Pressable
               style={({ pressed }: { pressed: boolean }) => {
                 return {
                   flex: 1,
-                  paddingVertical: 12,
+                  height: 50,
                   borderRadius: 12,
                   alignItems: "center" as const,
                   justifyContent: "center" as const,
-                  minHeight: 48,
                   borderWidth: 1,
                   borderColor: theme.colors.borderDefault,
                   opacity: pressed ? 0.7 : 1,
@@ -170,14 +174,13 @@ export default function AddNoteModal({
               </Text>
             </Pressable>
 
-            <View style={{ flex: 1 }}>
-              <GradientButton
-                label="Submit"
-                onPress={handleSubmit}
-                loading={isSubmitting}
-                disabled={!noteText.trim() || isSubmitting}
-              />
-            </View>
+            <GradientButton
+              label="Submit"
+              onPress={handleSubmit}
+              loading={isSubmitting}
+              disabled={!noteText.trim() || isSubmitting}
+              style={{ flex: 1 }}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
