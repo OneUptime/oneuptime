@@ -32,10 +32,22 @@ export default function EmptyState({
   const { theme } = useTheme();
 
   return (
-    <View className="flex-1 items-center justify-center px-10 py-28">
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 40,
+        paddingVertical: 112,
+      }}
+    >
       <View
-        className="w-20 h-20 rounded-2xl items-center justify-center"
         style={{
+          width: 80,
+          height: 80,
+          borderRadius: 16,
+          alignItems: "center",
+          justifyContent: "center",
           backgroundColor: theme.colors.iconBackground,
         }}
       >
@@ -47,20 +59,35 @@ export default function EmptyState({
       </View>
 
       <Text
-        className="text-[20px] font-bold text-text-primary text-center mt-6"
-        style={{ letterSpacing: -0.3 }}
+        style={{
+          fontSize: 20,
+          fontWeight: "bold",
+          color: theme.colors.textPrimary,
+          textAlign: "center",
+          marginTop: 24,
+          letterSpacing: -0.3,
+        }}
       >
         {title}
       </Text>
 
       {subtitle ? (
-        <Text className="text-[15px] text-text-secondary text-center mt-2 leading-[22px] max-w-[280px]">
+        <Text
+          style={{
+            fontSize: 15,
+            color: theme.colors.textSecondary,
+            textAlign: "center",
+            marginTop: 8,
+            lineHeight: 22,
+            maxWidth: 280,
+          }}
+        >
           {subtitle}
         </Text>
       ) : null}
 
       {actionLabel && onAction ? (
-        <View className="mt-6 w-[180px]">
+        <View style={{ marginTop: 24, width: 180 }}>
           <GradientButton label={actionLabel} onPress={onAction} />
         </View>
       ) : null}

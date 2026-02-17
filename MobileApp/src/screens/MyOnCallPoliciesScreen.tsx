@@ -86,13 +86,15 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
   if (isLoading) {
     return (
       <View
-        className="flex-1"
-        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 44 }}>
           <View
-            className="rounded-3xl overflow-hidden p-5 mb-4"
             style={{
+              borderRadius: 24,
+              overflow: "hidden",
+              padding: 20,
+              marginBottom: 16,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
               borderColor: theme.colors.borderGlass,
@@ -111,8 +113,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
   if (isError) {
     return (
       <View
-        className="flex-1"
-        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <EmptyState
           title="Could not load on-call assignments"
@@ -140,8 +141,11 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
       }
     >
       <View
-        className="rounded-3xl overflow-hidden p-5 mb-5"
         style={{
+          borderRadius: 24,
+          overflow: "hidden",
+          padding: 20,
+          marginBottom: 20,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
@@ -168,11 +172,16 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
           }}
         />
 
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1">
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <View
-              className="w-11 h-11 rounded-2xl items-center justify-center mr-3"
               style={{
+                width: 44,
+                height: 44,
+                borderRadius: 16,
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 12,
                 backgroundColor: theme.colors.oncallActiveBg,
                 borderWidth: 1,
                 borderColor: theme.colors.borderGlass,
@@ -184,10 +193,11 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                 color={theme.colors.oncallActive}
               />
             </View>
-            <View className="flex-1">
+            <View style={{ flex: 1 }}>
               <Text
-                className="text-[20px] font-bold"
                 style={{
+                  fontSize: 20,
+                  fontWeight: "bold",
                   color: theme.colors.textPrimary,
                   letterSpacing: -0.4,
                 }}
@@ -195,8 +205,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                 On-Call Now
               </Text>
               <Text
-                className="text-[12px] mt-0.5"
-                style={{ color: theme.colors.textSecondary }}
+                style={{ fontSize: 12, marginTop: 2, color: theme.colors.textSecondary }}
               >
                 Live duty assignments
               </Text>
@@ -204,16 +213,19 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
           </View>
 
           <View
-            className="px-3 py-1.5 rounded-xl"
             style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 12,
               backgroundColor: theme.colors.backgroundTertiary,
               borderWidth: 1,
               borderColor: theme.colors.borderSubtle,
             }}
           >
             <Text
-              className="text-[18px] font-bold"
               style={{
+                fontSize: 18,
+                fontWeight: "bold",
                 color: theme.colors.textPrimary,
                 fontVariant: ["tabular-nums"],
               }}
@@ -224,8 +236,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
         </View>
 
         <Text
-          className="text-[13px] mt-4 leading-5"
-          style={{ color: theme.colors.textSecondary }}
+          style={{ fontSize: 13, marginTop: 16, lineHeight: 20, color: theme.colors.textSecondary }}
         >
           {summaryText}
         </Text>
@@ -233,8 +244,9 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
 
       {projects.length === 0 ? (
         <View
-          className="rounded-3xl overflow-hidden"
           style={{
+            borderRadius: 24,
+            overflow: "hidden",
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
@@ -247,13 +259,14 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
           />
         </View>
       ) : (
-        <View className="gap-4">
+        <View style={{ gap: 16 }}>
           {projects.map((projectData: ProjectOnCallAssignments) => {
             return (
               <View
                 key={projectData.projectId}
-                className="rounded-3xl overflow-hidden"
                 style={{
+                  borderRadius: 24,
+                  overflow: "hidden",
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
@@ -267,22 +280,32 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                 }}
               >
                 <View
-                  className="px-4 py-3.5 flex-row items-center justify-between"
                   style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                     borderBottomWidth: 1,
                     borderBottomColor: theme.colors.borderSubtle,
                     backgroundColor: theme.colors.backgroundSecondary,
                   }}
                 >
-                  <View className="flex-row items-center flex-1">
+                  <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                     <Ionicons
                       name="folder-open-outline"
                       size={16}
                       color={theme.colors.textSecondary}
                     />
                     <Text
-                      className="text-[14px] font-semibold ml-2 mr-2 flex-1"
-                      style={{ color: theme.colors.textPrimary }}
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "600",
+                        marginLeft: 8,
+                        marginRight: 8,
+                        flex: 1,
+                        color: theme.colors.textPrimary,
+                      }}
                       numberOfLines={1}
                     >
                       {projectData.projectName}
@@ -290,16 +313,17 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                   </View>
 
                   <View
-                    className="px-2 py-1 rounded-lg"
                     style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
                       backgroundColor: theme.colors.backgroundTertiary,
                       borderWidth: 1,
                       borderColor: theme.colors.borderSubtle,
                     }}
                   >
                     <Text
-                      className="text-[11px] font-semibold"
-                      style={{ color: theme.colors.textSecondary }}
+                      style={{ fontSize: 11, fontWeight: "600", color: theme.colors.textSecondary }}
                     >
                       {projectData.assignments.length} active
                     </Text>
@@ -345,18 +369,27 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                             ];
                           }}
                         >
-                          <View className="flex-row items-center justify-between">
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                             <Text
-                              className="text-[15px] font-semibold flex-1 mr-3"
-                              style={{ color: theme.colors.textPrimary }}
+                              style={{
+                                fontSize: 15,
+                                fontWeight: "600",
+                                flex: 1,
+                                marginRight: 12,
+                                color: theme.colors.textPrimary,
+                              }}
                               numberOfLines={1}
                             >
                               {assignment.policyName}
                             </Text>
 
                             <View
-                              className="px-2.5 py-1 rounded-full flex-row items-center"
                               style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 4,
+                                borderRadius: 9999,
+                                flexDirection: "row",
+                                alignItems: "center",
                                 backgroundColor: badge.background,
                               }}
                             >
@@ -366,38 +399,48 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                                 color={badge.color}
                               />
                               <Text
-                                className="text-[11px] font-semibold ml-1"
-                                style={{ color: badge.color }}
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: "600",
+                                  marginLeft: 4,
+                                  color: badge.color,
+                                }}
                               >
                                 {badge.label}
                               </Text>
                             </View>
                           </View>
 
-                          <View className="mt-2">
-                            <View className="flex-row items-center">
+                          <View style={{ marginTop: 8 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
                               <Ionicons
                                 name="git-branch-outline"
                                 size={13}
                                 color={theme.colors.textTertiary}
                               />
                               <Text
-                                className="text-[12px] ml-1.5"
-                                style={{ color: theme.colors.textSecondary }}
+                                style={{
+                                  fontSize: 12,
+                                  marginLeft: 6,
+                                  color: theme.colors.textSecondary,
+                                }}
                                 numberOfLines={1}
                               >
                                 Rule: {assignment.escalationRuleName}
                               </Text>
                             </View>
-                            <View className="flex-row items-center mt-1">
+                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
                               <Ionicons
                                 name="information-circle-outline"
                                 size={13}
                                 color={theme.colors.textTertiary}
                               />
                               <Text
-                                className="text-[12px] ml-1.5"
-                                style={{ color: theme.colors.textSecondary }}
+                                style={{
+                                  fontSize: 12,
+                                  marginLeft: 6,
+                                  color: theme.colors.textSecondary,
+                                }}
                                 numberOfLines={1}
                               >
                                 {assignment.assignmentDetail}

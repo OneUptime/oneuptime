@@ -76,8 +76,8 @@ function StatCard({
         }}
       />
       <View
-        className="p-4"
         style={{
+          padding: 16,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
@@ -89,10 +89,16 @@ function StatCard({
           elevation: 6,
         }}
       >
-        <View className="flex-row items-center justify-between mb-3">
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <View
-            className="w-10 h-10 rounded-2xl items-center justify-center"
-            style={{ backgroundColor: accentColor + "14" }}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: accentColor + "14",
+            }}
           >
             <Ionicons name={iconName} size={18} color={accentColor} />
           </View>
@@ -103,8 +109,9 @@ function StatCard({
           />
         </View>
         <Text
-          className="text-[30px] font-bold"
           style={{
+            fontSize: 30,
+            fontWeight: "bold",
             color: theme.colors.textPrimary,
             fontVariant: ["tabular-nums"],
             letterSpacing: -1.1,
@@ -113,8 +120,10 @@ function StatCard({
           {isLoading ? "--" : count ?? 0}
         </Text>
         <Text
-          className="text-[12px] font-semibold mt-1"
           style={{
+            fontSize: 12,
+            fontWeight: "600",
+            marginTop: 4,
             color: theme.colors.textSecondary,
             letterSpacing: 0.3,
           }}
@@ -179,10 +188,15 @@ export default function HomeScreen(): React.JSX.Element {
           />
         }
       >
-        <View className="flex-1 items-center justify-center px-8">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <View
-            className="w-20 h-20 rounded-2xl items-center justify-center mb-6"
             style={{
+              width: 80,
+              height: 80,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 24,
               backgroundColor: "#000000",
               borderWidth: 1,
               borderColor: "#1F1F1F",
@@ -192,8 +206,10 @@ export default function HomeScreen(): React.JSX.Element {
           </View>
 
           <Text
-            className="text-[22px] font-bold text-center"
             style={{
+              fontSize: 22,
+              fontWeight: "bold",
+              textAlign: "center",
               color: theme.colors.textPrimary,
               letterSpacing: -0.5,
             }}
@@ -201,14 +217,20 @@ export default function HomeScreen(): React.JSX.Element {
             No Projects Found
           </Text>
           <Text
-            className="text-[15px] text-center mt-2 leading-[22px] max-w-[300px]"
-            style={{ color: theme.colors.textSecondary }}
+            style={{
+              fontSize: 15,
+              textAlign: "center",
+              marginTop: 8,
+              lineHeight: 22,
+              maxWidth: 300,
+              color: theme.colors.textSecondary,
+            }}
           >
             You don&apos;t have access to any projects. Contact your
             administrator or pull to refresh.
           </Text>
 
-          <View className="mt-8 w-[200px]">
+          <View style={{ marginTop: 32, width: 200 }}>
             <GradientButton
               label="Retry"
               onPress={refreshProjects}
@@ -223,8 +245,7 @@ export default function HomeScreen(): React.JSX.Element {
   if (isLoadingProjects) {
     return (
       <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.backgroundPrimary }}
       >
         <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
       </View>
@@ -248,10 +269,12 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      <View className="px-5 pt-4 pb-4">
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
         <View
-          className="rounded-3xl overflow-hidden p-5"
           style={{
+            borderRadius: 24,
+            overflow: "hidden",
+            padding: 20,
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
@@ -278,10 +301,15 @@ export default function HomeScreen(): React.JSX.Element {
             }}
           />
 
-          <View className="flex-row items-center">
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <View
-              className="w-12 h-12 rounded-2xl items-center justify-center mr-3"
               style={{
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 12,
                 backgroundColor: "#000000",
                 borderWidth: 1,
                 borderColor: "#1F1F1F",
@@ -289,19 +317,21 @@ export default function HomeScreen(): React.JSX.Element {
             >
               <Logo size={44} />
             </View>
-            <View className="flex-1">
+            <View style={{ flex: 1 }}>
               <Text
-                className="text-[13px] font-medium"
                 style={{
+                  fontSize: 13,
+                  fontWeight: "500",
                   color: theme.colors.textSecondary,
                 }}
               >
                 {getGreeting()}
               </Text>
               <Text
-                className="text-[24px] font-bold"
                 accessibilityRole="header"
                 style={{
+                  fontSize: 24,
+                  fontWeight: "bold",
                   color: theme.colors.textPrimary,
                   letterSpacing: -0.6,
                 }}
@@ -312,17 +342,17 @@ export default function HomeScreen(): React.JSX.Element {
             </View>
           </View>
 
-          <View className="mt-4">
+          <View style={{ marginTop: 16 }}>
             <View>
               <Text
-                className="text-[12px]"
-                style={{ color: theme.colors.textTertiary }}
+                style={{ fontSize: 12, color: theme.colors.textTertiary }}
               >
                 Total active items
               </Text>
               <Text
-                className="text-[30px] font-bold"
                 style={{
+                  fontSize: 30,
+                  fontWeight: "bold",
                   color: theme.colors.textPrimary,
                   fontVariant: ["tabular-nums"],
                   letterSpacing: -1,
@@ -341,8 +371,11 @@ export default function HomeScreen(): React.JSX.Element {
       <View style={{ paddingHorizontal: 20, gap: 16 }}>
         <View>
           <Text
-            className="text-[12px] font-semibold uppercase mb-2"
             style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
               color: theme.colors.textSecondary,
               letterSpacing: 1,
             }}
@@ -391,11 +424,18 @@ export default function HomeScreen(): React.JSX.Element {
               }}
             />
 
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                 <View
-                  className="w-10 h-10 rounded-2xl items-center justify-center mr-3"
-                  style={{ backgroundColor: theme.colors.oncallActiveBg }}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 12,
+                    backgroundColor: theme.colors.oncallActiveBg,
+                  }}
                 >
                   <Ionicons
                     name="call-outline"
@@ -403,16 +443,14 @@ export default function HomeScreen(): React.JSX.Element {
                     color={theme.colors.oncallActive}
                   />
                 </View>
-                <View className="flex-1">
+                <View style={{ flex: 1 }}>
                   <Text
-                    className="text-[15px] font-bold"
-                    style={{ color: theme.colors.textPrimary }}
+                    style={{ fontSize: 15, fontWeight: "bold", color: theme.colors.textPrimary }}
                   >
                     My On-Call Policies
                   </Text>
                   <Text
-                    className="text-[12px] mt-0.5"
-                    style={{ color: theme.colors.textSecondary }}
+                    style={{ fontSize: 12, marginTop: 2, color: theme.colors.textSecondary }}
                   >
                     {onCallLoading
                       ? "Loading assignments..."
@@ -423,10 +461,11 @@ export default function HomeScreen(): React.JSX.Element {
                 </View>
               </View>
 
-              <View className="items-end ml-3">
+              <View style={{ alignItems: "flex-end", marginLeft: 12 }}>
                 <Text
-                  className="text-[28px] font-bold"
                   style={{
+                    fontSize: 28,
+                    fontWeight: "bold",
                     color: theme.colors.textPrimary,
                     fontVariant: ["tabular-nums"],
                     letterSpacing: -1,
@@ -446,8 +485,11 @@ export default function HomeScreen(): React.JSX.Element {
 
         <View>
           <Text
-            className="text-[12px] font-semibold uppercase mb-2"
             style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
               color: theme.colors.textSecondary,
               letterSpacing: 1,
             }}
@@ -484,8 +526,11 @@ export default function HomeScreen(): React.JSX.Element {
 
         <View>
           <Text
-            className="text-[12px] font-semibold uppercase mb-2"
             style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
               color: theme.colors.textSecondary,
               letterSpacing: 1,
             }}

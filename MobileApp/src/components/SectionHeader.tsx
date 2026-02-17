@@ -14,10 +14,21 @@ export default function SectionHeader({
 }: SectionHeaderProps): React.JSX.Element {
   const { theme } = useTheme();
   return (
-    <View className="flex-row items-center mb-3.5">
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 14,
+      }}
+    >
       <View
-        className="w-6 h-6 rounded-lg items-center justify-center mr-2"
         style={{
+          width: 24,
+          height: 24,
+          borderRadius: 8,
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: 8,
           backgroundColor: theme.colors.iconBackground,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
@@ -30,8 +41,10 @@ export default function SectionHeader({
         />
       </View>
       <Text
-        className="text-[12px] font-semibold uppercase"
         style={{
+          fontSize: 12,
+          fontWeight: "600",
+          textTransform: "uppercase",
           color: theme.colors.textSecondary,
           letterSpacing: 1,
         }}

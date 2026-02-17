@@ -59,8 +59,10 @@ export default function SkeletonCard({
   if (variant === "compact") {
     return (
       <Animated.View
-        className="rounded-2xl mb-3 overflow-hidden"
         style={{
+          borderRadius: 16,
+          marginBottom: 12,
+          overflow: "hidden",
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
@@ -75,20 +77,40 @@ export default function SkeletonCard({
             backgroundColor: theme.colors.backgroundTertiary,
           }}
         />
-        <View className="p-4">
-          <View className="flex-row justify-between items-center mb-2.5">
+        <View style={{ padding: 16 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
             <View
-              className="h-4 w-14 rounded"
-              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              style={{
+                height: 16,
+                width: 56,
+                borderRadius: 4,
+                backgroundColor: theme.colors.backgroundTertiary,
+              }}
             />
             <View
-              className="h-3 w-8 rounded"
-              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              style={{
+                height: 12,
+                width: 32,
+                borderRadius: 4,
+                backgroundColor: theme.colors.backgroundTertiary,
+              }}
             />
           </View>
           <View
-            className="h-[18px] rounded w-3/4 mb-3"
-            style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            style={{
+              height: 18,
+              borderRadius: 4,
+              width: "75%",
+              marginBottom: 12,
+              backgroundColor: theme.colors.backgroundTertiary,
+            }}
           />
         </View>
       </Animated.View>
@@ -98,14 +120,15 @@ export default function SkeletonCard({
   if (variant === "detail") {
     return (
       <Animated.View
-        className="p-5"
-        style={{ opacity }}
+        style={{ padding: 20, opacity }}
         accessibilityLabel="Loading content"
         accessibilityRole="progressbar"
       >
         <View
-          className="rounded-2xl overflow-hidden mb-5"
           style={{
+            borderRadius: 16,
+            overflow: "hidden",
+            marginBottom: 20,
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
@@ -117,30 +140,49 @@ export default function SkeletonCard({
               backgroundColor: theme.colors.backgroundTertiary,
             }}
           />
-          <View className="p-5">
+          <View style={{ padding: 20 }}>
             <View
-              className="h-4 w-16 rounded mb-3"
-              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              style={{
+                height: 16,
+                width: 64,
+                borderRadius: 4,
+                marginBottom: 12,
+                backgroundColor: theme.colors.backgroundTertiary,
+              }}
             />
             <View
-              className="h-7 w-4/5 rounded mb-3"
-              style={{ backgroundColor: theme.colors.backgroundTertiary }}
+              style={{
+                height: 28,
+                width: "80%",
+                borderRadius: 4,
+                marginBottom: 12,
+                backgroundColor: theme.colors.backgroundTertiary,
+              }}
             />
-            <View className="flex-row gap-2">
+            <View style={{ flexDirection: "row", gap: 8 }}>
               <View
-                className="h-6 w-20 rounded-md"
-                style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                style={{
+                  height: 24,
+                  width: 80,
+                  borderRadius: 6,
+                  backgroundColor: theme.colors.backgroundTertiary,
+                }}
               />
               <View
-                className="h-6 w-14 rounded-md"
-                style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                style={{
+                  height: 24,
+                  width: 56,
+                  borderRadius: 6,
+                  backgroundColor: theme.colors.backgroundTertiary,
+                }}
               />
             </View>
           </View>
         </View>
         <View
-          className="rounded-xl overflow-hidden"
           style={{
+            borderRadius: 12,
+            overflow: "hidden",
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
@@ -148,17 +190,29 @@ export default function SkeletonCard({
             borderLeftColor: theme.colors.backgroundTertiary,
           }}
         >
-          <View className="p-4">
+          <View style={{ padding: 16 }}>
             {Array.from({ length: 3 }).map((_: unknown, index: number) => {
               return (
-                <View key={index} className="flex-row mb-3">
+                <View
+                  key={index}
+                  style={{ flexDirection: "row", marginBottom: 12 }}
+                >
                   <View
-                    className="h-3.5 w-20 rounded mr-4"
-                    style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                    style={{
+                      height: 14,
+                      width: 80,
+                      borderRadius: 4,
+                      marginRight: 16,
+                      backgroundColor: theme.colors.backgroundTertiary,
+                    }}
                   />
                   <View
-                    className="h-3.5 w-[120px] rounded"
-                    style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                    style={{
+                      height: 14,
+                      width: 120,
+                      borderRadius: 4,
+                      backgroundColor: theme.colors.backgroundTertiary,
+                    }}
                   />
                 </View>
               );
@@ -171,8 +225,10 @@ export default function SkeletonCard({
 
   return (
     <Animated.View
-      className="rounded-2xl mb-3 overflow-hidden"
       style={{
+        borderRadius: 16,
+        marginBottom: 12,
+        overflow: "hidden",
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
         borderColor: theme.colors.borderGlass,
@@ -187,29 +243,63 @@ export default function SkeletonCard({
           backgroundColor: theme.colors.backgroundTertiary,
         }}
       />
-      <View className="p-4">
-        <View className="flex-row justify-between items-center mb-3">
+      <View style={{ padding: 16 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+        >
           <View
-            className="h-3.5 w-14 rounded"
-            style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            style={{
+              height: 14,
+              width: 56,
+              borderRadius: 4,
+              backgroundColor: theme.colors.backgroundTertiary,
+            }}
           />
           <View
-            className="h-3 w-10 rounded"
-            style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            style={{
+              height: 12,
+              width: 40,
+              borderRadius: 4,
+              backgroundColor: theme.colors.backgroundTertiary,
+            }}
           />
         </View>
         <View
-          className="h-[18px] rounded w-[70%] mb-3"
-          style={{ backgroundColor: theme.colors.backgroundTertiary }}
+          style={{
+            height: 18,
+            borderRadius: 4,
+            width: "70%",
+            marginBottom: 12,
+            backgroundColor: theme.colors.backgroundTertiary,
+          }}
         />
-        <View className="flex-row gap-2 mb-3">
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 8,
+            marginBottom: 12,
+          }}
+        >
           <View
-            className="h-6 w-20 rounded-md"
-            style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            style={{
+              height: 24,
+              width: 80,
+              borderRadius: 6,
+              backgroundColor: theme.colors.backgroundTertiary,
+            }}
           />
           <View
-            className="h-6 w-14 rounded-md"
-            style={{ backgroundColor: theme.colors.backgroundTertiary }}
+            style={{
+              height: 24,
+              width: 56,
+              borderRadius: 6,
+              backgroundColor: theme.colors.backgroundTertiary,
+            }}
           />
         </View>
         {Array.from({ length: Math.max(lines - 1, 1) }).map(
@@ -217,8 +307,10 @@ export default function SkeletonCard({
             return (
               <View
                 key={index}
-                className="h-3 rounded mb-2"
                 style={{
+                  height: 12,
+                  borderRadius: 4,
+                  marginBottom: 8,
                   width: lineWidths[index % lineWidths.length],
                   backgroundColor: theme.colors.backgroundTertiary,
                 }}

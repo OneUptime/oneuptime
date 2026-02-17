@@ -49,13 +49,19 @@ export default function AddNoteModal({
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
-        className="flex-1 justify-end"
-        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        style={{
+          flex: 1,
+          justifyContent: "flex-end",
+          backgroundColor: "rgba(0,0,0,0.5)",
+        }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View
-          className="rounded-t-3xl p-5 pb-9"
           style={{
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 20,
+            paddingBottom: 36,
             backgroundColor: theme.isDark
               ? theme.colors.backgroundElevated
               : theme.colors.backgroundPrimary,
@@ -64,17 +70,34 @@ export default function AddNoteModal({
             borderColor: theme.colors.borderGlass,
           }}
         >
-          <View className="items-center pt-1 pb-5">
+          <View
+            style={{ alignItems: "center", paddingTop: 4, paddingBottom: 20 }}
+          >
             <View
-              className="w-9 h-1 rounded-full"
-              style={{ backgroundColor: theme.colors.borderDefault }}
+              style={{
+                width: 36,
+                height: 4,
+                borderRadius: 9999,
+                backgroundColor: theme.colors.borderDefault,
+              }}
             />
           </View>
 
-          <View className="flex-row items-center mb-5">
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 20,
+            }}
+          >
             <View
-              className="w-8 h-8 rounded-lg items-center justify-center mr-3"
               style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 12,
                 backgroundColor: theme.colors.iconBackground,
               }}
             >
@@ -85,8 +108,9 @@ export default function AddNoteModal({
               />
             </View>
             <Text
-              className="text-[18px] font-bold"
               style={{
+                fontSize: 18,
+                fontWeight: "bold",
                 color: theme.colors.textPrimary,
                 letterSpacing: -0.3,
               }}
@@ -96,8 +120,11 @@ export default function AddNoteModal({
           </View>
 
           <TextInput
-            className="min-h-[120px] rounded-xl p-4 text-[15px]"
             style={{
+              minHeight: 120,
+              borderRadius: 12,
+              padding: 16,
+              fontSize: 15,
               backgroundColor: theme.colors.backgroundSecondary,
               borderWidth: 1,
               borderColor: theme.colors.borderDefault,
@@ -112,7 +139,9 @@ export default function AddNoteModal({
             editable={!isSubmitting}
           />
 
-          <View className="flex-row gap-3 mt-5">
+          <View
+            style={{ flexDirection: "row", gap: 12, marginTop: 20 }}
+          >
             <Pressable
               style={({ pressed }: { pressed: boolean }) => {
                 return {
@@ -131,14 +160,17 @@ export default function AddNoteModal({
               disabled={isSubmitting}
             >
               <Text
-                className="text-[15px] font-semibold"
-                style={{ color: theme.colors.textSecondary }}
+                style={{
+                  fontSize: 15,
+                  fontWeight: "600",
+                  color: theme.colors.textSecondary,
+                }}
               >
                 Cancel
               </Text>
             </Pressable>
 
-            <View className="flex-1">
+            <View style={{ flex: 1 }}>
               <GradientButton
                 label="Submit"
                 onPress={handleSubmit}

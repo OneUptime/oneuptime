@@ -27,12 +27,15 @@ function TabIcon({
   accentColor: string;
 }): React.JSX.Element {
   return (
-    <View className="items-center justify-center">
+    <View style={{ alignItems: "center", justifyContent: "center" }}>
       <Ionicons name={focused ? focusedName : name} size={22} color={color} />
       {focused ? (
         <View
-          className="w-1 h-1 rounded-full mt-0.5"
           style={{
+            width: 4,
+            height: 4,
+            borderRadius: 9999,
+            marginTop: 2,
             backgroundColor: accentColor,
           }}
         />
