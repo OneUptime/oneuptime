@@ -131,7 +131,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 56 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -281,8 +281,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
               >
                 <View
                   style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 14,
+                    paddingHorizontal: 20,
+                    paddingVertical: 16,
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -354,8 +354,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                           style={({ pressed }: { pressed: boolean }) => {
                             return [
                               {
-                                paddingHorizontal: 16,
-                                paddingVertical: 14,
+                                paddingHorizontal: 20,
+                                paddingVertical: 16,
                                 opacity: pressed ? 0.82 : 1,
                               },
                               assignmentIndex !==
