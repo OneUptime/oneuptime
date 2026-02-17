@@ -4,10 +4,8 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
 import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
@@ -33,8 +31,8 @@ function getAssignmentBadge(
     successBg: string;
     info: string;
     infoBg: string;
-    warning: string;
-    warningBg: string;
+    purple: string;
+    purpleBg: string;
   },
 ): AssignmentBadgeConfig {
   switch (type) {
@@ -54,10 +52,10 @@ function getAssignmentBadge(
       };
     case "schedule":
       return {
-        icon: "time-outline",
+        icon: "calendar-outline",
         label: "Schedule",
-        color: colors.warning,
-        background: colors.warningBg,
+        color: colors.purple,
+        background: colors.purpleBg,
       };
   }
 }
@@ -315,8 +313,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                           successBg: theme.colors.oncallActiveBg,
                           info: theme.colors.severityInfo,
                           infoBg: theme.colors.severityInfoBg,
-                          warning: theme.colors.severityWarning,
-                          warningBg: theme.colors.severityWarningBg,
+                          purple: "#A855F7",
+                          purpleBg: "rgba(168, 85, 247, 0.12)",
                         },
                       );
 
