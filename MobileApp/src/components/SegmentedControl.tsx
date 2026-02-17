@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useTheme } from "../theme";
 
 interface Segment<T extends string> {
@@ -25,46 +25,42 @@ export default function SegmentedControl<T extends string>({
 
   return (
     <View
-      className="flex-row mx-4 mt-3 mb-2 rounded-2xl p-1.5"
       style={{
+        flexDirection: "row",
+        marginHorizontal: 16,
+        marginTop: 12,
+        marginBottom: 8,
+        borderRadius: 16,
+        padding: 6,
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
         borderColor: theme.colors.borderGlass,
       }}
     >
-      {segments.map((segment: Segment<T>) => {
+      {segments.map((segment: Segment<T>, index: number) => {
         const isActive: boolean = segment.key === selected;
         return (
-          <Pressable
+          <TouchableOpacity
             key={segment.key}
-            style={({ pressed }: { pressed: boolean }) => {
-              return [
-                {
-                  flex: 1,
-                  alignItems: "center" as const,
-                  paddingVertical: 10,
-                  borderRadius: 12,
-                  opacity: pressed ? 0.7 : 1,
-                },
-                isActive
-                  ? {
-                      backgroundColor: theme.colors.actionPrimary,
-                      shadowColor: theme.colors.actionPrimary,
-                      shadowOpacity: theme.isDark ? 0.28 : 0.18,
-                      shadowOffset: { width: 0, height: 5 },
-                      shadowRadius: 10,
-                      elevation: 4,
-                    }
-                  : undefined,
-              ];
-            }}
+            activeOpacity={0.7}
             onPress={() => {
               return onSelect(segment.key);
             }}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              paddingVertical: 10,
+              borderRadius: 12,
+              marginLeft: index > 0 ? 4 : 0,
+              backgroundColor: isActive
+                ? theme.colors.actionPrimary
+                : "transparent",
+            }}
           >
             <Text
-              className="text-body-sm font-semibold"
               style={{
+                fontSize: 14,
+                fontWeight: "600",
                 color: isActive
                   ? activeContentColor
                   : theme.colors.textSecondary,
@@ -73,7 +69,7 @@ export default function SegmentedControl<T extends string>({
             >
               {segment.label}
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         );
       })}
     </View>

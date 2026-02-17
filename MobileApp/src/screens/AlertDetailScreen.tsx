@@ -373,93 +373,107 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
               borderColor: theme.colors.borderGlass,
             }}
           >
-            <View className="flex-row gap-3">
+            <View style={{ flexDirection: "row" }}>
               {!isAcknowledged && !isResolved && acknowledgeState ? (
-                <Pressable
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 48,
-                    overflow: "hidden",
-                    backgroundColor: theme.colors.stateAcknowledged,
-                  }}
-                  onPress={() => {
-                    return handleStateChange(
-                      acknowledgeState._id,
-                      acknowledgeState.name,
-                    );
-                  }}
-                  disabled={changingState}
-                  accessibilityRole="button"
-                  accessibilityLabel="Acknowledge alert"
-                >
-                  {changingState ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="checkmark-circle-outline"
-                        size={17}
-                        color="#FFFFFF"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text
-                        className="text-[14px] font-bold"
-                        style={{ color: "#FFFFFF" }}
-                      >
-                        Acknowledge
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
+                <View style={{ flex: 1 }}>
+                  <Pressable
+                    style={{
+                      flexDirection: "row",
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 48,
+                      backgroundColor: theme.colors.stateAcknowledged,
+                    }}
+                    onPress={() => {
+                      return handleStateChange(
+                        acknowledgeState._id,
+                        acknowledgeState.name,
+                      );
+                    }}
+                    disabled={changingState}
+                    accessibilityRole="button"
+                    accessibilityLabel="Acknowledge alert"
+                  >
+                    {changingState ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="checkmark-circle-outline"
+                          size={17}
+                          color="#FFFFFF"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "bold",
+                            color: "#FFFFFF",
+                          }}
+                        >
+                          Acknowledge
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
               ) : null}
 
               {resolveState ? (
-                <Pressable
+                <View
                   style={{
                     flex: 1,
-                    flexDirection: "row",
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 48,
-                    overflow: "hidden",
-                    backgroundColor: theme.colors.stateResolved,
+                    marginLeft:
+                      !isAcknowledged && !isResolved && acknowledgeState
+                        ? 12
+                        : 0,
                   }}
-                  onPress={() => {
-                    return handleStateChange(
-                      resolveState._id,
-                      resolveState.name,
-                    );
-                  }}
-                  disabled={changingState}
-                  accessibilityRole="button"
-                  accessibilityLabel="Resolve alert"
                 >
-                  {changingState ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="checkmark-done-outline"
-                        size={17}
-                        color="#FFFFFF"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text
-                        className="text-[14px] font-bold"
-                        style={{ color: "#FFFFFF" }}
-                      >
-                        Resolve
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
+                  <Pressable
+                    style={{
+                      flexDirection: "row",
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 48,
+                      backgroundColor: theme.colors.stateResolved,
+                    }}
+                    onPress={() => {
+                      return handleStateChange(
+                        resolveState._id,
+                        resolveState.name,
+                      );
+                    }}
+                    disabled={changingState}
+                    accessibilityRole="button"
+                    accessibilityLabel="Resolve alert"
+                  >
+                    {changingState ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="checkmark-done-outline"
+                          size={17}
+                          color="#FFFFFF"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "bold",
+                            color: "#FFFFFF",
+                          }}
+                        >
+                          Resolve
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
               ) : null}
             </View>
           </View>
