@@ -241,82 +241,78 @@ export default function SettingsScreen(): React.JSX.Element {
           className="text-[12px] font-semibold uppercase mb-2 ml-1"
           style={{ color: theme.colors.textTertiary, letterSpacing: 0.8 }}
         >
-          Appearance
+          Appearance (Theme)
         </Text>
         <View
-          className="rounded-2xl overflow-hidden"
           style={{
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
+            borderRadius: 16,
+            padding: 5,
+            flexDirection: "row",
           }}
         >
-          <View
-            style={{
-              padding: 4,
-              flexDirection: "row",
-            }}
-          >
-            {(["dark", "light", "system"] as ThemeMode[]).map(
-              (mode: ThemeMode, index: number) => {
-                const isActive: boolean = themeMode === mode;
-                return (
-                  <Pressable
-                    key={mode}
-                    style={({ pressed }: { pressed: boolean }) => {
-                      return {
-                        flex: 1,
-                        alignItems: "center" as const,
-                        justifyContent: "center" as const,
-                        paddingVertical: 10,
-                        borderRadius: 10,
-                        opacity: pressed ? 0.7 : 1,
-                        marginLeft: index > 0 ? 4 : 0,
-                        backgroundColor: isActive
-                          ? theme.colors.actionPrimary
-                          : theme.isDark
-                            ? "rgba(255, 255, 255, 0.06)"
-                            : "rgba(0, 0, 0, 0.04)",
-                        elevation: isActive ? 3 : 0,
-                      };
-                    }}
-                    onPress={() => {
-                      return handleThemeChange(mode);
+          {(["dark", "light", "system"] as ThemeMode[]).map(
+            (mode: ThemeMode, index: number) => {
+              const isActive: boolean = themeMode === mode;
+              return (
+                <Pressable
+                  key={mode}
+                  onPress={() => {
+                    return handleThemeChange(mode);
+                  }}
+                  style={({ pressed }: { pressed: boolean }) => {
+                    return {
+                      flex: 1,
+                      alignItems: "center" as const,
+                      justifyContent: "center" as const,
+                      paddingVertical: 12,
+                      paddingHorizontal: 4,
+                      borderRadius: 12,
+                      opacity: pressed ? 0.7 : 1,
+                      marginLeft: index > 0 ? 5 : 0,
+                      backgroundColor: isActive
+                        ? theme.colors.actionPrimary
+                        : theme.isDark
+                          ? "rgba(255, 255, 255, 0.08)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      elevation: isActive ? 4 : 0,
+                    };
+                  }}
+                >
+                  <Ionicons
+                    name={
+                      mode === "dark"
+                        ? "moon-outline"
+                        : mode === "light"
+                          ? "sunny-outline"
+                          : "phone-portrait-outline"
+                    }
+                    size={18}
+                    color={
+                      isActive
+                        ? activeThemeOptionColor
+                        : theme.colors.textSecondary
+                    }
+                  />
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "600",
+                      marginTop: 6,
+                      color: isActive
+                        ? activeThemeOptionColor
+                        : theme.colors.textPrimary,
                     }}
                   >
-                    <Ionicons
-                      name={
-                        mode === "dark"
-                          ? "moon-outline"
-                          : mode === "light"
-                            ? "sunny-outline"
-                            : "phone-portrait-outline"
-                      }
-                      size={16}
-                      color={
-                        isActive
-                          ? activeThemeOptionColor
-                          : theme.colors.textSecondary
-                      }
-                    />
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontSize: 11,
-                        fontWeight: "600",
-                        marginTop: 4,
-                        color: isActive
-                          ? activeThemeOptionColor
-                          : theme.colors.textPrimary,
-                      }}
-                    >
-                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                    </Text>
-                  </Pressable>
-                );
-              },
-            )}
-          </View>
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </Text>
+                </Pressable>
+              );
+            },
+          )}
         </View>
       </View>
 

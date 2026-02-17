@@ -27,6 +27,8 @@ import UserSettingsSlackIntegration from "../Pages/UserSettings/SlackIntegration
 
 import UserSettingsIncomingCallPhoneNumbers from "../Pages/UserSettings/IncomingCallPhoneNumbers";
 
+import UserSettingsCalendarConnections from "../Pages/UserSettings/CalendarConnections";
+
 const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -221,6 +223,23 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_CALENDAR_CONNECTIONS
+            ] || ""
+          }
+          element={
+            <UserSettingsCalendarConnections
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.USER_SETTINGS_CALENDAR_CONNECTIONS
                 ] as Route
               }
             />

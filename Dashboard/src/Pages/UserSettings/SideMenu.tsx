@@ -155,6 +155,22 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
     {
+      title: "Calendar Connections",
+      items: [
+        {
+          link: {
+            title: "Calendar Connections",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.USER_SETTINGS_CALENDAR_CONNECTIONS
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Calendar,
+        },
+      ],
+    },
+    {
       title: "Profile",
       items: [
         {

@@ -399,6 +399,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
     "incoming-call-phone-numbers",
+  [PageMap.USER_SETTINGS_CALENDAR_CONNECTIONS]: "calendar-connections",
 };
 
 const RouteMap: Dictionary<Route> = {
@@ -2072,6 +2073,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]
+    }`,
+  ),
+
+  [PageMap.USER_SETTINGS_CALENDAR_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_CALENDAR_CONNECTIONS]
     }`,
   ),
 
