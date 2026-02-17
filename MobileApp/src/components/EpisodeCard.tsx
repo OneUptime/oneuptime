@@ -61,10 +61,10 @@ export default function EpisodeCard(
   );
 
   return (
+    <View style={{ marginBottom: 12 }}>
     <Pressable
       style={({ pressed }: { pressed: boolean }) => {
         return {
-          marginBottom: 12,
           opacity: pressed ? 0.7 : muted ? 0.5 : 1,
         };
       }}
@@ -297,5 +297,6 @@ export default function EpisodeCard(
         </View>
       </View>
     </Pressable>
+    </View>
   );
 }
