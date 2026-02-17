@@ -9,7 +9,7 @@ import { useHaptics } from "../hooks/useHaptics";
 import { getServerUrl } from "../storage/serverUrl";
 import Logo from "../components/Logo";
 
-const APP_VERSION: string = "1.0.0";
+const APP_VERSION: string = "1.0.0"; // v1
 
 interface SettingsRowProps {
   label: string;
@@ -251,74 +251,71 @@ export default function SettingsScreen(): React.JSX.Element {
             borderColor: theme.colors.borderGlass,
           }}
         >
-          <View className="p-1.5">
-            <View className="flex-row rounded-xl gap-1">
-              {(["dark", "light", "system"] as ThemeMode[]).map(
-                (mode: ThemeMode) => {
-                  const isActive: boolean = themeMode === mode;
-                  return (
-                    <Pressable
-                      key={mode}
-                      style={({ pressed }: { pressed: boolean }) => {
-                        return [
-                          {
-                            flex: 1,
-                            flexDirection: "row" as const,
-                            alignItems: "center" as const,
-                            justifyContent: "center" as const,
-                            paddingVertical: 10,
-                            borderRadius: 10,
-                            gap: 6,
-                            overflow: "hidden" as const,
-                            opacity: pressed ? 0.7 : 1,
-                          },
-                          isActive
-                            ? {
-                                backgroundColor: theme.colors.actionPrimary,
-                                shadowColor: theme.colors.actionPrimary,
-                                shadowOpacity: 0.3,
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowRadius: 6,
-                                elevation: 3,
-                              }
-                            : undefined,
-                        ];
-                      }}
-                      onPress={() => {
-                        return handleThemeChange(mode);
+          <View
+            style={{
+              padding: 4,
+              flexDirection: "row",
+            }}
+          >
+            {(["dark", "light", "system"] as ThemeMode[]).map(
+              (mode: ThemeMode, index: number) => {
+                const isActive: boolean = themeMode === mode;
+                return (
+                  <Pressable
+                    key={mode}
+                    style={({ pressed }: { pressed: boolean }) => {
+                      return {
+                        flex: 1,
+                        alignItems: "center" as const,
+                        justifyContent: "center" as const,
+                        paddingVertical: 10,
+                        borderRadius: 10,
+                        opacity: pressed ? 0.7 : 1,
+                        marginLeft: index > 0 ? 4 : 0,
+                        backgroundColor: isActive
+                          ? theme.colors.actionPrimary
+                          : theme.isDark
+                            ? "rgba(255, 255, 255, 0.06)"
+                            : "rgba(0, 0, 0, 0.04)",
+                        elevation: isActive ? 3 : 0,
+                      };
+                    }}
+                    onPress={() => {
+                      return handleThemeChange(mode);
+                    }}
+                  >
+                    <Ionicons
+                      name={
+                        mode === "dark"
+                          ? "moon-outline"
+                          : mode === "light"
+                            ? "sunny-outline"
+                            : "phone-portrait-outline"
+                      }
+                      size={16}
+                      color={
+                        isActive
+                          ? activeThemeOptionColor
+                          : theme.colors.textSecondary
+                      }
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "600",
+                        marginTop: 4,
+                        color: isActive
+                          ? activeThemeOptionColor
+                          : theme.colors.textPrimary,
                       }}
                     >
-                      <Ionicons
-                        name={
-                          mode === "dark"
-                            ? "moon-outline"
-                            : mode === "light"
-                              ? "sunny-outline"
-                              : "phone-portrait-outline"
-                        }
-                        size={15}
-                        color={
-                          isActive
-                            ? activeThemeOptionColor
-                            : theme.colors.textSecondary
-                        }
-                      />
-                      <Text
-                        className="text-[13px] font-semibold"
-                        style={{
-                          color: isActive
-                            ? activeThemeOptionColor
-                            : theme.colors.textPrimary,
-                          letterSpacing: 0.2,
-                        }}
-                      >
-                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                      </Text>
-                    </Pressable>
-                  );
-                },
-              )}
-            </View>
+                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                    </Text>
+                  </Pressable>
+                );
+              },
+            )}
           </View>
         </View>
       </View>

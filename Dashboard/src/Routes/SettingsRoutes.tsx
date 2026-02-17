@@ -58,6 +58,7 @@ import SettingsMicrosoftTeamsIntegration from "../Pages/Settings/MicrosoftTeamsI
 import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
 
 import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
+import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -372,6 +373,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsAIBilling
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_AI_BILLING] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AUDIT_LOGS)}
+          element={
+            <SettingsAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route}
             />
           }
         />

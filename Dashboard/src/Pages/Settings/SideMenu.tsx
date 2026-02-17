@@ -201,6 +201,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Flag,
         },
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.Activity,
+        },
       ],
     },
     {
