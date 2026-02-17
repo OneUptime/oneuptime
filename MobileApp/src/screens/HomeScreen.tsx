@@ -387,27 +387,22 @@ export default function HomeScreen(): React.JSX.Element {
               lightImpact();
               navigation.navigate("OnCall");
             }}
-            style={({ pressed }: { pressed: boolean }) => {
-              return {
+            style={({ pressed }: { pressed: boolean }) => ({
+              opacity: pressed ? 0.8 : 1,
+            })}
+            accessibilityRole="button"
+            accessibilityLabel="View my on-call assignments"
+          >
+            <View
+              style={{
                 borderRadius: 24,
-                overflow: "hidden" as const,
+                overflow: "hidden",
                 padding: 16,
                 backgroundColor: theme.colors.backgroundElevated,
                 borderWidth: 1,
                 borderColor: theme.colors.borderGlass,
-                shadowColor: theme.isDark
-                  ? "#000"
-                  : theme.colors.accentGradientMid,
-                shadowOpacity: theme.isDark ? 0.24 : 0.09,
-                shadowOffset: { width: 0, height: 8 },
-                shadowRadius: 14,
-                elevation: 5,
-                opacity: pressed ? 0.8 : 1,
-              };
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="View my on-call assignments"
-          >
+              }}
+            >
             <LinearGradient
               colors={[
                 theme.colors.oncallActiveBg,
@@ -417,10 +412,10 @@ export default function HomeScreen(): React.JSX.Element {
               end={{ x: 1, y: 1 }}
               style={{
                 position: "absolute",
-                top: -20,
-                left: -10,
-                right: -10,
-                height: 120,
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 100,
               }}
             />
 
@@ -479,6 +474,7 @@ export default function HomeScreen(): React.JSX.Element {
                   color={theme.colors.textTertiary}
                 />
               </View>
+            </View>
             </View>
           </Pressable>
         </View>
