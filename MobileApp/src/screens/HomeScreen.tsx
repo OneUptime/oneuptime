@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Pressable,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -48,18 +49,15 @@ function StatCard({
   };
 
   return (
-    <Pressable
-      style={({ pressed }: { pressed: boolean }) => {
-        return {
-          flex: 1,
-          borderRadius: 24,
-          overflow: "hidden" as const,
-          opacity: pressed ? 0.7 : 1,
-        };
-      }}
+    <TouchableOpacity
+      activeOpacity={0.7}
       onPress={handlePress}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
+      style={{
+        borderRadius: 24,
+        overflow: "hidden",
+      }}
     >
       <LinearGradient
         colors={[
@@ -125,7 +123,7 @@ function StatCard({
           {label}
         </Text>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -340,7 +338,7 @@ export default function HomeScreen(): React.JSX.Element {
         </View>
       </View>
 
-      <View className="gap-4 px-5">
+      <View style={{ paddingHorizontal: 20, gap: 16 }}>
         <View>
           <Text
             className="text-[12px] font-semibold uppercase mb-2"
@@ -456,27 +454,31 @@ export default function HomeScreen(): React.JSX.Element {
           >
             Incidents
           </Text>
-          <View className="flex-row gap-3">
-            <StatCard
-              count={incidentCount}
-              label="Active Incidents"
-              accentColor={theme.colors.severityCritical}
-              iconName="warning-outline"
-              isLoading={anyLoading}
-              onPress={() => {
-                return navigation.navigate("Incidents");
-              }}
-            />
-            <StatCard
-              count={incidentEpisodeCount}
-              label="Inc. Episodes"
-              accentColor={theme.colors.severityInfo}
-              iconName="layers-outline"
-              isLoading={anyLoading}
-              onPress={() => {
-                return navigation.navigate("Incidents");
-              }}
-            />
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1 }}>
+              <StatCard
+                count={incidentCount}
+                label="Active Incidents"
+                accentColor={theme.colors.severityCritical}
+                iconName="warning-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Incidents");
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <StatCard
+                count={incidentEpisodeCount}
+                label="Inc. Episodes"
+                accentColor={theme.colors.severityInfo}
+                iconName="layers-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Incidents");
+                }}
+              />
+            </View>
           </View>
         </View>
 
@@ -490,27 +492,31 @@ export default function HomeScreen(): React.JSX.Element {
           >
             Alerts
           </Text>
-          <View className="flex-row gap-3">
-            <StatCard
-              count={alertCount}
-              label="Active Alerts"
-              accentColor={theme.colors.severityMajor}
-              iconName="alert-circle-outline"
-              isLoading={anyLoading}
-              onPress={() => {
-                return navigation.navigate("Alerts");
-              }}
-            />
-            <StatCard
-              count={alertEpisodeCount}
-              label="Alert Episodes"
-              accentColor={theme.colors.severityWarning}
-              iconName="layers-outline"
-              isLoading={anyLoading}
-              onPress={() => {
-                return navigation.navigate("Alerts");
-              }}
-            />
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1 }}>
+              <StatCard
+                count={alertCount}
+                label="Active Alerts"
+                accentColor={theme.colors.severityMajor}
+                iconName="alert-circle-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Alerts");
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <StatCard
+                count={alertEpisodeCount}
+                label="Alert Episodes"
+                accentColor={theme.colors.severityWarning}
+                iconName="layers-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Alerts");
+                }}
+              />
+            </View>
           </View>
         </View>
       </View>
