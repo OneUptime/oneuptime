@@ -143,34 +143,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
       <View
         style={{
           borderRadius: 24,
-          overflow: "hidden",
           padding: 20,
           marginBottom: 20,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
-          shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
-          shadowOpacity: theme.isDark ? 0.32 : 0.1,
-          shadowOffset: { width: 0, height: 10 },
-          shadowRadius: 18,
-          elevation: 7,
         }}
       >
-        <LinearGradient
-          colors={[
-            theme.colors.oncallActiveBg,
-            theme.colors.accentGradientEnd + "08",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: -70,
-            left: -30,
-            right: -20,
-            height: 220,
-          }}
-        />
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
@@ -270,13 +249,6 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
-                  shadowColor: theme.isDark
-                    ? "#000"
-                    : theme.colors.accentGradientMid,
-                  shadowOpacity: theme.isDark ? 0.2 : 0.08,
-                  shadowOffset: { width: 0, height: 6 },
-                  shadowRadius: 14,
-                  elevation: 4,
                 }}
               >
                 <View
@@ -349,24 +321,19 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                       );
 
                       return (
-                        <Pressable
+                        <View
                           key={`${assignment.projectId}-${assignment.policyId ?? assignmentIndex}`}
-                          style={({ pressed }: { pressed: boolean }) => {
-                            return [
-                              {
-                                paddingHorizontal: 20,
-                                paddingVertical: 16,
-                                opacity: pressed ? 0.82 : 1,
-                              },
-                              assignmentIndex !==
-                              projectData.assignments.length - 1
-                                ? {
-                                    borderBottomWidth: 1,
-                                    borderBottomColor:
-                                      theme.colors.borderSubtle,
-                                  }
-                                : undefined,
-                            ];
+                          style={{
+                            paddingHorizontal: 20,
+                            paddingVertical: 16,
+                            ...(assignmentIndex !==
+                            projectData.assignments.length - 1
+                              ? {
+                                  borderBottomWidth: 1,
+                                  borderBottomColor:
+                                    theme.colors.borderSubtle,
+                                }
+                              : {}),
                           }}
                         >
                           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -447,7 +414,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                               </Text>
                             </View>
                           </View>
-                        </Pressable>
+                        </View>
                       );
                     },
                   )}
