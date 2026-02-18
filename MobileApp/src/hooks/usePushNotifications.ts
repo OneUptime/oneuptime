@@ -15,6 +15,7 @@ import { registerPushDevice } from "../api/pushDevice";
 import { useAuth } from "./useAuth";
 import { useProject } from "./useProject";
 import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
+import logger from "../utils/logger";
 
 const RETRY_DELAY_MS: number = 5000;
 const MAX_RETRIES: number = 3;
@@ -58,7 +59,7 @@ export function usePushNotifications(navigationRef: unknown): void {
         if (!token && !cancelled) {
           attempt++;
           if (attempt < MAX_RETRIES) {
-            console.warn(
+            logger.warn(
               `[PushNotifications] Push token not available, retrying in ${RETRY_DELAY_MS}ms (attempt ${attempt}/${MAX_RETRIES})`,
             );
             await new Promise<void>((resolve: () => void): void => {
@@ -70,7 +71,7 @@ export function usePushNotifications(navigationRef: unknown): void {
 
       if (!token || cancelled) {
         if (!token) {
-          console.warn(
+          logger.warn(
             "[PushNotifications] Could not obtain push token after all retries — device will not be registered",
           );
         }
@@ -90,7 +91,7 @@ export function usePushNotifications(navigationRef: unknown): void {
             projectId: project._id,
           });
         } catch (error: unknown) {
-          console.warn(
+          logger.warn(
             `[PushNotifications] Failed to register device for project ${project._id}:`,
             error,
           );
@@ -99,7 +100,7 @@ export function usePushNotifications(navigationRef: unknown): void {
     };
 
     register().catch((error: unknown): void => {
-      console.error(
+      logger.error(
         "[PushNotifications] Unexpected error during push registration:",
         error,
       );

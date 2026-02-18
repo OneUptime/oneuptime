@@ -4,6 +4,7 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { PermissionStatus } from "expo-modules-core";
+import logger from "../utils/logger";
 
 // Show notifications when app is in foreground
 Notifications.setNotificationHandler({
@@ -80,7 +81,7 @@ export async function setupNotificationCategories(): Promise<void> {
 
 export async function requestPermissionsAndGetToken(): Promise<string | null> {
   if (!Device.isDevice) {
-    console.warn(
+    logger.warn(
       "[PushNotifications] Not a physical device — skipping push token registration",
     );
     return null;
@@ -95,7 +96,7 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
   }
 
   if (finalStatus !== "granted") {
-    console.warn(
+    logger.warn(
       "[PushNotifications] Push notification permission not granted:",
       finalStatus,
     );
@@ -107,7 +108,7 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
     Constants.easConfig?.projectId;
 
   if (!projectId) {
-    console.warn(
+    logger.warn(
       "[PushNotifications] EAS project ID not found — cannot register for push notifications",
     );
     return null;
@@ -120,7 +121,7 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
 
     return tokenData.data;
   } catch (error: unknown) {
-    console.error("[PushNotifications] Failed to get push token:", error);
+    logger.error("[PushNotifications] Failed to get push token:", error);
     return null;
   }
 }
