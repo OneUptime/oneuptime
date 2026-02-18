@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "OneUptime",
-    "slug": "oneuptime",
+    "slug": "oneuptime-on-call",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -29,7 +29,11 @@
         "backgroundColor": "#0D1117"
       },
       "edgeToEdgeEnabled": false,
-      "package": "com.oneuptime.oncall"
+      "package": "com.oneuptime.oncall",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "plugins": [
       [
@@ -43,6 +47,12 @@
     ],
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d9f87edc-1c3e-466f-b032-1ced7621aa8a"
+      }
+    },
+    "owner": "oneuptime"
   }
 }
