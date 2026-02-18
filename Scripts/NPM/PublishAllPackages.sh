@@ -51,5 +51,22 @@ publish_to_npm() {
 # Publish Common first - other packages depend on it
 publish_to_npm "Common"
 
+# Wait for @oneuptime/common to be available on the npm registry.
+# There is a propagation delay after publishing, so we poll until
+# the version resolves (up to ~5 minutes).
+echo "Waiting for @oneuptime/common@$package_version to be available on npm..."
+max_attempts=30
+attempt=0
+until npm view "@oneuptime/common@$package_version" version 2>/dev/null; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge "$max_attempts" ]; then
+        echo "Timed out waiting for @oneuptime/common@$package_version to appear on npm"
+        exit 1
+    fi
+    echo "Attempt $attempt/$max_attempts - not available yet, retrying in 10s..."
+    sleep 10
+done
+echo "@oneuptime/common@$package_version is now available on npm"
+
 # Publish packages that depend on Common (after Common is available on npm)
 publish_to_npm "CLI"
