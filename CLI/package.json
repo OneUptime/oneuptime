@@ -18,7 +18,7 @@
         "dev": "npx nodemon",
         "audit": "npm audit --audit-level=low",
         "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-        "test": "jest --passWithNoTests",
+        "test": "jest --passWithNoTests --runInBand",
         "link": "npm link"
     },
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

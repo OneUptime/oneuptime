@@ -23,10 +23,7 @@ export class Reference {
   public derefInto(): unknown {
     return {};
   }
-  public applySync(
-    _receiver: unknown,
-    _args: unknown[],
-  ): unknown {
+  public applySync(_receiver: unknown, _args: unknown[]): unknown {
     return undefined;
   }
   public applySyncPromise(
@@ -38,11 +35,11 @@ export class Reference {
 }
 
 export class Callback {
-  constructor(_fn: (...args: unknown[]) => void) {}
+  public constructor(_fn: (...args: unknown[]) => void) {}
 }
 
 export class ExternalCopy {
-  constructor(_value: unknown) {}
+  public constructor(_value: unknown) {}
   public copyInto(): unknown {
     return {};
   }

@@ -1,6 +1,5 @@
 import { Command } from "commander";
 import { ResourceInfo } from "../Types/CLITypes";
-import * as ConfigManager from "../Core/ConfigManager";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -177,11 +176,12 @@ describe("ResourceCommands", () => {
     }
 
     beforeEach(() => {
-      ConfigManager.addContext({
-        name: "test",
-        apiUrl: "https://test.oneuptime.com",
-        apiKey: "test-key-12345",
-      });
+      /*
+       * Use env vars for credentials instead of config file to avoid
+       * race conditions with other test files that share ~/.oneuptime/config.json
+       */
+      process.env["ONEUPTIME_API_KEY"] = "test-key-12345";
+      process.env["ONEUPTIME_URL"] = "https://test.oneuptime.com";
       mockExecuteApiRequest.mockResolvedValue({ data: [] });
     });
 
@@ -540,7 +540,8 @@ describe("ResourceCommands", () => {
 
     describe("credential resolution in commands", () => {
       it("should use global --api-key and --url flags", async () => {
-        ConfigManager.removeContext("test");
+        delete process.env["ONEUPTIME_API_KEY"];
+        delete process.env["ONEUPTIME_URL"];
         mockExecuteApiRequest.mockResolvedValue({ data: [] });
 
         const program: Command = createProgramWithResources();
