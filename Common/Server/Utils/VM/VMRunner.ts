@@ -189,9 +189,16 @@ export default class VMRunner {
         }
       `);
 
-      // Wrap user code in async IIFE and evaluate
+      // Wrap user code in async IIFE. JSON.stringify the return value inside
+      // the isolate so only a plain string crosses the boundary — this avoids
+      // "A non-transferable value was passed" errors when user code returns
+      // objects containing functions, class instances, or other non-cloneable types.
       const wrappedCode: string = `(async () => {
-        ${code}
+        const __result = await (async () => {
+          ${code}
+        })();
+        try { return JSON.stringify(__result); }
+        catch(_) { return undefined; }
       })()`;
 
       // Run with overall timeout covering both CPU and I/O wait
@@ -211,19 +218,19 @@ export default class VMRunner {
         },
       );
 
-      let returnValue: unknown;
-
       const result: unknown = await Promise.race([
         resultPromise,
         overallTimeout,
       ]);
 
-      // If the result is an ivm.Reference or ExternalCopy, extract the value
-      if (result && typeof result === "object" && "copy" in result) {
+      // Parse the JSON string returned from inside the isolate
+      let returnValue: unknown;
+
+      if (typeof result === "string") {
         try {
-          returnValue = (result as ivm.Reference<unknown>).copy();
+          returnValue = JSON.parse(result);
         } catch {
-          returnValue = undefined;
+          returnValue = result;
         }
       } else {
         returnValue = result;
