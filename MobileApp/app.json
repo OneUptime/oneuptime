@@ -38,6 +38,14 @@
     },
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0D1117",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      [
         "expo-notifications",
         {
           "color": "#58A6FF"
