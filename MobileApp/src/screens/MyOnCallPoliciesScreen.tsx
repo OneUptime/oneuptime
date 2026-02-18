@@ -340,7 +340,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
 
                       return (
                         <View
-                          key={`${assignment.projectId}-${assignment.policyId ?? assignmentIndex}`}
+                          key={`${assignment.projectId}-${assignment.policyId ?? "unknown"}-${assignmentIndex}`}
                           style={{
                             paddingHorizontal: 20,
                             paddingVertical: 16,
