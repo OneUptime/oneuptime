@@ -8,8 +8,11 @@
     },
     "main": "./build/dist/Index.js",
     "bin": {
-        "oneuptime": "./build/dist/Index.js"
+        "oneuptime": "build/dist/Index.js"
     },
+    "files": [
+        "build/dist/**/*"
+    ],
     "scripts": {
         "start": "node --require ts-node/register Index.ts",
         "build": "npm run compile",

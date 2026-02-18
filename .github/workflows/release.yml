@@ -1461,6 +1461,8 @@ jobs:
         run: npm run prerun
       - name: Publish NPM Packages
         run: bash ./Scripts/NPM/PublishAllPackages.sh
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
   
   docs-docker-image-deploy:
