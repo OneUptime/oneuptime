@@ -1,7 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import { RegisterProbeKey } from "Common/Server/EnvironmentConfig";
 import ProbeService from "Common/Server/Services/ProbeService";
 import Express, {
   ExpressRequest,
@@ -19,7 +19,6 @@ const router: ExpressRouter = Express.getRouter();
 // Register Global Probe. Custom Probe can be registered via dashboard.
 router.post(
   "/register",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -27,6 +26,23 @@ router.post(
   ): Promise<void> => {
     try {
       const data: JSONObject = req.body;
+
+      const registerProbeKey: string | undefined = data[
+        "registerProbeKey"
+      ] as string;
+
+      if (
+        !registerProbeKey ||
+        registerProbeKey !== RegisterProbeKey.toString()
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "Invalid or missing registerProbeKey. Please check REGISTER_PROBE_KEY environment variable.",
+          ),
+        );
+      }
 
       if (!data["probeKey"]) {
         return Response.sendErrorResponse(

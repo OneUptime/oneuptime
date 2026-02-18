@@ -161,6 +161,14 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
 
+export const RegisterProbeKey: ObjectID = new ObjectID(
+  process.env["REGISTER_PROBE_KEY"] || "secret",
+);
+
+export const HasRegisterProbeKey: boolean = Boolean(
+  process.env["REGISTER_PROBE_KEY"],
+);
+
 export const AppApiHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_APP_HOSTNAME"] || "localhost"}:${
     process.env["APP_PORT"] || 80

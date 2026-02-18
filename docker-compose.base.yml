@@ -400,7 +400,7 @@ services:
         network_mode: host
         environment:
             ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
-            ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
             PROBE_NAME: ${GLOBAL_PROBE_1_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
@@ -424,7 +424,7 @@ services:
         network_mode: host
         environment:
             ONEUPTIME_URL: ${GLOBAL_PROBE_2_ONEUPTIME_URL}
-            ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
             PROBE_NAME: ${GLOBAL_PROBE_2_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
@@ -515,6 +515,7 @@ services:
             PORT: ${PROBE_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE_INGEST}
             PROBE_INGEST_CONCURRENCY: ${PROBE_INGEST_CONCURRENCY}
+            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
         logging:
             driver: "local"
             options:

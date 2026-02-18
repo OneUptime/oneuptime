@@ -198,6 +198,18 @@ Usage:
   {{- end }}
 {{- end }}
 
+{{- define "oneuptime.env.registerProbeKey" }}
+- name: REGISTER_PROBE_KEY
+  {{- if $.Values.registerProbeKey }}
+  value: {{ $.Values.registerProbeKey }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
+      key: register-probe-key
+  {{- end }}
+{{- end }}
+
 {{- define "oneuptime.env.runtime" }}
 
 - name: VAPID_PRIVATE_KEY
