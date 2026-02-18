@@ -35,6 +35,9 @@
     "oneuptimeSecret": {
       "type": ["string", "null"]
     },
+    "registerProbeKey": {
+      "type": ["string", "null"]
+    },
     "encryptionSecret": {
       "type": ["string", "null"]
     },
