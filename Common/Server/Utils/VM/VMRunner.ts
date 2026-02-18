@@ -53,9 +53,11 @@ export default class VMRunner {
         await context.eval("const args = {};");
       }
 
-      // http / https - provide Agent constructors that serialize across the boundary.
-      // The sandbox Agent is a plain object with a marker; the host-side axios bridge
-      // reconstructs the real Node.js Agent before making the request.
+      /*
+       * http / https - provide Agent constructors that serialize across the boundary.
+       * The sandbox Agent is a plain object with a marker; the host-side axios bridge
+       * reconstructs the real Node.js Agent before making the request.
+       */
       await context.eval(`
         const https = {
           Agent: class Agent {
@@ -90,8 +92,9 @@ export default class VMRunner {
 
           // Reconstruct real http/https Agents from serialized markers
           if (parsed) {
-            const httpsAgentConfig: JSONObject | undefined =
-              parsed["httpsAgent"] as JSONObject | undefined;
+            const httpsAgentConfig: JSONObject | undefined = parsed[
+              "httpsAgent"
+            ] as JSONObject | undefined;
 
             if (
               httpsAgentConfig &&
@@ -102,8 +105,9 @@ export default class VMRunner {
               ) as unknown as JSONObject;
             }
 
-            const httpAgentConfig: JSONObject | undefined =
-              parsed["httpAgent"] as JSONObject | undefined;
+            const httpAgentConfig: JSONObject | undefined = parsed[
+              "httpAgent"
+            ] as JSONObject | undefined;
 
             if (
               httpAgentConfig &&
