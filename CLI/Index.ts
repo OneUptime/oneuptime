@@ -1,4 +1,4 @@
-#!/usr/bin/env npx ts-node
+#!/usr/bin/env node
 
 import { Command } from "commander";
 import { registerConfigCommands } from "./Commands/ConfigCommands";

@@ -6,9 +6,9 @@
         "type": "git",
         "url": "https://github.com/OneUptime/oneuptime"
     },
-    "main": "Index.ts",
+    "main": "./build/dist/Index.js",
     "bin": {
-        "oneuptime": "./Index.ts"
+        "oneuptime": "./build/dist/Index.js"
     },
     "scripts": {
         "start": "node --require ts-node/register Index.ts",

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Set the package name and version
 package_version=$PACKAGE_VERSION
