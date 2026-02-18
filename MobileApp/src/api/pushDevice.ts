@@ -20,11 +20,29 @@ export async function registerPushDevice(params: {
       deviceName: Device.modelName || "Unknown Device",
       projectId: params.projectId,
     });
-  } catch (error: any) {
+    console.info(
+      `[PushNotifications] Device registered successfully for project ${params.projectId}`,
+    );
+  } catch (error: unknown) {
+    const status: number | undefined = (
+      error as { response?: { status?: number } }
+    )?.response?.status;
+    const message: string =
+      (error as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message || String(error);
+
     // Treat "already registered" as success
-    if (error?.response?.status === 400) {
+    if (status === 400 && message.includes("already registered")) {
+      console.info(
+        `[PushNotifications] Device already registered for project ${params.projectId}`,
+      );
       return;
     }
+
+    // Log and re-throw other errors
+    console.error(
+      `[PushNotifications] Registration failed (status=${status}): ${message}`,
+    );
     throw error;
   }
 }

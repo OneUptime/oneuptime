@@ -78,9 +78,12 @@ export default class UserPushAPI extends BaseAPI<
           });
 
           if (existingDevice) {
-            // Mark as used and return a specific response indicating device was already registered
-            throw new BadDataException(
-              "This device is already registered for push notifications",
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This device is already registered for push notifications",
+              ),
             );
           }
 

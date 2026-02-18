@@ -80,6 +80,9 @@ export async function setupNotificationCategories(): Promise<void> {
 
 export async function requestPermissionsAndGetToken(): Promise<string | null> {
   if (!Device.isDevice) {
+    console.warn(
+      "[PushNotifications] Not a physical device — skipping push token registration",
+    );
     return null;
   }
 
@@ -92,6 +95,10 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
   }
 
   if (finalStatus !== "granted") {
+    console.warn(
+      "[PushNotifications] Push notification permission not granted:",
+      finalStatus,
+    );
     return null;
   }
 
@@ -100,12 +107,21 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
     Constants.easConfig?.projectId;
 
   if (!projectId) {
+    console.warn(
+      "[PushNotifications] EAS project ID not found — cannot register for push notifications",
+    );
     return null;
   }
 
-  const tokenData: ExpoPushToken = await Notifications.getExpoPushTokenAsync({
-    projectId,
-  });
+  try {
+    const tokenData: ExpoPushToken =
+      await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
 
-  return tokenData.data;
+    return tokenData.data;
+  } catch (error: unknown) {
+    console.error("[PushNotifications] Failed to get push token:", error);
+    return null;
+  }
 }

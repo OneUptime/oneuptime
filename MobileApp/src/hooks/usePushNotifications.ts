@@ -16,6 +16,9 @@ import { useAuth } from "./useAuth";
 import { useProject } from "./useProject";
 import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
 
+const RETRY_DELAY_MS: number = 5000;
+const MAX_RETRIES: number = 3;
+
 export function usePushNotifications(navigationRef: unknown): void {
   const { isAuthenticated }: { isAuthenticated: boolean } = useAuth();
   const { projectList }: { projectList: Array<{ _id: string }> } = useProject();
@@ -46,8 +49,31 @@ export function usePushNotifications(navigationRef: unknown): void {
     let cancelled: boolean = false;
 
     const register: () => Promise<void> = async (): Promise<void> => {
-      const token: string | null = await requestPermissionsAndGetToken();
+      let token: string | null = null;
+      let attempt: number = 0;
+
+      // Retry obtaining the push token
+      while (!token && attempt < MAX_RETRIES && !cancelled) {
+        token = await requestPermissionsAndGetToken();
+        if (!token && !cancelled) {
+          attempt++;
+          if (attempt < MAX_RETRIES) {
+            console.warn(
+              `[PushNotifications] Push token not available, retrying in ${RETRY_DELAY_MS}ms (attempt ${attempt}/${MAX_RETRIES})`,
+            );
+            await new Promise<void>((resolve: () => void): void => {
+              setTimeout(resolve, RETRY_DELAY_MS);
+            });
+          }
+        }
+      }
+
       if (!token || cancelled) {
+        if (!token) {
+          console.warn(
+            "[PushNotifications] Could not obtain push token after all retries — device will not be registered",
+          );
+        }
         return;
       }
 
@@ -63,13 +89,21 @@ export function usePushNotifications(navigationRef: unknown): void {
             deviceToken: token,
             projectId: project._id,
           });
-        } catch {
-          // Continue registering with other projects
+        } catch (error: unknown) {
+          console.warn(
+            `[PushNotifications] Failed to register device for project ${project._id}:`,
+            error,
+          );
         }
       }
     };
 
-    register();
+    register().catch((error: unknown): void => {
+      console.error(
+        "[PushNotifications] Unexpected error during push registration:",
+        error,
+      );
+    });
 
     return (): void => {
       cancelled = true;
