@@ -2,6 +2,7 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import UserSMSService, {
   Service as UserSMSServiceType,
 } from "../Services/UserSmsService";
+import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -9,8 +10,10 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import logger from "../Utils/Logger";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 
 export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
@@ -48,6 +51,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
             },
             select: {
               userId: true,
+              projectId: true,
               verificationCode: true,
             },
           });
@@ -90,6 +94,21 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
               isVerified: true,
             },
           });
+
+          // Create default notification rules for this verified SMS
+          try {
+            await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+              {
+                projectId: new ObjectID(item.projectId!.toString()),
+                userId: new ObjectID(item.userId!.toString()),
+                notificationMethod: {
+                  userSmsId: item.id!,
+                },
+              },
+            );
+          } catch (e) {
+            logger.error(e);
+          }
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {

@@ -2,6 +2,7 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import UserEmailService, {
   Service as UserEmailServiceType,
 } from "../Services/UserEmailService";
+import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -9,8 +10,10 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import logger from "../Utils/Logger";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 
 export default class UserEmailAPI extends BaseAPI<
@@ -51,6 +54,7 @@ export default class UserEmailAPI extends BaseAPI<
             },
             select: {
               userId: true,
+              projectId: true,
               verificationCode: true,
             },
           });
@@ -93,6 +97,21 @@ export default class UserEmailAPI extends BaseAPI<
               isVerified: true,
             },
           });
+
+          // Create default notification rules for this verified email
+          try {
+            await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+              {
+                projectId: new ObjectID(item.projectId!.toString()),
+                userId: new ObjectID(item.userId!.toString()),
+                notificationMethod: {
+                  userEmailId: item.id!,
+                },
+              },
+            );
+          } catch (e) {
+            logger.error(e);
+          }
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {

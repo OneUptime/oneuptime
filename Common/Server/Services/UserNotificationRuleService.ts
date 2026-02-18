@@ -69,6 +69,14 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+export interface NotificationMethodDescriptor {
+  userEmailId?: ObjectID;
+  userSmsId?: ObjectID;
+  userCallId?: ObjectID;
+  userWhatsAppId?: ObjectID;
+  userPushId?: ObjectID;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -2207,13 +2215,89 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  public async addDefaultIncidentNotificationRuleForUser(data: {
+  public async addDefaultNotificationRulesForVerifiedMethod(data: {
     projectId: ObjectID;
     userId: ObjectID;
-    userEmail: UserEmail;
+    notificationMethod: NotificationMethodDescriptor;
   }): Promise<void> {
-    const { projectId, userId, userEmail } = data;
+    const { projectId, userId, notificationMethod } = data;
 
+    await this.createIncidentOnCallRules(projectId, userId, notificationMethod);
+    await this.createAlertOnCallRules(projectId, userId, notificationMethod);
+    await this.createSingleRule(
+      projectId,
+      userId,
+      notificationMethod,
+      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+    );
+    await this.createSingleRule(
+      projectId,
+      userId,
+      notificationMethod,
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+    );
+    await this.createSingleRule(
+      projectId,
+      userId,
+      notificationMethod,
+      NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+    );
+    await this.createSingleRule(
+      projectId,
+      userId,
+      notificationMethod,
+      NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
+    );
+  }
+
+  private applyNotificationMethod(
+    rule: Model,
+    descriptor: NotificationMethodDescriptor,
+  ): void {
+    if (descriptor.userEmailId) {
+      rule.userEmailId = descriptor.userEmailId;
+    }
+    if (descriptor.userSmsId) {
+      rule.userSmsId = descriptor.userSmsId;
+    }
+    if (descriptor.userCallId) {
+      rule.userCallId = descriptor.userCallId;
+    }
+    if (descriptor.userWhatsAppId) {
+      rule.userWhatsAppId = descriptor.userWhatsAppId;
+    }
+    if (descriptor.userPushId) {
+      rule.userPushId = descriptor.userPushId;
+    }
+  }
+
+  private getNotificationMethodQuery(
+    descriptor: NotificationMethodDescriptor,
+  ): Record<string, ObjectID> {
+    const query: Record<string, ObjectID> = {};
+    if (descriptor.userEmailId) {
+      query["userEmailId"] = descriptor.userEmailId;
+    }
+    if (descriptor.userSmsId) {
+      query["userSmsId"] = descriptor.userSmsId;
+    }
+    if (descriptor.userCallId) {
+      query["userCallId"] = descriptor.userCallId;
+    }
+    if (descriptor.userWhatsAppId) {
+      query["userWhatsAppId"] = descriptor.userWhatsAppId;
+    }
+    if (descriptor.userPushId) {
+      query["userPushId"] = descriptor.userPushId;
+    }
+    return query;
+  }
+
+  private async createIncidentOnCallRules(
+    projectId: ObjectID,
+    userId: ObjectID,
+    notificationMethod: NotificationMethodDescriptor,
+  ): Promise<void> {
     const incidentSeverities: Array<IncidentSeverity> =
       await IncidentSeverityService.findBy({
         query: {
@@ -2229,38 +2313,34 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    // create for incident severities.
     for (const incidentSeverity of incidentSeverities) {
-      //check if this rule already exists.
       const existingRule: Model | null = await this.findOneBy({
         query: {
           projectId,
           userId,
-          userEmailId: userEmail.id!,
+          ...this.getNotificationMethodQuery(notificationMethod),
           incidentSeverityId: incidentSeverity.id!,
           ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-        },
+        } as any,
         props: {
           isRoot: true,
         },
       });
 
       if (existingRule) {
-        continue; // skip this rule.
+        continue;
       }
 
-      const notificationRule: Model = new Model();
-
-      notificationRule.projectId = projectId;
-      notificationRule.userId = userId;
-      notificationRule.userEmailId = userEmail.id!;
-      notificationRule.incidentSeverityId = incidentSeverity.id!;
-      notificationRule.notifyAfterMinutes = 0;
-      notificationRule.ruleType =
-        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
+      const rule: Model = new Model();
+      rule.projectId = projectId;
+      rule.userId = userId;
+      this.applyNotificationMethod(rule, notificationMethod);
+      rule.incidentSeverityId = incidentSeverity.id!;
+      rule.notifyAfterMinutes = 0;
+      rule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
 
       await this.create({
-        data: notificationRule,
+        data: rule,
         props: {
           isRoot: true,
         },
@@ -2268,14 +2348,11 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  @CaptureSpan()
-  public async addDefaultAlertNotificationRulesForUser(data: {
-    projectId: ObjectID;
-    userId: ObjectID;
-    userEmail: UserEmail;
-  }): Promise<void> {
-    const { projectId, userId, userEmail } = data;
-
+  private async createAlertOnCallRules(
+    projectId: ObjectID,
+    userId: ObjectID,
+    notificationMethod: NotificationMethodDescriptor,
+  ): Promise<void> {
     const alertSeverities: Array<AlertSeverity> =
       await AlertSeverityService.findBy({
         query: {
@@ -2291,42 +2368,76 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    // create for Alert severities.
     for (const alertSeverity of alertSeverities) {
-      //check if this rule already exists.
       const existingRule: Model | null = await this.findOneBy({
         query: {
           projectId,
           userId,
-          userEmailId: userEmail.id!,
+          ...this.getNotificationMethodQuery(notificationMethod),
           alertSeverityId: alertSeverity.id!,
           ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-        },
+        } as any,
         props: {
           isRoot: true,
         },
       });
 
       if (existingRule) {
-        continue; // skip this rule.
+        continue;
       }
 
-      const notificationRule: Model = new Model();
-
-      notificationRule.projectId = projectId;
-      notificationRule.userId = userId;
-      notificationRule.userEmailId = userEmail.id!;
-      notificationRule.alertSeverityId = alertSeverity.id!;
-      notificationRule.notifyAfterMinutes = 0;
-      notificationRule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_ALERT;
+      const rule: Model = new Model();
+      rule.projectId = projectId;
+      rule.userId = userId;
+      this.applyNotificationMethod(rule, notificationMethod);
+      rule.alertSeverityId = alertSeverity.id!;
+      rule.notifyAfterMinutes = 0;
+      rule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_ALERT;
 
       await this.create({
-        data: notificationRule,
+        data: rule,
         props: {
           isRoot: true,
         },
       });
     }
+  }
+
+  private async createSingleRule(
+    projectId: ObjectID,
+    userId: ObjectID,
+    notificationMethod: NotificationMethodDescriptor,
+    ruleType: NotificationRuleType,
+  ): Promise<void> {
+    const existingRule: Model | null = await this.findOneBy({
+      query: {
+        projectId,
+        userId,
+        ...this.getNotificationMethodQuery(notificationMethod),
+        ruleType,
+      } as any,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (existingRule) {
+      return;
+    }
+
+    const rule: Model = new Model();
+    rule.projectId = projectId;
+    rule.userId = userId;
+    this.applyNotificationMethod(rule, notificationMethod);
+    rule.notifyAfterMinutes = 0;
+    rule.ruleType = ruleType;
+
+    await this.create({
+      data: rule,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()
@@ -2361,82 +2472,13 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    // add default incident rules for user
-    await this.addDefaultIncidentNotificationRuleForUser({
+    await this.addDefaultNotificationRulesForVerifiedMethod({
       projectId,
       userId,
-      userEmail,
-    });
-
-    // add default alert rules for user, just like the incident
-
-    await this.addDefaultAlertNotificationRulesForUser({
-      projectId,
-      userId,
-      userEmail,
-    });
-
-    //check if this rule already exists.
-    const existingRuleOnCall: Model | null = await this.findOneBy({
-      query: {
-        projectId,
-        userId,
+      notificationMethod: {
         userEmailId: userEmail.id!,
-        ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
-      },
-      props: {
-        isRoot: true,
       },
     });
-
-    if (!existingRuleOnCall) {
-      // on and off call.
-      const onCallRule: Model = new Model();
-
-      onCallRule.projectId = projectId;
-      onCallRule.userId = userId;
-      onCallRule.userEmailId = userEmail.id!;
-      onCallRule.notifyAfterMinutes = 0;
-      onCallRule.ruleType = NotificationRuleType.WHEN_USER_GOES_ON_CALL;
-
-      await this.create({
-        data: onCallRule,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    //check if this rule already exists.
-    const existingRuleOffCall: Model | null = await this.findOneBy({
-      query: {
-        projectId,
-        userId,
-        userEmailId: userEmail.id!,
-        ruleType: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!existingRuleOffCall) {
-      // on and off call.
-      const offCallRule: Model = new Model();
-
-      offCallRule.projectId = projectId;
-      offCallRule.userId = userId;
-      offCallRule.userEmailId = userEmail.id!;
-      offCallRule.notifyAfterMinutes = 0;
-      offCallRule.ruleType = NotificationRuleType.WHEN_USER_GOES_OFF_CALL;
-
-      await this.create({
-        data: offCallRule,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
   }
 }
 export default new Service();

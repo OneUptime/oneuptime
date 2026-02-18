@@ -2,8 +2,10 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import UserPushService, {
   Service as UserPushServiceType,
 } from "../Services/UserPushService";
+import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import PushNotificationService from "../Services/PushNotificationService";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import logger from "../Utils/Logger";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -116,6 +118,21 @@ export default class UserPushAPI extends BaseAPI<
               isRoot: true,
             },
           });
+
+          // Create default notification rules for this registered push device
+          try {
+            await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+              {
+                projectId: new ObjectID(req.body.projectId),
+                userId,
+                notificationMethod: {
+                  userPushId: savedDevice.id!,
+                },
+              },
+            );
+          } catch (e) {
+            logger.error(e);
+          }
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
@@ -294,6 +311,7 @@ export default class UserPushAPI extends BaseAPI<
             },
             select: {
               userId: true,
+              projectId: true,
             },
           });
 
@@ -315,6 +333,21 @@ export default class UserPushAPI extends BaseAPI<
           }
 
           await this.service.verifyDevice(device._id!.toString());
+
+          // Create default notification rules for this verified push device
+          try {
+            await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+              {
+                projectId: new ObjectID(device.projectId!.toString()),
+                userId,
+                notificationMethod: {
+                  userPushId: device.id!,
+                },
+              },
+            );
+          } catch (e) {
+            logger.error(e);
+          }
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (error) {
