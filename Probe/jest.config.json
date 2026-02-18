@@ -12,6 +12,10 @@
             "babelConfig": false
         }
     },
+    "moduleNameMapper": {
+        "isolated-vm": "<rootDir>/Tests/__mocks__/isolated-vm.ts",
+        "whois-json": "<rootDir>/Tests/__mocks__/whois-json.ts"
+    },
     "moduleFileExtensions": ["ts", "js", "json"],
     "transform": {
         ".(ts|tsx)": "ts-jest"
