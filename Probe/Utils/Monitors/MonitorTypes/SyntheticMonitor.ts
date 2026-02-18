@@ -21,11 +21,13 @@ interface WorkerConfig {
   browserType: BrowserType;
   screenSizeType: ScreenSizeType;
   timeout: number;
-  proxy?: {
-    server: string;
-    username?: string | undefined;
-    password?: string | undefined;
-  } | undefined;
+  proxy?:
+    | {
+        server: string;
+        username?: string | undefined;
+        password?: string | undefined;
+      }
+    | undefined;
 }
 
 interface WorkerResult {
@@ -108,9 +110,11 @@ export default class SyntheticMonitor {
   }
 
   private static getSanitizedEnv(): Record<string, string> {
-    // Only pass safe environment variables to the worker process.
-    // Explicitly exclude all secrets (DATABASE_PASSWORD, REDIS_PASSWORD,
-    // CLICKHOUSE_PASSWORD, ONEUPTIME_SECRET, ENCRYPTION_SECRET, BILLING_PRIVATE_KEY, etc.)
+    /*
+     * Only pass safe environment variables to the worker process.
+     * Explicitly exclude all secrets (DATABASE_PASSWORD, REDIS_PASSWORD,
+     * CLICKHOUSE_PASSWORD, ONEUPTIME_SECRET, ENCRYPTION_SECRET, BILLING_PRIVATE_KEY, etc.)
+     */
     const safeKeys: string[] = [
       "PATH",
       "HOME",
@@ -255,9 +259,7 @@ export default class SyntheticMonitor {
               resolved = true;
               child.kill("SIGKILL");
               reject(
-                new Error(
-                  "Synthetic monitor worker killed after timeout",
-                ),
+                new Error("Synthetic monitor worker killed after timeout"),
               );
             }
           },

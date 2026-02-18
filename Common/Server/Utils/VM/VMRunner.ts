@@ -45,10 +45,7 @@ export default class VMRunner {
 
       // args - deep copy into isolate
       if (options.args) {
-        await jail.set(
-          "_args",
-          new ivm.ExternalCopy(options.args).copyInto(),
-        );
+        await jail.set("_args", new ivm.ExternalCopy(options.args).copyInto());
         await context.eval("const args = _args;");
       } else {
         await context.eval("const args = {};");
@@ -56,11 +53,7 @@ export default class VMRunner {
 
       // axios (get, post, put, delete) - bridged via applySyncPromise
       const axiosRef: ivm.Reference<
-        (
-          method: string,
-          url: string,
-          dataOrConfig?: string,
-        ) => Promise<string>
+        (method: string, url: string, dataOrConfig?: string) => Promise<string>
       > = new ivm.Reference(
         async (
           method: string,
@@ -189,10 +182,12 @@ export default class VMRunner {
         }
       `);
 
-      // Wrap user code in async IIFE. JSON.stringify the return value inside
-      // the isolate so only a plain string crosses the boundary — this avoids
-      // "A non-transferable value was passed" errors when user code returns
-      // objects containing functions, class instances, or other non-cloneable types.
+      /*
+       * Wrap user code in async IIFE. JSON.stringify the return value inside
+       * the isolate so only a plain string crosses the boundary — this avoids
+       * "A non-transferable value was passed" errors when user code returns
+       * objects containing functions, class instances, or other non-cloneable types.
+       */
       const wrappedCode: string = `(async () => {
         const __result = await (async () => {
           ${code}
@@ -208,10 +203,7 @@ export default class VMRunner {
       });
 
       const overallTimeout: Promise<never> = new Promise(
-        (
-          _resolve: (value: never) => void,
-          reject: (reason: Error) => void,
-        ) => {
+        (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
           global.setTimeout(() => {
             reject(new Error("Script execution timed out"));
           }, timeout + 5000); // 5s grace period beyond isolate timeout

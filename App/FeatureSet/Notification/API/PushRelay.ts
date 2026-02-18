@@ -33,14 +33,17 @@ function isRateLimited(ip: string): boolean {
 }
 
 // Clean up stale rate limit entries every 5 minutes
-setInterval(() => {
-  const now: number = Date.now();
-  for (const [ip, entry] of rateLimitMap.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitMap.delete(ip);
+setInterval(
+  () => {
+    const now: number = Date.now();
+    for (const [ip, entry] of rateLimitMap.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitMap.delete(ip);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000,
+);
 
 router.post(
   "/send",

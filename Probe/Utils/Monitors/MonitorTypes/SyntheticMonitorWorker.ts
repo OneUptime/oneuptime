@@ -1,6 +1,8 @@
-// This script is executed via child_process.fork() with a sanitized environment
-// It launches Playwright, runs user code with node:vm (safe because env is stripped),
-// and sends results back via IPC.
+/*
+ * This script is executed via child_process.fork() with a sanitized environment
+ * It launches Playwright, runs user code with node:vm (safe because env is stripped),
+ * and sends results back via IPC.
+ */
 
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
@@ -14,11 +16,13 @@ interface WorkerConfig {
   browserType: BrowserType;
   screenSizeType: ScreenSizeType;
   timeout: number;
-  proxy?: {
-    server: string;
-    username?: string | undefined;
-    password?: string | undefined;
-  } | undefined;
+  proxy?:
+    | {
+        server: string;
+        username?: string | undefined;
+        password?: string | undefined;
+      }
+    | undefined;
 }
 
 interface WorkerResult {
@@ -145,8 +149,9 @@ async function getFirefoxExecutablePath(): Promise<string> {
 async function launchBrowser(
   config: WorkerConfig,
 ): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
-  const viewport: { height: number; width: number } =
-    getViewportHeightAndWidth(config.screenSizeType);
+  const viewport: { height: number; width: number } = getViewportHeightAndWidth(
+    config.screenSizeType,
+  );
 
   let proxyOptions: ProxyOptions | undefined;
 
@@ -279,9 +284,7 @@ async function run(config: WorkerConfig): Promise<WorkerResult> {
           continue;
         }
 
-        const screenshotBuffer: Buffer = screenshots[
-          screenshotName
-        ] as Buffer;
+        const screenshotBuffer: Buffer = screenshots[screenshotName] as Buffer;
         workerResult.screenshots[screenshotName] =
           screenshotBuffer.toString("base64");
       }
@@ -289,8 +292,7 @@ async function run(config: WorkerConfig): Promise<WorkerResult> {
 
     workerResult.result = returnObj["data"];
   } catch (err: unknown) {
-    workerResult.scriptError =
-      (err as Error)?.message || String(err);
+    workerResult.scriptError = (err as Error)?.message || String(err);
   } finally {
     // Close browser
     if (browser) {
@@ -299,14 +301,14 @@ async function run(config: WorkerConfig): Promise<WorkerResult> {
         for (const ctx of contexts) {
           try {
             await ctx.close();
-          } catch (_e: unknown) {
+          } catch {
             // ignore
           }
         }
         if (browser.isConnected()) {
           await browser.close();
         }
-      } catch (_e: unknown) {
+      } catch {
         // ignore cleanup errors
       }
     }
@@ -320,9 +322,11 @@ process.on("message", (config: WorkerConfig) => {
   run(config)
     .then((result: WorkerResult) => {
       if (process.send) {
-        // Wait for the IPC message to be flushed before exiting.
-        // process.send() is async — calling process.exit() immediately
-        // can kill the process before the message is delivered.
+        /*
+         * Wait for the IPC message to be flushed before exiting.
+         * process.send() is async — calling process.exit() immediately
+         * can kill the process before the message is delivered.
+         */
         process.send(result, () => {
           process.exit(0);
         });

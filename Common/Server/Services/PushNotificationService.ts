@@ -497,8 +497,7 @@ export default class PushNotificationService {
       body: data.body || "",
       data: data.data || {},
       sound: (data.sound as "default" | null) || "default",
-      priority:
-        (data.priority as "default" | "normal" | "high") || "high",
+      priority: (data.priority as "default" | "normal" | "high") || "high",
       channelId: data.channelId || "default",
     };
 

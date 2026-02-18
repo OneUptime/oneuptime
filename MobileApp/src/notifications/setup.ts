@@ -114,10 +114,9 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
   }
 
   try {
-    const tokenData: ExpoPushToken =
-      await Notifications.getExpoPushTokenAsync({
-        projectId,
-      });
+    const tokenData: ExpoPushToken = await Notifications.getExpoPushTokenAsync({
+      projectId,
+    });
 
     return tokenData.data;
   } catch (error: unknown) {
