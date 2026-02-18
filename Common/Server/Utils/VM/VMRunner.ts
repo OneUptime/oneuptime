@@ -2,6 +2,8 @@ import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import { JSONObject } from "../../../Types/JSON";
 import axios, { AxiosResponse } from "axios";
 import crypto from "crypto";
+import http from "http";
+import https from "https";
 import ivm from "isolated-vm";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -51,6 +53,28 @@ export default class VMRunner {
         await context.eval("const args = {};");
       }
 
+      // http / https - provide Agent constructors that serialize across the boundary.
+      // The sandbox Agent is a plain object with a marker; the host-side axios bridge
+      // reconstructs the real Node.js Agent before making the request.
+      await context.eval(`
+        const https = {
+          Agent: class Agent {
+            constructor(options) {
+              this.__agentType = '__https_agent__';
+              this.options = options || {};
+            }
+          }
+        };
+        const http = {
+          Agent: class Agent {
+            constructor(options) {
+              this.__agentType = '__http_agent__';
+              this.options = options || {};
+            }
+          }
+        };
+      `);
+
       // axios (get, post, put, delete) - bridged via applySyncPromise
       const axiosRef: ivm.Reference<
         (method: string, url: string, dataOrConfig?: string) => Promise<string>
@@ -63,6 +87,33 @@ export default class VMRunner {
           const parsed: JSONObject | undefined = dataOrConfig
             ? (JSON.parse(dataOrConfig) as JSONObject)
             : undefined;
+
+          // Reconstruct real http/https Agents from serialized markers
+          if (parsed) {
+            const httpsAgentConfig: JSONObject | undefined =
+              parsed["httpsAgent"] as JSONObject | undefined;
+
+            if (
+              httpsAgentConfig &&
+              httpsAgentConfig["__agentType"] === "__https_agent__"
+            ) {
+              parsed["httpsAgent"] = new https.Agent(
+                httpsAgentConfig["options"] as https.AgentOptions,
+              ) as unknown as JSONObject;
+            }
+
+            const httpAgentConfig: JSONObject | undefined =
+              parsed["httpAgent"] as JSONObject | undefined;
+
+            if (
+              httpAgentConfig &&
+              httpAgentConfig["__agentType"] === "__http_agent__"
+            ) {
+              parsed["httpAgent"] = new http.Agent(
+                httpAgentConfig["options"] as http.AgentOptions,
+              ) as unknown as JSONObject;
+            }
+          }
 
           let response: AxiosResponse;
 
