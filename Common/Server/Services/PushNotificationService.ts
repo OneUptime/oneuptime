@@ -468,6 +468,66 @@ export default class PushNotificationService {
     }
   }
 
+  public static isValidExpoPushToken(token: string): boolean {
+    return Expo.isExpoPushToken(token);
+  }
+
+  public static hasExpoAccessToken(): boolean {
+    return Boolean(ExpoAccessToken);
+  }
+
+  public static async sendRelayPushNotification(data: {
+    to: string;
+    title?: string;
+    body?: string;
+    data?: { [key: string]: string };
+    sound?: string;
+    priority?: string;
+    channelId?: string;
+  }): Promise<void> {
+    if (!ExpoAccessToken) {
+      throw new Error(
+        "Push relay is not configured. EXPO_ACCESS_TOKEN is not set on this server.",
+      );
+    }
+
+    const expoPushMessage: ExpoPushMessage = {
+      to: data.to,
+      title: data.title,
+      body: data.body,
+      data: data.data || {},
+      sound: (data.sound as "default" | null) || "default",
+      priority:
+        (data.priority as "default" | "normal" | "high") || "high",
+      channelId: data.channelId || "default",
+    };
+
+    const tickets: ExpoPushTicket[] =
+      await this.expoClient.sendPushNotificationsAsync([expoPushMessage]);
+
+    const ticket: ExpoPushTicket | undefined = tickets[0];
+
+    if (ticket && ticket.status === "error") {
+      const errorTicket: ExpoPushTicket & {
+        message?: string;
+        details?: { error?: string };
+      } = ticket as ExpoPushTicket & {
+        message?: string;
+        details?: { error?: string };
+      };
+
+      logger.error(
+        `Push relay: Expo push notification error: ${errorTicket.message}`,
+      );
+
+      throw new Error(
+        `Failed to send push notification: ${errorTicket.message}`,
+      );
+    }
+
+    logger.info(`Push relay: notification sent successfully to ${data.to}`);
+  }
+
   public static async sendPushNotificationToUser(
     userId: ObjectID,
     projectId: ObjectID,

@@ -7,9 +7,7 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
-import { ExpoAccessToken } from "Common/Server/EnvironmentConfig";
-import logger from "Common/Server/Utils/Logger";
+import PushNotificationService from "Common/Server/Services/PushNotificationService";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -44,11 +42,6 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
-// Expo client for sending push notifications (only available when EXPO_ACCESS_TOKEN is set)
-const expoClient: Expo | null = ExpoAccessToken
-  ? new Expo({ accessToken: ExpoAccessToken })
-  : null;
-
 router.post(
   "/send",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -65,7 +58,7 @@ router.post(
         return;
       }
 
-      if (!expoClient) {
+      if (!PushNotificationService.hasExpoAccessToken()) {
         throw new BadDataException(
           "Push relay is not configured. EXPO_ACCESS_TOKEN is not set on this server.",
         );
@@ -75,7 +68,7 @@ router.post(
 
       const to: string | undefined = body["to"] as string | undefined;
 
-      if (!to || !Expo.isExpoPushToken(to)) {
+      if (!to || !PushNotificationService.isValidExpoPushToken(to)) {
         throw new BadDataException(
           "Invalid or missing push token. Must be a valid Expo push token.",
         );
@@ -92,40 +85,15 @@ router.post(
         );
       }
 
-      const expoPushMessage: ExpoPushMessage = {
+      await PushNotificationService.sendRelayPushNotification({
         to: to,
         title: title,
         body: messageBody,
         data: (body["data"] as { [key: string]: string }) || {},
-        sound: (body["sound"] as "default" | null) || "default",
-        priority: (body["priority"] as "default" | "normal" | "high") || "high",
+        sound: (body["sound"] as string) || "default",
+        priority: (body["priority"] as string) || "high",
         channelId: (body["channelId"] as string) || "default",
-      };
-
-      const tickets: ExpoPushTicket[] =
-        await expoClient.sendPushNotificationsAsync([expoPushMessage]);
-
-      const ticket: ExpoPushTicket | undefined = tickets[0];
-
-      if (ticket && ticket.status === "error") {
-        const errorTicket: ExpoPushTicket & {
-          message?: string;
-          details?: { error?: string };
-        } = ticket as ExpoPushTicket & {
-          message?: string;
-          details?: { error?: string };
-        };
-
-        logger.error(
-          `Push relay: Expo push notification error: ${errorTicket.message}`,
-        );
-
-        throw new BadDataException(
-          `Failed to send push notification: ${errorTicket.message}`,
-        );
-      }
-
-      logger.info(`Push relay: notification sent successfully to ${to}`);
+      });
 
       return Response.sendJsonObjectResponse(req, res, { success: true });
     } catch (err) {

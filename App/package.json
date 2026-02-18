@@ -23,6 +23,7 @@
     "@sendgrid/mail": "^8.1.0",
     "Common": "file:../Common",
     "ejs": "^3.1.9",
+    "expo-server-sdk": "^5.0.0",
     "handlebars": "^4.7.8",
     "nodemailer": "^6.9.7",
     "ts-node": "^10.9.1",
