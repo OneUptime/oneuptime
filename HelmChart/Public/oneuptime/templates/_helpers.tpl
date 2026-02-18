@@ -198,10 +198,28 @@ Usage:
   {{- end }}
 {{- end }}
 
+{{- define "oneuptime.env.registerProbeKey" }}
+- name: REGISTER_PROBE_KEY
+  {{- if $.Values.registerProbeKey }}
+  value: {{ $.Values.registerProbeKey }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
+      key: register-probe-key
+  {{- end }}
+{{- end }}
+
 {{- define "oneuptime.env.runtime" }}
 
 - name: VAPID_PRIVATE_KEY
   value: {{ $.Values.vapid.privateKey }}
+
+- name: EXPO_ACCESS_TOKEN
+  value: {{ default "" $.Values.expo.accessToken | quote }}
+
+- name: PUSH_NOTIFICATION_RELAY_URL
+  value: {{ default "https://oneuptime.com/api/notification/push-relay/send" $.Values.pushNotification.relayUrl | quote }}
 
 - name: SLACK_APP_CLIENT_SECRET
   value: {{ $.Values.slackApp.clientSecret }}

@@ -94,25 +94,63 @@ export default function SwipeableCard({
   ).current;
 
   return (
-    <View className="overflow-hidden rounded-xl">
+    <View style={{ overflow: "hidden", borderRadius: 12, marginBottom: 12 }}>
       {/* Background actions */}
-      <View className="absolute inset-0 flex-row justify-between items-center">
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         {leftAction ? (
           <View
-            className="flex-1 h-full justify-center pl-5 rounded-xl"
-            style={{ backgroundColor: leftAction.color }}
+            style={{
+              flex: 1,
+              height: "100%",
+              justifyContent: "center",
+              paddingLeft: 20,
+              borderRadius: 12,
+              backgroundColor: leftAction.color,
+            }}
           >
-            <Text className="text-white text-sm font-bold tracking-tight">
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 14,
+                fontWeight: "bold",
+                letterSpacing: -0.5,
+              }}
+            >
               {leftAction.label}
             </Text>
           </View>
         ) : null}
         {rightAction ? (
           <View
-            className="flex-1 h-full justify-center items-end pr-5 rounded-xl"
-            style={{ backgroundColor: rightAction.color }}
+            style={{
+              flex: 1,
+              height: "100%",
+              justifyContent: "center",
+              alignItems: "flex-end",
+              paddingRight: 20,
+              borderRadius: 12,
+              backgroundColor: rightAction.color,
+            }}
           >
-            <Text className="text-white text-sm font-bold tracking-tight">
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 14,
+                fontWeight: "bold",
+                letterSpacing: -0.5,
+              }}
+            >
               {rightAction.label}
             </Text>
           </View>
@@ -121,8 +159,8 @@ export default function SwipeableCard({
 
       {/* Foreground content */}
       <Animated.View
-        className="z-[1]"
         style={{
+          zIndex: 1,
           transform: [{ translateX }],
           backgroundColor: theme.colors.backgroundPrimary,
         }}

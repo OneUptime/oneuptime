@@ -34,12 +34,22 @@ export default function BiometricLockScreen({
 
   return (
     <View
-      className="flex-1 items-center justify-center px-10"
-      style={{ backgroundColor: theme.colors.backgroundPrimary }}
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 40,
+        backgroundColor: theme.colors.backgroundPrimary,
+      }}
     >
       <View
-        className="w-20 h-20 rounded-2xl items-center justify-center mb-6"
         style={{
+          width: 80,
+          height: 80,
+          borderRadius: 16,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 24,
           backgroundColor: theme.colors.iconBackground,
         }}
       >
@@ -47,8 +57,10 @@ export default function BiometricLockScreen({
       </View>
 
       <Text
-        className="text-[20px] font-bold text-center"
         style={{
+          fontSize: 20,
+          fontWeight: "bold",
+          textAlign: "center",
           color: theme.colors.textPrimary,
           letterSpacing: -0.3,
         }}
@@ -57,13 +69,17 @@ export default function BiometricLockScreen({
       </Text>
 
       <Text
-        className="text-[15px] mt-2 text-center"
-        style={{ color: theme.colors.textSecondary }}
+        style={{
+          fontSize: 15,
+          marginTop: 8,
+          textAlign: "center",
+          color: theme.colors.textSecondary,
+        }}
       >
         Use {biometricType.toLowerCase()} to unlock
       </Text>
 
-      <View className="mt-10 w-full" style={{ maxWidth: 260 }}>
+      <View style={{ marginTop: 40, width: "100%", maxWidth: 260 }}>
         <GradientButton
           label="Unlock"
           onPress={authenticate}

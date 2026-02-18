@@ -27,12 +27,15 @@ function TabIcon({
   accentColor: string;
 }): React.JSX.Element {
   return (
-    <View className="items-center justify-center">
+    <View style={{ alignItems: "center", justifyContent: "center" }}>
       <Ionicons name={focused ? focusedName : name} size={22} color={color} />
       {focused ? (
         <View
-          className="w-1 h-1 rounded-full mt-0.5"
           style={{
+            width: 4,
+            height: 4,
+            borderRadius: 9999,
+            marginTop: 2,
             backgroundColor: accentColor,
           }}
         />
@@ -74,10 +77,8 @@ export default function MainTabNavigator(): React.JSX.Element {
           height: Platform.OS === "ios" ? 78 : 68,
           paddingBottom: Platform.OS === "ios" ? 18 : 10,
           paddingTop: 10,
-          shadowColor: theme.isDark
-            ? "#000000"
-            : theme.colors.accentGradientMid,
-          shadowOpacity: theme.isDark ? 0.35 : 0.12,
+          shadowColor: "#000000",
+          shadowOpacity: 0.35,
           shadowOffset: { width: 0, height: 8 },
           shadowRadius: 18,
           elevation: 16,

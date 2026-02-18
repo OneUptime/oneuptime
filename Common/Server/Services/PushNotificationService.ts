@@ -10,9 +10,16 @@ import {
   VapidPublicKey,
   VapidPrivateKey,
   VapidSubject,
+  ExpoAccessToken,
+  PushNotificationRelayUrl,
 } from "../EnvironmentConfig";
 import webpush from "web-push";
 import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
+import API from "../../Utils/API";
+import URL from "../../Types/API/URL";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import { JSONObject } from "../../Types/JSON";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import UserPush from "../../Models/DatabaseModels/UserPush";
@@ -43,7 +50,9 @@ export interface PushNotificationOptions {
 
 export default class PushNotificationService {
   public static isWebPushInitialized = false;
-  private static expoClient: Expo = new Expo();
+  private static expoClient: Expo = new Expo(
+    ExpoAccessToken ? { accessToken: ExpoAccessToken } : undefined,
+  );
 
   public static initializeWebPush(): void {
     if (this.isWebPushInitialized) {
@@ -340,20 +349,33 @@ export default class PushNotificationService {
       );
     }
 
+    const dataPayload: { [key: string]: string } = {};
+    if (message.data) {
+      for (const key of Object.keys(message.data)) {
+        dataPayload[key] = String(message.data[key]);
+      }
+    }
+    if (message.url || message.clickAction) {
+      dataPayload["url"] = message.url || message.clickAction || "";
+    }
+
+    const channelId: string =
+      deviceType === PushDeviceType.Android ? "oncall_high" : "default";
+
+    // If EXPO_ACCESS_TOKEN is not set, relay through the push notification gateway
+    if (!ExpoAccessToken) {
+      await this.sendViaRelay(
+        expoPushToken,
+        message,
+        dataPayload,
+        channelId,
+        deviceType,
+      );
+      return;
+    }
+
+    // Send directly via Expo SDK
     try {
-      const dataPayload: { [key: string]: string } = {};
-      if (message.data) {
-        for (const key of Object.keys(message.data)) {
-          dataPayload[key] = String(message.data[key]);
-        }
-      }
-      if (message.url || message.clickAction) {
-        dataPayload["url"] = message.url || message.clickAction || "";
-      }
-
-      const channelId: string =
-        deviceType === PushDeviceType.Android ? "oncall_high" : "default";
-
       const expoPushMessage: ExpoPushMessage = {
         to: expoPushToken,
         title: message.title,
@@ -401,6 +423,108 @@ export default class PushNotificationService {
       );
       throw error;
     }
+  }
+
+  private static async sendViaRelay(
+    expoPushToken: string,
+    message: PushNotificationMessage,
+    dataPayload: { [key: string]: string },
+    channelId: string,
+    deviceType: PushDeviceType,
+  ): Promise<void> {
+    logger.info(
+      `Sending ${deviceType} push notification via relay: ${PushNotificationRelayUrl}`,
+    );
+
+    try {
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post<JSONObject>({
+          url: URL.fromString(PushNotificationRelayUrl),
+          data: {
+            to: expoPushToken,
+            title: message.title || "",
+            body: message.body || "",
+            data: dataPayload,
+            sound: "default",
+            priority: "high",
+            channelId: channelId,
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw new Error(
+          `Push relay error: ${JSON.stringify(response.jsonData)}`,
+        );
+      }
+
+      logger.info(
+        `Push notification sent via relay successfully to ${deviceType} device`,
+      );
+    } catch (error: any) {
+      logger.error(
+        `Failed to send push notification via relay to ${deviceType} device: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  public static isValidExpoPushToken(token: string): boolean {
+    return Expo.isExpoPushToken(token);
+  }
+
+  public static hasExpoAccessToken(): boolean {
+    return Boolean(ExpoAccessToken);
+  }
+
+  public static async sendRelayPushNotification(data: {
+    to: string;
+    title?: string;
+    body?: string;
+    data?: { [key: string]: string };
+    sound?: string;
+    priority?: string;
+    channelId?: string;
+  }): Promise<void> {
+    if (!ExpoAccessToken) {
+      throw new Error(
+        "Push relay is not configured. EXPO_ACCESS_TOKEN is not set on this server.",
+      );
+    }
+
+    const expoPushMessage: ExpoPushMessage = {
+      to: data.to,
+      title: data.title || "",
+      body: data.body || "",
+      data: data.data || {},
+      sound: (data.sound as "default" | null) || "default",
+      priority: (data.priority as "default" | "normal" | "high") || "high",
+      channelId: data.channelId || "default",
+    };
+
+    const tickets: ExpoPushTicket[] =
+      await this.expoClient.sendPushNotificationsAsync([expoPushMessage]);
+
+    const ticket: ExpoPushTicket | undefined = tickets[0];
+
+    if (ticket && ticket.status === "error") {
+      const errorTicket: ExpoPushTicket & {
+        message?: string;
+        details?: { error?: string };
+      } = ticket as ExpoPushTicket & {
+        message?: string;
+        details?: { error?: string };
+      };
+
+      logger.error(
+        `Push relay: Expo push notification error: ${errorTicket.message}`,
+      );
+
+      throw new Error(
+        `Failed to send push notification: ${errorTicket.message}`,
+      );
+    }
+
+    logger.info(`Push relay: notification sent successfully to ${data.to}`);
   }
 
   public static async sendPushNotificationToUser(

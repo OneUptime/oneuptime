@@ -13,14 +13,22 @@ export default function ProjectBadge({
 }: ProjectBadgeProps): React.JSX.Element {
   const { theme } = useTheme();
   return (
-    <View className="flex-row items-center">
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
       <View
-        className="w-2 h-2 rounded-full mr-1.5"
-        style={{ backgroundColor: color || theme.colors.actionPrimary }}
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 9999,
+          marginRight: 6,
+          backgroundColor: color || theme.colors.actionPrimary,
+        }}
       />
       <Text
-        className="text-[12px] font-medium"
-        style={{ color: theme.colors.textSecondary }}
+        style={{
+          fontSize: 12,
+          fontWeight: "500",
+          color: theme.colors.textSecondary,
+        }}
         numberOfLines={1}
       >
         {name}

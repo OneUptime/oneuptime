@@ -26,8 +26,15 @@ export default function OfflineBanner(): React.JSX.Element | null {
 
   return (
     <Animated.View
-      className="absolute top-0 left-0 right-0 z-[100] pt-[50px] pb-2.5 px-4"
       style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        paddingTop: 50,
+        paddingBottom: 10,
+        paddingHorizontal: 16,
         backgroundColor: theme.colors.statusError,
         transform: [{ translateY: slideAnim }],
         shadowColor: theme.colors.statusError,
@@ -37,14 +44,27 @@ export default function OfflineBanner(): React.JSX.Element | null {
         elevation: 8,
       }}
     >
-      <View className="flex-row items-center justify-center">
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <Ionicons
           name="cloud-offline-outline"
           size={16}
           color="#FFFFFF"
           style={{ marginRight: 8, opacity: 0.9 }}
         />
-        <Text className="text-[13px] font-semibold tracking-tight text-white">
+        <Text
+          style={{
+            fontSize: 13,
+            fontWeight: "600",
+            letterSpacing: -0.5,
+            color: "#FFFFFF",
+          }}
+        >
           No internet connection
         </Text>
       </View>

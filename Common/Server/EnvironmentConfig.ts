@@ -161,6 +161,14 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
 
+export const RegisterProbeKey: ObjectID = new ObjectID(
+  process.env["REGISTER_PROBE_KEY"] || "secret",
+);
+
+export const HasRegisterProbeKey: boolean = Boolean(
+  process.env["REGISTER_PROBE_KEY"],
+);
+
 export const AppApiHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_APP_HOSTNAME"] || "localhost"}:${
     process.env["APP_PORT"] || 80
@@ -528,6 +536,13 @@ export const VapidPrivateKey: string | undefined =
 
 export const VapidSubject: string =
   process.env["VAPID_SUBJECT"] || "mailto:support@oneuptime.com";
+
+export const ExpoAccessToken: string | undefined =
+  process.env["EXPO_ACCESS_TOKEN"] || undefined;
+
+export const PushNotificationRelayUrl: string =
+  process.env["PUSH_NOTIFICATION_RELAY_URL"] ||
+  "https://oneuptime.com/api/notification/push-relay/send";
 
 export const EnterpriseLicenseValidationUrl: URL = URL.fromString(
   "https://oneuptime.com/api/enterprise-license/validate",

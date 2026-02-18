@@ -131,7 +131,7 @@ spec:
             - name: NO_PROXY
               value: {{ $val.proxy.noProxy | squote }}
             {{- end }}
-            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ if and $val.ports $val.ports.http }}{{ $val.ports.http }}{{ else }}3874{{ end }}
               protocol: TCP

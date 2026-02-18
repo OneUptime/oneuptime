@@ -1,25 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { ThemeMode } from "../theme";
 
 const KEYS: {
-  readonly THEME_MODE: "oneuptime_theme_mode";
   readonly BIOMETRIC_ENABLED: "oneuptime_biometric_enabled";
 } = {
-  THEME_MODE: "oneuptime_theme_mode",
   BIOMETRIC_ENABLED: "oneuptime_biometric_enabled",
 } as const;
-
-export async function getThemeMode(): Promise<ThemeMode> {
-  const stored: string | null = await AsyncStorage.getItem(KEYS.THEME_MODE);
-  if (stored === "dark" || stored === "light" || stored === "system") {
-    return stored;
-  }
-  return "dark";
-}
-
-export async function setThemeMode(mode: ThemeMode): Promise<void> {
-  await AsyncStorage.setItem(KEYS.THEME_MODE, mode);
-}
 
 export async function getBiometricEnabled(): Promise<boolean> {
   const stored: string | null = await AsyncStorage.getItem(

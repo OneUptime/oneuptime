@@ -2,8 +2,10 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import UserPushService, {
   Service as UserPushServiceType,
 } from "../Services/UserPushService";
+import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import PushNotificationService from "../Services/PushNotificationService";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import logger from "../Utils/Logger";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -13,10 +15,22 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+
+function getAuthenticatedUserId(req: ExpressRequest): ObjectID {
+  const userId: ObjectID | undefined = (req as OneUptimeRequest)
+    .userAuthorization?.userId;
+  if (!userId) {
+    throw new NotAuthenticatedException(
+      "You must be logged in to perform this action.",
+    );
+  }
+  return userId;
+}
 
 export default class UserPushAPI extends BaseAPI<
   UserPush,
@@ -31,6 +45,8 @@ export default class UserPushAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
+
+          const userId: ObjectID = getAuthenticatedUserId(req);
 
           if (!req.body.deviceToken) {
             return Response.sendErrorResponse(
@@ -65,7 +81,7 @@ export default class UserPushAPI extends BaseAPI<
           // Check if device is already registered
           const existingDevice: UserPush | null = await this.service.findOneBy({
             query: {
-              userId: (req as OneUptimeRequest).userAuthorization!.userId!,
+              userId: userId,
               projectId: new ObjectID(req.body.projectId),
               deviceToken: req.body.deviceToken,
             },
@@ -78,17 +94,18 @@ export default class UserPushAPI extends BaseAPI<
           });
 
           if (existingDevice) {
-            // Mark as used and return a specific response indicating device was already registered
-            throw new BadDataException(
-              "This device is already registered for push notifications",
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This device is already registered for push notifications",
+              ),
             );
           }
 
           // Create new device registration
           const userPush: UserPush = new UserPush();
-          userPush.userId = (
-            req as OneUptimeRequest
-          ).userAuthorization!.userId!;
+          userPush.userId = userId;
           userPush.projectId = new ObjectID(req.body.projectId);
           userPush.deviceToken = req.body.deviceToken;
           userPush.deviceType = req.body.deviceType;
@@ -101,6 +118,21 @@ export default class UserPushAPI extends BaseAPI<
               isRoot: true,
             },
           });
+
+          // Create default notification rules for this registered push device
+          try {
+            await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+              {
+                projectId: new ObjectID(req.body.projectId),
+                userId,
+                notificationMethod: {
+                  userPushId: savedDevice.id!,
+                },
+              },
+            );
+          } catch (e) {
+            logger.error(e);
+          }
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
@@ -119,6 +151,8 @@ export default class UserPushAPI extends BaseAPI<
         try {
           req = req as OneUptimeRequest;
 
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
           if (!req.body.deviceToken) {
             return Response.sendErrorResponse(
               req,
@@ -126,9 +160,6 @@ export default class UserPushAPI extends BaseAPI<
               new BadDataException("Device token is required"),
             );
           }
-
-          const userId: ObjectID = (req as OneUptimeRequest).userAuthorization!
-            .userId!;
 
           await this.service.deleteBy({
             query: {
@@ -158,6 +189,8 @@ export default class UserPushAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
+
+          const userId: ObjectID = getAuthenticatedUserId(req);
 
           if (!req.params["deviceId"]) {
             return Response.sendErrorResponse(
@@ -192,10 +225,7 @@ export default class UserPushAPI extends BaseAPI<
           }
 
           // Check if the device belongs to the current user
-          if (
-            device.userId?.toString() !==
-            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-          ) {
+          if (device.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -264,6 +294,8 @@ export default class UserPushAPI extends BaseAPI<
         try {
           req = req as OneUptimeRequest;
 
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
           if (!req.params["deviceId"]) {
             return Response.sendErrorResponse(
               req,
@@ -279,6 +311,7 @@ export default class UserPushAPI extends BaseAPI<
             },
             select: {
               userId: true,
+              projectId: true,
             },
           });
 
@@ -291,10 +324,7 @@ export default class UserPushAPI extends BaseAPI<
           }
 
           // Check if the device belongs to the current user
-          if (
-            device.userId?.toString() !==
-            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-          ) {
+          if (device.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -303,6 +333,21 @@ export default class UserPushAPI extends BaseAPI<
           }
 
           await this.service.verifyDevice(device._id!.toString());
+
+          // Create default notification rules for this verified push device
+          try {
+            await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+              {
+                projectId: new ObjectID(device.projectId!.toString()),
+                userId,
+                notificationMethod: {
+                  userPushId: device.id!,
+                },
+              },
+            );
+          } catch (e) {
+            logger.error(e);
+          }
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (error) {
@@ -318,6 +363,8 @@ export default class UserPushAPI extends BaseAPI<
         try {
           req = req as OneUptimeRequest;
 
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
           if (!req.params["deviceId"]) {
             return Response.sendErrorResponse(
               req,
@@ -345,10 +392,7 @@ export default class UserPushAPI extends BaseAPI<
           }
 
           // Check if the device belongs to the current user
-          if (
-            device.userId?.toString() !==
-            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-          ) {
+          if (device.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,

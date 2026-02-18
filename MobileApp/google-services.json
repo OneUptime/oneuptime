@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "877286215861",
+    "project_id": "oneuptime-on-call",
+    "storage_bucket": "oneuptime-on-call.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877286215861:android:f783c4aa68be6cba54eefc",
+        "android_client_info": {
+          "package_name": "com.oneuptime.oncall"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVUYdIldBliGtG0mIGa-nNs6eUJkJmKOM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

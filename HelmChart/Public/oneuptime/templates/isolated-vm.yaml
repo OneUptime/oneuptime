@@ -73,12 +73,23 @@ spec:
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
-            {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
               value: {{ $.Values.isolatedVM.ports.http | quote }}
+            - name: LOG_LEVEL
+              value: {{ $.Values.logLevel }}
+            - name: NODE_ENV
+              value: {{ $.Values.nodeEnvironment }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.isolatedVM.disableTelemetryCollection | quote }}
+            {{- if $.Values.openTelemetryExporter.endpoint }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+              value: {{ $.Values.openTelemetryExporter.endpoint }}
+            {{- end }}
+            {{- if $.Values.openTelemetryExporter.headers }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+              value: {{ $.Values.openTelemetryExporter.headers }}
+            {{- end }}
 
           ports:
             - containerPort: {{ $.Values.isolatedVM.ports.http }}

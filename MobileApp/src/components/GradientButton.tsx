@@ -29,9 +29,7 @@ export default function GradientButton({
   style,
 }: GradientButtonProps): React.JSX.Element {
   const { theme } = useTheme();
-  const primaryContentColor: string = theme.isDark
-    ? theme.colors.backgroundPrimary
-    : "#FFFFFF";
+  const primaryContentColor: string = theme.colors.backgroundPrimary;
 
   const isDisabled: boolean = disabled || loading;
 

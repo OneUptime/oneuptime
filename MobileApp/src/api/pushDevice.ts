@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 import apiClient from "./client";
+import logger from "../utils/logger";
 
 export async function registerPushDevice(params: {
   deviceToken: string;
@@ -8,10 +9,10 @@ export async function registerPushDevice(params: {
 }): Promise<void> {
   const deviceType: string =
     Platform.OS === "ios"
-      ? "iOS"
+      ? "ios"
       : Platform.OS === "android"
-        ? "Android"
-        : "Web";
+        ? "android"
+        : "web";
 
   try {
     await apiClient.post("/api/user-push/register", {
@@ -20,11 +21,29 @@ export async function registerPushDevice(params: {
       deviceName: Device.modelName || "Unknown Device",
       projectId: params.projectId,
     });
-  } catch (error: any) {
+    logger.info(
+      `[PushNotifications] Device registered successfully for project ${params.projectId}`,
+    );
+  } catch (error: unknown) {
+    const status: number | undefined = (
+      error as { response?: { status?: number } }
+    )?.response?.status;
+    const message: string =
+      (error as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message || String(error);
+
     // Treat "already registered" as success
-    if (error?.response?.status === 400) {
+    if (status === 400 && message.includes("already registered")) {
+      logger.info(
+        `[PushNotifications] Device already registered for project ${params.projectId}`,
+      );
       return;
     }
+
+    // Log and re-throw other errors
+    logger.error(
+      `[PushNotifications] Registration failed (status=${status}): ${message}`,
+    );
     throw error;
   }
 }

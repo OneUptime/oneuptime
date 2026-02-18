@@ -16,14 +16,19 @@ export default function NotesSection({
   setNoteModalVisible,
 }: NotesSectionProps): React.JSX.Element {
   const { theme } = useTheme();
-  const addNoteContentColor: string = theme.isDark
-    ? theme.colors.backgroundPrimary
-    : "#FFFFFF";
+  const addNoteContentColor: string = "#FFFFFF";
 
   return (
-    <View className="mb-2 mt-1">
-      <View className="flex-row justify-between items-center mb-3.5">
-        <View className="flex-row items-center">
+    <View style={{ marginBottom: 8, marginTop: 4 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Ionicons
             name="chatbubble-outline"
             size={14}
@@ -31,8 +36,13 @@ export default function NotesSection({
             style={{ marginRight: 6 }}
           />
           <Text
-            className="text-[12px] font-semibold uppercase"
-            style={{ color: theme.colors.textSecondary, letterSpacing: 1 }}
+            style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              color: theme.colors.textSecondary,
+              letterSpacing: 1,
+            }}
           >
             Internal Notes
           </Text>
@@ -45,7 +55,7 @@ export default function NotesSection({
               borderRadius: 8,
               paddingHorizontal: 12,
               paddingVertical: 6,
-              backgroundColor: theme.colors.actionPrimary,
+              backgroundColor: theme.colors.accentGradientStart,
               opacity: pressed ? 0.85 : 1,
             };
           }}
@@ -60,8 +70,11 @@ export default function NotesSection({
             style={{ marginRight: 4 }}
           />
           <Text
-            className="text-[12px] font-semibold"
-            style={{ color: addNoteContentColor }}
+            style={{
+              fontSize: 12,
+              fontWeight: "600",
+              color: addNoteContentColor,
+            }}
           >
             Add Note
           </Text>
@@ -76,39 +89,52 @@ export default function NotesSection({
             return (
               <View
                 key={note._id || `${note.createdAt}-${index}`}
-                className="rounded-2xl overflow-hidden mb-2.5"
                 style={{
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  marginBottom: 10,
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
-                  shadowColor: theme.isDark
-                    ? "#000"
-                    : theme.colors.accentGradientMid,
-                  shadowOpacity: theme.isDark ? 0.16 : 0.06,
+                  shadowColor: "#000",
+                  shadowOpacity: 0.16,
                   shadowOffset: { width: 0, height: 5 },
                   shadowRadius: 10,
                   elevation: 3,
                 }}
               >
-                <View className="p-4">
+                <View style={{ padding: 16 }}>
                   <Text
-                    className="text-[14px] leading-[22px]"
-                    style={{ color: theme.colors.textPrimary }}
+                    style={{
+                      fontSize: 14,
+                      lineHeight: 22,
+                      color: theme.colors.textPrimary,
+                    }}
                   >
                     {noteText}
                   </Text>
-                  <View className="flex-row justify-between mt-2.5">
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginTop: 10,
+                    }}
+                  >
                     {note.createdByUser ? (
                       <Text
-                        className="text-[12px]"
-                        style={{ color: theme.colors.textTertiary }}
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.textTertiary,
+                        }}
                       >
                         {authorName}
                       </Text>
                     ) : null}
                     <Text
-                      className="text-[12px]"
-                      style={{ color: theme.colors.textTertiary }}
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.textTertiary,
+                      }}
                     >
                       {formatDateTime(note.createdAt)}
                     </Text>
@@ -121,16 +147,20 @@ export default function NotesSection({
 
       {notes && notes.length === 0 ? (
         <View
-          className="rounded-2xl p-4 items-center"
           style={{
+            borderRadius: 16,
+            padding: 16,
+            alignItems: "center",
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
           }}
         >
           <Text
-            className="text-[13px]"
-            style={{ color: theme.colors.textTertiary }}
+            style={{
+              fontSize: 13,
+              color: theme.colors.textTertiary,
+            }}
           >
             No notes yet.
           </Text>

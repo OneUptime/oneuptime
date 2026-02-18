@@ -1,12 +1,8 @@
-import Dictionary from "../../../Types/Dictionary";
-import GenericObject from "../../../Types/GenericObject";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
-import { JSONObject, JSONValue } from "../../../Types/JSON";
-import axios from "axios";
-import http from "http";
-import https from "https";
+import { JSONObject } from "../../../Types/JSON";
+import axios, { AxiosResponse } from "axios";
 import crypto from "crypto";
-import vm, { Context } from "node:vm";
+import ivm from "isolated-vm";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class VMRunner {
@@ -16,49 +12,230 @@ export default class VMRunner {
     options: {
       timeout?: number;
       args?: JSONObject | undefined;
-      context?: Dictionary<GenericObject | string> | undefined;
     };
   }): Promise<ReturnResult> {
     const { code, options } = data;
+    const timeout: number = options.timeout || 5000;
 
     const logMessages: string[] = [];
 
-    let sandbox: Context = {
-      console: {
-        log: (...args: JSONValue[]) => {
+    const isolate: ivm.Isolate = new ivm.Isolate({ memoryLimit: 128 });
+
+    try {
+      const context: ivm.Context = await isolate.createContext();
+      const jail: ivm.Reference<Record<string, unknown>> = context.global;
+
+      // Set up global object
+      await jail.set("global", jail.derefInto());
+
+      // console.log - fire-and-forget callback
+      await jail.set(
+        "_log",
+        new ivm.Callback((...args: string[]) => {
           logMessages.push(args.join(" "));
+        }),
+      );
+
+      await context.eval(`
+        const console = { log: (...a) => _log(...a.map(v => {
+          try { return typeof v === 'object' ? JSON.stringify(v) : String(v); }
+          catch(_) { return String(v); }
+        }))};
+      `);
+
+      // args - deep copy into isolate
+      if (options.args) {
+        await jail.set("_args", new ivm.ExternalCopy(options.args).copyInto());
+        await context.eval("const args = _args;");
+      } else {
+        await context.eval("const args = {};");
+      }
+
+      // axios (get, post, put, delete) - bridged via applySyncPromise
+      const axiosRef: ivm.Reference<
+        (method: string, url: string, dataOrConfig?: string) => Promise<string>
+      > = new ivm.Reference(
+        async (
+          method: string,
+          url: string,
+          dataOrConfig?: string,
+        ): Promise<string> => {
+          const parsed: JSONObject | undefined = dataOrConfig
+            ? (JSON.parse(dataOrConfig) as JSONObject)
+            : undefined;
+
+          let response: AxiosResponse;
+
+          switch (method) {
+            case "get":
+              response = await axios.get(url, parsed);
+              break;
+            case "post":
+              response = await axios.post(url, parsed);
+              break;
+            case "put":
+              response = await axios.put(url, parsed);
+              break;
+            case "delete":
+              response = await axios.delete(url, parsed);
+              break;
+            default:
+              throw new Error(`Unsupported HTTP method: ${method}`);
+          }
+
+          return JSON.stringify({
+            status: response.status,
+            headers: response.headers,
+            data: response.data,
+          });
         },
-      },
-      http: http,
-      https: https,
-      axios: axios,
-      crypto: crypto,
-      setTimeout: setTimeout,
-      clearTimeout: clearTimeout,
-      setInterval: setInterval,
-      ...options.context,
-    };
+      );
 
-    if (options.args) {
-      sandbox = {
-        ...sandbox,
-        args: options.args,
-      };
-    }
+      await jail.set("_axiosRef", axiosRef);
 
-    vm.createContext(sandbox); // Contextify the object.
+      await context.eval(`
+        const axios = {
+          get: async (url, config) => {
+            const r = await _axiosRef.applySyncPromise(undefined, ['get', url, config ? JSON.stringify(config) : undefined]);
+            return JSON.parse(r);
+          },
+          post: async (url, data) => {
+            const r = await _axiosRef.applySyncPromise(undefined, ['post', url, data ? JSON.stringify(data) : undefined]);
+            return JSON.parse(r);
+          },
+          put: async (url, data) => {
+            const r = await _axiosRef.applySyncPromise(undefined, ['put', url, data ? JSON.stringify(data) : undefined]);
+            return JSON.parse(r);
+          },
+          delete: async (url, config) => {
+            const r = await _axiosRef.applySyncPromise(undefined, ['delete', url, config ? JSON.stringify(config) : undefined]);
+            return JSON.parse(r);
+          },
+        };
+      `);
 
-    const script: string = `(async()=>{
-        ${code}
+      // crypto (createHash, createHmac, randomBytes) - bridged via applySync
+      const cryptoRef: ivm.Reference<
+        (op: string, ...args: string[]) => string
+      > = new ivm.Reference((op: string, ...args: string[]): string => {
+        switch (op) {
+          case "createHash": {
+            const [algorithm, inputData, encoding] = args;
+            return crypto
+              .createHash(algorithm!)
+              .update(inputData!)
+              .digest((encoding as crypto.BinaryToTextEncoding) || "hex");
+          }
+          case "createHmac": {
+            const [algorithm, key, inputData, encoding] = args;
+            return crypto
+              .createHmac(algorithm!, key!)
+              .update(inputData!)
+              .digest((encoding as crypto.BinaryToTextEncoding) || "hex");
+          }
+          case "randomBytes": {
+            const [size] = args;
+            return crypto.randomBytes(parseInt(size!)).toString("hex");
+          }
+          default:
+            throw new Error(`Unsupported crypto operation: ${op}`);
+        }
+      });
+
+      await jail.set("_cryptoRef", cryptoRef);
+
+      await context.eval(`
+        const crypto = {
+          createHash: (algorithm) => ({
+            _alg: algorithm, _data: '',
+            update(d) { this._data = d; return this; },
+            digest(enc) { return _cryptoRef.applySync(undefined, ['createHash', this._alg, this._data, enc || 'hex']); }
+          }),
+          createHmac: (algorithm, key) => ({
+            _alg: algorithm, _key: key, _data: '',
+            update(d) { this._data = d; return this; },
+            digest(enc) { return _cryptoRef.applySync(undefined, ['createHmac', this._alg, this._key, this._data, enc || 'hex']); }
+          }),
+          randomBytes: (size) => ({
+            toString(enc) { return _cryptoRef.applySync(undefined, ['randomBytes', String(size)]); }
+          }),
+        };
+      `);
+
+      // setTimeout / sleep - bridged via applySyncPromise
+      const sleepRef: ivm.Reference<(ms: number) => Promise<void>> =
+        new ivm.Reference((ms: number): Promise<void> => {
+          return new Promise((resolve: () => void) => {
+            global.setTimeout(resolve, Math.min(ms, timeout));
+          });
+        });
+
+      await jail.set("_sleepRef", sleepRef);
+
+      await context.eval(`
+        function setTimeout(fn, ms) {
+          _sleepRef.applySyncPromise(undefined, [ms || 0]);
+          if (typeof fn === 'function') fn();
+        }
+        async function sleep(ms) {
+          await _sleepRef.applySyncPromise(undefined, [ms || 0]);
+        }
+      `);
+
+      /*
+       * Wrap user code in async IIFE. JSON.stringify the return value inside
+       * the isolate so only a plain string crosses the boundary — this avoids
+       * "A non-transferable value was passed" errors when user code returns
+       * objects containing functions, class instances, or other non-cloneable types.
+       */
+      const wrappedCode: string = `(async () => {
+        const __result = await (async () => {
+          ${code}
+        })();
+        try { return JSON.stringify(__result); }
+        catch(_) { return undefined; }
       })()`;
 
-    const returnVal: any = await vm.runInContext(script, sandbox, {
-      timeout: options.timeout || 5000,
-    }); // run the script
+      // Run with overall timeout covering both CPU and I/O wait
+      const resultPromise: Promise<unknown> = context.eval(wrappedCode, {
+        promise: true,
+        timeout: timeout,
+      });
 
-    return {
-      returnValue: returnVal,
-      logMessages,
-    };
+      const overallTimeout: Promise<never> = new Promise(
+        (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
+          global.setTimeout(() => {
+            reject(new Error("Script execution timed out"));
+          }, timeout + 5000); // 5s grace period beyond isolate timeout
+        },
+      );
+
+      const result: unknown = await Promise.race([
+        resultPromise,
+        overallTimeout,
+      ]);
+
+      // Parse the JSON string returned from inside the isolate
+      let returnValue: unknown;
+
+      if (typeof result === "string") {
+        try {
+          returnValue = JSON.parse(result);
+        } catch {
+          returnValue = result;
+        }
+      } else {
+        returnValue = result;
+      }
+
+      return {
+        returnValue,
+        logMessages,
+      };
+    } finally {
+      if (!isolate.isDisposed) {
+        isolate.dispose();
+      }
+    }
   }
 }

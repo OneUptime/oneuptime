@@ -2,6 +2,7 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import UserWhatsAppService, {
   Service as UserWhatsAppServiceType,
 } from "../Services/UserWhatsAppService";
+import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -9,8 +10,10 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import logger from "../Utils/Logger";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 
 export default class UserWhatsAppAPI extends BaseAPI<
@@ -50,6 +53,7 @@ export default class UserWhatsAppAPI extends BaseAPI<
             },
             select: {
               userId: true,
+              projectId: true,
               verificationCode: true,
               isVerified: true,
             },
@@ -99,6 +103,21 @@ export default class UserWhatsAppAPI extends BaseAPI<
               isVerified: true,
             },
           });
+
+          // Create default notification rules for this verified WhatsApp number
+          try {
+            await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+              {
+                projectId: new ObjectID(item.projectId!.toString()),
+                userId: new ObjectID(item.userId!.toString()),
+                notificationMethod: {
+                  userWhatsAppId: item.id!,
+                },
+              },
+            );
+          } catch (e) {
+            logger.error(e);
+          }
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {

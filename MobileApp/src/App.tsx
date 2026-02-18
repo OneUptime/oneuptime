@@ -51,7 +51,7 @@ function AppContent(): React.JSX.Element {
           borderRadius: 999,
         }}
       />
-      <StatusBar style={theme.isDark ? "light" : "dark"} />
+      <StatusBar style="light" />
       <RootNavigator />
       <OfflineBanner />
     </View>

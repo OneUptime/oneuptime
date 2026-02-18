@@ -15,10 +15,12 @@ import { JSONObject } from "Common/Types/JSON";
 import ProbeStatusReport from "Common/Types/Probe/ProbeStatusReport";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
-import { HasClusterKey } from "Common/Server/EnvironmentConfig";
+import {
+  HasRegisterProbeKey,
+  RegisterProbeKey,
+} from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import ProxyConfig from "../Utils/ProxyConfig";
 
 export default class Register {
@@ -117,7 +119,7 @@ export default class Register {
   }
 
   private static async _registerProbe(): Promise<void> {
-    if (HasClusterKey) {
+    if (HasRegisterProbeKey) {
       const probeRegistrationUrl: URL = URL.fromString(
         PROBE_INGEST_URL.toString(),
       ).addRoute("/register");
@@ -131,7 +133,7 @@ export default class Register {
           probeKey: PROBE_KEY,
           probeName: PROBE_NAME,
           probeDescription: PROBE_DESCRIPTION,
-          clusterKey: ClusterKeyAuthorization.getClusterKey(),
+          registerProbeKey: RegisterProbeKey.toString(),
         },
         options: {
           ...ProxyConfig.getRequestProxyAgents(probeRegistrationUrl),
@@ -149,7 +151,7 @@ export default class Register {
     } else {
       // validate probe.
       if (!PROBE_ID) {
-        logger.error("PROBE_ID or ONEUPTIME_SECRET should be set");
+        logger.error("PROBE_ID or REGISTER_PROBE_KEY should be set");
         return process.exit();
       }
 

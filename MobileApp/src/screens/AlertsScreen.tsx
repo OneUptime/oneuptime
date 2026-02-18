@@ -60,8 +60,13 @@ function SectionHeader({
   const { theme } = useTheme();
   return (
     <View
-      className="flex-row items-center pb-2 pt-1"
-      style={{ backgroundColor: theme.colors.backgroundPrimary }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingBottom: 8,
+        paddingTop: 4,
+        backgroundColor: theme.colors.backgroundPrimary,
+      }}
     >
       <Ionicons
         name={isActive ? "flame" : "checkmark-done"}
@@ -72,8 +77,10 @@ function SectionHeader({
         style={{ marginRight: 6 }}
       />
       <Text
-        className="text-[12px] font-semibold uppercase"
         style={{
+          fontSize: 12,
+          fontWeight: "600",
+          textTransform: "uppercase",
           color: isActive
             ? theme.colors.textPrimary
             : theme.colors.textTertiary,
@@ -83,16 +90,20 @@ function SectionHeader({
         {title}
       </Text>
       <View
-        className="ml-2 px-1.5 py-0.5 rounded"
         style={{
+          marginLeft: 8,
+          paddingHorizontal: 6,
+          paddingVertical: 2,
+          borderRadius: 4,
           backgroundColor: isActive
             ? theme.colors.severityCritical + "18"
             : theme.colors.backgroundTertiary,
         }}
       >
         <Text
-          className="text-[11px] font-bold"
           style={{
+            fontSize: 11,
+            fontWeight: "bold",
             color: isActive
               ? theme.colors.severityCritical
               : theme.colors.textTertiary,
@@ -294,8 +305,7 @@ export default function AlertsScreen(): React.JSX.Element {
   if (showLoading) {
     return (
       <View
-        className="flex-1"
-        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <SegmentedControl
           segments={[
@@ -305,7 +315,7 @@ export default function AlertsScreen(): React.JSX.Element {
           selected={segment}
           onSelect={setSegment}
         />
-        <View className="p-4">
+        <View style={{ padding: 16 }}>
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -325,8 +335,7 @@ export default function AlertsScreen(): React.JSX.Element {
           };
     return (
       <View
-        className="flex-1"
-        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <SegmentedControl
           segments={[
@@ -352,10 +361,7 @@ export default function AlertsScreen(): React.JSX.Element {
   }
 
   return (
-    <View
-      className="flex-1"
-      style={{ backgroundColor: theme.colors.backgroundPrimary }}
-    >
+    <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
       <SegmentedControl
         segments={[
           { key: "alerts" as const, label: "Alerts" },

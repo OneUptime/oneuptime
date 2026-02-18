@@ -152,8 +152,7 @@ export default function IncidentDetailScreen({
   if (isLoading) {
     return (
       <View
-        className="flex-1"
-        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <SkeletonCard variant="detail" />
       </View>
@@ -163,13 +162,14 @@ export default function IncidentDetailScreen({
   if (!incident) {
     return (
       <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.colors.backgroundPrimary,
+        }}
       >
-        <Text
-          className="text-[15px]"
-          style={{ color: theme.colors.textSecondary }}
-        >
+        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
           Incident not found.
         </Text>
       </View>
@@ -217,13 +217,15 @@ export default function IncidentDetailScreen({
     >
       {/* Header card */}
       <View
-        className="rounded-3xl overflow-hidden mb-5"
         style={{
+          borderRadius: 24,
+          overflow: "hidden",
+          marginBottom: 20,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
-          shadowColor: theme.isDark ? "#000" : stateColor,
-          shadowOpacity: theme.isDark ? 0.28 : 0.12,
+          shadowColor: "#000",
+          shadowOpacity: 0.28,
           shadowOffset: { width: 0, height: 10 },
           shadowRadius: 18,
           elevation: 7,
@@ -247,17 +249,22 @@ export default function IncidentDetailScreen({
             backgroundColor: stateColor,
           }}
         />
-        <View className="p-5">
+        <View style={{ padding: 20 }}>
           <Text
-            className="text-[13px] font-semibold mb-2"
-            style={{ color: stateColor }}
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              marginBottom: 8,
+              color: stateColor,
+            }}
           >
             {incident.incidentNumberWithPrefix || `#${incident.incidentNumber}`}
           </Text>
 
           <Text
-            className="text-[24px] font-bold"
             style={{
+              fontSize: 24,
+              fontWeight: "bold",
               color: theme.colors.textPrimary,
               letterSpacing: -0.6,
             }}
@@ -265,19 +272,40 @@ export default function IncidentDetailScreen({
             {incident.title}
           </Text>
 
-          <View className="flex-row flex-wrap gap-2 mt-3">
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 8,
+              marginTop: 12,
+            }}
+          >
             {incident.currentIncidentState ? (
               <View
-                className="flex-row items-center px-2.5 py-1 rounded-md"
-                style={{ backgroundColor: stateColor + "14" }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                  backgroundColor: stateColor + "14",
+                }}
               >
                 <View
-                  className="w-2 h-2 rounded-full mr-1.5"
-                  style={{ backgroundColor: stateColor }}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 9999,
+                    marginRight: 6,
+                    backgroundColor: stateColor,
+                  }}
                 />
                 <Text
-                  className="text-[12px] font-semibold"
-                  style={{ color: stateColor }}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: stateColor,
+                  }}
                 >
                   {incident.currentIncidentState.name}
                 </Text>
@@ -286,12 +314,21 @@ export default function IncidentDetailScreen({
 
             {incident.incidentSeverity ? (
               <View
-                className="flex-row items-center px-2.5 py-1 rounded-md"
-                style={{ backgroundColor: severityColor + "14" }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                  backgroundColor: severityColor + "14",
+                }}
               >
                 <Text
-                  className="text-[12px] font-semibold"
-                  style={{ color: severityColor }}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: severityColor,
+                  }}
                 >
                   {incident.incidentSeverity.name}
                 </Text>
@@ -303,19 +340,23 @@ export default function IncidentDetailScreen({
 
       {/* Description */}
       {descriptionText ? (
-        <View className="mb-6">
+        <View style={{ marginBottom: 24 }}>
           <SectionHeader title="Description" iconName="document-text-outline" />
           <View
-            className="rounded-2xl p-4"
             style={{
+              borderRadius: 16,
+              padding: 16,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
               borderColor: theme.colors.borderGlass,
             }}
           >
             <Text
-              className="text-[14px] leading-[22px]"
-              style={{ color: theme.colors.textPrimary }}
+              style={{
+                fontSize: 14,
+                lineHeight: 22,
+                color: theme.colors.textPrimary,
+              }}
             >
               {descriptionText}
             </Text>
@@ -323,66 +364,83 @@ export default function IncidentDetailScreen({
         </View>
       ) : null}
 
-      <View className="mb-6">
+      <View style={{ marginBottom: 24 }}>
         <SectionHeader title="Root Cause" iconName="bulb-outline" />
         <RootCauseCard rootCauseText={rootCauseText} />
       </View>
 
       {/* Details */}
-      <View className="mb-6">
+      <View style={{ marginBottom: 24 }}>
         <SectionHeader title="Details" iconName="information-circle-outline" />
         <View
-          className="rounded-2xl overflow-hidden"
           style={{
+            borderRadius: 16,
+            overflow: "hidden",
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
           }}
         >
-          <View className="p-4">
+          <View style={{ padding: 16 }}>
             {incident.declaredAt ? (
-              <View className="flex-row mb-3">
+              <View style={{ flexDirection: "row", marginBottom: 12 }}>
                 <Text
-                  className="text-[13px] w-[90px]"
-                  style={{ color: theme.colors.textTertiary }}
+                  style={{
+                    fontSize: 13,
+                    width: 90,
+                    color: theme.colors.textTertiary,
+                  }}
                 >
                   Declared
                 </Text>
                 <Text
-                  className="text-[13px]"
-                  style={{ color: theme.colors.textPrimary }}
+                  style={{
+                    fontSize: 13,
+                    color: theme.colors.textPrimary,
+                  }}
                 >
                   {formatDateTime(incident.declaredAt)}
                 </Text>
               </View>
             ) : null}
 
-            <View className="flex-row mb-3">
+            <View style={{ flexDirection: "row", marginBottom: 12 }}>
               <Text
-                className="text-[13px] w-[90px]"
-                style={{ color: theme.colors.textTertiary }}
+                style={{
+                  fontSize: 13,
+                  width: 90,
+                  color: theme.colors.textTertiary,
+                }}
               >
                 Created
               </Text>
               <Text
-                className="text-[13px]"
-                style={{ color: theme.colors.textPrimary }}
+                style={{
+                  fontSize: 13,
+                  color: theme.colors.textPrimary,
+                }}
               >
                 {formatDateTime(incident.createdAt)}
               </Text>
             </View>
 
             {incident.monitors?.length > 0 ? (
-              <View className="flex-row">
+              <View style={{ flexDirection: "row" }}>
                 <Text
-                  className="text-[13px] w-[90px]"
-                  style={{ color: theme.colors.textTertiary }}
+                  style={{
+                    fontSize: 13,
+                    width: 90,
+                    color: theme.colors.textTertiary,
+                  }}
                 >
                   Monitors
                 </Text>
                 <Text
-                  className="text-[13px] flex-1"
-                  style={{ color: theme.colors.textPrimary }}
+                  style={{
+                    fontSize: 13,
+                    flex: 1,
+                    color: theme.colors.textPrimary,
+                  }}
                 >
                   {incident.monitors
                     .map((m: NamedEntity) => {
@@ -398,103 +456,118 @@ export default function IncidentDetailScreen({
 
       {/* State Change Actions */}
       {!isResolved ? (
-        <View className="mb-6">
+        <View style={{ marginBottom: 24 }}>
           <SectionHeader title="Actions" iconName="flash-outline" />
           <View
-            className="rounded-2xl p-3"
             style={{
+              borderRadius: 16,
+              padding: 12,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
               borderColor: theme.colors.borderGlass,
             }}
           >
-            <View className="flex-row gap-3">
+            <View style={{ flexDirection: "row" }}>
               {!isAcknowledged && !isResolved && acknowledgeState ? (
-                <Pressable
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 48,
-                    overflow: "hidden",
-                    backgroundColor: theme.colors.stateAcknowledged,
-                  }}
-                  onPress={() => {
-                    return handleStateChange(
-                      acknowledgeState._id,
-                      acknowledgeState.name,
-                    );
-                  }}
-                  disabled={changingState}
-                  accessibilityRole="button"
-                  accessibilityLabel="Acknowledge incident"
-                >
-                  {changingState ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="checkmark-circle-outline"
-                        size={17}
-                        color="#FFFFFF"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text
-                        className="text-[14px] font-bold"
-                        style={{ color: "#FFFFFF" }}
-                      >
-                        Acknowledge
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
+                <View style={{ flex: 1 }}>
+                  <Pressable
+                    style={{
+                      flexDirection: "row",
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 48,
+                      backgroundColor: theme.colors.stateAcknowledged,
+                    }}
+                    onPress={() => {
+                      return handleStateChange(
+                        acknowledgeState._id,
+                        acknowledgeState.name,
+                      );
+                    }}
+                    disabled={changingState}
+                    accessibilityRole="button"
+                    accessibilityLabel="Acknowledge incident"
+                  >
+                    {changingState ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="checkmark-circle-outline"
+                          size={17}
+                          color="#FFFFFF"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "bold",
+                            color: "#FFFFFF",
+                          }}
+                        >
+                          Acknowledge
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
               ) : null}
 
               {resolveState ? (
-                <Pressable
+                <View
                   style={{
                     flex: 1,
-                    flexDirection: "row",
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 48,
-                    overflow: "hidden",
-                    backgroundColor: theme.colors.stateResolved,
+                    marginLeft:
+                      !isAcknowledged && !isResolved && acknowledgeState
+                        ? 12
+                        : 0,
                   }}
-                  onPress={() => {
-                    return handleStateChange(
-                      resolveState._id,
-                      resolveState.name,
-                    );
-                  }}
-                  disabled={changingState}
-                  accessibilityRole="button"
-                  accessibilityLabel="Resolve incident"
                 >
-                  {changingState ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="checkmark-done-outline"
-                        size={17}
-                        color="#FFFFFF"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text
-                        className="text-[14px] font-bold"
-                        style={{ color: "#FFFFFF" }}
-                      >
-                        Resolve
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
+                  <Pressable
+                    style={{
+                      flexDirection: "row",
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 48,
+                      backgroundColor: theme.colors.stateResolved,
+                    }}
+                    onPress={() => {
+                      return handleStateChange(
+                        resolveState._id,
+                        resolveState.name,
+                      );
+                    }}
+                    disabled={changingState}
+                    accessibilityRole="button"
+                    accessibilityLabel="Resolve incident"
+                  >
+                    {changingState ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="checkmark-done-outline"
+                          size={17}
+                          color="#FFFFFF"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "bold",
+                            color: "#FFFFFF",
+                          }}
+                        >
+                          Resolve
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
               ) : null}
             </View>
           </View>
@@ -503,7 +576,7 @@ export default function IncidentDetailScreen({
 
       {/* Activity Feed */}
       {feed && feed.length > 0 ? (
-        <View className="mb-6">
+        <View style={{ marginBottom: 24 }}>
           <SectionHeader title="Activity Feed" iconName="list-outline" />
           <FeedTimeline feed={feed} />
         </View>
