@@ -63,7 +63,13 @@ function SectionHeader({
   const { theme } = useTheme();
   return (
     <View
-      style={{ flexDirection: "row", alignItems: "center", paddingBottom: 8, paddingTop: 4, backgroundColor: theme.colors.backgroundPrimary }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingBottom: 8,
+        paddingTop: 4,
+        backgroundColor: theme.colors.backgroundPrimary,
+      }}
     >
       <Ionicons
         name={isActive ? "flame" : "checkmark-done"}
@@ -360,9 +366,7 @@ export default function IncidentsScreen(): React.JSX.Element {
   }
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-    >
+    <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
       <SegmentedControl
         segments={[
           { key: "incidents" as const, label: "Incidents" },

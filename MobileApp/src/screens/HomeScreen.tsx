@@ -89,7 +89,14 @@ function StatCard({
           elevation: 6,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
           <View
             style={{
               width: 40,
@@ -188,7 +195,14 @@ export default function HomeScreen(): React.JSX.Element {
           />
         }
       >
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: 32,
+          }}
+        >
           <View
             style={{
               width: 80,
@@ -245,7 +259,12 @@ export default function HomeScreen(): React.JSX.Element {
   if (isLoadingProjects) {
     return (
       <View
-        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.backgroundPrimary }}
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.colors.backgroundPrimary,
+        }}
       >
         <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
       </View>
@@ -269,7 +288,9 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
+      <View
+        style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}
+      >
         <View
           style={{
             borderRadius: 24,
@@ -344,9 +365,7 @@ export default function HomeScreen(): React.JSX.Element {
 
           <View style={{ marginTop: 16 }}>
             <View>
-              <Text
-                style={{ fontSize: 12, color: theme.colors.textTertiary }}
-              >
+              <Text style={{ fontSize: 12, color: theme.colors.textTertiary }}>
                 Total active items
               </Text>
               <Text
@@ -387,9 +406,11 @@ export default function HomeScreen(): React.JSX.Element {
               lightImpact();
               navigation.navigate("OnCall");
             }}
-            style={({ pressed }: { pressed: boolean }) => ({
-              opacity: pressed ? 0.8 : 1,
-            })}
+            style={({ pressed }: { pressed: boolean }) => {
+              return {
+                opacity: pressed ? 0.8 : 1,
+              };
+            }}
             accessibilityRole="button"
             accessibilityLabel="View my on-call assignments"
           >
@@ -403,78 +424,98 @@ export default function HomeScreen(): React.JSX.Element {
                 borderColor: theme.colors.borderGlass,
               }}
             >
-            <LinearGradient
-              colors={[
-                theme.colors.oncallActiveBg,
-                theme.colors.accentGradientEnd + "06",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 100,
-              }}
-            />
+              <LinearGradient
+                colors={[
+                  theme.colors.oncallActiveBg,
+                  theme.colors.accentGradientEnd + "06",
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 100,
+                }}
+              />
 
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
                 <View
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 16,
+                    flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 12,
-                    backgroundColor: theme.colors.oncallActiveBg,
+                    flex: 1,
                   }}
                 >
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 16,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
+                      backgroundColor: theme.colors.oncallActiveBg,
+                    }}
+                  >
+                    <Ionicons
+                      name="call-outline"
+                      size={18}
+                      color={theme.colors.oncallActive}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: "bold",
+                        color: theme.colors.textPrimary,
+                      }}
+                    >
+                      My On-Call Policies
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        marginTop: 2,
+                        color: theme.colors.textSecondary,
+                      }}
+                    >
+                      {onCallLoading
+                        ? "Loading assignments..."
+                        : totalAssignments > 0
+                          ? `${totalAssignments} active ${totalAssignments === 1 ? "assignment" : "assignments"} across ${onCallProjects.length} ${onCallProjects.length === 1 ? "project" : "projects"}`
+                          : "You are not currently on-call"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={{ alignItems: "flex-end", marginLeft: 12 }}>
+                  <Text
+                    style={{
+                      fontSize: 28,
+                      fontWeight: "bold",
+                      color: theme.colors.textPrimary,
+                      fontVariant: ["tabular-nums"],
+                      letterSpacing: -1,
+                    }}
+                  >
+                    {onCallLoading ? "--" : totalAssignments}
+                  </Text>
                   <Ionicons
-                    name="call-outline"
-                    size={18}
-                    color={theme.colors.oncallActive}
+                    name="chevron-forward"
+                    size={14}
+                    color={theme.colors.textTertiary}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{ fontSize: 15, fontWeight: "bold", color: theme.colors.textPrimary }}
-                  >
-                    My On-Call Policies
-                  </Text>
-                  <Text
-                    style={{ fontSize: 12, marginTop: 2, color: theme.colors.textSecondary }}
-                  >
-                    {onCallLoading
-                      ? "Loading assignments..."
-                      : totalAssignments > 0
-                        ? `${totalAssignments} active ${totalAssignments === 1 ? "assignment" : "assignments"} across ${onCallProjects.length} ${onCallProjects.length === 1 ? "project" : "projects"}`
-                        : "You are not currently on-call"}
-                  </Text>
-                </View>
               </View>
-
-              <View style={{ alignItems: "flex-end", marginLeft: 12 }}>
-                <Text
-                  style={{
-                    fontSize: 28,
-                    fontWeight: "bold",
-                    color: theme.colors.textPrimary,
-                    fontVariant: ["tabular-nums"],
-                    letterSpacing: -1,
-                  }}
-                >
-                  {onCallLoading ? "--" : totalAssignments}
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={14}
-                  color={theme.colors.textTertiary}
-                />
-              </View>
-            </View>
             </View>
           </Pressable>
         </View>

@@ -34,7 +34,13 @@ export default function BiometricLockScreen({
 
   return (
     <View
-      style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40, backgroundColor: theme.colors.backgroundPrimary }}
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 40,
+        backgroundColor: theme.colors.backgroundPrimary,
+      }}
     >
       <View
         style={{
@@ -63,7 +69,12 @@ export default function BiometricLockScreen({
       </Text>
 
       <Text
-        style={{ fontSize: 15, marginTop: 8, textAlign: "center", color: theme.colors.textSecondary }}
+        style={{
+          fontSize: 15,
+          marginTop: 8,
+          textAlign: "center",
+          color: theme.colors.textSecondary,
+        }}
       >
         Use {biometricType.toLowerCase()} to unlock
       </Text>

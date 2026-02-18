@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Switch,
-  Pressable,
-} from "react-native";
+import { View, Text, ScrollView, Switch, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
@@ -95,9 +89,7 @@ function SettingsRow({
       </View>
       {rightElement ??
         (value ? (
-          <Text
-            style={{ fontSize: 14, color: theme.colors.textTertiary }}
-          >
+          <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
             {value}
           </Text>
         ) : onPress ? (
@@ -224,7 +216,14 @@ export default function SettingsScreen(): React.JSX.Element {
           </View>
         </View>
 
-        <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View
+          style={{
+            marginTop: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <Text
             style={{
               fontSize: 11,
@@ -248,7 +247,11 @@ export default function SettingsScreen(): React.JSX.Element {
             }}
           >
             <Text
-              style={{ fontSize: 11, fontWeight: "600", color: theme.colors.accentCyan }}
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: theme.colors.accentCyan,
+              }}
             >
               {serverUrl || "oneuptime.com"}
             </Text>
@@ -437,8 +440,12 @@ export default function SettingsScreen(): React.JSX.Element {
             }}
           />
 
-          <View style={{ alignItems: "center", marginTop: 4, marginBottom: 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{ alignItems: "center", marginTop: 4, marginBottom: 10 }}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
               <View
                 style={{
                   width: 32,
@@ -478,12 +485,23 @@ export default function SettingsScreen(): React.JSX.Element {
           </View>
 
           <Text
-            style={{ fontSize: 14, fontWeight: "600", color: theme.colors.textPrimary, textAlign: "center" }}
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: theme.colors.textPrimary,
+              textAlign: "center",
+            }}
           >
             Thank you for supporting open source software.
           </Text>
           <Text
-            style={{ fontSize: 12, marginTop: 8, lineHeight: 20, color: theme.colors.textSecondary, textAlign: "center" }}
+            style={{
+              fontSize: 12,
+              marginTop: 8,
+              lineHeight: 20,
+              color: theme.colors.textSecondary,
+              textAlign: "center",
+            }}
           >
             Built and maintained by contributors around the world.
           </Text>
@@ -499,9 +517,7 @@ export default function SettingsScreen(): React.JSX.Element {
                 borderColor: theme.colors.borderSubtle,
               }}
             >
-              <Text
-                style={{ fontSize: 11, color: theme.colors.textTertiary }}
-              >
+              <Text style={{ fontSize: 11, color: theme.colors.textTertiary }}>
                 Licensed under Apache 2.0
               </Text>
             </View>

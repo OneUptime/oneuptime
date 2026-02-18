@@ -69,7 +69,11 @@ export default function FeedTimeline({
                 </View>
               ) : null}
               <Text
-                style={{ fontSize: 12, marginTop: 8, color: theme.colors.textTertiary }}
+                style={{
+                  fontSize: 12,
+                  marginTop: 8,
+                  color: theme.colors.textTertiary,
+                }}
               >
                 {timeString}
               </Text>

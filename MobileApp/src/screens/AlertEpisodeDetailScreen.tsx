@@ -165,9 +165,7 @@ export default function AlertEpisodeDetailScreen({
           backgroundColor: theme.colors.backgroundPrimary,
         }}
       >
-        <Text
-          style={{ fontSize: 15, color: theme.colors.textSecondary }}
-        >
+        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
           Episode not found.
         </Text>
       </View>

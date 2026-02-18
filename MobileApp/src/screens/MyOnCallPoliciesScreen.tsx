@@ -1,10 +1,5 @@
 import React, { useMemo } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  RefreshControl,
-} from "react-native";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
@@ -148,8 +143,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
           borderColor: theme.colors.borderGlass,
         }}
       >
-
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <View
               style={{
@@ -182,7 +182,11 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                 On-Call Now
               </Text>
               <Text
-                style={{ fontSize: 12, marginTop: 2, color: theme.colors.textSecondary }}
+                style={{
+                  fontSize: 12,
+                  marginTop: 2,
+                  color: theme.colors.textSecondary,
+                }}
               >
                 Live duty assignments
               </Text>
@@ -213,7 +217,12 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
         </View>
 
         <Text
-          style={{ fontSize: 13, marginTop: 16, lineHeight: 20, color: theme.colors.textSecondary }}
+          style={{
+            fontSize: 13,
+            marginTop: 16,
+            lineHeight: 20,
+            color: theme.colors.textSecondary,
+          }}
         >
           {summaryText}
         </Text>
@@ -262,7 +271,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                     borderTopRightRadius: 23,
                   }}
                 >
-                  <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
                     <Ionicons
                       name="folder-open-outline"
                       size={16}
@@ -294,7 +309,11 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                     }}
                   >
                     <Text
-                      style={{ fontSize: 11, fontWeight: "600", color: theme.colors.textSecondary }}
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "600",
+                        color: theme.colors.textSecondary,
+                      }}
                     >
                       {projectData.assignments.length} active
                     </Text>
@@ -329,13 +348,18 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                             projectData.assignments.length - 1
                               ? {
                                   borderBottomWidth: 1,
-                                  borderBottomColor:
-                                    theme.colors.borderSubtle,
+                                  borderBottomColor: theme.colors.borderSubtle,
                                 }
                               : {}),
                           }}
                         >
-                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
+                          >
                             <Text
                               style={{
                                 fontSize: 15,
@@ -378,7 +402,12 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                           </View>
 
                           <View style={{ marginTop: 8 }}>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                              }}
+                            >
                               <Ionicons
                                 name="git-branch-outline"
                                 size={13}
@@ -395,7 +424,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                                 Rule: {assignment.escalationRuleName}
                               </Text>
                             </View>
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                marginTop: 4,
+                              }}
+                            >
                               <Ionicons
                                 name="information-circle-outline"
                                 size={13}

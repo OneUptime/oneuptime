@@ -147,9 +147,7 @@ export default function IncidentCard({
                 color={theme.colors.textTertiary}
                 style={{ marginRight: 4 }}
               />
-              <Text
-                style={{ fontSize: 12, color: theme.colors.textTertiary }}
-              >
+              <Text style={{ fontSize: 12, color: theme.colors.textTertiary }}>
                 {timeString}
               </Text>
             </View>

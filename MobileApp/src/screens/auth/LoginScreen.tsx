@@ -81,7 +81,9 @@ export default function LoginScreen(): React.JSX.Element {
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 28 }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", paddingHorizontal: 28 }}
+        >
           <View style={{ alignItems: "center", marginBottom: 48 }}>
             <View
               style={{
@@ -108,7 +110,11 @@ export default function LoginScreen(): React.JSX.Element {
               OneUptime
             </Text>
             <Text
-              style={{ fontSize: 15, marginTop: 4, color: theme.colors.textSecondary }}
+              style={{
+                fontSize: 15,
+                marginTop: 4,
+                color: theme.colors.textSecondary,
+              }}
             >
               Sign in to continue
             </Text>
@@ -134,7 +140,12 @@ export default function LoginScreen(): React.JSX.Element {
 
           <View>
             <Text
-              style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: theme.colors.textSecondary }}
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                marginBottom: 8,
+                color: theme.colors.textSecondary,
+              }}
             >
               Email
             </Text>
@@ -163,7 +174,11 @@ export default function LoginScreen(): React.JSX.Element {
                 style={{ marginRight: 10 }}
               />
               <TextInput
-                style={{ flex: 1, fontSize: 15, color: theme.colors.textPrimary }}
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  color: theme.colors.textPrimary,
+                }}
                 value={email}
                 onChangeText={(text: string) => {
                   setEmail(text);
@@ -186,7 +201,13 @@ export default function LoginScreen(): React.JSX.Element {
             </View>
 
             <Text
-              style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, marginTop: 16, color: theme.colors.textSecondary }}
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                marginBottom: 8,
+                marginTop: 16,
+                color: theme.colors.textSecondary,
+              }}
             >
               Password
             </Text>
@@ -215,7 +236,11 @@ export default function LoginScreen(): React.JSX.Element {
                 style={{ marginRight: 10 }}
               />
               <TextInput
-                style={{ flex: 1, fontSize: 15, color: theme.colors.textPrimary }}
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  color: theme.colors.textPrimary,
+                }}
                 value={password}
                 onChangeText={(text: string) => {
                   setPassword(text);
@@ -237,7 +262,13 @@ export default function LoginScreen(): React.JSX.Element {
             </View>
 
             {error ? (
-              <View style={{ flexDirection: "row", alignItems: "flex-start", marginTop: 12 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  marginTop: 12,
+                }}
+              >
                 <Ionicons
                   name="alert-circle"
                   size={14}
@@ -245,7 +276,11 @@ export default function LoginScreen(): React.JSX.Element {
                   style={{ marginRight: 6, marginTop: 2 }}
                 />
                 <Text
-                  style={{ fontSize: 13, flex: 1, color: theme.colors.statusError }}
+                  style={{
+                    fontSize: 13,
+                    flex: 1,
+                    color: theme.colors.statusError,
+                  }}
                 >
                   {error}
                 </Text>

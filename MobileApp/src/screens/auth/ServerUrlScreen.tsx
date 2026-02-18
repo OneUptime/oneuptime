@@ -72,7 +72,9 @@ export default function ServerUrlScreen(): React.JSX.Element {
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 28 }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", paddingHorizontal: 28 }}
+        >
           <View style={{ alignItems: "center", marginBottom: 56 }}>
             <View
               style={{
@@ -99,7 +101,13 @@ export default function ServerUrlScreen(): React.JSX.Element {
               OneUptime
             </Text>
             <Text
-              style={{ fontSize: 15, marginTop: 8, textAlign: "center", lineHeight: 22, color: theme.colors.textSecondary }}
+              style={{
+                fontSize: 15,
+                marginTop: 8,
+                textAlign: "center",
+                lineHeight: 22,
+                color: theme.colors.textSecondary,
+              }}
             >
               Connect to your OneUptime instance
             </Text>
@@ -107,7 +115,12 @@ export default function ServerUrlScreen(): React.JSX.Element {
 
           <View>
             <Text
-              style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: theme.colors.textSecondary }}
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                marginBottom: 8,
+                color: theme.colors.textSecondary,
+              }}
             >
               Server URL
             </Text>
@@ -138,7 +151,11 @@ export default function ServerUrlScreen(): React.JSX.Element {
                 style={{ marginRight: 10 }}
               />
               <TextInput
-                style={{ flex: 1, fontSize: 15, color: theme.colors.textPrimary }}
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  color: theme.colors.textPrimary,
+                }}
                 value={url}
                 onChangeText={(text: string) => {
                   setUrl(text);
@@ -161,7 +178,13 @@ export default function ServerUrlScreen(): React.JSX.Element {
             </View>
 
             {error ? (
-              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 12,
+                }}
+              >
                 <Ionicons
                   name="alert-circle"
                   size={14}
@@ -169,7 +192,11 @@ export default function ServerUrlScreen(): React.JSX.Element {
                   style={{ marginRight: 6 }}
                 />
                 <Text
-                  style={{ fontSize: 13, flex: 1, color: theme.colors.statusError }}
+                  style={{
+                    fontSize: 13,
+                    flex: 1,
+                    color: theme.colors.statusError,
+                  }}
                 >
                   {error}
                 </Text>
@@ -187,7 +214,13 @@ export default function ServerUrlScreen(): React.JSX.Element {
           </View>
 
           <Text
-            style={{ fontSize: 12, textAlign: "center", marginTop: 24, lineHeight: 20, color: theme.colors.textTertiary }}
+            style={{
+              fontSize: 12,
+              textAlign: "center",
+              marginTop: 24,
+              lineHeight: 20,
+              color: theme.colors.textTertiary,
+            }}
           >
             Self-hosting? Enter your OneUptime server URL above.
           </Text>

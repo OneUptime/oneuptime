@@ -157,9 +157,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
           backgroundColor: theme.colors.backgroundPrimary,
         }}
       >
-        <Text
-          style={{ fontSize: 15, color: theme.colors.textSecondary }}
-        >
+        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
           Alert not found.
         </Text>
       </View>
