@@ -29,8 +29,8 @@
     "https-proxy-agent": "^7.0.5",
     "net-snmp": "^3.26.1",
     "ping": "^0.4.4",
-    "playwright": "^1.57.0",
-    "ts-node": "^10.9.1",
+    "playwright": "^1.58.0",
+    "ts-node": "^10.9.1"
     "whois-json": "^2.0.4"
   },
   "devDependencies": {
