@@ -227,8 +227,6 @@ export default class SyntheticMonitor {
         resolve: (value: WorkerResult) => void,
         reject: (reason: Error) => void,
       ) => {
-        // The worker file path. At runtime the compiled JS will be at the same
-        // relative location under the build output directory.
         const workerPath: string = path.resolve(
           __dirname,
           "SyntheticMonitorWorker",
@@ -241,6 +239,14 @@ export default class SyntheticMonitor {
         });
 
         let resolved: boolean = false;
+        let stderrOutput: string = "";
+
+        // Capture child stderr for debugging worker crashes
+        if (child.stderr) {
+          child.stderr.on("data", (data: Buffer) => {
+            stderrOutput += data.toString();
+          });
+        }
 
         // Explicit kill timer as final safety net
         const killTimer: ReturnType<typeof setTimeout> = global.setTimeout(
@@ -278,17 +284,21 @@ export default class SyntheticMonitor {
           if (!resolved) {
             resolved = true;
             global.clearTimeout(killTimer);
+
+            const stderrInfo: string = stderrOutput.trim()
+              ? `: ${stderrOutput.trim().substring(0, 500)}`
+              : "";
+
             if (exitCode !== 0) {
               reject(
                 new Error(
-                  `Synthetic monitor worker exited with code ${exitCode}`,
+                  `Synthetic monitor worker exited with code ${exitCode}${stderrInfo}`,
                 ),
               );
             } else {
-              // Worker exited cleanly but didn't send a message — shouldn't happen
               reject(
                 new Error(
-                  "Synthetic monitor worker exited without sending results",
+                  `Synthetic monitor worker exited without sending results${stderrInfo}`,
                 ),
               );
             }

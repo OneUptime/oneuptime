@@ -320,20 +320,31 @@ process.on("message", (config: WorkerConfig) => {
   run(config)
     .then((result: WorkerResult) => {
       if (process.send) {
-        process.send(result);
+        // Wait for the IPC message to be flushed before exiting.
+        // process.send() is async — calling process.exit() immediately
+        // can kill the process before the message is delivered.
+        process.send(result, () => {
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
       }
-      process.exit(0);
     })
     .catch((err: unknown) => {
+      const errorResult: WorkerResult = {
+        logMessages: [],
+        scriptError: (err as Error)?.message || String(err),
+        result: undefined,
+        screenshots: {},
+        executionTimeInMS: 0,
+      };
+
       if (process.send) {
-        process.send({
-          logMessages: [],
-          scriptError: (err as Error)?.message || String(err),
-          result: undefined,
-          screenshots: {},
-          executionTimeInMS: 0,
-        } as WorkerResult);
+        process.send(errorResult, () => {
+          process.exit(1);
+        });
+      } else {
+        process.exit(1);
       }
-      process.exit(1);
     });
 });
