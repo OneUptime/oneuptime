@@ -28,24 +28,35 @@ export default function FeedTimeline({
         const moreText: string | undefined = entry.moreInformationInMarkdown;
 
         return (
-          <View key={entry._id} className="flex-row">
-            <View className="items-center mr-3.5">
+          <View key={entry._id} style={{ flexDirection: "row" }}>
+            <View style={{ alignItems: "center", marginRight: 14 }}>
               <View
-                className="w-2.5 h-2.5 rounded-full mt-2"
-                style={{ backgroundColor: entryColor }}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 9999,
+                  marginTop: 8,
+                  backgroundColor: entryColor,
+                }}
               />
               {!isLast ? (
                 <View
-                  className="w-px flex-1 my-1.5"
                   style={{
+                    width: 1,
+                    flex: 1,
+                    marginVertical: 6,
                     backgroundColor: theme.colors.borderDefault,
                   }}
                 />
               ) : null}
             </View>
             <View
-              className="flex-1 pb-3 mb-2.5 rounded-2xl p-3"
               style={{
+                flex: 1,
+                paddingBottom: 12,
+                marginBottom: 10,
+                borderRadius: 16,
+                padding: 12,
                 backgroundColor: theme.colors.backgroundElevated,
                 borderWidth: 1,
                 borderColor: theme.colors.borderGlass,
@@ -53,13 +64,12 @@ export default function FeedTimeline({
             >
               <MarkdownContent content={entry.feedInfoInMarkdown} />
               {moreText ? (
-                <View className="mt-1.5">
+                <View style={{ marginTop: 6 }}>
                   <MarkdownContent content={moreText} variant="secondary" />
                 </View>
               ) : null}
               <Text
-                className="text-[12px] mt-2"
-                style={{ color: theme.colors.textTertiary }}
+                style={{ fontSize: 12, marginTop: 8, color: theme.colors.textTertiary }}
               >
                 {timeString}
               </Text>

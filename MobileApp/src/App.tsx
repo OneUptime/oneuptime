@@ -3,11 +3,7 @@ import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import type { Persister } from "@tanstack/query-persist-client-core";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider, useTheme } from "./theme";
 import { AuthProvider } from "./hooks/useAuth";
 import { ProjectProvider } from "./hooks/useProject";
@@ -22,19 +18,11 @@ const queryClient: QueryClient = new QueryClient({
   },
 });
 
-const asyncStoragePersister: Persister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  throttleTime: 1000,
-});
-
 function AppContent(): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
-    <View
-      className="flex-1 bg-bg-primary"
-      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-    >
+    <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
       <LinearGradient
         pointerEvents="none"
         colors={[theme.colors.accentGradientStart + "1C", "transparent"]}
@@ -63,7 +51,7 @@ function AppContent(): React.JSX.Element {
           borderRadius: 999,
         }}
       />
-      <StatusBar style={theme.isDark ? "light" : "dark"} />
+      <StatusBar style="light" />
       <RootNavigator />
       <OfflineBanner />
     </View>
@@ -73,10 +61,7 @@ function AppContent(): React.JSX.Element {
 export default function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister }}
-      >
+      <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
             <ProjectProvider>
@@ -84,7 +69,7 @@ export default function App(): React.JSX.Element {
             </ProjectProvider>
           </AuthProvider>
         </ThemeProvider>
-      </PersistQueryClientProvider>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }

@@ -32,12 +32,33 @@ export default function StateBadge({
   const displayLabel: string = label || state;
 
   return (
-    <View className="flex-row items-center px-2 py-1 rounded-md self-start bg-bg-tertiary">
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        alignSelf: "flex-start",
+        backgroundColor: theme.colors.backgroundTertiary,
+      }}
+    >
       <View
-        className="w-2 h-2 rounded-full mr-1.5"
-        style={{ backgroundColor: color }}
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 9999,
+          marginRight: 6,
+          backgroundColor: color,
+        }}
       />
-      <Text className="text-xs font-semibold text-text-primary">
+      <Text
+        style={{
+          fontSize: 12,
+          fontWeight: "600",
+          color: theme.colors.textPrimary,
+        }}
+      >
         {displayLabel.charAt(0).toUpperCase() + displayLabel.slice(1)}
       </Text>
     </View>

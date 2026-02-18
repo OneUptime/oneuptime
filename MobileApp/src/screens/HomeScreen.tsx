@@ -2,10 +2,11 @@ import React from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  Pressable,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -49,11 +50,14 @@ function StatCard({
 
   return (
     <TouchableOpacity
-      className="flex-1 rounded-3xl overflow-hidden"
-      onPress={handlePress}
       activeOpacity={0.7}
+      onPress={handlePress}
       accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
       accessibilityRole="button"
+      style={{
+        borderRadius: 24,
+        overflow: "hidden",
+      }}
     >
       <LinearGradient
         colors={[
@@ -72,23 +76,29 @@ function StatCard({
         }}
       />
       <View
-        className="p-4"
         style={{
+          padding: 16,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
           borderRadius: 22,
-          shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
-          shadowOpacity: theme.isDark ? 0.25 : 0.1,
+          shadowColor: "#000",
+          shadowOpacity: 0.25,
           shadowOffset: { width: 0, height: 8 },
           shadowRadius: 16,
           elevation: 6,
         }}
       >
-        <View className="flex-row items-center justify-between mb-3">
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <View
-            className="w-10 h-10 rounded-2xl items-center justify-center"
-            style={{ backgroundColor: accentColor + "14" }}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: accentColor + "14",
+            }}
           >
             <Ionicons name={iconName} size={18} color={accentColor} />
           </View>
@@ -99,8 +109,9 @@ function StatCard({
           />
         </View>
         <Text
-          className="text-[30px] font-bold"
           style={{
+            fontSize: 30,
+            fontWeight: "bold",
             color: theme.colors.textPrimary,
             fontVariant: ["tabular-nums"],
             letterSpacing: -1.1,
@@ -109,8 +120,10 @@ function StatCard({
           {isLoading ? "--" : count ?? 0}
         </Text>
         <Text
-          className="text-[12px] font-semibold mt-1"
           style={{
+            fontSize: 12,
+            fontWeight: "600",
+            marginTop: 4,
             color: theme.colors.textSecondary,
             letterSpacing: 0.3,
           }}
@@ -175,10 +188,15 @@ export default function HomeScreen(): React.JSX.Element {
           />
         }
       >
-        <View className="flex-1 items-center justify-center px-8">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <View
-            className="w-20 h-20 rounded-2xl items-center justify-center mb-6"
             style={{
+              width: 80,
+              height: 80,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 24,
               backgroundColor: "#000000",
               borderWidth: 1,
               borderColor: "#1F1F1F",
@@ -188,8 +206,10 @@ export default function HomeScreen(): React.JSX.Element {
           </View>
 
           <Text
-            className="text-[22px] font-bold text-center"
             style={{
+              fontSize: 22,
+              fontWeight: "bold",
+              textAlign: "center",
               color: theme.colors.textPrimary,
               letterSpacing: -0.5,
             }}
@@ -197,14 +217,20 @@ export default function HomeScreen(): React.JSX.Element {
             No Projects Found
           </Text>
           <Text
-            className="text-[15px] text-center mt-2 leading-[22px] max-w-[300px]"
-            style={{ color: theme.colors.textSecondary }}
+            style={{
+              fontSize: 15,
+              textAlign: "center",
+              marginTop: 8,
+              lineHeight: 22,
+              maxWidth: 300,
+              color: theme.colors.textSecondary,
+            }}
           >
             You don&apos;t have access to any projects. Contact your
             administrator or pull to refresh.
           </Text>
 
-          <View className="mt-8 w-[200px]">
+          <View style={{ marginTop: 32, width: 200 }}>
             <GradientButton
               label="Retry"
               onPress={refreshProjects}
@@ -219,8 +245,7 @@ export default function HomeScreen(): React.JSX.Element {
   if (isLoadingProjects) {
     return (
       <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.backgroundPrimary }}
       >
         <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
       </View>
@@ -244,15 +269,17 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      <View className="px-5 pt-4 pb-4">
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
         <View
-          className="rounded-3xl overflow-hidden p-5"
           style={{
+            borderRadius: 24,
+            overflow: "hidden",
+            padding: 20,
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
-            shadowColor: theme.isDark ? "#000" : theme.colors.accentGradientMid,
-            shadowOpacity: theme.isDark ? 0.3 : 0.12,
+            shadowColor: "#000",
+            shadowOpacity: 0.3,
             shadowOffset: { width: 0, height: 10 },
             shadowRadius: 18,
             elevation: 7,
@@ -274,10 +301,15 @@ export default function HomeScreen(): React.JSX.Element {
             }}
           />
 
-          <View className="flex-row items-center">
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <View
-              className="w-12 h-12 rounded-2xl items-center justify-center mr-3"
               style={{
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 12,
                 backgroundColor: "#000000",
                 borderWidth: 1,
                 borderColor: "#1F1F1F",
@@ -285,19 +317,21 @@ export default function HomeScreen(): React.JSX.Element {
             >
               <Logo size={44} />
             </View>
-            <View className="flex-1">
+            <View style={{ flex: 1 }}>
               <Text
-                className="text-[13px] font-medium"
                 style={{
+                  fontSize: 13,
+                  fontWeight: "500",
                   color: theme.colors.textSecondary,
                 }}
               >
                 {getGreeting()}
               </Text>
               <Text
-                className="text-[24px] font-bold"
                 accessibilityRole="header"
                 style={{
+                  fontSize: 24,
+                  fontWeight: "bold",
                   color: theme.colors.textPrimary,
                   letterSpacing: -0.6,
                 }}
@@ -308,17 +342,17 @@ export default function HomeScreen(): React.JSX.Element {
             </View>
           </View>
 
-          <View className="mt-4">
+          <View style={{ marginTop: 16 }}>
             <View>
               <Text
-                className="text-[12px]"
-                style={{ color: theme.colors.textTertiary }}
+                style={{ fontSize: 12, color: theme.colors.textTertiary }}
               >
                 Total active items
               </Text>
               <Text
-                className="text-[30px] font-bold"
                 style={{
+                  fontSize: 30,
+                  fontWeight: "bold",
                   color: theme.colors.textPrimary,
                   fontVariant: ["tabular-nums"],
                   letterSpacing: -1,
@@ -334,39 +368,41 @@ export default function HomeScreen(): React.JSX.Element {
         </View>
       </View>
 
-      <View className="gap-4 px-5">
+      <View style={{ paddingHorizontal: 20, gap: 16 }}>
         <View>
           <Text
-            className="text-[12px] font-semibold uppercase mb-2"
             style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
               color: theme.colors.textSecondary,
               letterSpacing: 1,
             }}
           >
             On-Call
           </Text>
-          <TouchableOpacity
-            activeOpacity={0.8}
+          <Pressable
             onPress={() => {
               lightImpact();
               navigation.navigate("OnCall");
             }}
-            className="rounded-3xl overflow-hidden p-4"
-            style={{
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-              shadowColor: theme.isDark
-                ? "#000"
-                : theme.colors.accentGradientMid,
-              shadowOpacity: theme.isDark ? 0.24 : 0.09,
-              shadowOffset: { width: 0, height: 8 },
-              shadowRadius: 14,
-              elevation: 5,
-            }}
+            style={({ pressed }: { pressed: boolean }) => ({
+              opacity: pressed ? 0.8 : 1,
+            })}
             accessibilityRole="button"
             accessibilityLabel="View my on-call assignments"
           >
+            <View
+              style={{
+                borderRadius: 24,
+                overflow: "hidden",
+                padding: 16,
+                backgroundColor: theme.colors.backgroundElevated,
+                borderWidth: 1,
+                borderColor: theme.colors.borderGlass,
+              }}
+            >
             <LinearGradient
               colors={[
                 theme.colors.oncallActiveBg,
@@ -376,18 +412,25 @@ export default function HomeScreen(): React.JSX.Element {
               end={{ x: 1, y: 1 }}
               style={{
                 position: "absolute",
-                top: -20,
-                left: -10,
-                right: -10,
-                height: 120,
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 100,
               }}
             />
 
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                 <View
-                  className="w-10 h-10 rounded-2xl items-center justify-center mr-3"
-                  style={{ backgroundColor: theme.colors.oncallActiveBg }}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 12,
+                    backgroundColor: theme.colors.oncallActiveBg,
+                  }}
                 >
                   <Ionicons
                     name="call-outline"
@@ -395,16 +438,14 @@ export default function HomeScreen(): React.JSX.Element {
                     color={theme.colors.oncallActive}
                   />
                 </View>
-                <View className="flex-1">
+                <View style={{ flex: 1 }}>
                   <Text
-                    className="text-[15px] font-bold"
-                    style={{ color: theme.colors.textPrimary }}
+                    style={{ fontSize: 15, fontWeight: "bold", color: theme.colors.textPrimary }}
                   >
                     My On-Call Policies
                   </Text>
                   <Text
-                    className="text-[12px] mt-0.5"
-                    style={{ color: theme.colors.textSecondary }}
+                    style={{ fontSize: 12, marginTop: 2, color: theme.colors.textSecondary }}
                   >
                     {onCallLoading
                       ? "Loading assignments..."
@@ -415,10 +456,11 @@ export default function HomeScreen(): React.JSX.Element {
                 </View>
               </View>
 
-              <View className="items-end ml-3">
+              <View style={{ alignItems: "flex-end", marginLeft: 12 }}>
                 <Text
-                  className="text-[28px] font-bold"
                   style={{
+                    fontSize: 28,
+                    fontWeight: "bold",
                     color: theme.colors.textPrimary,
                     fontVariant: ["tabular-nums"],
                     letterSpacing: -1,
@@ -433,74 +475,89 @@ export default function HomeScreen(): React.JSX.Element {
                 />
               </View>
             </View>
-          </TouchableOpacity>
+            </View>
+          </Pressable>
         </View>
 
         <View>
           <Text
-            className="text-[12px] font-semibold uppercase mb-2"
             style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
               color: theme.colors.textSecondary,
               letterSpacing: 1,
             }}
           >
             Incidents
           </Text>
-          <View className="flex-row gap-3">
-            <StatCard
-              count={incidentCount}
-              label="Active Incidents"
-              accentColor={theme.colors.severityCritical}
-              iconName="warning-outline"
-              isLoading={anyLoading}
-              onPress={() => {
-                return navigation.navigate("Incidents");
-              }}
-            />
-            <StatCard
-              count={incidentEpisodeCount}
-              label="Inc. Episodes"
-              accentColor={theme.colors.severityInfo}
-              iconName="layers-outline"
-              isLoading={anyLoading}
-              onPress={() => {
-                return navigation.navigate("Incidents");
-              }}
-            />
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1 }}>
+              <StatCard
+                count={incidentCount}
+                label="Active Incidents"
+                accentColor={theme.colors.severityCritical}
+                iconName="warning-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Incidents");
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <StatCard
+                count={incidentEpisodeCount}
+                label="Inc. Episodes"
+                accentColor={theme.colors.severityInfo}
+                iconName="layers-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Incidents");
+                }}
+              />
+            </View>
           </View>
         </View>
 
         <View>
           <Text
-            className="text-[12px] font-semibold uppercase mb-2"
             style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
               color: theme.colors.textSecondary,
               letterSpacing: 1,
             }}
           >
             Alerts
           </Text>
-          <View className="flex-row gap-3">
-            <StatCard
-              count={alertCount}
-              label="Active Alerts"
-              accentColor={theme.colors.severityMajor}
-              iconName="alert-circle-outline"
-              isLoading={anyLoading}
-              onPress={() => {
-                return navigation.navigate("Alerts");
-              }}
-            />
-            <StatCard
-              count={alertEpisodeCount}
-              label="Alert Episodes"
-              accentColor={theme.colors.severityWarning}
-              iconName="layers-outline"
-              isLoading={anyLoading}
-              onPress={() => {
-                return navigation.navigate("Alerts");
-              }}
-            />
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1 }}>
+              <StatCard
+                count={alertCount}
+                label="Active Alerts"
+                accentColor={theme.colors.severityMajor}
+                iconName="alert-circle-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Alerts");
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <StatCard
+                count={alertEpisodeCount}
+                label="Alert Episodes"
+                accentColor={theme.colors.severityWarning}
+                iconName="layers-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Alerts");
+                }}
+              />
+            </View>
           </View>
         </View>
       </View>

@@ -14,20 +14,24 @@ export default function RootCauseCard({
 
   return (
     <View
-      className="rounded-2xl overflow-hidden"
       style={{
+        borderRadius: 16,
+        overflow: "hidden",
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
         borderColor: theme.colors.borderGlass,
       }}
     >
-      <View className="p-4">
+      <View style={{ padding: 16 }}>
         {rootCauseText ? (
           <MarkdownContent content={rootCauseText} />
         ) : (
           <Text
-            className="text-[14px] leading-[22px]"
-            style={{ color: theme.colors.textTertiary }}
+            style={{
+              fontSize: 14,
+              lineHeight: 22,
+              color: theme.colors.textTertiary,
+            }}
           >
             No root cause documented yet.
           </Text>

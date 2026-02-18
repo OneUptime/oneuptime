@@ -17,6 +17,7 @@ import SnmpMonitorResponse, {
 import DnsMonitorResponse, {
   DnsRecordResponse,
 } from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
+import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import Typeof from "../../../Types/Typeof";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
@@ -276,6 +277,26 @@ export default class MonitorTemplateUtil {
             },
           );
         }
+      }
+
+      if (data.monitorType === MonitorType.Domain) {
+        const domainResponse: DomainMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).domainResponse;
+
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          responseTimeInMs: domainResponse?.responseTimeInMs,
+          failureCause: domainResponse?.failureCause,
+          domainName: domainResponse?.domainName,
+          registrar: domainResponse?.registrar,
+          createdDate: domainResponse?.createdDate,
+          updatedDate: domainResponse?.updatedDate,
+          expiresDate: domainResponse?.expiresDate,
+          nameServers: domainResponse?.nameServers,
+          domainStatus: domainResponse?.domainStatus,
+          dnssec: domainResponse?.dnssec,
+        } as JSONObject;
       }
     } catch (err) {
       logger.error(err);

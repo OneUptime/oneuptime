@@ -79,6 +79,10 @@ import DnsMonitorStepForm from "./DnsMonitor/DnsMonitorStepForm";
 import MonitorStepDnsMonitor, {
   MonitorStepDnsMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDnsMonitor";
+import DomainMonitorStepForm from "./DomainMonitor/DomainMonitorStepForm";
+import MonitorStepDomainMonitor, {
+  MonitorStepDomainMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepDomainMonitor";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -806,6 +810,24 @@ return {
             }
             onChange={(value: MonitorStepDnsMonitor) => {
               monitorStep.setDnsMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Domain && (
+        <Card
+          title="Domain Monitor Configuration"
+          description="Configure the domain registration monitoring settings"
+        >
+          <DomainMonitorStepForm
+            monitorStepDomainMonitor={
+              monitorStep.data?.domainMonitor ||
+              MonitorStepDomainMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepDomainMonitor) => {
+              monitorStep.setDomainMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

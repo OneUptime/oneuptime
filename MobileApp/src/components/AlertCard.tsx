@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { rgbToHex } from "../utils/color";
@@ -33,24 +33,26 @@ export default function AlertCard({
   const timeString: string = formatRelativeTime(alert.createdAt);
 
   return (
-    <TouchableOpacity
-      className="mb-3"
-      style={{
-        opacity: muted ? 0.5 : 1,
+    <Pressable
+      style={({ pressed }: { pressed: boolean }) => {
+        return {
+          marginBottom: 12,
+          opacity: pressed ? 0.7 : muted ? 0.5 : 1,
+        };
       }}
       onPress={onPress}
-      activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`Alert ${alert.alertNumberWithPrefix || alert.alertNumber}, ${alert.title}. State: ${alert.currentAlertState?.name ?? "unknown"}. Severity: ${alert.alertSeverity?.name ?? "unknown"}.`}
     >
       <View
-        className="rounded-3xl overflow-hidden"
         style={{
+          borderRadius: 24,
+          overflow: "hidden",
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
-          shadowColor: theme.isDark ? "#000" : "#111827",
-          shadowOpacity: theme.isDark ? 0.22 : 0.08,
+          shadowColor: "#000",
+          shadowOpacity: 0.22,
           shadowOffset: { width: 0, height: 8 },
           shadowRadius: 14,
           elevation: 5,
@@ -63,13 +65,32 @@ export default function AlertCard({
             opacity: 1,
           }}
         />
-        <View className="p-4">
-          <View className="flex-row justify-between items-center mb-2.5">
-            <View className="flex-row items-center gap-2">
+        <View style={{ padding: 16 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
               {projectName ? <ProjectBadge name={projectName} /> : null}
               <View
-                className="flex-row items-center px-2 py-1 rounded-full"
-                style={{ backgroundColor: theme.colors.iconBackground }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 9999,
+                  backgroundColor: theme.colors.iconBackground,
+                }}
               >
                 <Ionicons
                   name="notifications-outline"
@@ -78,8 +99,9 @@ export default function AlertCard({
                   style={{ marginRight: 4 }}
                 />
                 <Text
-                  className="text-[10px] font-semibold"
                   style={{
+                    fontSize: 10,
+                    fontWeight: "600",
                     color: theme.colors.textSecondary,
                     letterSpacing: 0.3,
                   }}
@@ -88,16 +110,19 @@ export default function AlertCard({
                 </Text>
               </View>
               <View
-                className="px-2.5 py-1 rounded-full"
                 style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 9999,
                   backgroundColor: theme.colors.backgroundTertiary,
                   borderWidth: 1,
                   borderColor: theme.colors.borderDefault,
                 }}
               >
                 <Text
-                  className="text-[12px] font-bold"
                   style={{
+                    fontSize: 12,
+                    fontWeight: "bold",
                     color: theme.colors.textPrimary,
                     letterSpacing: 0.2,
                   }}
@@ -106,7 +131,7 @@ export default function AlertCard({
                 </Text>
               </View>
             </View>
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons
                 name="time-outline"
                 size={12}
@@ -114,18 +139,29 @@ export default function AlertCard({
                 style={{ marginRight: 4 }}
               />
               <Text
-                className="text-[12px]"
-                style={{ color: theme.colors.textTertiary }}
+                style={{ fontSize: 12, color: theme.colors.textTertiary }}
               >
                 {timeString}
               </Text>
             </View>
           </View>
 
-          <View className="flex-row items-start mt-0.5">
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              marginTop: 2,
+            }}
+          >
             <Text
-              className="text-[16px] font-semibold flex-1 pr-2"
-              style={{ color: theme.colors.textPrimary, letterSpacing: -0.2 }}
+              style={{
+                fontSize: 16,
+                fontWeight: "600",
+                flex: 1,
+                paddingRight: 8,
+                color: theme.colors.textPrimary,
+                letterSpacing: -0.2,
+              }}
               numberOfLines={2}
             >
               {alert.title}
@@ -138,21 +174,40 @@ export default function AlertCard({
             />
           </View>
 
-          <View className="flex-row flex-wrap gap-2 mt-3">
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 8,
+              marginTop: 12,
+            }}
+          >
             {alert.currentAlertState ? (
               <View
-                className="flex-row items-center px-2.5 py-1 rounded-full"
                 style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 9999,
                   backgroundColor: theme.colors.backgroundTertiary,
                 }}
               >
                 <View
-                  className="w-2 h-2 rounded-full mr-1.5"
-                  style={{ backgroundColor: stateColor }}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 9999,
+                    marginRight: 6,
+                    backgroundColor: stateColor,
+                  }}
                 />
                 <Text
-                  className="text-[11px] font-semibold"
-                  style={{ color: stateColor }}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: stateColor,
+                  }}
                 >
                   {alert.currentAlertState.name}
                 </Text>
@@ -161,12 +216,21 @@ export default function AlertCard({
 
             {alert.alertSeverity ? (
               <View
-                className="flex-row items-center px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: theme.colors.backgroundTertiary }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 9999,
+                  backgroundColor: theme.colors.backgroundTertiary,
+                }}
               >
                 <Text
-                  className="text-[11px] font-semibold"
-                  style={{ color: severityColor }}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: severityColor,
+                  }}
                 >
                   {alert.alertSeverity.name}
                 </Text>
@@ -176,33 +240,45 @@ export default function AlertCard({
 
           {alert.monitor ? (
             <View
-              className="flex-row items-center mt-3 pt-3"
               style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 12,
+                paddingTop: 12,
                 borderTopWidth: 1,
                 borderTopColor: theme.colors.borderSubtle,
               }}
             >
               <View
-                className="w-6 h-6 rounded-full items-center justify-center mr-2"
-                style={{ backgroundColor: theme.colors.iconBackground }}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 9999,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 8,
+                  backgroundColor: theme.colors.iconBackground,
+                }}
               >
                 <Ionicons
-                  name="desktop-outline"
+                  name="pulse-outline"
                   size={12}
                   color={theme.colors.textSecondary}
                 />
               </View>
-              <View className="flex-1">
+              <View style={{ flex: 1 }}>
                 <Text
-                  className="text-[12px]"
-                  style={{ color: theme.colors.textSecondary }}
+                  style={{ fontSize: 12, color: theme.colors.textSecondary }}
                   numberOfLines={1}
                 >
                   {alert.monitor.name}
                 </Text>
                 <Text
-                  className="text-[11px] mt-0.5"
-                  style={{ color: theme.colors.textTertiary }}
+                  style={{
+                    fontSize: 11,
+                    marginTop: 2,
+                    color: theme.colors.textTertiary,
+                  }}
                 >
                   Linked monitor
                 </Text>
@@ -211,6 +287,6 @@ export default function AlertCard({
           ) : null}
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }

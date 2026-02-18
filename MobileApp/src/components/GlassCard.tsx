@@ -17,17 +17,16 @@ export default function GlassCard({
 
   return (
     <View
-      className="rounded-2xl overflow-hidden"
-      style={[
-        {
-          backgroundColor: opaque
-            ? theme.colors.backgroundElevated
-            : theme.colors.backgroundGlass,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-        },
-        style,
-      ]}
+      style={{
+        borderRadius: 16,
+        overflow: "hidden",
+        backgroundColor: opaque
+          ? theme.colors.backgroundElevated
+          : theme.colors.backgroundGlass,
+        borderWidth: 1,
+        borderColor: theme.colors.borderGlass,
+        ...style,
+      }}
     >
       {children}
     </View>

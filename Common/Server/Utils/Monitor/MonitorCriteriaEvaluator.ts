@@ -13,6 +13,7 @@ import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
 import DnsMonitorCriteria from "./Criteria/DnsMonitorCriteria";
+import DomainMonitorCriteria from "./Criteria/DomainMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
@@ -503,6 +504,18 @@ ${contextBlock}
 
       if (dnsMonitorResult) {
         return dnsMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Domain) {
+      const domainMonitorResult: string | null =
+        await DomainMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (domainMonitorResult) {
+        return domainMonitorResult;
       }
     }
 

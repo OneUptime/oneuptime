@@ -43,12 +43,21 @@ export default function SeverityBadge({
 
   return (
     <View
-      className="px-2 py-1 rounded-md self-start"
-      style={{ backgroundColor: colors.bg }}
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        alignSelf: "flex-start",
+        backgroundColor: colors.bg,
+      }}
     >
       <Text
-        className="text-xs font-semibold tracking-wide"
-        style={{ color: colors.text }}
+        style={{
+          fontSize: 12,
+          fontWeight: "600",
+          letterSpacing: 0.5,
+          color: colors.text,
+        }}
       >
         {displayLabel.toUpperCase()}
       </Text>

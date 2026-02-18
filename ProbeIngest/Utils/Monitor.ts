@@ -235,6 +235,28 @@ export default class MonitorUtil {
       }
     }
 
+    if (monitorType === MonitorType.Domain) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        // Handle Domain name secrets
+        if (
+          monitorStep.data?.domainMonitor?.domainName &&
+          this.hasSecrets(monitorStep.data.domainMonitor.domainName)
+        ) {
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+            isSecretsLoaded = true;
+          }
+
+          monitorStep.data.domainMonitor.domainName =
+            (await MonitorUtil.fillSecretsInStringOrJSON({
+              secrets: monitorSecrets,
+              populateSecretsIn: monitorStep.data.domainMonitor.domainName,
+            })) as string;
+        }
+      }
+    }
+
     return monitorSteps;
   }
 

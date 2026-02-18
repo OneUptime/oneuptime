@@ -31,11 +31,13 @@
     "ping": "^0.4.4",
     "playwright": "^1.58.0",
     "ts-node": "^10.9.1"
+    "whois-json": "^2.0.4"
   },
   "devDependencies": {
     "@types/jest": "^27.5.2",
     "@types/net-snmp": "^3.23.0",
     "@types/node": "^17.0.31",
+    "@types/whois-json": "^2.0.4",
     "jest": "^28.1.0",
     "nodemon": "^2.0.20",
     "ts-jest": "^28.0.2"

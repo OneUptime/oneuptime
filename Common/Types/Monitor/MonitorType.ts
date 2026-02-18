@@ -29,6 +29,9 @@ enum MonitorType {
 
   // DNS monitoring
   DNS = "DNS",
+
+  // Domain registration monitoring
+  Domain = "Domain",
 }
 
 export default MonitorType;
@@ -58,6 +61,7 @@ export class MonitorTypeHelper {
           MonitorType.Port,
           MonitorType.DNS,
           MonitorType.SSLCertificate,
+          MonitorType.Domain,
         ],
       },
       {
@@ -239,6 +243,13 @@ export class MonitorTypeHelper {
           "This monitor type lets you monitor DNS resolution for your domains, verify record values, and check DNSSEC validity.",
         icon: IconProp.GlobeAlt,
       },
+      {
+        monitorType: MonitorType.Domain,
+        title: "Domain",
+        description:
+          "This monitor type lets you monitor domain registration health — expiry dates, registrar info, nameserver delegation, and WHOIS status.",
+        icon: IconProp.Globe,
+      },
     ];
 
     return monitorTypeProps;
@@ -285,7 +296,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.SyntheticMonitor ||
       monitorType === MonitorType.CustomJavaScriptCode ||
       monitorType === MonitorType.SNMP ||
-      monitorType === MonitorType.DNS;
+      monitorType === MonitorType.DNS ||
+      monitorType === MonitorType.Domain;
     return isProbeableMonitor;
   }
 
@@ -308,6 +320,7 @@ export class MonitorTypeHelper {
       MonitorType.Exceptions,
       MonitorType.SNMP,
       MonitorType.DNS,
+      MonitorType.Domain,
     ];
   }
 
@@ -341,7 +354,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.SyntheticMonitor ||
       monitorType === MonitorType.CustomJavaScriptCode ||
       monitorType === MonitorType.SNMP ||
-      monitorType === MonitorType.DNS
+      monitorType === MonitorType.DNS ||
+      monitorType === MonitorType.Domain
     ) {
       return true;
     }

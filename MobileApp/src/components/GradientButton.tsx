@@ -1,8 +1,8 @@
 import React from "react";
 import {
-  TouchableOpacity,
   Text,
   ActivityIndicator,
+  Pressable,
   View,
   ViewStyle,
 } from "react-native";
@@ -29,28 +29,31 @@ export default function GradientButton({
   style,
 }: GradientButtonProps): React.JSX.Element {
   const { theme } = useTheme();
-  const primaryContentColor: string = theme.isDark
-    ? theme.colors.backgroundPrimary
-    : "#FFFFFF";
+  const primaryContentColor: string = theme.colors.backgroundPrimary;
+
+  const isDisabled: boolean = disabled || loading;
 
   if (variant === "secondary") {
     return (
-      <TouchableOpacity
-        className="h-[50px] rounded-xl items-center justify-center overflow-hidden"
+      <Pressable
+        onPress={onPress}
+        disabled={isDisabled}
         style={[
           {
+            height: 50,
+            borderRadius: 12,
+            alignItems: "center" as const,
+            justifyContent: "center" as const,
+            overflow: "hidden" as const,
             backgroundColor: "transparent",
             borderWidth: 1,
             borderColor: theme.colors.borderDefault,
-            opacity: disabled || loading ? 0.5 : 1,
+            opacity: isDisabled ? 0.5 : 1,
           },
           style,
         ]}
-        onPress={onPress}
-        disabled={disabled || loading}
-        activeOpacity={0.7}
       >
-        <View className="flex-row items-center">
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
           {loading ? (
             <ActivityIndicator color={theme.colors.textSecondary} />
           ) : (
@@ -64,25 +67,35 @@ export default function GradientButton({
                 />
               ) : null}
               <Text
-                className="text-[15px] font-semibold"
-                style={{ color: theme.colors.textSecondary }}
+                style={{
+                  fontSize: 15,
+                  fontWeight: "600",
+                  color: theme.colors.textSecondary,
+                }}
               >
                 {label}
               </Text>
             </>
           )}
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
   return (
-    <TouchableOpacity
-      className="h-[50px] rounded-xl overflow-hidden items-center justify-center flex-row"
+    <Pressable
+      onPress={onPress}
+      disabled={isDisabled}
       style={[
         {
+          height: 50,
+          borderRadius: 12,
+          overflow: "hidden" as const,
+          alignItems: "center" as const,
+          justifyContent: "center" as const,
+          flexDirection: "row" as const,
           backgroundColor: theme.colors.actionPrimary,
-          opacity: disabled || loading ? 0.5 : 1,
+          opacity: isDisabled ? 0.5 : 1,
           shadowColor: theme.colors.actionPrimary,
           shadowOpacity: 0.3,
           shadowOffset: { width: 0, height: 4 },
@@ -91,9 +104,6 @@ export default function GradientButton({
         },
         style,
       ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.85}
     >
       {loading ? (
         <ActivityIndicator color={primaryContentColor} />
@@ -108,13 +118,17 @@ export default function GradientButton({
             />
           ) : null}
           <Text
-            className="text-[15px] font-bold"
-            style={{ color: primaryContentColor, letterSpacing: 0.2 }}
+            style={{
+              fontSize: 15,
+              fontWeight: "bold",
+              color: primaryContentColor,
+              letterSpacing: 0.2,
+            }}
           >
             {label}
           </Text>
         </>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }

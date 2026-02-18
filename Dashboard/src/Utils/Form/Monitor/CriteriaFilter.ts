@@ -295,6 +295,18 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.Domain) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.DomainExpiresDaysIn ||
+          i.value === CheckOn.DomainRegistrar ||
+          i.value === CheckOn.DomainNameServer ||
+          i.value === CheckOn.DomainStatusCode ||
+          i.value === CheckOn.DomainIsExpired
+        );
+      });
+    }
+
     return options;
   }
 
@@ -570,6 +582,40 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (checkOn === CheckOn.DomainExpiresDaysIn) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    if (
+      checkOn === CheckOn.DomainRegistrar ||
+      checkOn === CheckOn.DomainNameServer ||
+      checkOn === CheckOn.DomainStatusCode
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.StartsWith ||
+          i.value === FilterType.EndsWith
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.DomainIsExpired) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
     return options;
   }
 
@@ -707,6 +753,22 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.DnsRecordValue) {
       return "192.168.1.1";
+    }
+
+    if (checkOn === CheckOn.DomainExpiresDaysIn) {
+      return "30";
+    }
+
+    if (checkOn === CheckOn.DomainRegistrar) {
+      return "GoDaddy";
+    }
+
+    if (checkOn === CheckOn.DomainNameServer) {
+      return "ns1.example.com";
+    }
+
+    if (checkOn === CheckOn.DomainStatusCode) {
+      return "clientTransferProhibited";
     }
 
     return "";
