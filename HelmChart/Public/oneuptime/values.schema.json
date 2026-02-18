@@ -727,6 +727,24 @@
       },
       "additionalProperties": false
     },
+    "expo": {
+      "type": "object",
+      "properties": {
+        "accessToken": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "pushNotification": {
+      "type": "object",
+      "properties": {
+        "relayUrl": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
     "incidents": {
       "type": "object",
       "properties": {

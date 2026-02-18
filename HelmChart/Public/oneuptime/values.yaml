@@ -287,6 +287,15 @@ vapid:
   privateKey:
   subject: mailto:support@oneuptime.com
 
+# Expo access token for sending mobile push notifications directly via Expo SDK.
+# If not set, notifications are relayed through the push notification relay URL.
+expo:
+  accessToken:
+
+# Push notification relay URL for self-hosted instances without Expo credentials
+pushNotification:
+  relayUrl: https://oneuptime.com/api/notification/push-relay/send
+
 incidents:
   disableAutomaticCreation: false
 

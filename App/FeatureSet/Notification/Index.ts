@@ -4,6 +4,7 @@ import MailAPI from "./API/Mail";
 import SmsAPI from "./API/SMS";
 import WhatsAppAPI from "./API/WhatsApp";
 import PushNotificationAPI from "./API/PushNotification";
+import PushRelayAPI from "./API/PushRelay";
 import SMTPConfigAPI from "./API/SMTPConfig";
 import PhoneNumberAPI from "./API/PhoneNumber";
 import IncomingCallAPI from "./API/IncomingCall";
@@ -21,6 +22,7 @@ const NotificationFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);
     app.use([`/${APP_NAME}/whatsapp`, "/whatsapp"], WhatsAppAPI);
     app.use([`/${APP_NAME}/push`, "/push"], PushNotificationAPI);
+    app.use([`/${APP_NAME}/push-relay`, "/push-relay"], PushRelayAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);
     app.use([`/${APP_NAME}/phone-number`, "/phone-number"], PhoneNumberAPI);

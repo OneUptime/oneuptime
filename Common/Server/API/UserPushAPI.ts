@@ -13,10 +13,22 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+
+function getAuthenticatedUserId(req: ExpressRequest): ObjectID {
+  const userId: ObjectID | undefined = (req as OneUptimeRequest)
+    .userAuthorization?.userId;
+  if (!userId) {
+    throw new NotAuthenticatedException(
+      "You must be logged in to perform this action.",
+    );
+  }
+  return userId;
+}
 
 export default class UserPushAPI extends BaseAPI<
   UserPush,
@@ -31,6 +43,8 @@ export default class UserPushAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
+
+          const userId: ObjectID = getAuthenticatedUserId(req);
 
           if (!req.body.deviceToken) {
             return Response.sendErrorResponse(
@@ -65,7 +79,7 @@ export default class UserPushAPI extends BaseAPI<
           // Check if device is already registered
           const existingDevice: UserPush | null = await this.service.findOneBy({
             query: {
-              userId: (req as OneUptimeRequest).userAuthorization!.userId!,
+              userId: userId,
               projectId: new ObjectID(req.body.projectId),
               deviceToken: req.body.deviceToken,
             },
@@ -89,9 +103,7 @@ export default class UserPushAPI extends BaseAPI<
 
           // Create new device registration
           const userPush: UserPush = new UserPush();
-          userPush.userId = (
-            req as OneUptimeRequest
-          ).userAuthorization!.userId!;
+          userPush.userId = userId;
           userPush.projectId = new ObjectID(req.body.projectId);
           userPush.deviceToken = req.body.deviceToken;
           userPush.deviceType = req.body.deviceType;
@@ -122,6 +134,8 @@ export default class UserPushAPI extends BaseAPI<
         try {
           req = req as OneUptimeRequest;
 
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
           if (!req.body.deviceToken) {
             return Response.sendErrorResponse(
               req,
@@ -129,9 +143,6 @@ export default class UserPushAPI extends BaseAPI<
               new BadDataException("Device token is required"),
             );
           }
-
-          const userId: ObjectID = (req as OneUptimeRequest).userAuthorization!
-            .userId!;
 
           await this.service.deleteBy({
             query: {
@@ -161,6 +172,8 @@ export default class UserPushAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
+
+          const userId: ObjectID = getAuthenticatedUserId(req);
 
           if (!req.params["deviceId"]) {
             return Response.sendErrorResponse(
@@ -195,10 +208,7 @@ export default class UserPushAPI extends BaseAPI<
           }
 
           // Check if the device belongs to the current user
-          if (
-            device.userId?.toString() !==
-            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-          ) {
+          if (device.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -267,6 +277,8 @@ export default class UserPushAPI extends BaseAPI<
         try {
           req = req as OneUptimeRequest;
 
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
           if (!req.params["deviceId"]) {
             return Response.sendErrorResponse(
               req,
@@ -294,10 +306,7 @@ export default class UserPushAPI extends BaseAPI<
           }
 
           // Check if the device belongs to the current user
-          if (
-            device.userId?.toString() !==
-            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-          ) {
+          if (device.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -321,6 +330,8 @@ export default class UserPushAPI extends BaseAPI<
         try {
           req = req as OneUptimeRequest;
 
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
           if (!req.params["deviceId"]) {
             return Response.sendErrorResponse(
               req,
@@ -348,10 +359,7 @@ export default class UserPushAPI extends BaseAPI<
           }
 
           // Check if the device belongs to the current user
-          if (
-            device.userId?.toString() !==
-            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-          ) {
+          if (device.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
