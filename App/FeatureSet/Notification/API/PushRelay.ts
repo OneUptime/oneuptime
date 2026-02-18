@@ -90,8 +90,8 @@ router.post(
 
       await PushNotificationService.sendRelayPushNotification({
         to: to,
-        title: title,
-        body: messageBody,
+        ...(title !== undefined ? { title } : {}),
+        ...(messageBody !== undefined ? { body: messageBody } : {}),
         data: (body["data"] as { [key: string]: string }) || {},
         sound: (body["sound"] as string) || "default",
         priority: (body["priority"] as string) || "high",
