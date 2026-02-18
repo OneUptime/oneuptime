@@ -493,8 +493,8 @@ export default class PushNotificationService {
 
     const expoPushMessage: ExpoPushMessage = {
       to: data.to,
-      title: data.title,
-      body: data.body,
+      title: data.title || "",
+      body: data.body || "",
       data: data.data || {},
       sound: (data.sound as "default" | null) || "default",
       priority:
