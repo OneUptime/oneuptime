@@ -87,16 +87,14 @@ export default function LoginScreen(): React.JSX.Element {
           <View style={{ alignItems: "center", marginBottom: 48 }}>
             <View
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 16,
-                alignItems: "center",
-                justifyContent: "center",
+                borderWidth: 2,
+                borderColor: theme.colors.borderDefault,
+                borderRadius: 20,
                 marginBottom: 20,
-                backgroundColor: theme.colors.iconBackground,
+                overflow: "hidden",
               }}
             >
-              <Logo size={36} />
+              <Logo size={90} />
             </View>
 
             <Text
