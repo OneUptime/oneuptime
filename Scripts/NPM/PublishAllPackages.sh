@@ -31,7 +31,16 @@ fi
 
 publish_to_npm() {
     directory_name=$1
-    echo "Publishing $directory_name@$package_version to npm"
+    # Read the npm package name from the directory's package.json
+    npm_package_name=$(node -p "require('./$directory_name/package.json').name")
+
+    # Check if this version is already published on npm
+    if npm view "$npm_package_name@$package_version" version 2>/dev/null; then
+        echo "$npm_package_name@$package_version is already published on npm. Skipping."
+        return 0
+    fi
+
+    echo "Publishing $npm_package_name@$package_version to npm"
     cd $directory_name
 
     npm version $package_version
