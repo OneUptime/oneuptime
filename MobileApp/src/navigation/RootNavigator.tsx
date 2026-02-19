@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   NavigationContainer,
   DefaultTheme,
@@ -11,6 +11,7 @@ import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useBiometric } from "../hooks/useBiometric";
+import { processPendingNotification } from "../notifications/handlers";
 import AuthStackNavigator from "./AuthStackNavigator";
 import MainTabNavigator from "./MainTabNavigator";
 import BiometricLockScreen from "../screens/BiometricLockScreen";
@@ -72,6 +73,26 @@ export default function RootNavigator(): React.JSX.Element {
     }
   }, [isLoading]);
 
+  // Process pending notification when auth/biometric state settles and the
+  // MainTabNavigator mounts (covers the case where onReady already fired for
+  // AuthStackNavigator before the user logged in, or after biometric unlock).
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      const timer: ReturnType<typeof setTimeout> = setTimeout(
+        processPendingNotification,
+        100,
+      );
+      return () => {
+        return clearTimeout(timer);
+      };
+    }
+    return undefined;
+  }, [isAuthenticated, isLoading, biometricPassed]);
+
+  const handleNavigationReady: () => void = useCallback((): void => {
+    processPendingNotification();
+  }, []);
+
   const navigationTheme: Theme = {
     ...DefaultTheme,
     dark: true,
@@ -131,6 +152,7 @@ export default function RootNavigator(): React.JSX.Element {
       ref={navigationRef}
       theme={navigationTheme}
       linking={linking}
+      onReady={handleNavigationReady}
     >
       {renderContent()}
     </NavigationContainer>

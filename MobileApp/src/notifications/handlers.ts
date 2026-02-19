@@ -2,6 +2,7 @@ import type { NotificationResponse } from "expo-notifications";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let navigationRef: any = null;
+let pendingNotificationData: NotificationData | null = null;
 
 export function setNavigationRef(ref: unknown): void {
   navigationRef = ref;
@@ -14,11 +15,7 @@ interface NotificationData {
   [key: string]: any;
 }
 
-function navigateToEntity(data: NotificationData): void {
-  if (!navigationRef?.isReady() || !data.entityType || !data.entityId) {
-    return;
-  }
-
+function executeNavigation(data: NotificationData): void {
   const projectId: string = data.projectId ?? "";
 
   switch (data.entityType) {
@@ -49,6 +46,30 @@ function navigateToEntity(data: NotificationData): void {
     default:
       break;
   }
+}
+
+function navigateToEntity(data: NotificationData): void {
+  if (!data.entityType || !data.entityId) {
+    return;
+  }
+
+  if (!navigationRef?.isReady()) {
+    // Navigator not ready yet (cold-start) — store for later
+    pendingNotificationData = data;
+    return;
+  }
+
+  executeNavigation(data);
+}
+
+export function processPendingNotification(): void {
+  if (!pendingNotificationData || !navigationRef?.isReady()) {
+    return;
+  }
+
+  const data: NotificationData = pendingNotificationData;
+  pendingNotificationData = null;
+  executeNavigation(data);
 }
 
 export function handleNotificationResponse(
