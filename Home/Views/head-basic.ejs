@@ -3,11 +3,14 @@
 <!-- Preconnect to external image/avatar domains to reduce layout shift & latency -->
 <link rel="preconnect" href="https://avatars.githubusercontent.com" crossorigin>
 <link rel="dns-prefetch" href="//avatars.githubusercontent.com">
+<!-- Preload Tailwind CDN to reduce FOUC/CLS -->
+<link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" as="style">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
 <style>
     * {
-        font-family: Inter;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
 
@@ -63,6 +66,64 @@
         background: #4b5563;
         border-color: #4b5563;
     }
+</style>
+<!-- Critical CSS to prevent layout shift before Tailwind loads -->
+<style>
+    /* Critical layout styles to prevent CLS - these match Tailwind utility classes */
+    .bg-white { background-color: #fff; }
+    .relative { position: relative; }
+    .flex { display: flex; }
+    .hidden { display: none; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .justify-start { justify-content: flex-start; }
+    .justify-center { justify-content: center; }
+    .text-center { text-align: center; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .max-w-7xl { max-width: 80rem; }
+    .max-w-3xl { max-width: 48rem; }
+    .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+    .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+    .py-24 { padding-top: 6rem; padding-bottom: 6rem; }
+    .border-b-2 { border-bottom-width: 2px; border-bottom-style: solid; }
+    .border-gray-100 { border-color: #f3f4f6; }
+    .overflow-hidden { overflow: hidden; }
+    .w-auto { width: auto; }
+    .h-8 { height: 2rem; }
+    .h-10 { height: 2.5rem; }
+    .space-x-10 > :not([hidden]) ~ :not([hidden]) { margin-left: 2.5rem; }
+    .inline-flex { display: inline-flex; }
+    .grid { display: grid; }
+    .gap-4 { gap: 1rem; }
+    .gap-5 { gap: 1.25rem; }
+    .isolate { isolation: isolate; }
+    .fixed { position: fixed; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+    @media (min-width: 640px) {
+        .sm\:h-10 { height: 2.5rem; }
+        .sm\:py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+        .sm\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .sm\:gap-5 { gap: 1.25rem; }
+    }
+    @media (min-width: 768px) {
+        .md\:hidden { display: none; }
+        .md\:flex { display: flex; }
+        .md\:justify-start { justify-content: flex-start; }
+        .md\:space-x-10 > :not([hidden]) ~ :not([hidden]) { margin-left: 2.5rem; }
+    }
+    @media (min-width: 1024px) {
+        .lg\:w-0 { width: 0; }
+        .lg\:flex-1 { flex: 1 1 0%; }
+        .lg\:px-8 { padding-left: 2rem; padding-right: 2rem; }
+        .lg\:py-40 { padding-top: 10rem; padding-bottom: 10rem; }
+    }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .auto-rows-fr { grid-auto-rows: minmax(0, 1fr); }
+    /* Reserve space for logo-roll section to prevent CLS */
+    .marquee-container { overflow: hidden; min-height: 60px; }
+    .logo-item { min-width: 160px; height: 60px; }
+    .logo-item img { max-height: 36px; max-width: 140px; }
 </style>
 <script src="https://cdn.tailwindcss.com"></script>
 
