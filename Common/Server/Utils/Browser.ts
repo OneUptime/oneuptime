@@ -23,7 +23,6 @@ export default class BrowserUtil {
     "--disable-dev-shm-usage",
     "--disable-gpu",
     "--disable-software-rasterizer",
-    "--single-process",
   ];
 
   // Firefox preferences for stability in containerized environments
@@ -31,8 +30,6 @@ export default class BrowserUtil {
     string,
     string | number | boolean
   > = {
-    "browser.tabs.remote.autostart": false, // disable multi-process (electrolysis)
-    "dom.ipc.processCount": 1, // single content process
     "gfx.webrender.all": false, // disable GPU-based WebRender
     "media.hardware-video-decoding.enabled": false, // disable hardware video decoding
     "layers.acceleration.disabled": true, // disable GPU-accelerated layers
