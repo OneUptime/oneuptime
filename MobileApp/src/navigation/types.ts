@@ -1,6 +1,7 @@
 export type AuthStackParamList = {
   ServerUrl: undefined;
   Login: undefined;
+  SSOLogin: undefined;
 };
 
 export type MainTabParamList = {

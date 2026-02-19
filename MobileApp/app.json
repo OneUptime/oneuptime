@@ -53,7 +53,8 @@
         }
       ],
       "expo-local-authentication",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

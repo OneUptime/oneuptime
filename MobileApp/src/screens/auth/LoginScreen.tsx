@@ -67,6 +67,10 @@ export default function LoginScreen(): React.JSX.Element {
     }
   };
 
+  const handleSSOLogin: () => void = (): void => {
+    navigation.navigate("SSOLogin");
+  };
+
   const handleChangeServer: () => void = (): void => {
     setNeedsServerUrl(true);
     navigation.navigate("ServerUrl");
@@ -296,6 +300,15 @@ export default function LoginScreen(): React.JSX.Element {
           </View>
 
           <View style={{ marginTop: 16 }}>
+            <GradientButton
+              label="Sign in with SSO"
+              onPress={handleSSOLogin}
+              variant="secondary"
+              icon="shield-checkmark-outline"
+            />
+          </View>
+
+          <View style={{ marginTop: 12 }}>
             <GradientButton
               label="Change Server"
               onPress={handleChangeServer}

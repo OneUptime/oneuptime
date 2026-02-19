@@ -26,6 +26,7 @@ import UserSessionService, {
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -240,6 +241,8 @@ router.get(
         );
       }
 
+      const isMobileRequest: boolean = req.query["mobile"] === "true";
+
       const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
         acsUrl: URL.fromString(
           `${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`,
@@ -249,6 +252,10 @@ router.get(
           `${HttpProtocol}${Host}/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`,
         ),
       });
+
+      if (isMobileRequest) {
+        samlRequestUrl.addQueryParam("RelayState", "mobile");
+      }
 
       return Response.redirect(req, res, samlRequestUrl);
     } catch (err) {
@@ -538,14 +545,11 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     }
 
     const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
+    const isMobileRequest: boolean =
+      req.body.RelayState === "mobile" ||
+      req.query["RelayState"] === "mobile";
 
     alreadySavedUser.email = email;
-
-    CookieUtil.setSSOCookie({
-      user: alreadySavedUser,
-      projectId: projectId,
-      expressResponse: res,
-    });
 
     // Refresh Permissions for this user here.
     await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
@@ -562,6 +566,49 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         },
       });
 
+    if (isMobileRequest) {
+      // For mobile SSO, generate an access token and redirect to the app deep link
+      const accessToken: string = JSONWebToken.signUserLoginToken({
+        tokenData: {
+          userId: alreadySavedUser.id!,
+          email: alreadySavedUser.email!,
+          name: alreadySavedUser.name!,
+          timezone: alreadySavedUser.timezone || null,
+          isMasterAdmin: alreadySavedUser.isMasterAdmin!,
+          isGlobalLogin: false,
+          sessionId: sessionMetadata.session.id!,
+        },
+        expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+      });
+
+      const params: URLSearchParams = new URLSearchParams();
+      params.set("accessToken", accessToken);
+      params.set("refreshToken", sessionMetadata.refreshToken);
+      params.set(
+        "refreshTokenExpiresAt",
+        sessionMetadata.refreshTokenExpiresAt.toISOString(),
+      );
+      params.set("userId", alreadySavedUser.id!.toString());
+      params.set("email", alreadySavedUser.email!.toString());
+      params.set("name", alreadySavedUser.name?.toString() || "");
+      params.set(
+        "isMasterAdmin",
+        String(alreadySavedUser.isMasterAdmin || false),
+      );
+
+      const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
+
+      logger.info("User logged in with SSO (mobile): " + email.toString());
+
+      return res.redirect(deepLinkUrl);
+    }
+
+    CookieUtil.setSSOCookie({
+      user: alreadySavedUser,
+      projectId: projectId,
+      expressResponse: res,
+    });
+
     CookieUtil.setUserCookie({
       expressResponse: res,
       user: alreadySavedUser,
@@ -575,7 +622,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    logger.info("User logged in with SSO" + email.toString());
+    logger.info("User logged in with SSO: " + email.toString());
 
     return Response.redirect(
       req,
