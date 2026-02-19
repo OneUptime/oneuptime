@@ -1315,6 +1315,83 @@ export class Service extends DatabaseService<Model> {
           });
         });
       }
+
+      // send push notification for incident episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentEpisodeCreated &&
+        incidentEpisode
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createIncidentEpisodeCreatedNotification({
+            incidentEpisodeTitle: incidentEpisode.title!,
+            projectName: incidentEpisode.project?.name || "OneUptime",
+            incidentEpisodeViewLink: (
+              await IncidentEpisodeService.getEpisodeLinkInDashboard(
+                incidentEpisode.projectId!,
+                incidentEpisode.id!,
+              )
+            ).toString(),
+            ...(incidentEpisode.episodeNumber !== undefined && {
+              episodeNumber: incidentEpisode.episodeNumber,
+            }),
+            ...(incidentEpisode.episodeNumberWithPrefix && {
+              episodeNumberWithPrefix: incidentEpisode.episodeNumberWithPrefix,
+            }),
+            incidentEpisodeId: incidentEpisode.id!.toString(),
+            projectId: incidentEpisode.projectId!.toString(),
+          });
+
+        PushNotificationService.sendPushNotification(
+          {
+            devices: [
+              {
+                token: notificationRuleItem.userPush.deviceToken!,
+                ...(notificationRuleItem.userPush.deviceName && {
+                  name: notificationRuleItem.userPush.deviceName,
+                }),
+              },
+            ],
+            message: pushMessage,
+            deviceType: notificationRuleItem.userPush
+              .deviceType! as PushDeviceType,
+          },
+          {
+            projectId: options.projectId,
+            userOnCallLogTimelineId: updatedLog.id!,
+            userId: notificationRuleItem.userId!,
+            onCallPolicyId: options.onCallPolicyId,
+            onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+            teamId: options.userBelongsToTeamId,
+            onCallDutyPolicyExecutionLogTimelineId:
+              options.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: options.onCallScheduleId,
+          },
+        ).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending push notification.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
     }
 
     if (
