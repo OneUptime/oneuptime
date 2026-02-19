@@ -146,6 +146,26 @@ async function getFirefoxExecutablePath(): Promise<string> {
   throw new Error("Firefox executable path not found.");
 }
 
+// Chromium arguments for stability in containerized environments
+const chromiumStabilityArgs: string[] = [
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+  "--disable-gpu",
+  "--disable-software-rasterizer",
+  "--single-process",
+];
+
+// Firefox preferences for stability in containerized environments
+const firefoxStabilityPrefs: Record<string, string | number | boolean> = {
+  "browser.tabs.remote.autostart": false, // disable multi-process (electrolysis)
+  "dom.ipc.processCount": 1, // single content process
+  "gfx.webrender.all": false, // disable GPU-based WebRender
+  "media.hardware-video-decoding.enabled": false, // disable hardware video decoding
+  "layers.acceleration.disabled": true, // disable GPU-accelerated layers
+  "network.http.spdy.enabled.http2": true, // keep HTTP/2 enabled
+};
+
 async function launchBrowser(
   config: WorkerConfig,
 ): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
@@ -171,6 +191,8 @@ async function launchBrowser(
   if (config.browserType === BrowserType.Chromium) {
     const launchOptions: Record<string, unknown> = {
       executablePath: await getChromeExecutablePath(),
+      headless: true,
+      args: chromiumStabilityArgs,
     };
 
     if (proxyOptions) {
@@ -181,6 +203,7 @@ async function launchBrowser(
   } else if (config.browserType === BrowserType.Firefox) {
     const launchOptions: Record<string, unknown> = {
       executablePath: await getFirefoxExecutablePath(),
+      headless: true,
     };
 
     if (proxyOptions) {
@@ -223,6 +246,12 @@ async function run(config: WorkerConfig): Promise<WorkerResult> {
 
     browser = session.browser;
 
+    // Track browser disconnection so we can give a clear error
+    let browserDisconnected: boolean = false;
+    browser.on("disconnected", () => {
+      browserDisconnected = true;
+    });
+
     const logMessages: string[] = [];
 
     const sandbox: Context = {
@@ -252,9 +281,21 @@ async function run(config: WorkerConfig): Promise<WorkerResult> {
       ${config.script}
     })()`;
 
-    const returnVal: unknown = await vm.runInContext(script, sandbox, {
-      timeout: config.timeout,
-    });
+    let returnVal: unknown;
+
+    try {
+      returnVal = await vm.runInContext(script, sandbox, {
+        timeout: config.timeout,
+      });
+    } catch (scriptErr: unknown) {
+      // If the browser crashed during script execution, provide a clearer error
+      if (browserDisconnected) {
+        throw new Error(
+          "Browser crashed or was terminated during script execution. This is usually caused by high memory usage. Try simplifying the script or reducing the number of page navigations.",
+        );
+      }
+      throw scriptErr;
+    }
 
     const endTime: [number, number] = process.hrtime(startTime);
     const executionTimeInMS: number = Math.ceil(

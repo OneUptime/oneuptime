@@ -16,6 +16,16 @@ export type Page = PlaywrightPage;
 export type Browser = PlaywrightBrowser;
 
 export default class BrowserUtil {
+  // Chromium arguments for stability in containerized environments
+  private static chromiumStabilityArgs: string[] = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--disable-software-rasterizer",
+    "--single-process",
+  ];
+
   @CaptureSpan()
   public static async convertHtmlToBase64Screenshot(data: {
     html: string;
@@ -68,6 +78,8 @@ export default class BrowserUtil {
     if (data.browserType === BrowserType.Chromium) {
       browser = await chromium.launch({
         executablePath: await BrowserUtil.getChromeExecutablePath(),
+        headless: true,
+        args: BrowserUtil.chromiumStabilityArgs,
       });
       page = await browser.newPage();
     }
@@ -75,6 +87,7 @@ export default class BrowserUtil {
     if (data.browserType === BrowserType.Firefox) {
       browser = await firefox.launch({
         executablePath: await BrowserUtil.getFirefoxExecutablePath(),
+        headless: true,
       });
       page = await browser.newPage();
     }
