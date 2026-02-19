@@ -78,10 +78,12 @@ export default class VMRunner {
       `);
 
       /*
-       * axios (get, post, put, patch, delete) - bridged via applySyncPromise
+       * axios (get, head, options, post, put, patch, delete, request)
+       * bridged via applySyncPromise.
        *
-       * For GET/DELETE:      args = [method, url, configJson?]
-       * For POST/PUT/PATCH:  args = [method, url, bodyJson?, configJson?]
+       * For GET/HEAD/OPTIONS/DELETE: args = [method, url, configJson?]
+       * For POST/PUT/PATCH:         args = [method, url, bodyJson?, configJson?]
+       * For REQUEST:                args = ['request', '', configJson]
        */
       const axiosRef: ivm.Reference<
         (
@@ -101,7 +103,7 @@ export default class VMRunner {
           const hasBody: boolean = methodsWithBody.includes(method);
 
           // For POST/PUT/PATCH: arg1=body, arg2=config
-          // For GET/DELETE: arg1=config
+          // For GET/HEAD/OPTIONS/DELETE/REQUEST: arg1=config
           const body: JSONObject | undefined =
             hasBody && arg1
               ? (JSON.parse(arg1) as JSONObject)
@@ -147,6 +149,12 @@ export default class VMRunner {
             case "get":
               response = await axios.get(url, config);
               break;
+            case "head":
+              response = await axios.head(url, config);
+              break;
+            case "options":
+              response = await axios.options(url, config);
+              break;
             case "post":
               response = await axios.post(url, body, config);
               break;
@@ -158,6 +166,11 @@ export default class VMRunner {
               break;
             case "delete":
               response = await axios.delete(url, config);
+              break;
+            case "request":
+              response = await axios.request(
+                config as Parameters<typeof axios.request>[0],
+              );
               break;
             default:
               throw new Error(`Unsupported HTTP method: ${method}`);
@@ -186,37 +199,62 @@ export default class VMRunner {
             return merged;
           }
 
-          return {
-            get: async (url, config) => {
-              const merged = mergeConfig(config);
-              const r = await _axiosRef.applySyncPromise(undefined, ['get', url, merged ? JSON.stringify(merged) : undefined]);
-              return JSON.parse(r);
-            },
-            post: async (url, data, config) => {
-              const merged = mergeConfig(config);
-              const r = await _axiosRef.applySyncPromise(undefined, ['post', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
-              return JSON.parse(r);
-            },
-            put: async (url, data, config) => {
-              const merged = mergeConfig(config);
-              const r = await _axiosRef.applySyncPromise(undefined, ['put', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
-              return JSON.parse(r);
-            },
-            patch: async (url, data, config) => {
-              const merged = mergeConfig(config);
-              const r = await _axiosRef.applySyncPromise(undefined, ['patch', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
-              return JSON.parse(r);
-            },
-            delete: async (url, config) => {
-              const merged = mergeConfig(config);
-              const r = await _axiosRef.applySyncPromise(undefined, ['delete', url, merged ? JSON.stringify(merged) : undefined]);
-              return JSON.parse(r);
-            },
-            create: (instanceDefaults) => {
-              const combinedDefaults = mergeConfig(instanceDefaults);
-              return _makeAxiosInstance(combinedDefaults);
-            },
+          async function _request(config) {
+            const merged = mergeConfig(config);
+            const r = await _axiosRef.applySyncPromise(undefined, ['request', '', merged ? JSON.stringify(merged) : undefined]);
+            return JSON.parse(r);
+          }
+
+          // Make instance callable: axios(config) or axios(url, config)
+          const instance = async function(urlOrConfig, config) {
+            if (typeof urlOrConfig === 'object') {
+              return _request(urlOrConfig);
+            }
+            return _request(Object.assign({}, config || {}, { url: urlOrConfig }));
           };
+
+          instance.request = _request;
+          instance.get = async (url, config) => {
+            const merged = mergeConfig(config);
+            const r = await _axiosRef.applySyncPromise(undefined, ['get', url, merged ? JSON.stringify(merged) : undefined]);
+            return JSON.parse(r);
+          };
+          instance.head = async (url, config) => {
+            const merged = mergeConfig(config);
+            const r = await _axiosRef.applySyncPromise(undefined, ['head', url, merged ? JSON.stringify(merged) : undefined]);
+            return JSON.parse(r);
+          };
+          instance.options = async (url, config) => {
+            const merged = mergeConfig(config);
+            const r = await _axiosRef.applySyncPromise(undefined, ['options', url, merged ? JSON.stringify(merged) : undefined]);
+            return JSON.parse(r);
+          };
+          instance.post = async (url, data, config) => {
+            const merged = mergeConfig(config);
+            const r = await _axiosRef.applySyncPromise(undefined, ['post', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
+            return JSON.parse(r);
+          };
+          instance.put = async (url, data, config) => {
+            const merged = mergeConfig(config);
+            const r = await _axiosRef.applySyncPromise(undefined, ['put', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
+            return JSON.parse(r);
+          };
+          instance.patch = async (url, data, config) => {
+            const merged = mergeConfig(config);
+            const r = await _axiosRef.applySyncPromise(undefined, ['patch', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
+            return JSON.parse(r);
+          };
+          instance.delete = async (url, config) => {
+            const merged = mergeConfig(config);
+            const r = await _axiosRef.applySyncPromise(undefined, ['delete', url, merged ? JSON.stringify(merged) : undefined]);
+            return JSON.parse(r);
+          };
+          instance.create = (instanceDefaults) => {
+            const combinedDefaults = mergeConfig(instanceDefaults);
+            return _makeAxiosInstance(combinedDefaults);
+          };
+
+          return instance;
         }
 
         const axios = _makeAxiosInstance(null);
