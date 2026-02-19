@@ -1110,6 +1110,9 @@ export class Service extends DatabaseService<Model> {
             ...(alert.alertNumber !== undefined && {
               alertNumber: alert.alertNumber,
             }),
+            ...(alert.alertNumberWithPrefix && {
+              alertNumberWithPrefix: alert.alertNumberWithPrefix,
+            }),
             alertId: alert.id!.toString(),
             projectId: alert.projectId!.toString(),
           });
@@ -1186,6 +1189,9 @@ export class Service extends DatabaseService<Model> {
             ).toString(),
             ...(incident.incidentNumber !== undefined && {
               incidentNumber: incident.incidentNumber,
+            }),
+            ...(incident.incidentNumberWithPrefix && {
+              incidentNumberWithPrefix: incident.incidentNumberWithPrefix,
             }),
             incidentId: incident.id!.toString(),
             projectId: incident.projectId!.toString(),
