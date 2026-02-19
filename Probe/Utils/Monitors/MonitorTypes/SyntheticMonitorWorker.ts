@@ -6,10 +6,9 @@
 
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
+import BrowserUtil from "Common/Server/Utils/Browser";
 import vm, { Context } from "node:vm";
 import { Browser, BrowserContext, Page, chromium, firefox } from "playwright";
-import LocalFile from "Common/Server/Utils/LocalFile";
-import os from "os";
 
 interface WorkerConfig {
   script: string;
@@ -39,139 +38,13 @@ interface ProxyOptions {
   password?: string | undefined;
 }
 
-function getViewportHeightAndWidth(screenSizeType: ScreenSizeType): {
-  height: number;
-  width: number;
-} {
-  switch (screenSizeType) {
-    case ScreenSizeType.Desktop:
-      return { height: 1080, width: 1920 };
-    case ScreenSizeType.Mobile:
-      return { height: 640, width: 360 };
-    case ScreenSizeType.Tablet:
-      return { height: 768, width: 1024 };
-    default:
-      return { height: 1080, width: 1920 };
-  }
-}
-
-function getPlaywrightBrowsersPath(): string {
-  return (
-    process.env["PLAYWRIGHT_BROWSERS_PATH"] ||
-    `${os.homedir()}/.cache/ms-playwright`
-  );
-}
-
-async function getChromeExecutablePath(): Promise<string> {
-  const browsersPath: string = getPlaywrightBrowsersPath();
-
-  const doesDirectoryExist: boolean =
-    await LocalFile.doesDirectoryExist(browsersPath);
-  if (!doesDirectoryExist) {
-    throw new Error("Chrome executable path not found.");
-  }
-
-  const directories: string[] =
-    await LocalFile.getListOfDirectories(browsersPath);
-
-  if (directories.length === 0) {
-    throw new Error("Chrome executable path not found.");
-  }
-
-  const chromeInstallationName: string | undefined = directories.find(
-    (directory: string) => {
-      return directory.includes("chromium");
-    },
-  );
-
-  if (!chromeInstallationName) {
-    throw new Error("Chrome executable path not found.");
-  }
-
-  const candidates: Array<string> = [
-    `${browsersPath}/${chromeInstallationName}/chrome-linux/chrome`,
-    `${browsersPath}/${chromeInstallationName}/chrome-linux64/chrome`,
-    `${browsersPath}/${chromeInstallationName}/chrome64/chrome`,
-    `${browsersPath}/${chromeInstallationName}/chrome/chrome`,
-  ];
-
-  for (const executablePath of candidates) {
-    if (await LocalFile.doesFileExist(executablePath)) {
-      return executablePath;
-    }
-  }
-
-  throw new Error("Chrome executable path not found.");
-}
-
-async function getFirefoxExecutablePath(): Promise<string> {
-  const browsersPath: string = getPlaywrightBrowsersPath();
-
-  const doesDirectoryExist: boolean =
-    await LocalFile.doesDirectoryExist(browsersPath);
-  if (!doesDirectoryExist) {
-    throw new Error("Firefox executable path not found.");
-  }
-
-  const directories: string[] =
-    await LocalFile.getListOfDirectories(browsersPath);
-
-  if (directories.length === 0) {
-    throw new Error("Firefox executable path not found.");
-  }
-
-  const firefoxInstallationName: string | undefined = directories.find(
-    (directory: string) => {
-      return directory.includes("firefox");
-    },
-  );
-
-  if (!firefoxInstallationName) {
-    throw new Error("Firefox executable path not found.");
-  }
-
-  const candidates: Array<string> = [
-    `${browsersPath}/${firefoxInstallationName}/firefox/firefox`,
-    `${browsersPath}/${firefoxInstallationName}/firefox-linux64/firefox`,
-    `${browsersPath}/${firefoxInstallationName}/firefox64/firefox`,
-    `${browsersPath}/${firefoxInstallationName}/firefox-64/firefox`,
-  ];
-
-  for (const executablePath of candidates) {
-    if (await LocalFile.doesFileExist(executablePath)) {
-      return executablePath;
-    }
-  }
-
-  throw new Error("Firefox executable path not found.");
-}
-
-// Chromium arguments for stability in containerized environments
-const chromiumStabilityArgs: string[] = [
-  "--no-sandbox",
-  "--disable-setuid-sandbox",
-  "--disable-dev-shm-usage",
-  "--disable-gpu",
-  "--disable-software-rasterizer",
-  "--single-process",
-];
-
-// Firefox preferences for stability in containerized environments
-const firefoxStabilityPrefs: Record<string, string | number | boolean> = {
-  "browser.tabs.remote.autostart": false, // disable multi-process (electrolysis)
-  "dom.ipc.processCount": 1, // single content process
-  "gfx.webrender.all": false, // disable GPU-based WebRender
-  "media.hardware-video-decoding.enabled": false, // disable hardware video decoding
-  "layers.acceleration.disabled": true, // disable GPU-accelerated layers
-  "network.http.spdy.enabled.http2": true, // keep HTTP/2 enabled
-};
-
 async function launchBrowser(
   config: WorkerConfig,
 ): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
-  const viewport: { height: number; width: number } = getViewportHeightAndWidth(
-    config.screenSizeType,
-  );
+  const viewport: { height: number; width: number } =
+    BrowserUtil.getViewportHeightAndWidth({
+      screenSizeType: config.screenSizeType,
+    });
 
   let proxyOptions: ProxyOptions | undefined;
 
@@ -190,9 +63,9 @@ async function launchBrowser(
 
   if (config.browserType === BrowserType.Chromium) {
     const launchOptions: Record<string, unknown> = {
-      executablePath: await getChromeExecutablePath(),
+      executablePath: await BrowserUtil.getChromeExecutablePath(),
       headless: true,
-      args: chromiumStabilityArgs,
+      args: BrowserUtil.chromiumStabilityArgs,
     };
 
     if (proxyOptions) {
@@ -202,9 +75,9 @@ async function launchBrowser(
     browser = await chromium.launch(launchOptions);
   } else if (config.browserType === BrowserType.Firefox) {
     const launchOptions: Record<string, unknown> = {
-      executablePath: await getFirefoxExecutablePath(),
+      executablePath: await BrowserUtil.getFirefoxExecutablePath(),
       headless: true,
-      firefoxUserPrefs: firefoxStabilityPrefs,
+      firefoxUserPrefs: BrowserUtil.firefoxStabilityPrefs,
     };
 
     if (proxyOptions) {

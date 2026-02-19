@@ -17,7 +17,7 @@ export type Browser = PlaywrightBrowser;
 
 export default class BrowserUtil {
   // Chromium arguments for stability in containerized environments
-  private static chromiumStabilityArgs: string[] = [
+  public static chromiumStabilityArgs: string[] = [
     "--no-sandbox",
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
@@ -27,7 +27,7 @@ export default class BrowserUtil {
   ];
 
   // Firefox preferences for stability in containerized environments
-  private static firefoxStabilityPrefs: Record<
+  public static firefoxStabilityPrefs: Record<
     string,
     string | number | boolean
   > = {
@@ -166,7 +166,7 @@ export default class BrowserUtil {
     return { height: viewPortHeight, width: viewPortWidth };
   }
 
-  private static getPlaywrightBrowsersPath(): string {
+  public static getPlaywrightBrowsersPath(): string {
     return (
       process.env["PLAYWRIGHT_BROWSERS_PATH"] ||
       `${os.homedir()}/.cache/ms-playwright`
