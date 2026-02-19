@@ -5,14 +5,15 @@
 <link rel="preload" href="/docs/static/fonts/f2.woff2" as="font" crossorigin="" type="font/woff2">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
 <title>OneUptime Documentation</title>
 <meta name="description" content="Complete documentation for OneUptime - the open-source observability platform. Learn how to monitor your applications, set up alerts, and manage incidents.">
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <meta name="next-size-adjust">
-<script src="https://cdn.tailwindcss.com" defer></script>
-<script defer>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
     tailwind.config = {
         theme: {
             extend: {
@@ -24,9 +25,22 @@
         }
     }
 </script>
+<style>
+    /* Critical CSS to prevent CLS - reserve layout space before Tailwind loads */
+    body { margin: 0; display: flex; min-height: 100vh; }
+    body > div { display: flex; flex-direction: column; width: 100%; }
+    header { position: sticky; top: 0; z-index: 50; height: 57px; min-height: 57px; }
+    img[alt="OneUptime"] { height: 2rem; width: auto; display: block; }
+    /* Reserve sidebar width on desktop */
+    @media (min-width: 1024px) {
+        .docs-layout-sidebar { width: 16rem; min-width: 16rem; flex-shrink: 0; }
+    }
+    /* Prevent prose images from causing CLS */
+    .prose img, .docs-article img { max-width: 100%; height: auto; aspect-ratio: attr(width) / attr(height); }
+</style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js" crossorigin defer></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         hljs.highlightAll();
