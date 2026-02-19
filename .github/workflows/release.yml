@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - "release"
+  workflow_dispatch:
+    inputs:
+      publish_android_to_store:
+        description: 'Publish Android app to Google Play Store'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   generate-build-number:
@@ -2471,4 +2478,62 @@ jobs:
             } catch (error) {
               throw new Error(`Failed to publish release for tag ${tag}: ${error.message ?? error}`);
             }
+
+  # Publish Android app to Google Play Store.
+  # This job only runs when manually triggered via workflow_dispatch with publish_android_to_store=true.
+  # Required secrets:
+  #   - GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: Service account JSON key with Play Store publishing access
+  #   - ANDROID_KEYSTORE_BASE64: Base64-encoded release keystore
+  #   - ANDROID_KEYSTORE_PASSWORD: Keystore password
+  #   - ANDROID_KEY_ALIAS: Signing key alias
+  #   - ANDROID_KEY_PASSWORD: Signing key password
+  publish-android-to-play-store:
+    needs: [generate-build-number, read-version]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_android_to_store == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      - name: Install dependencies
+        run: cd MobileApp && npm install
+
+      - name: Generate native Android project
+        run: cd MobileApp && npx expo prebuild --platform android --no-install
+
+      - name: Decode Android keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > /tmp/release.keystore
+
+      - name: Build release AAB for Play Store
+        env:
+          ANDROID_KEYSTORE_FILE: /tmp/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd MobileApp/android
+          ./gradlew bundleRelease \
+            -PversionName=${{ needs.read-version.outputs.major_minor }} \
+            -PversionCode=${{ needs.generate-build-number.outputs.build_number }}
+
+      - name: Upload AAB to Google Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.oneuptime.oncall
+          releaseFiles: MobileApp/android/app/build/outputs/bundle/release/*.aab
+          track: production
+          status: completed
 
