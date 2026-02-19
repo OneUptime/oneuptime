@@ -26,6 +26,19 @@ export default class BrowserUtil {
     "--single-process",
   ];
 
+  // Firefox preferences for stability in containerized environments
+  private static firefoxStabilityPrefs: Record<
+    string,
+    string | number | boolean
+  > = {
+    "browser.tabs.remote.autostart": false, // disable multi-process (electrolysis)
+    "dom.ipc.processCount": 1, // single content process
+    "gfx.webrender.all": false, // disable GPU-based WebRender
+    "media.hardware-video-decoding.enabled": false, // disable hardware video decoding
+    "layers.acceleration.disabled": true, // disable GPU-accelerated layers
+    "network.http.spdy.enabled.http2": true, // keep HTTP/2 enabled
+  };
+
   @CaptureSpan()
   public static async convertHtmlToBase64Screenshot(data: {
     html: string;
@@ -88,6 +101,7 @@ export default class BrowserUtil {
       browser = await firefox.launch({
         executablePath: await BrowserUtil.getFirefoxExecutablePath(),
         headless: true,
+        firefoxUserPrefs: BrowserUtil.firefoxStabilityPrefs,
       });
       page = await browser.newPage();
     }

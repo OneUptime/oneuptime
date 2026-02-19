@@ -204,6 +204,7 @@ async function launchBrowser(
     const launchOptions: Record<string, unknown> = {
       executablePath: await getFirefoxExecutablePath(),
       headless: true,
+      firefoxUserPrefs: firefoxStabilityPrefs,
     };
 
     if (proxyOptions) {
