@@ -2309,6 +2309,9 @@ jobs:
       - name: Install dependencies
         run: cd MobileApp && npm install
 
+      - name: Generate native Android project
+        run: cd MobileApp && npx expo prebuild --platform android --no-install
+
       - name: Decode Android keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > /tmp/release.keystore
@@ -2350,6 +2353,9 @@ jobs:
 
       - name: Install dependencies
         run: cd MobileApp && npm install
+
+      - name: Generate native iOS project
+        run: cd MobileApp && npx expo prebuild --platform ios --no-install
 
       - name: Install CocoaPods dependencies
         run: cd MobileApp/ios && pod install
