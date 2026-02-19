@@ -20,7 +20,8 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "NSFaceIDUsageDescription": "Authenticate to access OneUptime On-Call"
+        "NSFaceIDUsageDescription": "Authenticate to access OneUptime On-Call",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
