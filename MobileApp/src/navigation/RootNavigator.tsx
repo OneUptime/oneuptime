@@ -73,9 +73,11 @@ export default function RootNavigator(): React.JSX.Element {
     }
   }, [isLoading]);
 
-  // Process pending notification when auth/biometric state settles and the
-  // MainTabNavigator mounts (covers the case where onReady already fired for
-  // AuthStackNavigator before the user logged in, or after biometric unlock).
+  /*
+   * Process pending notification when auth/biometric state settles and the
+   * MainTabNavigator mounts (covers the case where onReady already fired for
+   * AuthStackNavigator before the user logged in, or after biometric unlock).
+   */
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
       const timer: ReturnType<typeof setTimeout> = setTimeout(
