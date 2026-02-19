@@ -77,22 +77,44 @@ export default class VMRunner {
         };
       `);
 
-      // axios (get, post, put, delete) - bridged via applySyncPromise
+      /*
+       * axios (get, post, put, patch, delete) - bridged via applySyncPromise
+       *
+       * For GET/DELETE:      args = [method, url, configJson?]
+       * For POST/PUT/PATCH:  args = [method, url, bodyJson?, configJson?]
+       */
       const axiosRef: ivm.Reference<
-        (method: string, url: string, dataOrConfig?: string) => Promise<string>
+        (
+          method: string,
+          url: string,
+          arg1?: string,
+          arg2?: string,
+        ) => Promise<string>
       > = new ivm.Reference(
         async (
           method: string,
           url: string,
-          dataOrConfig?: string,
+          arg1?: string,
+          arg2?: string,
         ): Promise<string> => {
-          const parsed: JSONObject | undefined = dataOrConfig
-            ? (JSON.parse(dataOrConfig) as JSONObject)
+          const methodsWithBody: string[] = ["post", "put", "patch"];
+          const hasBody: boolean = methodsWithBody.includes(method);
+
+          // For POST/PUT/PATCH: arg1=body, arg2=config
+          // For GET/DELETE: arg1=config
+          const body: JSONObject | undefined =
+            hasBody && arg1
+              ? (JSON.parse(arg1) as JSONObject)
+              : undefined;
+
+          const configStr: string | undefined = hasBody ? arg2 : arg1;
+          const config: JSONObject | undefined = configStr
+            ? (JSON.parse(configStr) as JSONObject)
             : undefined;
 
           // Reconstruct real http/https Agents from serialized markers
-          if (parsed) {
-            const httpsAgentConfig: JSONObject | undefined = parsed[
+          if (config) {
+            const httpsAgentConfig: JSONObject | undefined = config[
               "httpsAgent"
             ] as JSONObject | undefined;
 
@@ -100,12 +122,12 @@ export default class VMRunner {
               httpsAgentConfig &&
               httpsAgentConfig["__agentType"] === "__https_agent__"
             ) {
-              parsed["httpsAgent"] = new https.Agent(
+              config["httpsAgent"] = new https.Agent(
                 httpsAgentConfig["options"] as https.AgentOptions,
               ) as unknown as JSONObject;
             }
 
-            const httpAgentConfig: JSONObject | undefined = parsed[
+            const httpAgentConfig: JSONObject | undefined = config[
               "httpAgent"
             ] as JSONObject | undefined;
 
@@ -113,7 +135,7 @@ export default class VMRunner {
               httpAgentConfig &&
               httpAgentConfig["__agentType"] === "__http_agent__"
             ) {
-              parsed["httpAgent"] = new http.Agent(
+              config["httpAgent"] = new http.Agent(
                 httpAgentConfig["options"] as http.AgentOptions,
               ) as unknown as JSONObject;
             }
@@ -123,16 +145,19 @@ export default class VMRunner {
 
           switch (method) {
             case "get":
-              response = await axios.get(url, parsed);
+              response = await axios.get(url, config);
               break;
             case "post":
-              response = await axios.post(url, parsed);
+              response = await axios.post(url, body, config);
               break;
             case "put":
-              response = await axios.put(url, parsed);
+              response = await axios.put(url, body, config);
+              break;
+            case "patch":
+              response = await axios.patch(url, body, config);
               break;
             case "delete":
-              response = await axios.delete(url, parsed);
+              response = await axios.delete(url, config);
               break;
             default:
               throw new Error(`Unsupported HTTP method: ${method}`);
@@ -167,14 +192,19 @@ export default class VMRunner {
               const r = await _axiosRef.applySyncPromise(undefined, ['get', url, merged ? JSON.stringify(merged) : undefined]);
               return JSON.parse(r);
             },
-            post: async (url, data) => {
-              const merged = mergeConfig(data);
-              const r = await _axiosRef.applySyncPromise(undefined, ['post', url, merged ? JSON.stringify(merged) : undefined]);
+            post: async (url, data, config) => {
+              const merged = mergeConfig(config);
+              const r = await _axiosRef.applySyncPromise(undefined, ['post', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
               return JSON.parse(r);
             },
-            put: async (url, data) => {
-              const merged = mergeConfig(data);
-              const r = await _axiosRef.applySyncPromise(undefined, ['put', url, merged ? JSON.stringify(merged) : undefined]);
+            put: async (url, data, config) => {
+              const merged = mergeConfig(config);
+              const r = await _axiosRef.applySyncPromise(undefined, ['put', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
+              return JSON.parse(r);
+            },
+            patch: async (url, data, config) => {
+              const merged = mergeConfig(config);
+              const r = await _axiosRef.applySyncPromise(undefined, ['patch', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
               return JSON.parse(r);
             },
             delete: async (url, config) => {
