@@ -23,6 +23,9 @@ export default class BrowserUtil {
     "--disable-dev-shm-usage",
     "--disable-gpu",
     "--disable-software-rasterizer",
+    "--disable-dbus", // no D-Bus daemon in containers
+    "--disable-features=dbus", // additional D-Bus feature gate
+    "--no-zygote", // skip zygote process that fails OOM score adjustments in containers
   ];
 
   // Firefox preferences for stability in containerized environments
