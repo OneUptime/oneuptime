@@ -149,24 +149,47 @@ export default class VMRunner {
       await jail.set("_axiosRef", axiosRef);
 
       await context.eval(`
-        const axios = {
-          get: async (url, config) => {
-            const r = await _axiosRef.applySyncPromise(undefined, ['get', url, config ? JSON.stringify(config) : undefined]);
-            return JSON.parse(r);
-          },
-          post: async (url, data) => {
-            const r = await _axiosRef.applySyncPromise(undefined, ['post', url, data ? JSON.stringify(data) : undefined]);
-            return JSON.parse(r);
-          },
-          put: async (url, data) => {
-            const r = await _axiosRef.applySyncPromise(undefined, ['put', url, data ? JSON.stringify(data) : undefined]);
-            return JSON.parse(r);
-          },
-          delete: async (url, config) => {
-            const r = await _axiosRef.applySyncPromise(undefined, ['delete', url, config ? JSON.stringify(config) : undefined]);
-            return JSON.parse(r);
-          },
-        };
+        function _makeAxiosInstance(defaults) {
+          function mergeConfig(overrides) {
+            if (!defaults && !overrides) return undefined;
+            if (!defaults) return overrides;
+            if (!overrides) return Object.assign({}, defaults);
+            const merged = Object.assign({}, defaults, overrides);
+            if (defaults.headers && overrides.headers) {
+              merged.headers = Object.assign({}, defaults.headers, overrides.headers);
+            }
+            return merged;
+          }
+
+          return {
+            get: async (url, config) => {
+              const merged = mergeConfig(config);
+              const r = await _axiosRef.applySyncPromise(undefined, ['get', url, merged ? JSON.stringify(merged) : undefined]);
+              return JSON.parse(r);
+            },
+            post: async (url, data) => {
+              const merged = mergeConfig(data);
+              const r = await _axiosRef.applySyncPromise(undefined, ['post', url, merged ? JSON.stringify(merged) : undefined]);
+              return JSON.parse(r);
+            },
+            put: async (url, data) => {
+              const merged = mergeConfig(data);
+              const r = await _axiosRef.applySyncPromise(undefined, ['put', url, merged ? JSON.stringify(merged) : undefined]);
+              return JSON.parse(r);
+            },
+            delete: async (url, config) => {
+              const merged = mergeConfig(config);
+              const r = await _axiosRef.applySyncPromise(undefined, ['delete', url, merged ? JSON.stringify(merged) : undefined]);
+              return JSON.parse(r);
+            },
+            create: (instanceDefaults) => {
+              const combinedDefaults = mergeConfig(instanceDefaults);
+              return _makeAxiosInstance(combinedDefaults);
+            },
+          };
+        }
+
+        const axios = _makeAxiosInstance(null);
       `);
 
       // crypto (createHash, createHmac, randomBytes) - bridged via applySync
