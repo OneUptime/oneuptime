@@ -45,35 +45,32 @@ export default function SSOLoginScreen(): React.JSX.Element {
     };
   }, []);
 
-  const handleFetchProviders: () => Promise<void> =
-    async (): Promise<void> => {
-      if (!email.trim()) {
-        setError("Email is required.");
+  const handleFetchProviders: () => Promise<void> = async (): Promise<void> => {
+    if (!email.trim()) {
+      setError("Email is required.");
+      return;
+    }
+
+    setError(null);
+    setIsLoadingProviders(true);
+
+    try {
+      const result: Array<SSOProvider> = await fetchSSOProviders(email.trim());
+
+      if (result.length === 0) {
+        setError("No SSO providers found for this email.");
         return;
       }
 
-      setError(null);
-      setIsLoadingProviders(true);
-
-      try {
-        const result: Array<SSOProvider> = await fetchSSOProviders(
-          email.trim(),
-        );
-
-        if (result.length === 0) {
-          setError("No SSO providers found for this email.");
-          return;
-        }
-
-        setProviders(result);
-      } catch {
-        setError(
-          "Could not find SSO providers. Please check your email and try again.",
-        );
-      } finally {
-        setIsLoadingProviders(false);
-      }
-    };
+      setProviders(result);
+    } catch {
+      setError(
+        "Could not find SSO providers. Please check your email and try again.",
+      );
+    } finally {
+      setIsLoadingProviders(false);
+    }
+  };
 
   const handleSSOLogin: (provider: SSOProvider) => Promise<void> = async (
     provider: SSOProvider,
@@ -404,9 +401,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
 
           <View style={{ marginTop: 16 }}>
             <GradientButton
-              label={
-                providers ? "Use email and password" : "Back to Login"
-              }
+              label={providers ? "Use email and password" : "Back to Login"}
               onPress={handleBack}
               variant="secondary"
               icon="arrow-back-outline"

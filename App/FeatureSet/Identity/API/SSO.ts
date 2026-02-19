@@ -546,8 +546,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
 
     const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
     const isMobileRequest: boolean =
-      req.body.RelayState === "mobile" ||
-      req.query["RelayState"] === "mobile";
+      req.body.RelayState === "mobile" || req.query["RelayState"] === "mobile";
 
     alreadySavedUser.email = email;
 

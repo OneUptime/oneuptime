@@ -102,12 +102,12 @@ export default class VMRunner {
           const methodsWithBody: string[] = ["post", "put", "patch"];
           const hasBody: boolean = methodsWithBody.includes(method);
 
-          // For POST/PUT/PATCH: arg1=body, arg2=config
-          // For GET/HEAD/OPTIONS/DELETE/REQUEST: arg1=config
+          /*
+           * For POST/PUT/PATCH: arg1=body, arg2=config
+           * For GET/HEAD/OPTIONS/DELETE/REQUEST: arg1=config
+           */
           const body: JSONObject | undefined =
-            hasBody && arg1
-              ? (JSON.parse(arg1) as JSONObject)
-              : undefined;
+            hasBody && arg1 ? (JSON.parse(arg1) as JSONObject) : undefined;
 
           const configStr: string | undefined = hasBody ? arg2 : arg1;
           const config: JSONObject | undefined = configStr
