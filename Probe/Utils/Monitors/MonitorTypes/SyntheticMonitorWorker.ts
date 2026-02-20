@@ -113,7 +113,11 @@ async function launchBrowser(
 ): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
   let lastError: Error | undefined;
 
-  for (let attempt: number = 1; attempt <= MAX_BROWSER_LAUNCH_RETRIES; attempt++) {
+  for (
+    let attempt: number = 1;
+    attempt <= MAX_BROWSER_LAUNCH_RETRIES;
+    attempt++
+  ) {
     try {
       return await launchBrowserOnce(config);
     } catch (err: unknown) {
@@ -130,8 +134,8 @@ async function launchBrowser(
 
   throw new Error(
     `Failed to launch browser after ${MAX_BROWSER_LAUNCH_RETRIES} attempts. ` +
-    `This is usually caused by insufficient memory in the container. ` +
-    `Last error: ${lastError?.message || String(lastError)}`,
+      `This is usually caused by insufficient memory in the container. ` +
+      `Last error: ${lastError?.message || String(lastError)}`,
   );
 }
 
