@@ -580,6 +580,21 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
       });
 
+      // Generate SSO token for per-project authentication (same as setSSOCookie)
+      const ssoToken: string = JSONWebToken.sign({
+        data: {
+          userId: alreadySavedUser.id!,
+          projectId: projectId,
+          name: alreadySavedUser.name!,
+          email: alreadySavedUser.email,
+          isMasterAdmin: false,
+          isGeneralLogin: false,
+        },
+        expiresInSeconds: OneUptimeDate.getSecondsInDays(
+          new PositiveNumber(30),
+        ),
+      });
+
       const params: URLSearchParams = new URLSearchParams();
       params.set("accessToken", accessToken);
       params.set("refreshToken", sessionMetadata.refreshToken);
@@ -594,6 +609,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         "isMasterAdmin",
         String(alreadySavedUser.isMasterAdmin || false),
       );
+      params.set("ssoToken", ssoToken);
+      params.set("projectId", projectId.toString());
 
       const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
 
