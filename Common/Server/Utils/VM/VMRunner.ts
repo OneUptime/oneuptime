@@ -176,9 +176,25 @@ export default class VMRunner {
               throw new Error(`Unsupported HTTP method: ${method}`);
           }
 
+          // Convert AxiosHeaders to a plain object before serializing.
+          // JSON.stringify calls AxiosHeaders.toJSON(key) with a truthy key,
+          // which makes it join array headers (like set-cookie) with commas.
+          // This produces invalid Cookie headers when user code forwards them.
+          const plainHeaders: Record<string, unknown> = {};
+
+          if (response.headers) {
+            for (const key of Object.keys(
+              response.headers as Record<string, unknown>,
+            )) {
+              plainHeaders[key] = (
+                response.headers as Record<string, unknown>
+              )[key];
+            }
+          }
+
           return JSON.stringify({
             status: response.status,
-            headers: response.headers,
+            headers: plainHeaders,
             data: response.data,
           });
         },
