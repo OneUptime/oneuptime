@@ -38,7 +38,7 @@ interface ProxyOptions {
   password?: string | undefined;
 }
 
-async function launchBrowser(
+async function launchBrowserOnce(
   config: WorkerConfig,
 ): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
   const viewport: { height: number; width: number } =
@@ -98,7 +98,41 @@ async function launchBrowser(
 
   const page: Page = await context.newPage();
 
+  // Set default timeouts so page operations don't hang indefinitely
+  page.setDefaultTimeout(config.timeout);
+  page.setDefaultNavigationTimeout(config.timeout);
+
   return { browser, context, page };
+}
+
+const MAX_BROWSER_LAUNCH_RETRIES: number = 3;
+const BROWSER_LAUNCH_RETRY_DELAY_MS: number = 2000;
+
+async function launchBrowser(
+  config: WorkerConfig,
+): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
+  let lastError: Error | undefined;
+
+  for (let attempt: number = 1; attempt <= MAX_BROWSER_LAUNCH_RETRIES; attempt++) {
+    try {
+      return await launchBrowserOnce(config);
+    } catch (err: unknown) {
+      lastError = err as Error;
+
+      // If this is not the last attempt, wait before retrying
+      if (attempt < MAX_BROWSER_LAUNCH_RETRIES) {
+        await new Promise((resolve: (value: void) => void) => {
+          setTimeout(resolve, BROWSER_LAUNCH_RETRY_DELAY_MS);
+        });
+      }
+    }
+  }
+
+  throw new Error(
+    `Failed to launch browser after ${MAX_BROWSER_LAUNCH_RETRIES} attempts. ` +
+    `This is usually caused by insufficient memory in the container. ` +
+    `Last error: ${lastError?.message || String(lastError)}`,
+  );
 }
 
 async function run(config: WorkerConfig): Promise<WorkerResult> {
