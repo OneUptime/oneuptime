@@ -93,6 +93,7 @@ describe("UserMiddleware", () => {
 
     const req: Partial<ExpressRequest> = {
       cookies: { "sso-token": mockedAccessToken },
+      headers: {},
     };
 
     test("should return an empty object when ssoToken is not passed", () => {
