@@ -80,16 +80,57 @@ export default function SSOProviderSelectScreen({
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
     >
-      <Text
+      <View
         style={{
-          fontSize: 14,
-          marginBottom: 16,
-          lineHeight: 20,
-          color: theme.colors.textSecondary,
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 20,
+          padding: 16,
+          borderRadius: 14,
+          backgroundColor: theme.colors.backgroundElevated,
+          borderWidth: 1,
+          borderColor: theme.colors.borderGlass,
         }}
       >
-        Select an SSO provider to sign in to {projectName}.
-      </Text>
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            backgroundColor: theme.colors.accentCyanBg,
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 14,
+          }}
+        >
+          <Ionicons
+            name="business-outline"
+            size={18}
+            color={theme.colors.accentCyan}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "700",
+              color: theme.colors.textPrimary,
+              letterSpacing: -0.3,
+            }}
+          >
+            {projectName}
+          </Text>
+          <Text
+            style={{
+              fontSize: 13,
+              marginTop: 2,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Select an SSO provider to sign in
+          </Text>
+        </View>
+      </View>
 
       {error ? (
         <View
@@ -120,6 +161,20 @@ export default function SSOProviderSelectScreen({
         </View>
       ) : null}
 
+      <Text
+        style={{
+          fontSize: 12,
+          fontWeight: "600",
+          textTransform: "uppercase",
+          marginBottom: 8,
+          marginLeft: 4,
+          color: theme.colors.textTertiary,
+          letterSpacing: 0.8,
+        }}
+      >
+        Available Providers
+      </Text>
+
       <View
         style={{
           borderRadius: 16,
@@ -144,61 +199,78 @@ export default function SSOProviderSelectScreen({
                   return handleSelectProvider(provider);
                 }}
                 disabled={authenticatingId !== null}
-                style={({ pressed }: { pressed: boolean }) => {
-                  return {
-                    paddingHorizontal: 16,
-                    paddingVertical: 14,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    opacity:
-                      pressed || (authenticatingId !== null && !isAuthenticating)
-                        ? 0.6
-                        : 1,
-                    ...(!isLast
-                      ? {
-                          borderBottomWidth: 1,
-                          borderBottomColor: theme.colors.borderSubtle,
-                        }
-                      : {}),
-                  };
+                style={{
+                  opacity:
+                    authenticatingId !== null && !isAuthenticating ? 0.6 : 1,
+                  ...(!isLast
+                    ? {
+                        borderBottomWidth: 1,
+                        borderBottomColor: theme.colors.borderSubtle,
+                      }
+                    : {}),
                 }}
               >
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                  }}
+                >
+                  <View
                     style={{
-                      fontSize: 15,
-                      fontWeight: "600",
-                      color: theme.colors.textPrimary,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      backgroundColor: theme.colors.iconBackground,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
                     }}
                   >
-                    {provider.name}
-                  </Text>
-                  {provider.description ? (
+                    <Ionicons
+                      name="shield-checkmark-outline"
+                      size={18}
+                      color={theme.colors.actionPrimary}
+                    />
+                  </View>
+                  <View style={{ flex: 1, marginRight: 12 }}>
                     <Text
                       style={{
-                        fontSize: 13,
-                        marginTop: 4,
-                        color: theme.colors.textSecondary,
+                        fontSize: 15,
+                        fontWeight: "600",
+                        color: theme.colors.textPrimary,
                       }}
                     >
-                      {provider.description}
+                      {provider.name}
                     </Text>
-                  ) : null}
-                </View>
+                    {provider.description ? (
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          marginTop: 3,
+                          color: theme.colors.textSecondary,
+                        }}
+                      >
+                        {provider.description}
+                      </Text>
+                    ) : null}
+                  </View>
 
-                {isAuthenticating ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.actionPrimary}
-                  />
-                ) : (
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={theme.colors.textTertiary}
-                  />
-                )}
+                  {isAuthenticating ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.colors.actionPrimary}
+                    />
+                  ) : (
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={theme.colors.textTertiary}
+                    />
+                  )}
+                </View>
               </Pressable>
             );
           },

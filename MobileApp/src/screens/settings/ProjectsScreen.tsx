@@ -276,7 +276,7 @@ export default function ProjectsScreen({
                 key={project._id}
                 style={{
                   paddingHorizontal: 16,
-                  paddingVertical: 14,
+                  paddingVertical: 16,
                   ...(!isLast
                     ? {
                         borderBottomWidth: 1,
@@ -288,16 +288,34 @@ export default function ProjectsScreen({
                 <View
                   style={{
                     flexDirection: "row",
-                    justifyContent: "space-between",
                     alignItems: "center",
                   }}
                 >
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      backgroundColor: theme.colors.accentCyanBg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 14,
+                    }}
+                  >
+                    <Ionicons
+                      name="business-outline"
+                      size={18}
+                      color={theme.colors.accentCyan}
+                    />
+                  </View>
+
                   <View style={{ flex: 1, marginRight: 12 }}>
                     <Text
                       style={{
-                        fontSize: 15,
-                        fontWeight: "600",
+                        fontSize: 17,
+                        fontWeight: "700",
                         color: theme.colors.textPrimary,
+                        letterSpacing: -0.3,
                       }}
                     >
                       {project.name}
@@ -313,24 +331,42 @@ export default function ProjectsScreen({
                       >
                         <View
                           style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: 4,
-                            marginRight: 6,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 6,
                             backgroundColor: authenticated
-                              ? "#22C55E"
-                              : "#F59E0B",
-                          }}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: "500",
-                            color: authenticated ? "#22C55E" : "#F59E0B",
+                              ? theme.colors.statusSuccessBg
+                              : theme.colors.severityWarningBg,
                           }}
                         >
-                          {authenticated ? "Authenticated" : "SSO Required"}
-                        </Text>
+                          <Ionicons
+                            name={
+                              authenticated
+                                ? "checkmark-circle"
+                                : "shield-outline"
+                            }
+                            size={12}
+                            color={
+                              authenticated
+                                ? theme.colors.statusSuccess
+                                : theme.colors.severityWarning
+                            }
+                            style={{ marginRight: 4 }}
+                          />
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              fontWeight: "600",
+                              color: authenticated
+                                ? theme.colors.statusSuccess
+                                : theme.colors.severityWarning,
+                            }}
+                          >
+                            {authenticated ? "Authenticated" : "SSO Required"}
+                          </Text>
+                        </View>
                       </View>
                     ) : null}
                   </View>
@@ -343,8 +379,8 @@ export default function ProjectsScreen({
                       disabled={isAuthenticating}
                       style={({ pressed }: { pressed: boolean }) => {
                         return {
-                          paddingHorizontal: 14,
-                          paddingVertical: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 9,
                           borderRadius: 10,
                           backgroundColor: theme.colors.actionPrimary,
                           opacity: pressed || isAuthenticating ? 0.7 : 1,
@@ -357,8 +393,8 @@ export default function ProjectsScreen({
                         <Text
                           style={{
                             fontSize: 13,
-                            fontWeight: "600",
-                            color: "#FFFFFF",
+                            fontWeight: "700",
+                            color: theme.colors.backgroundPrimary,
                           }}
                         >
                           Authenticate

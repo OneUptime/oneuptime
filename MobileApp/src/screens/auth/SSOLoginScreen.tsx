@@ -311,71 +311,148 @@ export default function SSOLoginScreen(): React.JSX.Element {
                 </View>
               ) : (
                 <>
-                  {providers.map((provider: SSOProvider) => {
-                    return (
-                      <Pressable
-                        key={provider._id}
-                        onPress={() => {
-                          return handleSSOLogin(provider);
-                        }}
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          padding: 16,
-                          marginBottom: 12,
-                          borderRadius: 12,
-                          backgroundColor: theme.colors.backgroundSecondary,
-                          borderWidth: 1,
-                          borderColor: theme.colors.borderDefault,
-                        }}
-                      >
-                        <Ionicons
-                          name="shield-checkmark-outline"
-                          size={22}
-                          color={theme.colors.actionPrimary}
-                          style={{ marginRight: 14 }}
-                        />
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={{
-                              fontSize: 15,
-                              fontWeight: "600",
-                              color: theme.colors.textPrimary,
-                            }}
-                          >
-                            {provider.name}
-                          </Text>
-                          {provider.project?.name ? (
-                            <Text
+                  {(() => {
+                    // Group providers by project
+                    const grouped: Record<
+                      string,
+                      { projectName: string; items: SSOProvider[] }
+                    > = {};
+
+                    for (const provider of providers) {
+                      const key: string = provider.projectId;
+                      const projectName: string =
+                        provider.project?.name || "Unknown Project";
+
+                      if (!grouped[key]) {
+                        grouped[key] = { projectName, items: [] };
+                      }
+
+                      grouped[key]!.items.push(provider);
+                    }
+
+                    return Object.entries(grouped).map(
+                      ([projectId, group]: [
+                        string,
+                        { projectName: string; items: SSOProvider[] },
+                      ]) => {
+                        return (
+                          <View key={projectId} style={{ marginBottom: 20 }}>
+                            <View
                               style={{
-                                fontSize: 12,
-                                marginTop: 2,
-                                color: theme.colors.textTertiary,
+                                flexDirection: "row",
+                                alignItems: "center",
+                                marginBottom: 10,
+                                paddingHorizontal: 4,
                               }}
                             >
-                              {provider.project.name}
-                            </Text>
-                          ) : null}
-                          {provider.description ? (
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                marginTop: 2,
-                                color: theme.colors.textTertiary,
-                              }}
-                            >
-                              {provider.description}
-                            </Text>
-                          ) : null}
-                        </View>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={18}
-                          color={theme.colors.textTertiary}
-                        />
-                      </Pressable>
+                              <Text
+                                style={{
+                                  fontSize: 17,
+                                  fontWeight: "700",
+                                  color: theme.colors.textPrimary,
+                                  flex: 1,
+                                  letterSpacing: -0.3,
+                                }}
+                              >
+                                {group.projectName}
+                              </Text>
+                            </View>
+
+                            {group.items.map(
+                              (
+                                provider: SSOProvider,
+                                index: number,
+                              ) => {
+                                return (
+                                  <Pressable
+                                    key={provider._id}
+                                    onPress={() => {
+                                      return handleSSOLogin(provider);
+                                    }}
+                                    style={{
+                                      marginBottom:
+                                        index < group.items.length - 1
+                                          ? 10
+                                          : 0,
+                                      borderRadius: 14,
+                                      backgroundColor:
+                                        theme.colors.backgroundSecondary,
+                                      borderWidth: 1,
+                                      borderColor:
+                                        theme.colors.borderDefault,
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    <View
+                                      style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        paddingHorizontal: 16,
+                                        paddingVertical: 14,
+                                      }}
+                                    >
+                                      <View
+                                        style={{
+                                          width: 36,
+                                          height: 36,
+                                          borderRadius: 10,
+                                          backgroundColor:
+                                            theme.colors.iconBackground,
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          marginRight: 12,
+                                        }}
+                                      >
+                                        <Ionicons
+                                          name="shield-checkmark-outline"
+                                          size={18}
+                                          color={
+                                            theme.colors.actionPrimary
+                                          }
+                                        />
+                                      </View>
+                                      <View style={{ flex: 1 }}>
+                                        <Text
+                                          style={{
+                                            fontSize: 15,
+                                            fontWeight: "600",
+                                            color:
+                                              theme.colors.textPrimary,
+                                          }}
+                                        >
+                                          {provider.name}
+                                        </Text>
+                                        {provider.description ? (
+                                          <Text
+                                            style={{
+                                              fontSize: 13,
+                                              marginTop: 2,
+                                              color:
+                                                theme.colors
+                                                  .textSecondary,
+                                            }}
+                                          >
+                                            {provider.description}
+                                          </Text>
+                                        ) : null}
+                                      </View>
+                                      <Ionicons
+                                        name="chevron-forward"
+                                        size={18}
+                                        color={
+                                          theme.colors.textTertiary
+                                        }
+                                      />
+                                    </View>
+                                  </Pressable>
+                                );
+                              },
+                            )}
+                          </View>
+                        );
+                      },
                     );
-                  })}
+                  })()}
                 </>
               )}
 
