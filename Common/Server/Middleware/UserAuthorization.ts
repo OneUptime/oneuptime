@@ -116,6 +116,42 @@ export default class UserMiddleware {
       }
     }
 
+    /*
+     * Also check x-sso-tokens header (mobile app flow).
+     * The header value is a JSON-encoded map of { projectId: ssoToken }.
+     */
+    const ssoTokensHeader: string | undefined = req.headers["x-sso-tokens"] as
+      | string
+      | undefined;
+
+    if (ssoTokensHeader) {
+      try {
+        const headerTokens: Record<string, string> =
+          JSON.parse(ssoTokensHeader);
+
+        for (const projectId of Object.keys(headerTokens)) {
+          const token: string | undefined = headerTokens[projectId];
+
+          if (!token || typeof token !== "string") {
+            continue;
+          }
+
+          try {
+            const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+
+            if (decoded.projectId?.toString() === projectId) {
+              ssoTokens[projectId] = token;
+            }
+          } catch (err) {
+            logger.error(err);
+            continue;
+          }
+        }
+      } catch (err) {
+        logger.error(err);
+      }
+    }
+
     return ssoTokens;
   }
 
