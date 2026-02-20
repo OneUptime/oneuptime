@@ -28,3 +28,31 @@ export async function fetchSSOProviders(
 
   return data.data || [];
 }
+
+export async function fetchSSOProvidersForProject(
+  projectId: string,
+): Promise<Array<SSOProvider>> {
+  const serverUrl: string = await getServerUrl();
+
+  const response: AxiosResponse = await axios.post(
+    `${serverUrl}/api/project-sso/${projectId}/sso-list`,
+    {},
+    {
+      timeout: 15000,
+    },
+  );
+
+  const items: Array<{ _id: string; name: string; description?: string }> =
+    response.data?.data || [];
+
+  return items.map(
+    (item: { _id: string; name: string; description?: string }) => {
+      return {
+        _id: item._id,
+        name: item.name,
+        description: item.description,
+        projectId: projectId,
+      };
+    },
+  );
+}

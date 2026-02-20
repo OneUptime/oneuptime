@@ -6,14 +6,14 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import { useTheme } from "../../theme";
 import { fetchProjects } from "../../api/projects";
-import { fetchSSOProviders, SSOProvider } from "../../api/sso";
+import { fetchSSOProvidersForProject, SSOProvider } from "../../api/sso";
 import { getServerUrl } from "../../storage/serverUrl";
-import { getTokens } from "../../storage/keychain";
 import {
   getCachedSsoTokens,
   storeSsoToken,
@@ -21,28 +21,10 @@ import {
 } from "../../storage/ssoTokens";
 import type { ProjectItem, ListResponse } from "../../api/types";
 
-interface DecodedToken {
-  email?: string;
-}
-
-function decodeTokenPayload(token: string): DecodedToken | null {
-  try {
-    const parts: string[] = token.split(".");
-    if (parts.length < 2) {
-      return null;
-    }
-    const payload: string = atob(parts[1]!);
-    return JSON.parse(payload) as DecodedToken;
-  } catch {
-    return null;
-  }
-}
-
 export default function ProjectsScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [ssoTokens, setSsoTokens] = useState<Record<string, string>>({});
-  const [ssoProviders, setSsoProviders] = useState<SSOProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [authenticatingProjectId, setAuthenticatingProjectId] = useState<
@@ -61,25 +43,6 @@ export default function ProjectsScreen(): React.JSX.Element {
 
       setProjects(projectsResponse.data);
       setSsoTokens(tokens);
-
-      // Get user email from stored access token
-      const storedTokens: { accessToken: string; refreshToken: string } | null =
-        await getTokens();
-      if (storedTokens?.accessToken) {
-        const decoded: DecodedToken | null = decodeTokenPayload(
-          storedTokens.accessToken,
-        );
-        if (decoded?.email) {
-          try {
-            const providers: SSOProvider[] = await fetchSSOProviders(
-              decoded.email,
-            );
-            setSsoProviders(providers);
-          } catch {
-            // SSO providers fetch failed — not critical
-          }
-        }
-      }
     } catch {
       setError("Failed to load projects.");
     } finally {
@@ -97,55 +60,85 @@ export default function ProjectsScreen(): React.JSX.Element {
     loadData();
   };
 
+  const openSsoAuth: (
+    provider: SSOProvider,
+    projectId: string,
+  ) => Promise<void> = async (
+    provider: SSOProvider,
+    projectId: string,
+  ): Promise<void> => {
+    const serverUrl: string = await getServerUrl();
+    const ssoUrl: string = `${serverUrl}/identity/sso/${projectId}/${provider._id}?mobile=true`;
+
+    await WebBrowser.warmUpAsync();
+
+    const result: WebBrowser.WebBrowserAuthSessionResult =
+      await WebBrowser.openAuthSessionAsync(
+        ssoUrl,
+        "oneuptime://sso-callback",
+      );
+
+    if (result.type === "success" && result.url) {
+      const url: URL = new URL(result.url);
+      const params: URLSearchParams = url.searchParams;
+
+      const ssoToken: string | null = params.get("ssoToken");
+      const returnedProjectId: string | null = params.get("projectId");
+
+      if (ssoToken && returnedProjectId) {
+        await storeSsoToken(returnedProjectId, ssoToken);
+        setSsoTokens({ ...getCachedSsoTokens() });
+      }
+    }
+
+    WebBrowser.coolDownAsync();
+  };
+
   const handleAuthenticate: (project: ProjectItem) => Promise<void> = async (
     project: ProjectItem,
   ): Promise<void> => {
     const projectId: string = project._id;
 
-    // Find SSO provider for this project
-    const provider: SSOProvider | undefined = ssoProviders.find(
-      (p: SSOProvider) => {
-        return p.projectId === projectId;
-      },
-    );
-
-    if (!provider) {
-      setError("No SSO provider found for this project.");
-      return;
-    }
-
     setAuthenticatingProjectId(projectId);
     setError(null);
 
     try {
-      const serverUrl: string = await getServerUrl();
-      const ssoUrl: string = `${serverUrl}/identity/sso/${provider.projectId}/${provider._id}?mobile=true`;
+      // Fetch SSO providers for this specific project (like the dashboard does)
+      const providers: SSOProvider[] =
+        await fetchSSOProvidersForProject(projectId);
 
-      await WebBrowser.warmUpAsync();
-
-      const result: WebBrowser.WebBrowserAuthSessionResult =
-        await WebBrowser.openAuthSessionAsync(
-          ssoUrl,
-          "oneuptime://sso-callback",
+      if (providers.length === 0) {
+        setError(
+          "No SSO providers are configured or enabled for this project. Please contact your admin.",
         );
+        return;
+      }
 
-      if (result.type === "success" && result.url) {
-        const url: URL = new URL(result.url);
-        const params: URLSearchParams = url.searchParams;
-
-        const ssoToken: string | null = params.get("ssoToken");
-        const returnedProjectId: string | null = params.get("projectId");
-
-        if (ssoToken && returnedProjectId) {
-          await storeSsoToken(returnedProjectId, ssoToken);
-          setSsoTokens({ ...getCachedSsoTokens() });
-        }
+      if (providers.length === 1) {
+        // Single provider — go directly to SSO auth
+        await openSsoAuth(providers[0]!, projectId);
+      } else {
+        // Multiple providers — let user choose
+        Alert.alert(
+          "Select SSO Provider",
+          "Choose your identity provider to sign in.",
+          [
+            ...providers.map((provider: SSOProvider) => {
+              return {
+                text: provider.name,
+                onPress: () => {
+                  openSsoAuth(provider, projectId);
+                },
+              };
+            }),
+            { text: "Cancel", style: "cancel" as const },
+          ],
+        );
       }
     } catch {
       setError("SSO authentication failed. Please try again.");
     } finally {
       setAuthenticatingProjectId(null);
-      WebBrowser.coolDownAsync();
     }
   };
 
@@ -153,14 +146,6 @@ export default function ProjectsScreen(): React.JSX.Element {
     projectId: string,
   ): boolean => {
     return Boolean(ssoTokens[projectId]);
-  };
-
-  const hasProvider: (projectId: string) => boolean = (
-    projectId: string,
-  ): boolean => {
-    return ssoProviders.some((p: SSOProvider) => {
-      return p.projectId === projectId;
-    });
   };
 
   if (isLoading) {
@@ -340,7 +325,7 @@ export default function ProjectsScreen(): React.JSX.Element {
                     ) : null}
                   </View>
 
-                  {requiresSso && !authenticated && hasProvider(project._id) ? (
+                  {requiresSso && !authenticated ? (
                     <Pressable
                       onPress={() => {
                         return handleAuthenticate(project);
