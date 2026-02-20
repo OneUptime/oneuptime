@@ -62,10 +62,13 @@ export default function ProjectsScreen({
 
   // Refresh SSO token state when returning from the provider selection screen
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", async () => {
-      const tokens: Record<string, string> = await getSsoTokens();
-      setSsoTokens(tokens);
-    });
+    const unsubscribe: () => void = navigation.addListener(
+      "focus",
+      async () => {
+        const tokens: Record<string, string> = await getSsoTokens();
+        setSsoTokens(tokens);
+      },
+    );
     return unsubscribe;
   }, [navigation]);
 
