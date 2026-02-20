@@ -309,7 +309,7 @@ export default function ProjectsScreen({
                     />
                   </View>
 
-                  <View style={{ flex: 1, marginRight: 12 }}>
+                  <View style={{ flex: 1 }}>
                     <Text
                       style={{
                         fontSize: 17,
@@ -370,26 +370,42 @@ export default function ProjectsScreen({
                       </View>
                     ) : null}
                   </View>
+                </View>
 
-                  {requiresSso && !authenticated ? (
-                    <Pressable
-                      onPress={() => {
-                        return handleAuthenticate(project);
-                      }}
-                      disabled={isAuthenticating}
-                      style={({ pressed }: { pressed: boolean }) => {
-                        return {
-                          paddingHorizontal: 16,
-                          paddingVertical: 9,
-                          borderRadius: 10,
-                          backgroundColor: theme.colors.actionPrimary,
-                          opacity: pressed || isAuthenticating ? 0.7 : 1,
-                        };
-                      }}
-                    >
-                      {isAuthenticating ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
+                {requiresSso && !authenticated ? (
+                  <Pressable
+                    onPress={() => {
+                      return handleAuthenticate(project);
+                    }}
+                    disabled={isAuthenticating}
+                    style={{
+                      marginTop: 12,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      backgroundColor: theme.colors.actionPrimary,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: isAuthenticating ? 0.7 : 1,
+                    }}
+                  >
+                    {isAuthenticating ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={theme.colors.backgroundPrimary}
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Ionicons
+                          name="shield-checkmark-outline"
+                          size={14}
+                          color={theme.colors.backgroundPrimary}
+                          style={{ marginRight: 6 }}
+                        />
                         <Text
                           style={{
                             fontSize: 13,
@@ -397,12 +413,12 @@ export default function ProjectsScreen({
                             color: theme.colors.backgroundPrimary,
                           }}
                         >
-                          Authenticate
+                          Authenticate with SSO
                         </Text>
-                      )}
-                    </Pressable>
-                  ) : null}
-                </View>
+                      </View>
+                    )}
+                  </Pressable>
+                ) : null}
               </View>
             );
           })}
