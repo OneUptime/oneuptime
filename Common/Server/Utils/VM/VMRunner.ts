@@ -187,6 +187,37 @@ export default class VMRunner {
       await jail.set("_axiosRef", axiosRef);
 
       await context.eval(`
+        function _assertNoFunctions(obj, path) {
+          if (!obj || typeof obj !== 'object') return;
+          if (Array.isArray(obj)) {
+            for (let i = 0; i < obj.length; i++) {
+              const fullPath = path + '[' + i + ']';
+              if (typeof obj[i] === 'function') {
+                throw new Error(
+                  'Functions are not supported in axios config because of security. ' +
+                  'Found a function at "' + fullPath + '". Please remove it or replace it with a plain value.'
+                );
+              }
+              if (obj[i] && typeof obj[i] === 'object') {
+                _assertNoFunctions(obj[i], fullPath);
+              }
+            }
+            return;
+          }
+          for (const key of Object.keys(obj)) {
+            const fullPath = path ? path + '.' + key : key;
+            if (typeof obj[key] === 'function') {
+              throw new Error(
+                'Functions are not supported in axios config because of security. ' +
+                'Found a function at "' + fullPath + '". Please remove it or replace it with a plain value.'
+              );
+            }
+            if (obj[key] && typeof obj[key] === 'object') {
+              _assertNoFunctions(obj[key], fullPath);
+            }
+          }
+        }
+
         function _makeAxiosInstance(defaults) {
           function mergeConfig(overrides) {
             if (!defaults && !overrides) return undefined;
@@ -201,6 +232,7 @@ export default class VMRunner {
 
           async function _request(config) {
             const merged = mergeConfig(config);
+            if (merged) _assertNoFunctions(merged, 'config');
             const r = await _axiosRef.applySyncPromise(undefined, ['request', '', merged ? JSON.stringify(merged) : undefined]);
             return JSON.parse(r);
           }
@@ -216,40 +248,51 @@ export default class VMRunner {
           instance.request = _request;
           instance.get = async (url, config) => {
             const merged = mergeConfig(config);
+            if (merged) _assertNoFunctions(merged, 'config');
             const r = await _axiosRef.applySyncPromise(undefined, ['get', url, merged ? JSON.stringify(merged) : undefined]);
             return JSON.parse(r);
           };
           instance.head = async (url, config) => {
             const merged = mergeConfig(config);
+            if (merged) _assertNoFunctions(merged, 'config');
             const r = await _axiosRef.applySyncPromise(undefined, ['head', url, merged ? JSON.stringify(merged) : undefined]);
             return JSON.parse(r);
           };
           instance.options = async (url, config) => {
             const merged = mergeConfig(config);
+            if (merged) _assertNoFunctions(merged, 'config');
             const r = await _axiosRef.applySyncPromise(undefined, ['options', url, merged ? JSON.stringify(merged) : undefined]);
             return JSON.parse(r);
           };
           instance.post = async (url, data, config) => {
             const merged = mergeConfig(config);
+            if (data) _assertNoFunctions(data, 'data');
+            if (merged) _assertNoFunctions(merged, 'config');
             const r = await _axiosRef.applySyncPromise(undefined, ['post', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
             return JSON.parse(r);
           };
           instance.put = async (url, data, config) => {
             const merged = mergeConfig(config);
+            if (data) _assertNoFunctions(data, 'data');
+            if (merged) _assertNoFunctions(merged, 'config');
             const r = await _axiosRef.applySyncPromise(undefined, ['put', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
             return JSON.parse(r);
           };
           instance.patch = async (url, data, config) => {
             const merged = mergeConfig(config);
+            if (data) _assertNoFunctions(data, 'data');
+            if (merged) _assertNoFunctions(merged, 'config');
             const r = await _axiosRef.applySyncPromise(undefined, ['patch', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
             return JSON.parse(r);
           };
           instance.delete = async (url, config) => {
             const merged = mergeConfig(config);
+            if (merged) _assertNoFunctions(merged, 'config');
             const r = await _axiosRef.applySyncPromise(undefined, ['delete', url, merged ? JSON.stringify(merged) : undefined]);
             return JSON.parse(r);
           };
           instance.create = (instanceDefaults) => {
+            if (instanceDefaults) _assertNoFunctions(instanceDefaults, 'defaults');
             const combinedDefaults = mergeConfig(instanceDefaults);
             return _makeAxiosInstance(combinedDefaults);
           };
