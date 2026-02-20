@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import SettingsScreen from "../screens/SettingsScreen";
 import ProjectsScreen from "../screens/settings/ProjectsScreen";
+import SSOProviderSelectScreen from "../screens/settings/SSOProviderSelectScreen";
 import type { SettingsStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -40,6 +41,11 @@ export default function SettingsStackNavigator(): React.JSX.Element {
         name="ProjectsList"
         component={ProjectsScreen}
         options={{ title: "Projects" }}
+      />
+      <Stack.Screen
+        name="SSOProviderSelect"
+        component={SSOProviderSelectScreen}
+        options={{ title: "SSO Login" }}
       />
     </Stack.Navigator>
   );

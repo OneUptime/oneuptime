@@ -6,10 +6,10 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
 import { fetchProjects } from "../../api/projects";
 import { fetchSSOProvidersForProject, SSOProvider } from "../../api/sso";
@@ -20,8 +20,13 @@ import {
   getSsoTokens,
 } from "../../storage/ssoTokens";
 import type { ProjectItem, ListResponse } from "../../api/types";
+import type { SettingsStackParamList } from "../../navigation/types";
 
-export default function ProjectsScreen(): React.JSX.Element {
+type Props = NativeStackScreenProps<SettingsStackParamList, "ProjectsList">;
+
+export default function ProjectsScreen({
+  navigation,
+}: Props): React.JSX.Element {
   const { theme } = useTheme();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [ssoTokens, setSsoTokens] = useState<Record<string, string>>({});
@@ -54,6 +59,15 @@ export default function ProjectsScreen(): React.JSX.Element {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Refresh SSO token state when returning from the provider selection screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", async () => {
+      const tokens: Record<string, string> = await getSsoTokens();
+      setSsoTokens(tokens);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const handleRefresh: () => void = (): void => {
     setIsRefreshing(true);
@@ -118,22 +132,18 @@ export default function ProjectsScreen(): React.JSX.Element {
         // Single provider — go directly to SSO auth
         await openSsoAuth(providers[0]!, projectId);
       } else {
-        // Multiple providers — let user choose
-        Alert.alert(
-          "Select SSO Provider",
-          "Choose your identity provider to sign in.",
-          [
-            ...providers.map((provider: SSOProvider) => {
-              return {
-                text: provider.name,
-                onPress: () => {
-                  openSsoAuth(provider, projectId);
-                },
-              };
-            }),
-            { text: "Cancel", style: "cancel" as const },
-          ],
-        );
+        // Multiple providers — navigate to selection screen
+        navigation.navigate("SSOProviderSelect", {
+          projectId,
+          projectName: project.name,
+          providers: providers.map((p: SSOProvider) => {
+            return {
+              _id: p._id,
+              name: p.name,
+              description: p.description,
+            };
+          }),
+        });
       }
     } catch {
       setError("SSO authentication failed. Please try again.");

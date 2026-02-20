@@ -15,6 +15,11 @@ export type MainTabParamList = {
 export type SettingsStackParamList = {
   SettingsList: undefined;
   ProjectsList: undefined;
+  SSOProviderSelect: {
+    projectId: string;
+    projectName: string;
+    providers: Array<{ _id: string; name: string; description?: string }>;
+  };
 };
 
 export type OnCallStackParamList = {
