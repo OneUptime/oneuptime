@@ -12,6 +12,7 @@ import {
   clearTokens,
   type StoredTokens,
 } from "../storage/keychain";
+import { getCachedSsoTokens } from "../storage/ssoTokens";
 
 /**
  * Recursively normalizes OneUptime API serialized types in response data.
@@ -87,6 +88,11 @@ apiClient.interceptors.request.use(
     const token: string | null = getCachedAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    const ssoTokens: Record<string, string> = getCachedSsoTokens();
+    if (Object.keys(ssoTokens).length > 0 && config.headers) {
+      config.headers["x-sso-tokens"] = JSON.stringify(ssoTokens);
     }
 
     return config;

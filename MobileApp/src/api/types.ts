@@ -76,7 +76,12 @@ export interface NamedEntityWithColor extends NamedEntityWithColorFromCommon {
   color: ColorField;
 }
 
-export type ProjectItem = RequiredModelFields<Project, "_id" | "name" | "slug">;
+export type ProjectItem = RequiredModelFields<
+  Project,
+  "_id" | "name" | "slug"
+> & {
+  requireSsoForLogin?: boolean;
+};
 
 type IncidentItemFromCommon = RequiredModelFields<
   Incident,

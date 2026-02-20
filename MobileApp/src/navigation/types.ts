@@ -14,6 +14,7 @@ export type MainTabParamList = {
 
 export type SettingsStackParamList = {
   SettingsList: undefined;
+  ProjectsList: undefined;
 };
 
 export type OnCallStackParamList = {

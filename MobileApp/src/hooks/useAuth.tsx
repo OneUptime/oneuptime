@@ -15,6 +15,7 @@ import {
 } from "../api/auth";
 import { setOnAuthFailure } from "../api/client";
 import { unregisterPushToken } from "./pushTokenUtils";
+import { clearAllSsoTokens, getSsoTokens } from "../storage/ssoTokens";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -58,6 +59,9 @@ export function AuthProvider({
         if (tokens?.accessToken) {
           setIsAuthenticated(true);
         }
+
+        // Initialize SSO token cache for the API client interceptor
+        await getSsoTokens();
       } catch {
         // If anything fails, user needs to re-authenticate
       } finally {
@@ -94,6 +98,7 @@ export function AuthProvider({
   const logout: () => Promise<void> = useCallback(async (): Promise<void> => {
     await unregisterPushToken();
     await apiLogout();
+    await clearAllSsoTokens();
     setIsAuthenticated(false);
     setUser(null);
   }, []);

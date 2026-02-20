@@ -7,7 +7,7 @@ export async function fetchProjects(): Promise<ListResponse<ProjectItem>> {
     "/api/project/get-list?skip=0&limit=100",
     {
       query: {},
-      select: { _id: true, name: true, slug: true },
+      select: { _id: true, name: true, slug: true, requireSsoForLogin: true },
       sort: { name: "ASC" },
     },
     {

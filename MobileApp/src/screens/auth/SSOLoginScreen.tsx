@@ -16,6 +16,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { fetchSSOProviders, SSOProvider } from "../../api/sso";
 import { getServerUrl } from "../../storage/serverUrl";
 import { storeTokens } from "../../storage/keychain";
+import { storeSsoToken } from "../../storage/ssoTokens";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
@@ -115,6 +116,14 @@ export default function SSOLoginScreen(): React.JSX.Element {
           refreshToken,
           refreshTokenExpiresAt,
         });
+
+        // Store per-project SSO token if provided
+        const ssoToken: string | null = params.get("ssoToken");
+        const projectId: string | null = params.get("projectId");
+
+        if (ssoToken && projectId) {
+          await storeSsoToken(projectId, ssoToken);
+        }
 
         setIsAuthenticated(true);
       }

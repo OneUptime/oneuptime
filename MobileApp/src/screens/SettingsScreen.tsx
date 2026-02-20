@@ -2,12 +2,20 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, Switch, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
 import { useBiometric } from "../hooks/useBiometric";
 import { useHaptics } from "../hooks/useHaptics";
 import { getServerUrl } from "../storage/serverUrl";
 import Logo from "../components/Logo";
+import type { SettingsStackParamList } from "../navigation/types";
+
+type SettingsNavigationProp = NativeStackNavigationProp<
+  SettingsStackParamList,
+  "SettingsList"
+>;
 
 const APP_VERSION: string = "1.0.0";
 
@@ -121,6 +129,8 @@ function SettingsRow({
 export default function SettingsScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { logout } = useAuth();
+  const navigation: SettingsNavigationProp =
+    useNavigation<SettingsNavigationProp>();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
   const { selectionFeedback } = useHaptics();
   const [serverUrl, setServerUrlState] = useState("");
@@ -346,6 +356,52 @@ export default function SettingsScreen(): React.JSX.Element {
             isLast
           />
         </View>
+      </View>
+
+      {/* Projects */}
+      <View style={{ marginBottom: 24 }}>
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            textTransform: "uppercase",
+            marginBottom: 8,
+            marginLeft: 4,
+            color: theme.colors.textTertiary,
+            letterSpacing: 0.8,
+          }}
+        >
+          Projects
+        </Text>
+        <View
+          style={{
+            borderRadius: 16,
+            overflow: "hidden",
+            backgroundColor: theme.colors.backgroundElevated,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+          }}
+        >
+          <SettingsRow
+            label="Manage Projects"
+            iconName="business-outline"
+            onPress={() => {
+              navigation.navigate("ProjectsList");
+            }}
+            isLast
+          />
+        </View>
+        <Text
+          style={{
+            fontSize: 12,
+            marginTop: 6,
+            marginLeft: 4,
+            lineHeight: 16,
+            color: theme.colors.textTertiary,
+          }}
+        >
+          View projects and authenticate with SSO providers
+        </Text>
       </View>
 
       {/* Account */}
