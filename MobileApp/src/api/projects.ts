@@ -2,8 +2,10 @@ import apiClient from "./client";
 import type { AxiosResponse } from "axios";
 import type { ListResponse, ProjectItem } from "./types";
 
-// OneUptime API serializes ObjectID fields as { _type: "ObjectID", value: "uuid" }.
-// This helper extracts the plain string value.
+/*
+ * OneUptime API serializes ObjectID fields as { _type: "ObjectID", value: "uuid" }.
+ * This helper extracts the plain string value.
+ */
 function resolveId(
   field: string | { _type?: string; value?: string } | undefined,
 ): string {

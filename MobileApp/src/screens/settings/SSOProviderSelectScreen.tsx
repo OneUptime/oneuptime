@@ -11,13 +11,13 @@ import * as WebBrowser from "expo-web-browser";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
 import { getServerUrl } from "../../storage/serverUrl";
-import {
-  getCachedSsoTokens,
-  storeSsoToken,
-} from "../../storage/ssoTokens";
+import { getCachedSsoTokens, storeSsoToken } from "../../storage/ssoTokens";
 import type { SettingsStackParamList } from "../../navigation/types";
 
-type Props = NativeStackScreenProps<SettingsStackParamList, "SSOProviderSelect">;
+type Props = NativeStackScreenProps<
+  SettingsStackParamList,
+  "SSOProviderSelect"
+>;
 
 export default function SSOProviderSelectScreen({
   route,

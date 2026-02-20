@@ -200,7 +200,12 @@ export default function HomeScreen(): React.JSX.Element {
 
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
-    await Promise.all([refetch(), refreshProjects(), refetchOnCall(), checkSsoStatus()]);
+    await Promise.all([
+      refetch(),
+      refreshProjects(),
+      refetchOnCall(),
+      checkSsoStatus(),
+    ]);
   };
 
   if (!isLoadingProjects && projectList.length === 0) {

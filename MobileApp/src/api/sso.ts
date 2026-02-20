@@ -11,8 +11,10 @@ export interface SSOProvider {
   };
 }
 
-// OneUptime API serializes ObjectID fields as { _type: "ObjectID", value: "uuid" }.
-// This helper extracts the plain string value.
+/*
+ * OneUptime API serializes ObjectID fields as { _type: "ObjectID", value: "uuid" }.
+ * This helper extracts the plain string value.
+ */
 function resolveId(
   field: string | { _type?: string; value?: string } | undefined,
 ): string {

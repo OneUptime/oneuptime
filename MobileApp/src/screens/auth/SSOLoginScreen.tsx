@@ -359,10 +359,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
                             </View>
 
                             {group.items.map(
-                              (
-                                provider: SSOProvider,
-                                index: number,
-                              ) => {
+                              (provider: SSOProvider, index: number) => {
                                 return (
                                   <Pressable
                                     key={provider._id}
@@ -371,15 +368,12 @@ export default function SSOLoginScreen(): React.JSX.Element {
                                     }}
                                     style={{
                                       marginBottom:
-                                        index < group.items.length - 1
-                                          ? 10
-                                          : 0,
+                                        index < group.items.length - 1 ? 10 : 0,
                                       borderRadius: 14,
                                       backgroundColor:
                                         theme.colors.backgroundSecondary,
                                       borderWidth: 1,
-                                      borderColor:
-                                        theme.colors.borderDefault,
+                                      borderColor: theme.colors.borderDefault,
                                       overflow: "hidden",
                                     }}
                                   >
@@ -406,9 +400,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
                                         <Ionicons
                                           name="shield-checkmark-outline"
                                           size={18}
-                                          color={
-                                            theme.colors.actionPrimary
-                                          }
+                                          color={theme.colors.actionPrimary}
                                         />
                                       </View>
                                       <View style={{ flex: 1 }}>
@@ -416,8 +408,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
                                           style={{
                                             fontSize: 15,
                                             fontWeight: "600",
-                                            color:
-                                              theme.colors.textPrimary,
+                                            color: theme.colors.textPrimary,
                                           }}
                                         >
                                           {provider.name}
@@ -427,9 +418,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
                                             style={{
                                               fontSize: 13,
                                               marginTop: 2,
-                                              color:
-                                                theme.colors
-                                                  .textSecondary,
+                                              color: theme.colors.textSecondary,
                                             }}
                                           >
                                             {provider.description}
@@ -439,9 +428,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
                                       <Ionicons
                                         name="chevron-forward"
                                         size={18}
-                                        color={
-                                          theme.colors.textTertiary
-                                        }
+                                        color={theme.colors.textTertiary}
                                       />
                                     </View>
                                   </Pressable>
