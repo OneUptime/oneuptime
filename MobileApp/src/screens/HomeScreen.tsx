@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -17,9 +17,11 @@ import { useHaptics } from "../hooks/useHaptics";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
+import type { ProjectItem } from "../api/types";
 import Logo from "../components/Logo";
 import GradientButton from "../components/GradientButton";
 import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
+import { getSsoTokens } from "../storage/ssoTokens";
 
 type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
 
@@ -177,9 +179,28 @@ export default function HomeScreen(): React.JSX.Element {
 
   const { lightImpact } = useHaptics();
 
+  const [unauthenticatedSsoProjects, setUnauthenticatedSsoProjects] = useState<
+    ProjectItem[]
+  >([]);
+
+  const checkSsoStatus: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const ssoTokens: Record<string, string> = await getSsoTokens();
+      const unauthenticated: ProjectItem[] = projectList.filter(
+        (p: ProjectItem) => {
+          return p.requireSsoForLogin && !ssoTokens[p._id];
+        },
+      );
+      setUnauthenticatedSsoProjects(unauthenticated);
+    }, [projectList]);
+
+  useEffect((): void => {
+    checkSsoStatus();
+  }, [checkSsoStatus]);
+
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
-    await Promise.all([refetch(), refreshProjects(), refetchOnCall()]);
+    await Promise.all([refetch(), refreshProjects(), refetchOnCall(), checkSsoStatus()]);
   };
 
   if (!isLoadingProjects && projectList.length === 0) {
@@ -386,6 +407,82 @@ export default function HomeScreen(): React.JSX.Element {
           </View>
         </View>
       </View>
+
+      {unauthenticatedSsoProjects.length > 0 ? (
+        <Pressable
+          onPress={() => {
+            lightImpact();
+            navigation.navigate("Settings", {
+              screen: "ProjectsList",
+            } as any);
+          }}
+          style={{ paddingHorizontal: 20, marginBottom: 4 }}
+          accessibilityLabel="Some projects require SSO authentication. Tap to authenticate."
+          accessibilityRole="button"
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              padding: 14,
+              borderRadius: 16,
+              backgroundColor: theme.colors.severityWarningBg,
+              borderWidth: 1,
+              borderColor: theme.colors.severityWarning + "33",
+            }}
+          >
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: theme.colors.severityWarning + "1A",
+                marginRight: 12,
+              }}
+            >
+              <Ionicons
+                name="shield-outline"
+                size={16}
+                color={theme.colors.severityWarning}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "700",
+                  color: theme.colors.severityWarning,
+                }}
+              >
+                SSO Authentication Required
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  marginTop: 2,
+                  color: theme.colors.severityWarning,
+                  opacity: 0.8,
+                }}
+                numberOfLines={1}
+              >
+                {unauthenticatedSsoProjects
+                  .map((p: ProjectItem) => {
+                    return p.name;
+                  })
+                  .join(", ")}
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={theme.colors.severityWarning}
+              style={{ marginLeft: 8 }}
+            />
+          </View>
+        </Pressable>
+      ) : null}
 
       <View style={{ paddingHorizontal: 20, gap: 16 }}>
         <View>
