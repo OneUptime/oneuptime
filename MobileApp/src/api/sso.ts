@@ -11,6 +11,47 @@ export interface SSOProvider {
   };
 }
 
+// OneUptime API serializes ObjectID fields as { _type: "ObjectID", value: "uuid" }.
+// This helper extracts the plain string value.
+function resolveId(
+  field: string | { _type?: string; value?: string } | undefined,
+): string {
+  if (!field) {
+    return "";
+  }
+
+  if (typeof field === "string") {
+    return field;
+  }
+
+  if (typeof field === "object" && field.value) {
+    return field.value;
+  }
+
+  return String(field);
+}
+
+interface RawSSOItem {
+  _id: string | { _type?: string; value?: string };
+  name?: string;
+  description?: string;
+  projectId?: string | { _type?: string; value?: string };
+  project?: {
+    _id?: string | { _type?: string; value?: string };
+    name?: string;
+  };
+}
+
+function parseSSOProvider(raw: RawSSOItem): SSOProvider {
+  return {
+    _id: resolveId(raw._id),
+    name: raw.name || "",
+    description: raw.description,
+    projectId: resolveId(raw.projectId),
+    project: raw.project?.name ? { name: raw.project.name } : undefined,
+  };
+}
+
 export async function fetchSSOProviders(
   email: string,
 ): Promise<Array<SSOProvider>> {
@@ -24,9 +65,9 @@ export async function fetchSSOProviders(
     },
   );
 
-  const data: { data: Array<SSOProvider> } = response.data;
+  const items: Array<RawSSOItem> = response.data?.data || [];
 
-  return data.data || [];
+  return items.map(parseSSOProvider);
 }
 
 export async function fetchSSOProvidersForProject(
@@ -42,17 +83,12 @@ export async function fetchSSOProvidersForProject(
     },
   );
 
-  const items: Array<{ _id: string; name: string; description?: string }> =
-    response.data?.data || [];
+  const items: Array<RawSSOItem> = response.data?.data || [];
 
-  return items.map(
-    (item: { _id: string; name: string; description?: string }) => {
-      return {
-        _id: item._id,
-        name: item.name,
-        description: item.description,
-        projectId: projectId,
-      };
-    },
-  );
+  return items.map((item: RawSSOItem) => {
+    const parsed: SSOProvider = parseSSOProvider(item);
+    // For project-specific endpoint, use the passed-in projectId
+    parsed.projectId = projectId;
+    return parsed;
+  });
 }
