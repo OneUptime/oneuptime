@@ -32,6 +32,7 @@ import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
 import NotesSection from "../components/NotesSection";
 import RootCauseCard from "../components/RootCauseCard";
+import MarkdownContent from "../components/MarkdownContent";
 import { useHaptics } from "../hooks/useHaptics";
 import type { IncidentItem, IncidentState, NamedEntity } from "../api/types";
 
@@ -351,15 +352,7 @@ export default function IncidentDetailScreen({
               borderColor: theme.colors.borderGlass,
             }}
           >
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 22,
-                color: theme.colors.textPrimary,
-              }}
-            >
-              {descriptionText}
-            </Text>
+            <MarkdownContent content={descriptionText} />
           </View>
         </View>
       ) : null}

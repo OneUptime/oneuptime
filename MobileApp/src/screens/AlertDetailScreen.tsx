@@ -33,6 +33,7 @@ import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
 import NotesSection from "../components/NotesSection";
 import RootCauseCard from "../components/RootCauseCard";
+import MarkdownContent from "../components/MarkdownContent";
 import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertDetail">;
@@ -337,15 +338,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
               borderColor: theme.colors.borderGlass,
             }}
           >
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 22,
-                color: theme.colors.textPrimary,
-              }}
-            >
-              {descriptionText}
-            </Text>
+            <MarkdownContent content={descriptionText} />
           </View>
         </View>
       ) : null}

@@ -34,6 +34,7 @@ import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
 import NotesSection from "../components/NotesSection";
+import MarkdownContent from "../components/MarkdownContent";
 import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertEpisodeDetail">;
@@ -335,15 +336,7 @@ export default function AlertEpisodeDetailScreen({
               borderColor: theme.colors.borderGlass,
             }}
           >
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 22,
-                color: theme.colors.textPrimary,
-              }}
-            >
-              {descriptionText}
-            </Text>
+            <MarkdownContent content={descriptionText} />
           </View>
         </View>
       ) : null}
