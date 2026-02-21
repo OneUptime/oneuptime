@@ -50,6 +50,7 @@ import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnC
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -600,7 +601,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
           setCurrentOnCallPolicies(currentOnCallPolicies);
         }
-      } catch {
+      } catch (err) {
+        if (
+          err instanceof HTTPErrorResponse &&
+          SSOAuthorizationException.isException(err.message)
+        ) {
+          return;
+        }
+
         setOnCallDutyPolicyFetchError(
           "Something isnt right, we are unable to fetch on-call policies that you are on duty for. Reload the page to try again.",
         );
