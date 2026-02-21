@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { useProject } from "./useProject";
 import { fetchCurrentOnDutyEscalationPolicies } from "../api/onCallPolicies";
+import { getSsoTokens } from "../storage/ssoTokens";
 import type {
   CurrentOnDutyEscalationPoliciesResponse,
   OnCallAssignmentItem,
@@ -97,9 +98,17 @@ export function useAllProjectOnCallPolicies(): UseAllProjectOnCallPoliciesResult
     ],
     enabled: projectList.length > 0,
     queryFn: async () => {
+      // Filter out projects that require SSO but haven't been authenticated yet
+      const ssoTokens: Record<string, string> = await getSsoTokens();
+      const authenticatedProjects: ProjectItem[] = projectList.filter(
+        (project: ProjectItem) => {
+          return !project.requireSsoForLogin || ssoTokens[project._id];
+        },
+      );
+
       const results: PromiseSettledResult<ProjectOnCallAssignments | null>[] =
         await Promise.allSettled(
-          projectList.map(async (project: ProjectItem) => {
+          authenticatedProjects.map(async (project: ProjectItem) => {
             const response: CurrentOnDutyEscalationPoliciesResponse =
               await fetchCurrentOnDutyEscalationPolicies(project._id);
 
