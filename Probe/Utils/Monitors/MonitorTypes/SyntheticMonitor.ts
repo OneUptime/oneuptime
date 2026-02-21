@@ -282,7 +282,7 @@ export default class SyntheticMonitor {
           }
         });
 
-        child.on("exit", (exitCode: number | null) => {
+        child.on("exit", (exitCode: number | null, signal: string | null) => {
           if (!resolved) {
             resolved = true;
             global.clearTimeout(killTimer);
@@ -291,7 +291,15 @@ export default class SyntheticMonitor {
               ? `: ${stderrOutput.trim().substring(0, 500)}`
               : "";
 
-            if (exitCode !== 0) {
+            if (exitCode === null) {
+              // Process was killed by a signal (OOM, resource limits, or fork timeout)
+              const signalInfo: string = signal ? ` (signal: ${signal})` : "";
+              reject(
+                new Error(
+                  `Synthetic monitor worker was terminated by the system${signalInfo}. This is usually caused by high memory usage or resource limits in the container${stderrInfo}`,
+                ),
+              );
+            } else if (exitCode !== 0) {
               reject(
                 new Error(
                   `Synthetic monitor worker exited with code ${exitCode}${stderrInfo}`,
