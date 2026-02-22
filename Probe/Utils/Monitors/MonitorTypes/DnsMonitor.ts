@@ -278,11 +278,46 @@ export default class DnsMonitorUtil {
     return records;
   }
 
+  private static isValidHostnameOrIP(value: string): boolean {
+    if (!value || value.length === 0 || value.length > 253) {
+      return false;
+    }
+
+    // IPv4
+    const ipv4Pattern: RegExp = /^(\d{1,3}\.){3}\d{1,3}$/;
+    // IPv6 (simplified)
+    const ipv6Pattern: RegExp =
+      /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^([0-9a-fA-F]{1,4}:)*:([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$/;
+
+    if (ipv4Pattern.test(value) || ipv6Pattern.test(value)) {
+      return true;
+    }
+
+    // Hostname: only alphanumeric, hyphens, and dots allowed
+    const hostnamePattern: RegExp =
+      /^[a-zA-Z0-9]([a-zA-Z0-9\-.]*[a-zA-Z0-9])?$/;
+    return hostnamePattern.test(value);
+  }
+
   private static async checkDnssec(
     queryName: string,
     recordType: DnsRecordType,
     dnsServer?: string | undefined,
   ): Promise<boolean | undefined> {
+    // Validate queryName to prevent argument injection
+    if (!this.isValidHostnameOrIP(queryName)) {
+      throw new Error(
+        `Invalid query name: ${queryName}. Must be a valid hostname or IP address.`,
+      );
+    }
+
+    // Validate dnsServer if provided
+    if (dnsServer && !this.isValidHostnameOrIP(dnsServer)) {
+      throw new Error(
+        `Invalid DNS server: ${dnsServer}. Must be a valid hostname or IP address.`,
+      );
+    }
+
     return new Promise((resolve: (value: boolean | undefined) => void) => {
       const args: Array<string> = ["+dnssec", queryName, recordType];
 
