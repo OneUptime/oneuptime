@@ -10,11 +10,12 @@ import NetworkPathTrace, {
 } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
 import dns from "dns";
 import { promisify } from "util";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 
-const execAsync: (
-  command: string,
-) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
+const execFileAsync: (
+  file: string,
+  args: string[],
+) => Promise<{ stdout: string; stderr: string }> = promisify(execFile);
 const dnsResolve: (hostname: string) => Promise<string[]> = promisify(
   dns.resolve,
 );
@@ -81,6 +82,24 @@ export default class NetworkPathMonitor {
       /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^([0-9a-fA-F]{1,4}:)*:([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$/;
 
     return ipv4Pattern.test(address) || ipv6Pattern.test(address);
+  }
+
+  /**
+   * Validates that a destination string is a safe hostname or IP address
+   */
+  private static isValidDestination(destination: string): boolean {
+    if (!destination || destination.length === 0 || destination.length > 253) {
+      return false;
+    }
+
+    // Allow valid IP addresses
+    if (this.isIPAddress(destination)) {
+      return true;
+    }
+
+    // Validate as hostname: only alphanumeric, hyphens, and dots allowed
+    const hostnamePattern: RegExp = /^[a-zA-Z0-9]([a-zA-Z0-9\-.]*[a-zA-Z0-9])?$/;
+    return hostnamePattern.test(destination);
   }
 
   /**
@@ -162,18 +181,35 @@ export default class NetworkPathMonitor {
     };
 
     try {
+      // Validate destination to prevent command injection
+      if (!this.isValidDestination(destination)) {
+        throw new Error(
+          `Invalid destination: ${destination}. Must be a valid hostname or IP address.`,
+        );
+      }
+
       // Use the appropriate traceroute command based on OS
       const isMac: boolean = process.platform === "darwin";
       const isWindows: boolean = process.platform === "win32";
 
-      let command: string;
+      let cmd: string;
+      let args: string[];
       if (isWindows) {
-        command = `tracert -h ${maxHops} -w ${Math.ceil(timeout / 1000) * 1000} ${destination}`;
+        cmd = "tracert";
+        args = [
+          "-h",
+          maxHops.toString(),
+          "-w",
+          (Math.ceil(timeout / 1000) * 1000).toString(),
+          destination,
+        ];
       } else if (isMac) {
-        command = `traceroute -m ${maxHops} -w 3 ${destination}`;
+        cmd = "traceroute";
+        args = ["-m", maxHops.toString(), "-w", "3", destination];
       } else {
         // Linux
-        command = `traceroute -m ${maxHops} -w 3 ${destination}`;
+        cmd = "traceroute";
+        args = ["-m", maxHops.toString(), "-w", "3", destination];
       }
 
       const timeoutPromise: Promise<never> = new Promise(
@@ -188,7 +224,7 @@ export default class NetworkPathMonitor {
       );
 
       const tracePromise: Promise<{ stdout: string; stderr: string }> =
-        execAsync(command);
+        execFileAsync(cmd, args);
 
       const { stdout } = await Promise.race([tracePromise, timeoutPromise]);
 
