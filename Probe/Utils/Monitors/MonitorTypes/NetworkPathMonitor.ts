@@ -98,7 +98,8 @@ export default class NetworkPathMonitor {
     }
 
     // Validate as hostname: only alphanumeric, hyphens, and dots allowed
-    const hostnamePattern: RegExp = /^[a-zA-Z0-9]([a-zA-Z0-9\-.]*[a-zA-Z0-9])?$/;
+    const hostnamePattern: RegExp =
+      /^[a-zA-Z0-9]([a-zA-Z0-9\-.]*[a-zA-Z0-9])?$/;
     return hostnamePattern.test(destination);
   }
 

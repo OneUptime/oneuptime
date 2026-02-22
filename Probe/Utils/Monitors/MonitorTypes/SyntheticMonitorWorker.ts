@@ -270,9 +270,11 @@ async function run(config: WorkerConfig): Promise<WorkerResult> {
   return workerResult;
 }
 
-// Safety timeout for process.send() callback — if the IPC channel closes
-// before the message is flushed, the callback never fires and the process
-// hangs until killed by the fork timeout (producing exit code null).
+/*
+ * Safety timeout for process.send() callback — if the IPC channel closes
+ * before the message is flushed, the callback never fires and the process
+ * hangs until killed by the fork timeout (producing exit code null).
+ */
 const IPC_FLUSH_TIMEOUT_MS: number = 10000;
 
 // Entry point: receive config via IPC message
