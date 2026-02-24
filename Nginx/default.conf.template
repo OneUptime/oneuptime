@@ -19,14 +19,6 @@ upstream telemetry {
     server ${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
-upstream server-monitor-ingest {
-    server ${SERVER_SERVER_MONITOR_INGEST_HOSTNAME}:${SERVER_MONITOR_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
-}
-
-upstream incoming-request-ingest {
-    server ${SERVER_INCOMING_REQUEST_INGEST_HOSTNAME}:${INCOMING_REQUEST_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
-}
-
 upstream dashboard {
     server ${SERVER_DASHBOARD_HOSTNAME}:${DASHBOARD_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
@@ -512,7 +504,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass http://incoming-request-ingest;
+        proxy_pass http://monitor-ingest;
     }
 
     location /otlp/ {
@@ -658,7 +650,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://server-monitor-ingest/server-monitor;
+        proxy_pass http://monitor-ingest/server-monitor;
 
         client_max_body_size 50M;
     }
@@ -899,7 +891,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://incoming-request-ingest/incoming-request;
+        proxy_pass http://monitor-ingest/incoming-request;
 
         client_max_body_size 50M;
     }

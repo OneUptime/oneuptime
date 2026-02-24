@@ -13,7 +13,7 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
-import ServerMonitorIngestQueueService from "../Services/Queue/ServerMonitorIngestQueueService";
+import ServerMonitorIngestQueueService from "../Queue/ServerMonitorIngestQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const router: ExpressRouter = Express.getRouter();

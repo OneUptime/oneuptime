@@ -9,7 +9,7 @@ import Express, {
   RequestHandler,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import IncomingRequestIngestQueueService from "../Services/Queue/IncomingRequestIngestQueueService";
+import IncomingRequestIngestQueueService from "../Queue/IncomingRequestIngestQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const router: ExpressRouter = Express.getRouter();

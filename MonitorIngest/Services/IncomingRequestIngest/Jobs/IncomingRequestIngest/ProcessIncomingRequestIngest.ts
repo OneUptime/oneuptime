@@ -1,4 +1,4 @@
-import { IncomingRequestIngestJobData } from "../../Services/Queue/IncomingRequestIngestQueueService";
+import { IncomingRequestIngestJobData } from "../../Queue/IncomingRequestIngestQueueService";
 import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
@@ -14,7 +14,7 @@ import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import { INCOMING_REQUEST_INGEST_CONCURRENCY } from "../../Config";
+import { INCOMING_REQUEST_INGEST_CONCURRENCY } from "../../../../Config";
 
 // Set up the worker for processing incoming request ingest queue
 QueueWorker.getWorker(

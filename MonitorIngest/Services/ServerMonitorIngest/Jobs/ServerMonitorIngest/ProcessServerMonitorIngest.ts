@@ -1,4 +1,4 @@
-import { ServerMonitorIngestJobData } from "../../Services/Queue/ServerMonitorIngestQueueService";
+import { ServerMonitorIngestJobData } from "../../Queue/ServerMonitorIngestQueueService";
 import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
@@ -14,7 +14,7 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectService from "Common/Server/Services/ProjectService";
-import { SERVER_MONITOR_INGEST_CONCURRENCY } from "../../Config";
+import { SERVER_MONITOR_INGEST_CONCURRENCY } from "../../../../Config";
 
 // Set up the worker for processing server monitor ingest queue
 QueueWorker.getWorker(

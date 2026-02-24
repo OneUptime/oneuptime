@@ -131,27 +131,11 @@ services:
         depends_on:
             <<: *common-depends-on
 
-    server-monitor-ingest:
-        image:  oneuptime/server-monitor-ingest:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: server-monitor-ingest
-        depends_on:
-            <<: *common-depends-on
-
     telemetry:
         image:  oneuptime/telemetry:${APP_TAG}
         extends:
             file: ./docker-compose.base.yml
             service: telemetry
-        depends_on:
-            <<: *common-depends-on
-
-    incoming-request-ingest:
-        image:  oneuptime/incoming-request-ingest:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: incoming-request-ingest
         depends_on:
             <<: *common-depends-on
 

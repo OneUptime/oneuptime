@@ -190,11 +190,8 @@ export const OpenTelemetryIngestHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const IncomingRequestIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_INCOMING_REQUEST_INGEST_HOSTNAME"] || "localhost"}:${
-    process.env["INCOMING_REQUEST_INGEST_PORT"] || 80
-  }`,
-);
+// IncomingRequestIngest is now part of MonitorIngest
+export const IncomingRequestIngestHostname: Hostname = ProbeIngestHostname;
 
 export const IsolatedVMHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_ISOLATED_VM_HOSTNAME"] || "localhost"}:${

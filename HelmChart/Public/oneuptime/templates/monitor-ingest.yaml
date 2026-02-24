@@ -112,6 +112,10 @@ spec:
               value: {{ $.Values.monitorIngest.disableTelemetryCollection | quote }}
             - name: PROBE_INGEST_CONCURRENCY
               value: {{ $.Values.monitorIngest.concurrency | squote }}
+            - name: SERVER_MONITOR_INGEST_CONCURRENCY
+              value: {{ $.Values.monitorIngest.concurrency | squote }}
+            - name: INCOMING_REQUEST_INGEST_CONCURRENCY
+              value: {{ $.Values.monitorIngest.concurrency | squote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ $.Values.monitorIngest.ports.http }}

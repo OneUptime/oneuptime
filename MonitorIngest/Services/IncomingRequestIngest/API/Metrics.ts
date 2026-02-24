@@ -4,7 +4,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import ServerMonitorIngestQueueService from "../Services/Queue/ServerMonitorIngestQueueService";
+import IncomingRequestIngestQueueService from "../Queue/IncomingRequestIngestQueueService";
 // import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
@@ -14,7 +14,7 @@ const router: ExpressRouter = Express.getRouter();
  * Returns queue size as JSON for KEDA metrics-api scaler
  */
 router.get(
-  "/metrics/queue-size",
+  "/incoming-request/metrics/queue-size",
   // ClusterKeyAuthorization.isAuthorizedServiceMiddleware, // Temporarily disabled for KEDA debugging
   async (
     _req: ExpressRequest,
@@ -23,7 +23,7 @@ router.get(
   ): Promise<void> => {
     try {
       const queueSize: number =
-        await ServerMonitorIngestQueueService.getQueueSize();
+        await IncomingRequestIngestQueueService.getQueueSize();
 
       res.setHeader("Content-Type", "application/json");
       res.status(200).json({

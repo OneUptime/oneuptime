@@ -105,8 +105,6 @@ Usage:
   value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_SERVER_MONITOR_INGEST_HOSTNAME
-  value: {{ $.Release.Name }}-server-monitor-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_ISOLATED_VM_HOSTNAME
   value: {{ $.Release.Name }}-isolated-vm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKFLOW_HOSTNAME
@@ -121,8 +119,6 @@ Usage:
   value: {{ $.Release.Name }}-monitor-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: TELEMETRY_HOSTNAME
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_INCOMING_REQUEST_INGEST_HOSTNAME
-  value: {{ $.Release.Name }}-incoming-request-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TELEMETRY_HOSTNAME
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
@@ -144,12 +140,8 @@ Usage:
   value: {{ $.Values.app.ports.http | squote }}
 - name: PROBE_INGEST_PORT
   value: {{ $.Values.monitorIngest.ports.http | squote }}
-- name: SERVER_MONITOR_INGEST_PORT
-  value: {{ $.Values.serverMonitorIngest.ports.http | squote }}
 - name: TELEMETRY_PORT
   value: {{ $.Values.telemetry.ports.http | squote }}
-- name: INCOMING_REQUEST_INGEST_PORT
-  value: {{ $.Values.incomingRequestIngest.ports.http | squote }}
 - name: TEST_SERVER_PORT
   value: {{ $.Values.testServer.ports.http | squote }}
 - name: ACCOUNTS_PORT

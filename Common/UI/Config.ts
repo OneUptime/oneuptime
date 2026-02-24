@@ -81,8 +81,9 @@ export const PROBE_INGEST_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const TELEMETRY_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
+// IncomingRequestIngest is now part of MonitorIngest
 export const INCOMING_REQUEST_INGEST_HOSTNAME: Hostname =
-  Hostname.fromString(HOST);
+  PROBE_INGEST_HOSTNAME;
 
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
