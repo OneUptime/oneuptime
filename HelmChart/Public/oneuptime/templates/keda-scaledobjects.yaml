@@ -23,11 +23,11 @@ KEDA ScaledObjects for various services
 {{- include "oneuptime.kedaScaledObject" $serverMonitorIngestKedaArgs }}
 {{- end }}
 
-{{/* Probe Ingest KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.probeIngest.enabled .Values.probeIngest.keda.enabled (not .Values.probeIngest.disableAutoscaler) }}
-{{- $metricsConfig := dict "enabled" .Values.probeIngest.keda.enabled "minReplicas" .Values.probeIngest.keda.minReplicas "maxReplicas" .Values.probeIngest.keda.maxReplicas "pollingInterval" .Values.probeIngest.keda.pollingInterval "cooldownPeriod" .Values.probeIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_probe_ingest_queue_size" "threshold" .Values.probeIngest.keda.queueSizeThreshold "port" .Values.probeIngest.ports.http)) }}
-{{- $probeIngestKedaArgs := dict "ServiceName" "probe-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.probeIngest.disableAutoscaler }}
-{{- include "oneuptime.kedaScaledObject" $probeIngestKedaArgs }}
+{{/* Monitor Ingest KEDA ScaledObject */}}
+{{- if and .Values.keda.enabled .Values.monitorIngest.enabled .Values.monitorIngest.keda.enabled (not .Values.monitorIngest.disableAutoscaler) }}
+{{- $metricsConfig := dict "enabled" .Values.monitorIngest.keda.enabled "minReplicas" .Values.monitorIngest.keda.minReplicas "maxReplicas" .Values.monitorIngest.keda.maxReplicas "pollingInterval" .Values.monitorIngest.keda.pollingInterval "cooldownPeriod" .Values.monitorIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_probe_ingest_queue_size" "threshold" .Values.monitorIngest.keda.queueSizeThreshold "port" .Values.monitorIngest.ports.http)) }}
+{{- $monitorIngestKedaArgs := dict "ServiceName" "monitor-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.monitorIngest.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $monitorIngestKedaArgs }}
 {{- end }}
 
 {{/* Probe KEDA ScaledObjects - one for each probe configuration */}}

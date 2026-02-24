@@ -31,7 +31,7 @@ x-common-variables: &common-variables
     SERVER_ACCOUNTS_HOSTNAME: accounts
     SERVER_APP_HOSTNAME: app
     SERVER_ALERT_HOSTNAME: alert
-    SERVER_PROBE_INGEST_HOSTNAME: probe-ingest
+    SERVER_PROBE_INGEST_HOSTNAME: monitor-ingest
     SERVER_TELEMETRY_HOSTNAME: telemetry
     SERVER_INCOMING_REQUEST_INGEST_HOSTNAME: incoming-request-ingest
     SERVER_TEST_SERVER_HOSTNAME: test-server
@@ -492,7 +492,7 @@ services:
             options:
                 max-size: "1000m"
 
-    probe-ingest:
+    monitor-ingest:
         networks:
           - oneuptime
         restart: always

@@ -251,7 +251,7 @@ jobs:
           max_attempts: 3
           command: cd Probe && npm install && npm run compile && npm run dep-check
 
-  compile-probe-ingest:
+  compile-monitor-ingest:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -261,12 +261,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - name: Compile Probe Ingest
+      - name: Compile Monitor Ingest
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd ProbeIngest && npm install && npm run compile && npm run dep-check
+          command: cd MonitorIngest && npm install && npm run compile && npm run dep-check
 
   compile-server-monitor-ingest:
     runs-on: ubuntu-latest

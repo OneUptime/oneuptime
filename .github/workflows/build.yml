@@ -290,7 +290,7 @@ jobs:
           max_attempts: 3
           command: sudo docker build --no-cache -f ./Probe/Dockerfile .
 
-  docker-build-probe-ingest:
+  docker-build-monitor-ingest:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -305,13 +305,13 @@ jobs:
           max_attempts: 3
           command: npm run prerun
         
-      # build image probe api
+      # build image monitor ingest
       - name: build docker image
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./ProbeIngest/Dockerfile .
+          command: sudo docker build --no-cache -f ./MonitorIngest/Dockerfile .
 
   docker-build-server-monitor-ingest:
     runs-on: ubuntu-latest

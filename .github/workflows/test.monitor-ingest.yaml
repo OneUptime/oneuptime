@@ -1,4 +1,4 @@
-name: ProbeIngest Test
+name: MonitorIngest Test
 
 on:
   pull_request: 
@@ -17,5 +17,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-      - run: cd ProbeIngest && npm install && npm run test
+      - run: cd MonitorIngest && npm install && npm run test
   

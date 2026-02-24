@@ -1,13 +1,13 @@
-{{- if $.Values.probeIngest.enabled }}
-# OneUptime probe-ingest Deployment
+{{- if $.Values.monitorIngest.enabled }}
+# OneUptime monitor-ingest Deployment
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ printf "%s-%s" $.Release.Name "probe-ingest"  }}
+  name: {{ printf "%s-%s" $.Release.Name "monitor-ingest"  }}
   namespace: {{ $.Release.Namespace }}
   labels:
-    app: {{ printf "%s-%s" $.Release.Name "probe-ingest"  }}
+    app: {{ printf "%s-%s" $.Release.Name "monitor-ingest"  }}
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
@@ -17,11 +17,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: {{ printf "%s-%s" $.Release.Name "probe-ingest"  }}
-  {{- if $.Values.probeIngest.replicaCount }}
-  replicas: {{ $.Values.probeIngest.replicaCount }}
+      app: {{ printf "%s-%s" $.Release.Name "monitor-ingest"  }}
+  {{- if $.Values.monitorIngest.replicaCount }}
+  replicas: {{ $.Values.monitorIngest.replicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($.Values.probeIngest.disableAutoscaler) }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.monitorIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -29,7 +29,7 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ printf "%s-%s" $.Release.Name "probe-ingest"  }}
+        app: {{ printf "%s-%s" $.Release.Name "monitor-ingest"  }}
         {{- if $.Values.deployment.includeTimestampLabel }}
         date: "{{ now | unixEpoch }}"
         {{- end }}
@@ -39,9 +39,9 @@ spec:
         - name: greenlockrc
           emptyDir:
             sizeLimit: "1Gi"
-      {{- if $.Values.probeIngest.podSecurityContext }}
+      {{- if $.Values.monitorIngest.podSecurityContext }}
       securityContext:
-        {{- toYaml $.Values.probeIngest.podSecurityContext | nindent 8 }}
+        {{- toYaml $.Values.monitorIngest.podSecurityContext | nindent 8 }}
       {{- else if $.Values.podSecurityContext }}
       securityContext:
         {{- toYaml $.Values.podSecurityContext | nindent 8 }}
@@ -56,22 +56,22 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- if $.Values.probeIngest.nodeSelector }}
+      {{- if $.Values.monitorIngest.nodeSelector }}
       nodeSelector:
-        {{- toYaml $.Values.probeIngest.nodeSelector | nindent 8 }}
+        {{- toYaml $.Values.monitorIngest.nodeSelector | nindent 8 }}
       {{- else if $.Values.nodeSelector }}
       nodeSelector:
         {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
-        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "probe-ingest") }}
-          name: {{ printf "%s-%s" $.Release.Name "probe-ingest"  }}
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "monitor-ingest") }}
+          name: {{ printf "%s-%s" $.Release.Name "monitor-ingest"  }}
           {{- if $.Values.startupProbe.enabled }}
           # Startup probe
           startupProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.probeIngest.ports.http }}
+              port: {{ $.Values.monitorIngest.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
@@ -80,7 +80,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.probeIngest.ports.http }}
+              port: {{ $.Values.monitorIngest.ports.http }}
             periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
             initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
@@ -90,14 +90,14 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.probeIngest.ports.http }}
+              port: {{ $.Values.monitorIngest.ports.http }}
             periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
           {{- end }}
-          {{- if $.Values.probeIngest.containerSecurityContext }}
+          {{- if $.Values.monitorIngest.containerSecurityContext }}
           securityContext:
-            {{- toYaml $.Values.probeIngest.containerSecurityContext | nindent 12 }}
+            {{- toYaml $.Values.monitorIngest.containerSecurityContext | nindent 12 }}
           {{- else if $.Values.containerSecurityContext }}
           securityContext:
             {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
@@ -107,35 +107,35 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.probeIngest.ports.http | quote }}
+              value: {{ $.Values.monitorIngest.ports.http | quote }}
             - name: DISABLE_TELEMETRY
-              value: {{ $.Values.probeIngest.disableTelemetryCollection | quote }}
+              value: {{ $.Values.monitorIngest.disableTelemetryCollection | quote }}
             - name: PROBE_INGEST_CONCURRENCY
-              value: {{ $.Values.probeIngest.concurrency | squote }}
+              value: {{ $.Values.monitorIngest.concurrency | squote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
-            - containerPort: {{ $.Values.probeIngest.ports.http }}
+            - containerPort: {{ $.Values.monitorIngest.ports.http }}
               protocol: TCP
               name: http
-          {{- if $.Values.probeIngest.resources }}
+          {{- if $.Values.monitorIngest.resources }}
           resources:
-            {{- toYaml $.Values.probeIngest.resources | nindent 12 }}
+            {{- toYaml $.Values.monitorIngest.resources | nindent 12 }}
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
 
-# OneUptime probe-ingest autoscaler
-{{- if and (not $.Values.probeIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.probeIngest.keda.enabled)) }}
-{{- $probeIngestAutoScalerArgs := dict "ServiceName" "probe-ingest" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $probeIngestAutoScalerArgs }}
+# OneUptime monitor-ingest autoscaler
+{{- if and (not $.Values.monitorIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.monitorIngest.keda.enabled)) }}
+{{- $monitorIngestAutoScalerArgs := dict "ServiceName" "monitor-ingest" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $monitorIngestAutoScalerArgs }}
 {{- end }}
 ---
 
 {{- end }}
 
-# OneUptime probe-ingest Service
-{{- $probeIngestPorts := dict "port" $.Values.probeIngest.ports.http -}}
-{{- $probeIngestServiceArgs := dict "ServiceName" "probe-ingest" "Ports" $probeIngestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $probeIngestServiceArgs }}
+# OneUptime monitor-ingest Service
+{{- $monitorIngestPorts := dict "port" $.Values.monitorIngest.ports.http -}}
+{{- $monitorIngestServiceArgs := dict "ServiceName" "monitor-ingest" "Ports" $monitorIngestPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $monitorIngestServiceArgs }}
 ---

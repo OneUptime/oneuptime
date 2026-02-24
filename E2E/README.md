@@ -90,7 +90,7 @@ E2E/
 │   ├── App/            # Main application tests
 │   ├── Home/           # Homepage tests
 │   ├── IncomingRequestIngest/
-│   ├── ProbeIngest/
+│   ├── MonitorIngest/
 │   ├── StatusPage/     # Status page tests
 │   └── TelemetryIngest/
 ├── Config.ts           # Environment configuration

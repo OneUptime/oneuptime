@@ -1,8 +1,8 @@
-import MonitorAPI from "./API/Monitor";
-import ProbeIngest from "./API/Probe";
-import RegisterAPI from "./API/Register";
-import MetricsAPI from "./API/Metrics";
-import IncomingEmailAPI from "./API/IncomingEmail";
+import MonitorAPI from "./Services/ProbeIngest/API/Monitor";
+import ProbeIngest from "./Services/ProbeIngest/API/Probe";
+import RegisterAPI from "./Services/ProbeIngest/API/Register";
+import MetricsAPI from "./Services/ProbeIngest/API/Metrics";
+import IncomingEmailAPI from "./Services/ProbeIngest/API/IncomingEmail";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -13,20 +13,20 @@ import logger from "Common/Server/Utils/Logger";
 import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
-import "./Jobs/ProbeIngest/ProcessProbeIngest";
+import "./Services/ProbeIngest/Jobs/ProbeIngest/ProcessProbeIngest";
 import { PROBE_INGEST_CONCURRENCY } from "./Config";
 import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const APP_NAME: string = "probe-ingest";
+const APP_NAME: string = "monitor-ingest";
 
-// "/ingestor" is used here for backward compatibility because probes are already deployed with this path in client environments.
-app.use([`/${APP_NAME}`, "/ingestor", "/"], RegisterAPI);
-app.use([`/${APP_NAME}`, "/ingestor", "/"], MonitorAPI);
-app.use([`/${APP_NAME}`, "/ingestor", "/"], ProbeIngest);
-app.use([`/${APP_NAME}`, "/"], MetricsAPI);
-app.use([`/${APP_NAME}`, "/"], IncomingEmailAPI);
+// "/probe-ingest" and "/ingestor" are used for backward compatibility because probes are already deployed with these paths in client environments.
+app.use([`/${APP_NAME}`, "/probe-ingest", "/ingestor", "/"], RegisterAPI);
+app.use([`/${APP_NAME}`, "/probe-ingest", "/ingestor", "/"], MonitorAPI);
+app.use([`/${APP_NAME}`, "/probe-ingest", "/ingestor", "/"], ProbeIngest);
+app.use([`/${APP_NAME}`, "/probe-ingest", "/"], MetricsAPI);
+app.use([`/${APP_NAME}`, "/probe-ingest", "/"], IncomingEmailAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
@@ -45,7 +45,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     logger.info(
-      `ProbeIngest Service - Queue concurrency: ${PROBE_INGEST_CONCURRENCY}`,
+      `MonitorIngest Service - Queue concurrency: ${PROBE_INGEST_CONCURRENCY}`,
     );
 
     // init the app

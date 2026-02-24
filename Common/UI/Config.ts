@@ -8,6 +8,7 @@ import {
   FileRoute,
   HomeRoute,
   IdentityRoute,
+  MonitorIngestRoute,
   ProbeIngestRoute,
   IntegrationRoute,
   NotificationRoute,
@@ -141,6 +142,13 @@ export const WORKFLOW_URL: URL = new URL(
   new Route(WorkflowRoute.toString()),
 );
 
+export const MONITOR_INGEST_URL: URL = new URL(
+  HTTP_PROTOCOL,
+  PROBE_INGEST_HOSTNAME,
+  new Route(MonitorIngestRoute.toString()),
+);
+
+// Keep for backward compatibility
 export const PROBE_INGEST_URL: URL = new URL(
   HTTP_PROTOCOL,
   PROBE_INGEST_HOSTNAME,

@@ -695,7 +695,7 @@ app:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-probeIngest:
+monitorIngest:
   enabled: true
   replicaCount: 1
   disableTelemetryCollection: false

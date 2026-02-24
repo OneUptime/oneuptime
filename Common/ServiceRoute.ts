@@ -26,6 +26,9 @@ export const ApiReferenceRoute: Route = new Route("/reference");
 
 export const AdminDashboardRoute: Route = new Route("/admin");
 
+export const MonitorIngestRoute: Route = new Route("/monitor-ingest");
+
+// Keep ProbeIngestRoute for backward compatibility
 export const ProbeIngestRoute: Route = new Route("/probe-ingest");
 
 export const TelemetryRoute: Route = new Route("/telemetry");

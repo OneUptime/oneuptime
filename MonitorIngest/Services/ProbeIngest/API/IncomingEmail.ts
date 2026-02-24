@@ -11,7 +11,7 @@ import InboundEmailProvider, {
   ParsedInboundEmail,
 } from "Common/Server/Services/InboundEmail/InboundEmailProvider";
 import { JSONObject } from "Common/Types/JSON";
-import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
+import ProbeIngestQueueService from "../Queue/ProbeIngestQueueService";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
 
 const router: ExpressRouter = Express.getRouter();

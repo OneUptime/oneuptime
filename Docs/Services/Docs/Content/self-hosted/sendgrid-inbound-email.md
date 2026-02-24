@@ -178,7 +178,7 @@ Use "Email Received" criteria to ensure you receive periodic emails:
    - Verify your domain and webhook URL are correct
 
 3. **Check OneUptime logs:**
-   - Look for webhook requests in the ProbeIngest service logs
+   - Look for webhook requests in the MonitorIngest service logs
    - Check for any error messages
 
 ### Webhooks Failing

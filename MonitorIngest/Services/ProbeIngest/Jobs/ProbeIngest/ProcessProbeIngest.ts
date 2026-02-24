@@ -1,7 +1,7 @@
 import {
   ProbeIngestJobData,
   IncomingEmailJobData,
-} from "../../Services/Queue/ProbeIngestQueueService";
+} from "../../Queue/ProbeIngestQueueService";
 import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
@@ -18,7 +18,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import { JSONObject } from "Common/Types/JSON";
-import { PROBE_INGEST_CONCURRENCY } from "../../Config";
+import { PROBE_INGEST_CONCURRENCY } from "../../../../Config";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
 // Set up the worker for processing probe ingest queue

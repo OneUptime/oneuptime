@@ -31,7 +31,7 @@ router.get(
   ): Promise<void> => {
     try {
       /*
-       * Get the pending monitor count for this specific probe from ProbeIngest API
+       * Get the pending monitor count for this specific probe from MonitorIngest API
        * This is the correct metric - the number of monitors waiting to be probed
        */
       const pendingMonitorsUrl: URL = URL.fromString(
@@ -39,7 +39,7 @@ router.get(
       ).addRoute("/monitor/pending-count");
 
       logger.debug(
-        "Fetching pending monitor count from ProbeIngest API for KEDA scaling",
+        "Fetching pending monitor count from MonitorIngest API for KEDA scaling",
       );
 
       // Use probe authentication (probe key and probe ID)
@@ -56,14 +56,14 @@ router.get(
 
       if (result instanceof HTTPErrorResponse) {
         logger.error(
-          "Error fetching pending monitor count from ProbeIngest API",
+          "Error fetching pending monitor count from MonitorIngest API",
         );
         logger.error(result);
         throw result;
       }
 
       logger.debug(
-        "Pending monitor count fetched successfully from ProbeIngest API",
+        "Pending monitor count fetched successfully from MonitorIngest API",
       );
       logger.debug(result.data);
 

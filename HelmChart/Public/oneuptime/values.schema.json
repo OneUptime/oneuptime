@@ -1694,7 +1694,7 @@
       },
       "additionalProperties": false
     },
-    "probeIngest": {
+    "monitorIngest": {
       "type": "object",
       "properties": {
         "enabled": {

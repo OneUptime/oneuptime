@@ -47,11 +47,11 @@ bash $scriptDir/endpoint-status.sh "Admin Dashboard (Status Check)" $HOST_TO_CHE
 
 bash $scriptDir/endpoint-status.sh "Admin Dashboard (Ready Check)" $HOST_TO_CHECK/admin/status/ready
 
-bash $scriptDir/endpoint-status.sh "ProbeIngest (Ready Check)" $HOST_TO_CHECK/probe-ingest/status/ready
+bash $scriptDir/endpoint-status.sh "MonitorIngest (Ready Check)" $HOST_TO_CHECK/monitor-ingest/status/ready
 
 bash $scriptDir/endpoint-status.sh "Telemetry (Ready Check)" $HOST_TO_CHECK/telemetry/status/ready
 
-bash $scriptDir/endpoint-status.sh "ProbeIngest (Status Check)" $HOST_TO_CHECK/probe-ingest/status
+bash $scriptDir/endpoint-status.sh "MonitorIngest (Status Check)" $HOST_TO_CHECK/monitor-ingest/status
 
 echo "🚀 OneUptime is up! 🚀"
 echo ""

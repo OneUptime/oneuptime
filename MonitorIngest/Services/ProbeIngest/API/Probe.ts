@@ -22,7 +22,7 @@ import Response from "Common/Server/Utils/Response";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
-import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
+import ProbeIngestQueueService from "../Queue/ProbeIngestQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";

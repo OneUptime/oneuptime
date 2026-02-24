@@ -118,7 +118,7 @@ Usage:
 - name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_PROBE_INGEST_HOSTNAME
-  value: {{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+  value: {{ $.Release.Name }}-monitor-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: TELEMETRY_HOSTNAME
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INCOMING_REQUEST_INGEST_HOSTNAME
@@ -143,7 +143,7 @@ Usage:
 - name: APP_PORT
   value: {{ $.Values.app.ports.http | squote }}
 - name: PROBE_INGEST_PORT
-  value: {{ $.Values.probeIngest.ports.http | squote }}
+  value: {{ $.Values.monitorIngest.ports.http | squote }}
 - name: SERVER_MONITOR_INGEST_PORT
   value: {{ $.Values.serverMonitorIngest.ports.http | squote }}
 - name: TELEMETRY_PORT

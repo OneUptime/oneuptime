@@ -1,5 +1,5 @@
 #
-# OneUptime-ProbeIngest Dockerfile
+# OneUptime-MonitorIngest Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -60,11 +60,11 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./ProbeIngest/package*.json /usr/src/app/
+COPY ./MonitorIngest/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
-#   - 3400: OneUptime-probe-ingest
+#   - 3400: OneUptime-monitor-ingest
 EXPOSE 3400
 
 {{ if eq .Env.ENVIRONMENT "development" }}
@@ -72,7 +72,7 @@ EXPOSE 3400
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./ProbeIngest /usr/src/app
+COPY ./MonitorIngest /usr/src/app
 # Bundle app source
 RUN npm run compile
 # Set permission to write logs and cache in case container run as non root

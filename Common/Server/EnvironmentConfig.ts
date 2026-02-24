@@ -181,6 +181,9 @@ export const ProbeIngestHostname: Hostname = Hostname.fromString(
   }`,
 );
 
+// Alias for renamed service - prefer MonitorIngestHostname in new code
+export const MonitorIngestHostname: Hostname = ProbeIngestHostname;
+
 export const OpenTelemetryIngestHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_TELEMETRY_HOSTNAME"] || "localhost"}:${
     process.env["TELEMETRY_PORT"] || 80

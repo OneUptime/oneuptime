@@ -4,7 +4,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
+import ProbeIngestQueueService from "../Queue/ProbeIngestQueueService";
 // import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
