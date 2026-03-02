@@ -82,21 +82,19 @@ RunCron(
     const updatePromises: Array<Promise<void>> = [];
 
     for (const telemetryMonitor of telemetryMonitors) {
-      if (!telemetryMonitor.monitoringInterval) {
-        continue;
-      }
-
       let nextPing: Date = OneUptimeDate.addRemoveMinutes(
         OneUptimeDate.getCurrentDate(),
         1,
       );
 
-      try {
-        nextPing = CronTab.getNextExecutionTime(
-          telemetryMonitor?.monitoringInterval as string,
-        );
-      } catch (err) {
-        logger.error(err);
+      if (telemetryMonitor.monitoringInterval) {
+        try {
+          nextPing = CronTab.getNextExecutionTime(
+            telemetryMonitor.monitoringInterval as string,
+          );
+        } catch (err) {
+          logger.error(err);
+        }
       }
 
       updatePromises.push(
