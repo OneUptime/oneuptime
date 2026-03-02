@@ -10,9 +10,7 @@ import Dictionary from "../../../Types/Dictionary";
 import GenericObject from "../../../Types/GenericObject";
 import vm, { Context } from "vm";
 
-
 export default class VMRunner {
-
   @CaptureSpan()
   public static async runCodeInNodeVM(data: {
     code: string;
@@ -34,7 +32,11 @@ export default class VMRunner {
     const pendingTimeouts: TimerHandle[] = [];
     const pendingIntervals: TimerHandle[] = [];
 
-    const wrappedSetTimeout = (fn: (...args: unknown[]) => void, ms?: number, ...rest: unknown[]): TimerHandle => {
+    const wrappedSetTimeout = (
+      fn: (...args: unknown[]) => void,
+      ms?: number,
+      ...rest: unknown[]
+    ): TimerHandle => {
       const handle: TimerHandle = setTimeout(fn, ms, ...rest);
       pendingTimeouts.push(handle);
       return handle;
@@ -48,7 +50,11 @@ export default class VMRunner {
       }
     };
 
-    const wrappedSetInterval = (fn: (...args: unknown[]) => void, ms?: number, ...rest: unknown[]): TimerHandle => {
+    const wrappedSetInterval = (
+      fn: (...args: unknown[]) => void,
+      ms?: number,
+      ...rest: unknown[]
+    ): TimerHandle => {
       const handle: TimerHandle = setInterval(fn, ms, ...rest);
       pendingIntervals.push(handle);
       return handle;
@@ -98,8 +104,10 @@ export default class VMRunner {
       })()`;
 
     try {
-      // vm timeout only covers synchronous CPU time, so wrap with
-      // Promise.race to also cover async operations (network, timers, etc.)
+      /*
+       * vm timeout only covers synchronous CPU time, so wrap with
+       * Promise.race to also cover async operations (network, timers, etc.)
+       */
       const vmPromise: Promise<unknown> = vm.runInContext(script, sandbox, {
         timeout: timeout,
       });
@@ -114,7 +122,10 @@ export default class VMRunner {
         },
       );
 
-      const returnVal: unknown = await Promise.race([vmPromise, overallTimeout]);
+      const returnVal: unknown = await Promise.race([
+        vmPromise,
+        overallTimeout,
+      ]);
 
       return {
         returnValue: returnVal,

@@ -83,9 +83,7 @@ router.get(
         }
       }
 
-      logger.debug(
-        `Pending monitor count for KEDA: ${queueSize}`,
-      );
+      logger.debug(`Pending monitor count for KEDA: ${queueSize}`);
 
       return Response.sendJsonObjectResponse(req, res, {
         queueSize: queueSize,
