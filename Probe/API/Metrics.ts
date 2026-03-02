@@ -15,7 +15,6 @@ import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import ProxyConfig from "../Utils/ProxyConfig";
-import SyntheticMonitorSemaphore from "../Utils/SyntheticMonitorSemaphore";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -84,21 +83,8 @@ router.get(
         }
       }
 
-      /*
-       * Include synthetic monitor semaphore pressure: monitors queued
-       * waiting for a browser slot indicate the probe is at capacity and
-       * Kubernetes should scale up more probe replicas.
-       */
-      const semaphoreStatus: {
-        running: number;
-        queued: number;
-        maxSlots: number;
-      } = SyntheticMonitorSemaphore.getStatus();
-
-      queueSize += semaphoreStatus.queued;
-
       logger.debug(
-        `Pending monitor count for KEDA: ${queueSize} (API pending: ${queueSize - semaphoreStatus.queued}, semaphore queued: ${semaphoreStatus.queued}, semaphore running: ${semaphoreStatus.running}/${semaphoreStatus.maxSlots})`,
+        `Pending monitor count for KEDA: ${queueSize}`,
       );
 
       return Response.sendJsonObjectResponse(req, res, {
