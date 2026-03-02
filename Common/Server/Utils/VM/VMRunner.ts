@@ -23,23 +23,64 @@ export default class VMRunner {
     };
   }): Promise<ReturnResult> {
     const { code, options } = data;
+    const timeout: number = options.timeout || 5000;
 
     const logMessages: string[] = [];
+    const MAX_LOG_BYTES: number = 1_000_000; // 1MB cap
+    let totalLogBytes: number = 0;
+
+    // Track timer handles so we can clean them up after execution
+    type TimerHandle = ReturnType<typeof setTimeout>;
+    const pendingTimeouts: TimerHandle[] = [];
+    const pendingIntervals: TimerHandle[] = [];
+
+    const wrappedSetTimeout = (fn: (...args: unknown[]) => void, ms?: number, ...rest: unknown[]): TimerHandle => {
+      const handle: TimerHandle = setTimeout(fn, ms, ...rest);
+      pendingTimeouts.push(handle);
+      return handle;
+    };
+
+    const wrappedClearTimeout = (handle: TimerHandle): void => {
+      clearTimeout(handle);
+      const idx: number = pendingTimeouts.indexOf(handle);
+      if (idx !== -1) {
+        pendingTimeouts.splice(idx, 1);
+      }
+    };
+
+    const wrappedSetInterval = (fn: (...args: unknown[]) => void, ms?: number, ...rest: unknown[]): TimerHandle => {
+      const handle: TimerHandle = setInterval(fn, ms, ...rest);
+      pendingIntervals.push(handle);
+      return handle;
+    };
+
+    const wrappedClearInterval = (handle: TimerHandle): void => {
+      clearInterval(handle);
+      const idx: number = pendingIntervals.indexOf(handle);
+      if (idx !== -1) {
+        pendingIntervals.splice(idx, 1);
+      }
+    };
 
     let sandbox: Context = {
-      process: {},
+      process: Object.freeze(Object.create(null)),
       console: {
         log: (...args: JSONValue[]) => {
-          logMessages.push(args.join(" "));
+          const msg: string = args.join(" ");
+          totalLogBytes += msg.length;
+          if (totalLogBytes <= MAX_LOG_BYTES) {
+            logMessages.push(msg);
+          }
         },
       },
       http: http,
       https: https,
       axios: axios,
       crypto: crypto,
-      setTimeout: setTimeout,
-      clearTimeout: clearTimeout,
-      setInterval: setInterval,
+      setTimeout: wrappedSetTimeout,
+      clearTimeout: wrappedClearTimeout,
+      setInterval: wrappedSetInterval,
+      clearInterval: wrappedClearInterval,
       ...options.context,
     };
 
@@ -50,20 +91,44 @@ export default class VMRunner {
       };
     }
 
-    vm.createContext(sandbox); // Contextify the object.
+    vm.createContext(sandbox);
 
     const script: string = `(async()=>{
         ${code}
       })()`;
 
-    const returnVal: any = await vm.runInContext(script, sandbox, {
-      timeout: options.timeout || 5000,
-    }); // run the script
+    try {
+      // vm timeout only covers synchronous CPU time, so wrap with
+      // Promise.race to also cover async operations (network, timers, etc.)
+      const vmPromise: Promise<unknown> = vm.runInContext(script, sandbox, {
+        timeout: timeout,
+      });
 
-    return {
-      returnValue: returnVal,
-      logMessages,
-    };
+      const overallTimeout: Promise<never> = new Promise(
+        (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
+          const handle: NodeJS.Timeout = global.setTimeout(() => {
+            reject(new Error("Script execution timed out"));
+          }, timeout + 5000);
+          // Don't let this timer keep the process alive
+          handle.unref();
+        },
+      );
+
+      const returnVal: unknown = await Promise.race([vmPromise, overallTimeout]);
+
+      return {
+        returnValue: returnVal,
+        logMessages,
+      };
+    } finally {
+      // Clean up any lingering timers to prevent resource leaks
+      for (const handle of pendingTimeouts) {
+        clearTimeout(handle);
+      }
+      for (const handle of pendingIntervals) {
+        clearInterval(handle);
+      }
+    }
   }
 
   @CaptureSpan()
