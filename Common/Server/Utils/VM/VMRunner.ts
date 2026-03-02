@@ -32,7 +32,11 @@ export default class VMRunner {
     const pendingTimeouts: TimerHandle[] = [];
     const pendingIntervals: TimerHandle[] = [];
 
-    const wrappedSetTimeout = (
+    const wrappedSetTimeout: (
+      fn: (...args: unknown[]) => void,
+      ms?: number,
+      ...rest: unknown[]
+    ) => TimerHandle = (
       fn: (...args: unknown[]) => void,
       ms?: number,
       ...rest: unknown[]
@@ -42,7 +46,9 @@ export default class VMRunner {
       return handle;
     };
 
-    const wrappedClearTimeout = (handle: TimerHandle): void => {
+    const wrappedClearTimeout: (handle: TimerHandle) => void = (
+      handle: TimerHandle,
+    ): void => {
       clearTimeout(handle);
       const idx: number = pendingTimeouts.indexOf(handle);
       if (idx !== -1) {
@@ -50,7 +56,11 @@ export default class VMRunner {
       }
     };
 
-    const wrappedSetInterval = (
+    const wrappedSetInterval: (
+      fn: (...args: unknown[]) => void,
+      ms?: number,
+      ...rest: unknown[]
+    ) => TimerHandle = (
       fn: (...args: unknown[]) => void,
       ms?: number,
       ...rest: unknown[]
@@ -60,7 +70,9 @@ export default class VMRunner {
       return handle;
     };
 
-    const wrappedClearInterval = (handle: TimerHandle): void => {
+    const wrappedClearInterval: (handle: TimerHandle) => void = (
+      handle: TimerHandle,
+    ): void => {
       clearInterval(handle);
       const idx: number = pendingIntervals.indexOf(handle);
       if (idx !== -1) {
