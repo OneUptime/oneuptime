@@ -37,9 +37,15 @@ app.use(TELEMETRY_PREFIXES, MetricsAPI);
 app.use(TELEMETRY_PREFIXES, SyslogAPI);
 app.use(TELEMETRY_PREFIXES, FluentAPI);
 
-// ProbeIngest routes under ["/probe-ingest", "/ingestor", "/"]
-// "/ingestor" is used for backward compatibility because probes are already deployed with this path in client environments.
-const PROBE_INGEST_PREFIXES: Array<string> = ["/probe-ingest", "/ingestor", "/"];
+/*
+ * ProbeIngest routes under ["/probe-ingest", "/ingestor", "/"]
+ * "/ingestor" is used for backward compatibility because probes are already deployed with this path in client environments.
+ */
+const PROBE_INGEST_PREFIXES: Array<string> = [
+  "/probe-ingest",
+  "/ingestor",
+  "/",
+];
 app.use(PROBE_INGEST_PREFIXES, ProbeIngestRegisterAPI);
 app.use(PROBE_INGEST_PREFIXES, ProbeIngestMonitorAPI);
 app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
@@ -50,7 +56,10 @@ const SERVER_MONITOR_PREFIXES: Array<string> = ["/server-monitor-ingest", "/"];
 app.use(SERVER_MONITOR_PREFIXES, ServerMonitorAPI);
 
 // IncomingRequestIngest routes under ["/incoming-request-ingest", "/"]
-const INCOMING_REQUEST_PREFIXES: Array<string> = ["/incoming-request-ingest", "/"];
+const INCOMING_REQUEST_PREFIXES: Array<string> = [
+  "/incoming-request-ingest",
+  "/",
+];
 app.use(INCOMING_REQUEST_PREFIXES, IncomingRequestAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
