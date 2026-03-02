@@ -115,14 +115,6 @@ services:
         depends_on:
             <<: *common-depends-on
 
-    probe-2:
-        image:  oneuptime/probe:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: probe-2
-        depends_on:
-            <<: *common-depends-on
-
     telemetry:
         image:  oneuptime/telemetry:${APP_TAG}
         extends:
