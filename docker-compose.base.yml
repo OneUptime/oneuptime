@@ -31,9 +31,7 @@ x-common-variables: &common-variables
     SERVER_ACCOUNTS_HOSTNAME: accounts
     SERVER_APP_HOSTNAME: app
     SERVER_ALERT_HOSTNAME: alert
-    SERVER_PROBE_INGEST_HOSTNAME: probe-ingest
     SERVER_TELEMETRY_HOSTNAME: telemetry
-    SERVER_INCOMING_REQUEST_INGEST_HOSTNAME: incoming-request-ingest
     SERVER_TEST_SERVER_HOSTNAME: test-server
     SERVER_STATUS_PAGE_HOSTNAME: status-page
     SERVER_DASHBOARD_HOSTNAME: dashboard
@@ -44,15 +42,12 @@ x-common-variables: &common-variables
     SERVER_HOME_HOSTNAME: home
     SERVER_WORKFLOW_HOSTNAME: workflow
     SERVER_DOCS_HOSTNAME: docs
-    SERVER_SERVER_MONITOR_INGEST_HOSTNAME: server-monitor-ingest
     SERVER_MCP_HOSTNAME: mcp
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
     HOME_PORT: ${HOME_PORT}
-    PROBE_INGEST_PORT: ${PROBE_INGEST_PORT}
     TELEMETRY_PORT: ${TELEMETRY_PORT}
-    INCOMING_REQUEST_INGEST_PORT: ${INCOMING_REQUEST_INGEST_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
     ACCOUNTS_PORT: ${ACCOUNTS_PORT}
     STATUS_PAGE_PORT: ${STATUS_PAGE_PORT}
@@ -62,7 +57,6 @@ x-common-variables: &common-variables
     WORKER_PORT: ${WORKER_PORT}
     WORKFLOW_PORT: ${WORKFLOW_PORT}
     DOCS_PORT: ${DOCS_PORT}
-    SERVER_MONITOR_INGEST_PORT: ${SERVER_MONITOR_INGEST_PORT}
     MCP_PORT: ${MCP_PORT}
 
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
@@ -492,35 +486,6 @@ services:
             options:
                 max-size: "1000m"
 
-    probe-ingest:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${PROBE_INGEST_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE_INGEST}
-            PROBE_INGEST_CONCURRENCY: ${PROBE_INGEST_CONCURRENCY}
-            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    server-monitor-ingest:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${SERVER_MONITOR_INGEST_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_SERVER_MONITOR_INGEST}
-            SERVER_MONITOR_INGEST_CONCURRENCY: ${SERVER_MONITOR_INGEST_CONCURRENCY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
     telemetry:
         networks:
           - oneuptime
@@ -531,20 +496,7 @@ services:
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TELEMETRY}
             # Max concurrent telemetry jobs the worker will process
             TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    incoming-request-ingest:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${INCOMING_REQUEST_INGEST_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INCOMING_REQUEST_INGEST}
-            INCOMING_REQUEST_INGEST_CONCURRENCY: ${INCOMING_REQUEST_INGEST_CONCURRENCY}
+            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
         logging:
             driver: "local"
             options:

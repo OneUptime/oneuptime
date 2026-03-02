@@ -11,7 +11,7 @@ import InboundEmailProvider, {
   ParsedInboundEmail,
 } from "Common/Server/Services/InboundEmail/InboundEmailProvider";
 import { JSONObject } from "Common/Types/JSON";
-import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
+import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
 
 const router: ExpressRouter = Express.getRouter();
@@ -84,8 +84,8 @@ router.post(
 
       logger.debug(`Extracted secret key: ${secretKey}`);
 
-      // Queue the email for async processing using the unified ProbeIngest queue
-      await ProbeIngestQueueService.addIncomingEmailJob({
+      // Queue the email for async processing using the unified Telemetry queue
+      await TelemetryQueueService.addIncomingEmailJob({
         secretKey: secretKey,
         emailFrom: parsedEmail.from,
         emailTo: parsedEmail.to,

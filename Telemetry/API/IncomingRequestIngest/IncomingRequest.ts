@@ -1,100 +1,78 @@
+import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
-import MonitorType from "Common/Types/Monitor/MonitorType";
-import ObjectID from "Common/Types/ObjectID";
-import MonitorService from "Common/Server/Services/MonitorService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import ProjectService from "Common/Server/Services/ProjectService";
-import ServerMonitorIngestQueueService from "../Services/Queue/ServerMonitorIngestQueueService";
+import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
 
-// an api to see if secret key is valid
-router.get(
-  "/server-monitor/secret-key/verify/:secretkey",
+const processIncomingRequest: RequestHandler = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const requestHeaders: Dictionary<string> =
+      req.headers as Dictionary<string>;
+    const requestBody: string | JSONObject = req.body as string | JSONObject;
+
+    const monitorSecretKeyAsString: string | undefined =
+      req.params["secretkey"];
+
+    if (!monitorSecretKeyAsString) {
+      throw new BadDataException("Invalid Secret Key");
+    }
+
+    // Return response immediately
+    Response.sendEmptySuccessResponse(req, res);
+
+    // Add to queue for asynchronous processing
+    await TelemetryQueueService.addIncomingRequestIngestJob({
+      secretKey: monitorSecretKeyAsString,
+      requestHeaders: requestHeaders,
+      requestBody: requestBody,
+      requestMethod: req.method,
+    });
+
+    return;
+  } catch (err) {
+    return next(err);
+  }
+};
+
+router.post(
+  "/incoming-request/:secretkey",
   async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    try {
-      const monitorSecretKeyAsString: string | undefined =
-        req.params["secretkey"];
-
-      if (!monitorSecretKeyAsString) {
-        throw new BadDataException("Invalid Secret Key");
-      }
-
-      const monitor: Monitor | null = await MonitorService.findOneBy({
-        query: {
-          serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
-          monitorType: MonitorType.Server,
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
-          },
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!monitor) {
-        throw new BadDataException(ExceptionMessages.MonitorNotFound);
-      }
-
-      return Response.sendEmptySuccessResponse(req, res);
-    } catch (err) {
-      return next(err);
-    }
+    processIncomingRequest(req, res, next);
   },
 );
 
-router.post(
-  "/server-monitor/response/ingest/:secretkey",
+router.get(
+  "/incoming-request/:secretkey",
   async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    try {
-      const monitorSecretKeyAsString: string | undefined =
-        req.params["secretkey"];
-
-      if (!monitorSecretKeyAsString) {
-        throw new BadDataException("Invalid Secret Key");
-      }
-
-      // return the response early.
-      Response.sendEmptySuccessResponse(req, res);
-
-      // Add to queue for asynchronous processing
-      await ServerMonitorIngestQueueService.addServerMonitorIngestJob({
-        secretKey: monitorSecretKeyAsString,
-        serverMonitorResponse: req.body as JSONObject,
-      });
-
-      return;
-    } catch (err) {
-      return next(err);
-    }
+    processIncomingRequest(req, res, next);
   },
 );
 
 // Queue stats endpoint
 router.get(
-  "/server-monitor/queue/stats",
+  "/incoming-request/queue/stats",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
@@ -109,7 +87,7 @@ router.get(
         failed: number;
         delayed: number;
         total: number;
-      } = await ServerMonitorIngestQueueService.getQueueStats();
+      } = await TelemetryQueueService.getQueueStats();
       return Response.sendJsonObjectResponse(req, res, stats);
     } catch (err) {
       return next(err);
@@ -119,7 +97,7 @@ router.get(
 
 // Queue size endpoint
 router.get(
-  "/server-monitor/queue/size",
+  "/incoming-request/queue/size",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
@@ -127,7 +105,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const size: number = await ServerMonitorIngestQueueService.getQueueSize();
+      const size: number = await TelemetryQueueService.getQueueSize();
       return Response.sendJsonObjectResponse(req, res, { size });
     } catch (err) {
       return next(err);
@@ -137,7 +115,7 @@ router.get(
 
 // Queue failed jobs endpoint
 router.get(
-  "/server-monitor/queue/failed",
+  "/incoming-request/queue/failed",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
@@ -158,7 +136,7 @@ router.get(
         processedOn: Date | null;
         finishedOn: Date | null;
         attemptsMade: number;
-      }> = await ServerMonitorIngestQueueService.getFailedJobs({
+      }> = await TelemetryQueueService.getFailedJobs({
         start,
         end,
       });

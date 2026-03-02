@@ -1,10 +1,8 @@
 import {
   ProbeIngestJobData,
   IncomingEmailJobData,
-} from "../../Services/Queue/ProbeIngestQueueService";
+} from "../../Services/Queue/TelemetryQueueService";
 import logger from "Common/Server/Utils/Logger";
-import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
-import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
@@ -18,48 +16,9 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import { JSONObject } from "Common/Types/JSON";
-import { PROBE_INGEST_CONCURRENCY } from "../../Config";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
-// Set up the worker for processing probe ingest queue
-QueueWorker.getWorker(
-  QueueName.ProbeIngest,
-  async (job: QueueJob): Promise<void> => {
-    logger.debug(`Processing probe ingestion job: ${job.name}`);
-
-    try {
-      const jobData: ProbeIngestJobData = job.data as ProbeIngestJobData;
-
-      if (jobData.jobType === "incoming-email") {
-        await processIncomingEmailFromQueue(jobData);
-      } else {
-        await processProbeFromQueue(jobData);
-      }
-
-      logger.debug(`Successfully processed probe ingestion job: ${job.name}`);
-    } catch (error) {
-      /*
-       * Certain BadDataException cases are expected / non-actionable and should not fail the job.
-       * These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
-       * (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
-       */
-      if (
-        error instanceof BadDataException &&
-        (error.message === ExceptionMessages.MonitorNotFound ||
-          error.message === ExceptionMessages.MonitorDisabled)
-      ) {
-        return;
-      }
-
-      logger.error(`Error processing probe ingestion job:`);
-      logger.error(error);
-      throw error;
-    }
-  },
-  { concurrency: PROBE_INGEST_CONCURRENCY }, // Configurable via env, defaults to 100
-);
-
-async function processProbeFromQueue(
+export async function processProbeFromQueue(
   jobData: ProbeIngestJobData,
 ): Promise<void> {
   const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
@@ -103,7 +62,7 @@ async function processProbeFromQueue(
   }
 }
 
-async function processIncomingEmailFromQueue(
+export async function processIncomingEmailFromQueue(
   jobData: ProbeIngestJobData,
 ): Promise<void> {
   const emailData: IncomingEmailJobData | undefined = jobData.incomingEmail;
@@ -177,4 +136,4 @@ async function processIncomingEmailFromQueue(
   await MonitorResourceUtil.monitorResource(incomingEmailRequest);
 }
 
-logger.debug("Probe ingest worker initialized");
+logger.debug("Probe ingest processing functions loaded");

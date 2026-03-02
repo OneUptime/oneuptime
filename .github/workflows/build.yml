@@ -290,52 +290,6 @@ jobs:
           max_attempts: 3
           command: sudo docker build --no-cache -f ./Probe/Dockerfile .
 
-  docker-build-probe-ingest:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
-      
-      - name: Preinstall 
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-        
-      # build image probe api
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./ProbeIngest/Dockerfile .
-
-  docker-build-server-monitor-ingest:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
-      
-      - name: Preinstall 
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-        
-      # build image probe api
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./ServerMonitorIngest/Dockerfile .
-
   docker-build-telemetry:
     runs-on: ubuntu-latest
     env:
@@ -358,29 +312,6 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: sudo docker build --no-cache -f ./Telemetry/Dockerfile .
-
-  docker-build-incoming-request-ingest:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
-      
-      - name: Preinstall 
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-        
-      # build image probe api
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./IncomingRequestIngest/Dockerfile .
 
   docker-build-status-page:
     runs-on: ubuntu-latest

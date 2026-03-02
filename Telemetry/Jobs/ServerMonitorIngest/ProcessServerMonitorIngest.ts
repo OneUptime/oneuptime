@@ -1,7 +1,5 @@
-import { ServerMonitorIngestJobData } from "../../Services/Queue/ServerMonitorIngestQueueService";
+import { ServerMonitorIngestJobData } from "../../Services/Queue/TelemetryQueueService";
 import logger from "Common/Server/Utils/Logger";
-import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
-import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
@@ -14,46 +12,8 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectService from "Common/Server/Services/ProjectService";
-import { SERVER_MONITOR_INGEST_CONCURRENCY } from "../../Config";
 
-// Set up the worker for processing server monitor ingest queue
-QueueWorker.getWorker(
-  QueueName.ServerMonitorIngest,
-  async (job: QueueJob): Promise<void> => {
-    logger.debug(`Processing server monitor ingestion job: ${job.name}`);
-
-    try {
-      const jobData: ServerMonitorIngestJobData =
-        job.data as ServerMonitorIngestJobData;
-
-      await processServerMonitorFromQueue(jobData);
-
-      logger.debug(
-        `Successfully processed server monitor ingestion job: ${job.name}`,
-      );
-    } catch (error) {
-      /*
-       * Certain BadDataException cases are expected / non-actionable and should not fail the job.
-       * These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
-       * (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
-       */
-      if (
-        error instanceof BadDataException &&
-        (error.message === ExceptionMessages.MonitorNotFound ||
-          error.message === ExceptionMessages.MonitorDisabled)
-      ) {
-        return;
-      }
-
-      logger.error(`Error processing server monitor ingestion job:`);
-      logger.error(error);
-      throw error;
-    }
-  },
-  { concurrency: SERVER_MONITOR_INGEST_CONCURRENCY }, // Configurable via env, defaults to 100
-);
-
-async function processServerMonitorFromQueue(
+export async function processServerMonitorFromQueue(
   jobData: ServerMonitorIngestJobData,
 ): Promise<void> {
   const monitorSecretKeyAsString: string = jobData.secretKey;
@@ -104,4 +64,4 @@ async function processServerMonitorFromQueue(
   await MonitorResourceUtil.monitorResource(serverMonitorResponse);
 }
 
-logger.debug("Server monitor ingest worker initialized");
+logger.debug("Server monitor ingest processing functions loaded");

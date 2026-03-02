@@ -1,7 +1,5 @@
-import { IncomingRequestIngestJobData } from "../../Services/Queue/IncomingRequestIngestQueueService";
+import { IncomingRequestIngestJobData } from "../../Services/Queue/TelemetryQueueService";
 import logger from "Common/Server/Utils/Logger";
-import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
-import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -14,46 +12,8 @@ import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import { INCOMING_REQUEST_INGEST_CONCURRENCY } from "../../Config";
 
-// Set up the worker for processing incoming request ingest queue
-QueueWorker.getWorker(
-  QueueName.IncomingRequestIngest,
-  async (job: QueueJob): Promise<void> => {
-    logger.debug(`Processing incoming request ingestion job: ${job.name}`);
-
-    try {
-      const jobData: IncomingRequestIngestJobData =
-        job.data as IncomingRequestIngestJobData;
-
-      await processIncomingRequestFromQueue(jobData);
-
-      logger.debug(
-        `Successfully processed incoming request ingestion job: ${job.name}`,
-      );
-    } catch (error) {
-      /*
-       * Certain BadDataException cases are expected / non-actionable and should not fail the job.
-       * These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
-       * (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
-       */
-      if (
-        error instanceof BadDataException &&
-        (error.message === ExceptionMessages.MonitorNotFound ||
-          error.message === ExceptionMessages.MonitorDisabled)
-      ) {
-        return;
-      }
-
-      logger.error(`Error processing incoming request ingestion job:`);
-      logger.error(error);
-      throw error; // rethrow other errors so they are visible and retried if needed.
-    }
-  },
-  { concurrency: INCOMING_REQUEST_INGEST_CONCURRENCY }, // Configurable via env, defaults to 100
-);
-
-async function processIncomingRequestFromQueue(
+export async function processIncomingRequestFromQueue(
   jobData: IncomingRequestIngestJobData,
 ): Promise<void> {
   const requestHeaders: Dictionary<string> = jobData.requestHeaders;
@@ -116,4 +76,4 @@ async function processIncomingRequestFromQueue(
   await MonitorResourceUtil.monitorResource(incomingRequest);
 }
 
-logger.debug("Incoming request ingest worker initialized");
+logger.debug("Incoming request ingest processing functions loaded");

@@ -1,4 +1,4 @@
-import ProbeAuthorization from "../Middleware/ProbeAuthorization";
+import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -22,7 +22,7 @@ import Response from "Common/Server/Utils/Response";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
-import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
+import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
@@ -293,7 +293,7 @@ router.post(
       });
 
       // Add to queue for asynchronous processing
-      await ProbeIngestQueueService.addProbeIngestJob({
+      await TelemetryQueueService.addProbeIngestJob({
         probeMonitorResponse: req.body,
         jobType: "probe-response",
       });
@@ -340,7 +340,7 @@ router.post(
       Response.sendEmptySuccessResponse(req, res);
 
       // Add to queue for asynchronous processing
-      await ProbeIngestQueueService.addProbeIngestJob({
+      await TelemetryQueueService.addProbeIngestJob({
         probeMonitorResponse: req.body,
         jobType: "monitor-test",
         testId: testId.toString(),
@@ -370,7 +370,7 @@ router.get(
         failed: number;
         delayed: number;
         total: number;
-      } = await ProbeIngestQueueService.getQueueStats();
+      } = await TelemetryQueueService.getQueueStats();
       return Response.sendJsonObjectResponse(req, res, stats);
     } catch (err) {
       return next(err);
@@ -388,7 +388,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const size: number = await ProbeIngestQueueService.getQueueSize();
+      const size: number = await TelemetryQueueService.getQueueSize();
       return Response.sendJsonObjectResponse(req, res, { size });
     } catch (err) {
       return next(err);
@@ -475,7 +475,7 @@ router.get(
         processedOn: Date | null;
         finishedOn: Date | null;
         attemptsMade: number;
-      }> = await ProbeIngestQueueService.getFailedJobs({
+      }> = await TelemetryQueueService.getFailedJobs({
         start,
         end,
       });
