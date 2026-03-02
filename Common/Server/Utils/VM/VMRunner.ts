@@ -1,13 +1,71 @@
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import axios, { AxiosResponse } from "axios";
 import crypto from "crypto";
 import http from "http";
 import https from "https";
 import ivm from "isolated-vm";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import Dictionary from "../../../Types/Dictionary";
+import GenericObject from "../../../Types/GenericObject";
+import vm, { Context } from "vm";
+
 
 export default class VMRunner {
+
+  @CaptureSpan()
+  public static async runCodeInNodeVM(data: {
+    code: string;
+    options: {
+      timeout?: number;
+      args?: JSONObject | undefined;
+      context?: Dictionary<GenericObject | string> | undefined;
+    };
+  }): Promise<ReturnResult> {
+    const { code, options } = data;
+
+    const logMessages: string[] = [];
+
+    let sandbox: Context = {
+      process: {},
+      console: {
+        log: (...args: JSONValue[]) => {
+          logMessages.push(args.join(" "));
+        },
+      },
+      http: http,
+      https: https,
+      axios: axios,
+      crypto: crypto,
+      setTimeout: setTimeout,
+      clearTimeout: clearTimeout,
+      setInterval: setInterval,
+      ...options.context,
+    };
+
+    if (options.args) {
+      sandbox = {
+        ...sandbox,
+        args: options.args,
+      };
+    }
+
+    vm.createContext(sandbox); // Contextify the object.
+
+    const script: string = `(async()=>{
+        ${code}
+      })()`;
+
+    const returnVal: any = await vm.runInContext(script, sandbox, {
+      timeout: options.timeout || 5000,
+    }); // run the script
+
+    return {
+      returnValue: returnVal,
+      logMessages,
+    };
+  }
+
   @CaptureSpan()
   public static async runCodeInSandbox(data: {
     code: string;
