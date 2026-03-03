@@ -119,8 +119,6 @@ Usage:
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_DOCS_HOSTNAME
-  value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: APP_PORT
   value: {{ $.Values.app.ports.http | squote }}
 - name: TELEMETRY_PORT
@@ -141,8 +139,6 @@ Usage:
   value: {{ $.Values.dashboard.ports.http | squote }}
 - name: ADMIN_DASHBOARD_PORT
   value: {{ $.Values.adminDashboard.ports.http | squote }}
-- name: DOCS_PORT
-  value: {{ $.Values.docs.ports.http | squote }}
 {{- end }}
 
 

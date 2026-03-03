@@ -199,12 +199,6 @@ export const HomeHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const DocsHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_DOCS_HOSTNAME"] || "localhost"}:${
-    process.env["DOCS_PORT"] || 80
-  }`,
-);
-
 export const Env: string = process.env["NODE_ENV"] || "production";
 
 // Redis does not require password.

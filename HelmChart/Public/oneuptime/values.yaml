@@ -671,18 +671,6 @@ workflow:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-docs:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  ports:
-    http: 1447
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-
 app:
   enabled: true
   replicaCount: 1

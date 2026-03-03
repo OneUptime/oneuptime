@@ -36,8 +36,6 @@ x-common-variables: &common-variables
     SERVER_WORKER_HOSTNAME: worker
     SERVER_HOME_HOSTNAME: home
     SERVER_WORKFLOW_HOSTNAME: workflow
-    SERVER_DOCS_HOSTNAME: docs
-
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
     HOME_PORT: ${HOME_PORT}
@@ -49,8 +47,6 @@ x-common-variables: &common-variables
     ADMIN_DASHBOARD_PORT: ${ADMIN_DASHBOARD_PORT}
     WORKER_PORT: ${WORKER_PORT}
     WORKFLOW_PORT: ${WORKFLOW_PORT}
-    DOCS_PORT: ${DOCS_PORT}
-
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
 
@@ -281,18 +277,6 @@ services:
             PORT: ${WORKER_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
             WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    docs:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${DOCS_PORT}
         logging:
             driver: "local"
             options:
