@@ -98,15 +98,7 @@ services:
             service: workflow
         depends_on:
             <<: *common-depends-on
-
-    home:
-        image:  oneuptime/home:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: home
-        depends_on:
-            <<: *common-depends-on
-
+            
     probe-1:
         image:  oneuptime/probe:${APP_TAG}
         extends:
