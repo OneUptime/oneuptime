@@ -70,7 +70,7 @@ function setupRoutesForPrefix(
   prefix: string,
   tools: McpToolInfo[],
 ): void {
-  const mcpEndpoint: string = `${prefix}/mcp`;
+  const mcpEndpoint: string = prefix;
   const mcpHandler: McpHandlerFunction = createMCPHandler();
 
   // MCP endpoint for all methods (GET for SSE, POST for requests, DELETE for cleanup)
