@@ -17,7 +17,11 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { handleRSS, StatusPageData, getStatusPageData } from "./Utils/StatusPage";
+import {
+  handleRSS,
+  StatusPageData,
+  getStatusPageData,
+} from "./Utils/StatusPage";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -258,9 +262,7 @@ window.process.env = ${JSON.stringify(env)};
 
 const renderFrontendIndexPage: (
   options: RenderFrontendOptions,
-) => Promise<void> = async (
-  options: RenderFrontendOptions,
-): Promise<void> => {
+) => Promise<void> = async (options: RenderFrontendOptions): Promise<void> => {
   const { req, res, next, frontendConfig } = options;
 
   try {
@@ -387,45 +389,51 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
 };
 
 const registerStatusPageCustomDomainFallback: () => void = (): void => {
-  app.get("*", async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    if (isPrimaryHostRequest(req)) {
-      return next();
-    }
+  app.get(
+    "*",
+    async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+      if (isPrimaryHostRequest(req)) {
+        return next();
+      }
 
-    if (shouldSkipStatusPageDomainFallbackRoute(req.path)) {
-      return next();
-    }
+      if (shouldSkipStatusPageDomainFallbackRoute(req.path)) {
+        return next();
+      }
 
-    return renderFrontendIndexPage({
-      req,
-      res,
-      next,
-      frontendConfig: StatusPageFrontendConfig,
-    });
-  });
+      return renderFrontendIndexPage({
+        req,
+        res,
+        next,
+        frontendConfig: StatusPageFrontendConfig,
+      });
+    },
+  );
 };
 
 const registerDashboardFallbackForPrimaryHost: () => void = (): void => {
-  app.get("*", async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    if (IsBillingEnabled) {
-      return next();
-    }
+  app.get(
+    "*",
+    async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+      if (IsBillingEnabled) {
+        return next();
+      }
 
-    if (!isPrimaryHostRequest(req)) {
-      return next();
-    }
+      if (!isPrimaryHostRequest(req)) {
+        return next();
+      }
 
-    if (shouldSkipDashboardFallbackRoute(req.path)) {
-      return next();
-    }
+      if (shouldSkipDashboardFallbackRoute(req.path)) {
+        return next();
+      }
 
-    return renderFrontendIndexPage({
-      req,
-      res,
-      next,
-      frontendConfig: DashboardFrontendConfig,
-    });
-  });
+      return renderFrontendIndexPage({
+        req,
+        res,
+        next,
+        frontendConfig: DashboardFrontendConfig,
+      });
+    },
+  );
 };
 
 const registerDashboardRootPwaFiles: () => void = (): void => {
