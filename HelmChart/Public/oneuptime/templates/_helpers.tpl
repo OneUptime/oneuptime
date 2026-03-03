@@ -103,8 +103,6 @@ Usage:
   value: {{ default "" $.Values.inboundEmail.domain | quote }}
 - name: INBOUND_EMAIL_WEBHOOK_SECRET
   value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
-- name: SERVER_ACCOUNTS_HOSTNAME
-  value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKFLOW_HOSTNAME
   value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKER_HOSTNAME
@@ -121,12 +119,6 @@ Usage:
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_STATUS_PAGE_HOSTNAME
-  value: {{ $.Release.Name }}-status-page.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_DASHBOARD_HOSTNAME
-  value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_ADMIN_DASHBOARD_HOSTNAME
-  value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_DOCS_HOSTNAME
   value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: APP_PORT
