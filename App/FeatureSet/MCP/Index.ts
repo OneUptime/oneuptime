@@ -27,9 +27,7 @@ const MCPFeatureSet: FeatureSet = {
       url: apiUrl,
     };
     OneUptimeApiService.initialize(config);
-    logger.info(
-      `MCP: OneUptime API Service initialized with: ${apiUrl}`,
-    );
+    logger.info(`MCP: OneUptime API Service initialized with: ${apiUrl}`);
 
     // Initialize MCP server
     initializeMCPServer();
