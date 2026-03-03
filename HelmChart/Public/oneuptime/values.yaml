@@ -720,18 +720,6 @@ telemetry:
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
 
-isolatedVM:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  ports:
-    http: 4572
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-
 # AI Agent Configuration
 # Deploy this to run an AI Agent within your Kubernetes cluster
 # Note: This is disabled by default. To enable, set enabled to true and provide the AI Agent credentials

@@ -1,15 +1,8 @@
-import { IsolatedVMHostname } from "../../../Server/EnvironmentConfig";
-import ClusterKeyAuthorization from "../../Middleware/ClusterKeyAuthorization";
-import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
-import HTTPResponse from "../../../Types/API/HTTPResponse";
-import Protocol from "../../../Types/API/Protocol";
-import Route from "../../../Types/API/Route";
-import URL from "../../../Types/API/URL";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
-import API from "../../../Utils/API";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import VMRunner from "./VMRunner";
 
 export default class VMUtil {
   @CaptureSpan()
@@ -20,29 +13,7 @@ export default class VMUtil {
       timeout?: number | undefined;
     };
   }): Promise<ReturnResult> {
-    const returnResultHttpResponse:
-      | HTTPErrorResponse
-      | HTTPResponse<JSONObject> = await API.post<JSONObject>({
-      url: new URL(
-        Protocol.HTTP,
-        IsolatedVMHostname,
-        new Route("/isolated-vm/run-code"),
-      ),
-      data: {
-        ...data,
-      },
-      headers: {
-        ...ClusterKeyAuthorization.getClusterKeyHeaders(),
-      },
-    });
-
-    if (returnResultHttpResponse instanceof HTTPErrorResponse) {
-      throw returnResultHttpResponse;
-    }
-
-    const returnResult: ReturnResult = returnResultHttpResponse.data as any;
-
-    return returnResult;
+    return VMRunner.runCodeInSandbox(data);
   }
 
   @CaptureSpan()

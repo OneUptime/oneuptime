@@ -181,12 +181,6 @@ export const OpenTelemetryIngestHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const IsolatedVMHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ISOLATED_VM_HOSTNAME"] || "localhost"}:${
-    process.env["ISOLATED_VM_PORT"] || 80
-  }`,
-);
-
 export const WorkerHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_WORKER_HOSTNAME"] || "localhost"}:${
     process.env["WORKER_PORT"] || 80

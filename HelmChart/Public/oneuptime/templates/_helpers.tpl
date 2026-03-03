@@ -105,8 +105,6 @@ Usage:
   value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_ISOLATED_VM_HOSTNAME
-  value: {{ $.Release.Name }}-isolated-vm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKFLOW_HOSTNAME
   value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKER_HOSTNAME
@@ -139,8 +137,6 @@ Usage:
   value: {{ $.Values.testServer.ports.http | squote }}
 - name: ACCOUNTS_PORT
   value: {{ $.Values.accounts.ports.http | squote }}
-- name: ISOLATED_VM_PORT
-  value: {{ $.Values.isolatedVM.ports.http | squote }}
 - name: HOME_PORT
   value: {{ $.Values.home.ports.http | squote }}
 - name: WORKER_PORT

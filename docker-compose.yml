@@ -123,12 +123,6 @@ services:
         depends_on:
             <<: *common-depends-on
 
-    isolated-vm:
-        image:  oneuptime/isolated-vm:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: isolated-vm
-
     ingress:
        image:  oneuptime/nginx:${APP_TAG}
        extends:
