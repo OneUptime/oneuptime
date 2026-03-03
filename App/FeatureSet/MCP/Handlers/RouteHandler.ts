@@ -12,7 +12,8 @@ import {
   NextFunction,
   ExpressJson,
 } from "Common/Server/Utils/Express";
-import { getMCPServer, McpServer } from "../Server/MCPServer";
+import { createMCPServerInstance, McpServer } from "../Server/MCPServer";
+import { registerToolHandlers } from "./ToolHandler";
 import SessionManager, { SessionData } from "../Server/SessionManager";
 import { McpToolInfo } from "../Types/McpTypes";
 import {
@@ -21,6 +22,9 @@ import {
   API_KEY_HEADERS,
 } from "../Config/ServerConfig";
 import logger from "Common/Server/Utils/Logger";
+
+// Tools list stored at setup time for per-session server initialization
+let registeredTools: McpToolInfo[] = [];
 
 // Type for MCP handler function
 type McpHandlerFunction = (
@@ -53,6 +57,7 @@ export function setupMCPRoutes(
   app: ExpressApplication,
   tools: McpToolInfo[],
 ): void {
+  registeredTools = tools;
   ROUTE_PREFIXES.forEach((prefix: string) => {
     setupRoutesForPrefix(app, prefix, tools);
   });
@@ -60,6 +65,22 @@ export function setupMCPRoutes(
   logger.info(
     `MCP routes setup complete for prefixes: ${ROUTE_PREFIXES.join(", ")}`,
   );
+}
+
+/**
+ * Middleware to add MCP-specific CORS headers (mcp-session-id must be allowed and exposed)
+ */
+function mcpCorsMiddleware(
+  _req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void {
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Accept, Authorization, mcp-session-id, x-api-key",
+  );
+  res.header("Access-Control-Expose-Headers", "mcp-session-id");
+  next();
 }
 
 /**
@@ -74,14 +95,18 @@ function setupRoutesForPrefix(
   const mcpHandler: McpHandlerFunction = createMCPHandler();
 
   // MCP endpoint for all methods (GET for SSE, POST for requests, DELETE for cleanup)
-  app.get(mcpEndpoint, mcpHandler);
-  app.post(mcpEndpoint, ExpressJson(), mcpHandler);
-  app.delete(mcpEndpoint, mcpHandler);
+  app.get(mcpEndpoint, mcpCorsMiddleware, mcpHandler);
+  app.post(mcpEndpoint, mcpCorsMiddleware, ExpressJson(), mcpHandler);
+  app.delete(mcpEndpoint, mcpCorsMiddleware, mcpHandler);
 
   // OPTIONS handler for CORS preflight requests
-  app.options(mcpEndpoint, (_req: ExpressRequest, res: ExpressResponse) => {
-    res.status(200).end();
-  });
+  app.options(
+    mcpEndpoint,
+    mcpCorsMiddleware,
+    (_req: ExpressRequest, res: ExpressResponse) => {
+      res.status(200).end();
+    },
+  );
 
   // List tools endpoint (REST API)
   setupToolsEndpoint(app, prefix, tools);
@@ -100,6 +125,22 @@ function createMCPHandler(): McpHandlerFunction {
     next: NextFunction,
   ): Promise<void> => {
     try {
+      // For GET requests, require Accept: text/event-stream (SSE) header
+      if (req.method === "GET") {
+        const acceptHeader: string | undefined = req.headers["accept"] as
+          | string
+          | undefined;
+        if (!acceptHeader || !acceptHeader.includes("text/event-stream")) {
+          res.status(200).json({
+            name: "oneuptime-mcp",
+            status: "running",
+            message:
+              "This is a Model Context Protocol (MCP) server endpoint. Use an MCP client to connect.",
+          });
+          return;
+        }
+      }
+
       // Extract API key (optional - public tools work without it)
       const apiKey: string | undefined = extractApiKey(req);
 
@@ -114,6 +155,21 @@ function createMCPHandler(): McpHandlerFunction {
       if (sessionId && SessionManager.hasSession(sessionId)) {
         await handleExistingSession(req, res, sessionId, apiKey || "");
         return;
+      }
+
+      // For POST without session ID, validate it's a proper MCP initialization request
+      if (req.method === "POST") {
+        const body: Record<string, unknown> | undefined = req.body as
+          | Record<string, unknown>
+          | undefined;
+        if (!body || body["method"] !== "initialize") {
+          res.status(400).json({
+            error: "Bad Request",
+            message:
+              "Invalid MCP request. POST without session ID must be an 'initialize' request.",
+          });
+          return;
+        }
       }
 
       // Create new session for new connections
@@ -147,13 +203,16 @@ async function handleExistingSession(
 
 /**
  * Handle request for a new session (initialization)
+ * Creates a new McpServer instance per session to support concurrent connections.
  */
 async function handleNewSession(
   req: ExpressRequest,
   res: ExpressResponse,
   apiKey: string,
 ): Promise<void> {
-  const mcpServer: McpServer = getMCPServer();
+  // Create a new McpServer for this session (each can only connect to one transport)
+  const mcpServer: McpServer = createMCPServerInstance();
+  registerToolHandlers(mcpServer, registeredTools);
 
   const transport: StreamableHTTPServerTransport =
     new StreamableHTTPServerTransport({
@@ -181,7 +240,7 @@ async function handleNewSession(
     logger.error(`MCP transport error: ${error.message}`);
   };
 
-  // Connect the MCP server to this transport
+  // Connect the per-session MCP server to this transport
   await mcpServer.connect(transport as Parameters<typeof mcpServer.connect>[0]);
 
   // Handle the request
