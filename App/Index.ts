@@ -1,6 +1,7 @@
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
 // import FeatureSets.
 import IdentityRoutes from "./FeatureSet/Identity/Index";
+import MCPRoutes from "./FeatureSet/MCP/Index";
 import NotificationRoutes from "./FeatureSet/Notification/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
@@ -94,6 +95,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await IdentityRoutes.init();
     await NotificationRoutes.init();
     await BaseAPIRoutes.init();
+    await MCPRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();

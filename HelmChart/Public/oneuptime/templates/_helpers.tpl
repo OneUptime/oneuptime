@@ -131,9 +131,6 @@ Usage:
   value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_DOCS_HOSTNAME
   value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_MCP_HOSTNAME
-  value: {{ $.Release.Name }}-mcp.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-
 - name: APP_PORT
   value: {{ $.Values.app.ports.http | squote }}
 - name: TELEMETRY_PORT
@@ -158,8 +155,6 @@ Usage:
   value: {{ $.Values.adminDashboard.ports.http | squote }}
 - name: DOCS_PORT
   value: {{ $.Values.docs.ports.http | squote }}
-- name: MCP_PORT
-  value: {{ $.Values.mcp.ports.http | squote }}
 {{- end }}
 
 

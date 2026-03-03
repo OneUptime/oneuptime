@@ -310,6 +310,7 @@
                 <option value="/legal/hipaa" <%= section === 'hipaa' ? 'selected' : '' %>>HIPAA</option>
                 <option value="/legal/data-residency" <%= section === 'data-residency' ? 'selected' : '' %>>Data Residency</option>
                 <option value="/legal/subprocessors" <%= section === 'subprocessors' ? 'selected' : '' %>>Subprocessors</option>
+                <option value="/legal/dpa" <%= section === 'dpa' ? 'selected' : '' %>>Data Processing Agreement</option>
               </optgroup>
               <optgroup label="Security Certifications">
                 <option value="/legal/iso-27001" <%= section === 'iso-27001' ? 'selected' : '' %>>ISO/IEC 27001</option>
@@ -393,6 +394,11 @@
                 <li>
                   <a href="/legal/subprocessors" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'subprocessors' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
                     Subprocessors
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/dpa" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'dpa' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Data Processing Agreement
                   </a>
                 </li>
               </ul>
@@ -561,6 +567,10 @@
 
           <% if(section === "subprocessors") { %>
           <%- include('subprocessors') -%>
+          <% } %>
+
+          <% if(section === "dpa") { %>
+          <%- include('dpa') -%>
           <% } %>
 
           <% if(section === "vpat") { %>

@@ -42,7 +42,6 @@ x-common-variables: &common-variables
     SERVER_HOME_HOSTNAME: home
     SERVER_WORKFLOW_HOSTNAME: workflow
     SERVER_DOCS_HOSTNAME: docs
-    SERVER_MCP_HOSTNAME: mcp
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
@@ -57,7 +56,6 @@ x-common-variables: &common-variables
     WORKER_PORT: ${WORKER_PORT}
     WORKFLOW_PORT: ${WORKFLOW_PORT}
     DOCS_PORT: ${DOCS_PORT}
-    MCP_PORT: ${MCP_PORT}
 
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
@@ -502,19 +500,6 @@ services:
             options:
                 max-size: "1000m"
     
-    mcp:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${MCP_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_MCP}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
     e2e:
         restart: "no"
         network_mode: host # This is needed to access the host network,

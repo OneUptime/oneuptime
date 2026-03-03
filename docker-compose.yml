@@ -129,14 +129,6 @@ services:
             file: ./docker-compose.base.yml
             service: isolated-vm
 
-    mcp:
-        image:  oneuptime/mcp:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: mcp
-        depends_on:
-            <<: *common-depends-on
-
     ingress:
        image:  oneuptime/nginx:${APP_TAG}
        extends:

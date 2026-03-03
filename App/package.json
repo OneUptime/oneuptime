@@ -20,6 +20,7 @@
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.0",
     "@sendgrid/mail": "^8.1.0",
     "Common": "file:../Common",
     "ejs": "^3.1.9",
