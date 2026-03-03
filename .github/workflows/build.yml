@@ -31,7 +31,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./Accounts/Dockerfile .
+          command: sudo docker build --no-cache -f ./App/Accounts/Dockerfile .
 
   docker-build-home:
     runs-on: ubuntu-latest
@@ -219,7 +219,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./AdminDashboard/Dockerfile .
+          command: sudo docker build --no-cache -f ./App/AdminDashboard/Dockerfile .
 
   docker-build-dashboard:
     runs-on: ubuntu-latest
@@ -242,7 +242,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./Dashboard/Dockerfile .
+          command: sudo docker build --no-cache -f ./App/Dashboard/Dockerfile .
 
   docker-build-probe:
     runs-on: ubuntu-latest
@@ -311,7 +311,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./StatusPage/Dockerfile .
+          command: sudo docker build --no-cache -f ./App/StatusPage/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest

@@ -28,14 +28,14 @@ x-common-variables: &common-variables
 
     ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
-    SERVER_ACCOUNTS_HOSTNAME: accounts
+    SERVER_ACCOUNTS_HOSTNAME: app
     SERVER_APP_HOSTNAME: app
     SERVER_ALERT_HOSTNAME: alert
     SERVER_TELEMETRY_HOSTNAME: telemetry
     SERVER_TEST_SERVER_HOSTNAME: test-server
-    SERVER_STATUS_PAGE_HOSTNAME: status-page
-    SERVER_DASHBOARD_HOSTNAME: dashboard
-    SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
+    SERVER_STATUS_PAGE_HOSTNAME: app
+    SERVER_DASHBOARD_HOSTNAME: app
+    SERVER_ADMIN_DASHBOARD_HOSTNAME: app
     SERVER_OTEL_COLLECTOR_HOSTNAME: otel-collector
     SERVER_WORKER_HOSTNAME: worker
     SERVER_HOME_HOSTNAME: home
@@ -216,20 +216,6 @@ services:
             options:
                 max-size: "1000m"
         
-    accounts:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${ACCOUNTS_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ACCOUNTS}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-    
-
     llm: 
         networks:
           - oneuptime
@@ -245,49 +231,6 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
-
-    admin-dashboard:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${ADMIN_DASHBOARD_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ADMIN_DASHBOARD}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    dashboard:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${DASHBOARD_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_DASHBOARD}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-        
-    
-
-    status-page:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${STATUS_PAGE_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_STATUS_PAGE}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-            
-        
 
     test-server:
         networks:

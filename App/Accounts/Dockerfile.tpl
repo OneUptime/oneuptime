@@ -65,7 +65,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Accounts/package*.json /usr/src/app/
+COPY ./App/Accounts/package*.json /usr/src/app/
 RUN npm install  
 
 # Expose ports.
@@ -82,7 +82,7 @@ EXPOSE 3003
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Accounts /usr/src/app
+COPY ./App/Accounts /usr/src/app
 # Bundle app source
 
 RUN npm run build

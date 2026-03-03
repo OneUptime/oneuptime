@@ -8,7 +8,7 @@
  */
 
 const path = require('path');
-const { generateServiceWorker } = require('../../Common/Scripts/generate-service-worker');
+const { generateServiceWorker } = require('../../../Common/Scripts/generate-service-worker');
 
 // Generate Dashboard service worker
 const templatePath = path.join(__dirname, '..', 'sw.js.template');

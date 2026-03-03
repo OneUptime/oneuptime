@@ -56,6 +56,24 @@ COPY ./App/package*.json /usr/src/app/
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
 RUN npm install
 
+WORKDIR /usr/src/app/Accounts
+COPY ./App/Accounts/package*.json /usr/src/app/Accounts/
+RUN npm install
+
+WORKDIR /usr/src/app/Dashboard
+COPY ./App/Dashboard/package*.json /usr/src/app/Dashboard/
+RUN npm install
+
+WORKDIR /usr/src/app/AdminDashboard
+COPY ./App/AdminDashboard/package*.json /usr/src/app/AdminDashboard/
+RUN npm install
+
+WORKDIR /usr/src/app/StatusPage
+COPY ./App/StatusPage/package*.json /usr/src/app/StatusPage/
+RUN npm install
+
+WORKDIR /usr/src/app
+
 # Expose ports.
 #   - 3002: OneUptime-backend
 EXPOSE 3002
@@ -66,6 +84,13 @@ CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
 COPY ./App /usr/src/app
+# Copy frontend sources
+COPY ./App/Accounts /usr/src/app/Accounts
+COPY ./App/Dashboard /usr/src/app/Dashboard
+COPY ./App/AdminDashboard /usr/src/app/AdminDashboard
+COPY ./App/StatusPage /usr/src/app/StatusPage
+# Bundle frontend source
+RUN npm run build-frontends:prod
 # Bundle app source
 RUN npm run compile
 # Set permission to write logs and cache in case container run as non root

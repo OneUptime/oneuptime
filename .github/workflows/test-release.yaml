@@ -502,7 +502,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image status-page \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./StatusPage/Dockerfile \
+            --dockerfile ./App/StatusPage/Dockerfile \
             --context . \
             --platforms linux/amd64,linux/arm64 \
             --git-sha "${{ github.sha }}" \
@@ -785,7 +785,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image dashboard \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Dashboard/Dockerfile \
+            --dockerfile ./App/Dashboard/Dockerfile \
             --context . \
             --platforms linux/amd64,linux/arm64 \
             --git-sha "${{ github.sha }}" \
@@ -855,7 +855,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image admin-dashboard \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./AdminDashboard/Dockerfile \
+            --dockerfile ./App/AdminDashboard/Dockerfile \
             --context . \
             --platforms linux/amd64,linux/arm64 \
             --git-sha "${{ github.sha }}" \
@@ -998,7 +998,7 @@ jobs:
           bash ./Scripts/GHA/build_docker_images.sh \
             --image accounts \
             --version "${{needs.read-version.outputs.major_minor}}-test" \
-            --dockerfile ./Accounts/Dockerfile \
+            --dockerfile ./App/Accounts/Dockerfile \
             --context . \
             --platforms linux/amd64,linux/arm64 \
             --git-sha "${{ github.sha }}" \

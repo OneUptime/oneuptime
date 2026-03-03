@@ -57,7 +57,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Dashboard/package*.json /usr/src/app/
+COPY ./App/Dashboard/package*.json /usr/src/app/
 RUN npm install  
 
 # Expose ports.
@@ -73,7 +73,7 @@ EXPOSE 3009
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Dashboard /usr/src/app
+COPY ./App/Dashboard /usr/src/app
 # Bundle app source
 RUN npm run build
 # Set permission to write logs and cache in case container run as non root

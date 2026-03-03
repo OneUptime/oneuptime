@@ -36,7 +36,7 @@
     "dependencies": {
         "@stripe/react-stripe-js": "^1.15.0",
         "@stripe/stripe-js": "^1.44.1",
-        "Common": "file:../Common",
+        "Common": "file:../../Common",
         
         "ejs": "^3.1.10",
         "react": "^18.3.1",

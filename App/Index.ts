@@ -1,4 +1,5 @@
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
+import FrontendRoutes from "./FeatureSet/Frontend/Index";
 // import FeatureSets.
 import IdentityRoutes from "./FeatureSet/Identity/Index";
 import MCPRoutes from "./FeatureSet/MCP/Index";
@@ -96,6 +97,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await NotificationRoutes.init();
     await BaseAPIRoutes.init();
     await MCPRoutes.init();
+    await FrontendRoutes.init();
 
     // Add default routes to the app
     await App.addDefaultRoutes();

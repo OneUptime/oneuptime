@@ -62,7 +62,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./StatusPage/package*.json /usr/src/app/
+COPY ./App/StatusPage/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
@@ -80,7 +80,7 @@ EXPOSE 3106
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./StatusPage /usr/src/app
+COPY ./App/StatusPage /usr/src/app
 # Bundle app source
 RUN npm run build
 # Set permission to write logs and cache in case container run as non root

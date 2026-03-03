@@ -35,38 +35,6 @@ services:
             file: ./docker-compose.base.yml
             service: otel-collector
 
-    accounts:
-        image:  oneuptime/accounts:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: accounts
-        depends_on:
-            <<: *common-depends-on
-
-    dashboard:
-        image:  oneuptime/dashboard:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: dashboard
-        depends_on:
-            <<: *common-depends-on
-
-    admin-dashboard:
-        image:  oneuptime/admin-dashboard:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: admin-dashboard
-        depends_on:
-            <<: *common-depends-on
-
-    status-page:
-        image:  oneuptime/status-page:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: status-page
-        depends_on:
-            <<: *common-depends-on
-
     app:
         image:  oneuptime/app:${APP_TAG}
         extends:
