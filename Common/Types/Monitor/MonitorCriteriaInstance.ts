@@ -1163,7 +1163,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       if (
         monitorType === MonitorType.Ping &&
         filter.checkOn !== CheckOn.IsOnline &&
-        filter.checkOn !== CheckOn.ResponseTime
+        filter.checkOn !== CheckOn.ResponseTime &&
+        filter.checkOn !== CheckOn.IsRequestTimeout
       ) {
         return "Ping Monitor cannot have filter type: " + filter.checkOn;
       }
