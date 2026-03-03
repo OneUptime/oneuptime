@@ -110,9 +110,9 @@
         "resolveJsonModule": true
     },
     "exclude": [
-        "Accounts",
-        "Dashboard",
-        "AdminDashboard",
-        "StatusPage"
+        "FeatureSet/Accounts",
+        "FeatureSet/Dashboard",
+        "FeatureSet/AdminDashboard",
+        "FeatureSet/StatusPage"
     ]
 }

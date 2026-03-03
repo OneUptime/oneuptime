@@ -27,17 +27,17 @@ import {
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const AccountsPublicPath: string = "/usr/src/app/Accounts/public";
-const AccountsViewPath: string = "/usr/src/app/Accounts/views/index.ejs";
+const AccountsPublicPath: string = "/usr/src/app/FeatureSet/Accounts/public";
+const AccountsViewPath: string = "/usr/src/app/FeatureSet/Accounts/views/index.ejs";
 
-const DashboardPublicPath: string = "/usr/src/app/Dashboard/public";
-const DashboardViewPath: string = "/usr/src/app/Dashboard/views/index.ejs";
+const DashboardPublicPath: string = "/usr/src/app/FeatureSet/Dashboard/public";
+const DashboardViewPath: string = "/usr/src/app/FeatureSet/Dashboard/views/index.ejs";
 
-const AdminPublicPath: string = "/usr/src/app/AdminDashboard/public";
-const AdminViewPath: string = "/usr/src/app/AdminDashboard/views/index.ejs";
+const AdminPublicPath: string = "/usr/src/app/FeatureSet/AdminDashboard/public";
+const AdminViewPath: string = "/usr/src/app/FeatureSet/AdminDashboard/views/index.ejs";
 
-const StatusPagePublicPath: string = "/usr/src/app/StatusPage/public";
-const StatusPageViewPath: string = "/usr/src/app/StatusPage/views/index.ejs";
+const StatusPagePublicPath: string = "/usr/src/app/FeatureSet/StatusPage/public";
+const StatusPageViewPath: string = "/usr/src/app/FeatureSet/StatusPage/views/index.ejs";
 
 interface FrontendConfig {
   routePrefix: string;

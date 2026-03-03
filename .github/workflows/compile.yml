@@ -25,7 +25,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/Accounts && npm install && npm run compile && npm run dep-check
+          command: cd App/FeatureSet/Accounts && npm install && npm run compile && npm run dep-check
 
   compile-common:
     runs-on: ubuntu-latest
@@ -161,7 +161,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/AdminDashboard && npm install && npm run compile && npm run dep-check
+          command: cd App/FeatureSet/AdminDashboard && npm install && npm run compile && npm run dep-check
 
   compile-dashboard:
     runs-on: ubuntu-latest
@@ -179,7 +179,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/Dashboard && npm install && npm run compile && npm run dep-check
+          command: cd App/FeatureSet/Dashboard && npm install && npm run compile && npm run dep-check
 
 
   compile-e2e:
@@ -251,7 +251,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd App/StatusPage && npm install && npm run compile && npm run dep-check
+          command: cd App/FeatureSet/StatusPage && npm install && npm run compile && npm run dep-check
 
   compile-test-server:
     runs-on: ubuntu-latest

@@ -56,20 +56,20 @@ COPY ./App/package*.json /usr/src/app/
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
 RUN npm install
 
-WORKDIR /usr/src/app/Accounts
-COPY ./App/Accounts/package*.json /usr/src/app/Accounts/
+WORKDIR /usr/src/app/FeatureSet/Accounts
+COPY ./App/FeatureSet/Accounts/package*.json /usr/src/app/FeatureSet/Accounts/
 RUN npm install
 
-WORKDIR /usr/src/app/Dashboard
-COPY ./App/Dashboard/package*.json /usr/src/app/Dashboard/
+WORKDIR /usr/src/app/FeatureSet/Dashboard
+COPY ./App/FeatureSet/Dashboard/package*.json /usr/src/app/FeatureSet/Dashboard/
 RUN npm install
 
-WORKDIR /usr/src/app/AdminDashboard
-COPY ./App/AdminDashboard/package*.json /usr/src/app/AdminDashboard/
+WORKDIR /usr/src/app/FeatureSet/AdminDashboard
+COPY ./App/FeatureSet/AdminDashboard/package*.json /usr/src/app/FeatureSet/AdminDashboard/
 RUN npm install
 
-WORKDIR /usr/src/app/StatusPage
-COPY ./App/StatusPage/package*.json /usr/src/app/StatusPage/
+WORKDIR /usr/src/app/FeatureSet/StatusPage
+COPY ./App/FeatureSet/StatusPage/package*.json /usr/src/app/FeatureSet/StatusPage/
 RUN npm install
 
 WORKDIR /usr/src/app
@@ -85,10 +85,10 @@ CMD [ "npm", "run", "dev" ]
 # Copy app source
 COPY ./App /usr/src/app
 # Copy frontend sources
-COPY ./App/Accounts /usr/src/app/Accounts
-COPY ./App/Dashboard /usr/src/app/Dashboard
-COPY ./App/AdminDashboard /usr/src/app/AdminDashboard
-COPY ./App/StatusPage /usr/src/app/StatusPage
+COPY ./App/FeatureSet/Accounts /usr/src/app/FeatureSet/Accounts
+COPY ./App/FeatureSet/Dashboard /usr/src/app/FeatureSet/Dashboard
+COPY ./App/FeatureSet/AdminDashboard /usr/src/app/FeatureSet/AdminDashboard
+COPY ./App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
 # Bundle frontend source
 RUN npm run build-frontends:prod
 # Bundle app source

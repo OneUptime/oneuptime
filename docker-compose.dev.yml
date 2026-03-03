@@ -134,17 +134,17 @@ services:
     app:
         volumes:
             - ./App:/usr/src/app:cached
-            - ./App/Accounts:/usr/src/app/Accounts:cached
-            - ./App/Dashboard:/usr/src/app/Dashboard:cached
-            - ./App/AdminDashboard:/usr/src/app/AdminDashboard:cached
-            - ./App/StatusPage:/usr/src/app/StatusPage:cached
+            - ./App/FeatureSet/Accounts:/usr/src/app/FeatureSet/Accounts:cached
+            - ./App/FeatureSet/Dashboard:/usr/src/app/FeatureSet/Dashboard:cached
+            - ./App/FeatureSet/AdminDashboard:/usr/src/app/FeatureSet/AdminDashboard:cached
+            - ./App/FeatureSet/StatusPage:/usr/src/app/FeatureSet/StatusPage:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - /usr/src/app/Accounts/node_modules/
-            - /usr/src/app/Dashboard/node_modules/
-            - /usr/src/app/AdminDashboard/node_modules/
-            - /usr/src/app/StatusPage/node_modules/
+            - /usr/src/app/FeatureSet/Accounts/node_modules/
+            - /usr/src/app/FeatureSet/Dashboard/node_modules/
+            - /usr/src/app/FeatureSet/AdminDashboard/node_modules/
+            - /usr/src/app/FeatureSet/StatusPage/node_modules/
             - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
