@@ -14,9 +14,6 @@ export enum QueueName {
   Workflow = "Workflow",
   Worker = "Worker",
   Telemetry = "Telemetry",
-  IncomingRequestIngest = "IncomingRequestIngest",
-  ServerMonitorIngest = "ServerMonitorIngest",
-  ProbeIngest = "ProbeIngest",
 }
 
 export type QueueJob = Job;

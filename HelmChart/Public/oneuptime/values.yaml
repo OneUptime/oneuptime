@@ -695,30 +695,6 @@ app:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-probeIngest:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  concurrency: 100
-  ports:
-    http: 3400
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-  # KEDA autoscaling configuration based on queue metrics
-  keda:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    # Scale up when queue size exceeds this threshold
-    queueSizeThreshold: 100
-    # Polling interval for metrics (in seconds)
-    pollingInterval: 30
-    # Cooldown period after scaling (in seconds)
-    cooldownPeriod: 300
-
 telemetry:
   enabled: true
   replicaCount: 1
@@ -743,54 +719,6 @@ telemetry:
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
-
-incomingRequestIngest:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  concurrency: 100
-  ports:
-    http: 3402
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-  # KEDA autoscaling configuration based on queue metrics
-  keda:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    # Scale up when queue size exceeds this threshold
-    queueSizeThreshold: 100
-    # Polling interval for metrics (in seconds)
-    pollingInterval: 30
-    # Cooldown period after scaling (in seconds)
-    cooldownPeriod: 300
-
-isolatedVM:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  ports:
-    http: 4572
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-
-mcp:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  ports:
-    http: 3405
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
 
 # AI Agent Configuration
 # Deploy this to run an AI Agent within your Kubernetes cluster
@@ -817,30 +745,6 @@ aiAgent:
     maxReplicas: 100
     # Scale up when queue size exceeds this threshold
     queueSizeThreshold: 5
-    # Polling interval for metrics (in seconds)
-    pollingInterval: 30
-    # Cooldown period after scaling (in seconds)
-    cooldownPeriod: 300
-
-serverMonitorIngest:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  concurrency: 100
-  ports:
-    http: 3404
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-  # KEDA autoscaling configuration based on queue metrics
-  keda:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    # Scale up when queue size exceeds this threshold
-    queueSizeThreshold: 100
     # Polling interval for metrics (in seconds)
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)

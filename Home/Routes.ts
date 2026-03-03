@@ -1579,6 +1579,18 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get("/legal/dpa", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.render(`${ViewsPath}/legal.ejs`, {
+        footerCards: true,
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        cta: true,
+        blackLogo: false,
+        section: "dpa",
+        requestDemoCta: false,
+      });
+    });
+
     app.get("/legal/ccpa", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
@@ -1761,6 +1773,18 @@ const HomeFeatureSet: FeatureSet = {
         cta: true,
         blackLogo: false,
         section: "gdpr",
+        requestDemoCta: false,
+      });
+    });
+
+    app.get("/legal/fedramp", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.render(`${ViewsPath}/legal.ejs`, {
+        footerCards: true,
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        cta: true,
+        blackLogo: false,
+        section: "fedramp",
         requestDemoCta: false,
       });
     });

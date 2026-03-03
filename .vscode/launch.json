@@ -135,65 +135,9 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/ProbeIngest",
-            "name": "ProbeIngest: Debug with Docker",
-            "port": 9932,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/ServerMonitorIngest",
-            "name": "ServerMonitorIngest: Debug with Docker",
-            "port": 9941,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/IncomingRequestIngest",
-            "name": "IncomingRequestIngest: Debug with Docker",
-            "port": 9933,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Telemetry",
             "name": "Telemetry: Debug with Docker",
             "port": 9938,
-            "remoteRoot": "/usr/src/app",
-            "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node",
-            "restart": true,
-            "autoAttachChildProcesses": true
-        },
-        {
-            "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/IsolatedVM",
-            "name": "Isolated VM: Debug with Docker",
-            "port": 9974,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [

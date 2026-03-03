@@ -175,27 +175,9 @@ export const AppApiHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const ProbeIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_PROBE_INGEST_HOSTNAME"] || "localhost"}:${
-    process.env["PROBE_INGEST_PORT"] || 80
-  }`,
-);
-
 export const OpenTelemetryIngestHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_TELEMETRY_HOSTNAME"] || "localhost"}:${
     process.env["TELEMETRY_PORT"] || 80
-  }`,
-);
-
-export const IncomingRequestIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_INCOMING_REQUEST_INGEST_HOSTNAME"] || "localhost"}:${
-    process.env["INCOMING_REQUEST_INGEST_PORT"] || 80
-  }`,
-);
-
-export const IsolatedVMHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ISOLATED_VM_HOSTNAME"] || "localhost"}:${
-    process.env["ISOLATED_VM_PORT"] || 80
   }`,
 );
 

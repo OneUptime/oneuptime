@@ -30,10 +30,6 @@ export const ProbeIngestRoute: Route = new Route("/probe-ingest");
 
 export const TelemetryRoute: Route = new Route("/telemetry");
 
-export const IncomingRequestIngestRoute: Route = new Route(
-  "/incoming-request-ingest",
-);
-
 export const RealtimeRoute: Route = new Route("/realtime/socket");
 
 export const DocsRoute: Route = new Route("/docs");

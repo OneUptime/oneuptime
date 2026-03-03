@@ -12,7 +12,9 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import Port from "Common/Types/Port";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
@@ -988,8 +990,8 @@ return {
         </CollapsibleSection>
       )}
 
-      {/* Test Monitor Card - not shown for Incoming Request monitors */}
-      {props.monitorType !== MonitorType.IncomingRequest && (
+      {/* Test Monitor Card - only shown for probeable monitors */}
+      {MonitorTypeHelper.isProbableMonitor(props.monitorType) && (
         <Card
           title="Test Monitor"
           description="Verify your monitor configuration before saving"

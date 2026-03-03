@@ -15,7 +15,6 @@ import {
   StatusPageApiRoute,
   StatusPageRoute,
   WorkflowRoute,
-  IncomingRequestIngestRoute,
   TelemetryRoute,
 } from "../ServiceRoute";
 import Hostname from "../Types/API/Hostname";
@@ -76,12 +75,7 @@ export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const PROBE_INGEST_HOSTNAME: Hostname = Hostname.fromString(HOST);
-
 export const TELEMETRY_HOSTNAME: Hostname = Hostname.fromString(HOST);
-
-export const INCOMING_REQUEST_INGEST_HOSTNAME: Hostname =
-  Hostname.fromString(HOST);
 
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
@@ -143,14 +137,8 @@ export const WORKFLOW_URL: URL = new URL(
 
 export const PROBE_INGEST_URL: URL = new URL(
   HTTP_PROTOCOL,
-  PROBE_INGEST_HOSTNAME,
+  TELEMETRY_HOSTNAME,
   new Route(ProbeIngestRoute.toString()),
-);
-
-export const INCOMING_REQUEST_INGEST_URL: URL = new URL(
-  HTTP_PROTOCOL,
-  INCOMING_REQUEST_INGEST_HOSTNAME,
-  new Route(IncomingRequestIngestRoute.toString()),
 );
 
 export const STATUS_PAGE_URL: URL = new URL(

@@ -310,6 +310,7 @@
                 <option value="/legal/hipaa" <%= section === 'hipaa' ? 'selected' : '' %>>HIPAA</option>
                 <option value="/legal/data-residency" <%= section === 'data-residency' ? 'selected' : '' %>>Data Residency</option>
                 <option value="/legal/subprocessors" <%= section === 'subprocessors' ? 'selected' : '' %>>Subprocessors</option>
+                <option value="/legal/dpa" <%= section === 'dpa' ? 'selected' : '' %>>Data Processing Agreement</option>
               </optgroup>
               <optgroup label="Security Certifications">
                 <option value="/legal/iso-27001" <%= section === 'iso-27001' ? 'selected' : '' %>>ISO/IEC 27001</option>
@@ -318,6 +319,7 @@
                 <option value="/legal/soc-2" <%= section === 'soc-2' ? 'selected' : '' %>>SOC 2</option>
                 <option value="/legal/soc-3" <%= section === 'soc-3' ? 'selected' : '' %>>SOC 3</option>
                 <option value="/legal/pci" <%= section === 'pci' ? 'selected' : '' %>>PCI DSS</option>
+                <option value="/legal/fedramp" <%= section === 'fedramp' ? 'selected' : '' %>>FedRAMP</option>
                 <option value="/legal/vpat" <%= section === 'vpat' ? 'selected' : '' %>>VPAT (Accessibility)</option>
               </optgroup>
               <optgroup label="Other">
@@ -395,6 +397,11 @@
                     Subprocessors
                   </a>
                 </li>
+                <li>
+                  <a href="/legal/dpa" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'dpa' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Data Processing Agreement
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -435,6 +442,11 @@
                 <li>
                   <a href="/legal/pci" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'pci' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
                     PCI DSS
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/fedramp" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'fedramp' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    FedRAMP
                   </a>
                 </li>
                 <li>
@@ -561,6 +573,14 @@
 
           <% if(section === "subprocessors") { %>
           <%- include('subprocessors') -%>
+          <% } %>
+
+          <% if(section === "dpa") { %>
+          <%- include('dpa') -%>
+          <% } %>
+
+          <% if(section === "fedramp") { %>
+          <%- include('fedramp') -%>
           <% } %>
 
           <% if(section === "vpat") { %>
