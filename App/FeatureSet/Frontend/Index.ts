@@ -9,8 +9,10 @@ import Express, {
   ExpressResponse,
   ExpressStatic,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
@@ -317,7 +319,7 @@ const ensureMasterAdminAccess: (
       return {};
     }
 
-    const authData = JSONWebToken.decode(accessToken);
+    const authData: JSONWebTokenData = JSONWebToken.decode(accessToken);
 
     if (!authData.isMasterAdmin) {
       Response.sendErrorResponse(
@@ -347,7 +349,9 @@ const ensureMasterAdminAccess: (
 const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
   frontendConfig: FrontendConfig,
 ): void => {
-  const staticHandler = ExpressStatic(frontendConfig.publicPath);
+  const staticHandler: RequestHandler = ExpressStatic(
+    frontendConfig.publicPath,
+  ) as RequestHandler;
 
   app.use(
     frontendConfig.routePrefix,
