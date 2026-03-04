@@ -1792,6 +1792,78 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get("/legal/gamp-5", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.render(`${ViewsPath}/legal.ejs`, {
+        footerCards: true,
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        cta: true,
+        blackLogo: false,
+        section: "gamp-5",
+        requestDemoCta: false,
+      });
+    });
+
+    app.get(
+      "/legal/annex-11",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/legal.ejs`, {
+          footerCards: true,
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          cta: true,
+          blackLogo: false,
+          section: "annex-11",
+          requestDemoCta: false,
+        });
+      },
+    );
+
+    app.get(
+      "/legal/iso-9001",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/legal.ejs`, {
+          footerCards: true,
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          cta: true,
+          blackLogo: false,
+          section: "iso-9001",
+          requestDemoCta: false,
+        });
+      },
+    );
+
+    app.get(
+      "/legal/gxp-cloud",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/legal.ejs`, {
+          footerCards: true,
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          cta: true,
+          blackLogo: false,
+          section: "gxp-cloud",
+          requestDemoCta: false,
+        });
+      },
+    );
+
+    app.get(
+      "/legal/csa-star",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/legal.ejs`, {
+          footerCards: true,
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          cta: true,
+          blackLogo: false,
+          section: "csa-star",
+          requestDemoCta: false,
+        });
+      },
+    );
+
     app.get("/legal/fedramp", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
