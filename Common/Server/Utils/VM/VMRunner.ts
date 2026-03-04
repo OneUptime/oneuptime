@@ -10,6 +10,241 @@ import Dictionary from "../../../Types/Dictionary";
 import GenericObject from "../../../Types/GenericObject";
 import vm, { Context } from "vm";
 
+/**
+ * Symbol used to retrieve the real (unwrapped) target from a sandbox proxy.
+ * Hidden from user code via ownKeys / has traps.
+ */
+const PROXY_TARGET_SYMBOL: unique symbol = Symbol("sandboxProxyTarget");
+
+/** Properties blocked on every host-realm object exposed to the sandbox. */
+const BLOCKED_SANDBOX_PROPERTIES: ReadonlySet<string> = new Set([
+  "constructor",
+  "__proto__",
+  "prototype",
+  "mainModule",
+]);
+
+/**
+ * Wraps a host-realm value in a Proxy that blocks prototype-chain traversal.
+ * Primitives and null/undefined pass through unchanged.
+ * Object proxies are cached to preserve identity; function proxies are created
+ * per-access so they bind to the correct `this` (parent object).
+ */
+function createSandboxProxy(
+  value: unknown,
+  cache: WeakMap<GenericObject, unknown>,
+  parentObj?: GenericObject,
+): unknown {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  const valueType: string = typeof value;
+
+  if (valueType !== "object" && valueType !== "function") {
+    return value;
+  }
+
+  const target: GenericObject = value as GenericObject;
+
+  if (valueType === "function") {
+    /*
+     * Function proxies are NOT cached because the same function may be a method
+     * on different parent objects and needs a different `this` binding each time.
+     */
+    const fnProxy: unknown = new Proxy(
+      target as (...args: unknown[]) => unknown,
+      {
+        get(
+          fnTarget: (...args: unknown[]) => unknown,
+          prop: string | symbol,
+        ): unknown {
+          if (prop === PROXY_TARGET_SYMBOL) {
+            return fnTarget;
+          }
+          if (
+            typeof prop === "string" &&
+            BLOCKED_SANDBOX_PROPERTIES.has(prop)
+          ) {
+            return undefined;
+          }
+          const val: unknown = Reflect.get(
+            fnTarget,
+            prop,
+            fnTarget as GenericObject,
+          );
+          return createSandboxProxy(val, cache, fnTarget as GenericObject);
+        },
+        getPrototypeOf(): null {
+          return null;
+        },
+        apply(
+          fnTarget: (...args: unknown[]) => unknown,
+          _thisArg: unknown,
+          args: unknown[],
+        ): unknown {
+          const thisObj: GenericObject = (parentObj ||
+            fnTarget) as GenericObject;
+          try {
+            const result: unknown = Reflect.apply(fnTarget, thisObj, args);
+            if (result instanceof Promise) {
+              return result.then(
+                (v: unknown) => {
+                  return createSandboxProxy(v, cache);
+                },
+                (err: unknown) => {
+                  throw createSandboxProxy(err, cache);
+                },
+              );
+            }
+            return createSandboxProxy(result, cache);
+          } catch (err: unknown) {
+            throw createSandboxProxy(err, cache);
+          }
+        },
+        has(
+          fnTarget: (...args: unknown[]) => unknown,
+          prop: string | symbol,
+        ): boolean {
+          if (
+            typeof prop === "string" &&
+            BLOCKED_SANDBOX_PROPERTIES.has(prop)
+          ) {
+            return false;
+          }
+          return Reflect.has(fnTarget, prop);
+        },
+        ownKeys(
+          fnTarget: (...args: unknown[]) => unknown,
+        ): (string | symbol)[] {
+          return Reflect.ownKeys(fnTarget).filter((k: string | symbol) => {
+            return !(
+              typeof k === "string" && BLOCKED_SANDBOX_PROPERTIES.has(k)
+            );
+          });
+        },
+      },
+    );
+    return fnProxy;
+  }
+
+  // Object — use cache to preserve identity and handle circular references
+  if (cache.has(target)) {
+    return cache.get(target);
+  }
+
+  const objProxy: GenericObject = new Proxy(target, {
+    get(objTarget: GenericObject, prop: string | symbol): unknown {
+      if (prop === PROXY_TARGET_SYMBOL) {
+        return objTarget;
+      }
+      if (typeof prop === "string" && BLOCKED_SANDBOX_PROPERTIES.has(prop)) {
+        return undefined;
+      }
+      const val: unknown = Reflect.get(objTarget, prop, objTarget);
+      return createSandboxProxy(val, cache, objTarget);
+    },
+    getPrototypeOf(): null {
+      return null;
+    },
+    set(
+      objTarget: GenericObject,
+      prop: string | symbol,
+      newValue: unknown,
+    ): boolean {
+      return Reflect.set(objTarget, prop, newValue);
+    },
+    has(objTarget: GenericObject, prop: string | symbol): boolean {
+      if (typeof prop === "string" && BLOCKED_SANDBOX_PROPERTIES.has(prop)) {
+        return false;
+      }
+      return Reflect.has(objTarget, prop);
+    },
+    ownKeys(objTarget: GenericObject): (string | symbol)[] {
+      return Reflect.ownKeys(objTarget).filter((k: string | symbol) => {
+        return !(typeof k === "string" && BLOCKED_SANDBOX_PROPERTIES.has(k));
+      });
+    },
+  });
+
+  cache.set(target, objProxy);
+  return objProxy;
+}
+
+/**
+ * Recursively unwraps sandbox proxies in a return value so the host code
+ * receives original objects (e.g. Buffers that pass `instanceof` checks).
+ */
+function deepUnwrapProxies(
+  value: unknown,
+  visited?: WeakSet<GenericObject>,
+): unknown {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  const valueType: string = typeof value;
+
+  if (valueType !== "object" && valueType !== "function") {
+    return value;
+  }
+
+  const obj: Record<string | symbol, unknown> = value as Record<
+    string | symbol,
+    unknown
+  >;
+
+  // If it's one of our proxies, unwrap to the original target
+  try {
+    const underlying: unknown = obj[PROXY_TARGET_SYMBOL];
+    if (underlying !== undefined) {
+      return underlying;
+    }
+  } catch {
+    // Not a proxy or symbol access failed — treat as a plain value
+  }
+
+  if (!visited) {
+    visited = new WeakSet<GenericObject>();
+  }
+
+  if (visited.has(obj as GenericObject)) {
+    return obj;
+  }
+
+  visited.add(obj as GenericObject);
+
+  if (Array.isArray(obj)) {
+    for (let i: number = 0; i < obj.length; i++) {
+      (obj as unknown[])[i] = deepUnwrapProxies((obj as unknown[])[i], visited);
+    }
+  } else if (valueType === "object") {
+    for (const key of Object.keys(obj as Record<string, unknown>)) {
+      (obj as Record<string, unknown>)[key] = deepUnwrapProxies(
+        (obj as Record<string, unknown>)[key],
+        visited,
+      );
+    }
+  }
+
+  return obj;
+}
+
+/**
+ * Unwraps a single value if it is a sandbox proxy, otherwise returns it as-is.
+ */
+function unwrapProxy<T>(value: T): T {
+  if (value && typeof value === "object") {
+    const underlying: unknown = (value as Record<symbol, unknown>)[
+      PROXY_TARGET_SYMBOL
+    ];
+    if (underlying !== undefined) {
+      return underlying as T;
+    }
+  }
+  return value;
+}
+
 export default class VMRunner {
   @CaptureSpan()
   public static async runCodeInNodeVM(data: {
@@ -49,8 +284,9 @@ export default class VMRunner {
     const wrappedClearTimeout: (handle: TimerHandle) => void = (
       handle: TimerHandle,
     ): void => {
-      clearTimeout(handle);
-      const idx: number = pendingTimeouts.indexOf(handle);
+      const actual: TimerHandle = unwrapProxy(handle);
+      clearTimeout(actual);
+      const idx: number = pendingTimeouts.indexOf(actual);
       if (idx !== -1) {
         pendingTimeouts.splice(idx, 1);
       }
@@ -73,16 +309,22 @@ export default class VMRunner {
     const wrappedClearInterval: (handle: TimerHandle) => void = (
       handle: TimerHandle,
     ): void => {
-      clearInterval(handle);
-      const idx: number = pendingIntervals.indexOf(handle);
+      const actual: TimerHandle = unwrapProxy(handle);
+      clearInterval(actual);
+      const idx: number = pendingIntervals.indexOf(actual);
       if (idx !== -1) {
         pendingIntervals.splice(idx, 1);
       }
     };
 
-    let sandbox: Context = {
-      process: Object.freeze(Object.create(null)),
-      console: {
+    // Proxy cache shared across all wrapped host objects in this execution
+    const proxyCache: WeakMap<GenericObject, unknown> = new WeakMap();
+
+    // Use null-prototype object to break this.constructor chain on the global
+    const sandbox: Context = Object.create(null) as Context;
+    sandbox["process"] = Object.freeze(Object.create(null));
+    sandbox["console"] = createSandboxProxy(
+      {
         log: (...args: JSONValue[]) => {
           const msg: string = args.join(" ");
           totalLogBytes += msg.length;
@@ -91,25 +333,43 @@ export default class VMRunner {
           }
         },
       },
-      http: http,
-      https: https,
-      axios: axios,
-      crypto: crypto,
-      setTimeout: wrappedSetTimeout,
-      clearTimeout: wrappedClearTimeout,
-      setInterval: wrappedSetInterval,
-      clearInterval: wrappedClearInterval,
-      ...options.context,
-    };
+      proxyCache,
+    );
+    sandbox["http"] = createSandboxProxy(http, proxyCache);
+    sandbox["https"] = createSandboxProxy(https, proxyCache);
+    sandbox["axios"] = createSandboxProxy(axios, proxyCache);
+    sandbox["crypto"] = createSandboxProxy(crypto, proxyCache);
+    sandbox["setTimeout"] = createSandboxProxy(wrappedSetTimeout, proxyCache);
+    sandbox["clearTimeout"] = createSandboxProxy(
+      wrappedClearTimeout,
+      proxyCache,
+    );
+    sandbox["setInterval"] = createSandboxProxy(wrappedSetInterval, proxyCache);
+    sandbox["clearInterval"] = createSandboxProxy(
+      wrappedClearInterval,
+      proxyCache,
+    );
 
-    if (options.args) {
-      sandbox = {
-        ...sandbox,
-        args: options.args,
-      };
+    // Wrap any additional context (e.g. Playwright browser/page objects)
+    if (options.context) {
+      for (const key of Object.keys(options.context)) {
+        const val: GenericObject | string | undefined = options.context[key];
+        sandbox[key] =
+          typeof val === "string" ? val : createSandboxProxy(val, proxyCache);
+      }
     }
 
-    vm.createContext(sandbox);
+    if (options.args) {
+      // args is plain JSON data — no host functions to protect against
+      sandbox["args"] = options.args;
+    }
+
+    vm.createContext(sandbox, {
+      codeGeneration: {
+        strings: false,
+        wasm: false,
+      },
+    });
 
     const script: string = `(async()=>{
         ${code}
@@ -140,7 +400,7 @@ export default class VMRunner {
       ]);
 
       return {
-        returnValue: returnVal,
+        returnValue: deepUnwrapProxies(returnVal),
         logMessages,
       };
     } finally {
