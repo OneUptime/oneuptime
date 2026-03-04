@@ -4,26 +4,47 @@
 <link rel="preload" href="/docs/static/fonts/f1.woff2" as="font" crossorigin="" type="font/woff2">
 <link rel="preload" href="/docs/static/fonts/f2.woff2" as="font" crossorigin="" type="font/woff2">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<!-- Critical CSS to prevent CLS - these layout rules render immediately before any external resources -->
+<style>
+    /* Reserve structural layout space to prevent CLS */
+    body { margin: 0; display: flex; min-height: 100vh; font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif; }
+    body > div { display: flex; flex-direction: column; width: 100%; }
+    /* Header: fixed height prevents shift when styles load */
+    header { position: sticky; top: 0; z-index: 50; min-height: 57px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.95); border-bottom: 1px solid rgba(15,23,42,0.1); padding: 0.75rem 1rem; }
+    img[alt="OneUptime"] { height: 2rem; width: auto; display: block; }
+    /* Reserve sidebar width on desktop to prevent content reflow */
+    @media (min-width: 1024px) {
+        .docs-layout-sidebar { width: 16rem; min-width: 16rem; flex-shrink: 0; }
+    }
+    /* Prevent prose/article images from causing CLS */
+    .prose img, .docs-article img { max-width: 100%; height: auto; }
+    /* Sidebar nav fixed width to prevent reflow */
+    nav[aria-label="Documentation navigation"] { width: 16rem; flex: 0 0 16rem; }
+</style>
+<!-- Tailwind CDN - load synchronously before compiled CSS so both are ready at first paint -->
+<link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+                    display: ['var(--font-lexend)', 'system-ui', 'sans-serif'],
+                },
+            }
+        }
+    }
+</script>
+<!-- Compiled CSS: font-face declarations, prose typography, syntax tokens -->
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
 <title>OneUptime Documentation</title>
 <meta name="description" content="Complete documentation for OneUptime - the open-source observability platform. Learn how to monitor your applications, set up alerts, and manage incidents.">
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <meta name="next-size-adjust">
-<style>
-    /* Critical CSS to prevent CLS - reserve layout space before Tailwind loads */
-    body { margin: 0; display: flex; min-height: 100vh; }
-    body > div { display: flex; flex-direction: column; width: 100%; }
-    header { position: sticky; top: 0; z-index: 50; height: 57px; min-height: 57px; }
-    img[alt="OneUptime"] { height: 2rem; width: auto; display: block; }
-    /* Reserve sidebar width on desktop */
-    @media (min-width: 1024px) {
-        .docs-layout-sidebar { width: 16rem; min-width: 16rem; flex-shrink: 0; }
-    }
-    /* Prevent prose images from causing CLS */
-    .prose img, .docs-article img { max-width: 100%; height: auto; aspect-ratio: attr(width) / attr(height); }
-</style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js" crossorigin defer></script>
