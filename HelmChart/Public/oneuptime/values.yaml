@@ -610,29 +610,6 @@ home:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-dashboard:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  ports:
-    http: 3009
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-
-adminDashboard:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  ports:
-    http: 3158
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
 
 worker:
   enabled: true
