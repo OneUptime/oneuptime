@@ -47,12 +47,111 @@
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <meta name="next-size-adjust">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js" crossorigin defer></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" crossorigin>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        hljs.highlightAll();
+    // Language display names
+    var langNames = {
+        'javascript': 'JavaScript', 'js': 'JavaScript', 'typescript': 'TypeScript', 'ts': 'TypeScript',
+        'python': 'Python', 'py': 'Python', 'ruby': 'Ruby', 'rb': 'Ruby',
+        'go': 'Go', 'java': 'Java', 'css': 'CSS', 'html': 'HTML', 'xml': 'XML',
+        'json': 'JSON', 'yaml': 'YAML', 'yml': 'YAML', 'sql': 'SQL',
+        'bash': 'Bash', 'shell': 'Shell', 'sh': 'Shell', 'zsh': 'Shell',
+        'dockerfile': 'Dockerfile', 'docker': 'Dockerfile',
+        'rust': 'Rust', 'cpp': 'C++', 'c': 'C', 'csharp': 'C#',
+        'php': 'PHP', 'graphql': 'GraphQL', 'http': 'HTTP',
+        'markdown': 'Markdown', 'md': 'Markdown', 'plaintext': 'Text',
+        'powershell': 'PowerShell', 'hcl': 'HCL', 'terraform': 'Terraform'
+    };
+
+    function addCodeBlockHeaders() {
+        var copyIcon = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+        var checkIcon = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+
+        document.querySelectorAll('pre').forEach(function(pre) {
+            if(pre.querySelector('.code-block-header')) return; // already processed
+            var codeEl = pre.querySelector('code');
+            if(!codeEl) return;
+
+            // Detect language from class
+            var lang = '';
+            var classes = (codeEl.className || '').split(/\s+/);
+            for(var i = 0; i < classes.length; i++){
+                var m = classes[i].match(/^(?:language-|hljs-)(.+)$/);
+                if(m && m[1] !== 'hljs'){ lang = m[1]; break; }
+            }
+            if(!lang && codeEl.dataset && codeEl.dataset.highlightedLanguage){
+                lang = codeEl.dataset.highlightedLanguage;
+            }
+
+            var displayLang = langNames[lang] || (lang ? lang.charAt(0).toUpperCase() + lang.slice(1) : '');
+
+            // Create header bar
+            var header = document.createElement('div');
+            header.className = 'code-block-header';
+
+            var labelEl = document.createElement('span');
+            labelEl.className = 'code-lang-label';
+            labelEl.textContent = displayLang;
+            header.appendChild(labelEl);
+
+            var copyBtn = document.createElement('button');
+            copyBtn.className = 'code-copy-btn';
+            copyBtn.setAttribute('aria-label', 'Copy code');
+            copyBtn.innerHTML = copyIcon + '<span>Copy</span>';
+            (function(btn, code) {
+                btn.addEventListener('click', function(){
+                    var text = code.textContent || '';
+                    navigator.clipboard.writeText(text).then(function(){
+                        btn.classList.add('copied');
+                        btn.innerHTML = checkIcon + '<span>Copied!</span>';
+                        setTimeout(function(){
+                            btn.classList.remove('copied');
+                            btn.innerHTML = copyIcon + '<span>Copy</span>';
+                        }, 2000);
+                    });
+                });
+            })(copyBtn, codeEl);
+            header.appendChild(copyBtn);
+
+            pre.insertBefore(header, pre.firstChild);
+        });
+    }
+
+    // Lazy-load language packs, highlight, then add headers
+    document.addEventListener('DOMContentLoaded', function(){
+        var langMap = {
+            'dockerfile':'dockerfile','yaml':'yaml','yml':'yaml','bash':'bash','shell':'bash','sh':'bash',
+            'typescript':'typescript','ts':'typescript','go':'go','python':'python','py':'python',
+            'json':'json','ruby':'ruby','rb':'ruby','java':'java','css':'css','sql':'sql',
+            'rust':'rust','graphql':'graphql','javascript':'javascript','js':'javascript',
+            'xml':'xml','html':'xml','markup':'xml','cpp':'cpp','csharp':'csharp','php':'php',
+            'powershell':'powershell','hcl':'hcl','terraform':'hcl'
+        };
+        var needed = {};
+        document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){
+            var m = el.className.match(/language-(\w+)/);
+            if(m && langMap[m[1]]){ needed[langMap[m[1]]] = true; }
+        });
+        var langs = Object.keys(needed);
+
+        function highlightAndDecorate() {
+            hljs.highlightAll();
+            addCodeBlockHeaders();
+        }
+
+        if(langs.length === 0){ highlightAndDecorate(); return; }
+        var loaded = 0;
+        langs.forEach(function(lang){
+            var s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/' + lang + '.min.js';
+            s.async = false;
+            s.onload = s.onerror = function(){
+                loaded++;
+                if(loaded >= langs.length){ highlightAndDecorate(); }
+            };
+            document.head.appendChild(s);
+        });
     });
 </script>
 <script type="module">
