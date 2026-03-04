@@ -3,7 +3,7 @@ import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
@@ -21,12 +21,10 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
@@ -193,24 +191,8 @@ RunCron(
         // get status page resources from monitors.
 
         const statusPageResources: Array<StatusPageResource> =
-          await StatusPageResourceService.findBy({
-            query: {
-              monitorId: QueryHelper.any(
-                incident.monitors
-                  .filter((m: Monitor) => {
-                    return m._id;
-                  })
-                  .map((m: Monitor) => {
-                    return new ObjectID(m._id!);
-                  }),
-              ),
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
+          await StatusPageResourceService.findByMonitors({
+            monitors: incident.monitors,
             select: {
               _id: true,
               displayName: true,

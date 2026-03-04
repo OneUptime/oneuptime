@@ -97,24 +97,8 @@ export class Service extends DatabaseService<Model> {
       let statusPageResources: Array<StatusPageResource> = [];
 
       if (event.monitors && event.monitors.length > 0) {
-        statusPageResources = await StatusPageResourceService.findBy({
-          query: {
-            monitorId: QueryHelper.any(
-              event.monitors
-                .filter((m: Monitor) => {
-                  return m._id;
-                })
-                .map((m: Monitor) => {
-                  return new ObjectID(m._id!);
-                }),
-            ),
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
+        statusPageResources = await StatusPageResourceService.findByMonitors({
+          monitors: event.monitors,
           select: {
             _id: true,
             displayName: true,
