@@ -103,8 +103,6 @@ Usage:
   value: {{ default "" $.Values.inboundEmail.domain | quote }}
 - name: INBOUND_EMAIL_WEBHOOK_SECRET
   value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
-- name: SERVER_WORKFLOW_HOSTNAME
-  value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKER_HOSTNAME
   value: {{ $.Release.Name }}-worker.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_HOME_HOSTNAME
@@ -131,8 +129,6 @@ Usage:
   value: {{ $.Values.home.ports.http | squote }}
 - name: WORKER_PORT
   value: {{ $.Values.worker.ports.http | squote }}
-- name: WORKFLOW_PORT
-  value: {{ $.Values.workflow.ports.http | squote }}
 - name: STATUS_PAGE_PORT
   value: {{ $.Values.statusPage.ports.http | squote }}
 - name: DASHBOARD_PORT

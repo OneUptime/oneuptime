@@ -187,11 +187,7 @@ export const WorkerHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const WorkflowHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_WORKFLOW_HOSTNAME"] || "localhost"}:${
-    process.env["WORKFLOW_PORT"] || 80
-  }`,
-);
+export const WorkflowHostname: Hostname = WorkerHostname;
 
 export const HomeHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_HOME_HOSTNAME"] || "localhost"}:${
