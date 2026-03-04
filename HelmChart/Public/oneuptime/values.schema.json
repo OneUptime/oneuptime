@@ -1526,6 +1526,9 @@
         "concurrency": {
           "type": "integer"
         },
+        "workflowTimeoutInMs": {
+          "type": "integer"
+        },
         "ports": {
           "type": "object",
           "properties": {
@@ -1570,48 +1573,6 @@
             }
           },
           "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    "workflow": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "replicaCount": {
-          "type": "integer"
-        },
-        "disableTelemetryCollection": {
-          "type": "boolean"
-        },
-        "disableAutoscaler": {
-          "type": "boolean"
-        },
-        "workflowTimeoutInMs": {
-          "type": "integer"
-        },
-        "ports": {
-          "type": "object",
-          "properties": {
-            "http": {
-              "type": "integer"
-            }
-          },
-          "additionalProperties": false
-        },
-        "resources": {
-          "type": ["object", "null"]
-        },
-        "nodeSelector": {
-          "type": "object"
-        },
-        "podSecurityContext": {
-          "type": "object"
-        },
-        "containerSecurityContext": {
-          "type": "object"
         }
       },
       "additionalProperties": false

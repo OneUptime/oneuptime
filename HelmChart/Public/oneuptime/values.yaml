@@ -640,6 +640,7 @@ worker:
   disableTelemetryCollection: false
   disableAutoscaler: false
   concurrency: 100
+  workflowTimeoutInMs: 5000
   ports:
     http: 1445
   resources:
@@ -657,19 +658,6 @@ worker:
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
-
-workflow:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  workflowTimeoutInMs: 5000
-  ports:
-    http: 3099
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
 
 app:
   enabled: true

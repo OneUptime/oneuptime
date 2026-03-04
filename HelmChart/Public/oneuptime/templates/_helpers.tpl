@@ -509,7 +509,7 @@ Usage:
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 
 - name: WORKFLOW_TIMEOUT_IN_MS
-  value: {{ $.Values.workflow.workflowTimeoutInMs | squote }}
+  value: {{ $.Values.worker.workflowTimeoutInMs | squote }}
 
 - name: AVERAGE_SPAN_ROW_SIZE_IN_BYTES
   value: {{ $.Values.billing.telemetry.averageSpanRowSizeInBytes | quote }}
