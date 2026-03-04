@@ -4,7 +4,7 @@ This trigger lets you start the workflow with the incoming HTTP request.
 **URL of this trigger:** 
 
 
-```yaml
+```text
 {{serverUrl}}workflow/trigger/{{workflowId}}
 ```
 
