@@ -1777,6 +1777,21 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get(
+      "/legal/21-cfr-part-11",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/legal.ejs`, {
+          footerCards: true,
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          cta: true,
+          blackLogo: false,
+          section: "21-cfr-part-11",
+          requestDemoCta: false,
+        });
+      },
+    );
+
     app.get("/legal/fedramp", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
