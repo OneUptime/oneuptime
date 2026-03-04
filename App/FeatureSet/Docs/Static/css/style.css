@@ -3422,15 +3422,15 @@ pre code, code.font-mono {
     border-bottom: none;
 }
 
-/* Mermaid diagram wrapper */
+/* Mermaid diagram wrapper — let large diagrams scroll instead of shrinking */
 .mermaid-wrapper {
     -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
     max-width: 100%;
+    padding: 1rem 0;
 }
-.mermaid-wrapper .mermaid {
-    min-width: 0;
-}
-.mermaid-wrapper svg {
-    max-width: 100%;
+.mermaid-wrapper .mermaid svg {
+    max-width: none;
+    min-width: 600px;
     height: auto;
 }
