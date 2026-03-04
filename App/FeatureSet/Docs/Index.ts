@@ -127,13 +127,9 @@ const DocsFeatureSet: FeatureSet = {
             }
           }
 
-          const currentIndex: number = flatLinks.findIndex(
-            (item: FlatLink) => {
-              return item.link.url
-                .toLocaleLowerCase()
-                .includes(fullPath);
-            },
-          );
+          const currentIndex: number = flatLinks.findIndex((item: FlatLink) => {
+            return item.link.url.toLocaleLowerCase().includes(fullPath);
+          });
 
           const prevLink: FlatLink | null =
             currentIndex > 0 ? flatLinks[currentIndex - 1]! : null;

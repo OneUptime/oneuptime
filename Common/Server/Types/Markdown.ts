@@ -195,8 +195,12 @@ export default class Markdown {
           },
         };
 
-        const config: { border: string; bg: string; icon: string; label: string } =
-          configMap[type] || configMap["note"]!;
+        const config: {
+          border: string;
+          bg: string;
+          icon: string;
+          label: string;
+        } = configMap[type] || configMap["note"]!;
 
         const content: string = quote.replace(
           /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution):?<\/strong>\s*/i,
