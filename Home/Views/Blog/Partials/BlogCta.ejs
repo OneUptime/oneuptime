@@ -1,16 +1,161 @@
+<style>
+  .blog-cta-card {
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .blog-cta-card:hover {
+    transform: translateY(-2px);
+  }
+</style>
 
-<div class="border-t border-gray-900/10 pt-8"></div>
-<div class="relative isolate overflow-hidden bg-white">
-    <div class="py-16">
-      <div class="mx-auto max-w-8xl px-6 lg:px-8">
-        <div class="mx-auto max-w-4xl text-center">
-          <h1 class="text-3xl font-bold tracking-tight text-gray-900">OneUptime is an open-source observability platform.</h1>
-          <p class="mt-6 text-lg leading-8 text-gray-600">Monitor, Observe, Debug, Resolve. Everything you need to build reliable software in one open-source platform. Get started today.</p>
-          <div class="mt-10 flex items-center justify-center gap-x-6">
-            <a href="/accounts/register" class="rounded-md bg-gray-900 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">Get started</a>
-            <a href="/enterprise/demo" class="text-sm font-semibold leading-6 text-gray-900">Request Demo <span aria-hidden="true">→</span></a>
-          </div>
+<div class="relative isolate overflow-hidden bg-white border-t border-gray-900/10">
+  <!-- Subtle grid pattern background matching hero -->
+  <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)]"></div>
+
+  <div class="py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-3xl text-center">
+        <!-- Open-source badge -->
+        <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+          </svg>
+          <span>Open source</span>
+          <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+        </a>
+
+        <!-- Main headline -->
+        <h2 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+          OneUptime is the Open-Source <br class="hidden sm:block" />Observability Platform
+        </h2>
+
+        <!-- Subheadline -->
+        <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+          Your complete reliability stack unified: infrastructure monitoring, incident management, status pages, and APM. Open-source and self-hostable.
+        </p>
+
+        <!-- CTA buttons -->
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <a href="/accounts/register"
+            class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+            Get started for free
+            <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+          </a>
+          <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+            Request a demo
+          </a>
+        </div>
+
+        <!-- Product grid -->
+        <div class="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-5 sm:gap-5 auto-rows-fr">
+          <!-- Status Page - Emerald -->
+          <a href="/product/status-page" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-emerald-300 hover:shadow-[0_0_0_2px_rgb(16_185_129/0.3),0_4px_12px_-4px_rgb(16_185_129/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+              <%- include('../../Partials/icons/status-page') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Status Page</div>
+            <div class="mt-1 text-xs text-gray-500">Real-time status updates</div>
+          </a>
+
+          <!-- Incidents - Rose -->
+          <a href="/product/incident-management" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 hover:shadow-[0_0_0_2px_rgb(244_63_94/0.3),0_4px_12px_-4px_rgb(244_63_94/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+              <%- include('../../Partials/icons/incidents') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Incidents</div>
+            <div class="mt-1 text-xs text-gray-500">Detect and resolve fast</div>
+          </a>
+
+          <!-- Monitoring - Blue -->
+          <a href="/product/monitoring" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 hover:shadow-[0_0_0_2px_rgb(59_130_246/0.3),0_4px_12px_-4px_rgb(59_130_246/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
+              <%- include('../../Partials/icons/monitoring') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Monitoring</div>
+            <div class="mt-1 text-xs text-gray-500">Monitor any resource</div>
+          </a>
+
+          <!-- On-Call - Stone -->
+          <a href="/product/on-call" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-stone-300 hover:shadow-[0_0_0_2px_rgb(120_113_108/0.3),0_4px_12px_-4px_rgb(120_113_108/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-stone-50 ring-1 ring-stone-200">
+              <%- include('../../Partials/icons/on-call') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">On-Call</div>
+            <div class="mt-1 text-xs text-gray-500">Smart alert routing</div>
+          </a>
+
+          <!-- Logs - Amber -->
+          <a href="/product/logs-management" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-amber-300 hover:shadow-[0_0_0_2px_rgb(245_158_11/0.3),0_4px_12px_-4px_rgb(245_158_11/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+              <%- include('../../Partials/icons/logs') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Logs</div>
+            <div class="mt-1 text-xs text-gray-500">Fastest log ingest and search</div>
+          </a>
+
+          <!-- Metrics - Purple -->
+          <a href="/product/metrics" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-purple-300 hover:shadow-[0_0_0_2px_rgb(168_85_247/0.3),0_4px_12px_-4px_rgb(168_85_247/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 ring-1 ring-purple-200">
+              <%- include('../../Partials/icons/metrics') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Metrics</div>
+            <div class="mt-1 text-xs text-gray-500">Performance insights</div>
+          </a>
+
+          <!-- Traces - Yellow -->
+          <a href="/product/traces" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-yellow-300 hover:shadow-[0_0_0_2px_rgb(234_179_8/0.3),0_4px_12px_-4px_rgb(234_179_8/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-50 ring-1 ring-yellow-200">
+              <%- include('../../Partials/icons/traces') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Traces</div>
+            <div class="mt-1 text-xs text-gray-500">End-to-end distributed tracing</div>
+          </a>
+
+          <!-- Exceptions - Orange -->
+          <a href="/product/exceptions" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-orange-300 hover:shadow-[0_0_0_2px_rgb(244_63_94/0.3),0_4px_12px_-4px_rgb(244_63_94/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200">
+              <%- include('../../Partials/icons/exceptions') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Exceptions</div>
+            <div class="mt-1 text-xs text-gray-500">Catch and fix bugs early</div>
+          </a>
+
+          <!-- Workflows - Sky -->
+          <a href="/product/workflows" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-sky-300 hover:shadow-[0_0_0_2px_rgb(14_165_233/0.3),0_4px_12px_-4px_rgb(14_165_233/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+              <%- include('../../Partials/icons/workflows') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Workflows</div>
+            <div class="mt-1 text-xs text-gray-500">Automate any process</div>
+          </a>
+
+          <!-- Dashboards - Indigo -->
+          <a href="/product/dashboards" class="blog-cta-card group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-indigo-300 hover:shadow-[0_0_0_2px_rgb(99_102_241/0.3),0_4px_12px_-4px_rgb(99_102_241/0.15)] h-full">
+            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+              <%- include('../../Partials/icons/dashboards') %>
+            </div>
+            <div class="mt-3 text-sm font-medium text-gray-900">Dashboards</div>
+            <div class="mt-1 text-xs text-gray-500">Visualize all your data</div>
+          </a>
+        </div>
+
+        <!-- AI Agent - Full width featured card -->
+        <div class="mt-5">
+          <a href="/product/ai-agent" class="blog-cta-card group flex items-center gap-5 rounded-2xl bg-white px-6 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-violet-300 hover:shadow-[0_0_0_2px_rgb(139_92_246/0.3),0_4px_12px_-4px_rgb(139_92_246/0.15)]">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+              <%- include('../../Partials/icons/ai-agent') %>
+            </div>
+            <div class="flex-1 text-left">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-900">AI Agent</span>
+              </div>
+              <div class="mt-1 text-xs text-gray-500">Automatically detect, diagnose, and resolve incidents with AI-powered root cause analysis and code fixes.</div>
+            </div>
+            <svg class="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path></svg>
+          </a>
         </div>
       </div>
     </div>
   </div>
+</div>

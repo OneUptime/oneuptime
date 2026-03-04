@@ -75,10 +75,10 @@
 
         <!-- Syntax highlighting with highlight.js - using VS Code dark theme -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script>
             // Lazy-load only the language packs actually used on this page
-            (function(){
+            document.addEventListener('DOMContentLoaded', function(){
                 var langMap = {
                     'dockerfile':'dockerfile','yaml':'yaml','yml':'yaml','bash':'bash','shell':'bash','sh':'bash',
                     'typescript':'typescript','ts':'typescript','go':'go','python':'python','py':'python',
@@ -104,7 +104,7 @@
                     };
                     document.head.appendChild(s);
                 });
-            })();
+            });
         </script>
 
         <style>
