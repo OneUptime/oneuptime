@@ -179,7 +179,7 @@ export default class ApiMonitor {
           logger.error(
             `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
           );
-          return null;
+           return null;
         }
       }
 
@@ -223,7 +223,11 @@ export default class ApiMonitor {
       if (
         API.getFriendlyErrorMessage(err as Error).includes("AggregateError")
       ) {
-        return null;
+        apiResponse.failureCause =
+          "Request failed with AggregateError (all connection attempts failed). " +
+          apiResponse.failureCause;
+        apiResponse.isOnline = false;
+        return apiResponse;
       }
 
       logger.error(

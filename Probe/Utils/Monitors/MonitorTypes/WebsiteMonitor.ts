@@ -213,7 +213,11 @@ export default class WebsiteMonitor {
       if (
         API.getFriendlyErrorMessage(err as Error).includes("AggregateError")
       ) {
-        return null;
+        probeWebsiteResponse.failureCause =
+          "Request failed with AggregateError (all connection attempts failed). " +
+          probeWebsiteResponse.failureCause;
+        probeWebsiteResponse.isOnline = false;
+        return probeWebsiteResponse;
       }
 
       logger.error(

@@ -122,7 +122,7 @@ export default class PingMonitor {
           logger.error(
             `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`,
           );
-          return null;
+           return null;
         }
       }
 
@@ -147,7 +147,13 @@ export default class PingMonitor {
 
       // if AggregateError is thrown, it means that the request failed
       if ((err as any).toString().includes("AggregateError")) {
-        return null;
+        return {
+          isOnline: false,
+          isTimeout: false,
+          failureCause:
+            "Request failed with AggregateError (all connection attempts failed). " +
+            (err as any).toString(),
+        };
       }
 
       return {
