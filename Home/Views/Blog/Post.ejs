@@ -78,7 +78,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script>
             // Lazy-load only the language packs actually used on this page
-            (function(){
+            document.addEventListener('DOMContentLoaded', function(){
                 var langMap = {
                     'dockerfile':'dockerfile','yaml':'yaml','yml':'yaml','bash':'bash','shell':'bash','sh':'bash',
                     'typescript':'typescript','ts':'typescript','go':'go','python':'python','py':'python',
@@ -104,7 +104,7 @@
                     };
                     document.head.appendChild(s);
                 });
-            })();
+            });
         </script>
 
         <style>
@@ -183,7 +183,7 @@
                 line-height: 1.6 !important;
                 font-weight: 400 !important;
                 padding: 1.25rem !important;
-                padding-top: 2.5rem !important;
+                padding-top: 3rem !important;
                 border-radius: 0.75rem !important;
             }
 

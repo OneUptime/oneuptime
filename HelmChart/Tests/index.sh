@@ -102,7 +102,7 @@ helm install oneuptime ../../HelmChart/Public/oneuptime \
 # Wait for all pods in the default namespace to be ready (max attempts)
 echo "Waiting for all pods to be ready..."
 attempt=1
-max_attempts=50
+max_attempts=90
 sleep_seconds=30
 while [ $attempt -le $max_attempts ]; do
     # Get pod list; treat kubectl errors/refusals as not-ready and retry

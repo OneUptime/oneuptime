@@ -196,13 +196,9 @@ main() {
     export $(grep -v '^#' config.env | xargs)
     
     print_info "Generating Dockerfile configurations..."
-    find . -maxdepth 1 -type d -exec sh -c '
-        for dir do
-            if [ -f "$dir/Dockerfile.tpl" ]; then
-                cat "$dir/Dockerfile.tpl" | gomplate > "$dir/Dockerfile"
-            fi
-        done
-    ' sh {} +
+    while IFS= read -r dockerfile_template; do
+        cat "$dockerfile_template" | gomplate > "${dockerfile_template%.tpl}"
+    done < <(find . -type f -name "Dockerfile.tpl" -not -path "*/node_modules/*")
     
     print_success "OneUptime installation completed successfully! 🚀"
 }

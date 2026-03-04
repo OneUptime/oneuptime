@@ -1,0 +1,174 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#6366f1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" as="style">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<!-- Critical CSS to prevent CLS - these layout rules render immediately before any external resources -->
+<style>
+    /* Reserve structural layout space to prevent CLS */
+    body { margin: 0; display: flex; min-height: 100vh; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body > div { display: flex; flex-direction: column; width: 100%; }
+    /* Header: fixed height prevents shift when styles load */
+    header { position: sticky; top: 0; z-index: 50; min-height: 57px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.95); border-bottom: 1px solid rgba(15,23,42,0.1); padding: 0.75rem 1rem; }
+    img[alt="OneUptime"] { height: 2rem; width: auto; display: block; }
+    /* Reserve sidebar width on desktop to prevent content reflow */
+    @media (min-width: 1024px) {
+        .docs-layout-sidebar { width: 16rem; min-width: 16rem; flex-shrink: 0; }
+    }
+    /* Prevent prose/article images from causing CLS */
+    .prose img, .docs-article img { max-width: 100%; height: auto; }
+    /* Sidebar nav fixed width to prevent reflow */
+    nav[aria-label="Documentation navigation"] { width: 16rem; flex: 0 0 16rem; }
+</style>
+<!-- Tailwind CDN - load synchronously before compiled CSS so both are ready at first paint -->
+<link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                    display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                },
+            }
+        }
+    }
+</script>
+<!-- Compiled CSS: font-face declarations, prose typography, syntax tokens -->
+<link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
+<title>OneUptime Documentation</title>
+<meta name="description" content="Complete documentation for OneUptime - the open-source observability platform. Learn how to monitor your applications, set up alerts, and manage incidents.">
+<meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
+<link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
+<meta name="next-size-adjust">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" crossorigin>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin></script>
+<script>
+    // Language display names
+    var langNames = {
+        'javascript': 'JavaScript', 'js': 'JavaScript', 'typescript': 'TypeScript', 'ts': 'TypeScript',
+        'python': 'Python', 'py': 'Python', 'ruby': 'Ruby', 'rb': 'Ruby',
+        'go': 'Go', 'java': 'Java', 'css': 'CSS', 'html': 'HTML', 'xml': 'XML',
+        'json': 'JSON', 'yaml': 'YAML', 'yml': 'YAML', 'sql': 'SQL',
+        'bash': 'Bash', 'shell': 'Shell', 'sh': 'Shell', 'zsh': 'Shell',
+        'dockerfile': 'Dockerfile', 'docker': 'Dockerfile',
+        'rust': 'Rust', 'cpp': 'C++', 'c': 'C', 'csharp': 'C#',
+        'php': 'PHP', 'graphql': 'GraphQL', 'http': 'HTTP',
+        'markdown': 'Markdown', 'md': 'Markdown', 'plaintext': 'Text',
+        'powershell': 'PowerShell', 'hcl': 'HCL', 'terraform': 'Terraform'
+    };
+
+    function addCodeBlockHeaders() {
+        var copyIcon = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+        var checkIcon = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+
+        document.querySelectorAll('pre').forEach(function(pre) {
+            if(pre.querySelector('.code-block-header')) return; // already processed
+            var codeEl = pre.querySelector('code');
+            if(!codeEl) return;
+
+            // Detect language from class
+            var lang = '';
+            var classes = (codeEl.className || '').split(/\s+/);
+            for(var i = 0; i < classes.length; i++){
+                var m = classes[i].match(/^(?:language-|hljs-)(.+)$/);
+                if(m && m[1] !== 'hljs'){ lang = m[1]; break; }
+            }
+            if(!lang && codeEl.dataset && codeEl.dataset.highlightedLanguage){
+                lang = codeEl.dataset.highlightedLanguage;
+            }
+
+            var displayLang = langNames[lang] || (lang ? lang.charAt(0).toUpperCase() + lang.slice(1) : '');
+
+            // Create header bar
+            var header = document.createElement('div');
+            header.className = 'code-block-header';
+
+            var labelEl = document.createElement('span');
+            labelEl.className = 'code-lang-label';
+            labelEl.textContent = displayLang;
+            header.appendChild(labelEl);
+
+            var copyBtn = document.createElement('button');
+            copyBtn.className = 'code-copy-btn';
+            copyBtn.setAttribute('aria-label', 'Copy code');
+            copyBtn.innerHTML = copyIcon + '<span>Copy</span>';
+            (function(btn, code) {
+                btn.addEventListener('click', function(){
+                    var text = code.textContent || '';
+                    navigator.clipboard.writeText(text).then(function(){
+                        btn.classList.add('copied');
+                        btn.innerHTML = checkIcon + '<span>Copied!</span>';
+                        setTimeout(function(){
+                            btn.classList.remove('copied');
+                            btn.innerHTML = copyIcon + '<span>Copy</span>';
+                        }, 2000);
+                    });
+                });
+            })(copyBtn, codeEl);
+            header.appendChild(copyBtn);
+
+            pre.insertBefore(header, pre.firstChild);
+        });
+    }
+
+    // Lazy-load language packs, highlight, then add headers
+    document.addEventListener('DOMContentLoaded', function(){
+        var langMap = {
+            'dockerfile':'dockerfile','yaml':'yaml','yml':'yaml','bash':'bash','shell':'bash','sh':'bash',
+            'typescript':'typescript','ts':'typescript','go':'go','python':'python','py':'python',
+            'json':'json','ruby':'ruby','rb':'ruby','java':'java','css':'css','sql':'sql',
+            'rust':'rust','graphql':'graphql','javascript':'javascript','js':'javascript',
+            'xml':'xml','html':'xml','markup':'xml','cpp':'cpp','csharp':'csharp','php':'php',
+            'powershell':'powershell','hcl':'hcl','terraform':'hcl'
+        };
+        var needed = {};
+        document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){
+            var m = el.className.match(/language-(\w+)/);
+            if(m && langMap[m[1]]){ needed[langMap[m[1]]] = true; }
+        });
+        var langs = Object.keys(needed);
+
+        function highlightAndDecorate() {
+            hljs.highlightAll();
+            addCodeBlockHeaders();
+        }
+
+        if(langs.length === 0){ highlightAndDecorate(); return; }
+        var loaded = 0;
+        langs.forEach(function(lang){
+            var s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/' + lang + '.min.js';
+            s.async = false;
+            s.onload = s.onerror = function(){
+                loaded++;
+                if(loaded >= langs.length){ highlightAndDecorate(); }
+            };
+            document.head.appendChild(s);
+        });
+    });
+</script>
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+</script>
+
+<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
+    <!-- End Google Tag Manager -->
+    <% } %>
+    

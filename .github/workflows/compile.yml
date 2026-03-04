@@ -25,24 +25,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd Accounts && npm install && npm run compile && npm run dep-check
-
-  compile-isolated-vm:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-      - run: cd Common && npm install
-      - name: Compile IsolatedVM
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd IsolatedVM && npm install && npm run compile && npm run dep-check
+          command: cd App/FeatureSet/Accounts && npm install && npm run compile && npm run dep-check
 
   compile-common:
     runs-on: ubuntu-latest
@@ -111,39 +94,6 @@ jobs:
           max_attempts: 3
           command: cd Worker && npm install && npm run compile && npm run dep-check
 
-  compile-workflow:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-      - run: cd Common && npm install
-      - name: Compile Workflow
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd Workflow && npm install && npm run compile && npm run dep-check
-
-  compile-docs-reference:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-      - run: cd Common && npm install
-      - name: Compile Docs Reference
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd Docs && npm install && npm run compile && npm run dep-check
 
   compile-nginx:
     runs-on: ubuntu-latest
@@ -195,7 +145,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd AdminDashboard && npm install && npm run compile && npm run dep-check
+          command: cd App/FeatureSet/AdminDashboard && npm install && npm run compile && npm run dep-check
 
   compile-dashboard:
     runs-on: ubuntu-latest
@@ -213,7 +163,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd Dashboard && npm install && npm run compile && npm run dep-check
+          command: cd App/FeatureSet/Dashboard && npm install && npm run compile && npm run dep-check
 
 
   compile-e2e:
@@ -251,40 +201,6 @@ jobs:
           max_attempts: 3
           command: cd Probe && npm install && npm run compile && npm run dep-check
 
-  compile-probe-ingest:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-      - run: cd Common && npm install
-      - name: Compile Probe Ingest
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd ProbeIngest && npm install && npm run compile && npm run dep-check
-
-  compile-server-monitor-ingest:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-      - run: cd Common && npm install
-      - name: Compile Server Monitor Ingest
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd ServerMonitorIngest && npm install && npm run compile && npm run dep-check
-
   compile-telemetry:
     runs-on: ubuntu-latest
     env:
@@ -303,23 +219,6 @@ jobs:
           command: cd Telemetry && npm install && npm run compile && npm run dep-check
 
 
-  compile-incoming-request-ingest: 
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-      - run: cd Common && npm install
-      - name: Compile Incoming Request Ingest
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd IncomingRequestIngest && npm install && npm run compile && npm run dep-check
-
   compile-status-page:
     runs-on: ubuntu-latest
     env:
@@ -336,7 +235,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd StatusPage && npm install && npm run compile && npm run dep-check
+          command: cd App/FeatureSet/StatusPage && npm install && npm run compile && npm run dep-check
 
   compile-test-server:
     runs-on: ubuntu-latest
@@ -354,23 +253,6 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           command: cd TestServer && npm install && npm run compile && npm run dep-check
-
-  compile-mcp:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-      - run: cd Common && npm install
-      - name: Compile MCP
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd MCP && npm update @oneuptime/common && npm install && npm run compile && npm run dep-check
 
   compile-mobile-app:
     runs-on: ubuntu-latest

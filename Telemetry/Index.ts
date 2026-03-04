@@ -2,6 +2,15 @@ import OTelIngestAPI from "./API/OTelIngest";
 import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
+// ProbeIngest routes
+import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
+import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
+import ProbeIngestAPI from "./API/ProbeIngest/Probe";
+import IncomingEmailAPI from "./API/ProbeIngest/IncomingEmail";
+// ServerMonitorIngest routes
+import ServerMonitorAPI from "./API/ServerMonitorIngest/ServerMonitor";
+// IncomingRequestIngest routes
+import IncomingRequestAPI from "./API/IncomingRequestIngest/IncomingRequest";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -20,12 +29,38 @@ import "ejs";
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = "telemetry";
-const ROUTE_PREFIXES: Array<string> = [`/${APP_NAME}`, "/"];
+const TELEMETRY_PREFIXES: Array<string> = [`/${APP_NAME}`, "/"];
 
-app.use(ROUTE_PREFIXES, OTelIngestAPI);
-app.use(ROUTE_PREFIXES, MetricsAPI);
-app.use(ROUTE_PREFIXES, SyslogAPI);
-app.use(ROUTE_PREFIXES, FluentAPI);
+// Existing telemetry routes
+app.use(TELEMETRY_PREFIXES, OTelIngestAPI);
+app.use(TELEMETRY_PREFIXES, MetricsAPI);
+app.use(TELEMETRY_PREFIXES, SyslogAPI);
+app.use(TELEMETRY_PREFIXES, FluentAPI);
+
+/*
+ * ProbeIngest routes under ["/probe-ingest", "/ingestor", "/"]
+ * "/ingestor" is used for backward compatibility because probes are already deployed with this path in client environments.
+ */
+const PROBE_INGEST_PREFIXES: Array<string> = [
+  "/probe-ingest",
+  "/ingestor",
+  "/",
+];
+app.use(PROBE_INGEST_PREFIXES, ProbeIngestRegisterAPI);
+app.use(PROBE_INGEST_PREFIXES, ProbeIngestMonitorAPI);
+app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
+app.use(["/probe-ingest", "/"], IncomingEmailAPI);
+
+// ServerMonitorIngest routes under ["/server-monitor-ingest", "/"]
+const SERVER_MONITOR_PREFIXES: Array<string> = ["/server-monitor-ingest", "/"];
+app.use(SERVER_MONITOR_PREFIXES, ServerMonitorAPI);
+
+// IncomingRequestIngest routes under ["/incoming-request-ingest", "/"]
+const INCOMING_REQUEST_PREFIXES: Array<string> = [
+  "/incoming-request-ingest",
+  "/",
+];
+app.use(INCOMING_REQUEST_PREFIXES, IncomingRequestAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {

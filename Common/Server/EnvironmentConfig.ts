@@ -175,27 +175,9 @@ export const AppApiHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const ProbeIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_PROBE_INGEST_HOSTNAME"] || "localhost"}:${
-    process.env["PROBE_INGEST_PORT"] || 80
-  }`,
-);
-
 export const OpenTelemetryIngestHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_TELEMETRY_HOSTNAME"] || "localhost"}:${
     process.env["TELEMETRY_PORT"] || 80
-  }`,
-);
-
-export const IncomingRequestIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_INCOMING_REQUEST_INGEST_HOSTNAME"] || "localhost"}:${
-    process.env["INCOMING_REQUEST_INGEST_PORT"] || 80
-  }`,
-);
-
-export const IsolatedVMHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ISOLATED_VM_HOSTNAME"] || "localhost"}:${
-    process.env["ISOLATED_VM_PORT"] || 80
   }`,
 );
 
@@ -205,39 +187,11 @@ export const WorkerHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const WorkflowHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_WORKFLOW_HOSTNAME"] || "localhost"}:${
-    process.env["WORKFLOW_PORT"] || 80
-  }`,
-);
+export const WorkflowHostname: Hostname = WorkerHostname;
 
 export const HomeHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_HOME_HOSTNAME"] || "localhost"}:${
     process.env["HOME_PORT"] || 80
-  }`,
-);
-
-export const AccountsHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ACCOUNTS_HOSTNAME"] || "localhost"}:${
-    process.env["ACCOUNTS_PORT"] || 80
-  }`,
-);
-
-export const DashboardHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_DASHBOARD_HOSTNAME"] || "localhost"}:${
-    process.env["DASHBOARD_PORT"] || 80
-  }`,
-);
-
-export const AdminDashboardHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ADMIN_DASHBOARD_HOSTNAME"] || "localhost"}:${
-    process.env["ADMIN_DASHBOARD_PORT"] || 80
-  }`,
-);
-
-export const DocsHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_DOCS_HOSTNAME"] || "localhost"}:${
-    process.env["DOCS_PORT"] || 80
   }`,
 );
 

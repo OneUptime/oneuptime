@@ -112,6 +112,7 @@ spec:
               value: {{ $.Values.telemetry.disableTelemetryCollection | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.telemetry.concurrency | squote }}
+            {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ $.Values.telemetry.ports.http }}
               protocol: TCP

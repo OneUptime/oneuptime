@@ -252,7 +252,7 @@ const CodeBlock: FunctionComponent<{
         children={content}
         language={language}
         style={vscDarkPlus}
-        className="!rounded-none !mt-0 !mb-0 !bg-gray-900 !p-4 text-sm !border-0"
+        className="!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-6 !pb-4 !px-4 text-sm !border-0"
         codeTagProps={{ className: "font-mono" }}
       />
     </div>

@@ -29,7 +29,6 @@ import StatusPageSubscriberNotificationTemplateService, {
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
@@ -292,20 +291,10 @@ RunCron(
 
       // Get status page resources from monitors
       const statusPageResources: Array<StatusPageResource> =
-        await StatusPageResourceService.findBy({
-          query: {
-            monitorId: QueryHelper.any(
-              Array.from(monitorIds).map((id: string) => {
-                return new ObjectID(id);
-              }),
-            ),
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
+        await StatusPageResourceService.findByMonitors({
+          monitorIds: Array.from(monitorIds).map((id: string) => {
+            return new ObjectID(id);
+          }),
           select: {
             _id: true,
             displayName: true,

@@ -3,19 +3,116 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
+import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/StatusPageResource";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  public async findByMonitors(data: {
+    monitors?: Array<Monitor>;
+    monitorIds?: Array<ObjectID>;
+    select: Select<Model>;
+  }): Promise<Array<Model>> {
+    let resolvedMonitorIds: Array<ObjectID>;
+
+    if (data.monitorIds && data.monitorIds.length > 0) {
+      resolvedMonitorIds = data.monitorIds;
+    } else if (data.monitors && data.monitors.length > 0) {
+      resolvedMonitorIds = data.monitors
+        .filter((m: Monitor) => {
+          return m._id;
+        })
+        .map((m: Monitor) => {
+          return new ObjectID(m._id!);
+        });
+    } else {
+      return [];
+    }
+
+    if (resolvedMonitorIds.length === 0) {
+      return [];
+    }
+
+    // Find status page resources directly linked to monitors
+    const statusPageResources: Array<Model> = await this.findBy({
+      query: {
+        monitorId: QueryHelper.any(resolvedMonitorIds),
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      select: data.select,
+    });
+
+    // Find monitor groups that contain the affected monitors
+    const monitorGroupResources: Array<MonitorGroupResource> =
+      await MonitorGroupResourceService.findBy({
+        query: {
+          monitorId: QueryHelper.any(resolvedMonitorIds),
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+        select: {
+          monitorGroupId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      });
+
+    const monitorGroupIds: Array<ObjectID> = monitorGroupResources
+      .map((r: MonitorGroupResource) => {
+        return r.monitorGroupId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id);
+      });
+
+    if (monitorGroupIds.length > 0) {
+      const groupStatusPageResources: Array<Model> = await this.findBy({
+        query: {
+          monitorGroupId: QueryHelper.any(monitorGroupIds),
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        select: data.select,
+      });
+
+      // Merge and deduplicate
+      for (const resource of groupStatusPageResources) {
+        const alreadyExists: boolean = statusPageResources.some((r: Model) => {
+          return r._id === resource._id;
+        });
+        if (!alreadyExists) {
+          statusPageResources.push(resource);
+        }
+      }
+    }
+
+    return statusPageResources;
   }
 
   @CaptureSpan()

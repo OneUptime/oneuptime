@@ -310,6 +310,7 @@
                 <option value="/legal/hipaa" <%= section === 'hipaa' ? 'selected' : '' %>>HIPAA</option>
                 <option value="/legal/data-residency" <%= section === 'data-residency' ? 'selected' : '' %>>Data Residency</option>
                 <option value="/legal/subprocessors" <%= section === 'subprocessors' ? 'selected' : '' %>>Subprocessors</option>
+                <option value="/legal/dpa" <%= section === 'dpa' ? 'selected' : '' %>>Data Processing Agreement</option>
               </optgroup>
               <optgroup label="Security Certifications">
                 <option value="/legal/iso-27001" <%= section === 'iso-27001' ? 'selected' : '' %>>ISO/IEC 27001</option>
@@ -318,6 +319,13 @@
                 <option value="/legal/soc-2" <%= section === 'soc-2' ? 'selected' : '' %>>SOC 2</option>
                 <option value="/legal/soc-3" <%= section === 'soc-3' ? 'selected' : '' %>>SOC 3</option>
                 <option value="/legal/pci" <%= section === 'pci' ? 'selected' : '' %>>PCI DSS</option>
+                <option value="/legal/21-cfr-part-11" <%= section === '21-cfr-part-11' ? 'selected' : '' %>>21 CFR Part 11</option>
+                <option value="/legal/gamp-5" <%= section === 'gamp-5' ? 'selected' : '' %>>GAMP 5</option>
+                <option value="/legal/annex-11" <%= section === 'annex-11' ? 'selected' : '' %>>EU GMP Annex 11</option>
+                <option value="/legal/iso-9001" <%= section === 'iso-9001' ? 'selected' : '' %>>ISO 9001</option>
+                <option value="/legal/gxp-cloud" <%= section === 'gxp-cloud' ? 'selected' : '' %>>GxP Cloud Compliance</option>
+                <option value="/legal/csa-star" <%= section === 'csa-star' ? 'selected' : '' %>>CSA STAR</option>
+                <option value="/legal/fedramp" <%= section === 'fedramp' ? 'selected' : '' %>>FedRAMP</option>
                 <option value="/legal/vpat" <%= section === 'vpat' ? 'selected' : '' %>>VPAT (Accessibility)</option>
               </optgroup>
               <optgroup label="Other">
@@ -395,6 +403,11 @@
                     Subprocessors
                   </a>
                 </li>
+                <li>
+                  <a href="/legal/dpa" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'dpa' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Data Processing Agreement
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -435,6 +448,41 @@
                 <li>
                   <a href="/legal/pci" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'pci' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
                     PCI DSS
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/21-cfr-part-11" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === '21-cfr-part-11' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    21 CFR Part 11
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/gamp-5" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'gamp-5' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    GAMP 5
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/annex-11" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'annex-11' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    EU GMP Annex 11
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/iso-9001" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'iso-9001' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    ISO 9001
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/gxp-cloud" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'gxp-cloud' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    GxP Cloud Compliance
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/csa-star" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'csa-star' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    CSA STAR
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/fedramp" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'fedramp' ? 'nav-item-active bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    FedRAMP
                   </a>
                 </li>
                 <li>
@@ -561,6 +609,38 @@
 
           <% if(section === "subprocessors") { %>
           <%- include('subprocessors') -%>
+          <% } %>
+
+          <% if(section === "dpa") { %>
+          <%- include('dpa') -%>
+          <% } %>
+
+          <% if(section === "21-cfr-part-11") { %>
+          <%- include('21-cfr-part-11') -%>
+          <% } %>
+
+          <% if(section === "gamp-5") { %>
+          <%- include('gamp-5') -%>
+          <% } %>
+
+          <% if(section === "annex-11") { %>
+          <%- include('annex-11') -%>
+          <% } %>
+
+          <% if(section === "iso-9001") { %>
+          <%- include('iso-9001') -%>
+          <% } %>
+
+          <% if(section === "gxp-cloud") { %>
+          <%- include('gxp-cloud') -%>
+          <% } %>
+
+          <% if(section === "csa-star") { %>
+          <%- include('csa-star') -%>
+          <% } %>
+
+          <% if(section === "fedramp") { %>
+          <%- include('fedramp') -%>
           <% } %>
 
           <% if(section === "vpat") { %>

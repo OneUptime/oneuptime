@@ -103,75 +103,26 @@ Usage:
   value: {{ default "" $.Values.inboundEmail.domain | quote }}
 - name: INBOUND_EMAIL_WEBHOOK_SECRET
   value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}
-- name: SERVER_ACCOUNTS_HOSTNAME
-  value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_SERVER_MONITOR_INGEST_HOSTNAME
-  value: {{ $.Release.Name }}-server-monitor-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_ISOLATED_VM_HOSTNAME
-  value: {{ $.Release.Name }}-isolated-vm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_WORKFLOW_HOSTNAME
-  value: {{ $.Release.Name }}-workflow.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_WORKER_HOSTNAME
   value: {{ $.Release.Name }}-worker.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_HOME_HOSTNAME
   value: {{ $.Release.Name }}-home.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_APP_HOSTNAME
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_PROBE_INGEST_HOSTNAME
-  value: {{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: TELEMETRY_HOSTNAME
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_INCOMING_REQUEST_INGEST_HOSTNAME
-  value: {{ $.Release.Name }}-incoming-request-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TELEMETRY_HOSTNAME
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_TEST_SERVER_HOSTNAME
-  value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_STATUS_PAGE_HOSTNAME
-  value: {{ $.Release.Name }}-status-page.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_DASHBOARD_HOSTNAME
-  value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_ADMIN_DASHBOARD_HOSTNAME
-  value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_DOCS_HOSTNAME
-  value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_MCP_HOSTNAME
-  value: {{ $.Release.Name }}-mcp.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-
 - name: APP_PORT
   value: {{ $.Values.app.ports.http | squote }}
-- name: PROBE_INGEST_PORT
-  value: {{ $.Values.probeIngest.ports.http | squote }}
-- name: SERVER_MONITOR_INGEST_PORT
-  value: {{ $.Values.serverMonitorIngest.ports.http | squote }}
 - name: TELEMETRY_PORT
   value: {{ $.Values.telemetry.ports.http | squote }}
-- name: INCOMING_REQUEST_INGEST_PORT
-  value: {{ $.Values.incomingRequestIngest.ports.http | squote }}
-- name: TEST_SERVER_PORT
-  value: {{ $.Values.testServer.ports.http | squote }}
-- name: ACCOUNTS_PORT
-  value: {{ $.Values.accounts.ports.http | squote }}
-- name: ISOLATED_VM_PORT
-  value: {{ $.Values.isolatedVM.ports.http | squote }}
 - name: HOME_PORT
   value: {{ $.Values.home.ports.http | squote }}
 - name: WORKER_PORT
   value: {{ $.Values.worker.ports.http | squote }}
-- name: WORKFLOW_PORT
-  value: {{ $.Values.workflow.ports.http | squote }}
-- name: STATUS_PAGE_PORT
-  value: {{ $.Values.statusPage.ports.http | squote }}
-- name: DASHBOARD_PORT
-  value: {{ $.Values.dashboard.ports.http | squote }}
-- name: ADMIN_DASHBOARD_PORT
-  value: {{ $.Values.adminDashboard.ports.http | squote }}
-- name: DOCS_PORT
-  value: {{ $.Values.docs.ports.http | squote }}
-- name: MCP_PORT
-  value: {{ $.Values.mcp.ports.http | squote }}
 {{- end }}
 
 
@@ -558,7 +509,7 @@ Usage:
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 
 - name: WORKFLOW_TIMEOUT_IN_MS
-  value: {{ $.Values.workflow.workflowTimeoutInMs | squote }}
+  value: {{ $.Values.worker.workflowTimeoutInMs | squote }}
 
 - name: AVERAGE_SPAN_ROW_SIZE_IN_BYTES
   value: {{ $.Values.billing.telemetry.averageSpanRowSizeInBytes | quote }}

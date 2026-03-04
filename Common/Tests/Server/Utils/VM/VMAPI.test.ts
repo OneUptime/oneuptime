@@ -1,25 +1,10 @@
 // Mock all heavy dependencies so the test focuses on template logic only
-jest.mock("../../../../Server/EnvironmentConfig", () => {
-  return {
-    IsolatedVMHostname: "localhost",
-  };
-});
-
-jest.mock("../../../../Server/Middleware/ClusterKeyAuthorization", () => {
+jest.mock("../../../../Server/Utils/VM/VMRunner", () => {
   return {
     __esModule: true,
     default: {
-      getClusterKeyHeaders: () => {
-        return {};
-      },
+      runCodeInSandbox: jest.fn(),
     },
-  };
-});
-
-jest.mock("../../../../Utils/API", () => {
-  return {
-    __esModule: true,
-    default: { post: jest.fn() },
   };
 });
 

@@ -44,6 +44,20 @@ export default class BlogPostUtil {
   private static blogsMetaCache: Array<JSONObject> | null = null;
   // Cache Authors.json (keyed by github username)
   private static authorsMetaCache: JSONObject | null = null;
+  // Cache the constructed blog post header list
+  private static blogPostListCache: Array<BlogPostHeader> | null = null;
+  // Cache tags from Tags.md
+  private static tagsCache: string[] | null = null;
+  // Cache fully rendered blog posts by fileName
+  private static blogPostCache: Map<string, BlogPost> = new Map();
+
+  public static clearAllCaches(): void {
+    this.blogsMetaCache = null;
+    this.authorsMetaCache = null;
+    this.blogPostListCache = null;
+    this.tagsCache = null;
+    this.blogPostCache.clear();
+  }
   private static async getBlogsMeta(): Promise<Array<JSONObject>> {
     if (this.blogsMetaCache) {
       return this.blogsMetaCache;
@@ -82,40 +96,36 @@ export default class BlogPostUtil {
   public static async getBlogPostList(
     tagName?: string | undefined,
   ): Promise<BlogPostHeader[]> {
-    const filePath: string = `${BlogRootPath}/Blogs.json`;
+    if (!this.blogPostListCache) {
+      const blogs: Array<JSONObject> = [
+        ...(await this.getBlogsMeta()),
+      ].reverse(); // reverse so new content comes first
 
-    let jsonContent: string | JSONArray = await LocalFile.read(filePath);
+      const resultList: Array<BlogPostHeader> = [];
 
-    if (typeof jsonContent === "string") {
-      jsonContent = JSONFunctions.parseJSONArray(jsonContent);
-    }
+      for (const blog of blogs) {
+        const fileName: string = blog["post"] as string;
+        const formattedPostDate: string =
+          this.getFormattedPostDateFromFileName(fileName);
+        const postDate: string = this.getPostDateFromFileName(fileName);
 
-    const blogs: Array<JSONObject> = JSONFunctions.deserializeArray(
-      jsonContent as Array<JSONObject>,
-    ).reverse(); // reverse so new content comes first
+        resultList.push({
+          title: blog["title"] as string,
+          description: blog["description"] as string,
+          fileName,
+          formattedPostDate,
+          postDate,
+          tags: blog["tags"] as string[],
+          authorGitHubUsername: blog["authorGitHubUsername"] as string,
+          blogUrl: `/blog/post/${fileName}/view`,
+        });
+      }
 
-    const resultList: Array<BlogPostHeader> = [];
-
-    for (const blog of blogs) {
-      const fileName: string = blog["post"] as string;
-      const formattedPostDate: string =
-        this.getFormattedPostDateFromFileName(fileName);
-      const postDate: string = this.getPostDateFromFileName(fileName);
-
-      resultList.push({
-        title: blog["title"] as string,
-        description: blog["description"] as string,
-        fileName,
-        formattedPostDate,
-        postDate,
-        tags: blog["tags"] as string[],
-        authorGitHubUsername: blog["authorGitHubUsername"] as string,
-        blogUrl: `/blog/post/${fileName}/view`,
-      });
+      this.blogPostListCache = resultList;
     }
 
     if (tagName) {
-      return resultList.filter((blog: BlogPostHeader) => {
+      return this.blogPostListCache.filter((blog: BlogPostHeader) => {
         return blog.tags
           .map((item: string) => {
             return Text.replaceAll(item.toLowerCase(), " ", "-");
@@ -124,13 +134,21 @@ export default class BlogPostUtil {
       });
     }
 
-    return resultList;
+    return this.blogPostListCache;
   }
 
   public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
+    const cached: BlogPost | undefined = this.blogPostCache.get(fileName);
+    if (cached) {
+      return cached;
+    }
+
     try {
       const blogPost: BlogPost | null =
         await this.getBlogPostFromFile(fileName);
+      if (blogPost) {
+        this.blogPostCache.set(fileName, blogPost);
+      }
       return blogPost;
     } catch {
       return null;
@@ -138,9 +156,12 @@ export default class BlogPostUtil {
   }
 
   public static async getTags(): Promise<string[]> {
-    // check if tags are in cache
+    if (this.tagsCache) {
+      return this.tagsCache;
+    }
 
     const tags: string[] = await this.getAllTagsFromGitHub();
+    this.tagsCache = tags;
     return tags;
   }
 

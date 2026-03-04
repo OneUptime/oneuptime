@@ -28,43 +28,16 @@ x-common-variables: &common-variables
 
     ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
-    SERVER_ACCOUNTS_HOSTNAME: accounts
     SERVER_APP_HOSTNAME: app
-    SERVER_ALERT_HOSTNAME: alert
-    SERVER_PROBE_INGEST_HOSTNAME: probe-ingest
     SERVER_TELEMETRY_HOSTNAME: telemetry
-    SERVER_INCOMING_REQUEST_INGEST_HOSTNAME: incoming-request-ingest
-    SERVER_TEST_SERVER_HOSTNAME: test-server
-    SERVER_STATUS_PAGE_HOSTNAME: status-page
-    SERVER_DASHBOARD_HOSTNAME: dashboard
-    SERVER_ADMIN_DASHBOARD_HOSTNAME: admin-dashboard
     SERVER_OTEL_COLLECTOR_HOSTNAME: otel-collector
-    SERVER_ISOLATED_VM_HOSTNAME: isolated-vm
     SERVER_WORKER_HOSTNAME: worker
     SERVER_HOME_HOSTNAME: home
-    SERVER_WORKFLOW_HOSTNAME: workflow
-    SERVER_DOCS_HOSTNAME: docs
-    SERVER_SERVER_MONITOR_INGEST_HOSTNAME: server-monitor-ingest
-    SERVER_MCP_HOSTNAME: mcp
-
-    #Ports. Usually they don't need to change. 
+    #Ports. Usually they don't need to change.
     APP_PORT: ${APP_PORT}
     HOME_PORT: ${HOME_PORT}
-    PROBE_INGEST_PORT: ${PROBE_INGEST_PORT}
     TELEMETRY_PORT: ${TELEMETRY_PORT}
-    INCOMING_REQUEST_INGEST_PORT: ${INCOMING_REQUEST_INGEST_PORT}
-    TEST_SERVER_PORT: ${TEST_SERVER_PORT}
-    ACCOUNTS_PORT: ${ACCOUNTS_PORT}
-    STATUS_PAGE_PORT: ${STATUS_PAGE_PORT}
-    DASHBOARD_PORT: ${DASHBOARD_PORT}
-    ADMIN_DASHBOARD_PORT: ${ADMIN_DASHBOARD_PORT}
-    ISOLATED_VM_PORT: ${ISOLATED_VM_PORT}
     WORKER_PORT: ${WORKER_PORT}
-    WORKFLOW_PORT: ${WORKFLOW_PORT}
-    DOCS_PORT: ${DOCS_PORT}
-    SERVER_MONITOR_INGEST_PORT: ${SERVER_MONITOR_INGEST_PORT}
-    MCP_PORT: ${MCP_PORT}
-
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
 
@@ -226,20 +199,6 @@ services:
             options:
                 max-size: "1000m"
         
-    accounts:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${ACCOUNTS_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ACCOUNTS}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-    
-
     llm: 
         networks:
           - oneuptime
@@ -255,49 +214,6 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
-
-    admin-dashboard:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${ADMIN_DASHBOARD_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ADMIN_DASHBOARD}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    dashboard:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${DASHBOARD_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_DASHBOARD}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-        
-    
-
-    status-page:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${STATUS_PAGE_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_STATUS_PAGE}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-            
-        
 
     test-server:
         networks:
@@ -352,30 +268,6 @@ services:
             PORT: ${WORKER_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
             WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    docs:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${DOCS_PORT}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    workflow:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${WORKFLOW_PORT}
         logging:
             driver: "local"
             options:
@@ -478,49 +370,6 @@ services:
             options:
                 max-size: "1000m"
 
-    isolated-vm:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            PORT: ${ISOLATED_VM_PORT}
-            ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ISOLATED_VM}
-            IS_ENTERPRISE_EDITION: ${IS_ENTERPRISE_EDITION}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    probe-ingest:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${PROBE_INGEST_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE_INGEST}
-            PROBE_INGEST_CONCURRENCY: ${PROBE_INGEST_CONCURRENCY}
-            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    server-monitor-ingest:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${SERVER_MONITOR_INGEST_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_SERVER_MONITOR_INGEST}
-            SERVER_MONITOR_INGEST_CONCURRENCY: ${SERVER_MONITOR_INGEST_CONCURRENCY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
     telemetry:
         networks:
           - oneuptime
@@ -531,38 +380,12 @@ services:
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TELEMETRY}
             # Max concurrent telemetry jobs the worker will process
             TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
-    incoming-request-ingest:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${INCOMING_REQUEST_INGEST_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INCOMING_REQUEST_INGEST}
-            INCOMING_REQUEST_INGEST_CONCURRENCY: ${INCOMING_REQUEST_INGEST_CONCURRENCY}
+            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
         logging:
             driver: "local"
             options:
                 max-size: "1000m"
     
-    mcp:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${MCP_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_MCP}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-
     e2e:
         restart: "no"
         network_mode: host # This is needed to access the host network,

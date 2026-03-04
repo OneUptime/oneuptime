@@ -1,4 +1,5 @@
 import WorkerRoutes from "./Routes";
+import WorkflowFeatureSet from "./FeatureSet/Workflow/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
@@ -73,6 +74,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await WorkerRoutes.init();
 
     logger.debug("Routes initialized");
+
+    // Initialize workflow feature set
+    await WorkflowFeatureSet.init();
+
+    logger.debug("Workflow feature set initialized");
 
     // Add default routes to the app (catch-alls should be last)
     await App.addDefaultRoutes();
