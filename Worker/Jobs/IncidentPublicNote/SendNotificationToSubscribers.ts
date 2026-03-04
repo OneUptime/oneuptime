@@ -193,24 +193,8 @@ RunCron(
         // get status page resources from monitors.
 
         const statusPageResources: Array<StatusPageResource> =
-          await StatusPageResourceService.findBy({
-            query: {
-              monitorId: QueryHelper.any(
-                incident.monitors
-                  .filter((m: Monitor) => {
-                    return m._id;
-                  })
-                  .map((m: Monitor) => {
-                    return new ObjectID(m._id!);
-                  }),
-              ),
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
+          await StatusPageResourceService.findByMonitors({
+            monitors: incident.monitors,
             select: {
               _id: true,
               displayName: true,

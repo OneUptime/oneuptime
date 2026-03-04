@@ -3,7 +3,6 @@ import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -29,9 +28,7 @@ import StatusPageSubscriberNotificationTemplateService, {
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -196,34 +193,19 @@ RunCron(
         let statusPageResources: Array<StatusPageResource> = [];
 
         if (event.monitors && event.monitors.length > 0) {
-          statusPageResources = await StatusPageResourceService.findBy({
-            query: {
-              monitorId: QueryHelper.any(
-                event.monitors
-                  .filter((m: Monitor) => {
-                    return m._id;
-                  })
-                  .map((m: Monitor) => {
-                    return new ObjectID(m._id!);
-                  }),
-              ),
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            select: {
-              _id: true,
-              displayName: true,
-              statusPageId: true,
-              statusPageGroupId: true,
-              statusPageGroup: {
-                name: true,
+          statusPageResources =
+            await StatusPageResourceService.findByMonitors({
+              monitors: event.monitors,
+              select: {
+                _id: true,
+                displayName: true,
+                statusPageId: true,
+                statusPageGroupId: true,
+                statusPageGroup: {
+                  name: true,
+                },
               },
-            },
-          });
+            });
         }
 
         const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
