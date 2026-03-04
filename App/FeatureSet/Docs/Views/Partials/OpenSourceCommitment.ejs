@@ -1,20 +1,22 @@
 <div class="mt-16 pt-8 border-t border-slate-200">
-    <div class="rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 p-6 ring-1 ring-slate-200/50">
-        <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 rounded-lg bg-indigo-100 p-2.5">
-                <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+    <div class="relative rounded-xl bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-50 p-6 ring-1 ring-slate-200/50 overflow-hidden">
+        <!-- Decorative blur blob -->
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-200/30 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative flex items-start gap-4">
+            <div class="flex-shrink-0 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 p-2.5 shadow-sm">
+                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
             </div>
             <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-semibold text-slate-900 mb-1">Open Source</h3>
+                <h3 class="text-sm font-semibold text-slate-900 mb-1">Help us improve this page</h3>
                 <p class="text-sm text-slate-600 leading-relaxed">
-                    Everything at OneUptime is 100% open-source. Help us improve this documentation by
+                    OneUptime is 100% open-source. Found a typo or want to add something?
                     <a href="https://github.com/OneUptime/oneuptime/tree/master/Docs/Content/<%- githubPath -%>.md"
                        target="_blank"
                        rel="noopener noreferrer"
                        class="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
-                        editing this page on GitHub
+                        Edit this page on GitHub
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                         </svg>

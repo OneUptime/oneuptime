@@ -1,13 +1,35 @@
-<dl class="mt-12 flex border-t border-slate-200 pt-6 ">
-    <div class="ml-auto text-right">
-        <dt class="font-display text-sm font-medium text-slate-900 ">Next</dt>
-        <dd class="mt-1"><a
-                class="flex items-center gap-x-1 text-base font-semibold text-slate-500 hover:text-slate-600  "
-                href="/docs/installation">Installation<svg viewBox="0 0 16 16" aria-hidden="true"
-                    class="h-4 w-4 flex-none fill-current">
-                    <path
-                        d="m9.182 13.423-1.17-1.16 3.505-3.505H3V7.065h8.517l-3.506-3.5L9.181 2.4l5.512 5.511-5.511 5.512Z">
-                    </path>
-                </svg></a></dd>
-    </div>
-</dl>
+<% var prev = typeof prevLink !== 'undefined' ? prevLink : null; %>
+<% var next = typeof nextLink !== 'undefined' ? nextLink : null; %>
+<% if(prev || next) { %>
+<nav class="mt-12 flex items-stretch gap-4 border-t border-slate-200 pt-8" aria-label="Pagination">
+    <% if(prev) { %>
+    <a href="<%- prev.link.url %>" class="group flex-1 flex flex-col rounded-lg border border-slate-200 px-5 py-4 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all">
+        <span class="text-xs font-medium text-slate-500 mb-1">Previous</span>
+        <span class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors"><%- prev.link.title %></span>
+        </span>
+        <span class="text-xs text-slate-400 mt-1 ml-6"><%- prev.category.title %></span>
+    </a>
+    <% } else { %>
+    <div class="flex-1"></div>
+    <% } %>
+
+    <% if(next) { %>
+    <a href="<%- next.link.url %>" class="group flex-1 flex flex-col items-end rounded-lg border border-slate-200 px-5 py-4 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all text-right">
+        <span class="text-xs font-medium text-slate-500 mb-1">Next</span>
+        <span class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors"><%- next.link.title %></span>
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </span>
+        <span class="text-xs text-slate-400 mt-1 mr-6"><%- next.category.title %></span>
+    </a>
+    <% } else { %>
+    <div class="flex-1"></div>
+    <% } %>
+</nav>
+<% } %>

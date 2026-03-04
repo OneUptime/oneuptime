@@ -3,8 +3,8 @@
 <meta name="theme-color" content="#6366f1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" as="style">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&family=JetBrains+Mono:wght@400;500&display=swap" as="style">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -35,6 +35,10 @@
                 fontFamily: {
                     sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
                     display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                },
+                maxWidth: {
+                    '8xl': '90rem',
                 },
             }
         }
@@ -42,7 +46,7 @@
 </script>
 <!-- Compiled CSS: font-face declarations, prose typography, syntax tokens -->
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
-<title>OneUptime Documentation</title>
+<title><%= typeof link !== 'undefined' && link && link.title ? link.title + ' - OneUptime Docs' : 'OneUptime Documentation' %></title>
 <meta name="description" content="Complete documentation for OneUptime - the open-source observability platform. Learn how to monitor your applications, set up alerts, and manage incidents.">
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">

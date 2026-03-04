@@ -3213,3 +3213,211 @@ img,video {
 .prose pre code::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
 }
+
+/* ===== Docs UI Overhaul Styles ===== */
+
+/* Scroll progress bar */
+.scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #818cf8, #6366f1);
+    z-index: 100;
+    transition: width 50ms linear;
+}
+
+/* Anchor link hover visibility */
+.anchor-link {
+    opacity: 0;
+    margin-left: 0.5rem;
+    color: #94a3b8;
+    text-decoration: none;
+    font-weight: 400;
+    transition: opacity 0.15s ease;
+}
+.group:hover .anchor-link,
+h2:hover .anchor-link,
+h3:hover .anchor-link {
+    opacity: 1;
+}
+.anchor-link:hover {
+    color: #6366f1;
+}
+
+/* Callout box styles */
+.callout {
+    border-radius: 0 0.5rem 0.5rem 0;
+}
+.callout p {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Sidebar nav transition animations */
+.nav-category-links {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+.nav-category-links.expanded {
+    max-height: 2000px;
+    opacity: 1;
+}
+.nav-chevron {
+    transition: transform 0.2s ease;
+}
+.nav-chevron.rotated {
+    transform: rotate(90deg);
+}
+
+/* TOC right sidebar styles */
+.toc-sidebar {
+    position: sticky;
+    top: 5rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+}
+.toc-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+.toc-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.toc-sidebar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 2px;
+}
+.toc-link {
+    display: block;
+    padding: 0.25rem 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: #64748b;
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    padding-left: 0.75rem;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+.toc-link:hover {
+    color: #334155;
+}
+.toc-link.active {
+    color: #6366f1;
+    border-left-color: #6366f1;
+    font-weight: 500;
+}
+.toc-link.toc-h3 {
+    padding-left: 1.5rem;
+}
+
+/* Search modal */
+.search-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+}
+.search-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+.search-modal {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    width: 90%;
+    max-width: 560px;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    z-index: 201;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+    overflow: hidden;
+}
+.search-modal.active {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+.search-results {
+    max-height: 360px;
+    overflow-y: auto;
+}
+.search-results::-webkit-scrollbar {
+    width: 6px;
+}
+.search-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+.search-results::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 3px;
+}
+.search-result-item {
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+.search-result-item:hover,
+.search-result-item.highlighted {
+    background-color: #f1f5f9;
+}
+.search-result-item.highlighted {
+    background-color: #eef2ff;
+}
+
+/* Print styles */
+@media print {
+    .scroll-progress,
+    header,
+    .toc-sidebar,
+    .search-overlay,
+    .search-modal,
+    [data-mobile-menu-open],
+    [data-mobile-menu-overlay],
+    [data-mobile-menu-drawer] {
+        display: none !important;
+    }
+    nav[aria-label="Documentation navigation"] {
+        display: none !important;
+    }
+    .docs-article {
+        max-width: 100% !important;
+    }
+}
+
+/* Mobile responsive overrides */
+@media (max-width: 1023px) {
+    .toc-sidebar {
+        display: none;
+    }
+}
+
+/* Code blocks use JetBrains Mono */
+pre code, code.font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Table wrapper styles */
+.docs-table-wrapper {
+    -webkit-overflow-scrolling: touch;
+}
+.docs-table-wrapper table {
+    border-collapse: collapse;
+}
+.docs-table-wrapper th,
+.docs-table-wrapper td {
+    border-bottom: 1px solid #e2e8f0;
+}
+.docs-table-wrapper tr:last-child td {
+    border-bottom: none;
+}

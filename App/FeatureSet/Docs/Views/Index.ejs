@@ -3,7 +3,8 @@
 
 <head>
     <%- include('./Partials/Head.ejs', {
-        enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+        enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
+        link: typeof link !== 'undefined' ? link : null
     }) %>
     <style>
         /* Custom scrollbar for sidebar */
@@ -21,39 +22,6 @@
             background: #cbd5e1;
         }
 
-        /* Code block copy button */
-        .code-block-wrapper {
-            position: relative;
-        }
-        .copy-button {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            padding: 6px 10px;
-            font-size: 12px;
-            font-weight: 500;
-            color: #94a3b8;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 6px;
-            cursor: pointer;
-            opacity: 0;
-            transition: all 0.15s ease;
-            z-index: 10;
-        }
-        .code-block-wrapper:hover .copy-button {
-            opacity: 1;
-        }
-        .copy-button:hover {
-            color: #f1f5f9;
-            background: #334155;
-            border-color: #475569;
-        }
-        .copy-button.copied {
-            color: #a5b4fc;
-            border-color: #a5b4fc;
-        }
-
         /* Smooth transitions */
         * {
             scroll-behavior: smooth;
@@ -69,6 +37,9 @@
 </head>
 
 <body class="flex min-h-full bg-white">
+    <!-- Scroll progress bar -->
+    <div id="scroll-progress" class="scroll-progress" style="width: 0%;"></div>
+
     <div class="flex w-full flex-col">
         <%- include('./Partials/Header.ejs') %>
 
@@ -104,106 +75,320 @@
             <%- include('./Partials/Nav.ejs') %>
         </aside>
 
-        <!-- Main content area -->
+        <!-- Main content area: 3-column layout on xl -->
         <div class="relative z-0 mx-auto flex w-full max-w-8xl flex-auto justify-center sm:px-2 lg:px-8 xl:px-12">
-            <!-- Desktop sidebar -->
+            <!-- Desktop sidebar (left) -->
             <div class="hidden lg:relative lg:block lg:flex-none">
                 <div class="absolute inset-y-0 right-0 w-[50vw] bg-gradient-to-r from-slate-50 to-slate-50/0"></div>
-                <div class="sticky top-[3.5rem] -ml-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-12 pl-0.5 pr-8 xl:w-72 xl:pr-12 custom-scrollbar">
+                <div class="sticky top-[3.5rem] -ml-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-8 pl-0.5 pr-8 xl:w-72 xl:pr-12 custom-scrollbar">
                     <%- include('./Partials/Nav.ejs') %>
                 </div>
             </div>
 
-            <!-- Article content -->
+            <!-- Article content (center) -->
             <div class="min-w-0 max-w-2xl flex-auto px-4 py-8 md:py-10 lg:py-12 lg:max-w-none lg:pl-8 lg:pr-0 xl:px-16">
                 <%- include('./Partials/Content.ejs', { category: category, link: link, content: content }) %>
+
+                <%- include('./Partials/Pagination.ejs', {
+                    prevLink: typeof prevLink !== 'undefined' ? prevLink : null,
+                    nextLink: typeof nextLink !== 'undefined' ? nextLink : null
+                }) %>
+
                 <%- include('./Partials/OpenSourceCommitment.ejs', { githubPath: githubPath }) %>
 
                 <!-- Footer spacing -->
                 <div class="h-16"></div>
+            </div>
+
+            <!-- TOC sidebar (right) - visible on xl only -->
+            <div class="hidden xl:block xl:flex-none xl:w-56 2xl:w-64">
+                <div class="toc-sidebar py-12 pl-6" id="toc-sidebar">
+                    <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-900 mb-4">On This Page</h4>
+                    <ul id="toc-list" class="space-y-0.5">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search modal -->
+    <div id="search-overlay" class="search-overlay"></div>
+    <div id="search-modal" class="search-modal">
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-200">
+            <svg class="h-5 w-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <input id="search-input" type="text" placeholder="Search documentation..." class="flex-1 bg-transparent border-none outline-none text-sm text-slate-900 placeholder-slate-400" autocomplete="off">
+            <kbd class="hidden sm:inline-flex items-center rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">ESC</kbd>
+        </div>
+        <div id="search-results" class="search-results">
+            <div id="search-empty" class="px-4 py-8 text-center text-sm text-slate-500">
+                Type to search documentation...
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
     <script>
-        // Mobile menu toggle
         (function(){
-            const openBtn = document.querySelector('[data-mobile-menu-open]');
-            const closeBtn = document.querySelector('[data-mobile-menu-close]');
-            const overlay = document.querySelector('[data-mobile-menu-overlay]');
-            const drawer = document.querySelector('[data-mobile-menu-drawer]');
-            if(!openBtn || !overlay || !drawer){ return; }
-
-            function openMenu(){
-                overlay.classList.remove('hidden');
-                drawer.classList.remove('hidden');
-                requestAnimationFrame(()=>{
-                    drawer.classList.remove('-translate-x-full');
-                    overlay.classList.add('opacity-100');
-                });
-                document.body.classList.add('overflow-hidden');
-            }
-
-            function closeMenu(){
-                drawer.classList.add('-translate-x-full');
-                overlay.classList.remove('opacity-100');
-                document.body.classList.remove('overflow-hidden');
-                drawer.addEventListener('transitionend', function handler(e){
-                    if(e.propertyName === 'transform'){
-                        if(drawer.classList.contains('-translate-x-full')){
-                            drawer.classList.add('hidden');
-                            overlay.classList.add('hidden');
+            // === Mobile menu toggle ===
+            var openBtn = document.querySelector('[data-mobile-menu-open]');
+            var closeBtn = document.querySelector('[data-mobile-menu-close]');
+            var overlay = document.querySelector('[data-mobile-menu-overlay]');
+            var drawer = document.querySelector('[data-mobile-menu-drawer]');
+            if(openBtn && overlay && drawer){
+                function openMenu(){
+                    overlay.classList.remove('hidden');
+                    drawer.classList.remove('hidden');
+                    requestAnimationFrame(function(){
+                        drawer.classList.remove('-translate-x-full');
+                        overlay.classList.add('opacity-100');
+                    });
+                    document.body.classList.add('overflow-hidden');
+                }
+                function closeMenu(){
+                    drawer.classList.add('-translate-x-full');
+                    overlay.classList.remove('opacity-100');
+                    document.body.classList.remove('overflow-hidden');
+                    drawer.addEventListener('transitionend', function handler(e){
+                        if(e.propertyName === 'transform'){
+                            if(drawer.classList.contains('-translate-x-full')){
+                                drawer.classList.add('hidden');
+                                overlay.classList.add('hidden');
+                            }
+                            drawer.removeEventListener('transitionend', handler);
                         }
-                        drawer.removeEventListener('transitionend', handler);
-                    }
-                });
+                    });
+                }
+                openBtn.addEventListener('click', openMenu);
+                overlay.addEventListener('click', closeMenu);
+                if(closeBtn) closeBtn.addEventListener('click', closeMenu);
             }
 
-            openBtn.addEventListener('click', openMenu);
-            overlay.addEventListener('click', closeMenu);
-            closeBtn && closeBtn.addEventListener('click', closeMenu);
-            document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ closeMenu(); }});
-        })();
-
-        // Add copy buttons to code blocks
-        (function(){
-            document.querySelectorAll('pre').forEach(function(pre){
-                // Skip if already has wrapper
-                if(pre.parentElement.classList.contains('code-block-wrapper')) return;
-
-                // Create wrapper
-                const wrapper = document.createElement('div');
-                wrapper.className = 'code-block-wrapper';
-                pre.parentNode.insertBefore(wrapper, pre);
-                wrapper.appendChild(pre);
-
-                // Create copy button
-                const button = document.createElement('button');
-                button.className = 'copy-button';
-                button.textContent = 'Copy';
-                button.setAttribute('aria-label', 'Copy code to clipboard');
-                wrapper.appendChild(button);
-
-                // Copy functionality
-                button.addEventListener('click', async function(){
-                    const code = pre.querySelector('code');
-                    const text = code ? code.textContent : pre.textContent;
-
-                    try {
-                        await navigator.clipboard.writeText(text);
-                        button.textContent = 'Copied!';
-                        button.classList.add('copied');
-                        setTimeout(()=>{
-                            button.textContent = 'Copy';
-                            button.classList.remove('copied');
-                        }, 2000);
-                    } catch(err) {
-                        button.textContent = 'Failed';
-                        setTimeout(()=>{ button.textContent = 'Copy'; }, 2000);
+            // === Sidebar collapse/expand ===
+            document.querySelectorAll('.nav-category-btn').forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    var idx = btn.getAttribute('data-category-index');
+                    var links = document.querySelectorAll('[data-category-links="' + idx + '"]');
+                    var chevron = btn.querySelector('.nav-chevron');
+                    var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+                    btn.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+                    links.forEach(function(el){
+                        if(isExpanded){
+                            el.classList.remove('expanded');
+                        } else {
+                            el.classList.add('expanded');
+                        }
+                    });
+                    if(chevron){
+                        if(isExpanded){
+                            chevron.classList.remove('rotated');
+                        } else {
+                            chevron.classList.add('rotated');
+                        }
                     }
                 });
             });
+
+            // Auto-scroll active nav item into view
+            var activeLink = document.querySelector('.nav-active-link');
+            if(activeLink){
+                setTimeout(function(){
+                    activeLink.scrollIntoView({ block: 'center', behavior: 'auto' });
+                }, 100);
+            }
+
+            // === TOC generation + scroll spy ===
+            var tocList = document.getElementById('toc-list');
+            if(tocList){
+                var article = document.querySelector('.docs-article');
+                if(article){
+                    var headings = article.querySelectorAll('h2[id], h3[id]');
+                    headings.forEach(function(h){
+                        var li = document.createElement('li');
+                        var a = document.createElement('a');
+                        a.href = '#' + h.id;
+                        a.textContent = h.textContent.replace(/#$/, '').trim();
+                        a.className = 'toc-link' + (h.tagName === 'H3' ? ' toc-h3' : '');
+                        a.setAttribute('data-toc-id', h.id);
+                        li.appendChild(a);
+                        tocList.appendChild(li);
+                    });
+
+                    // Scroll spy with IntersectionObserver
+                    if(headings.length > 0 && 'IntersectionObserver' in window){
+                        var tocLinks = tocList.querySelectorAll('.toc-link');
+                        var observer = new IntersectionObserver(function(entries){
+                            entries.forEach(function(entry){
+                                if(entry.isIntersecting){
+                                    tocLinks.forEach(function(l){ l.classList.remove('active'); });
+                                    var active = tocList.querySelector('[data-toc-id="' + entry.target.id + '"]');
+                                    if(active) active.classList.add('active');
+                                }
+                            });
+                        }, { rootMargin: '-80px 0px -70% 0px', threshold: 0 });
+                        headings.forEach(function(h){ observer.observe(h); });
+                    }
+                }
+            }
+
+            // === Search modal ===
+            var searchOverlay = document.getElementById('search-overlay');
+            var searchModal = document.getElementById('search-modal');
+            var searchInput = document.getElementById('search-input');
+            var searchResults = document.getElementById('search-results');
+            var searchEmpty = document.getElementById('search-empty');
+            var searchTrigger = document.getElementById('search-trigger');
+            var searchTriggerMobile = document.getElementById('search-trigger-mobile');
+
+            // Build search index from nav
+            var searchIndex = [];
+            <% for(var i=0; i<nav.length; i++) { %>
+                <% for(var j=0; j<nav[i].links.length; j++) { %>
+                    searchIndex.push({
+                        title: '<%= nav[i].links[j].title.replace(/'/g, "\\'") %>',
+                        url: '<%= nav[i].links[j].url %>',
+                        category: '<%= nav[i].title.replace(/'/g, "\\'") %>'
+                    });
+                <% } %>
+            <% } %>
+
+            var highlightedIndex = -1;
+
+            function openSearch(){
+                searchOverlay.classList.add('active');
+                searchModal.classList.add('active');
+                searchInput.value = '';
+                searchInput.focus();
+                renderSearchResults('');
+                document.body.classList.add('overflow-hidden');
+            }
+            function closeSearch(){
+                searchOverlay.classList.remove('active');
+                searchModal.classList.remove('active');
+                document.body.classList.remove('overflow-hidden');
+                highlightedIndex = -1;
+            }
+
+            function renderSearchResults(query){
+                var q = query.toLowerCase().trim();
+                if(!q){
+                    searchResults.innerHTML = '<div class="px-4 py-8 text-center text-sm text-slate-500">Type to search documentation...</div>';
+                    highlightedIndex = -1;
+                    return;
+                }
+                var matches = searchIndex.filter(function(item){
+                    return item.title.toLowerCase().indexOf(q) !== -1 || item.category.toLowerCase().indexOf(q) !== -1;
+                });
+                if(matches.length === 0){
+                    searchResults.innerHTML = '<div class="px-4 py-8 text-center text-sm text-slate-500">No results found for "' + q.replace(/</g,'&lt;') + '"</div>';
+                    highlightedIndex = -1;
+                    return;
+                }
+                highlightedIndex = 0;
+                var html = '';
+                matches.forEach(function(item, idx){
+                    html += '<a href="' + item.url + '" class="search-result-item flex items-center gap-3' + (idx === 0 ? ' highlighted' : '') + '" data-search-idx="' + idx + '">';
+                    html += '<svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>';
+                    html += '<div class="flex-1 min-w-0">';
+                    html += '<div class="text-sm font-medium text-slate-900 truncate">' + item.title + '</div>';
+                    html += '<div class="text-xs text-slate-500">' + item.category + '</div>';
+                    html += '</div>';
+                    html += '<svg class="w-3.5 h-3.5 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+                    html += '</a>';
+                });
+                searchResults.innerHTML = html;
+            }
+
+            if(searchTrigger) searchTrigger.addEventListener('click', openSearch);
+            if(searchTriggerMobile) searchTriggerMobile.addEventListener('click', openSearch);
+            searchOverlay.addEventListener('click', closeSearch);
+
+            searchInput.addEventListener('input', function(){
+                renderSearchResults(searchInput.value);
+            });
+
+            document.addEventListener('keydown', function(e){
+                // Cmd+K or Ctrl+K to open
+                if((e.metaKey || e.ctrlKey) && e.key === 'k'){
+                    e.preventDefault();
+                    if(searchModal.classList.contains('active')){
+                        closeSearch();
+                    } else {
+                        openSearch();
+                    }
+                }
+                // Escape to close
+                if(e.key === 'Escape'){
+                    if(searchModal.classList.contains('active')){
+                        closeSearch();
+                    }
+                    // Also close mobile menu
+                    if(typeof closeMenu === 'function') closeMenu();
+                }
+                // Arrow navigation in search
+                if(searchModal.classList.contains('active')){
+                    var items = searchResults.querySelectorAll('.search-result-item');
+                    if(e.key === 'ArrowDown'){
+                        e.preventDefault();
+                        highlightedIndex = Math.min(highlightedIndex + 1, items.length - 1);
+                        items.forEach(function(it, i){ it.classList.toggle('highlighted', i === highlightedIndex); });
+                        if(items[highlightedIndex]) items[highlightedIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                    if(e.key === 'ArrowUp'){
+                        e.preventDefault();
+                        highlightedIndex = Math.max(highlightedIndex - 1, 0);
+                        items.forEach(function(it, i){ it.classList.toggle('highlighted', i === highlightedIndex); });
+                        if(items[highlightedIndex]) items[highlightedIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                    if(e.key === 'Enter' && highlightedIndex >= 0 && items[highlightedIndex]){
+                        e.preventDefault();
+                        window.location.href = items[highlightedIndex].href;
+                    }
+                }
+            });
+
+            // === Scroll progress bar ===
+            var progressBar = document.getElementById('scroll-progress');
+            function updateScrollProgress(){
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                var pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                progressBar.style.width = pct + '%';
+            }
+
+            // === Header scroll behavior ===
+            var header = document.getElementById('docs-header');
+            function updateHeaderScroll(){
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                if(scrollTop > 10){
+                    header.classList.remove('border-transparent');
+                    header.classList.add('border-slate-900/10');
+                    header.style.boxShadow = '0 1px 3px 0 rgba(0,0,0,0.05)';
+                } else {
+                    header.classList.add('border-transparent');
+                    header.classList.remove('border-slate-900/10');
+                    header.style.boxShadow = 'none';
+                }
+            }
+
+            // Throttled scroll handler
+            var scrollTicking = false;
+            window.addEventListener('scroll', function(){
+                if(!scrollTicking){
+                    requestAnimationFrame(function(){
+                        updateScrollProgress();
+                        updateHeaderScroll();
+                        scrollTicking = false;
+                    });
+                    scrollTicking = true;
+                }
+            }, { passive: true });
+
+            // Initial calls
+            updateScrollProgress();
+            updateHeaderScroll();
         })();
     </script>
 </body>

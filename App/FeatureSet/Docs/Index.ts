@@ -108,6 +108,40 @@ const DocsFeatureSet: FeatureSet = {
             });
           }
 
+          // Compute prev/next pagination links
+          interface FlatLink {
+            link: NavLink;
+            category: NavGroup;
+          }
+          const flatLinks: FlatLink[] = [];
+          for (const cat of DocsNav) {
+            for (const navLink of cat.links) {
+              // Skip external links
+              if (
+                navLink.url.startsWith("http") &&
+                !navLink.url.includes("/docs/")
+              ) {
+                continue;
+              }
+              flatLinks.push({ link: navLink, category: cat });
+            }
+          }
+
+          const currentIndex: number = flatLinks.findIndex(
+            (item: FlatLink) => {
+              return item.link.url
+                .toLocaleLowerCase()
+                .includes(fullPath);
+            },
+          );
+
+          const prevLink: FlatLink | null =
+            currentIndex > 0 ? flatLinks[currentIndex - 1]! : null;
+          const nextLink: FlatLink | null =
+            currentIndex >= 0 && currentIndex < flatLinks.length - 1
+              ? flatLinks[currentIndex + 1]!
+              : null;
+
           res.render(`${ViewsPath}/Index`, {
             nav: DocsNav,
             content: renderedContent,
@@ -115,6 +149,8 @@ const DocsFeatureSet: FeatureSet = {
             link: currrentNavLink,
             githubPath: fullPath,
             enableGoogleTagManager: IsBillingEnabled,
+            prevLink: prevLink,
+            nextLink: nextLink,
           });
         } catch (err) {
           logger.error(err);

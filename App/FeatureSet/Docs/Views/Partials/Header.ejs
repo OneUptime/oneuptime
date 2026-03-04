@@ -1,4 +1,4 @@
-<header class="sticky top-0 z-50 flex flex-none items-center justify-between bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-slate-900/10 sm:px-6 lg:px-8 supports-[backdrop-filter]:bg-white/80">
+<header id="docs-header" class="sticky top-0 z-50 flex flex-none items-center justify-between bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-transparent sm:px-6 lg:px-8 supports-[backdrop-filter]:bg-white/80 transition-[border-color,box-shadow] duration-200">
     <!-- Logo and brand -->
     <div class="flex items-center gap-4">
         <a aria-label="Home page" href="/" class="flex items-center gap-3 group">
@@ -9,12 +9,30 @@
             <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
             </svg>
-            Documentation
+            Docs
         </a>
+        <span class="hidden sm:inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 ring-1 ring-inset ring-indigo-500/20">v8</span>
     </div>
+
+    <!-- Center: search trigger -->
+    <button id="search-trigger" class="hidden sm:flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-all min-w-[200px] lg:min-w-[280px]">
+        <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <span class="flex-1 text-left">Search docs...</span>
+        <kbd class="hidden lg:inline-flex items-center gap-0.5 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+            <span class="text-xs">&#8984;</span>K
+        </kbd>
+    </button>
 
     <!-- Right side actions -->
     <div class="flex items-center gap-3">
+        <!-- Mobile search button -->
+        <button id="search-trigger-mobile" class="sm:hidden inline-flex items-center rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors" aria-label="Search">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        </button>
         <!-- GitHub link -->
         <a class="group flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-all"
            aria-label="GitHub"
