@@ -56,6 +56,24 @@ COPY ./App/package*.json /usr/src/app/
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/app/package.json
 RUN npm install
 
+WORKDIR /usr/src/app/FeatureSet/Accounts
+COPY ./App/FeatureSet/Accounts/package*.json /usr/src/app/FeatureSet/Accounts/
+RUN npm install
+
+WORKDIR /usr/src/app/FeatureSet/Dashboard
+COPY ./App/FeatureSet/Dashboard/package*.json /usr/src/app/FeatureSet/Dashboard/
+RUN npm install
+
+WORKDIR /usr/src/app/FeatureSet/AdminDashboard
+COPY ./App/FeatureSet/AdminDashboard/package*.json /usr/src/app/FeatureSet/AdminDashboard/
+RUN npm install
+
+WORKDIR /usr/src/app/FeatureSet/StatusPage
+COPY ./App/FeatureSet/StatusPage/package*.json /usr/src/app/FeatureSet/StatusPage/
+RUN npm install
+
+WORKDIR /usr/src/app
+
 # Expose ports.
 #   - 3002: OneUptime-backend
 EXPOSE 3002
@@ -66,6 +84,13 @@ CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
 COPY ./App /usr/src/app
+# Copy frontend sources
+COPY ./App/FeatureSet/Accounts /usr/src/app/FeatureSet/Accounts
+COPY ./App/FeatureSet/Dashboard /usr/src/app/FeatureSet/Dashboard
+COPY ./App/FeatureSet/AdminDashboard /usr/src/app/FeatureSet/AdminDashboard
+COPY ./App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
+# Bundle frontend source
+RUN npm run build-frontends:prod
 # Bundle app source
 RUN npm run compile
 # Set permission to write logs and cache in case container run as non root

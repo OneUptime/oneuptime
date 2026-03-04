@@ -199,30 +199,6 @@ export const HomeHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-export const AccountsHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ACCOUNTS_HOSTNAME"] || "localhost"}:${
-    process.env["ACCOUNTS_PORT"] || 80
-  }`,
-);
-
-export const DashboardHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_DASHBOARD_HOSTNAME"] || "localhost"}:${
-    process.env["DASHBOARD_PORT"] || 80
-  }`,
-);
-
-export const AdminDashboardHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_ADMIN_DASHBOARD_HOSTNAME"] || "localhost"}:${
-    process.env["ADMIN_DASHBOARD_PORT"] || 80
-  }`,
-);
-
-export const DocsHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_DOCS_HOSTNAME"] || "localhost"}:${
-    process.env["DOCS_PORT"] || 80
-  }`,
-);
-
 export const Env: string = process.env["NODE_ENV"] || "production";
 
 // Redis does not require password.

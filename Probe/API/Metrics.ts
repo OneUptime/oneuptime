@@ -13,6 +13,7 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import ProxyConfig from "../Utils/ProxyConfig";
 
@@ -34,6 +35,20 @@ router.get(
        * Get the pending monitor count for this specific probe from ProbeIngest API
        * This is the correct metric - the number of monitors waiting to be probed
        */
+
+      // If the probe hasn't registered yet, return 0 so KEDA doesn't error out
+      const probeId: string | undefined =
+        LocalCache.getString("PROBE", "PROBE_ID") || process.env["PROBE_ID"];
+
+      if (!probeId) {
+        logger.debug(
+          "Probe not yet registered, returning queue size 0 for KEDA",
+        );
+        return Response.sendJsonObjectResponse(req, res, {
+          queueSize: 0,
+        });
+      }
+
       const pendingMonitorsUrl: URL = URL.fromString(
         PROBE_INGEST_URL.toString(),
       ).addRoute("/monitor/pending-count");
