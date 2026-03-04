@@ -4,6 +4,7 @@ import BasicCron from "Common/Server/Utils/BasicCron";
 import logger from "Common/Server/Utils/Logger";
 import CodeRepositoryUtil from "Common/Server/Utils/CodeRepository/CodeRepository";
 import { BlogRootPath } from "../Utils/Config";
+import BlogPostUtil from "../Utils/BlogPost";
 
 BasicCron({
   jobName: "Home:UpdateBlog",
@@ -17,6 +18,7 @@ BasicCron({
     await CodeRepositoryUtil.pullChanges({
       repoPath: BlogRootPath,
     });
+    BlogPostUtil.clearAllCaches();
     logger.debug("UpdateBlog: End");
   },
 });
