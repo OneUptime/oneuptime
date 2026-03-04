@@ -1,15 +1,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#6366f1">
-<link rel="preload" href="/docs/static/fonts/f1.woff2" as="font" crossorigin="" type="font/woff2">
-<link rel="preload" href="/docs/static/fonts/f2.woff2" as="font" crossorigin="" type="font/woff2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" as="style">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <!-- Critical CSS to prevent CLS - these layout rules render immediately before any external resources -->
 <style>
     /* Reserve structural layout space to prevent CLS */
-    body { margin: 0; display: flex; min-height: 100vh; font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif; }
+    body { margin: 0; display: flex; min-height: 100vh; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
     body > div { display: flex; flex-direction: column; width: 100%; }
     /* Header: fixed height prevents shift when styles load */
     header { position: sticky; top: 0; z-index: 50; min-height: 57px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.95); border-bottom: 1px solid rgba(15,23,42,0.1); padding: 0.75rem 1rem; }
@@ -31,8 +33,8 @@
         theme: {
             extend: {
                 fontFamily: {
-                    sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-                    display: ['var(--font-lexend)', 'system-ui', 'sans-serif'],
+                    sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                    display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
                 },
             }
         }
