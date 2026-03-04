@@ -3421,3 +3421,16 @@ pre code, code.font-mono {
 .docs-table-wrapper tr:last-child td {
     border-bottom: none;
 }
+
+/* Mermaid diagram wrapper */
+.mermaid-wrapper {
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+.mermaid-wrapper .mermaid {
+    min-width: 0;
+}
+.mermaid-wrapper svg {
+    max-width: 100%;
+    height: auto;
+}

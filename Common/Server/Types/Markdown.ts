@@ -223,7 +223,7 @@ export default class Markdown {
 
     renderer.code = function (code, language) {
       if (language === "mermaid") {
-        return `<div class="mermaid">${code}</div>`;
+        return `<div class="mermaid-wrapper overflow-x-auto my-6"><div class="mermaid">${code}</div></div>`;
       }
       const escaped: string = Markdown.escapeHtml(code);
       return `<pre><code class="language-${language}">${escaped}</code></pre>`;

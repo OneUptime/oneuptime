@@ -201,10 +201,17 @@
 
             // === TOC generation + scroll spy ===
             var tocList = document.getElementById('toc-list');
+            var tocSidebar = document.getElementById('toc-sidebar');
             if(tocList){
                 var article = document.querySelector('.docs-article');
                 if(article){
                     var headings = article.querySelectorAll('h2[id], h3[id]');
+                    if(headings.length === 0){
+                        // Hide the entire TOC sidebar when no headings
+                        if(tocSidebar && tocSidebar.parentElement){
+                            tocSidebar.parentElement.style.display = 'none';
+                        }
+                    }
                     headings.forEach(function(h){
                         var li = document.createElement('li');
                         var a = document.createElement('a');
