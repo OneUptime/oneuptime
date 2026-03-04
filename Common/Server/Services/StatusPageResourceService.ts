@@ -8,8 +8,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -104,11 +103,9 @@ export class Service extends DatabaseService<Model> {
 
       // Merge and deduplicate
       for (const resource of groupStatusPageResources) {
-        const alreadyExists: boolean = statusPageResources.some(
-          (r: Model) => {
-            return r._id === resource._id;
-          },
-        );
+        const alreadyExists: boolean = statusPageResources.some((r: Model) => {
+          return r._id === resource._id;
+        });
         if (!alreadyExists) {
           statusPageResources.push(resource);
         }

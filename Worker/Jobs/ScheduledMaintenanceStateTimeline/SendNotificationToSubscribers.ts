@@ -193,19 +193,18 @@ RunCron(
         let statusPageResources: Array<StatusPageResource> = [];
 
         if (event.monitors && event.monitors.length > 0) {
-          statusPageResources =
-            await StatusPageResourceService.findByMonitors({
-              monitors: event.monitors,
-              select: {
-                _id: true,
-                displayName: true,
-                statusPageId: true,
-                statusPageGroupId: true,
-                statusPageGroup: {
-                  name: true,
-                },
+          statusPageResources = await StatusPageResourceService.findByMonitors({
+            monitors: event.monitors,
+            select: {
+              _id: true,
+              displayName: true,
+              statusPageId: true,
+              statusPageGroupId: true,
+              statusPageGroup: {
+                name: true,
               },
-            });
+            },
+          });
         }
 
         const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};

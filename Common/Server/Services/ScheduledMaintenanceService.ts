@@ -97,15 +97,14 @@ export class Service extends DatabaseService<Model> {
       let statusPageResources: Array<StatusPageResource> = [];
 
       if (event.monitors && event.monitors.length > 0) {
-        statusPageResources =
-          await StatusPageResourceService.findByMonitors({
-            monitors: event.monitors,
-            select: {
-              _id: true,
-              displayName: true,
-              statusPageId: true,
-            },
-          });
+        statusPageResources = await StatusPageResourceService.findByMonitors({
+          monitors: event.monitors,
+          select: {
+            _id: true,
+            displayName: true,
+            statusPageId: true,
+          },
+        });
       }
 
       const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
