@@ -4,7 +4,6 @@
 <link rel="preload" href="/docs/static/fonts/f1.woff2" as="font" crossorigin="" type="font/woff2">
 <link rel="preload" href="/docs/static/fonts/f2.woff2" as="font" crossorigin="" type="font/woff2">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
 <title>OneUptime Documentation</title>
@@ -12,20 +11,6 @@
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <meta name="next-size-adjust">
-<link rel="preload" href="https://cdn.tailwindcss.com" as="script">
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: {
-                    sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-                    display: ['var(--font-lexend)', 'system-ui', 'sans-serif'],
-                },
-            }
-        }
-    }
-</script>
 <style>
     /* Critical CSS to prevent CLS - reserve layout space before Tailwind loads */
     body { margin: 0; display: flex; min-height: 100vh; }
