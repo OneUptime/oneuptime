@@ -198,7 +198,7 @@ export default class PortMonitor {
           logger.error(
             `PortMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`,
           );
-           return null;
+          return null;
         }
       }
 

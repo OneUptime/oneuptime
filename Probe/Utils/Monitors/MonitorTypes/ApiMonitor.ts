@@ -179,7 +179,7 @@ export default class ApiMonitor {
           logger.error(
             `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
           );
-           return null;
+          return null;
         }
       }
 

@@ -122,7 +122,7 @@ export default class PingMonitor {
           logger.error(
             `PingMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`,
           );
-           return null;
+          return null;
         }
       }
 
