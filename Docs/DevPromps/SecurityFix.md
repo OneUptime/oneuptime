@@ -1,1 +1,0 @@
-Please find security vulnerebility in code anywhere in the codebase and fix it.

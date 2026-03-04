@@ -8,8 +8,7 @@ import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 
 import { getApiUrl } from "./Config/ServerConfig";
-import { initializeMCPServer, getMCPServer } from "./Server/MCPServer";
-import { registerToolHandlers } from "./Handlers/ToolHandler";
+import { initializeMCPServer } from "./Server/MCPServer";
 import { setupMCPRoutes } from "./Handlers/RouteHandler";
 import { generateAllTools } from "./Tools/ToolGenerator";
 import OneUptimeApiService, {
@@ -29,15 +28,12 @@ const MCPFeatureSet: FeatureSet = {
     OneUptimeApiService.initialize(config);
     logger.info(`MCP: OneUptime API Service initialized with: ${apiUrl}`);
 
-    // Initialize MCP server
+    // Mark MCP subsystem as initialized
     initializeMCPServer();
 
-    // Generate tools
+    // Generate tools (tool handlers are registered per-session in RouteHandler)
     const tools: McpToolInfo[] = generateAllTools();
     logger.info(`MCP: Generated ${tools.length} tools`);
-
-    // Register tool handlers
-    registerToolHandlers(getMCPServer(), tools);
 
     // Setup MCP-specific routes
     setupMCPRoutes(app, tools);

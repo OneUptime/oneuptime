@@ -10,29 +10,6 @@ on:
 
 jobs:
 
-  docker-build-accounts:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
-
-      - name: Preinstall 
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-      
-      # build image for accounts service
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./Accounts/Dockerfile .
-
   docker-build-home:
     runs-on: ubuntu-latest
     env:
@@ -101,30 +78,6 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: sudo docker build --no-cache -f ./Workflow/Dockerfile .
-
-  docker-build-docs:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
-
-      - name: Preinstall 
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-      
-      # build image for accounts service
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./Docs/Dockerfile .
-
 
   docker-build-otel-collector:
     runs-on: ubuntu-latest
@@ -198,52 +151,6 @@ jobs:
           max_attempts: 3
           command: sudo docker build --no-cache -f ./E2E/Dockerfile .
 
-  docker-build-admin-dashboard:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
-
-      - name: Preinstall 
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-
-      # build image for home
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./AdminDashboard/Dockerfile .
-
-  docker-build-dashboard:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
-
-      - name: Preinstall 
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-
-      # build image for home
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./Dashboard/Dockerfile .
-
   docker-build-probe:
     runs-on: ubuntu-latest
     env:
@@ -289,29 +196,6 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: sudo docker build --no-cache -f ./Telemetry/Dockerfile .
-
-  docker-build-status-page:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
-
-      - name: Preinstall 
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-        
-      # build image for home
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./StatusPage/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest

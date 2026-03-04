@@ -45,107 +45,6 @@ services:
             context: .
             dockerfile: ./OTelCollector/Dockerfile
 
-    accounts:
-        ports:
-            - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}'
-        extends:
-            file: ./docker-compose.base.yml
-            service: accounts
-        depends_on:
-            <<: *common-depends-on
-        volumes:
-            - ./Accounts:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/dev-env
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-
-            - /usr/src/Common/node_modules/
-
-
-        build:
-            network: host
-            context: .
-            dockerfile: ./Accounts/Dockerfile
-
-
-    dashboard:
-        ports:
-            - '${DASHBOARD_PORT}:${DASHBOARD_PORT}'
-        extends:
-            file: ./docker-compose.base.yml
-            service: dashboard
-        depends_on:
-            <<: *common-depends-on
-        volumes:
-            - ./Dashboard:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/dev-env
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-
-            - /usr/src/Common/node_modules/
-
-
-        build:
-            network: host
-            context: .
-            dockerfile: ./Dashboard/Dockerfile
-
-
-
-    admin-dashboard:
-        ports:
-            - '${ADMIN_DASHBOARD_PORT}:${ADMIN_DASHBOARD_PORT}'
-        extends:
-            file: ./docker-compose.base.yml
-            service: admin-dashboard
-        depends_on:
-            <<: *common-depends-on
-        volumes:
-            - ./AdminDashboard:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/dev-env
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-
-            - /usr/src/Common/node_modules/
-
-
-        build:
-            network: host
-            context: .
-            dockerfile: ./AdminDashboard/Dockerfile
-
-
-    status-page:
-        ports:
-            - '${STATUS_PAGE_PORT}:${STATUS_PAGE_PORT}'
-        extends:
-            file: ./docker-compose.base.yml
-            service: status-page
-        depends_on:
-            <<: *common-depends-on
-        volumes:
-            - ./StatusPage:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/dev-env
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-
-            - /usr/src/Common/node_modules/
-
-
-        build:
-            network: host
-            context: .
-            dockerfile: ./StatusPage/Dockerfile
-
-
     test-server:
         volumes:
             - ./TestServer:/usr/src/app:cached
@@ -232,32 +131,20 @@ services:
             context: .
             dockerfile: ./Workflow/Dockerfile
 
-    docs:
-        volumes:
-            - ./Docs:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-            - /usr/src/Common/node_modules/
-        extends:
-            file: ./docker-compose.base.yml
-            service: docs
-        depends_on:
-            <<: *common-depends-on
-        ports:
-            - '8738:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./Docs/Dockerfile
-
     app:
         volumes:
             - ./App:/usr/src/app:cached
+            - ./App/FeatureSet/Accounts:/usr/src/app/FeatureSet/Accounts:cached
+            - ./App/FeatureSet/Dashboard:/usr/src/app/FeatureSet/Dashboard:cached
+            - ./App/FeatureSet/AdminDashboard:/usr/src/app/FeatureSet/AdminDashboard:cached
+            - ./App/FeatureSet/StatusPage:/usr/src/app/FeatureSet/StatusPage:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
+            - /usr/src/app/FeatureSet/Accounts/node_modules/
+            - /usr/src/app/FeatureSet/Dashboard/node_modules/
+            - /usr/src/app/FeatureSet/AdminDashboard/node_modules/
+            - /usr/src/app/FeatureSet/StatusPage/node_modules/
             - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
