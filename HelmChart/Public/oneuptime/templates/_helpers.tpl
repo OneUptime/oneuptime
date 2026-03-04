@@ -113,28 +113,16 @@ Usage:
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TELEMETRY_HOSTNAME
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_TEST_SERVER_HOSTNAME
-  value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_OTEL_COLLECTOR_HOSTNAME
   value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: APP_PORT
   value: {{ $.Values.app.ports.http | squote }}
 - name: TELEMETRY_PORT
   value: {{ $.Values.telemetry.ports.http | squote }}
-- name: TEST_SERVER_PORT
-  value: {{ $.Values.testServer.ports.http | squote }}
-- name: ACCOUNTS_PORT
-  value: {{ $.Values.accounts.ports.http | squote }}
 - name: HOME_PORT
   value: {{ $.Values.home.ports.http | squote }}
 - name: WORKER_PORT
   value: {{ $.Values.worker.ports.http | squote }}
-- name: STATUS_PAGE_PORT
-  value: {{ $.Values.statusPage.ports.http | squote }}
-- name: DASHBOARD_PORT
-  value: {{ $.Values.dashboard.ports.http | squote }}
-- name: ADMIN_DASHBOARD_PORT
-  value: {{ $.Values.adminDashboard.ports.http | squote }}
 {{- end }}
 
 
