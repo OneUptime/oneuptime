@@ -40,22 +40,31 @@ export default class OpenTelemetryRequestMiddleware {
     try {
       let productType: ProductType;
 
-      const isProtobuf: boolean = req.body instanceof Uint8Array;
+      const contentType: string | undefined = req.headers["content-type"];
+      const isProtobuf: boolean =
+        req.body instanceof Uint8Array &&
+        (!contentType || contentType.includes("application/x-protobuf") || contentType.includes("application/protobuf"));
 
       if (req.url.includes("/otlp/v1/traces")) {
         if (isProtobuf) {
           req.body = TracesData.decode(req.body);
+        } else if (req.body instanceof Uint8Array) {
+          req.body = JSON.parse(req.body.toString("utf-8"));
         }
         productType = ProductType.Traces;
       } else if (req.url.includes("/otlp/v1/logs")) {
         if (isProtobuf) {
           req.body = LogsData.decode(req.body);
+        } else if (req.body instanceof Uint8Array) {
+          req.body = JSON.parse(req.body.toString("utf-8"));
         }
 
         productType = ProductType.Logs;
       } else if (req.url.includes("/otlp/v1/metrics")) {
         if (isProtobuf) {
           req.body = MetricsData.decode(req.body);
+        } else if (req.body instanceof Uint8Array) {
+          req.body = JSON.parse(req.body.toString("utf-8"));
         }
         productType = ProductType.Metrics;
       } else {
