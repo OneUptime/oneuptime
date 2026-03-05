@@ -23,35 +23,21 @@ bash $scriptDir/endpoint-status.sh "App (Ready Check)" $HOST_TO_CHECK/status/rea
 
 bash $scriptDir/endpoint-status.sh "Dashboard" $HOST_TO_CHECK/dashboard
 
-bash $scriptDir/endpoint-status.sh "Dashboard (Ready Check)" $HOST_TO_CHECK/dashboard/status/ready
-
-bash $scriptDir/endpoint-status.sh "Dashboard (Status Check)" $HOST_TO_CHECK/dashboard/status
+bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts
 
 bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page
 
-bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/incoming-request-ingest/status/ready
+bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin
 
-bash $scriptDir/endpoint-status.sh "Status Page (Ready Check)" $HOST_TO_CHECK/status-page/status/ready
-
-bash $scriptDir/endpoint-status.sh "Status Page (Status Check)" $HOST_TO_CHECK/status-page/status
-
-bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts
-
-bash $scriptDir/endpoint-status.sh "Accounts (Ready Check)" $HOST_TO_CHECK/accounts/status/ready
-
-bash $scriptDir/endpoint-status.sh "Accounts (Status Check)" $HOST_TO_CHECK/accounts/status
-
-bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/status/ready
-
-bash $scriptDir/endpoint-status.sh "Admin Dashboard (Status Check)" $HOST_TO_CHECK/admin/status
-
-bash $scriptDir/endpoint-status.sh "Admin Dashboard (Ready Check)" $HOST_TO_CHECK/admin/status/ready
-
-bash $scriptDir/endpoint-status.sh "ProbeIngest (Ready Check)" $HOST_TO_CHECK/probe-ingest/status/ready
+bash $scriptDir/endpoint-status.sh "Telemetry (Status Check)" $HOST_TO_CHECK/telemetry/status
 
 bash $scriptDir/endpoint-status.sh "Telemetry (Ready Check)" $HOST_TO_CHECK/telemetry/status/ready
 
 bash $scriptDir/endpoint-status.sh "ProbeIngest (Status Check)" $HOST_TO_CHECK/probe-ingest/status
+
+bash $scriptDir/endpoint-status.sh "ProbeIngest (Ready Check)" $HOST_TO_CHECK/probe-ingest/status/ready
+
+bash $scriptDir/endpoint-status.sh "IncomingRequestIngest (Ready Check)" $HOST_TO_CHECK/incoming-request-ingest/status/ready
 
 echo "🚀 OneUptime is up! 🚀"
 echo ""
