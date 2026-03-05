@@ -13,12 +13,7 @@ import MetricsQueueService from "./Services/Queue/MetricsQueueService";
 
 const GRPC_PORT: number = 4317;
 
-const PROTO_DIR: string = path.resolve(
-  __dirname,
-  "ProtoFiles",
-  "OTel",
-  "v1",
-);
+const PROTO_DIR: string = path.resolve(__dirname, "ProtoFiles", "OTel", "v1");
 
 type GrpcCallback = (
   error: grpc.ServiceError | null,
@@ -33,8 +28,7 @@ interface GrpcCall {
 async function authenticateRequest(
   metadata: grpc.Metadata,
 ): Promise<ObjectID | null> {
-  const tokenValues: grpc.MetadataValue[] =
-    metadata.get("x-oneuptime-token");
+  const tokenValues: grpc.MetadataValue[] = metadata.get("x-oneuptime-token");
 
   let oneuptimeToken: string | undefined = tokenValues[0]?.toString();
 
@@ -105,9 +99,7 @@ async function handleExport(
   queueFn: (req: TelemetryRequest) => Promise<void>,
 ): Promise<void> {
   try {
-    const projectId: ObjectID | null = await authenticateRequest(
-      call.metadata,
-    );
+    const projectId: ObjectID | null = await authenticateRequest(call.metadata);
 
     if (!projectId) {
       // Return success to avoid OTel SDK retries
@@ -160,23 +152,21 @@ export function startGrpcServer(): void {
     },
   );
 
-  const metricsServiceDef: protoLoader.PackageDefinition =
-    protoLoader.loadSync(
-      path.join(PROTO_DIR, "metrics_service.proto"),
-      {
-        keepCase: false,
-        longs: String,
-        enums: String,
-        defaults: true,
-        oneofs: true,
-        includeDirs: [PROTO_DIR],
-      },
-    );
+  const metricsServiceDef: protoLoader.PackageDefinition = protoLoader.loadSync(
+    path.join(PROTO_DIR, "metrics_service.proto"),
+    {
+      keepCase: false,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+      includeDirs: [PROTO_DIR],
+    },
+  );
 
   const traceProto: grpc.GrpcObject =
     grpc.loadPackageDefinition(traceServiceDef);
-  const logsProto: grpc.GrpcObject =
-    grpc.loadPackageDefinition(logsServiceDef);
+  const logsProto: grpc.GrpcObject = grpc.loadPackageDefinition(logsServiceDef);
   const metricsProto: grpc.GrpcObject =
     grpc.loadPackageDefinition(metricsServiceDef);
 
@@ -197,17 +187,32 @@ export function startGrpcServer(): void {
 
   const traceServiceDefinition: grpc.ServiceDefinition = getServiceDefinition(
     traceProto,
-    "opentelemetry", "proto", "collector", "trace", "v1", "TraceService",
+    "opentelemetry",
+    "proto",
+    "collector",
+    "trace",
+    "v1",
+    "TraceService",
   );
 
   const logsServiceDefinition: grpc.ServiceDefinition = getServiceDefinition(
     logsProto,
-    "opentelemetry", "proto", "collector", "logs", "v1", "LogsService",
+    "opentelemetry",
+    "proto",
+    "collector",
+    "logs",
+    "v1",
+    "LogsService",
   );
 
   const metricsServiceDefinition: grpc.ServiceDefinition = getServiceDefinition(
     metricsProto,
-    "opentelemetry", "proto", "collector", "metrics", "v1", "MetricsService",
+    "opentelemetry",
+    "proto",
+    "collector",
+    "metrics",
+    "v1",
+    "MetricsService",
   );
 
   const server: grpc.Server = new grpc.Server({
