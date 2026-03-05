@@ -84,12 +84,19 @@
                     'typescript':'typescript','ts':'typescript','go':'go','python':'python','py':'python',
                     'json':'json','ruby':'ruby','rb':'ruby','java':'java','css':'css','sql':'sql',
                     'rust':'rust','graphql':'graphql','javascript':'javascript','js':'javascript',
-                    'xml':'xml','html':'xml','markup':'xml','cpp':'cpp','csharp':'csharp','php':'php'
+                    'xml':'xml','html':'xml','markup':'xml','cpp':'cpp','csharp':'csharp','php':'php',
+                    'bind':'dns','dns':'dns','zone':'dns',
+                    'conf':'apache','apache':'apache','nginx':'nginx',
+                    'ini':'ini','toml':'ini',
+                    'diff':'diff','http':'http','makefile':'makefile',
+                    'c':'c','swift':'swift','kotlin':'kotlin','scala':'scala','lua':'lua',
+                    'perl':'perl','r':'r','powershell':'powershell','ps':'powershell'
                 };
                 var needed = {};
                 document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){
                     var m = el.className.match(/language-(\w+)/);
                     if(m && langMap[m[1]]){ needed[langMap[m[1]]] = true; }
+                    else if(m && m[1]){ el.className = el.className.replace(/language-\w+/, ''); }
                 });
                 var langs = Object.keys(needed);
                 var loaded = 0;
