@@ -558,25 +558,6 @@ readinessProbe: # Readiness probe configuration
   initialDelaySeconds: 10
   timeoutSeconds: 120
 
-# OpenTelemetry Collector Configuration
-openTelemetryCollector:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  ports:
-    grpc: 4317
-    http: 4318
-  sendingQueue:
-    enabled: true
-    size: 1000
-    numConsumers: 3
-  resources: {}
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-
-
 home:
   enabled: true
   replicaCount: 1
@@ -636,6 +617,7 @@ telemetry:
   concurrency: 100
   ports:
     http: 3403
+    grpc: 4317
   resources:
   nodeSelector: {}
   podSecurityContext: {}

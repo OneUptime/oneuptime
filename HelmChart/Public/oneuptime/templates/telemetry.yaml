@@ -117,6 +117,9 @@ spec:
             - containerPort: {{ $.Values.telemetry.ports.http }}
               protocol: TCP
               name: http
+            - containerPort: {{ $.Values.telemetry.ports.grpc }}
+              protocol: TCP
+              name: grpc
           {{- if $.Values.telemetry.resources }}
           resources:
             {{- toYaml $.Values.telemetry.resources | nindent 12 }}
@@ -135,7 +138,7 @@ spec:
 ---
 
 # OneUptime telemetry Service
-{{- $telemetryPorts := dict "port" $.Values.telemetry.ports.http -}}
+{{- $telemetryPorts := dict "http" $.Values.telemetry.ports.http "grpc" $.Values.telemetry.ports.grpc -}}
 {{- $telemetryServiceArgs := dict "ServiceName" "telemetry" "Ports" $telemetryPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $telemetryServiceArgs }}
 ---

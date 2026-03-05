@@ -423,76 +423,6 @@ jobs:
             --platforms linux/amd64,linux/arm64 \
             --git-sha "${{ github.sha }}"
 
-  otel-collector-docker-image-deploy:
-    needs: [generate-build-number, read-version]
-    runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
-    steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/otel-collector
-            ghcr.io/oneuptime/otel-collector
-          tags: |
-            type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
-
-      # Build and deploy otel-collector.
-
-      - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Login to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
-
-      - name: Build and push
-        run: |
-          bash ./Scripts/GHA/build_docker_images.sh \
-            --image otel-collector \
-            --version "${{needs.read-version.outputs.major_minor}}" \
-            --dockerfile ./OTelCollector/Dockerfile \
-            --context . \
-            --platforms linux/amd64,linux/arm64 \
-            --git-sha "${{ github.sha }}"
-
-
-
   test-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
@@ -1001,7 +931,6 @@ jobs:
       - e2e-docker-image-deploy
       - home-docker-image-deploy
       - test-server-docker-image-deploy
-      - otel-collector-docker-image-deploy
       - test-docker-image-deploy
       - telemetry-docker-image-deploy
       - probe-docker-image-deploy
@@ -1020,7 +949,6 @@ jobs:
           "e2e",
           "home",
           "test-server",
-          "otel-collector",
           "test",
           "telemetry",
           "probe",
@@ -1073,7 +1001,7 @@ jobs:
 
   test-e2e-release-saas:
     runs-on: ubuntu-latest
-    needs: [telemetry-docker-image-deploy, ai-agent-docker-image-deploy, app-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
+    needs: [telemetry-docker-image-deploy, ai-agent-docker-image-deploy, app-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, probe-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1204,7 +1132,7 @@ jobs:
   test-e2e-release-self-hosted:
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [telemetry-docker-image-deploy, ai-agent-docker-image-deploy, app-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
+    needs: [telemetry-docker-image-deploy, ai-agent-docker-image-deploy, app-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, probe-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:

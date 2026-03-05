@@ -36,15 +36,6 @@ services:
             service: postgres
 
 
-    otel-collector:
-        extends:
-            file: ./docker-compose.base.yml
-            service: otel-collector
-        build:
-            network: host
-            context: .
-            dockerfile: ./OTelCollector/Dockerfile
-
     test-server:
         volumes:
             - ./TestServer:/usr/src/app:cached

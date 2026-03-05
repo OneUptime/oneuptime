@@ -113,8 +113,6 @@ Usage:
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TELEMETRY_HOSTNAME
   value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_OTEL_COLLECTOR_HOSTNAME
-  value: {{ $.Release.Name }}-otel-collector.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: APP_PORT
   value: {{ $.Values.app.ports.http | squote }}
 - name: TELEMETRY_PORT

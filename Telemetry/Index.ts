@@ -24,6 +24,7 @@ import Telemetry from "Common/Server/Utils/Telemetry";
 import "./Jobs/TelemetryIngest/ProcessTelemetry";
 import { TELEMETRY_CONCURRENCY } from "./Config";
 import type { StatusAPIOptions } from "Common/Server/API/StatusAPI";
+import { startGrpcServer } from "./GrpcServer";
 import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -104,6 +105,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     );
 
     await Realtime.init();
+
+    // Start gRPC OTLP server on port 4317
+    startGrpcServer();
+
     // add default routes
     await App.addDefaultRoutes();
   } catch (err) {

@@ -1262,63 +1262,6 @@
       },
       "additionalProperties": false
     },
-    "openTelemetryCollector": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "replicaCount": {
-          "type": "integer"
-        },
-        "disableTelemetryCollection": {
-          "type": "boolean"
-        },
-        "disableAutoscaler": {
-          "type": "boolean"
-        },
-        "ports": {
-          "type": "object",
-          "properties": {
-            "grpc": {
-              "type": "integer"
-            },
-            "http": {
-              "type": "integer"
-            }
-          },
-          "additionalProperties": false
-        },
-        "sendingQueue": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            },
-            "size": {
-              "type": "integer"
-            },
-            "numConsumers": {
-              "type": "integer"
-            }
-          },
-          "additionalProperties": false
-        },
-        "resources": {
-          "type": ["object", "null"]
-        },
-        "nodeSelector": {
-          "type": "object"
-        },
-        "podSecurityContext": {
-          "type": "object"
-        },
-        "containerSecurityContext": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
     "home": {
       "type": "object",
       "properties": {
@@ -1527,6 +1470,9 @@
           "type": "object",
           "properties": {
             "http": {
+              "type": "integer"
+            },
+            "grpc": {
               "type": "integer"
             }
           },
