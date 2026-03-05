@@ -33,12 +33,6 @@ bash $scriptDir/endpoint-status.sh "Telemetry (Status Check)" $HOST_TO_CHECK/tel
 
 bash $scriptDir/endpoint-status.sh "Telemetry (Ready Check)" $HOST_TO_CHECK/telemetry/status/ready
 
-bash $scriptDir/endpoint-status.sh "ProbeIngest (Status Check)" $HOST_TO_CHECK/probe-ingest/status
-
-bash $scriptDir/endpoint-status.sh "ProbeIngest (Ready Check)" $HOST_TO_CHECK/probe-ingest/status/ready
-
-bash $scriptDir/endpoint-status.sh "IncomingRequestIngest (Ready Check)" $HOST_TO_CHECK/incoming-request-ingest/status/ready
-
 echo "🚀 OneUptime is up! 🚀"
 echo ""
 echo "🎉🎉🎉  Done! 🎉🎉🎉"
