@@ -72,12 +72,10 @@ function buildTelemetryRequest(
   productType: ProductType,
 ): TelemetryRequest {
   const headers: Record<string, string> = {};
+  const metadataMap: { [key: string]: grpc.MetadataValue } = metadata.getMap();
 
-  for (const key of metadata.keys()) {
-    const values: grpc.MetadataValue[] = metadata.get(key);
-    if (values.length > 0) {
-      headers[key] = values[0]!.toString();
-    }
+  for (const key in metadataMap) {
+    headers[key] = metadataMap[key]!.toString();
   }
 
   const req: Partial<TelemetryRequest> = {
