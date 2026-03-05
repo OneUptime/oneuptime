@@ -81,10 +81,10 @@ if ! kind get clusters | grep -q "^${CLUSTER_NAME}$"; then
     kind create cluster --name "${CLUSTER_NAME}" --wait 180s
 fi
 
-echo "KinD cluster is ready. Installing default StorageClass (local-path)."
-# Install Rancher local-path-provisioner and set it as default SC
-kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-kubectl wait --for=condition=Available --timeout=120s -n kube-system deploy/local-path-provisioner || true
+echo "KinD cluster is ready. Ensuring default StorageClass (local-path) is available."
+# KinD already ships with a local-path-provisioner in local-path-storage namespace.
+# Just wait for it to be ready and ensure the storage class is marked as default.
+kubectl wait --for=condition=Available --timeout=120s -n local-path-storage deploy/local-path-provisioner
 kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class="true" --overwrite || true
 
 echo "Cluster Nodes:"
