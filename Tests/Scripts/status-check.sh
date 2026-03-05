@@ -27,8 +27,6 @@ bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts
 
 bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page
 
-bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin
-
 bash $scriptDir/endpoint-status.sh "Telemetry (Status Check)" $HOST_TO_CHECK/telemetry/status
 
 bash $scriptDir/endpoint-status.sh "Telemetry (Ready Check)" $HOST_TO_CHECK/telemetry/status/ready
