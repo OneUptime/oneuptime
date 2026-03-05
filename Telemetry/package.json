@@ -19,6 +19,8 @@
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "Apache-2.0",
     "dependencies": {
+        "@grpc/grpc-js": "^1.12.5",
+        "@grpc/proto-loader": "^0.7.13",
         "Common": "file:../Common",
         "ejs": "^3.1.10",
         "protobufjs": "^7.3.2",

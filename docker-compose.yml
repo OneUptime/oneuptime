@@ -29,12 +29,6 @@ services:
             service: postgres
 
 
-    otel-collector:
-        image:  oneuptime/otel-collector:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: otel-collector
-
     app:
         image:  oneuptime/app:${APP_TAG}
         extends:

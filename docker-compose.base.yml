@@ -30,7 +30,6 @@ x-common-variables: &common-variables
 
     SERVER_APP_HOSTNAME: app
     SERVER_TELEMETRY_HOSTNAME: telemetry
-    SERVER_OTEL_COLLECTOR_HOSTNAME: otel-collector
     SERVER_WORKER_HOSTNAME: worker
     SERVER_HOME_HOSTNAME: home
     #Ports. Usually they don't need to change.
@@ -334,23 +333,6 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
-
-    otel-collector:
-        networks:
-          - oneuptime
-        environment:
-            <<: *common-variables
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_OTEL_COLLECTOR}
-            OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_ENABLED: ${OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_ENABLED}
-            OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE: ${OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_SIZE}
-            OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_NUM_CONSUMERS: ${OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_NUM_CONSUMERS}
-        restart: always
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-        ports: 
-          - 13133:13133 # Otel Collector Health Check Endpoint at /heath/status
 
     fluentd:
         networks:
