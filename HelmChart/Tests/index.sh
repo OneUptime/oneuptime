@@ -81,11 +81,12 @@ if ! kind get clusters | grep -q "^${CLUSTER_NAME}$"; then
     kind create cluster --name "${CLUSTER_NAME}" --wait 180s
 fi
 
-echo "KinD cluster is ready. Ensuring default StorageClass (local-path) is available."
-# KinD already ships with a local-path-provisioner in local-path-storage namespace.
-# Just wait for it to be ready and ensure the storage class is marked as default.
+echo "KinD cluster is ready. Ensuring default StorageClass is available."
+# KinD ships with a local-path-provisioner in local-path-storage namespace
+# and a StorageClass named "standard". Wait for the provisioner and ensure
+# the storage class is marked as default.
 kubectl wait --for=condition=Available --timeout=120s -n local-path-storage deploy/local-path-provisioner
-kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class="true" --overwrite || true
+kubectl annotate storageclass standard storageclass.kubernetes.io/is-default-class="true" --overwrite || true
 
 echo "Cluster Nodes:"
 kubectl get nodes -o wide

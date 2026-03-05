@@ -1,5 +1,5 @@
 global:
-  storageClass: local-path
+  storageClass: ""
 
 host: localhost
 httpProtocol: http
