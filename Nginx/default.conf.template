@@ -3,25 +3,6 @@
 server_names_hash_bucket_size ${SERVER_NAMES_HASH_BUCKET_SIZE};
 server_names_hash_max_size ${SERVER_NAMES_HASH_MAX_SIZE};
 
-upstream app {
-    server ${SERVER_APP_HOSTNAME}:${APP_PORT} weight=10 max_fails=3 fail_timeout=30s; 
-}
-
-upstream telemetry {
-    server ${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT} weight=10 max_fails=3 fail_timeout=30s;
-}
-
-upstream worker {
-    server ${SERVER_WORKER_HOSTNAME}:${WORKER_PORT} weight=10 max_fails=3 fail_timeout=30s;
-}
-
-upstream home {
-    server ${SERVER_HOME_HOSTNAME}:${HOME_PORT} weight=10 max_fails=3 fail_timeout=30s;
-}
-
-upstream opentelemetry-grpc {
-    server ${SERVER_TELEMETRY_HOSTNAME}:4317;
-}
 
 # Status Pages
 
@@ -51,8 +32,8 @@ server {
 
     location / {
 
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -63,15 +44,15 @@ server {
         }
 
         if ($billing_enabled != true) {
-            proxy_pass http://app;
+            proxy_pass $backend_app;
         }
-        
+
     }
 
     location /status-page {
 
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -82,73 +63,73 @@ server {
         }
 
         if ($billing_enabled != true) {
-            proxy_pass http://app;
+            proxy_pass $backend_app;
         }
     }
 
     location /status-page-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/status-page/;
+        proxy_pass $backend_app/api/status-page/;
     }
 
     location /status-page-sso-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/identity/status-page-sso/;
+        proxy_pass $backend_app/api/identity/status-page-sso/;
     }
 
     location /status-page-identity-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/identity/status-page/;
+        proxy_pass $backend_app/api/identity/status-page/;
     }
 
     # Acme Verification.
     location /.well-known {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://app/api/status-page/.well-known;
+        proxy_pass $backend_app/api/status-page/.well-known;
     }
 
 }
@@ -182,85 +163,85 @@ server {
 
     location / {
 
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app;
+        proxy_pass $backend_app;
 
-        
+
     }
 
     location /status-page-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/status-page/;
+        proxy_pass $backend_app/api/status-page/;
     }
 
     location /status-page-sso-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/identity/status-page-sso/;
+        proxy_pass $backend_app/api/identity/status-page-sso/;
     }
 
     location /status-page-identity-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/identity/status-page/;
+        proxy_pass $backend_app/api/identity/status-page/;
     }
 
     location /status-page {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app;
+        proxy_pass $backend_app;
     }
 }
 
@@ -292,208 +273,206 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     set $billing_enabled ${BILLING_ENABLED};
 
     location / {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_home http://${SERVER_HOME_HOSTNAME}:${HOME_PORT};
         proxy_set_header Host $server_name;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        
-        # If billing_enabled is true then proxy to home otherwise to dashboard because we dont need marketing paages for on-prem install.
+
+        # If billing_enabled is true then proxy to home otherwise to dashboard because we dont need marketing pages for on-prem install.
         if ($billing_enabled = true) {
-            proxy_pass http://home;
+            proxy_pass $backend_home;
         }
 
         if ($billing_enabled != true) {
-            proxy_pass http://app;
+            proxy_pass $backend_app;
         }
     }
 
     # ACME Challenge for primary domain.
     location /.well-known/acme-challenge {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://app/api/acme-challenge/.well-known;
+        proxy_pass $backend_app/api/acme-challenge/.well-known;
     }
 
     location /.well-known/assetlinks.json {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_home http://${SERVER_HOME_HOSTNAME}:${HOME_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://home/.well-known/assetlinks.json;
+        proxy_pass $backend_home/.well-known/assetlinks.json;
     }
 
     # PWA manifest and service worker with proper headers for home
     location ~* ^/(manifest\.json|service-worker\.js)$ {
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_home http://${SERVER_HOME_HOSTNAME}:${HOME_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # Cache manifest for 1 hour, service worker for no cache
         if ($uri ~* "service-worker\.js$") {
             add_header Cache-Control "no-cache, no-store, must-revalidate" always;
             add_header Pragma "no-cache" always;
             add_header Expires "0" always;
         }
-        
+
         if ($uri ~* "manifest\.json$") {
             add_header Cache-Control "public, max-age=3600" always;
         }
-        
+
         # Serve from home if billing enabled, dashboard otherwise
         if ($billing_enabled = true) {
-            proxy_pass http://home;
+            proxy_pass $backend_home;
         }
 
         if ($billing_enabled != true) {
-            proxy_pass http://app;
+            proxy_pass $backend_app;
         }
     }
 
 
     location /status-page-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/status-page/;
+        proxy_pass $backend_app/api/status-page/;
     }
 
     location /status-page-sso-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/identity/status-page-sso/;
+        proxy_pass $backend_app/api/identity/status-page-sso/;
     }
 
     location /status-page-identity-api/ {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app/api/identity/status-page/;
+        proxy_pass $backend_app/api/identity/status-page/;
     }
-    
+
 
     location /accounts {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app;
+        proxy_pass $backend_app;
     }
 
 
     location /telemetry {
-
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass http://telemetry;
+        proxy_pass $backend_telemetry;
     }
 
-     location /incoming-request-ingest {
-
-        # This is for nginx not to crash when service is not available.
+    location /incoming-request-ingest {
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass http://telemetry;
+        proxy_pass $backend_telemetry;
     }
 
     location /otlp/ {
-
-        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-
-        proxy_pass http://telemetry/otlp/;
+        proxy_pass $backend_telemetry/otlp/;
     }
 
-
     location ~ /opentelemetry.proto.collector* {
-        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
-        grpc_pass grpc://opentelemetry-grpc;
+        set $backend_otel_grpc grpc://${SERVER_TELEMETRY_HOSTNAME}:4317;
+        grpc_pass $backend_otel_grpc;
     }
 
     location /notification {
-        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -506,318 +485,319 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_set_header X-Forwarded-Host $host;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/api/notification;
+        proxy_pass $backend_app/api/notification;
     }
 
     location /fluentd/logs {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://telemetry/fluentd/v1/logs;
+        proxy_pass $backend_telemetry/fluentd/v1/logs;
     }
 
     location /syslog/v1/logs {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://telemetry/syslog/v1/logs;
+        proxy_pass $backend_telemetry/syslog/v1/logs;
     }
 
     location /probe-ingest {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://telemetry;
+        proxy_pass $backend_telemetry;
 
         client_max_body_size 50M;
     }
 
     # For backward compatibility with probes that are already deployed
     location /ingestor {
-        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://telemetry;
+        proxy_pass $backend_telemetry;
 
         client_max_body_size 50M;
     }
 
     location /server-monitor {
-        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://telemetry/server-monitor;
+        proxy_pass $backend_telemetry/server-monitor;
 
         client_max_body_size 50M;
     }
 
     location /dashboard {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        
+
         # PWA Headers for proper caching
         add_header Cache-Control "public, max-age=31536000" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
         add_header X-XSS-Protection "1; mode=block" always;
-        
-        proxy_pass http://app;
+
+        proxy_pass $backend_app;
     }
 
     # PWA manifest and service worker with proper headers
     location ~* ^/dashboard/(manifest\.json|sw\.js|browserconfig\.xml)$ {
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # Cache manifest for 1 hour, service worker for no cache
         if ($uri ~* "sw\.js$") {
             add_header Cache-Control "no-cache, no-store, must-revalidate" always;
             add_header Pragma "no-cache" always;
             add_header Expires "0" always;
         }
-        
+
         if ($uri ~* "manifest\.json$") {
             add_header Cache-Control "public, max-age=3600" always;
         }
-        
+
         if ($uri ~* "browserconfig\.xml$") {
             add_header Cache-Control "public, max-age=86400" always;
         }
-        
-        proxy_pass http://app;
+
+        proxy_pass $backend_app;
     }
 
 
     location /admin {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app;
+        proxy_pass $backend_app;
     }
 
     location /worker {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_worker http://${SERVER_WORKER_HOSTNAME}:${WORKER_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://worker;
+        proxy_pass $backend_worker;
     }
 
     location /status-page {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass http://app;
+        proxy_pass $backend_app;
     }
 
     location /identity {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/api/identity;
+        proxy_pass $backend_app/api/identity;
     }
 
     location /reference {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/reference;
+        proxy_pass $backend_app/reference;
     }
 
     location /docs {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/docs;
+        proxy_pass $backend_app/docs;
     }
 
     location /file {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/api/file;
+        proxy_pass $backend_app/api/file;
 
         client_max_body_size 50M;
     }
 
     location /api {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/api;
+        proxy_pass $backend_app/api;
 
         client_max_body_size 50M;
     }
 
     location /realtime {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
 
     location /analytics-api {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
 
 
     location /heartbeat {
-        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://telemetry/incoming-request;
+        proxy_pass $backend_telemetry/incoming-request;
 
         client_max_body_size 50M;
     }
@@ -825,6 +805,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     location /incoming-email {
         # Incoming Email Monitor webhook endpoint
         resolver 127.0.0.1 valid=30s;
+        set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -833,64 +814,64 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://telemetry/incoming-email;
+        proxy_pass $backend_telemetry/incoming-email;
 
         client_max_body_size 50M;
     }
 
 
     location /workflow {
-        # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
-
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass http://worker;
-
-        client_max_body_size 50M;
-    }
-
-    location /l/ { # Short URL for Link Shortener
-        # This is for nginx not to crash when service is not available. 
-        resolver 127.0.0.1 valid=30s;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
-
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass http://app/api/short-link/redirect-to-shortlink/;
-
-        client_max_body_size 50M;
-    }
-
-    location /workers {
-        # This is for nginx not to crash when service is not available.
-        resolver 127.0.0.1 valid=30s;
+        set $backend_worker http://${SERVER_WORKER_HOSTNAME}:${WORKER_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
+        # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass http://app/api/workers;
+        proxy_pass $backend_worker;
+
+        client_max_body_size 50M;
+    }
+
+    location /l/ { # Short URL for Link Shortener
+        resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass $backend_app/api/short-link/redirect-to-shortlink/;
+
+        client_max_body_size 50M;
+    }
+
+    location /workers {
+        resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass $backend_app/api/workers;
     }
 
     location /mcp {
-        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -908,6 +889,6 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_send_timeout 86400s;
         chunked_transfer_encoding on;
 
-        proxy_pass http://app;
+        proxy_pass $backend_app;
     }
 }
