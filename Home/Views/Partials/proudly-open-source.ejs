@@ -55,7 +55,7 @@
                 <!-- Content -->
                 <div id="oss-terminal-content" class="px-5 py-4" style="min-height: 60px;">
                     <code class="text-gray-300" style="font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace; font-size: 14px; line-height: 1.6;">
-                        <span style="color: #28c840;">$</span> curl <%= locals.homeUrl || 'https://oneuptime.com' %>/install.sh | bash
+                        <span style="color: #28c840;">$</span> curl -sSL <%= locals.homeUrl || 'https://oneuptime.com' %>/install.sh | bash
                     </code>
                 </div>
             </div>

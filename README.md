@@ -135,7 +135,7 @@ By using OneUptime Cloud, you also support the continued development of the open
 
 ```bash
 # Quick start with one command
-curl -L https://oneuptime.com/install.sh | bash
+curl -sSL https://oneuptime.com/install.sh | bash
 ```
 
 For detailed installation guides, see:

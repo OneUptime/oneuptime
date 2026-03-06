@@ -5,7 +5,7 @@ The OneUptime Infrastructure Agent is a lightweight, open-source agent that coll
 ### Installation
 
 ```
-curl -s https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | bash
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | bash
 ```
 
 ### Configure the agent

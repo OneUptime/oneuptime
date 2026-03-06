@@ -23,7 +23,7 @@ const ServerMonitorDocumentation: FunctionComponent<ComponentProps> = (
               language="bash"
               code={`
 # Install the agent
-curl -s ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install.sh | sudo bash 
+curl -sSL ${HTTP_PROTOCOL}${HOST.toString()}/docs/static/scripts/infrastructure-agent/install.sh | sudo bash 
 
 # Configure the agent (without proxy)
 sudo oneuptime-infrastructure-agent configure --secret-key=${props.secretKey.toString()} --oneuptime-url=${host}
