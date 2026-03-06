@@ -80,7 +80,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/status-page/;
+        rewrite ^/status-page-api/(.*)$ /api/status-page/$1 break;
+        proxy_pass $backend_app;
     }
 
     location /status-page-sso-api/ {
@@ -96,7 +97,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/identity/status-page-sso/;
+        rewrite ^/status-page-sso-api/(.*)$ /api/identity/status-page-sso/$1 break;
+        proxy_pass $backend_app;
     }
 
     location /status-page-identity-api/ {
@@ -112,7 +114,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/identity/status-page/;
+        rewrite ^/status-page-identity-api/(.*)$ /api/identity/status-page/$1 break;
+        proxy_pass $backend_app;
     }
 
     # Acme Verification.
@@ -129,7 +132,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/status-page/.well-known;
+        rewrite ^/\.well-known(.*)$ /api/status-page/.well-known$1 break;
+        proxy_pass $backend_app;
     }
 
 }
@@ -193,7 +197,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/status-page/;
+        rewrite ^/status-page-api/(.*)$ /api/status-page/$1 break;
+        proxy_pass $backend_app;
     }
 
     location /status-page-sso-api/ {
@@ -209,7 +214,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/identity/status-page-sso/;
+        rewrite ^/status-page-sso-api/(.*)$ /api/identity/status-page-sso/$1 break;
+        proxy_pass $backend_app;
     }
 
     location /status-page-identity-api/ {
@@ -225,7 +231,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/identity/status-page/;
+        rewrite ^/status-page-identity-api/(.*)$ /api/identity/status-page/$1 break;
+        proxy_pass $backend_app;
     }
 
     location /status-page {
@@ -310,7 +317,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/acme-challenge/.well-known;
+        rewrite ^/\.well-known/acme-challenge(.*)$ /api/acme-challenge/.well-known$1 break;
+        proxy_pass $backend_app;
     }
 
     location /.well-known/assetlinks.json {
@@ -326,7 +334,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_home/.well-known/assetlinks.json;
+        proxy_pass $backend_home;
     }
 
     # PWA manifest and service worker with proper headers for home
@@ -374,7 +382,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/status-page/;
+        rewrite ^/status-page-api/(.*)$ /api/status-page/$1 break;
+        proxy_pass $backend_app;
     }
 
     location /status-page-sso-api/ {
@@ -390,7 +399,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/identity/status-page-sso/;
+        rewrite ^/status-page-sso-api/(.*)$ /api/identity/status-page-sso/$1 break;
+        proxy_pass $backend_app;
     }
 
     location /status-page-identity-api/ {
@@ -406,7 +416,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_app/api/identity/status-page/;
+        rewrite ^/status-page-identity-api/(.*)$ /api/identity/status-page/$1 break;
+        proxy_pass $backend_app;
     }
 
 
@@ -461,7 +472,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_telemetry/otlp/;
+        proxy_pass $backend_telemetry;
     }
 
     location ~ /opentelemetry.proto.collector* {
@@ -489,7 +500,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app/api/notification;
+        rewrite ^/notification(.*)$ /api/notification$1 break;
+        proxy_pass $backend_app;
     }
 
     location /fluentd/logs {
@@ -505,7 +517,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_telemetry/fluentd/v1/logs;
+        rewrite ^/fluentd/logs(.*)$ /fluentd/v1/logs$1 break;
+        proxy_pass $backend_telemetry;
     }
 
     location /syslog/v1/logs {
@@ -520,7 +533,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass $backend_telemetry/syslog/v1/logs;
+        proxy_pass $backend_telemetry;
     }
 
     location /probe-ingest {
@@ -570,7 +583,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_telemetry/server-monitor;
+        proxy_pass $backend_telemetry;
 
         client_max_body_size 50M;
     }
@@ -683,7 +696,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app/api/identity;
+        rewrite ^/identity(.*)$ /api/identity$1 break;
+        proxy_pass $backend_app;
     }
 
     location /reference {
@@ -698,7 +712,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app/reference;
+        proxy_pass $backend_app;
     }
 
     location /docs {
@@ -713,7 +727,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app/docs;
+        proxy_pass $backend_app;
     }
 
     location /file {
@@ -728,7 +742,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app/api/file;
+        rewrite ^/file(.*)$ /api/file$1 break;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
@@ -745,7 +760,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app/api;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
@@ -797,7 +812,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_telemetry/incoming-request;
+        rewrite ^/heartbeat(.*)$ /incoming-request$1 break;
+        proxy_pass $backend_telemetry;
 
         client_max_body_size 50M;
     }
@@ -814,7 +830,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_telemetry/incoming-email;
+        proxy_pass $backend_telemetry;
 
         client_max_body_size 50M;
     }
@@ -849,7 +865,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app/api/short-link/redirect-to-shortlink/;
+        rewrite ^/l/(.*)$ /api/short-link/redirect-to-shortlink/$1 break;
+        proxy_pass $backend_app;
 
         client_max_body_size 50M;
     }
@@ -866,7 +883,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app/api/workers;
+        rewrite ^/workers(.*)$ /api/workers$1 break;
+        proxy_pass $backend_app;
     }
 
     location /mcp {
