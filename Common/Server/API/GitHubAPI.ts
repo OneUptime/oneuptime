@@ -2,9 +2,12 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
 import { DashboardClientUrl, GitHubAppName } from "../EnvironmentConfig";
@@ -15,10 +18,12 @@ import GitHubUtil, {
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import ProjectService from "../Services/ProjectService";
+import AccessTokenService from "../Services/AccessTokenService";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
+import JSONWebToken from "../Utils/JsonWebToken";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 export default class GitHubAPI {
@@ -45,20 +50,22 @@ export default class GitHubAPI {
             );
           }
 
-          // Decode the state parameter to get projectId and userId
+          // Verify and decode the signed state token
           let projectId: string | undefined;
           let userId: string | undefined;
 
           try {
-            const decodedState: { projectId?: string; userId?: string } =
-              JSON.parse(Buffer.from(state, "base64").toString("utf-8"));
-            projectId = decodedState.projectId;
-            userId = decodedState.userId;
+            const decodedState: JSONObject =
+              JSONWebToken.decodeJsonPayload(state);
+            projectId = decodedState["projectId"] as string | undefined;
+            userId = decodedState["userId"] as string | undefined;
           } catch {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid state parameter"),
+              new BadDataException(
+                "Invalid or expired state parameter. Please restart the GitHub App installation.",
+              ),
             );
           }
 
@@ -75,6 +82,23 @@ export default class GitHubAPI {
               req,
               res,
               new BadDataException("User ID is required in state"),
+            );
+          }
+
+          // Verify the user is a member of this project
+          const userTenantAccessPermission =
+            await AccessTokenService.getUserTenantAccessPermission(
+              new ObjectID(userId),
+              new ObjectID(projectId),
+            );
+
+          if (!userTenantAccessPermission) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotAuthorizedException(
+                "You do not have access to this project.",
+              ),
             );
           }
 
@@ -153,11 +177,13 @@ export default class GitHubAPI {
 
           /*
            * Redirect to GitHub App installation page
-           * The state parameter helps us track the installation
+           * The state parameter is a signed JWT to prevent tampering
+           * It expires in 1 hour to limit the window for replay attacks
            */
-          const state: string = Buffer.from(
-            JSON.stringify({ projectId, userId }),
-          ).toString("base64");
+          const state: string = JSONWebToken.signJsonPayload(
+            { projectId, userId },
+            3600, // 1 hour expiry
+          );
 
           const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${state}`;
 
@@ -182,6 +208,20 @@ export default class GitHubAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
+          const oneuptimeRequest: OneUptimeRequest =
+            req as OneUptimeRequest;
+
+          // Require authentication
+          if (!oneuptimeRequest.userAuthorization) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotAuthenticatedException(
+                "Authentication is required to list repositories.",
+              ),
+            );
+          }
+
           const projectId: string | undefined =
             req.params["projectId"]?.toString();
           const installationId: string | undefined =
@@ -200,6 +240,23 @@ export default class GitHubAPI {
               req,
               res,
               new BadDataException("Installation ID is required"),
+            );
+          }
+
+          // Verify user has access to this project
+          const userTenantAccessPermission =
+            await AccessTokenService.getUserTenantAccessPermission(
+              oneuptimeRequest.userAuthorization.userId,
+              new ObjectID(projectId),
+            );
+
+          if (!userTenantAccessPermission) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotAuthorizedException(
+                "You do not have access to this project.",
+              ),
             );
           }
 
@@ -263,6 +320,20 @@ export default class GitHubAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
+          const oneuptimeRequest: OneUptimeRequest =
+            req as OneUptimeRequest;
+
+          // Require authentication
+          if (!oneuptimeRequest.userAuthorization) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotAuthenticatedException(
+                "Authentication is required to connect a repository.",
+              ),
+            );
+          }
+
           const body: JSONObject = req.body;
 
           const projectId: string | undefined = body["projectId"]?.toString();
@@ -293,6 +364,23 @@ export default class GitHubAPI {
               req,
               res,
               new BadDataException("Installation ID is required"),
+            );
+          }
+
+          // Verify user has access to this project
+          const userTenantAccessPermission =
+            await AccessTokenService.getUserTenantAccessPermission(
+              oneuptimeRequest.userAuthorization.userId,
+              new ObjectID(projectId),
+            );
+
+          if (!userTenantAccessPermission) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotAuthorizedException(
+                "You do not have access to this project.",
+              ),
             );
           }
 
