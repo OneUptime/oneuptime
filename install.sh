@@ -16,7 +16,11 @@ set -a
 bash configure.sh
 
 # Load env values from config.env
-export $(grep -v '^#' config.env | xargs) && docker compose pull
+set -a
+source config.env
+set +a
+
+docker compose pull
 
 # Start all containers.
 npm start
