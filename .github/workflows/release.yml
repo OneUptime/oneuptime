@@ -1511,10 +1511,13 @@ jobs:
             -exportOptionsPlist ios/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/build
 
+      - name: Rename IPA
+        run: mv ${{ runner.temp }}/build/*.ipa ${{ runner.temp }}/build/oneuptime-on-call-ios-app.ipa
+
       - name: Upload IPA to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/build/*.ipa
+          files: ${{ runner.temp }}/build/oneuptime-on-call-ios-app.ipa
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
