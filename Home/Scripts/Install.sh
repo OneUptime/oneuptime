@@ -23,19 +23,45 @@ echo ""
 # Check for required dependencies
 echo -e "${YELLOW}Checking dependencies...${NC}"
 
+# Detect package manager
+install_package() {
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get update -y && sudo apt-get install -y "$@"
+    elif command -v yum &> /dev/null; then
+        sudo yum install -y "$@"
+    elif command -v dnf &> /dev/null; then
+        sudo dnf install -y "$@"
+    elif command -v pacman &> /dev/null; then
+        sudo pacman -Sy --noconfirm "$@"
+    else
+        echo -e "${RED}Error: Could not detect package manager. Please install $* manually.${NC}"
+        exit 1
+    fi
+}
+
 if ! command -v git &> /dev/null; then
-    echo -e "${RED}Error: git is not installed. Please install git first.${NC}"
-    exit 1
+    echo -e "${YELLOW}git is not installed. Installing git...${NC}"
+    install_package git
 fi
 
-if ! command -v npm &> /dev/null; then
-    echo -e "${RED}Error: npm is not installed. Please install Node.js and npm first.${NC}"
-    exit 1
+if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    echo -e "${YELLOW}Node.js/npm is not installed. Installing Node.js and npm...${NC}"
+    if command -v apt-get &> /dev/null || command -v yum &> /dev/null || command -v dnf &> /dev/null; then
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+        install_package nodejs
+    elif command -v pacman &> /dev/null; then
+        install_package nodejs npm
+    else
+        echo -e "${RED}Error: Could not install Node.js automatically. Please install Node.js and npm manually.${NC}"
+        exit 1
+    fi
 fi
 
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}Error: docker is not installed. Please install Docker first.${NC}"
-    exit 1
+    echo -e "${YELLOW}Docker is not installed. Installing Docker...${NC}"
+    curl -fsSL https://get.docker.com | sh
+    sudo systemctl start docker
+    sudo systemctl enable docker
 fi
 
 echo -e "${GREEN}All dependencies are installed.${NC}"
