@@ -1419,10 +1419,13 @@ jobs:
             -PversionName=${{ needs.read-version.outputs.major_minor }} \
             -PversionCode=${{ needs.generate-build-number.outputs.build_number }}
 
+      - name: Rename APK
+        run: mv MobileApp/android/app/build/outputs/apk/release/*.apk MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
+
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: MobileApp/android/app/build/outputs/apk/release/*.apk
+          files: MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
