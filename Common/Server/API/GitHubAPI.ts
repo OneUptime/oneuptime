@@ -29,6 +29,7 @@ import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import JSONWebToken from "../Utils/JsonWebToken";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { UserTenantAccessPermission } from "../../Types/Permission";
 
 export default class GitHubAPI {
   public getRouter(): ExpressRouter {
@@ -90,7 +91,7 @@ export default class GitHubAPI {
           }
 
           // Verify the user is a member of this project
-          const userTenantAccessPermission =
+          const userTenantAccessPermission: UserTenantAccessPermission | null =
             await AccessTokenService.getUserTenantAccessPermission(
               new ObjectID(userId),
               new ObjectID(projectId),
@@ -213,8 +214,7 @@ export default class GitHubAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const oneuptimeRequest: OneUptimeRequest =
-            req as OneUptimeRequest;
+          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
           // Require authentication
           if (!oneuptimeRequest.userAuthorization) {
@@ -249,7 +249,7 @@ export default class GitHubAPI {
           }
 
           // Verify user has access to this project
-          const userTenantAccessPermission =
+          const userTenantAccessPermission: UserTenantAccessPermission | null =
             await AccessTokenService.getUserTenantAccessPermission(
               oneuptimeRequest.userAuthorization.userId,
               new ObjectID(projectId),
@@ -325,8 +325,7 @@ export default class GitHubAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const oneuptimeRequest: OneUptimeRequest =
-            req as OneUptimeRequest;
+          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
           // Require authentication
           if (!oneuptimeRequest.userAuthorization) {
@@ -373,7 +372,7 @@ export default class GitHubAPI {
           }
 
           // Verify user has access to this project
-          const userTenantAccessPermission =
+          const userTenantAccessPermission: UserTenantAccessPermission | null =
             await AccessTokenService.getUserTenantAccessPermission(
               oneuptimeRequest.userAuthorization.userId,
               new ObjectID(projectId),
