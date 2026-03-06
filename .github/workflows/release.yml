@@ -1087,7 +1087,7 @@ jobs:
         run: |
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}
-          docker compose up --remove-orphans -d
+          docker compose -f docker-compose.billing.yml up --remove-orphans -d
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
