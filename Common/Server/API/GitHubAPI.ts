@@ -10,7 +10,11 @@ import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedExc
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
-import { DashboardClientUrl, GitHubAppName } from "../EnvironmentConfig";
+import {
+  DashboardClientUrl,
+  GitHubAppName,
+  HomeClientUrl,
+} from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import GitHubUtil, {
   GitHubRepository,
@@ -185,7 +189,8 @@ export default class GitHubAPI {
             3600, // 1 hour expiry
           );
 
-          const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${state}`;
+          const callbackUrl: string = `${HomeClientUrl.toString()}api/github/auth/callback`;
+          const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
 
           return Response.redirect(req, res, URL.fromString(installUrl));
         } catch (error) {
