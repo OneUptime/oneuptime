@@ -100,7 +100,7 @@ const CodeRepositoryPage: FunctionComponent<
 
     // Otherwise, redirect to GitHub for fresh installation
     const userId: ObjectID = UserUtil.getUserId();
-    const installUrl: string = `${HOME_URL.toString()}/api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
+    const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
     window.location.href = installUrl;
   };
 
@@ -140,7 +140,7 @@ const CodeRepositoryPage: FunctionComponent<
     // Redirect to GitHub for a fresh installation
     if (projectId) {
       const userId: ObjectID = UserUtil.getUserId();
-      const installUrl: string = `${HOME_URL.toString()}/api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
+      const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
       window.location.href = installUrl;
     }
   };

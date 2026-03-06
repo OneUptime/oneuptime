@@ -10,7 +10,11 @@ import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedExc
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
-import { DashboardClientUrl, GitHubAppName } from "../EnvironmentConfig";
+import {
+  DashboardClientUrl,
+  GitHubAppName,
+  HomeClientUrl,
+} from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import GitHubUtil, {
   GitHubRepository,
@@ -25,6 +29,7 @@ import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import JSONWebToken from "../Utils/JsonWebToken";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { UserTenantAccessPermission } from "../../Types/Permission";
 
 export default class GitHubAPI {
   public getRouter(): ExpressRouter {
@@ -86,7 +91,7 @@ export default class GitHubAPI {
           }
 
           // Verify the user is a member of this project
-          const userTenantAccessPermission =
+          const userTenantAccessPermission: UserTenantAccessPermission | null =
             await AccessTokenService.getUserTenantAccessPermission(
               new ObjectID(userId),
               new ObjectID(projectId),
@@ -185,7 +190,8 @@ export default class GitHubAPI {
             3600, // 1 hour expiry
           );
 
-          const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${state}`;
+          const callbackUrl: string = `${HomeClientUrl.toString()}api/github/auth/callback`;
+          const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
 
           return Response.redirect(req, res, URL.fromString(installUrl));
         } catch (error) {
@@ -208,8 +214,7 @@ export default class GitHubAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const oneuptimeRequest: OneUptimeRequest =
-            req as OneUptimeRequest;
+          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
           // Require authentication
           if (!oneuptimeRequest.userAuthorization) {
@@ -244,7 +249,7 @@ export default class GitHubAPI {
           }
 
           // Verify user has access to this project
-          const userTenantAccessPermission =
+          const userTenantAccessPermission: UserTenantAccessPermission | null =
             await AccessTokenService.getUserTenantAccessPermission(
               oneuptimeRequest.userAuthorization.userId,
               new ObjectID(projectId),
@@ -320,8 +325,7 @@ export default class GitHubAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const oneuptimeRequest: OneUptimeRequest =
-            req as OneUptimeRequest;
+          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
           // Require authentication
           if (!oneuptimeRequest.userAuthorization) {
@@ -368,7 +372,7 @@ export default class GitHubAPI {
           }
 
           // Verify user has access to this project
-          const userTenantAccessPermission =
+          const userTenantAccessPermission: UserTenantAccessPermission | null =
             await AccessTokenService.getUserTenantAccessPermission(
               oneuptimeRequest.userAuthorization.userId,
               new ObjectID(projectId),

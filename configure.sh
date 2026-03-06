@@ -193,7 +193,9 @@ main() {
     
     # Load environment variables
     # shellcheck disable=SC2046
-    export $(grep -v '^#' config.env | xargs)
+    set -a
+source config.env
+set +a
     
     print_info "Generating Dockerfile configurations..."
     while IFS= read -r dockerfile_template; do

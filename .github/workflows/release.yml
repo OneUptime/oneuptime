@@ -1487,11 +1487,11 @@ jobs:
       - name: Build archive
         run: |
           cd MobileApp
-          xcodebuild -workspace ios/OneUptime.xcworkspace \
-            -scheme OneUptime \
+          xcodebuild -workspace ios/OneUptimeOnCall.xcworkspace \
+            -scheme OneUptimeOnCall \
             -configuration Release \
             -sdk iphoneos \
-            -archivePath $RUNNER_TEMP/OneUptime.xcarchive \
+            -archivePath $RUNNER_TEMP/OneUptimeOnCall.xcarchive \
             archive \
             MARKETING_VERSION=${{ needs.read-version.outputs.major_minor }} \
             CURRENT_PROJECT_VERSION=${{ needs.generate-build-number.outputs.build_number }}
@@ -1507,7 +1507,7 @@ jobs:
         run: |
           cd MobileApp
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/OneUptime.xcarchive \
+            -archivePath $RUNNER_TEMP/OneUptimeOnCall.xcarchive \
             -exportOptionsPlist ios/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/build
 

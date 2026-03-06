@@ -83,6 +83,43 @@ echo ""
 echo -e "${GREEN}Repository cloned successfully.${NC}"
 echo ""
 
+# Configure environment
+echo -e "${YELLOW}Configuring environment...${NC}"
+echo ""
+
+# Ask for host configuration
+echo -e "${YELLOW}Enter the hostname where OneUptime will be accessible${NC}"
+echo -e "${YELLOW}(e.g., oneuptime.yourdomain.com or an IP address)${NC}"
+read -p "Host [localhost]: " USER_HOST
+USER_HOST=${USER_HOST:-localhost}
+
+# Create config.env if it doesn't exist
+touch config.env
+
+# Merge default values from config.example.env into config.env
+node ./Scripts/Install/MergeEnvTemplate.js
+
+# Set the host value
+sed -i "s/^HOST=.*/HOST=$USER_HOST/" config.env
+
+# Generate random passwords for any placeholder values
+generate_password() {
+    openssl rand -hex 32
+}
+
+if grep -q "please-change-this-to-random-value" config.env; then
+    echo -e "${YELLOW}Generating random passwords for secrets...${NC}"
+    # Replace each occurrence with a unique random password
+    while grep -q "please-change-this-to-random-value" config.env; do
+        RANDOM_PASSWORD=$(generate_password)
+        sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$RANDOM_PASSWORD/}" config.env
+    done
+    echo -e "${GREEN}Random passwords generated.${NC}"
+fi
+
+echo -e "${GREEN}Environment configured successfully.${NC}"
+echo ""
+
 # Start OneUptime
 echo -e "${YELLOW}Starting OneUptime...${NC}"
 echo ""
@@ -91,5 +128,6 @@ npm run start
 
 echo ""
 echo -e "${GREEN}OneUptime is now running!${NC}"
-echo -e "${BLUE}Access the dashboard at: http://localhost${NC}"
+echo ""
+echo -e "${BLUE}You can access OneUptime at: http://$USER_HOST${NC}"
 echo ""
