@@ -98,10 +98,11 @@ build_variant() {
 	local -a args
 	args=(
 		docker buildx build
-		--no-cache
 		--file "$DOCKERFILE"
 		--platform "$PLATFORMS"
 		--push
+		--cache-from "type=gha,scope=${IMAGE}-${variant_prefix:-community}"
+		--cache-to "type=gha,mode=max,scope=${IMAGE}-${variant_prefix:-community}"
 	)
 
 	args+=(
