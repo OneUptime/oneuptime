@@ -128,8 +128,10 @@ spec:
 
 ---
 
+{{- if $.Values.worker.enabled }}
 # OneUptime worker Service
 {{- $workerPorts := $.Values.worker.ports -}}
 {{- $workerServiceArgs := dict "ServiceName" "worker" "Ports" $workerPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $workerServiceArgs }}
 ---
+{{- end }}

@@ -126,8 +126,10 @@ spec:
 
 {{- end }}
 
+{{- if $.Values.home.enabled }}
 # OneUptime home Service
 {{- $homePorts := $.Values.home.ports -}}
 {{- $homeServiceArgs := dict "ServiceName" "home" "Ports" $homePorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $homeServiceArgs }}
 ---
+{{- end }}

@@ -137,8 +137,10 @@ spec:
 
 ---
 
+{{- if $.Values.telemetry.enabled }}
 # OneUptime telemetry Service
 {{- $telemetryPorts := dict "http" $.Values.telemetry.ports.http "grpc" $.Values.telemetry.ports.grpc -}}
 {{- $telemetryServiceArgs := dict "ServiceName" "telemetry" "Ports" $telemetryPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $telemetryServiceArgs }}
 ---
+{{- end }}

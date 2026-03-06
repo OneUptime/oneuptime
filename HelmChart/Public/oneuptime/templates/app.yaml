@@ -137,8 +137,10 @@ spec:
 ---
 {{- end }}
 
+{{- if $.Values.app.enabled }}
 # OneUptime app Service
 {{- $appPorts := dict "port" $.Values.app.ports.http -}}
 {{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $appServiceArgs }}
 ---
+{{- end }}
