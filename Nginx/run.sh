@@ -11,6 +11,14 @@ if [ -n "$PRIMARY_DOMAIN" ]; then
   export PRIMARY_DOMAIN
 fi
 
+# Detect the DNS resolver from /etc/resolv.conf for nginx.
+# This works in both Docker (127.0.0.11) and Kubernetes (kube-dns IP).
+NGINX_RESOLVER=$(grep -m1 '^nameserver' /etc/resolv.conf | awk '{print $2}')
+if [ -z "$NGINX_RESOLVER" ]; then
+  NGINX_RESOLVER="127.0.0.11"
+fi
+export NGINX_RESOLVER
+
 if [ "$PROVISION_SSL" = "true" ]; then
   export PROVISION_SSL
 else

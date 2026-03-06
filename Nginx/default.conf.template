@@ -32,7 +32,7 @@ server {
 
     location / {
 
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -51,7 +51,7 @@ server {
 
     location /status-page {
 
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -68,7 +68,7 @@ server {
     }
 
     location /status-page-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -84,7 +84,7 @@ server {
     }
 
     location /status-page-sso-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -100,7 +100,7 @@ server {
     }
 
     location /status-page-identity-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -117,7 +117,7 @@ server {
 
     # Acme Verification.
     location /.well-known {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -163,7 +163,7 @@ server {
 
     location / {
 
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -181,7 +181,7 @@ server {
     }
 
     location /status-page-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -197,7 +197,7 @@ server {
     }
 
     location /status-page-sso-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -213,7 +213,7 @@ server {
     }
 
     location /status-page-identity-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -229,7 +229,7 @@ server {
     }
 
     location /status-page {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -273,7 +273,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     set $billing_enabled ${BILLING_ENABLED};
 
     location / {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         set $backend_home http://${SERVER_HOME_HOSTNAME}:${HOME_PORT};
         proxy_set_header Host $server_name;
@@ -298,7 +298,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     # ACME Challenge for primary domain.
     location /.well-known/acme-challenge {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -314,7 +314,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /.well-known/assetlinks.json {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_home http://${SERVER_HOME_HOSTNAME}:${HOME_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -331,7 +331,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     # PWA manifest and service worker with proper headers for home
     location ~* ^/(manifest\.json|service-worker\.js)$ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         set $backend_home http://${SERVER_HOME_HOSTNAME}:${HOME_PORT};
         proxy_set_header Host $host;
@@ -362,7 +362,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
 
     location /status-page-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -378,7 +378,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /status-page-sso-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -394,7 +394,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /status-page-identity-api/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -411,7 +411,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
 
     location /accounts {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -427,7 +427,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
 
     location /telemetry {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -438,7 +438,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /incoming-request-ingest {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -449,7 +449,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /otlp/ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -465,13 +465,13 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location ~ /opentelemetry.proto.collector* {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_otel_grpc grpc://${SERVER_TELEMETRY_HOSTNAME}:4317;
         grpc_pass $backend_otel_grpc;
     }
 
     location /notification {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -493,7 +493,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /fluentd/logs {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -509,7 +509,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /syslog/v1/logs {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -524,7 +524,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /probe-ingest {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -542,7 +542,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     # For backward compatibility with probes that are already deployed
     location /ingestor {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -559,7 +559,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /server-monitor {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -576,7 +576,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /dashboard {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -599,7 +599,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     # PWA manifest and service worker with proper headers
     location ~* ^/dashboard/(manifest\.json|sw\.js|browserconfig\.xml)$ {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -626,7 +626,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
 
     location /admin {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -641,7 +641,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /worker {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_worker http://${SERVER_WORKER_HOSTNAME}:${WORKER_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -656,7 +656,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /status-page {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -672,7 +672,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /identity {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -687,7 +687,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /reference {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -702,7 +702,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /docs {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -717,7 +717,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /file {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -734,7 +734,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /api {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -751,7 +751,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /realtime {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -768,7 +768,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /analytics-api {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -786,7 +786,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
 
     location /heartbeat {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -804,7 +804,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
     location /incoming-email {
         # Incoming Email Monitor webhook endpoint
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -821,7 +821,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
 
     location /workflow {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_worker http://${SERVER_WORKER_HOSTNAME}:${WORKER_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -838,7 +838,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /l/ { # Short URL for Link Shortener
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -855,7 +855,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /workers {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -870,7 +870,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /mcp {
-        resolver 127.0.0.1 valid=30s;
+        resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
