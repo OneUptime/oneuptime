@@ -93,6 +93,21 @@ touch config.env
 # Merge default values from config.example.env into config.env
 node ./Scripts/Install/MergeEnvTemplate.js
 
+# Generate random passwords for any placeholder values
+generate_password() {
+    openssl rand -hex 32
+}
+
+if grep -q "please-change-this-to-random-value" config.env; then
+    echo -e "${YELLOW}Generating random passwords for secrets...${NC}"
+    # Replace each occurrence with a unique random password
+    while grep -q "please-change-this-to-random-value" config.env; do
+        RANDOM_PASSWORD=$(generate_password)
+        sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$RANDOM_PASSWORD/}" config.env
+    done
+    echo -e "${GREEN}Random passwords generated.${NC}"
+fi
+
 echo -e "${GREEN}Environment configured successfully.${NC}"
 echo ""
 
