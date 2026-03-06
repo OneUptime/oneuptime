@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 scriptDir=$(dirname -- "$(readlink -f -- "$BASH_SOURCE")")
 
 HOST_TO_CHECK="$1"
