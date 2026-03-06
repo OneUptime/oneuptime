@@ -944,7 +944,6 @@ jobs:
       fail-fast: false
       matrix:
         image: [
-          "mcp",
           "nginx",
           "e2e",
           "home",
