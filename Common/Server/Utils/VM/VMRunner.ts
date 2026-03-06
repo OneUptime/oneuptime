@@ -123,6 +123,27 @@ function createSandboxProxy(
             );
           });
         },
+        getOwnPropertyDescriptor(
+          fnTarget: (...args: unknown[]) => unknown,
+          prop: string | symbol,
+        ): PropertyDescriptor | undefined {
+          if (
+            typeof prop === "string" &&
+            BLOCKED_SANDBOX_PROPERTIES.has(prop)
+          ) {
+            return undefined;
+          }
+          const desc: PropertyDescriptor | undefined =
+            Reflect.getOwnPropertyDescriptor(fnTarget, prop);
+          if (desc && "value" in desc) {
+            desc.value = createSandboxProxy(
+              desc.value,
+              cache,
+              fnTarget as GenericObject,
+            );
+          }
+          return desc;
+        },
       },
     );
     return fnProxy;
@@ -164,6 +185,20 @@ function createSandboxProxy(
       return Reflect.ownKeys(objTarget).filter((k: string | symbol) => {
         return !(typeof k === "string" && BLOCKED_SANDBOX_PROPERTIES.has(k));
       });
+    },
+    getOwnPropertyDescriptor(
+      objTarget: GenericObject,
+      prop: string | symbol,
+    ): PropertyDescriptor | undefined {
+      if (typeof prop === "string" && BLOCKED_SANDBOX_PROPERTIES.has(prop)) {
+        return undefined;
+      }
+      const desc: PropertyDescriptor | undefined =
+        Reflect.getOwnPropertyDescriptor(objTarget, prop);
+      if (desc && "value" in desc) {
+        desc.value = createSandboxProxy(desc.value, cache, objTarget);
+      }
+      return desc;
     },
   });
 
