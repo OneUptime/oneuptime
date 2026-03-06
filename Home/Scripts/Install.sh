@@ -128,5 +128,6 @@ npm run start
 
 echo ""
 echo -e "${GREEN}OneUptime is now running!${NC}"
-echo -e "${BLUE}Access the dashboard at: http://localhost${NC}"
+echo ""
+echo -e "${BLUE}You can access OneUptime at: http://$USER_HOST${NC}"
 echo ""
