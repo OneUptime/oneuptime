@@ -87,11 +87,20 @@ echo ""
 echo -e "${YELLOW}Configuring environment...${NC}"
 echo ""
 
+# Ask for host configuration
+echo -e "${YELLOW}Enter the hostname where OneUptime will be accessible${NC}"
+echo -e "${YELLOW}(e.g., oneuptime.yourdomain.com or an IP address)${NC}"
+read -p "Host [localhost]: " USER_HOST
+USER_HOST=${USER_HOST:-localhost}
+
 # Create config.env if it doesn't exist
 touch config.env
 
 # Merge default values from config.example.env into config.env
 node ./Scripts/Install/MergeEnvTemplate.js
+
+# Set the host value
+sed -i "s/^HOST=.*/HOST=$USER_HOST/" config.env
 
 # Generate random passwords for any placeholder values
 generate_password() {
