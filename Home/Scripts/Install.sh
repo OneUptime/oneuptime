@@ -83,6 +83,19 @@ echo ""
 echo -e "${GREEN}Repository cloned successfully.${NC}"
 echo ""
 
+# Configure environment
+echo -e "${YELLOW}Configuring environment...${NC}"
+echo ""
+
+# Create config.env if it doesn't exist
+touch config.env
+
+# Merge default values from config.example.env into config.env
+node ./Scripts/Install/MergeEnvTemplate.js
+
+echo -e "${GREEN}Environment configured successfully.${NC}"
+echo ""
+
 # Start OneUptime
 echo -e "${YELLOW}Starting OneUptime...${NC}"
 echo ""
