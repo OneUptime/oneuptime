@@ -134,9 +134,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
 
-  // Track user-applied facet filters: Map<facetKey, value>
+  // Track user-applied facet filters: Map<facetKey, Set<value>>
   const [appliedFacetFilters, setAppliedFacetFilters] = useState<
-    Map<string, string>
+    Map<string, Set<string>>
   >(new Map());
 
   useEffect(() => {
@@ -469,41 +469,62 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [filterOptions, disableLiveMode],
   );
 
-  const handleFacetInclude = useCallback(
-    (facetKey: string, value: string): void => {
-      const currentValue: string | undefined =
-        appliedFacetFilters.get(facetKey);
+  const rebuildFilterOptionsFromFacets = useCallback(
+    (facets: Map<string, Set<string>>): Query<Log> => {
+      const updatedFilter: Query<Log> = buildBaseQuery(props);
 
-      // Toggle: if same value is already active, remove it
-      if (currentValue === value) {
-        const nextFilters: Map<string, string> = new Map(appliedFacetFilters);
-        nextFilters.delete(facetKey);
-        setAppliedFacetFilters(nextFilters);
+      for (const [key, values] of facets.entries()) {
+        if (values.size === 0) {
+          continue;
+        }
 
-        // Remove the key from filterOptions
-        const updatedFilter: Query<Log> = { ...filterOptions };
-        delete (updatedFilter as any)[facetKey];
-        setFilterOptions(updatedFilter);
-        setPage(1);
-        disableLiveMode();
-        return;
+        if (values.size === 1) {
+          // Single value: use direct equality
+          const singleValue: string = Array.from(values)[0]!;
+          (updatedFilter as any)[key] = singleValue;
+        } else {
+          // Multiple values: use Includes
+          (updatedFilter as any)[key] = new Includes(Array.from(values));
+        }
       }
 
-      // Apply new filter
-      const nextFilters: Map<string, string> = new Map(appliedFacetFilters);
-      nextFilters.set(facetKey, value);
+      return updatedFilter;
+    },
+    [props],
+  );
+
+  const handleFacetInclude = useCallback(
+    (facetKey: string, value: string): void => {
+      const nextFilters: Map<string, Set<string>> = new Map(
+        Array.from(appliedFacetFilters.entries()).map(
+          ([k, v]: [string, Set<string>]) => [k, new Set(v)] as [string, Set<string>],
+        ),
+      );
+
+      const currentValues: Set<string> | undefined = nextFilters.get(facetKey);
+
+      if (currentValues && currentValues.has(value)) {
+        // Toggle off: remove this value
+        currentValues.delete(value);
+
+        if (currentValues.size === 0) {
+          nextFilters.delete(facetKey);
+        }
+      } else {
+        // Add value to the set
+        if (currentValues) {
+          currentValues.add(value);
+        } else {
+          nextFilters.set(facetKey, new Set([value]));
+        }
+      }
+
       setAppliedFacetFilters(nextFilters);
-
-      const updatedFilter: Query<Log> = {
-        ...filterOptions,
-        [facetKey]: value,
-      };
-
-      setFilterOptions(updatedFilter);
+      setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
       setPage(1);
       disableLiveMode();
     },
-    [filterOptions, appliedFacetFilters, disableLiveMode],
+    [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
   );
 
   const handleFacetExclude = useCallback(
@@ -515,25 +536,36 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   );
 
   const handleRemoveFilter = useCallback(
-    (facetKey: string, _value: string): void => {
-      const nextFilters: Map<string, string> = new Map(appliedFacetFilters);
-      nextFilters.delete(facetKey);
-      setAppliedFacetFilters(nextFilters);
+    (facetKey: string, value: string): void => {
+      const nextFilters: Map<string, Set<string>> = new Map(
+        Array.from(appliedFacetFilters.entries()).map(
+          ([k, v]: [string, Set<string>]) => [k, new Set(v)] as [string, Set<string>],
+        ),
+      );
 
-      const updatedFilter: Query<Log> = { ...filterOptions };
-      delete (updatedFilter as any)[facetKey];
-      setFilterOptions(updatedFilter);
+      const currentValues: Set<string> | undefined = nextFilters.get(facetKey);
+
+      if (currentValues) {
+        currentValues.delete(value);
+
+        if (currentValues.size === 0) {
+          nextFilters.delete(facetKey);
+        }
+      } else {
+        nextFilters.delete(facetKey);
+      }
+
+      setAppliedFacetFilters(nextFilters);
+      setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
       setPage(1);
       disableLiveMode();
     },
-    [filterOptions, appliedFacetFilters, disableLiveMode],
+    [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
   );
 
   const handleClearAllFilters = useCallback((): void => {
     setAppliedFacetFilters(new Map());
-
-    const updatedFilter: Query<Log> = buildBaseQuery(props);
-    setFilterOptions(updatedFilter);
+    setFilterOptions(buildBaseQuery(props));
     setPage(1);
     disableLiveMode();
   }, [props, disableLiveMode]);
@@ -585,28 +617,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       spanId: "Span",
     };
 
-    for (const [facetKey, value] of appliedFacetFilters.entries()) {
+    for (const [facetKey, values] of appliedFacetFilters.entries()) {
       const displayKey: string = facetKeyDisplayNames[facetKey] || facetKey;
-      let displayValue: string = value;
 
-      // Resolve service IDs to names using facet data values
-      if (facetKey === "serviceId" && facetData["serviceId"]) {
-        // We don't have the serviceMap here, but the value is the ID.
-        // The facetData doesn't have display names either.
-        // Just show the ID for now; the sidebar will show the display name.
-        displayValue = value;
+      for (const value of values) {
+        filters.push({
+          facetKey,
+          value,
+          displayKey,
+          displayValue: value,
+        });
       }
-
-      filters.push({
-        facetKey,
-        value,
-        displayKey,
-        displayValue,
-      });
     }
 
     return filters;
-  }, [appliedFacetFilters, facetData]);
+  }, [appliedFacetFilters]);
 
   if (error) {
     return <ErrorMessage message={error} />;
