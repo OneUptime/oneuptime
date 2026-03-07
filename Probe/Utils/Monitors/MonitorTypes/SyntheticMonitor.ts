@@ -153,8 +153,10 @@ export default class SyntheticMonitor {
         );
       }
 
-      // Only expose `page` to the sandbox — never the `browser` object.
-      // Exposing `browser` allows RCE via browser.browserType().launch({executablePath:"/bin/sh"}).
+      /*
+       * Only expose `page` to the sandbox — never the `browser` object.
+       * Exposing `browser` allows RCE via browser.browserType().launch({executablePath:"/bin/sh"}).
+       */
       result = await VMRunner.runCodeInNodeVM({
         code: options.script,
         options: {
