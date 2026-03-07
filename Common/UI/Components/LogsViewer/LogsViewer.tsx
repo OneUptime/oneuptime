@@ -44,6 +44,7 @@ import {
   ActiveFilter,
 } from "./types";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
+import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -76,6 +77,8 @@ export interface ComponentProps {
   onClearAllFilters?: (() => void) | undefined;
   valueSuggestions?: Record<string, Array<string>> | undefined;
   onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
+  timeRange?: RangeStartAndEndDateTime | undefined;
+  onTimeRangeChange?: ((value: RangeStartAndEndDateTime) => void) | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
@@ -441,6 +444,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     currentPage,
     totalPages,
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
+    ...(props.timeRange && props.onTimeRangeChange
+      ? { timeRange: props.timeRange, onTimeRangeChange: props.onTimeRangeChange }
+      : {}),
   };
 
   const showSidebar: boolean =

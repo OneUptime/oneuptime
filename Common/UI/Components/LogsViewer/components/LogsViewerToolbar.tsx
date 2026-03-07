@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import LiveLogsToggle from "./LiveLogsToggle";
+import LogTimeRangePicker from "./LogTimeRangePicker";
 import { LiveLogsOptions } from "../types";
+import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
@@ -8,6 +10,8 @@ export interface LogsViewerToolbarProps {
   totalPages?: number;
   className?: string;
   liveOptions?: LiveLogsOptions;
+  timeRange?: RangeStartAndEndDateTime;
+  onTimeRangeChange?: (value: RangeStartAndEndDateTime) => void;
 }
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
@@ -20,7 +24,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
 
   return (
     <div
-      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${props.className || ""}`}
+      className={`flex items-center justify-between gap-3 ${props.className || ""}`}
     >
       <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
         <span className="font-medium text-gray-700">
@@ -34,10 +38,15 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
       </div>
 
+      {props.timeRange && props.onTimeRangeChange && (
+        <LogTimeRangePicker
+          value={props.timeRange}
+          onChange={props.onTimeRangeChange}
+        />
+      )}
+
       {props.liveOptions && (
-        <div className="flex flex-wrap items-center gap-2">
-          <LiveLogsToggle {...props.liveOptions} />
-        </div>
+        <LiveLogsToggle {...props.liveOptions} />
       )}
     </div>
   );

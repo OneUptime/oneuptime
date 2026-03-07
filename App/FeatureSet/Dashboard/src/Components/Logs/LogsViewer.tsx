@@ -38,6 +38,11 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 export interface ComponentProps {
   id: string;
@@ -53,7 +58,6 @@ export interface ComponentProps {
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
-const DEFAULT_HISTOGRAM_HOURS: number = 1;
 
 function buildBaseQuery(props: ComponentProps): Query<Log> {
   const query: Query<Log> = {};
@@ -111,9 +115,18 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [logs, setLogs] = useState<Array<Log>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [filterOptions, setFilterOptions] = useState<Query<Log>>(
-    buildBaseQuery(props),
-  );
+  const [filterOptions, setFilterOptions] = useState<Query<Log>>(() => {
+    const base: Query<Log> = buildBaseQuery(props);
+    const defaultRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate({
+        range: TimeRange.PAST_ONE_HOUR,
+      });
+    (base as any).time = new InBetween<Date>(
+      defaultRange.startValue,
+      defaultRange.endValue,
+    );
+    return base;
+  });
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(
     props.limit || DEFAULT_PAGE_SIZE,
@@ -140,8 +153,20 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     Map<string, Set<string>>
   >(new Map());
 
+  // Time range state — single source of truth for histogram, facets, and log query
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
+
   useEffect(() => {
-    setFilterOptions(buildBaseQuery(props));
+    const base: Query<Log> = buildBaseQuery(props);
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    (base as any).time = new InBetween<Date>(
+      dateRange.startValue,
+      dateRange.endValue,
+    );
+    setFilterOptions(base);
     setPage(1);
   }, [props.serviceIds, props.traceIds, props.spanIds, props.logQuery]);
 
@@ -235,14 +260,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     try {
       setHistogramLoading(true);
 
-      const now: Date = new Date();
-      const startTime: Date = new Date(
-        now.getTime() - DEFAULT_HISTOGRAM_HOURS * 60 * 60 * 1000,
-      );
+      // Compute fresh dates from time range (preset ranges are relative to "now")
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
       const requestData: JSONObject = {
-        startTime: startTime.toISOString(),
-        endTime: now.toISOString(),
+        startTime: dateRange.startValue.toISOString(),
+        endTime: dateRange.endValue.toISOString(),
       } as JSONObject;
 
       if (serviceIdStrings) {
@@ -280,7 +304,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     } finally {
       setHistogramLoading(false);
     }
-  }, [serviceIdStrings, appliedFacetFilters]);
+  }, [serviceIdStrings, appliedFacetFilters, timeRange]);
 
   // --- Fetch facets ---
 
@@ -288,14 +312,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     try {
       setFacetLoading(true);
 
-      const now: Date = new Date();
-      const startTime: Date = new Date(
-        now.getTime() - DEFAULT_HISTOGRAM_HOURS * 60 * 60 * 1000,
-      );
+      // Compute fresh dates from time range (preset ranges are relative to "now")
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
       const requestData: JSONObject = {
-        startTime: startTime.toISOString(),
-        endTime: now.toISOString(),
+        startTime: dateRange.startValue.toISOString(),
+        endTime: dateRange.endValue.toISOString(),
         facetKeys: ["severityText", "serviceId"],
       } as JSONObject;
 
@@ -318,7 +341,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     } finally {
       setFacetLoading(false);
     }
-  }, [serviceIdStrings]);
+  }, [serviceIdStrings, timeRange]);
 
   // --- Effects ---
 
@@ -471,12 +494,35 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const handleHistogramTimeRangeSelect = useCallback(
     (startTime: Date, endTime: Date): void => {
+      // Sync the time range picker to show "Custom" with selected dates
+      const customRange: RangeStartAndEndDateTime = {
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(startTime, endTime),
+      };
+      setTimeRange(customRange);
+
       const updatedFilter: Query<Log> = {
         ...filterOptions,
-        time: {
-          startTime,
-          endTime,
-        } as any,
+        time: new InBetween<Date>(startTime, endTime),
+      };
+
+      setFilterOptions(updatedFilter);
+      setPage(1);
+      disableLiveMode();
+    },
+    [filterOptions, disableLiveMode],
+  );
+
+  const handleTimeRangeChange = useCallback(
+    (newTimeRange: RangeStartAndEndDateTime): void => {
+      setTimeRange(newTimeRange);
+
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
+
+      const updatedFilter: Query<Log> = {
+        ...filterOptions,
+        time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
       };
 
       setFilterOptions(updatedFilter);
@@ -489,6 +535,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const rebuildFilterOptionsFromFacets = useCallback(
     (facets: Map<string, Set<string>>): Query<Log> => {
       const updatedFilter: Query<Log> = buildBaseQuery(props);
+
+      // Preserve the current time filter
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      (updatedFilter as any).time = new InBetween<Date>(
+        dateRange.startValue,
+        dateRange.endValue,
+      );
 
       for (const [key, values] of facets.entries()) {
         if (values.size === 0) {
@@ -507,7 +561,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
       return updatedFilter;
     },
-    [props],
+    [props, timeRange],
   );
 
   const handleFacetInclude = useCallback(
@@ -582,10 +636,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const handleClearAllFilters = useCallback((): void => {
     setAppliedFacetFilters(new Map());
-    setFilterOptions(buildBaseQuery(props));
+    const base: Query<Log> = buildBaseQuery(props);
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    (base as any).time = new InBetween<Date>(
+      dateRange.startValue,
+      dateRange.endValue,
+    );
+    setFilterOptions(base);
     setPage(1);
     disableLiveMode();
-  }, [props, disableLiveMode]);
+  }, [props, timeRange, disableLiveMode]);
 
   const getTraceRoute = useCallback(
     (traceId: string): Route | URL | undefined => {
@@ -731,6 +792,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         onClearAllFilters={handleClearAllFilters}
         valueSuggestions={valueSuggestions}
         onFieldValueSelect={handleFieldValueSelect}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
       />
     </div>
   );
