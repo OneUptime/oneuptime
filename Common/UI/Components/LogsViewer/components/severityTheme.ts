@@ -9,48 +9,48 @@ export interface SeverityTheme {
 
 const severityThemeMap: Record<string, SeverityTheme> = {
   [LogSeverity.Fatal]: {
-    badgeClass: "bg-rose-950/80 text-rose-100 ring-rose-500/40",
+    badgeClass: "bg-rose-50 text-rose-700 ring-rose-200",
     dotClass: "bg-rose-500",
-    borderClass: "border-rose-500/50",
-    textClass: "text-rose-100",
+    borderClass: "border-rose-200",
+    textClass: "text-gray-800",
   },
   [LogSeverity.Error]: {
-    badgeClass: "bg-rose-900/60 text-rose-100 ring-rose-500/30",
-    dotClass: "bg-rose-400",
-    borderClass: "border-rose-500/40",
-    textClass: "text-rose-100",
+    badgeClass: "bg-red-50 text-red-700 ring-red-200",
+    dotClass: "bg-red-400",
+    borderClass: "border-red-200",
+    textClass: "text-gray-800",
   },
   [LogSeverity.Warning]: {
-    badgeClass: "bg-amber-900/50 text-amber-100 ring-amber-500/30",
+    badgeClass: "bg-amber-50 text-amber-700 ring-amber-200",
     dotClass: "bg-amber-400",
-    borderClass: "border-amber-400/40",
-    textClass: "text-amber-100",
+    borderClass: "border-amber-200",
+    textClass: "text-gray-800",
   },
   [LogSeverity.Information]: {
-    badgeClass: "bg-sky-900/50 text-sky-100 ring-sky-500/30",
-    dotClass: "bg-sky-400",
-    borderClass: "border-sky-400/40",
-    textClass: "text-sky-100",
+    badgeClass: "bg-blue-50 text-blue-700 ring-blue-200",
+    dotClass: "bg-blue-400",
+    borderClass: "border-blue-200",
+    textClass: "text-gray-800",
   },
   [LogSeverity.Debug]: {
-    badgeClass: "bg-purple-900/50 text-purple-100 ring-purple-500/30",
+    badgeClass: "bg-purple-50 text-purple-700 ring-purple-200",
     dotClass: "bg-purple-400",
-    borderClass: "border-purple-500/30",
-    textClass: "text-purple-100",
+    borderClass: "border-purple-200",
+    textClass: "text-gray-800",
   },
   [LogSeverity.Trace]: {
-    badgeClass: "bg-slate-900/60 text-slate-300 ring-slate-500/20",
-    dotClass: "bg-slate-400",
-    borderClass: "border-slate-600/40",
-    textClass: "text-slate-200",
+    badgeClass: "bg-gray-50 text-gray-600 ring-gray-200",
+    dotClass: "bg-gray-400",
+    borderClass: "border-gray-200",
+    textClass: "text-gray-800",
   },
 };
 
 const defaultTheme: SeverityTheme = {
-  badgeClass: "bg-slate-800/60 text-slate-300 ring-slate-600/20",
-  dotClass: "bg-slate-500",
-  borderClass: "border-slate-700",
-  textClass: "text-slate-200",
+  badgeClass: "bg-gray-50 text-gray-600 ring-gray-200",
+  dotClass: "bg-gray-400",
+  borderClass: "border-gray-200",
+  textClass: "text-gray-800",
 };
 
 export const getSeverityTheme: (

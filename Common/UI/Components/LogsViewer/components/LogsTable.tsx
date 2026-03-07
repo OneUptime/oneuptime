@@ -6,7 +6,6 @@ import OneUptimeDate from "../../../../Types/Date";
 import CopyTextButton from "../../CopyTextButton/CopyTextButton";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import SeverityBadge from "./SeverityBadge";
-import { getSeverityTheme, SeverityTheme } from "./severityTheme";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -77,23 +76,23 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
   ): string => {
     const base: string = "h-3.5 w-3.5 flex-none transition-colors";
     if (activeSortField === field) {
-      return `${base} text-indigo-300`;
+      return `${base} text-indigo-500`;
     }
 
-    return `${base} text-slate-600`;
+    return `${base} text-gray-300`;
   };
 
   return (
     <div className="relative">
-      <div className="overflow-x-auto overflow-y-hidden border-b border-slate-900 bg-slate-950">
-        <table className="min-w-full divide-y divide-slate-900/80">
-          <thead className="bg-slate-950">
-            <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-200">
-              <th scope="col" className="px-4 py-3">
+      <div className="overflow-x-auto bg-white">
+        <table className="min-w-full">
+          <thead className="bg-gray-50/80">
+            <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              <th scope="col" className="px-4 py-2.5">
                 <button
                   type="button"
-                  className={`flex items-center gap-2 text-left font-semibold tracking-wider text-slate-300 transition-colors hover:text-slate-100 focus:outline-none ${
-                    activeSortField === "time" ? "text-slate-100" : ""
+                  className={`flex items-center gap-2 text-left font-semibold tracking-wider text-gray-500 transition-colors hover:text-gray-700 focus:outline-none ${
+                    activeSortField === "time" ? "text-gray-700" : ""
                   }`}
                   onClick={() => {
                     props.onSortChange?.("time");
@@ -114,14 +113,14 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                   />
                 </button>
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-4 py-2.5">
                 Service
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-4 py-2.5">
                 <button
                   type="button"
-                  className={`flex items-center gap-2 text-left font-semibold tracking-wider text-slate-300 transition-colors hover:text-slate-100 focus:outline-none ${
-                    activeSortField === "severityText" ? "text-slate-100" : ""
+                  className={`flex items-center gap-2 text-left font-semibold tracking-wider text-gray-500 transition-colors hover:text-gray-700 focus:outline-none ${
+                    activeSortField === "severityText" ? "text-gray-700" : ""
                   }`}
                   onClick={() => {
                     props.onSortChange?.("severityText");
@@ -142,12 +141,12 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                   />
                 </button>
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-4 py-2.5">
                 Message
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-900/70 bg-slate-950">
+          <tbody className="divide-y divide-gray-100">
             {props.logs.map((log: Log, index: number) => {
               const rowId: string = resolveLogIdentifier(log, index);
               const serviceId: string = log.serviceId?.toString() || "";
@@ -163,9 +162,6 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               const spanId: string = log.spanId?.toString() || "";
 
               const isSelected: boolean = props.selectedLogId === rowId;
-              const severityTheme: SeverityTheme = getSeverityTheme(
-                log.severityText,
-              );
 
               return (
                 <Fragment key={rowId}>
@@ -173,25 +169,25 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                     onClick={() => {
                       props.onRowClick(log, rowId);
                     }}
-                    className={`group cursor-pointer align-top transition-colors duration-150 hover:bg-slate-900 ${
+                    className={`group cursor-pointer align-top transition-colors hover:bg-gray-50/70 ${
                       isSelected
-                        ? "bg-slate-900 ring-1 ring-inset ring-indigo-500/40"
+                        ? "bg-indigo-50/50 ring-1 ring-inset ring-indigo-200"
                         : ""
                     }`}
                     aria-selected={isSelected}
                     aria-expanded={isSelected}
                   >
-                    <td className="whitespace-nowrap px-4 py-3 text-[13px] font-mono text-slate-200">
+                    <td className="whitespace-nowrap px-4 py-2.5 text-[13px] font-mono text-gray-600">
                       {log.time
                         ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
                             log.time,
                           )
                         : "-"}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3 text-sm text-slate-300">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-3 text-sm text-gray-700">
                         <span
-                          className="h-2.5 w-2.5 flex-none rounded-full border border-slate-900/40 shadow-sm"
+                          className="h-2.5 w-2.5 flex-none rounded-full shadow-sm"
                           style={{ backgroundColor: serviceColor }}
                           aria-hidden="true"
                         />
@@ -200,20 +196,20 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2.5">
                       <SeverityBadge severity={log.severityText} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2.5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-1 flex-col gap-1">
                           <p
-                            className={`whitespace-pre-wrap break-words text-sm text-slate-200 transition-colors duration-150 group-hover:text-slate-50 ${severityTheme.textClass}`}
+                            className="whitespace-pre-wrap break-words text-sm text-gray-800"
                             title={message}
                           >
                             {message || "-"}
                           </p>
                           {(traceId || spanId) && (
-                            <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-slate-500">
+                            <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-gray-400">
                               {traceId && <span>Trace: {traceId}</span>}
                               {spanId && <span>Span: {spanId}</span>}
                             </div>
@@ -231,7 +227,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                   </tr>
 
                   {isSelected && props.renderExpandedContent && (
-                    <tr className="bg-slate-950/70">
+                    <tr className="bg-white">
                       <td colSpan={4} className="px-6 pb-6 pt-3">
                         {props.renderExpandedContent(log)}
                       </td>
@@ -245,18 +241,18 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
       </div>
 
       {props.isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 backdrop-blur-md">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
           <ComponentLoader />
         </div>
       )}
 
       {showEmptyState && (
-        <div className="flex h-full items-center justify-center px-6 py-12 text-center bg-slate-950">
-          <div className="w-full max-w-xl rounded-md border border-slate-900/70 bg-slate-950 p-6 text-left shadow-inner">
-            <p className="font-mono text-sm uppercase text-slate-400">
+        <div className="flex h-full items-center justify-center px-6 py-12 text-center bg-white">
+          <div className="w-full max-w-xl rounded-md border border-gray-200 bg-white p-6 text-left shadow-sm">
+            <p className="font-mono text-sm uppercase text-gray-500">
               No logs found
             </p>
-            <p className="mt-3 font-mono text-xs text-slate-500">
+            <p className="mt-3 font-mono text-xs text-gray-400">
               {props.emptyMessage || "Adjust filters or check again later."}
             </p>
           </div>

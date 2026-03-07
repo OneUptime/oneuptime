@@ -34,7 +34,10 @@ import LogsTable, {
 } from "./components/LogsTable";
 import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
-import { LiveLogsOptions } from "./types";
+import LogsHistogram from "./components/LogsHistogram";
+import LogsFacetSidebar from "./components/LogsFacetSidebar";
+import { LiveLogsOptions, HistogramBucket, FacetData } from "./types";
+import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -54,10 +57,19 @@ export interface ComponentProps {
   sortOrder?: SortOrder | undefined;
   onSortChange?: (field: LogsTableSortField, order: SortOrder) => void;
   liveOptions?: LiveLogsOptions | undefined;
+  histogramBuckets?: Array<HistogramBucket>;
+  histogramLoading?: boolean;
+  onHistogramTimeRangeSelect?: (startTime: Date, endTime: Date) => void;
+  facetData?: FacetData;
+  facetLoading?: boolean;
+  onFacetInclude?: (facetKey: string, value: string) => void;
+  onFacetExclude?: (facetKey: string, value: string) => void;
+  showFacetSidebar?: boolean;
 }
 
 export type LogsSortField = LogsTableSortField;
 export type { LiveLogsOptions } from "./types";
+export type { HistogramBucket, FacetData } from "./types";
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const PAGE_SIZE_OPTIONS: Array<number> = [100, 250, 500, 1000];
@@ -88,6 +100,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [filterData, setFilterData] = useState<Query<Log>>(props.filterData);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const [logAttributes, setLogAttributes] = useState<Array<string>>([]);
   const [attributesLoaded, setAttributesLoaded] = useState<boolean>(false);
@@ -315,6 +328,13 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     void loadServices();
   }, [loadServices]);
 
+  // Load attributes eagerly for search bar suggestions
+  useEffect(() => {
+    if (!attributesLoaded && !attributesLoading) {
+      void loadAttributes();
+    }
+  }, [attributesLoaded, attributesLoading, loadAttributes]);
+
   const resetPage: () => void = (): void => {
     if (props.onPageChange) {
       props.onPageChange(1);
@@ -325,10 +345,21 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleApplyFilters: () => void = (): void => {
+  const handleSearchSubmit: () => void = (): void => {
+    const queryFilter: Record<string, unknown> =
+      queryStringToFilter(searchQuery) as Record<string, unknown>;
+    const mergedFilter: Query<Log> = {
+      ...filterData,
+      ...queryFilter,
+    } as Query<Log>;
+
     resetPage();
     setSelectedLogId(null);
-    props.onFilterChanged(filterData);
+    props.onFilterChanged(mergedFilter);
+  };
+
+  const handleApplyFilters: () => void = (): void => {
+    handleSearchSubmit();
   };
 
   const handlePageChange: (page: number) => void = (page: number): void => {
@@ -341,11 +372,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
 
     setSelectedLogId(null);
-
-    setSelectedLogId(null);
   };
 
-  const handlePageSizeChange: (size: number) => void = (size: number): void => {
+  const handlePageSizeChange: (size: number) => void = (
+    size: number,
+  ): void => {
     if (props.onPageSizeChange) {
       props.onPageSizeChange(size);
     }
@@ -392,10 +423,13 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
   };
 
+  const showSidebar: boolean =
+    props.showFacetSidebar !== false && !!props.facetData;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {props.showFilters && (
-        <div className="mb-6">
+        <div>
           <LogsFilterCard
             filterData={filterData}
             onFilterChanged={(updated: Query<Log>) => {
@@ -403,10 +437,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             }}
             onAdvancedFiltersToggle={(show: boolean) => {
               setAreAdvancedFiltersVisible(show);
-
-              if (show && !attributesLoaded && !attributesLoading) {
-                void loadAttributes();
-              }
             }}
             isFilterLoading={areAdvancedFiltersVisible && attributesLoading}
             filterError={
@@ -422,6 +452,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 : undefined
             }
             logAttributes={logAttributes}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            onSearchSubmit={handleSearchSubmit}
             toolbar={
               <LogsViewerToolbar
                 {...toolbarProps}
@@ -433,56 +466,80 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60 shadow-xl">
-        {!props.showFilters && (
-          <div className="border-b border-slate-800/70 bg-slate-950/70 px-4 py-3">
-            <LogsViewerToolbar {...toolbarProps} />
-          </div>
+      {/* Histogram */}
+      {props.histogramBuckets && (
+        <LogsHistogram
+          buckets={props.histogramBuckets}
+          isLoading={props.histogramLoading || false}
+          onTimeRangeSelect={props.onHistogramTimeRangeSelect}
+        />
+      )}
+
+      {/* Main content: sidebar + table */}
+      <div className="flex gap-4">
+        {showSidebar && props.facetData && (
+          <LogsFacetSidebar
+            facetData={props.facetData}
+            isLoading={props.facetLoading || false}
+            serviceMap={serviceMap}
+            onIncludeFilter={props.onFacetInclude || (() => {})}
+            onExcludeFilter={props.onFacetExclude || (() => {})}
+          />
         )}
 
-        <LogsTable
-          logs={displayedLogs}
-          serviceMap={serviceMap}
-          isLoading={props.isLoading}
-          emptyMessage={props.noLogsMessage}
-          onRowClick={(_log: Log, rowId: string) => {
-            setSelectedLogId((currentSelected: string | null) => {
-              if (currentSelected === rowId) {
-                return null;
-              }
+        <div className="min-w-0 flex-1">
+          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            {!props.showFilters && (
+              <div className="border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+                <LogsViewerToolbar {...toolbarProps} />
+              </div>
+            )}
 
-              return rowId;
-            });
-          }}
-          selectedLogId={selectedLogId}
-          sortField={sortField}
-          sortOrder={sortOrder}
-          onSortChange={handleSortChange}
-          renderExpandedContent={(log: Log) => {
-            return (
-              <LogDetailsPanel
-                log={log}
-                serviceMap={serviceMap}
-                onClose={() => {
-                  setSelectedLogId(null);
-                }}
-                getTraceRoute={props.getTraceRoute}
-                getSpanRoute={props.getSpanRoute}
-                variant="embedded"
-              />
-            );
-          }}
-        />
+            <LogsTable
+              logs={displayedLogs}
+              serviceMap={serviceMap}
+              isLoading={props.isLoading}
+              emptyMessage={props.noLogsMessage}
+              onRowClick={(_log: Log, rowId: string) => {
+                setSelectedLogId((currentSelected: string | null) => {
+                  if (currentSelected === rowId) {
+                    return null;
+                  }
 
-        <LogsPagination
-          currentPage={currentPage}
-          totalItems={totalItems}
-          pageSize={pageSize}
-          pageSizeOptions={PAGE_SIZE_OPTIONS}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          isDisabled={props.isLoading || totalItems === 0}
-        />
+                  return rowId;
+                });
+              }}
+              selectedLogId={selectedLogId}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onSortChange={handleSortChange}
+              renderExpandedContent={(log: Log) => {
+                return (
+                  <LogDetailsPanel
+                    log={log}
+                    serviceMap={serviceMap}
+                    onClose={() => {
+                      setSelectedLogId(null);
+                    }}
+                    getTraceRoute={props.getTraceRoute}
+                    getSpanRoute={props.getSpanRoute}
+                    variant="embedded"
+                  />
+                );
+              }}
+            />
+
+            <LogsPagination
+              currentPage={currentPage}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              isDisabled={props.isLoading || totalItems === 0}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

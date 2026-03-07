@@ -1,11 +1,11 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
-import Card from "../../Card/Card";
 import FiltersForm from "../../Filters/FiltersForm";
 import FieldType from "../../Types/FieldType";
 import DropdownUtil from "../../../Utils/Dropdown";
 import LogSeverity from "../../../../Types/Log/LogSeverity";
 import Query from "../../../../Types/BaseDatabase/Query";
 import Log from "../../../../Models/AnalyticsModels/Log";
+import LogSearchBar from "./LogSearchBar";
 
 export interface LogsFilterCardProps {
   filterData: Query<Log>;
@@ -16,14 +16,34 @@ export interface LogsFilterCardProps {
   onFilterRefreshClick?: (() => void) | undefined;
   logAttributes: Array<string>;
   toolbar: ReactNode;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
+  onSearchSubmit: () => void;
 }
 
 const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
   props: LogsFilterCardProps,
 ): ReactElement => {
+  const searchBarSuggestions: Array<string> = [
+    "severity",
+    "service",
+    "trace",
+    "span",
+    ...props.logAttributes.map((attr: string) => `@${attr}`),
+  ];
+
   return (
-    <Card>
-      <div className="-mt-8">
+    <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="p-4">
+        <div className="mb-3">
+          <LogSearchBar
+            value={props.searchQuery}
+            onChange={props.onSearchQueryChange}
+            onSubmit={props.onSearchSubmit}
+            suggestions={searchBarSuggestions}
+          />
+        </div>
+
         <FiltersForm<Log>
           id="logs-filter"
           showFilter={true}
@@ -34,11 +54,6 @@ const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
           filterError={props.filterError}
           onFilterRefreshClick={props.onFilterRefreshClick}
           filters={[
-            {
-              key: "body",
-              type: FieldType.Text,
-              title: "Search Log",
-            },
             {
               key: "severityText",
               filterDropdownOptions:
@@ -64,10 +79,10 @@ const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
         />
       </div>
 
-      <div className="-mx-6 -mb-6 border-t border-slate-200 bg-white/60 px-6 py-3 backdrop-blur">
+      <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-2.5">
         {props.toolbar}
       </div>
-    </Card>
+    </div>
   );
 };
 

@@ -25,13 +25,13 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
     <div
       className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${props.className || ""}`}
     >
-      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-        <span className="font-medium text-slate-300">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+        <span className="font-medium text-gray-700">
           {props.resultCount.toLocaleString()} result
           {props.resultCount === 1 ? "" : "s"}
         </span>
         {hasPaginationSummary && (
-          <span className="text-slate-500">
+          <span className="text-gray-400">
             Page {currentPage} of {totalPages}
           </span>
         )}
