@@ -145,7 +145,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
 
   if (props.isLoading && pivotedData.length === 0) {
     return (
-      <div className="flex h-20 items-center justify-center rounded-lg border border-gray-100 bg-white">
+      <div className="flex h-16 items-center justify-center bg-white">
         <ComponentLoader />
       </div>
     );
@@ -156,8 +156,8 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
   }
 
   return (
-    <div className="rounded-lg border border-gray-100 bg-white px-2 pb-1 pt-3">
-      <div className="h-20">
+    <div className="bg-white px-2 pb-0 pt-2">
+      <div className="h-16">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={pivotedData}
@@ -165,7 +165,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            barCategoryGap="12%"
+            barCategoryGap="15%"
           >
             <XAxis
               dataKey="time"
@@ -192,7 +192,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
                 dataKey={severity}
                 stackId="severity"
                 fill={getSeverityColor(severity).fill}
-                radius={[1, 1, 0, 0]}
+                radius={[3, 3, 0, 0]}
                 isAnimationActive={false}
               />
             ))}

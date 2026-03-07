@@ -42,7 +42,7 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
       </button>
 
       <div className="flex items-center gap-1.5">
-        <div className="w-14">
+        <div className="w-12">
           <div className="h-1.5 w-full rounded-full bg-gray-100">
             <div
               className="h-1.5 rounded-full opacity-70 transition-all"
@@ -53,7 +53,7 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
             />
           </div>
         </div>
-        <span className="min-w-[2.5rem] text-right font-mono text-[11px] text-gray-400">
+        <span className="min-w-[2rem] text-right font-mono text-[10px] tabular-nums text-gray-400">
           {props.count.toLocaleString()}
         </span>
       </div>

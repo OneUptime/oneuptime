@@ -427,7 +427,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     props.showFacetSidebar !== false && !!props.facetData;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {props.showFilters && (
         <div>
           <LogsFilterCard
@@ -476,7 +476,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Main content: sidebar + table */}
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         {showSidebar && props.facetData && (
           <LogsFacetSidebar
             facetData={props.facetData}

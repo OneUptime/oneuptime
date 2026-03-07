@@ -38,7 +38,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
       : 0;
 
   return (
-    <div className="border-b border-gray-100 py-2.5">
+    <div className="border-b border-gray-100 py-2">
       <button
         type="button"
         className="flex w-full items-center justify-between px-2 py-1 text-left"

@@ -54,14 +54,14 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
 
   const variantClasses: Record<typeof variant, string> = {
     ghost:
-      "bg-transparent border border-slate-600 text-slate-300 hover:bg-slate-700/40",
-    soft: "bg-slate-700 text-white border border-slate-600 hover:bg-slate-600",
+      "bg-transparent border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600",
+    soft: "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200",
     solid:
       "bg-indigo-600 text-white border border-indigo-600 hover:bg-indigo-500",
   } as const;
 
   const copiedClasses: string =
-    "bg-emerald-600/20 border border-emerald-500 text-emerald-300";
+    "bg-emerald-50 border border-emerald-200 text-emerald-600";
 
   return (
     <button

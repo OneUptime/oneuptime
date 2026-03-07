@@ -271,13 +271,6 @@ These changes directly improve the daily log investigation experience for every 
 
 ## Phase 4: Advanced Features (P3) — Differentiation
 
-### 4.1 Log Patterns (ML Clustering)
-
-- Implement a clustering algorithm that groups logs by message structure
-- Replace variable parts (IPs, UUIDs, numbers) with wildcards
-- Show pattern frequency over time with sparklines
-- Enable creating alerts directly from a pattern
-- This is a significant backend feature requiring a background job that periodically clusters recent logs
 
 ### 4.2 Keyboard Shortcuts
 

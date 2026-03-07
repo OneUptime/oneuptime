@@ -6,6 +6,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import CopyTextButton from "../../CopyTextButton/CopyTextButton";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import SeverityBadge from "./SeverityBadge";
+import { getSeverityTheme, SeverityTheme } from "./severityTheme";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -114,7 +115,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                 </button>
               </th>
               <th scope="col" className="px-4 py-2.5">
-                Service
+                <span>Service</span>
               </th>
               <th scope="col" className="px-4 py-2.5">
                 <button
@@ -162,6 +163,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               const spanId: string = log.spanId?.toString() || "";
 
               const isSelected: boolean = props.selectedLogId === rowId;
+              const severityTheme: SeverityTheme = getSeverityTheme(
+                log.severityText,
+              );
 
               return (
                 <Fragment key={rowId}>
@@ -169,7 +173,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                     onClick={() => {
                       props.onRowClick(log, rowId);
                     }}
-                    className={`group cursor-pointer align-top transition-colors hover:bg-gray-50/70 ${
+                    className={`group cursor-pointer align-top transition-colors hover:bg-gray-50/70 border-l-[3px] ${severityTheme.borderClass} ${
                       isSelected
                         ? "bg-indigo-50/50 ring-1 ring-inset ring-indigo-200"
                         : ""
@@ -177,14 +181,14 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                     aria-selected={isSelected}
                     aria-expanded={isSelected}
                   >
-                    <td className="whitespace-nowrap px-4 py-2.5 text-[13px] font-mono text-gray-600">
+                    <td className="whitespace-nowrap px-4 py-2 text-[13px] font-mono text-gray-600">
                       {log.time
                         ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
                             log.time,
                           )
                         : "-"}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2">
                       <div className="flex items-center gap-3 text-sm text-gray-700">
                         <span
                           className="h-2.5 w-2.5 flex-none rounded-full shadow-sm"
@@ -196,10 +200,10 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2">
                       <SeverityBadge severity={log.severityText} />
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-1 flex-col gap-1">
                           <p
@@ -221,6 +225,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                           variant="ghost"
                           iconOnly={true}
                           title="Copy log message"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
                         />
                       </div>
                     </td>

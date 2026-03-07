@@ -33,9 +33,9 @@ const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
   ];
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-      <div className="p-4">
-        <div className="mb-3">
+    <div>
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
           <LogSearchBar
             value={props.searchQuery}
             onChange={props.onSearchQueryChange}
@@ -43,45 +43,44 @@ const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
             suggestions={searchBarSuggestions}
           />
         </div>
-
-        <FiltersForm<Log>
-          id="logs-filter"
-          showFilter={true}
-          filterData={props.filterData}
-          onFilterChanged={props.onFilterChanged}
-          onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
-          isFilterLoading={props.isFilterLoading}
-          filterError={props.filterError}
-          onFilterRefreshClick={props.onFilterRefreshClick}
-          filters={[
-            {
-              key: "severityText",
-              filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(LogSeverity),
-              type: FieldType.Dropdown,
-              title: "Log Severity",
-              isAdvancedFilter: true,
-            },
-            {
-              key: "time",
-              type: FieldType.DateTime,
-              title: "Start and End Date",
-              isAdvancedFilter: true,
-            },
-            {
-              key: "attributes",
-              type: FieldType.JSON,
-              title: "Filter by Attributes",
-              jsonKeys: props.logAttributes,
-              isAdvancedFilter: true,
-            },
-          ]}
-        />
+        <div className="flex-none pt-0.5">
+          {props.toolbar}
+        </div>
       </div>
 
-      <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-2.5">
-        {props.toolbar}
-      </div>
+      <FiltersForm<Log>
+        id="logs-filter"
+        showFilter={true}
+        filterData={props.filterData}
+        onFilterChanged={props.onFilterChanged}
+        onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
+        isFilterLoading={props.isFilterLoading}
+        filterError={props.filterError}
+        onFilterRefreshClick={props.onFilterRefreshClick}
+        filters={[
+          {
+            key: "severityText",
+            filterDropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(LogSeverity),
+            type: FieldType.Dropdown,
+            title: "Log Severity",
+            isAdvancedFilter: true,
+          },
+          {
+            key: "time",
+            type: FieldType.DateTime,
+            title: "Start and End Date",
+            isAdvancedFilter: true,
+          },
+          {
+            key: "attributes",
+            type: FieldType.JSON,
+            title: "Filter by Attributes",
+            jsonKeys: props.logAttributes,
+            isAdvancedFilter: true,
+          },
+        ]}
+      />
     </div>
   );
 };
