@@ -16,10 +16,10 @@ export interface LogSearchBarProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
-  suggestions?: Array<string>;
-  valueSuggestions?: Record<string, Array<string>>;
-  onFieldValueSelect?: (fieldKey: string, value: string) => void;
-  placeholder?: string;
+  suggestions?: Array<string> | undefined;
+  valueSuggestions?: Record<string, Array<string>> | undefined;
+  onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
+  placeholder?: string | undefined;
 }
 
 const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
