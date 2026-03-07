@@ -14,7 +14,6 @@ The following example shows how to use a Synthetic Monitor:
 // - page: Playwright Page object to interact with the browser
 // - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
 // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
-// - browser: Playwright Browser object to interact with the browser
 
 // You can use these objects to interact with the browser and make HTTP requests.
 
@@ -41,12 +40,12 @@ screenshots['screenshot-name'] = await page.screenshot(); // you can save multip
 // To log data, use console.log
 // console.log('Hello World');
 
-// You also have browser context available in the script. You can use it to interact with the browser if you need to (for example, to create a new page or dealing with popups).
+// You can access the browser context via page.context() if needed (for example, to create a new page or dealing with popups).
 
 
 return {
     data: 'Hello World',
-    screenshots: screenshots 
+    screenshots: screenshots
 };
 ```
 
@@ -105,8 +104,7 @@ console.log(stringSecret);
 ```
 
 ### Modules available in the script
-- `browser`: You can use this module to interact with the browser. It is a Playwright Browser object that allows you to create new pages, close pages, and perform other browser-related actions.
-- `page`: You can use this module to interact with the browser. It is a Playwright Page object that allows you to perform actions like clicking buttons, filling forms, and taking screenshots.
+- `page`: You can use this module to interact with the browser. It is a Playwright Page object that allows you to perform actions like clicking buttons, filling forms, and taking screenshots. You can access the browser context via `page.context()` if needed (for example, to create a new page or deal with popups).
 - `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
 - `crypto`: You can use this module to perform cryptographic operations. It is a built-in Node.js module that provides cryptographic functionality that includes a set of wrappers for OpenSSL's hash, HMAC, cipher, decipher, sign, and verify functions.
 - `console.log`: You can use this module to log data to the console. This is useful for debugging purposes.
@@ -115,7 +113,7 @@ console.log(stringSecret);
 
 ### Things to consider
 
-- You only have `page` object available in the context of the script. This is from Playwright Page class. You can use it to run all the interactions with the browser.
+- The `page` object is the primary interface for interacting with the browser. This is from the Playwright Page class. You can access the browser context via `page.context()` if needed.
 - You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor.
 - You can return the data from the script using the `return` statement. You can also return screenshots in the screenshots array.
 - You can use `browserType` and `screenSizeType` variables to get the browser type and screen size type in the current run context. Feel free to use them in your script if you like. 
