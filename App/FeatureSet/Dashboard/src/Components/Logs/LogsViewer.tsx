@@ -289,6 +289,20 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         (requestData as any)["serviceIds"] = Array.from(serviceFilterValues);
       }
 
+      const traceFilterValues: Set<string> | undefined =
+        appliedFacetFilters.get("traceId");
+
+      if (traceFilterValues && traceFilterValues.size > 0) {
+        (requestData as any)["traceIds"] = Array.from(traceFilterValues);
+      }
+
+      const spanFilterValues: Set<string> | undefined =
+        appliedFacetFilters.get("spanId");
+
+      if (spanFilterValues && spanFilterValues.size > 0) {
+        (requestData as any)["spanIds"] = Array.from(spanFilterValues);
+      }
+
       const response: HTTPResponse<JSONObject> = await postApi(
         "/telemetry/logs/histogram",
         requestData,
@@ -716,6 +730,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         severity: "severityText",
         level: "severityText",
         service: "serviceId",
+        trace: "traceId",
+        span: "spanId",
       };
       const resolvedKey: string = fieldAliases[fieldKey] || fieldKey;
 

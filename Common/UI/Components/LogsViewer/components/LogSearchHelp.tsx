@@ -32,6 +32,16 @@ const HELP_ROWS: Array<HelpRow> = [
     example: "service:api",
   },
   {
+    syntax: "trace:<id>",
+    description: "Filter by trace ID",
+    example: "trace:abc123def456",
+  },
+  {
+    syntax: "span:<id>",
+    description: "Filter by span ID",
+    example: "span:e1f7f671fe78",
+  },
+  {
     syntax: "@<attr>:<value>",
     description: "Filter by attribute",
     example: "@http.status_code:500",

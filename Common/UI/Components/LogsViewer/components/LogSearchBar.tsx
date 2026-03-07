@@ -328,6 +328,8 @@ const FIELD_ALIAS_MAP: Record<string, string> = {
   severity: "severityText",
   level: "severityText",
   service: "serviceId",
+  trace: "traceId",
+  span: "spanId",
 };
 
 function getValueSuggestions(

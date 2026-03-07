@@ -20,6 +20,8 @@ export interface HistogramRequest {
   serviceIds?: Array<ObjectID> | undefined;
   severityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
+  traceIds?: Array<string> | undefined;
+  spanIds?: Array<string> | undefined;
 }
 
 export interface FacetValue {
@@ -36,6 +38,8 @@ export interface FacetRequest {
   serviceIds?: Array<ObjectID> | undefined;
   severityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
+  traceIds?: Array<string> | undefined;
+  spanIds?: Array<string> | undefined;
 }
 
 export class LogAggregationService {
@@ -179,7 +183,7 @@ export class LogAggregationService {
     statement: Statement,
     request: Pick<
       HistogramRequest,
-      "serviceIds" | "severityTexts" | "bodySearchText"
+      "serviceIds" | "severityTexts" | "bodySearchText" | "traceIds" | "spanIds"
     >,
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
@@ -195,6 +199,22 @@ export class LogAggregationService {
           `'${LogAggregationService.escapeSingleQuotes(s)}'`,
       );
       statement.append(` AND severityText IN (${sevStrings.join(",")})`);
+    }
+
+    if (request.traceIds && request.traceIds.length > 0) {
+      const traceStrings: Array<string> = request.traceIds.map(
+        (s: string): string =>
+          `'${LogAggregationService.escapeSingleQuotes(s)}'`,
+      );
+      statement.append(` AND traceId IN (${traceStrings.join(",")})`);
+    }
+
+    if (request.spanIds && request.spanIds.length > 0) {
+      const spanStrings: Array<string> = request.spanIds.map(
+        (s: string): string =>
+          `'${LogAggregationService.escapeSingleQuotes(s)}'`,
+      );
+      statement.append(` AND spanId IN (${spanStrings.join(",")})`);
     }
 
     if (request.bodySearchText && request.bodySearchText.trim().length > 0) {
