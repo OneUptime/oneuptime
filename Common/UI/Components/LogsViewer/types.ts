@@ -16,3 +16,10 @@ export interface FacetValue {
 }
 
 export type FacetData = Record<string, Array<FacetValue>>;
+
+export interface ActiveFilter {
+  facetKey: string;
+  value: string;
+  displayKey: string;
+  displayValue: string;
+}

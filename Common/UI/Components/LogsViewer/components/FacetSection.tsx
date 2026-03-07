@@ -13,6 +13,7 @@ export interface FacetSectionProps {
   facetKey: string;
   valueDisplayMap?: Record<string, string> | undefined;
   valueColorMap?: Record<string, string> | undefined;
+  activeValues?: Set<string> | undefined;
 }
 
 const DEFAULT_VISIBLE_COUNT: number = 5;
@@ -37,6 +38,8 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
       ? Math.max(...props.values.map((v: FacetValue) => v.count))
       : 0;
 
+  const activeCount: number = props.activeValues ? props.activeValues.size : 0;
+
   return (
     <div className="border-b border-gray-100 py-2">
       <button
@@ -46,9 +49,16 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
           setIsExpanded(!isExpanded);
         }}
       >
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-          {props.title}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+            {props.title}
+          </span>
+          {activeCount > 0 && (
+            <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-600">
+              {activeCount}
+            </span>
+          )}
+        </div>
         <Icon
           icon={isExpanded ? IconProp.ChevronDown : IconProp.ChevronRight}
           className="h-3 w-3 text-gray-400"
@@ -65,6 +75,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
               count={facet.count}
               maxCount={maxCount}
               color={props.valueColorMap?.[facet.value]}
+              isActive={props.activeValues?.has(facet.value) || false}
               onInclude={(value: string) => {
                 props.onIncludeValue(props.facetKey, value);
               }}

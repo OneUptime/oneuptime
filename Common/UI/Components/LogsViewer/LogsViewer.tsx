@@ -36,7 +36,13 @@ import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
 import LogsHistogram from "./components/LogsHistogram";
 import LogsFacetSidebar from "./components/LogsFacetSidebar";
-import { LiveLogsOptions, HistogramBucket, FacetData } from "./types";
+import ActiveFilterChips from "./components/ActiveFilterChips";
+import {
+  LiveLogsOptions,
+  HistogramBucket,
+  FacetData,
+  ActiveFilter,
+} from "./types";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 
 export interface ComponentProps {
@@ -65,11 +71,14 @@ export interface ComponentProps {
   onFacetInclude?: (facetKey: string, value: string) => void;
   onFacetExclude?: (facetKey: string, value: string) => void;
   showFacetSidebar?: boolean;
+  activeFilters?: Array<ActiveFilter> | undefined;
+  onRemoveFilter?: ((facetKey: string, value: string) => void) | undefined;
+  onClearAllFilters?: (() => void) | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
 export type { LiveLogsOptions } from "./types";
-export type { HistogramBucket, FacetData } from "./types";
+export type { HistogramBucket, FacetData, ActiveFilter } from "./types";
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const PAGE_SIZE_OPTIONS: Array<number> = [100, 250, 500, 1000];
@@ -397,6 +406,26 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     setSelectedLogId(null);
   };
 
+  // Enrich active filters with resolved display values (e.g. service names)
+  // Must be before early returns to maintain consistent hook call order.
+  const enrichedActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    if (!props.activeFilters) {
+      return [];
+    }
+
+    return props.activeFilters.map((filter: ActiveFilter): ActiveFilter => {
+      if (filter.facetKey === "serviceId" && serviceMap[filter.value]) {
+        const service: Service | undefined = serviceMap[filter.value];
+        return {
+          ...filter,
+          displayValue: service?.name || filter.value,
+        };
+      }
+
+      return filter;
+    });
+  }, [props.activeFilters, serviceMap]);
+
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -431,6 +460,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      {/* Active filter chips */}
+      {enrichedActiveFilters.length > 0 && props.onRemoveFilter && (
+        <ActiveFilterChips
+          filters={enrichedActiveFilters}
+          onRemove={props.onRemoveFilter}
+          onClearAll={props.onClearAllFilters || (() => {})}
+        />
+      )}
+
       {/* Histogram */}
       {props.histogramBuckets && (
         <LogsHistogram
@@ -449,6 +487,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             serviceMap={serviceMap}
             onIncludeFilter={props.onFacetInclude || (() => {})}
             onExcludeFilter={props.onFacetExclude || (() => {})}
+            activeFilters={props.activeFilters}
           />
         )}
 

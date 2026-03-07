@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import { FacetData } from "../types";
+import { FacetData, ActiveFilter } from "../types";
 import FacetSection from "./FacetSection";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
@@ -13,6 +13,7 @@ export interface LogsFacetSidebarProps {
   serviceMap: Dictionary<Service>;
   onIncludeFilter: (facetKey: string, value: string) => void;
   onExcludeFilter: (facetKey: string, value: string) => void;
+  activeFilters?: Array<ActiveFilter> | undefined;
 }
 
 const SEVERITY_ORDER: Array<string> = [
@@ -105,6 +106,23 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     ];
   }, [props.facetData]);
 
+  // Build a map of facetKey -> Set<activeValue>
+  const activeValuesByKey: Record<string, Set<string>> = useMemo(() => {
+    const map: Record<string, Set<string>> = {};
+
+    if (props.activeFilters) {
+      for (const filter of props.activeFilters) {
+        if (!map[filter.facetKey]) {
+          map[filter.facetKey] = new Set<string>();
+        }
+
+        map[filter.facetKey]!.add(filter.value);
+      }
+    }
+
+    return map;
+  }, [props.activeFilters]);
+
   return (
     <div className="flex h-full w-56 flex-none flex-col overflow-y-auto rounded-lg border border-gray-200 bg-white">
       <div className="border-b border-gray-100 px-3 py-2.5">
@@ -143,6 +161,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
               onExcludeValue={props.onExcludeFilter}
               valueDisplayMap={valueDisplayMap}
               valueColorMap={valueColorMap}
+              activeValues={activeValuesByKey[key]}
             />
           );
         })}

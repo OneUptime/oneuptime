@@ -7,6 +7,7 @@ import LogsViewer, {
   LiveLogsOptions,
   HistogramBucket,
   FacetData,
+  ActiveFilter,
 } from "Common/UI/Components/LogsViewer/LogsViewer";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -132,6 +133,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   // Facet state
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+
+  // Track user-applied facet filters: Map<facetKey, value>
+  const [appliedFacetFilters, setAppliedFacetFilters] = useState<
+    Map<string, string>
+  >(new Map());
 
   useEffect(() => {
     setFilterOptions(buildBaseQuery(props));
@@ -465,6 +471,29 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const handleFacetInclude = useCallback(
     (facetKey: string, value: string): void => {
+      const currentValue: string | undefined =
+        appliedFacetFilters.get(facetKey);
+
+      // Toggle: if same value is already active, remove it
+      if (currentValue === value) {
+        const nextFilters: Map<string, string> = new Map(appliedFacetFilters);
+        nextFilters.delete(facetKey);
+        setAppliedFacetFilters(nextFilters);
+
+        // Remove the key from filterOptions
+        const updatedFilter: Query<Log> = { ...filterOptions };
+        delete (updatedFilter as any)[facetKey];
+        setFilterOptions(updatedFilter);
+        setPage(1);
+        disableLiveMode();
+        return;
+      }
+
+      // Apply new filter
+      const nextFilters: Map<string, string> = new Map(appliedFacetFilters);
+      nextFilters.set(facetKey, value);
+      setAppliedFacetFilters(nextFilters);
+
       const updatedFilter: Query<Log> = {
         ...filterOptions,
         [facetKey]: value,
@@ -474,7 +503,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       setPage(1);
       disableLiveMode();
     },
-    [filterOptions, disableLiveMode],
+    [filterOptions, appliedFacetFilters, disableLiveMode],
   );
 
   const handleFacetExclude = useCallback(
@@ -484,6 +513,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     },
     [],
   );
+
+  const handleRemoveFilter = useCallback(
+    (facetKey: string, _value: string): void => {
+      const nextFilters: Map<string, string> = new Map(appliedFacetFilters);
+      nextFilters.delete(facetKey);
+      setAppliedFacetFilters(nextFilters);
+
+      const updatedFilter: Query<Log> = { ...filterOptions };
+      delete (updatedFilter as any)[facetKey];
+      setFilterOptions(updatedFilter);
+      setPage(1);
+      disableLiveMode();
+    },
+    [filterOptions, appliedFacetFilters, disableLiveMode],
+  );
+
+  const handleClearAllFilters = useCallback((): void => {
+    setAppliedFacetFilters(new Map());
+
+    const updatedFilter: Query<Log> = buildBaseQuery(props);
+    setFilterOptions(updatedFilter);
+    setPage(1);
+    disableLiveMode();
+  }, [props, disableLiveMode]);
 
   const getTraceRoute = useCallback(
     (traceId: string): Route | URL | undefined => {
@@ -521,6 +574,40 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [],
   );
 
+  // Build activeFilters array for UI display
+  const activeFilters: Array<ActiveFilter> = useMemo(() => {
+    const filters: Array<ActiveFilter> = [];
+
+    const facetKeyDisplayNames: Record<string, string> = {
+      severityText: "Severity",
+      serviceId: "Service",
+      traceId: "Trace",
+      spanId: "Span",
+    };
+
+    for (const [facetKey, value] of appliedFacetFilters.entries()) {
+      const displayKey: string = facetKeyDisplayNames[facetKey] || facetKey;
+      let displayValue: string = value;
+
+      // Resolve service IDs to names using facet data values
+      if (facetKey === "serviceId" && facetData["serviceId"]) {
+        // We don't have the serviceMap here, but the value is the ID.
+        // The facetData doesn't have display names either.
+        // Just show the ID for now; the sidebar will show the display name.
+        displayValue = value;
+      }
+
+      filters.push({
+        facetKey,
+        value,
+        displayKey,
+        displayValue,
+      });
+    }
+
+    return filters;
+  }, [appliedFacetFilters, facetData]);
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -557,6 +644,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         onFacetInclude={handleFacetInclude}
         onFacetExclude={handleFacetExclude}
         showFacetSidebar={true}
+        activeFilters={activeFilters}
+        onRemoveFilter={handleRemoveFilter}
+        onClearAllFilters={handleClearAllFilters}
       />
     </div>
   );
