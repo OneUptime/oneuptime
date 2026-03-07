@@ -139,19 +139,15 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
   const containerClassName: string =
     variant === "embedded"
-      ? "rounded-xl border border-slate-900 bg-slate-950 p-5 shadow-inner shadow-slate-950/40"
-      : "rounded-xl border border-slate-800 bg-slate-950/90 p-5 shadow-sm ring-1 ring-inset ring-transparent";
+      ? "rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
+      : "rounded-lg border border-gray-200 bg-white p-5 shadow-md";
 
-  const headerBorderClass: string =
-    variant === "embedded" ? "border-slate-900" : "border-slate-800";
+  const headerBorderClass: string = "border-gray-200";
 
-  const surfaceCardClass: string =
-    variant === "embedded"
-      ? "border-slate-900 bg-slate-950/70"
-      : "border-slate-800 bg-slate-950/80";
+  const surfaceCardClass: string = "border-gray-200 bg-gray-50";
 
   const smallBadgeClass: string =
-    "inline-flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900 px-2 py-1 text-[11px] font-mono uppercase tracking-wide text-slate-300";
+    "inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-mono uppercase tracking-wide text-gray-600";
 
   return (
     <div className={containerClassName}>
@@ -160,13 +156,13 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
       >
         <div className="flex flex-1 items-start gap-3">
           <span
-            className="mt-1 h-3 w-3 flex-none rounded-full border border-slate-700"
+            className="mt-1 h-3 w-3 flex-none rounded-full border border-gray-200"
             style={{ backgroundColor: serviceColor }}
             aria-hidden="true"
           />
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
-              <h3 className="text-lg font-semibold text-slate-50">
+              <h3 className="text-lg font-semibold text-gray-900">
                 {serviceName}
               </h3>
               <SeverityBadge severity={props.log.severityText} />
@@ -200,7 +196,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
           <button
             type="button"
             onClick={props.onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-400 transition-colors hover:border-slate-700 hover:text-slate-100"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
             title="Close details"
           >
             <Icon icon={IconProp.Close} className="h-4 w-4" />
@@ -208,9 +204,9 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
         )}
       </div>
 
-      <div className="mt-4 space-y-5 text-sm text-slate-200">
+      <div className="mt-4 space-y-5 text-sm text-gray-700">
         <section className="space-y-3">
-          <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
+          <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
             <span>Log Body</span>
             <CopyTextButton
               textToBeCopied={bodyDetails.raw}
@@ -223,11 +219,11 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
           <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
             {bodyDetails.isJson ? (
-              <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-slate-100">
+              <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-gray-800">
                 {bodyDetails.pretty}
               </pre>
             ) : (
-              <p className="whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-slate-100">
+              <p className="whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-gray-800">
                 {bodyDetails.pretty || "-"}
               </p>
             )}
@@ -238,7 +234,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
           <section className="grid gap-4 md:grid-cols-2">
             {traceId && (
               <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
-                <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
+                <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
                   <span>Trace ID</span>
                   <CopyTextButton
                     textToBeCopied={traceId}
@@ -252,14 +248,14 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                   {traceRoute ? (
                     <Link
                       to={traceRoute}
-                      className="max-w-full truncate font-mono text-xs text-indigo-200 hover:text-indigo-100"
+                      className="max-w-full truncate font-mono text-xs text-indigo-600 hover:text-indigo-500"
                       title={`View trace ${traceId}`}
                     >
                       {traceId}
                     </Link>
                   ) : (
                     <span
-                      className="max-w-full truncate font-mono text-xs text-slate-200"
+                      className="max-w-full truncate font-mono text-xs text-gray-700"
                       title={traceId}
                     >
                       {traceId}
@@ -268,7 +264,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                   {traceRoute && (
                     <Icon
                       icon={IconProp.ExternalLink}
-                      className="h-4 w-4 flex-none text-indigo-300"
+                      className="h-4 w-4 flex-none text-indigo-400"
                     />
                   )}
                 </div>
@@ -277,7 +273,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
             {spanId && (
               <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
-                <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
+                <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
                   <span>Span ID</span>
                   <CopyTextButton
                     textToBeCopied={spanId}
@@ -291,14 +287,14 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                   {spanRoute ? (
                     <Link
                       to={spanRoute}
-                      className="max-w-full truncate font-mono text-xs text-indigo-200 hover:text-indigo-100"
+                      className="max-w-full truncate font-mono text-xs text-indigo-600 hover:text-indigo-500"
                       title={`View span ${spanId}`}
                     >
                       {spanId}
                     </Link>
                   ) : (
                     <span
-                      className="max-w-full truncate font-mono text-xs text-slate-200"
+                      className="max-w-full truncate font-mono text-xs text-gray-700"
                       title={spanId}
                     >
                       {spanId}
@@ -307,7 +303,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                   {spanRoute && (
                     <Icon
                       icon={IconProp.ExternalLink}
-                      className="h-4 w-4 flex-none text-indigo-300"
+                      className="h-4 w-4 flex-none text-indigo-400"
                     />
                   )}
                 </div>
@@ -318,7 +314,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
         {prettyAttributes && (
           <section className="space-y-3">
-            <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
+            <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
               <span>Attributes</span>
               <CopyTextButton
                 textToBeCopied={prettyAttributes}
@@ -329,7 +325,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               />
             </header>
             <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
-              <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-slate-100">
+              <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-gray-800">
                 {prettyAttributes}
               </pre>
             </div>

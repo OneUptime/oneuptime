@@ -1,73 +1,43 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
-import Card from "../../Card/Card";
-import FiltersForm from "../../Filters/FiltersForm";
-import FieldType from "../../Types/FieldType";
-import DropdownUtil from "../../../Utils/Dropdown";
-import LogSeverity from "../../../../Types/Log/LogSeverity";
-import Query from "../../../../Types/BaseDatabase/Query";
-import Log from "../../../../Models/AnalyticsModels/Log";
+import LogSearchBar from "./LogSearchBar";
 
 export interface LogsFilterCardProps {
-  filterData: Query<Log>;
-  onFilterChanged: (filterData: Query<Log>) => void;
-  onAdvancedFiltersToggle: (show: boolean) => void;
-  isFilterLoading: boolean;
-  filterError?: string | undefined;
-  onFilterRefreshClick?: (() => void) | undefined;
   logAttributes: Array<string>;
   toolbar: ReactNode;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
+  onSearchSubmit: () => void;
+  valueSuggestions?: Record<string, Array<string>> | undefined;
+  onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
 }
 
 const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
   props: LogsFilterCardProps,
 ): ReactElement => {
+  const searchBarSuggestions: Array<string> = [
+    "severity",
+    "service",
+    "trace",
+    "span",
+    ...props.logAttributes.map((attr: string) => {
+      return `@${attr}`;
+    }),
+  ];
+
   return (
-    <Card>
-      <div className="-mt-8">
-        <FiltersForm<Log>
-          id="logs-filter"
-          showFilter={true}
-          filterData={props.filterData}
-          onFilterChanged={props.onFilterChanged}
-          onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
-          isFilterLoading={props.isFilterLoading}
-          filterError={props.filterError}
-          onFilterRefreshClick={props.onFilterRefreshClick}
-          filters={[
-            {
-              key: "body",
-              type: FieldType.Text,
-              title: "Search Log",
-            },
-            {
-              key: "severityText",
-              filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(LogSeverity),
-              type: FieldType.Dropdown,
-              title: "Log Severity",
-              isAdvancedFilter: true,
-            },
-            {
-              key: "time",
-              type: FieldType.DateTime,
-              title: "Start and End Date",
-              isAdvancedFilter: true,
-            },
-            {
-              key: "attributes",
-              type: FieldType.JSON,
-              title: "Filter by Attributes",
-              jsonKeys: props.logAttributes,
-              isAdvancedFilter: true,
-            },
-          ]}
+    <div className="flex items-start gap-3">
+      <div className="min-w-0 flex-1">
+        <LogSearchBar
+          value={props.searchQuery}
+          onChange={props.onSearchQueryChange}
+          onSubmit={props.onSearchSubmit}
+          suggestions={searchBarSuggestions}
+          valueSuggestions={props.valueSuggestions}
+          onFieldValueSelect={props.onFieldValueSelect}
         />
       </div>
-
-      <div className="-mx-6 -mb-6 border-t border-slate-200 bg-white/60 px-6 py-3 backdrop-blur">
-        {props.toolbar}
-      </div>
-    </Card>
+      <div className="flex-none pt-0.5">{props.toolbar}</div>
+    </div>
   );
 };
 

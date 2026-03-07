@@ -1,16 +1,17 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Button, { ButtonSize, ButtonStyleType } from "../../Button/Button";
 import LiveLogsToggle from "./LiveLogsToggle";
+import LogTimeRangePicker from "./LogTimeRangePicker";
 import { LiveLogsOptions } from "../types";
+import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
-  showApplyButton?: boolean;
-  onApplyFilters?: () => void;
   currentPage?: number;
   totalPages?: number;
   className?: string;
   liveOptions?: LiveLogsOptions;
+  timeRange?: RangeStartAndEndDateTime;
+  onTimeRangeChange?: (value: RangeStartAndEndDateTime) => void;
 }
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
@@ -23,31 +24,28 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
 
   return (
     <div
-      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${props.className || ""}`}
+      className={`flex items-center justify-between gap-3 ${props.className || ""}`}
     >
-      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-        <span className="font-medium text-slate-300">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+        <span className="font-medium text-gray-700">
           {props.resultCount.toLocaleString()} result
           {props.resultCount === 1 ? "" : "s"}
         </span>
         {hasPaginationSummary && (
-          <span className="text-slate-500">
+          <span className="text-gray-400">
             Page {currentPage} of {totalPages}
           </span>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
-        {props.showApplyButton && props.onApplyFilters && (
-          <Button
-            title="Apply Filters"
-            buttonStyle={ButtonStyleType.NORMAL}
-            buttonSize={ButtonSize.Small}
-            onClick={props.onApplyFilters}
-          />
-        )}
-      </div>
+      {props.timeRange && props.onTimeRangeChange && (
+        <LogTimeRangePicker
+          value={props.timeRange}
+          onChange={props.onTimeRangeChange}
+        />
+      )}
+
+      {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
     </div>
   );
 };

@@ -12,6 +12,7 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
 } from "Common/Server/Utils/Express";
+import path from "path";
 import logger from "Common/Server/Utils/Logger";
 import { WorkflowTimeoutInMs } from "Common/Server/EnvironmentConfig";
 
@@ -29,10 +30,26 @@ const WorkflowFeatureSet: FeatureSet = {
       app.get(
         `/${APP_NAME}/docs/:componentName`,
         (req: ExpressRequest, res: ExpressResponse) => {
-          res.sendFile(
-            "/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation/" +
-              req.params["componentName"],
+          const docsDir: string =
+            "/usr/src/app/FeatureSet/Workflow/Docs/ComponentDocumentation";
+          const componentName: string = path.basename(
+            req.params["componentName"] || "",
           );
+
+          if (!componentName) {
+            res.status(404).send("Not Found");
+            return;
+          }
+
+          const filePath: string = path.join(docsDir, componentName);
+
+          // Ensure resolved path is within the docs directory
+          if (!filePath.startsWith(docsDir + "/")) {
+            res.status(404).send("Not Found");
+            return;
+          }
+
+          res.sendFile(filePath);
         },
       );
 
