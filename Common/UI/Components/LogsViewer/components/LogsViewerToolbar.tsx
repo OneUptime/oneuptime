@@ -1,12 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Button, { ButtonSize, ButtonStyleType } from "../../Button/Button";
 import LiveLogsToggle from "./LiveLogsToggle";
 import { LiveLogsOptions } from "../types";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
-  showApplyButton?: boolean;
-  onApplyFilters?: () => void;
   currentPage?: number;
   totalPages?: number;
   className?: string;
@@ -37,17 +34,11 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
-        {props.showApplyButton && props.onApplyFilters && (
-          <Button
-            title="Apply Filters"
-            buttonStyle={ButtonStyleType.NORMAL}
-            buttonSize={ButtonSize.Small}
-            onClick={props.onApplyFilters}
-          />
-        )}
-      </div>
+      {props.liveOptions && (
+        <div className="flex flex-wrap items-center gap-2">
+          <LiveLogsToggle {...props.liveOptions} />
+        </div>
+      )}
     </div>
   );
 };

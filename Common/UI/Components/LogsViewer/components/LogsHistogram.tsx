@@ -14,9 +14,14 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceArea,
+  CartesianGrid,
 } from "recharts";
 import { HistogramBucket } from "../types";
-import { getSeverityColor, getAllSeverityKeys } from "./severityColors";
+import {
+  getSeverityColor,
+  getAllSeverityKeys,
+  SeverityColor,
+} from "./severityColors";
 import HistogramTooltip from "./HistogramTooltip";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 
@@ -145,7 +150,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
 
   if (props.isLoading && pivotedData.length === 0) {
     return (
-      <div className="flex h-16 items-center justify-center bg-white">
+      <div className="flex h-28 items-center justify-center rounded-lg border border-gray-100 bg-white">
         <ComponentLoader />
       </div>
     );
@@ -156,53 +161,90 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
   }
 
   return (
-    <div className="bg-white px-2 pb-0 pt-2">
-      <div className="h-16">
+    <div className="rounded-lg border border-gray-100 bg-white px-3 pb-1 pt-3">
+      {/* Legend */}
+      <div className="mb-2 flex items-center justify-between px-1">
+        <span className="text-[11px] font-medium text-gray-400">
+          Log Volume
+        </span>
+        <div className="flex items-center gap-3">
+          {activeSeverities.map((severity: string) => {
+            const color: SeverityColor = getSeverityColor(severity);
+            return (
+              <div
+                key={severity}
+                className="flex items-center gap-1"
+              >
+                <span
+                  className="inline-block h-2 w-2 rounded-sm"
+                  style={{ backgroundColor: color.fill }}
+                />
+                <span className="text-[10px] text-gray-400">
+                  {color.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="h-24">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={pivotedData}
-            margin={{ top: 2, right: 4, bottom: 0, left: 0 }}
+            margin={{ top: 0, right: 4, bottom: 0, left: -12 }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            barCategoryGap="15%"
+            barCategoryGap="20%"
           >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#f3f4f6"
+              vertical={false}
+            />
             <XAxis
               dataKey="time"
               tickFormatter={formatTickTime}
               tick={{ fontSize: 10, fill: "#9ca3af" }}
-              axisLine={false}
+              axisLine={{ stroke: "#e5e7eb" }}
               tickLine={false}
-              minTickGap={40}
+              minTickGap={50}
+              dy={4}
             />
             <YAxis
               tick={{ fontSize: 10, fill: "#9ca3af" }}
               axisLine={false}
               tickLine={false}
-              width={40}
+              width={44}
               allowDecimals={false}
             />
             <Tooltip
               content={<HistogramTooltip />}
-              cursor={{ fill: "rgba(99,102,241,0.06)" }}
+              cursor={{ fill: "rgba(99,102,241,0.05)" }}
             />
-            {activeSeverities.map((severity: string) => (
-              <Bar
-                key={severity}
-                dataKey={severity}
-                stackId="severity"
-                fill={getSeverityColor(severity).fill}
-                radius={[3, 3, 0, 0]}
-                isAnimationActive={false}
-              />
-            ))}
+            {activeSeverities.map((severity: string, index: number) => {
+              const isLast: boolean = index === activeSeverities.length - 1;
+              return (
+                <Bar
+                  key={severity}
+                  dataKey={severity}
+                  stackId="severity"
+                  fill={getSeverityColor(severity).fill}
+                  radius={isLast ? [2, 2, 0, 0] : [0, 0, 0, 0]}
+                  isAnimationActive={false}
+                />
+              );
+            })}
             {selectionStart && selectionEnd && (
               <ReferenceArea
                 x1={selectionStart}
                 x2={selectionEnd}
-                fill="rgba(99,102,241,0.15)"
+                fill="rgba(99,102,241,0.12)"
                 stroke="rgba(99,102,241,0.4)"
                 strokeWidth={1}
+                radius={2}
               />
             )}
           </BarChart>

@@ -105,9 +105,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [logAttributes, setLogAttributes] = useState<Array<string>>([]);
   const [attributesLoaded, setAttributesLoaded] = useState<boolean>(false);
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-  const [attributesError, setAttributesError] = useState<string>("");
-  const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
-    useState<boolean>(false);
 
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [pageError, setPageError] = useState<string>("");
@@ -291,7 +288,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     useCallback(async (): Promise<void> => {
       try {
         setAttributesLoading(true);
-        setAttributesError("");
 
         const attributeResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post({
@@ -313,12 +309,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         ] || []) as Array<string>;
         setLogAttributes(attributes);
         setAttributesLoaded(true);
-      } catch (err) {
+      } catch {
         setLogAttributes([]);
         setAttributesLoaded(false);
-        setAttributesError(
-          `We couldn't load log attributes. Filters may be limited. ${API.getFriendlyErrorMessage(err as Error)}`,
-        );
       } finally {
         setAttributesLoading(false);
       }
@@ -356,10 +349,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     resetPage();
     setSelectedLogId(null);
     props.onFilterChanged(mergedFilter);
-  };
-
-  const handleApplyFilters: () => void = (): void => {
-    handleSearchSubmit();
   };
 
   const handlePageChange: (page: number) => void = (page: number): void => {
@@ -431,36 +420,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       {props.showFilters && (
         <div>
           <LogsFilterCard
-            filterData={filterData}
-            onFilterChanged={(updated: Query<Log>) => {
-              setFilterData(updated);
-            }}
-            onAdvancedFiltersToggle={(show: boolean) => {
-              setAreAdvancedFiltersVisible(show);
-            }}
-            isFilterLoading={areAdvancedFiltersVisible && attributesLoading}
-            filterError={
-              areAdvancedFiltersVisible && attributesError
-                ? attributesError
-                : undefined
-            }
-            onFilterRefreshClick={
-              areAdvancedFiltersVisible && attributesError
-                ? () => {
-                    void loadAttributes();
-                  }
-                : undefined
-            }
             logAttributes={logAttributes}
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
             onSearchSubmit={handleSearchSubmit}
             toolbar={
-              <LogsViewerToolbar
-                {...toolbarProps}
-                showApplyButton={true}
-                onApplyFilters={handleApplyFilters}
-              />
+              <LogsViewerToolbar {...toolbarProps} />
             }
           />
         </div>

@@ -6,17 +6,17 @@ export interface SeverityColor {
 }
 
 const severityColorMap: Record<string, SeverityColor> = {
-  [LogSeverity.Fatal]: { fill: "#e11d48", label: "Fatal" },
-  [LogSeverity.Error]: { fill: "#fb7185", label: "Error" },
-  [LogSeverity.Warning]: { fill: "#fbbf24", label: "Warning" },
-  [LogSeverity.Information]: { fill: "#38bdf8", label: "Info" },
+  [LogSeverity.Fatal]: { fill: "#dc2626", label: "Fatal" },
+  [LogSeverity.Error]: { fill: "#f87171", label: "Error" },
+  [LogSeverity.Warning]: { fill: "#f59e0b", label: "Warning" },
+  [LogSeverity.Information]: { fill: "#60a5fa", label: "Info" },
   [LogSeverity.Debug]: { fill: "#a78bfa", label: "Debug" },
-  [LogSeverity.Trace]: { fill: "#94a3b8", label: "Trace" },
-  Unspecified: { fill: "#64748b", label: "Unspecified" },
+  [LogSeverity.Trace]: { fill: "#9ca3af", label: "Trace" },
+  Unspecified: { fill: "#cbd5e1", label: "Unspecified" },
 };
 
 const defaultSeverityColor: SeverityColor = {
-  fill: "#64748b",
+  fill: "#cbd5e1",
   label: "Unknown",
 };
 
