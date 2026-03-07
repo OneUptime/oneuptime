@@ -137,6 +137,35 @@ export default class UserEmailAPI extends BaseAPI<
             );
           }
 
+          const item: UserEmail | null = await this.service.findOneById({
+            id: req.body["itemId"],
+            props: {
+              isRoot: true,
+            },
+            select: {
+              userId: true,
+            },
+          });
+
+          if (!item) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Item not found"),
+            );
+          }
+
+          if (
+            item.userId?.toString() !==
+            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid user ID"),
+            );
+          }
+
           await this.service.resendVerificationCode(req.body.itemId);
 
           return Response.sendEmptySuccessResponse(req, res);
