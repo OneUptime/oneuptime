@@ -53,8 +53,7 @@ export class LogAggregationService {
     const statement: Statement =
       LogAggregationService.buildHistogramStatement(request);
 
-    const dbResult: Results =
-      await LogDatabaseService.executeQuery(statement);
+    const dbResult: Results = await LogDatabaseService.executeQuery(statement);
     const response: DbJSONResponse = await dbResult.json<{
       data?: Array<JSONObject>;
     }>();
@@ -77,8 +76,7 @@ export class LogAggregationService {
     const statement: Statement =
       LogAggregationService.buildFacetStatement(request);
 
-    const dbResult: Results =
-      await LogDatabaseService.executeQuery(statement);
+    const dbResult: Results = await LogDatabaseService.executeQuery(statement);
     const response: DbJSONResponse = await dbResult.json<{
       data?: Array<JSONObject>;
     }>();
@@ -97,9 +95,7 @@ export class LogAggregationService {
       });
   }
 
-  private static buildHistogramStatement(
-    request: HistogramRequest,
-  ): Statement {
+  private static buildHistogramStatement(request: HistogramRequest): Statement {
     const intervalSeconds: number = request.bucketSizeInMinutes * 60;
 
     const statement: Statement = SQL`
@@ -136,8 +132,9 @@ export class LogAggregationService {
     const limit: number =
       request.limit ?? LogAggregationService.DEFAULT_FACET_LIMIT;
 
-    const isTopLevelColumn: boolean =
-      LogAggregationService.isTopLevelColumn(request.facetKey);
+    const isTopLevelColumn: boolean = LogAggregationService.isTopLevelColumn(
+      request.facetKey,
+    );
 
     const escapedKey: string = LogAggregationService.escapeSingleQuotes(
       request.facetKey,
@@ -154,16 +151,18 @@ export class LogAggregationService {
       `SELECT ${valueExpression} AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
     );
 
-    statement.append(SQL` WHERE projectId = ${{
-      type: TableColumnType.ObjectID,
-      value: request.projectId,
-    }} AND time >= ${{
-      type: TableColumnType.Date,
-      value: request.startTime,
-    }} AND time <= ${{
-      type: TableColumnType.Date,
-      value: request.endTime,
-    }}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
 
     if (!isTopLevelColumn) {
       statement.append(` AND JSONHas(attributes, '${escapedKey}') = 1`);
@@ -171,10 +170,12 @@ export class LogAggregationService {
 
     LogAggregationService.appendCommonFilters(statement, request);
 
-    statement.append(SQL` GROUP BY val ORDER BY cnt DESC LIMIT ${{
-      type: TableColumnType.Number,
-      value: limit,
-    }}`);
+    statement.append(
+      SQL` GROUP BY val ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
 
     return statement;
   }
@@ -188,40 +189,47 @@ export class LogAggregationService {
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
       const idStrings: Array<string> = request.serviceIds.map(
-        (id: ObjectID): string => `'${id.toString()}'`,
+        (id: ObjectID): string => {
+          return `'${id.toString()}'`;
+        },
       );
       statement.append(` AND serviceId IN (${idStrings.join(",")})`);
     }
 
     if (request.severityTexts && request.severityTexts.length > 0) {
       const sevStrings: Array<string> = request.severityTexts.map(
-        (s: string): string =>
-          `'${LogAggregationService.escapeSingleQuotes(s)}'`,
+        (s: string): string => {
+          return `'${LogAggregationService.escapeSingleQuotes(s)}'`;
+        },
       );
       statement.append(` AND severityText IN (${sevStrings.join(",")})`);
     }
 
     if (request.traceIds && request.traceIds.length > 0) {
       const traceStrings: Array<string> = request.traceIds.map(
-        (s: string): string =>
-          `'${LogAggregationService.escapeSingleQuotes(s)}'`,
+        (s: string): string => {
+          return `'${LogAggregationService.escapeSingleQuotes(s)}'`;
+        },
       );
       statement.append(` AND traceId IN (${traceStrings.join(",")})`);
     }
 
     if (request.spanIds && request.spanIds.length > 0) {
       const spanStrings: Array<string> = request.spanIds.map(
-        (s: string): string =>
-          `'${LogAggregationService.escapeSingleQuotes(s)}'`,
+        (s: string): string => {
+          return `'${LogAggregationService.escapeSingleQuotes(s)}'`;
+        },
       );
       statement.append(` AND spanId IN (${spanStrings.join(",")})`);
     }
 
     if (request.bodySearchText && request.bodySearchText.trim().length > 0) {
-      statement.append(` AND body ILIKE ${{
-        type: TableColumnType.Text,
-        value: `%${request.bodySearchText.trim()}%`,
-      }}`);
+      statement.append(
+        ` AND body ILIKE ${{
+          type: TableColumnType.Text,
+          value: `%${request.bodySearchText.trim()}%`,
+        }}`,
+      );
     }
   }
 

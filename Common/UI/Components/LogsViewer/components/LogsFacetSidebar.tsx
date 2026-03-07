@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import { FacetData, ActiveFilter } from "../types";
+import { FacetData, FacetValue, ActiveFilter } from "../types";
 import FacetSection from "./FacetSection";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
@@ -78,30 +78,29 @@ function getFacetTitle(key: string): string {
 const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
   props: LogsFacetSidebarProps,
 ): ReactElement => {
-  const severityColorMap: Record<string, string> = useMemo(
-    () => buildSeverityColorMap(),
-    [],
-  );
+  const severityColorMap: Record<string, string> = useMemo(() => {
+    return buildSeverityColorMap();
+  }, []);
 
-  const serviceDisplayMap: Record<string, string> = useMemo(
-    () => buildServiceDisplayMap(props.serviceMap),
-    [props.serviceMap],
-  );
+  const serviceDisplayMap: Record<string, string> = useMemo(() => {
+    return buildServiceDisplayMap(props.serviceMap);
+  }, [props.serviceMap]);
 
-  const serviceColorMap: Record<string, string> = useMemo(
-    () => buildServiceColorMap(props.serviceMap),
-    [props.serviceMap],
-  );
+  const serviceColorMap: Record<string, string> = useMemo(() => {
+    return buildServiceColorMap(props.serviceMap);
+  }, [props.serviceMap]);
 
   const facetKeys: Array<string> = useMemo(() => {
     const priorityKeys: Array<string> = ["severityText", "serviceId"];
     const otherKeys: Array<string> = Object.keys(props.facetData).filter(
-      (key: string) => !priorityKeys.includes(key),
+      (key: string) => {
+        return !priorityKeys.includes(key);
+      },
     );
     return [
-      ...priorityKeys.filter(
-        (key: string) => props.facetData[key] !== undefined,
-      ),
+      ...priorityKeys.filter((key: string) => {
+        return props.facetData[key] !== undefined;
+      }),
       ...otherKeys.sort(),
     ];
   }, [props.facetData]);
@@ -139,7 +138,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
 
       <div className="flex-1 overflow-y-auto">
         {facetKeys.map((key: string) => {
-          const values = props.facetData[key] || [];
+          const values: Array<FacetValue> = props.facetData[key] || [];
 
           let valueDisplayMap: Record<string, string> | undefined;
           let valueColorMap: Record<string, string> | undefined;

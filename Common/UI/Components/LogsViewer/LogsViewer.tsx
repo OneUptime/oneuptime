@@ -353,8 +353,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   };
 
   const handleSearchSubmit: () => void = (): void => {
-    const queryFilter: Record<string, unknown> =
-      queryStringToFilter(searchQuery) as Record<string, unknown>;
+    const queryFilter: Record<string, unknown> = queryStringToFilter(
+      searchQuery,
+    ) as Record<string, unknown>;
     const mergedFilter: Query<Log> = {
       ...filterData,
       ...queryFilter,
@@ -377,9 +378,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     setSelectedLogId(null);
   };
 
-  const handlePageSizeChange: (size: number) => void = (
-    size: number,
-  ): void => {
+  const handlePageSizeChange: (size: number) => void = (size: number): void => {
     if (props.onPageSizeChange) {
       props.onPageSizeChange(size);
     }
@@ -411,8 +410,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     setSelectedLogId(null);
   };
 
-  // Enrich active filters with resolved display values (e.g. service names)
-  // Must be before early returns to maintain consistent hook call order.
+  /*
+   * Enrich active filters with resolved display values (e.g. service names)
+   * Must be before early returns to maintain consistent hook call order.
+   */
   const enrichedActiveFilters: Array<ActiveFilter> = useMemo(() => {
     if (!props.activeFilters) {
       return [];
@@ -445,12 +446,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     totalPages,
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
     ...(props.timeRange && props.onTimeRangeChange
-      ? { timeRange: props.timeRange, onTimeRangeChange: props.onTimeRangeChange }
+      ? {
+          timeRange: props.timeRange,
+          onTimeRangeChange: props.onTimeRangeChange,
+        }
       : {}),
   };
 
   const showSidebar: boolean =
-    props.showFacetSidebar !== false && !!props.facetData;
+    props.showFacetSidebar !== false && Boolean(props.facetData);
 
   return (
     <div className="space-y-2">
@@ -463,9 +467,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             onSearchSubmit={handleSearchSubmit}
             valueSuggestions={props.valueSuggestions}
             onFieldValueSelect={props.onFieldValueSelect}
-            toolbar={
-              <LogsViewerToolbar {...toolbarProps} />
-            }
+            toolbar={<LogsViewerToolbar {...toolbarProps} />}
           />
         </div>
       )}

@@ -35,7 +35,11 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
 
   const maxCount: number =
     props.values.length > 0
-      ? Math.max(...props.values.map((v: FacetValue) => v.count))
+      ? Math.max(
+          ...props.values.map((v: FacetValue) => {
+            return v.count;
+          }),
+        )
       : 0;
 
   const activeCount: number = props.activeValues ? props.activeValues.size : 0;
@@ -67,23 +71,25 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
 
       {isExpanded && (
         <div className="mt-1 px-1">
-          {displayedValues.map((facet: FacetValue) => (
-            <FacetValueRow
-              key={facet.value}
-              value={facet.value}
-              displayValue={props.valueDisplayMap?.[facet.value]}
-              count={facet.count}
-              maxCount={maxCount}
-              color={props.valueColorMap?.[facet.value]}
-              isActive={props.activeValues?.has(facet.value) || false}
-              onInclude={(value: string) => {
-                props.onIncludeValue(props.facetKey, value);
-              }}
-              onExclude={(value: string) => {
-                props.onExcludeValue(props.facetKey, value);
-              }}
-            />
-          ))}
+          {displayedValues.map((facet: FacetValue) => {
+            return (
+              <FacetValueRow
+                key={facet.value}
+                value={facet.value}
+                displayValue={props.valueDisplayMap?.[facet.value]}
+                count={facet.count}
+                maxCount={maxCount}
+                color={props.valueColorMap?.[facet.value]}
+                isActive={props.activeValues?.has(facet.value) || false}
+                onInclude={(value: string) => {
+                  props.onIncludeValue(props.facetKey, value);
+                }}
+                onExclude={(value: string) => {
+                  props.onExcludeValue(props.facetKey, value);
+                }}
+              />
+            );
+          })}
 
           {props.values.length === 0 && (
             <p className="px-1 py-2 text-[11px] text-gray-400">

@@ -131,9 +131,9 @@ router.post(
         computeDefaultBucketSize(startTime, endTime);
 
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
-        ? (body["serviceIds"] as Array<string>).map(
-            (id: string) => new ObjectID(id),
-          )
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
         : undefined;
 
       const severityTexts: Array<string> | undefined = body["severityTexts"]
@@ -215,9 +215,9 @@ router.post(
       const limit: number = (body["limit"] as number) || 10;
 
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
-        ? (body["serviceIds"] as Array<string>).map(
-            (id: string) => new ObjectID(id),
-          )
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
         : undefined;
 
       const severityTexts: Array<string> | undefined = body["severityTexts"]

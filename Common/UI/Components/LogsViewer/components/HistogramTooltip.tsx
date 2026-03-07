@@ -60,19 +60,21 @@ const HistogramTooltip: FunctionComponent<HistogramTooltipProps> = (
     .filter((entry: { value: number }): boolean => {
       return entry.value > 0;
     })
-    .map(
-      (entry: { dataKey: string; value: number }): TooltipEntry => ({
+    .map((entry: { dataKey: string; value: number }): TooltipEntry => {
+      return {
         severity: entry.dataKey,
         count: entry.value,
-      }),
-    );
+      };
+    });
 
   if (entries.length === 0) {
     return null;
   }
 
   const total: number = entries.reduce(
-    (sum: number, e: TooltipEntry): number => sum + e.count,
+    (sum: number, e: TooltipEntry): number => {
+      return sum + e.count;
+    },
     0,
   );
 

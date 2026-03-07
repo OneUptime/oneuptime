@@ -30,10 +30,12 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] =
     useState<number>(-1);
-  const inputRef: React.RefObject<HTMLInputElement> =
-    useRef<HTMLInputElement>(null!);
-  const containerRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null!);
+  const inputRef: React.RefObject<HTMLInputElement> = useRef<HTMLInputElement>(
+    null!,
+  );
+  const containerRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
+    null!,
+  );
 
   const currentWord: string = extractCurrentWord(props.value);
 
@@ -115,7 +117,9 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
               (props.valueSuggestions || {})[resolvedField] || [];
             const lowerPartial: string = partialValue.toLowerCase();
             const exactMatch: string | undefined = availableValues.find(
-              (v: string): boolean => v.toLowerCase() === lowerPartial,
+              (v: string): boolean => {
+                return v.toLowerCase() === lowerPartial;
+              },
             );
 
             // Use exact match, or if there's exactly one prefix match, use that
@@ -157,18 +161,17 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
 
         if (e.key === "ArrowDown") {
           e.preventDefault();
-          setSelectedSuggestionIndex(
-            (prev: number): number =>
-              Math.min(prev + 1, filteredSuggestions.length - 1),
-          );
+          setSelectedSuggestionIndex((prev: number): number => {
+            return Math.min(prev + 1, filteredSuggestions.length - 1);
+          });
           return;
         }
 
         if (e.key === "ArrowUp") {
           e.preventDefault();
-          setSelectedSuggestionIndex(
-            (prev: number): number => Math.max(prev - 1, 0),
-          );
+          setSelectedSuggestionIndex((prev: number): number => {
+            return Math.max(prev - 1, 0);
+          });
         }
       },
       [
@@ -311,9 +314,7 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
         />
       )}
 
-      {shouldShowHelp && (
-        <LogSearchHelp onExampleClick={handleExampleClick} />
-      )}
+      {shouldShowHelp && <LogSearchHelp onExampleClick={handleExampleClick} />}
     </div>
   );
 };
@@ -338,8 +339,7 @@ function getValueSuggestions(
   valueSuggestions: Record<string, Array<string>>,
 ): Array<string> {
   // Resolve field name alias
-  const resolvedField: string =
-    FIELD_ALIAS_MAP[fieldName] || fieldName;
+  const resolvedField: string = FIELD_ALIAS_MAP[fieldName] || fieldName;
 
   const values: Array<string> | undefined = valueSuggestions[resolvedField];
 
@@ -352,9 +352,9 @@ function getValueSuggestions(
   }
 
   const lowerPartial: string = partialValue.toLowerCase();
-  return values.filter((v: string): boolean =>
-    v.toLowerCase().startsWith(lowerPartial),
-  );
+  return values.filter((v: string): boolean => {
+    return v.toLowerCase().startsWith(lowerPartial);
+  });
 }
 
 export default LogSearchBar;

@@ -95,12 +95,13 @@ async function postApi(
   path: string,
   data: JSONObject,
 ): Promise<HTTPResponse<JSONObject>> {
-  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-    await API.post({
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
       url: getApiUrl(path),
       data,
       headers: getHeaders(),
-    });
+    },
+  );
 
   if (response instanceof HTTPErrorResponse) {
     throw response;
@@ -136,7 +137,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
   const [isLiveUpdating, setIsLiveUpdating] = useState<boolean>(false);
-  const liveRequestInFlight = useRef<boolean>(false);
+  const liveRequestInFlight: React.RefObject<boolean> = useRef<boolean>(false);
 
   // Histogram state
   const [histogramBuckets, setHistogramBuckets] = useState<
@@ -189,7 +190,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    return props.serviceIds.map((id: ObjectID) => id.toString());
+    return props.serviceIds.map((id: ObjectID) => {
+      return id.toString();
+    });
   }, [props.serviceIds]);
 
   // --- Fetch logs ---
@@ -198,7 +201,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     skipLoadingState?: boolean;
   };
 
-  const fetchItems = useCallback(
+  const fetchItems: (options?: FetchOptions) => Promise<void> = useCallback(
     async (options: FetchOptions = {}): Promise<void> => {
       const { skipLoadingState = false } = options;
 
@@ -256,106 +259,108 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   // --- Fetch histogram ---
 
-  const fetchHistogram = useCallback(async (): Promise<void> => {
-    try {
-      setHistogramLoading(true);
+  const fetchHistogram: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setHistogramLoading(true);
 
-      // Compute fresh dates from time range (preset ranges are relative to "now")
-      const dateRange: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+        // Compute fresh dates from time range (preset ranges are relative to "now")
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-      const requestData: JSONObject = {
-        startTime: dateRange.startValue.toISOString(),
-        endTime: dateRange.endValue.toISOString(),
-      } as JSONObject;
+        const requestData: JSONObject = {
+          startTime: dateRange.startValue.toISOString(),
+          endTime: dateRange.endValue.toISOString(),
+        } as JSONObject;
 
-      if (serviceIdStrings) {
-        (requestData as any)["serviceIds"] = serviceIdStrings;
+        if (serviceIdStrings) {
+          (requestData as any)["serviceIds"] = serviceIdStrings;
+        }
+
+        // Pass active facet filters to the histogram so it reflects the current view
+        const severityValues: Set<string> | undefined =
+          appliedFacetFilters.get("severityText");
+
+        if (severityValues && severityValues.size > 0) {
+          (requestData as any)["severityTexts"] = Array.from(severityValues);
+        }
+
+        const serviceFilterValues: Set<string> | undefined =
+          appliedFacetFilters.get("serviceId");
+
+        if (serviceFilterValues && serviceFilterValues.size > 0) {
+          // Merge with prop-level serviceIds (facet filter overrides/narrows)
+          (requestData as any)["serviceIds"] = Array.from(serviceFilterValues);
+        }
+
+        const traceFilterValues: Set<string> | undefined =
+          appliedFacetFilters.get("traceId");
+
+        if (traceFilterValues && traceFilterValues.size > 0) {
+          (requestData as any)["traceIds"] = Array.from(traceFilterValues);
+        }
+
+        const spanFilterValues: Set<string> | undefined =
+          appliedFacetFilters.get("spanId");
+
+        if (spanFilterValues && spanFilterValues.size > 0) {
+          (requestData as any)["spanIds"] = Array.from(spanFilterValues);
+        }
+
+        const response: HTTPResponse<JSONObject> = await postApi(
+          "/telemetry/logs/histogram",
+          requestData,
+        );
+
+        const buckets: Array<HistogramBucket> = (response.data["buckets"] ||
+          []) as unknown as Array<HistogramBucket>;
+
+        setHistogramBuckets(buckets);
+      } catch {
+        // Histogram is non-critical; silently degrade
+        setHistogramBuckets([]);
+      } finally {
+        setHistogramLoading(false);
       }
-
-      // Pass active facet filters to the histogram so it reflects the current view
-      const severityValues: Set<string> | undefined =
-        appliedFacetFilters.get("severityText");
-
-      if (severityValues && severityValues.size > 0) {
-        (requestData as any)["severityTexts"] = Array.from(severityValues);
-      }
-
-      const serviceFilterValues: Set<string> | undefined =
-        appliedFacetFilters.get("serviceId");
-
-      if (serviceFilterValues && serviceFilterValues.size > 0) {
-        // Merge with prop-level serviceIds (facet filter overrides/narrows)
-        (requestData as any)["serviceIds"] = Array.from(serviceFilterValues);
-      }
-
-      const traceFilterValues: Set<string> | undefined =
-        appliedFacetFilters.get("traceId");
-
-      if (traceFilterValues && traceFilterValues.size > 0) {
-        (requestData as any)["traceIds"] = Array.from(traceFilterValues);
-      }
-
-      const spanFilterValues: Set<string> | undefined =
-        appliedFacetFilters.get("spanId");
-
-      if (spanFilterValues && spanFilterValues.size > 0) {
-        (requestData as any)["spanIds"] = Array.from(spanFilterValues);
-      }
-
-      const response: HTTPResponse<JSONObject> = await postApi(
-        "/telemetry/logs/histogram",
-        requestData,
-      );
-
-      const buckets: Array<HistogramBucket> = ((response.data["buckets"] ||
-        []) as unknown) as Array<HistogramBucket>;
-
-      setHistogramBuckets(buckets);
-    } catch {
-      // Histogram is non-critical; silently degrade
-      setHistogramBuckets([]);
-    } finally {
-      setHistogramLoading(false);
-    }
-  }, [serviceIdStrings, appliedFacetFilters, timeRange]);
+    }, [serviceIdStrings, appliedFacetFilters, timeRange]);
 
   // --- Fetch facets ---
 
-  const fetchFacets = useCallback(async (): Promise<void> => {
-    try {
-      setFacetLoading(true);
+  const fetchFacets: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setFacetLoading(true);
 
-      // Compute fresh dates from time range (preset ranges are relative to "now")
-      const dateRange: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+        // Compute fresh dates from time range (preset ranges are relative to "now")
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-      const requestData: JSONObject = {
-        startTime: dateRange.startValue.toISOString(),
-        endTime: dateRange.endValue.toISOString(),
-        facetKeys: ["severityText", "serviceId"],
-      } as JSONObject;
+        const requestData: JSONObject = {
+          startTime: dateRange.startValue.toISOString(),
+          endTime: dateRange.endValue.toISOString(),
+          facetKeys: ["severityText", "serviceId"],
+        } as JSONObject;
 
-      if (serviceIdStrings) {
-        (requestData as any)["serviceIds"] = serviceIdStrings;
+        if (serviceIdStrings) {
+          (requestData as any)["serviceIds"] = serviceIdStrings;
+        }
+
+        const response: HTTPResponse<JSONObject> = await postApi(
+          "/telemetry/logs/facets",
+          requestData,
+        );
+
+        const facets: FacetData = (response.data["facets"] ||
+          {}) as unknown as FacetData;
+
+        setFacetData(facets);
+      } catch {
+        // Facets are non-critical; silently degrade
+        setFacetData({});
+      } finally {
+        setFacetLoading(false);
       }
-
-      const response: HTTPResponse<JSONObject> = await postApi(
-        "/telemetry/logs/facets",
-        requestData,
-      );
-
-      const facets: FacetData = ((response.data["facets"] ||
-        {}) as unknown) as FacetData;
-
-      setFacetData(facets);
-    } catch {
-      // Facets are non-critical; silently degrade
-      setFacetData({});
-    } finally {
-      setFacetLoading(false);
-    }
-  }, [serviceIdStrings, timeRange]);
+    }, [serviceIdStrings, timeRange]);
 
   // --- Effects ---
 
@@ -401,33 +406,32 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const projectId = ProjectUtil.getCurrentProjectId();
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
     if (!projectId) {
       return;
     }
 
-    const disconnectFunction: () => void =
-      Realtime.listenToAnalyticsModelEvent(
-        {
-          modelType: Log,
-          eventType: ModelEventType.Create,
-          tenantId: projectId,
-        },
-        (_model: Log) => {
-          if (
-            page === 1 &&
-            sortField === "time" &&
-            sortOrder === SortOrder.Descending
-          ) {
-            fetchItems({ skipLoadingState: isLiveEnabled }).catch(
-              (err: unknown) => {
-                setError(API.getFriendlyMessage(err));
-              },
-            );
-          }
-        },
-      );
+    const disconnectFunction: () => void = Realtime.listenToAnalyticsModelEvent(
+      {
+        modelType: Log,
+        eventType: ModelEventType.Create,
+        tenantId: projectId,
+      },
+      (_model: Log) => {
+        if (
+          page === 1 &&
+          sortField === "time" &&
+          sortOrder === SortOrder.Descending
+        ) {
+          fetchItems({ skipLoadingState: isLiveEnabled }).catch(
+            (err: unknown) => {
+              setError(API.getFriendlyMessage(err));
+            },
+          );
+        }
+      },
+    );
 
     return () => {
       disconnectFunction();
@@ -460,7 +464,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [page, sortField, sortOrder],
   );
 
-  const disableLiveMode = useCallback((): void => {
+  const disableLiveMode: () => void = useCallback((): void => {
     if (isLiveEnabled) {
       setIsLiveEnabled(false);
       liveRequestInFlight.current = false;
@@ -468,7 +472,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [isLiveEnabled]);
 
-  const handleFilterChanged = useCallback(
+  const handleFilterChanged: (newFilter: Query<Log>) => void = useCallback(
     (newFilter: Query<Log>): void => {
       setFilterOptions(newFilter);
       setPage(1);
@@ -477,7 +481,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [disableLiveMode],
   );
 
-  const handlePageChange = useCallback(
+  const handlePageChange: (nextPage: number) => void = useCallback(
     (nextPage: number): void => {
       setPage(nextPage);
 
@@ -488,25 +492,32 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [disableLiveMode],
   );
 
-  const handlePageSizeChange = useCallback((nextSize: number): void => {
-    setPageSize(nextSize);
-    setPage(1);
-  }, []);
-
-  const handleSortChange = useCallback(
-    (field: LogsSortField, order: SortOrder): void => {
-      setSortField(field);
-      setSortOrder(order);
+  const handlePageSizeChange: (nextSize: number) => void = useCallback(
+    (nextSize: number): void => {
+      setPageSize(nextSize);
       setPage(1);
-
-      if (field !== "time" || order !== SortOrder.Descending) {
-        disableLiveMode();
-      }
     },
-    [disableLiveMode],
+    [],
   );
 
-  const handleHistogramTimeRangeSelect = useCallback(
+  const handleSortChange: (field: LogsSortField, order: SortOrder) => void =
+    useCallback(
+      (field: LogsSortField, order: SortOrder): void => {
+        setSortField(field);
+        setSortOrder(order);
+        setPage(1);
+
+        if (field !== "time" || order !== SortOrder.Descending) {
+          disableLiveMode();
+        }
+      },
+      [disableLiveMode],
+    );
+
+  const handleHistogramTimeRangeSelect: (
+    startTime: Date,
+    endTime: Date,
+  ) => void = useCallback(
     (startTime: Date, endTime: Date): void => {
       // Sync the time range picker to show "Custom" with selected dates
       const customRange: RangeStartAndEndDateTime = {
@@ -527,7 +538,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [filterOptions, disableLiveMode],
   );
 
-  const handleTimeRangeChange = useCallback(
+  const handleTimeRangeChange: (
+    newTimeRange: RangeStartAndEndDateTime,
+  ) => void = useCallback(
     (newTimeRange: RangeStartAndEndDateTime): void => {
       setTimeRange(newTimeRange);
 
@@ -546,7 +559,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [filterOptions, disableLiveMode],
   );
 
-  const rebuildFilterOptionsFromFacets = useCallback(
+  const rebuildFilterOptionsFromFacets: (
+    facets: Map<string, Set<string>>,
+  ) => Query<Log> = useCallback(
     (facets: Map<string, Set<string>>): Query<Log> => {
       const updatedFilter: Query<Log> = buildBaseQuery(props);
 
@@ -578,77 +593,83 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [props, timeRange],
   );
 
-  const handleFacetInclude = useCallback(
-    (facetKey: string, value: string): void => {
-      const nextFilters: Map<string, Set<string>> = new Map(
-        Array.from(appliedFacetFilters.entries()).map(
-          ([k, v]: [string, Set<string>]) => [k, new Set(v)] as [string, Set<string>],
-        ),
-      );
+  const handleFacetInclude: (facetKey: string, value: string) => void =
+    useCallback(
+      (facetKey: string, value: string): void => {
+        const nextFilters: Map<string, Set<string>> = new Map(
+          Array.from(appliedFacetFilters.entries()).map(
+            ([k, v]: [string, Set<string>]) => {
+              return [k, new Set(v)] as [string, Set<string>];
+            },
+          ),
+        );
 
-      const currentValues: Set<string> | undefined = nextFilters.get(facetKey);
+        const currentValues: Set<string> | undefined =
+          nextFilters.get(facetKey);
 
-      if (currentValues && currentValues.has(value)) {
-        // Toggle off: remove this value
-        currentValues.delete(value);
+        if (currentValues && currentValues.has(value)) {
+          // Toggle off: remove this value
+          currentValues.delete(value);
 
-        if (currentValues.size === 0) {
-          nextFilters.delete(facetKey);
-        }
-      } else {
-        // Add value to the set
-        if (currentValues) {
+          if (currentValues.size === 0) {
+            nextFilters.delete(facetKey);
+          }
+        } else if (currentValues) {
+          // Add value to the existing set
           currentValues.add(value);
         } else {
           nextFilters.set(facetKey, new Set([value]));
         }
-      }
 
-      setAppliedFacetFilters(nextFilters);
-      setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
-      setPage(1);
-      disableLiveMode();
-    },
-    [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
-  );
+        setAppliedFacetFilters(nextFilters);
+        setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
+        setPage(1);
+        disableLiveMode();
+      },
+      [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
+    );
 
-  const handleFacetExclude = useCallback(
-    (_facetKey: string, _value: string): void => {
-      // Exclusion filters are not yet supported in the Query type.
-      // This is a placeholder for future NOT-filter support.
-    },
-    [],
-  );
+  const handleFacetExclude: (_facetKey: string, _value: string) => void =
+    useCallback((_facetKey: string, _value: string): void => {
+      /*
+       * Exclusion filters are not yet supported in the Query type.
+       * This is a placeholder for future NOT-filter support.
+       */
+    }, []);
 
-  const handleRemoveFilter = useCallback(
-    (facetKey: string, value: string): void => {
-      const nextFilters: Map<string, Set<string>> = new Map(
-        Array.from(appliedFacetFilters.entries()).map(
-          ([k, v]: [string, Set<string>]) => [k, new Set(v)] as [string, Set<string>],
-        ),
-      );
+  const handleRemoveFilter: (facetKey: string, value: string) => void =
+    useCallback(
+      (facetKey: string, value: string): void => {
+        const nextFilters: Map<string, Set<string>> = new Map(
+          Array.from(appliedFacetFilters.entries()).map(
+            ([k, v]: [string, Set<string>]) => {
+              return [k, new Set(v)] as [string, Set<string>];
+            },
+          ),
+        );
 
-      const currentValues: Set<string> | undefined = nextFilters.get(facetKey);
+        const currentValues: Set<string> | undefined =
+          nextFilters.get(facetKey);
 
-      if (currentValues) {
-        currentValues.delete(value);
+        if (currentValues) {
+          currentValues.delete(value);
 
-        if (currentValues.size === 0) {
+          if (currentValues.size === 0) {
+            nextFilters.delete(facetKey);
+          }
+        } else {
           nextFilters.delete(facetKey);
         }
-      } else {
-        nextFilters.delete(facetKey);
-      }
 
-      setAppliedFacetFilters(nextFilters);
-      setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
-      setPage(1);
-      disableLiveMode();
-    },
-    [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
-  );
+        setAppliedFacetFilters(nextFilters);
+        setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
+        setPage(1);
+        disableLiveMode();
+      },
+      [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
+    );
 
-  const handleClearAllFilters = useCallback((): void => {
+  const handleClearAllFilters: () => void = useCallback((): void => {
     setAppliedFacetFilters(new Map());
     const base: Query<Log> = buildBaseQuery(props);
     const dateRange: InBetween<Date> =
@@ -662,8 +683,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     disableLiveMode();
   }, [props, timeRange, disableLiveMode]);
 
-  const getTraceRoute = useCallback(
-    (traceId: string): Route | URL | undefined => {
+  const getTraceRoute: (traceId: string) => Route | URL | undefined =
+    useCallback((traceId: string): Route | URL | undefined => {
       if (!traceId) {
         return undefined;
       }
@@ -671,12 +692,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
         modelId: traceId,
       });
-    },
-    [],
-  );
+    }, []);
 
-  const getSpanRoute = useCallback(
-    (spanId: string, log: Log): Route | URL | undefined => {
+  const getSpanRoute: (spanId: string, log: Log) => Route | URL | undefined =
+    useCallback((spanId: string, log: Log): Route | URL | undefined => {
       const traceId: string | undefined = log.traceId?.toString();
 
       if (!spanId || !traceId) {
@@ -694,9 +713,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       routeWithQuery.addQueryParams({ spanId });
 
       return routeWithQuery;
-    },
-    [],
-  );
+    }, []);
 
   // Build value suggestions for the search bar autocomplete
   const valueSuggestions: Record<string, Array<string>> = useMemo(() => {
@@ -715,7 +732,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     // Add service IDs from facet data
     if (facetData["serviceId"]) {
       suggestions["serviceId"] = facetData["serviceId"].map(
-        (fv: { value: string; count: number }) => fv.value,
+        (fv: { value: string; count: number }) => {
+          return fv.value;
+        },
       );
     }
 
@@ -723,22 +742,23 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }, [facetData]);
 
   // Handle field:value selection from search bar (adds as chip)
-  const handleFieldValueSelect = useCallback(
-    (fieldKey: string, value: string): void => {
-      // Map user-facing field names to internal keys
-      const fieldAliases: Record<string, string> = {
-        severity: "severityText",
-        level: "severityText",
-        service: "serviceId",
-        trace: "traceId",
-        span: "spanId",
-      };
-      const resolvedKey: string = fieldAliases[fieldKey] || fieldKey;
+  const handleFieldValueSelect: (fieldKey: string, value: string) => void =
+    useCallback(
+      (fieldKey: string, value: string): void => {
+        // Map user-facing field names to internal keys
+        const fieldAliases: Record<string, string> = {
+          severity: "severityText",
+          level: "severityText",
+          service: "serviceId",
+          trace: "traceId",
+          span: "spanId",
+        };
+        const resolvedKey: string = fieldAliases[fieldKey] || fieldKey;
 
-      handleFacetInclude(resolvedKey, value);
-    },
-    [handleFacetInclude],
-  );
+        handleFacetInclude(resolvedKey, value);
+      },
+      [handleFacetInclude],
+    );
 
   // Build activeFilters array for UI display
   const activeFilters: Array<ActiveFilter> = useMemo(() => {

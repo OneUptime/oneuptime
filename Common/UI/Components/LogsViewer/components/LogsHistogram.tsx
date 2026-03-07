@@ -97,9 +97,9 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       present.add(bucket.severity);
     }
 
-    return getAllSeverityKeys().filter((key: string): boolean =>
-      present.has(key),
-    );
+    return getAllSeverityKeys().filter((key: string): boolean => {
+      return present.has(key);
+    });
   }, [props.buckets]);
 
   const handleMouseDown: (e: any) => void = useCallback(
@@ -115,16 +115,13 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
     [props.onTimeRangeSelect],
   );
 
-  const handleMouseMove: (e: any) => void = useCallback(
-    (e: any): void => {
-      if (!isSelecting.current || !e?.activeLabel) {
-        return;
-      }
+  const handleMouseMove: (e: any) => void = useCallback((e: any): void => {
+    if (!isSelecting.current || !e?.activeLabel) {
+      return;
+    }
 
-      setSelectionEnd(e.activeLabel as string);
-    },
-    [],
-  );
+    setSelectionEnd(e.activeLabel as string);
+  }, []);
 
   const handleMouseUp: () => void = useCallback((): void => {
     if (
@@ -176,30 +173,21 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       {/* Header with legend */}
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500">
-            Log Volume
-          </span>
+          <span className="text-xs font-medium text-gray-500">Log Volume</span>
           {props.onTimeRangeSelect && (
-            <span className="text-[10px] text-gray-300">
-              Drag to zoom
-            </span>
+            <span className="text-[10px] text-gray-300">Drag to zoom</span>
           )}
         </div>
         <div className="flex items-center gap-3">
           {activeSeverities.map((severity: string) => {
             const color: SeverityColor = getSeverityColor(severity);
             return (
-              <div
-                key={severity}
-                className="flex items-center gap-1.5"
-              >
+              <div key={severity} className="flex items-center gap-1.5">
                 <span
                   className="inline-block h-2.5 w-2.5 rounded-sm"
                   style={{ backgroundColor: color.fill }}
                 />
-                <span className="text-[11px] text-gray-500">
-                  {color.label}
-                </span>
+                <span className="text-[11px] text-gray-500">{color.label}</span>
               </div>
             );
           })}
@@ -209,7 +197,10 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       {/* Chart */}
       <div
         className="px-2 pb-1 pt-2"
-        style={{ height: 120, cursor: props.onTimeRangeSelect ? "crosshair" : "default" }}
+        style={{
+          height: 120,
+          cursor: props.onTimeRangeSelect ? "crosshair" : "default",
+        }}
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

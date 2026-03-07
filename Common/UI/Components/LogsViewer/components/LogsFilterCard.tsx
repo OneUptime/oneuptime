@@ -19,7 +19,9 @@ const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
     "service",
     "trace",
     "span",
-    ...props.logAttributes.map((attr: string) => `@${attr}`),
+    ...props.logAttributes.map((attr: string) => {
+      return `@${attr}`;
+    }),
   ];
 
   return (
@@ -34,9 +36,7 @@ const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
           onFieldValueSelect={props.onFieldValueSelect}
         />
       </div>
-      <div className="flex-none pt-0.5">
-        {props.toolbar}
-      </div>
+      <div className="flex-none pt-0.5">{props.toolbar}</div>
     </div>
   );
 };

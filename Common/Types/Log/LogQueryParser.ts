@@ -182,9 +182,10 @@ function parseFieldToken(raw: string): ParsedToken {
   return {
     type: isAttribute ? TokenType.AttributeFilter : TokenType.FieldFilter,
     field,
-    operator: negated && operator === FilterOperator.Equals
-      ? FilterOperator.NotEquals
-      : operator,
+    operator:
+      negated && operator === FilterOperator.Equals
+        ? FilterOperator.NotEquals
+        : operator,
     value: cleanValue,
     negated,
     raw,
@@ -222,12 +223,10 @@ export function parseLogQuery(query: string): Array<ParsedToken> {
     }
 
     const hasColon: boolean =
-      rawToken.includes(":") &&
-      !rawToken.startsWith('"');
+      rawToken.includes(":") && !rawToken.startsWith('"');
 
     const isNegatedField: boolean =
-      rawToken.startsWith("-") &&
-      rawToken.slice(1).includes(":");
+      rawToken.startsWith("-") && rawToken.slice(1).includes(":");
 
     if (hasColon || isNegatedField) {
       flushFreeText();
@@ -243,7 +242,11 @@ export function parseLogQuery(query: string): Array<ParsedToken> {
 }
 
 export function tokensToDisplayString(tokens: Array<ParsedToken>): string {
-  return tokens.map((t: ParsedToken) => t.raw).join(" ");
+  return tokens
+    .map((t: ParsedToken) => {
+      return t.raw;
+    })
+    .join(" ");
 }
 
 export default parseLogQuery;

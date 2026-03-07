@@ -52,7 +52,9 @@ const LogsPagination: FunctionComponent<LogsPaginationProps> = (
 
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-wide text-gray-400">Rows</span>
+          <span className="text-[10px] uppercase tracking-wide text-gray-400">
+            Rows
+          </span>
           <select
             className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-200"
             value={props.pageSize}

@@ -45,9 +45,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         />
       )}
 
-      {props.liveOptions && (
-        <LiveLogsToggle {...props.liveOptions} />
-      )}
+      {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
     </div>
   );
 };

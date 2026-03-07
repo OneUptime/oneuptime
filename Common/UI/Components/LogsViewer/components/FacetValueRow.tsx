@@ -29,14 +29,16 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
       <button
         type="button"
         className={`flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-0.5 text-left transition-colors ${
-          isActive
-            ? "bg-indigo-50 ring-1 ring-indigo-200"
-            : "hover:bg-gray-50"
+          isActive ? "bg-indigo-50 ring-1 ring-indigo-200" : "hover:bg-gray-50"
         }`}
         onClick={() => {
           props.onInclude(props.value);
         }}
-        title={isActive ? `Remove filter: ${displayLabel}` : `Filter to ${displayLabel}`}
+        title={
+          isActive
+            ? `Remove filter: ${displayLabel}`
+            : `Filter to ${displayLabel}`
+        }
       >
         {isActive ? (
           <span className="flex h-3.5 w-3.5 flex-none items-center justify-center rounded bg-indigo-500">
