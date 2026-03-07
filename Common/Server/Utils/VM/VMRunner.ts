@@ -22,6 +22,14 @@ const BLOCKED_SANDBOX_PROPERTIES: ReadonlySet<string> = new Set([
   "__proto__",
   "prototype",
   "mainModule",
+  // Block Playwright methods that can spawn processes or access internals.
+  // Prevents RCE via browser.browserType().launch({executablePath:"/bin/sh"})
+  // and traversal via page.context().browser().browserType().launch(...)
+  "browserType", // Browser → BrowserType (which has launch/connect)
+  "launch", // BrowserType.launch() spawns a child process
+  "launchPersistentContext", // BrowserType.launchPersistentContext() spawns a child process
+  "connectOverCDP", // BrowserType.connectOverCDP() connects via Chrome DevTools Protocol
+  "newCDPSession", // BrowserContext/Page.newCDPSession() opens raw CDP sessions
 ]);
 
 /**
