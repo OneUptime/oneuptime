@@ -37,14 +37,20 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
 
   const currentWord: string = extractCurrentWord(props.value);
 
+  // Strip leading "@" — treat it as a trigger character for suggestions
+  const hasAtPrefix: boolean = currentWord.startsWith("@");
+  const normalizedWord: string = hasAtPrefix
+    ? currentWord.substring(1)
+    : currentWord;
+
   // Determine if we're in "field:value" mode or "field name" mode
-  const colonIndex: number = currentWord.indexOf(":");
+  const colonIndex: number = normalizedWord.indexOf(":");
   const isValueMode: boolean = colonIndex > 0;
   const fieldPrefix: string = isValueMode
-    ? currentWord.substring(0, colonIndex).toLowerCase()
+    ? normalizedWord.substring(0, colonIndex).toLowerCase()
     : "";
   const partialValue: string = isValueMode
-    ? currentWord.substring(colonIndex + 1)
+    ? normalizedWord.substring(colonIndex + 1)
     : "";
 
   const filteredSuggestions: Array<string> = isValueMode
@@ -54,10 +60,18 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
         props.valueSuggestions || {},
       )
     : (props.suggestions || []).filter((s: string): boolean => {
-        if (!currentWord || currentWord.length < 1) {
+        if (!normalizedWord && !hasAtPrefix) {
           return false;
         }
-        return s.toLowerCase().startsWith(currentWord.toLowerCase());
+        // When just "@" is typed, show all suggestions
+        if (hasAtPrefix && normalizedWord.length === 0) {
+          return true;
+        }
+        // Match against the suggestion name, stripping any leading "@" from the suggestion too
+        const normalizedSuggestion: string = s.startsWith("@")
+          ? s.substring(1).toLowerCase()
+          : s.toLowerCase();
+        return normalizedSuggestion.startsWith(normalizedWord.toLowerCase());
       });
 
   const shouldShowSuggestions: boolean =

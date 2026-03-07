@@ -14,7 +14,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceArea,
-  CartesianGrid,
 } from "recharts";
 import { HistogramBucket } from "../types";
 import {
@@ -66,6 +65,18 @@ function formatTickTime(time: string): string {
     minute: "2-digit",
     hour12: false,
   });
+}
+
+function formatYAxisTick(value: number): string {
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`;
+  }
+
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
+  }
+
+  return value.toString();
 }
 
 const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
@@ -150,7 +161,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
 
   if (props.isLoading && pivotedData.length === 0) {
     return (
-      <div className="flex h-28 items-center justify-center rounded-lg border border-gray-100 bg-white">
+      <div className="flex h-32 items-center justify-center rounded-lg border border-gray-200 bg-white">
         <ComponentLoader />
       </div>
     );
@@ -161,25 +172,32 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
   }
 
   return (
-    <div className="rounded-lg border border-gray-100 bg-white px-3 pb-1 pt-3">
-      {/* Legend */}
-      <div className="mb-2 flex items-center justify-between px-1">
-        <span className="text-[11px] font-medium text-gray-400">
-          Log Volume
-        </span>
+    <div className="rounded-lg border border-gray-200 bg-white">
+      {/* Header with legend */}
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-500">
+            Log Volume
+          </span>
+          {props.onTimeRangeSelect && (
+            <span className="text-[10px] text-gray-300">
+              Drag to zoom
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {activeSeverities.map((severity: string) => {
             const color: SeverityColor = getSeverityColor(severity);
             return (
               <div
                 key={severity}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1.5"
               >
                 <span
-                  className="inline-block h-2 w-2 rounded-sm"
+                  className="inline-block h-2.5 w-2.5 rounded-sm"
                   style={{ backgroundColor: color.fill }}
                 />
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[11px] text-gray-500">
                   {color.label}
                 </span>
               </div>
@@ -189,40 +207,41 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       </div>
 
       {/* Chart */}
-      <div className="h-24">
+      <div
+        className="px-2 pb-1 pt-2"
+        style={{ height: 120, cursor: props.onTimeRangeSelect ? "crosshair" : "default" }}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={pivotedData}
-            margin={{ top: 0, right: 4, bottom: 0, left: -12 }}
+            margin={{ top: 4, right: 8, bottom: 0, left: -4 }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            barCategoryGap="20%"
+            barCategoryGap="15%"
+            barGap={0}
           >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#f3f4f6"
-              vertical={false}
-            />
             <XAxis
               dataKey="time"
               tickFormatter={formatTickTime}
               tick={{ fontSize: 10, fill: "#9ca3af" }}
               axisLine={{ stroke: "#e5e7eb" }}
               tickLine={false}
-              minTickGap={50}
+              minTickGap={40}
               dy={4}
+              interval="preserveStartEnd"
             />
             <YAxis
               tick={{ fontSize: 10, fill: "#9ca3af" }}
               axisLine={false}
               tickLine={false}
-              width={44}
+              width={48}
               allowDecimals={false}
+              tickFormatter={formatYAxisTick}
             />
             <Tooltip
               content={<HistogramTooltip />}
-              cursor={{ fill: "rgba(99,102,241,0.05)" }}
+              cursor={{ fill: "rgba(99,102,241,0.06)" }}
             />
             {activeSeverities.map((severity: string, index: number) => {
               const isLast: boolean = index === activeSeverities.length - 1;
@@ -232,8 +251,9 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
                   dataKey={severity}
                   stackId="severity"
                   fill={getSeverityColor(severity).fill}
-                  radius={isLast ? [2, 2, 0, 0] : [0, 0, 0, 0]}
+                  radius={isLast ? [1.5, 1.5, 0, 0] : [0, 0, 0, 0]}
                   isAnimationActive={false}
+                  maxBarSize={24}
                 />
               );
             })}
@@ -242,7 +262,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
                 x1={selectionStart}
                 x2={selectionEnd}
                 fill="rgba(99,102,241,0.12)"
-                stroke="rgba(99,102,241,0.4)"
+                stroke="rgba(99,102,241,0.5)"
                 strokeWidth={1}
                 radius={2}
               />
