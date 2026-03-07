@@ -10,6 +10,7 @@ import React, {
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import LogSearchSuggestions from "./LogSearchSuggestions";
+import LogSearchHelp from "./LogSearchHelp";
 
 export interface LogSearchBarProps {
   value: string;
@@ -24,6 +25,7 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
 ): ReactElement => {
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const [showHelp, setShowHelp] = useState<boolean>(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] =
     useState<number>(-1);
   const inputRef: React.RefObject<HTMLInputElement> =
@@ -48,6 +50,10 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
     filteredSuggestions.length > 0 &&
     currentWord.length > 0;
 
+  // Show help when focused, input is empty, and no suggestions visible
+  const shouldShowHelp: boolean =
+    showHelp && isFocused && props.value.length === 0 && !shouldShowSuggestions;
+
   useEffect(() => {
     setSelectedSuggestionIndex(-1);
   }, [currentWord]);
@@ -68,11 +74,13 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
 
           props.onSubmit();
           setShowSuggestions(false);
+          setShowHelp(false);
           return;
         }
 
         if (e.key === "Escape") {
           setShowSuggestions(false);
+          setShowHelp(false);
           return;
         }
 
@@ -114,6 +122,16 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
 
       props.onChange(parts.join(" "));
       setShowSuggestions(false);
+      setShowHelp(false);
+      inputRef.current?.focus();
+    },
+    [props],
+  );
+
+  const handleExampleClick: (example: string) => void = useCallback(
+    (example: string): void => {
+      props.onChange(example);
+      setShowHelp(false);
       inputRef.current?.focus();
     },
     [props],
@@ -128,6 +146,7 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
         !containerRef.current.contains(e.target as Node)
       ) {
         setShowSuggestions(false);
+        setShowHelp(false);
       }
     };
 
@@ -157,10 +176,14 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             props.onChange(e.target.value);
             setShowSuggestions(true);
+            setShowHelp(false);
           }}
           onFocus={() => {
             setIsFocused(true);
             setShowSuggestions(true);
+            if (props.value.length === 0) {
+              setShowHelp(true);
+            }
           }}
           onBlur={() => {
             setIsFocused(false);
@@ -180,6 +203,8 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
             className="flex-none rounded-full p-1 text-gray-400 hover:bg-gray-100"
             onClick={() => {
               props.onChange("");
+              setShowHelp(true);
+              setShowSuggestions(false);
               inputRef.current?.focus();
             }}
             title="Clear search"
@@ -195,6 +220,10 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
           selectedIndex={selectedSuggestionIndex}
           onSelect={applySuggestion}
         />
+      )}
+
+      {shouldShowHelp && (
+        <LogSearchHelp onExampleClick={handleExampleClick} />
       )}
     </div>
   );
