@@ -137,7 +137,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
   const [isLiveUpdating, setIsLiveUpdating] = useState<boolean>(false);
-  const liveRequestInFlight: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  const liveRequestInFlight: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   // Histogram state
   const [histogramBuckets, setHistogramBuckets] = useState<
