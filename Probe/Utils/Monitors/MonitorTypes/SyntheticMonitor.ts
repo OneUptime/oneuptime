@@ -153,13 +153,14 @@ export default class SyntheticMonitor {
         );
       }
 
+      // Only expose `page` to the sandbox — never the `browser` object.
+      // Exposing `browser` allows RCE via browser.browserType().launch({executablePath:"/bin/sh"}).
       result = await VMRunner.runCodeInNodeVM({
         code: options.script,
         options: {
           timeout: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
           args: {},
           context: {
-            browser: browserSession.browser,
             page: browserSession.page,
             screenSizeType: options.screenSizeType,
             browserType: options.browserType,

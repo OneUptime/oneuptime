@@ -265,7 +265,6 @@ return {
 // - page: Playwright Page object to interact with the browser
 // - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
 // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
-// - browser: Playwright Browser object to interact with the browser
 
 await page.goto('https://playwright.dev/');
 
