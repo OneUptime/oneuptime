@@ -17,6 +17,8 @@ export interface LogSearchBarProps {
   onChange: (value: string) => void;
   onSubmit: () => void;
   suggestions?: Array<string>;
+  valueSuggestions?: Record<string, Array<string>>;
+  onFieldValueSelect?: (fieldKey: string, value: string) => void;
   placeholder?: string;
 }
 
@@ -35,20 +37,34 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
 
   const currentWord: string = extractCurrentWord(props.value);
 
-  const filteredSuggestions: Array<string> = (props.suggestions || []).filter(
-    (s: string): boolean => {
-      if (!currentWord || currentWord.length < 1) {
-        return false;
-      }
-      return s.toLowerCase().startsWith(currentWord.toLowerCase());
-    },
-  );
+  // Determine if we're in "field:value" mode or "field name" mode
+  const colonIndex: number = currentWord.indexOf(":");
+  const isValueMode: boolean = colonIndex > 0;
+  const fieldPrefix: string = isValueMode
+    ? currentWord.substring(0, colonIndex).toLowerCase()
+    : "";
+  const partialValue: string = isValueMode
+    ? currentWord.substring(colonIndex + 1)
+    : "";
+
+  const filteredSuggestions: Array<string> = isValueMode
+    ? getValueSuggestions(
+        fieldPrefix,
+        partialValue,
+        props.valueSuggestions || {},
+      )
+    : (props.suggestions || []).filter((s: string): boolean => {
+        if (!currentWord || currentWord.length < 1) {
+          return false;
+        }
+        return s.toLowerCase().startsWith(currentWord.toLowerCase());
+      });
 
   const shouldShowSuggestions: boolean =
     showSuggestions &&
     isFocused &&
     filteredSuggestions.length > 0 &&
-    currentWord.length > 0;
+    (isValueMode ? true : currentWord.length > 0);
 
   // Show help when focused, input is empty, and no suggestions visible
   const shouldShowHelp: boolean =
@@ -70,6 +86,43 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
             applySuggestion(filteredSuggestions[selectedSuggestionIndex]!);
             e.preventDefault();
             return;
+          }
+
+          // If in value mode with a typed value, try to match and apply as chip
+          if (
+            isValueMode &&
+            partialValue.length > 0 &&
+            props.onFieldValueSelect
+          ) {
+            // First try exact case-insensitive match from the available values
+            const resolvedField: string =
+              FIELD_ALIAS_MAP[fieldPrefix] || fieldPrefix;
+            const availableValues: Array<string> =
+              (props.valueSuggestions || {})[resolvedField] || [];
+            const lowerPartial: string = partialValue.toLowerCase();
+            const exactMatch: string | undefined = availableValues.find(
+              (v: string): boolean => v.toLowerCase() === lowerPartial,
+            );
+
+            // Use exact match, or if there's exactly one prefix match, use that
+            const resolvedMatch: string | undefined =
+              exactMatch ||
+              (filteredSuggestions.length === 1
+                ? filteredSuggestions[0]
+                : undefined);
+
+            if (resolvedMatch) {
+              props.onFieldValueSelect(fieldPrefix, resolvedMatch);
+              // Remove the field:value term from text
+              const parts: Array<string> = props.value.split(/\s+/);
+              parts.pop();
+              const remaining: string = parts.join(" ");
+              props.onChange(remaining ? remaining + " " : "");
+              setShowSuggestions(false);
+              setShowHelp(false);
+              e.preventDefault();
+              return;
+            }
           }
 
           props.onSubmit();
@@ -108,12 +161,33 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
         shouldShowSuggestions,
         selectedSuggestionIndex,
         filteredSuggestions,
+        isValueMode,
+        fieldPrefix,
+        partialValue,
         props,
       ],
     );
 
   const applySuggestion: (suggestion: string) => void = useCallback(
     (suggestion: string): void => {
+      if (isValueMode) {
+        // Value mode: apply as a chip via onFieldValueSelect
+        if (props.onFieldValueSelect) {
+          props.onFieldValueSelect(fieldPrefix, suggestion);
+        }
+
+        // Remove the current field:value term from the search text
+        const parts: Array<string> = props.value.split(/\s+/);
+        parts.pop(); // remove the field:partialValue
+        const remaining: string = parts.join(" ");
+        props.onChange(remaining ? remaining + " " : "");
+        setShowSuggestions(false);
+        setShowHelp(false);
+        inputRef.current?.focus();
+        return;
+      }
+
+      // Field name mode: append colon
       const parts: Array<string> = props.value.split(/\s+/);
 
       if (parts.length > 0) {
@@ -125,7 +199,7 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
       setShowHelp(false);
       inputRef.current?.focus();
     },
-    [props],
+    [props, isValueMode, fieldPrefix],
   );
 
   const handleExampleClick: (example: string) => void = useCallback(
@@ -219,6 +293,7 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
           suggestions={filteredSuggestions}
           selectedIndex={selectedSuggestionIndex}
           onSelect={applySuggestion}
+          fieldContext={isValueMode ? fieldPrefix : undefined}
         />
       )}
 
@@ -232,6 +307,38 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
 function extractCurrentWord(value: string): string {
   const parts: Array<string> = value.split(/\s+/);
   return parts[parts.length - 1] || "";
+}
+
+// Field alias mapping (user-facing name → internal key used in valueSuggestions)
+const FIELD_ALIAS_MAP: Record<string, string> = {
+  severity: "severityText",
+  level: "severityText",
+  service: "serviceId",
+};
+
+function getValueSuggestions(
+  fieldName: string,
+  partialValue: string,
+  valueSuggestions: Record<string, Array<string>>,
+): Array<string> {
+  // Resolve field name alias
+  const resolvedField: string =
+    FIELD_ALIAS_MAP[fieldName] || fieldName;
+
+  const values: Array<string> | undefined = valueSuggestions[resolvedField];
+
+  if (!values || values.length === 0) {
+    return [];
+  }
+
+  if (!partialValue || partialValue.length === 0) {
+    return values;
+  }
+
+  const lowerPartial: string = partialValue.toLowerCase();
+  return values.filter((v: string): boolean =>
+    v.toLowerCase().startsWith(lowerPartial),
+  );
 }
 
 export default LogSearchBar;

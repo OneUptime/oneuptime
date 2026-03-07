@@ -9,6 +9,7 @@ import LogsViewer, {
   FacetData,
   ActiveFilter,
 } from "Common/UI/Components/LogsViewer/LogsViewer";
+import LogSeverity from "Common/Types/Log/LogSeverity";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import AnalyticsModelAPI, {
@@ -606,6 +607,46 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [],
   );
 
+  // Build value suggestions for the search bar autocomplete
+  const valueSuggestions: Record<string, Array<string>> = useMemo(() => {
+    const suggestions: Record<string, Array<string>> = {
+      severityText: [
+        LogSeverity.Fatal,
+        LogSeverity.Error,
+        LogSeverity.Warning,
+        LogSeverity.Information,
+        LogSeverity.Debug,
+        LogSeverity.Trace,
+        LogSeverity.Unspecified,
+      ],
+    };
+
+    // Add service IDs from facet data
+    if (facetData["serviceId"]) {
+      suggestions["serviceId"] = facetData["serviceId"].map(
+        (fv: { value: string; count: number }) => fv.value,
+      );
+    }
+
+    return suggestions;
+  }, [facetData]);
+
+  // Handle field:value selection from search bar (adds as chip)
+  const handleFieldValueSelect = useCallback(
+    (fieldKey: string, value: string): void => {
+      // Map user-facing field names to internal keys
+      const fieldAliases: Record<string, string> = {
+        severity: "severityText",
+        level: "severityText",
+        service: "serviceId",
+      };
+      const resolvedKey: string = fieldAliases[fieldKey] || fieldKey;
+
+      handleFacetInclude(resolvedKey, value);
+    },
+    [handleFacetInclude],
+  );
+
   // Build activeFilters array for UI display
   const activeFilters: Array<ActiveFilter> = useMemo(() => {
     const filters: Array<ActiveFilter> = [];
@@ -672,6 +713,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         activeFilters={activeFilters}
         onRemoveFilter={handleRemoveFilter}
         onClearAllFilters={handleClearAllFilters}
+        valueSuggestions={valueSuggestions}
+        onFieldValueSelect={handleFieldValueSelect}
       />
     </div>
   );

@@ -74,6 +74,8 @@ export interface ComponentProps {
   activeFilters?: Array<ActiveFilter> | undefined;
   onRemoveFilter?: ((facetKey: string, value: string) => void) | undefined;
   onClearAllFilters?: (() => void) | undefined;
+  valueSuggestions?: Record<string, Array<string>> | undefined;
+  onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
@@ -453,6 +455,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
             onSearchSubmit={handleSearchSubmit}
+            valueSuggestions={props.valueSuggestions}
+            onFieldValueSelect={props.onFieldValueSelect}
             toolbar={
               <LogsViewerToolbar {...toolbarProps} />
             }

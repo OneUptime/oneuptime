@@ -7,6 +7,8 @@ export interface LogsFilterCardProps {
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   onSearchSubmit: () => void;
+  valueSuggestions?: Record<string, Array<string>> | undefined;
+  onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
 }
 
 const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
@@ -28,6 +30,8 @@ const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
           onChange={props.onSearchQueryChange}
           onSubmit={props.onSearchSubmit}
           suggestions={searchBarSuggestions}
+          valueSuggestions={props.valueSuggestions}
+          onFieldValueSelect={props.onFieldValueSelect}
         />
       </div>
       <div className="flex-none pt-0.5">

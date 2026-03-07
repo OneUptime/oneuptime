@@ -4,6 +4,7 @@ export interface LogSearchSuggestionsProps {
   suggestions: Array<string>;
   selectedIndex: number;
   onSelect: (suggestion: string) => void;
+  fieldContext?: string | undefined;
 }
 
 const MAX_VISIBLE_SUGGESTIONS: number = 8;
@@ -35,8 +36,19 @@ const LogSearchSuggestions: FunctionComponent<LogSearchSuggestionsProps> = (
               props.onSelect(suggestion);
             }}
           >
-            <span className="font-mono text-xs text-indigo-400">@</span>
-            <span className="font-mono">{suggestion}</span>
+            {props.fieldContext ? (
+              <>
+                <span className="font-mono text-xs text-gray-400">
+                  {props.fieldContext}:
+                </span>
+                <span className="font-mono">{suggestion}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-mono text-xs text-indigo-400">@</span>
+                <span className="font-mono">{suggestion}</span>
+              </>
+            )}
           </button>
         );
       })}
