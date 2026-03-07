@@ -249,6 +249,22 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         (requestData as any)["serviceIds"] = serviceIdStrings;
       }
 
+      // Pass active facet filters to the histogram so it reflects the current view
+      const severityValues: Set<string> | undefined =
+        appliedFacetFilters.get("severityText");
+
+      if (severityValues && severityValues.size > 0) {
+        (requestData as any)["severityTexts"] = Array.from(severityValues);
+      }
+
+      const serviceFilterValues: Set<string> | undefined =
+        appliedFacetFilters.get("serviceId");
+
+      if (serviceFilterValues && serviceFilterValues.size > 0) {
+        // Merge with prop-level serviceIds (facet filter overrides/narrows)
+        (requestData as any)["serviceIds"] = Array.from(serviceFilterValues);
+      }
+
       const response: HTTPResponse<JSONObject> = await postApi(
         "/telemetry/logs/histogram",
         requestData,
@@ -264,7 +280,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     } finally {
       setHistogramLoading(false);
     }
-  }, [serviceIdStrings]);
+  }, [serviceIdStrings, appliedFacetFilters]);
 
   // --- Fetch facets ---
 
