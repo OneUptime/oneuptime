@@ -38,14 +38,16 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
       </div>
 
-      {props.timeRange && props.onTimeRangeChange && (
-        <LogTimeRangePicker
-          value={props.timeRange}
-          onChange={props.onTimeRangeChange}
-        />
-      )}
+      <div className="flex items-center gap-3">
+        {props.timeRange && props.onTimeRangeChange && (
+          <LogTimeRangePicker
+            value={props.timeRange}
+            onChange={props.onTimeRangeChange}
+          />
+        )}
 
-      {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
+        {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
+      </div>
     </div>
   );
 };
