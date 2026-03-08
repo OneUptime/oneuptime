@@ -12,6 +12,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONObject } from "Common/Types/JSON";
+import HashedString from "Common/Types/HashedString";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
@@ -337,12 +338,16 @@ router.post(
 
       if (alreadySavedUser && alreadySavedUser.password) {
         const token: string = ObjectID.generate().toString();
+        const hashedToken: string = await HashedString.hashValue(
+          token,
+          EncryptionSecret,
+        );
         await UserService.updateOneBy({
           query: {
             _id: alreadySavedUser._id!,
           },
           data: {
-            resetPasswordToken: token,
+            resetPasswordToken: hashedToken,
             resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
           },
           props: {
@@ -513,9 +518,14 @@ router.post(
 
       await user.password?.hashValue(EncryptionSecret);
 
+      const hashedToken: string = await HashedString.hashValue(
+        (user.resetPasswordToken as string) || "",
+        EncryptionSecret,
+      );
+
       const alreadySavedUser: User | null = await UserService.findOneBy({
         query: {
-          resetPasswordToken: (user.resetPasswordToken as string) || "",
+          resetPasswordToken: hashedToken,
         },
         select: {
           _id: true,

@@ -9,6 +9,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import HashedString from "Common/Types/HashedString";
 import ObjectID from "Common/Types/ObjectID";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
@@ -518,12 +519,16 @@ router.post(
 
       if (alreadySavedUser) {
         const token: string = ObjectID.generate().toString();
+        const hashedToken: string = await HashedString.hashValue(
+          token,
+          EncryptionSecret,
+        );
         await StatusPagePrivateUserService.updateOneBy({
           query: {
             _id: alreadySavedUser._id!,
           },
           data: {
-            resetPasswordToken: token,
+            resetPasswordToken: hashedToken,
             resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
           },
           props: {
@@ -600,11 +605,16 @@ router.post(
 
       await user.password?.hashValue(EncryptionSecret);
 
+      const hashedToken: string = await HashedString.hashValue(
+        (user.resetPasswordToken as string) || "",
+        EncryptionSecret,
+      );
+
       const alreadySavedUser: StatusPagePrivateUser | null =
         await StatusPagePrivateUserService.findOneBy({
           query: {
             statusPageId: new ObjectID(data["statusPageId"].toString()),
-            resetPasswordToken: (user.resetPasswordToken as string) || "",
+            resetPasswordToken: hashedToken,
           },
           select: {
             _id: true,
