@@ -392,8 +392,8 @@ export default class ModelPermission {
       (query as any)[tenantColumn] = props.tenantId;
     } else if (
       tenantColumn &&
-      !props.tenantId &&
-      props.userGlobalAccessPermission
+      props.userGlobalAccessPermission &&
+      (!props.tenantId || props.isMultiTenantRequest)
     ) {
       /*
        * for each of these projectIds,
