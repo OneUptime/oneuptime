@@ -10,6 +10,8 @@ import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import {
   describe,
@@ -212,6 +214,99 @@ describe("AnalyticsDatabaseService", () => {
         p3: 234, // offset
       });
       expect(columns).toStrictEqual(["<column-1>", "<column-2>"]);
+    });
+  });
+
+  describe("aggregateBy input validation", () => {
+    beforeEach(() => {
+      jest.spyOn(logger, "error").mockImplementation(() => {
+        return undefined!;
+      });
+
+      // The base getException method is async and throws without await in the
+      // catch block, creating unhandled rejections. Override to throw synchronously.
+      (service as any).getException = (error: Error): never => {
+        throw error;
+      };
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const makeAggregateBy = (overrides: Record<string, unknown> = {}): any => {
+      return {
+        aggregationType: AggregationType.Sum,
+        aggregateColumnName: "column_2",
+        aggregationTimestampColumnName: "column_ObjectID",
+        startTimestamp: new Date("2024-01-01"),
+        endTimestamp: new Date("2024-01-02"),
+        query: {},
+        limit: 10,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+        ...overrides,
+      };
+    };
+
+    test("should reject invalid aggregationType (SQL injection payload)", async () => {
+      await expect(
+        service.aggregateBy(
+          makeAggregateBy({
+            aggregationType:
+              "COUNT) as aggregationResult FROM system.one UNION ALL SELECT name FROM system.tables --",
+          }),
+        ),
+      ).rejects.toThrow(BadDataException);
+    });
+
+    test("should reject invalid aggregationType (arbitrary string)", async () => {
+      await expect(
+        service.aggregateBy(
+          makeAggregateBy({ aggregationType: "INVALID" }),
+        ),
+      ).rejects.toThrow("Invalid aggregationType");
+    });
+
+    test("should reject invalid aggregateColumnName", async () => {
+      await expect(
+        service.aggregateBy(
+          makeAggregateBy({ aggregateColumnName: "nonexistent_column" }),
+        ),
+      ).rejects.toThrow("Invalid aggregateColumnName");
+    });
+
+    test("should reject SQL injection in aggregateColumnName", async () => {
+      await expect(
+        service.aggregateBy(
+          makeAggregateBy({
+            aggregateColumnName: "col); DROP TABLE logs; --",
+          }),
+        ),
+      ).rejects.toThrow("Invalid aggregateColumnName");
+    });
+
+    test("should reject invalid aggregationTimestampColumnName", async () => {
+      await expect(
+        service.aggregateBy(
+          makeAggregateBy({
+            aggregationTimestampColumnName: "nonexistent_column",
+          }),
+        ),
+      ).rejects.toThrow("Invalid aggregationTimestampColumnName");
+    });
+
+    test("should reject SQL injection in aggregationTimestampColumnName", async () => {
+      await expect(
+        service.aggregateBy(
+          makeAggregateBy({
+            aggregationTimestampColumnName:
+              "createdAt, INTERVAL 1 hour)) as ts FROM system.one UNION ALL SELECT 1 --",
+          }),
+        ),
+      ).rejects.toThrow("Invalid aggregationTimestampColumnName");
     });
   });
 
