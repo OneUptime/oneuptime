@@ -52,6 +52,7 @@ import API from "../../Utils/API";
 import { Stream } from "node:stream";
 import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
+import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
@@ -277,6 +278,13 @@ export default class AnalyticsDatabaseService<
         throw new BadDataException("aggregationType is required");
       }
 
+      const allowedAggregationTypes: Array<string> = Object.values(AggregationType);
+      if (!allowedAggregationTypes.includes(aggregateBy.aggregationType)) {
+        throw new BadDataException(
+          `Invalid aggregationType: ${aggregateBy.aggregationType}. Allowed values: ${allowedAggregationTypes.join(", ")}`,
+        );
+      }
+
       if (!aggregateBy.aggregationTimestampColumnName) {
         throw new BadDataException(
           "aggregationTimestampColumnName is required",
@@ -285,6 +293,18 @@ export default class AnalyticsDatabaseService<
 
       if (!aggregateBy.aggregateColumnName) {
         throw new BadDataException("aggregateColumnName is required");
+      }
+
+      if (!this.model.getTableColumn(aggregateBy.aggregateColumnName.toString())) {
+        throw new BadDataException(
+          `Invalid aggregateColumnName: ${aggregateBy.aggregateColumnName.toString()}`,
+        );
+      }
+
+      if (!this.model.getTableColumn(aggregateBy.aggregationTimestampColumnName.toString())) {
+        throw new BadDataException(
+          `Invalid aggregationTimestampColumnName: ${aggregateBy.aggregationTimestampColumnName.toString()}`,
+        );
       }
 
       const result: CheckReadPermissionType<TBaseModel> =
