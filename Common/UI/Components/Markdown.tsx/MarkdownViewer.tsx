@@ -68,12 +68,13 @@ SyntaxHighlighter.registerLanguage("php", php);
 SyntaxHighlighter.registerLanguage("graphql", graphql);
 SyntaxHighlighter.registerLanguage("http", http);
 import mermaid from "mermaid";
+import DOMPurify from "dompurify";
 
 // Initialize mermaid
 mermaid.initialize({
   startOnLoad: false,
   theme: "default",
-  securityLevel: "loose",
+  securityLevel: "strict",
   fontFamily: "inherit",
   themeVariables: {
     background: "#ffffff",
@@ -103,11 +104,20 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
           const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
           const { svg } = await mermaid.render(id, chart);
           if (containerRef.current) {
-            containerRef.current.innerHTML = svg;
+            containerRef.current.innerHTML = DOMPurify.sanitize(svg, {
+              USE_PROFILES: { svg: true, svgFilters: true },
+              ADD_TAGS: ["foreignObject"],
+            });
           }
         } catch (error) {
           if (containerRef.current) {
-            containerRef.current.innerHTML = `<pre class="text-red-500">Error rendering diagram: ${error}</pre>`;
+            const errorMessage: string = String(error);
+            const errorEl: HTMLPreElement =
+              document.createElement("pre");
+            errorEl.className = "text-red-500";
+            errorEl.textContent = `Error rendering diagram: ${errorMessage}`;
+            containerRef.current.innerHTML = "";
+            containerRef.current.appendChild(errorEl);
           }
         }
       }
