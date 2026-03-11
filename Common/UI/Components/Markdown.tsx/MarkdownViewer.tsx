@@ -112,8 +112,7 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
         } catch (error) {
           if (containerRef.current) {
             const errorMessage: string = String(error);
-            const errorEl: HTMLPreElement =
-              document.createElement("pre");
+            const errorEl: HTMLPreElement = document.createElement("pre");
             errorEl.className = "text-red-500";
             errorEl.textContent = `Error rendering diagram: ${errorMessage}`;
             containerRef.current.innerHTML = "";

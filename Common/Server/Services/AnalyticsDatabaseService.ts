@@ -278,7 +278,8 @@ export default class AnalyticsDatabaseService<
         throw new BadDataException("aggregationType is required");
       }
 
-      const allowedAggregationTypes: Array<string> = Object.values(AggregationType);
+      const allowedAggregationTypes: Array<string> =
+        Object.values(AggregationType);
       if (!allowedAggregationTypes.includes(aggregateBy.aggregationType)) {
         throw new BadDataException(
           `Invalid aggregationType: ${aggregateBy.aggregationType}. Allowed values: ${allowedAggregationTypes.join(", ")}`,
@@ -295,13 +296,19 @@ export default class AnalyticsDatabaseService<
         throw new BadDataException("aggregateColumnName is required");
       }
 
-      if (!this.model.getTableColumn(aggregateBy.aggregateColumnName.toString())) {
+      if (
+        !this.model.getTableColumn(aggregateBy.aggregateColumnName.toString())
+      ) {
         throw new BadDataException(
           `Invalid aggregateColumnName: ${aggregateBy.aggregateColumnName.toString()}`,
         );
       }
 
-      if (!this.model.getTableColumn(aggregateBy.aggregationTimestampColumnName.toString())) {
+      if (
+        !this.model.getTableColumn(
+          aggregateBy.aggregationTimestampColumnName.toString(),
+        )
+      ) {
         throw new BadDataException(
           `Invalid aggregationTimestampColumnName: ${aggregateBy.aggregationTimestampColumnName.toString()}`,
         );

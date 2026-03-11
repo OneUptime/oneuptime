@@ -223,8 +223,10 @@ describe("AnalyticsDatabaseService", () => {
         return undefined!;
       });
 
-      // The base getException method is async and throws without await in the
-      // catch block, creating unhandled rejections. Override to throw synchronously.
+      /*
+       * The base getException method is async and throws without await in the
+       * catch block, creating unhandled rejections. Override to throw synchronously.
+       */
       (service as any).getException = (error: Error): never => {
         throw error;
       };
@@ -234,7 +236,7 @@ describe("AnalyticsDatabaseService", () => {
       jest.restoreAllMocks();
     });
 
-    const makeAggregateBy = (overrides: Record<string, unknown> = {}): any => {
+    const makeAggregateBy: (overrides?: Record<string, unknown>) => any = (overrides: Record<string, unknown> = {}): any => {
       return {
         aggregationType: AggregationType.Sum,
         aggregateColumnName: "column_2",
@@ -264,9 +266,7 @@ describe("AnalyticsDatabaseService", () => {
 
     test("should reject invalid aggregationType (arbitrary string)", async () => {
       await expect(
-        service.aggregateBy(
-          makeAggregateBy({ aggregationType: "INVALID" }),
-        ),
+        service.aggregateBy(makeAggregateBy({ aggregationType: "INVALID" })),
       ).rejects.toThrow("Invalid aggregationType");
     });
 
