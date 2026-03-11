@@ -2065,7 +2065,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
           undefined,
         [NotificationRuleConditionCheckOn.Monitors]: [
-          alert.monitor!.id!.toString() || "",
+          alert.monitor?.id ? alert.monitor.id.toString() : "",
         ],
 
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
