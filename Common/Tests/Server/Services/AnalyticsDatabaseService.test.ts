@@ -236,7 +236,9 @@ describe("AnalyticsDatabaseService", () => {
       jest.restoreAllMocks();
     });
 
-    const makeAggregateBy: (overrides?: Record<string, unknown>) => any = (overrides: Record<string, unknown> = {}): any => {
+    const makeAggregateBy: (overrides?: Record<string, unknown>) => any = (
+      overrides: Record<string, unknown> = {},
+    ): any => {
       return {
         aggregationType: AggregationType.Sum,
         aggregateColumnName: "column_2",
