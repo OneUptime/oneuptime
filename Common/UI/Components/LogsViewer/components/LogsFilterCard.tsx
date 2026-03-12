@@ -25,7 +25,7 @@ const LogsFilterCard: FunctionComponent<LogsFilterCardProps> = (
   ];
 
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
       <div className="min-w-0 flex-1">
         <LogSearchBar
           value={props.searchQuery}
