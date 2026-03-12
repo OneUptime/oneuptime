@@ -42,31 +42,8 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
     <div
       className={`flex items-center justify-between gap-3 ${props.className || ""}`}
     >
-      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-        <span className="font-medium text-gray-700">
-          {props.resultCount.toLocaleString()} result
-          {props.resultCount === 1 ? "" : "s"}
-        </span>
-        {hasPaginationSummary && (
-          <span className="text-gray-400">
-            Page {currentPage} of {totalPages}
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        {props.onCreateSavedView && (
-          <button
-            type="button"
-            className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
-            onClick={() => {
-              props.onCreateSavedView?.();
-            }}
-          >
-            Save View
-          </button>
-        )}
-
+      {/* Left group: View management + stats */}
+      <div className="flex flex-wrap items-center gap-3">
         {props.savedViews && props.onSavedViewSelect && (
           <SavedViewsDropdown
             savedViews={props.savedViews}
@@ -78,6 +55,33 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
           />
         )}
 
+        {props.onCreateSavedView && (
+          <button
+            type="button"
+            className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
+            onClick={() => {
+              props.onCreateSavedView?.();
+            }}
+          >
+            Save View
+          </button>
+        )}
+
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span className="font-medium text-gray-700">
+            {props.resultCount.toLocaleString()} result
+            {props.resultCount === 1 ? "" : "s"}
+          </span>
+          {hasPaginationSummary && (
+            <span className="text-gray-400">
+              Page {currentPage} of {totalPages}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Right group: Display controls */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {props.availableColumns &&
           props.selectedColumns &&
           props.onSelectedColumnsChange && (
