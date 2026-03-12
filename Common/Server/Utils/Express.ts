@@ -21,6 +21,7 @@ export type NextFunction = express.NextFunction;
 export const ExpressStatic: GenericFunction = express.static;
 export const ExpressJson: GenericFunction = express.json;
 export const ExpressUrlEncoded: GenericFunction = express.urlencoded;
+export const ExpressRaw: GenericFunction = express.raw;
 
 export type ProbeRequest = {
   id: ObjectID;
