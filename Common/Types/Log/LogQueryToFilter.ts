@@ -34,8 +34,10 @@ const TOP_LEVEL_FIELDS: Set<string> = new Set([
   "body",
 ]);
 
-// Severity values stored in the database use title case (e.g. "Error", "Debug").
-// Normalise user input so that "error" matches "Error", etc.
+/*
+ * Severity values stored in the database use title case (e.g. "Error", "Debug").
+ * Normalise user input so that "error" matches "Error", etc.
+ */
 const SEVERITY_CANONICAL: Record<string, string> = {
   fatal: "Fatal",
   error: "Error",
