@@ -47,44 +47,11 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
       </button>
 
       {isComponentVisible && (
-        <div className="absolute left-0 z-20 mt-2 w-96 rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">Saved Views</h3>
-              <p className="text-xs text-gray-500">
-                Load a saved log view or update the currently selected one.
-              </p>
-            </div>
-            {props.onCreate && (
-              <button
-                type="button"
-                className="inline-flex shrink-0 items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
-                onClick={() => {
-                  props.onCreate?.();
-                  setIsComponentVisible(false);
-                }}
-              >
-                + Save View
-              </button>
-            )}
-          </div>
-
-          {selectedView && props.onUpdateCurrent && (
-            <button
-              type="button"
-              className="mt-4 w-full rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
-              onClick={() => {
-                props.onUpdateCurrent?.();
-                setIsComponentVisible(false);
-              }}
-            >
-              Update Current View
-            </button>
-          )}
-
-          <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
+        <div className="absolute left-0 z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl">
+          {/* View list */}
+          <div className="max-h-72 overflow-y-auto py-1">
             {props.savedViews.length === 0 && (
-              <div className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-sm text-gray-500">
+              <div className="px-3 py-6 text-center text-xs text-gray-400">
                 No saved views yet.
               </div>
             )}
@@ -95,76 +62,112 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
               return (
                 <div
                   key={view.id}
-                  className={`rounded-md border px-3 py-2 transition-colors ${
+                  className={`group flex items-center justify-between gap-2 px-3 py-1.5 ${
                     isSelected
-                      ? "border-indigo-200 bg-indigo-50"
-                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                      ? "bg-indigo-50"
+                      : "hover:bg-gray-50"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <button
-                      type="button"
-                      className="min-w-0 flex-1 text-left"
-                      onClick={() => {
-                        props.onSelect(view.id);
-                        setIsComponentVisible(false);
-                      }}
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    onClick={() => {
+                      props.onSelect(view.id);
+                      setIsComponentVisible(false);
+                    }}
+                  >
+                    {/* Checkmark for selected */}
+                    <span className="w-4 shrink-0 text-center text-xs">
+                      {isSelected ? (
+                        <span className="text-indigo-600">✓</span>
+                      ) : (
+                        ""
+                      )}
+                    </span>
+                    <span
+                      className={`truncate text-sm ${
+                        isSelected
+                          ? "font-medium text-indigo-700"
+                          : "text-gray-700"
+                      }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-gray-800">
-                          {view.name}
-                        </span>
-                        {view.isDefault && (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                            Default
-                          </span>
-                        )}
-                        {isSelected && (
-                          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
-                            Selected
-                          </span>
-                        )}
-                      </div>
-                    </button>
+                      {view.name}
+                    </span>
+                    {view.isDefault && (
+                      <span className="shrink-0 text-[10px] text-gray-400">
+                        default
+                      </span>
+                    )}
+                  </button>
 
-                    <div className="flex items-center gap-1">
-                      {props.onEdit && (
-                        <button
-                          type="button"
-                          className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
-                          onClick={(
-                            event: React.MouseEvent<HTMLButtonElement>,
-                          ) => {
-                            event.stopPropagation();
-                            props.onEdit?.(view.id);
-                            setIsComponentVisible(false);
-                          }}
-                        >
-                          Edit
-                        </button>
-                      )}
-
-                      {props.onDelete && (
-                        <button
-                          type="button"
-                          className="rounded-md px-2 py-1 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
-                          onClick={(
-                            event: React.MouseEvent<HTMLButtonElement>,
-                          ) => {
-                            event.stopPropagation();
-                            props.onDelete?.(view.id);
-                            setIsComponentVisible(false);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
+                  {/* Actions — visible on hover */}
+                  <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                    {isSelected && props.onUpdateCurrent && (
+                      <button
+                        type="button"
+                        className="rounded px-1.5 py-0.5 text-[11px] text-indigo-600 transition-colors hover:bg-indigo-100"
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>,
+                        ) => {
+                          event.stopPropagation();
+                          props.onUpdateCurrent?.();
+                          setIsComponentVisible(false);
+                        }}
+                      >
+                        Update
+                      </button>
+                    )}
+                    {props.onEdit && (
+                      <button
+                        type="button"
+                        className="rounded px-1.5 py-0.5 text-[11px] text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>,
+                        ) => {
+                          event.stopPropagation();
+                          props.onEdit?.(view.id);
+                          setIsComponentVisible(false);
+                        }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {props.onDelete && (
+                      <button
+                        type="button"
+                        className="rounded px-1.5 py-0.5 text-[11px] text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>,
+                        ) => {
+                          event.stopPropagation();
+                          props.onDelete?.(view.id);
+                          setIsComponentVisible(false);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Footer action */}
+          {props.onCreate && (
+            <div className="border-t border-gray-100 px-3 py-2">
+              <button
+                type="button"
+                className="w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50"
+                onClick={() => {
+                  props.onCreate?.();
+                  setIsComponentVisible(false);
+                }}
+              >
+                + Save Current View
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
