@@ -20,8 +20,8 @@ export default class AddOtelFieldsToLogTable extends DataMigrationBase {
         await LogService.doesColumnExistInDatabase(key);
 
       if (!hasColumn) {
-        const column: AnalyticsTableColumn | undefined = new Log()
-          .tableColumns.find((col: AnalyticsTableColumn) => {
+        const column: AnalyticsTableColumn | undefined =
+          new Log().tableColumns.find((col: AnalyticsTableColumn) => {
             return col.key === key;
           });
 

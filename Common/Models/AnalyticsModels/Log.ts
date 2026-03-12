@@ -327,8 +327,7 @@ export default class Log extends AnalyticsBaseModel {
       new AnalyticsTableColumn({
         key: "droppedAttributesCount",
         title: "Dropped Attributes Count",
-        description:
-          "Number of attributes that were dropped during collection",
+        description: "Number of attributes that were dropped during collection",
         required: false,
         type: TableColumnType.Number,
         accessControl: {
