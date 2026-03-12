@@ -1,281 +1,297 @@
-
-
 x-common-depends-on: &common-depends-on
-    postgres:
-        condition: service_healthy
-    redis:
-        condition: service_healthy
-    clickhouse:
-        condition: service_healthy
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  clickhouse:
+    condition: service_healthy
 
 services:
+  redis:
+    ports:
+      - "6310:6379"
+    extends:
+      file: ./docker-compose.base.yml
+      service: redis
 
+  clickhouse:
+    ports:
+      - "9034:9000"
+      - "8189:8123"
+    extends:
+      file: ./docker-compose.base.yml
+      service: clickhouse
+    volumes:
+      - ./Clickhouse/config.xml:/etc/clickhouse-server/config.xml
 
-    redis:
-        ports:
-            - '6310:6379'
-        extends:
-            file: ./docker-compose.base.yml
-            service: redis
+  postgres:
+    ports:
+      - "5400:5432"
+    extends:
+      file: ./docker-compose.base.yml
+      service: postgres
 
-    clickhouse:
-        ports:
-            - '9034:9000'
-            - '8189:8123'
-        extends:
-            file: ./docker-compose.base.yml
-            service: clickhouse
-        volumes:
-            - ./Clickhouse/config.xml:/etc/clickhouse-server/config.xml
+  test-server:
+    volumes:
+      - ./TestServer:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
 
-    postgres:
-        ports:
-            - '5400:5432'
-        extends:
-            file: ./docker-compose.base.yml
-            service: postgres
+      - /usr/src/Common/node_modules/
 
+    extends:
+      file: ./docker-compose.base.yml
+      service: test-server
+    depends_on:
+      <<: *common-depends-on
+    ports:
+      - "9141:9229" # Debugging port.
+      - "3800:3800"
+    build:
+      network: host
+      context: .
+      dockerfile: ./TestServer/Dockerfile
 
-    test-server:
-        volumes:
-            - ./TestServer:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
+  home:
+    volumes:
+      - ./Home:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
+      - /usr/src/Common/node_modules/
+    extends:
+      file: ./docker-compose.base.yml
+      service: home
+    depends_on:
+      <<: *common-depends-on
+    ports:
+      - "9212:9229" # Debugging port.
+    build:
+      network: host
+      context: .
+      dockerfile: ./Home/Dockerfile
 
-            - /usr/src/Common/node_modules/
+  worker:
+    volumes:
+      - ./Worker:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
+      - /usr/src/Common/node_modules/
+    extends:
+      file: ./docker-compose.base.yml
+      service: worker
+    depends_on:
+      <<: *common-depends-on
+    ports:
+      - "8734:9229" # Debugging port.
+    build:
+      network: host
+      context: .
+      dockerfile: ./Worker/Dockerfile
 
+  app:
+    volumes:
+      - ./App:/usr/src/app:cached
+      - ./App/FeatureSet/Accounts:/usr/src/app/FeatureSet/Accounts:cached
+      - ./App/FeatureSet/Dashboard:/usr/src/app/FeatureSet/Dashboard:cached
+      - ./App/FeatureSet/AdminDashboard:/usr/src/app/FeatureSet/AdminDashboard:cached
+      - ./App/FeatureSet/StatusPage:/usr/src/app/FeatureSet/StatusPage:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - /usr/src/app/FeatureSet/Accounts/node_modules/
+      - /usr/src/app/FeatureSet/Dashboard/node_modules/
+      - /usr/src/app/FeatureSet/AdminDashboard/node_modules/
+      - /usr/src/app/FeatureSet/StatusPage/node_modules/
+      - ./Common:/usr/src/Common:cached
+      - /usr/src/Common/node_modules/
+    extends:
+      file: ./docker-compose.base.yml
+      service: app
+    depends_on:
+      <<: *common-depends-on
+    ports:
+      - "9232:9229" # Debugging port.
+    build:
+      network: host
+      context: .
+      dockerfile: ./App/Dockerfile
 
-        extends:
-            file: ./docker-compose.base.yml
-            service: test-server
-        depends_on:
-            <<: *common-depends-on
-        ports:
-            - '9141:9229' # Debugging port.
-            - '3800:3800'
-        build:
-            network: host
-            context: .
-            dockerfile: ./TestServer/Dockerfile
+  probe-1:
+    volumes:
+      - ./Probe:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
 
+      - /usr/src/Common/node_modules/
 
-    home:
-        volumes:
-            - ./Home:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-            - /usr/src/Common/node_modules/
-        extends:
-            file: ./docker-compose.base.yml
-            service: home
-        depends_on:
-            <<: *common-depends-on
-        ports:
-            - '9212:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./Home/Dockerfile
+    extends:
+      file: ./docker-compose.base.yml
+      service: probe-1
+    depends_on:
+      <<: *common-depends-on
+    build:
+      network: host
+      context: .
+      dockerfile: ./Probe/Dockerfile
 
-    worker:
-        volumes:
-            - ./Worker:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-            - /usr/src/Common/node_modules/
-        extends:
-            file: ./docker-compose.base.yml
-            service: worker
-        depends_on:
-            <<: *common-depends-on
-        ports:
-            - '8734:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./Worker/Dockerfile
+  synthetic-runner-1:
+    volumes:
+      - ./Probe:/usr/src/app:cached
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
+      - /usr/src/Common/node_modules/
+    extends:
+      file: ./docker-compose.base.yml
+      service: synthetic-runner-1
+    build:
+      network: host
+      context: .
+      dockerfile: ./Probe/Dockerfile
 
+  probe-2:
+    volumes:
+      - ./Probe:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
 
-    app:
-        volumes:
-            - ./App:/usr/src/app:cached
-            - ./App/FeatureSet/Accounts:/usr/src/app/FeatureSet/Accounts:cached
-            - ./App/FeatureSet/Dashboard:/usr/src/app/FeatureSet/Dashboard:cached
-            - ./App/FeatureSet/AdminDashboard:/usr/src/app/FeatureSet/AdminDashboard:cached
-            - ./App/FeatureSet/StatusPage:/usr/src/app/FeatureSet/StatusPage:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - /usr/src/app/FeatureSet/Accounts/node_modules/
-            - /usr/src/app/FeatureSet/Dashboard/node_modules/
-            - /usr/src/app/FeatureSet/AdminDashboard/node_modules/
-            - /usr/src/app/FeatureSet/StatusPage/node_modules/
-            - ./Common:/usr/src/Common:cached
-            - /usr/src/Common/node_modules/
-        extends:
-            file: ./docker-compose.base.yml
-            service: app
-        depends_on:
-            <<: *common-depends-on
-        ports:
-            - '9232:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./App/Dockerfile
+      - /usr/src/Common/node_modules/
 
+    extends:
+      file: ./docker-compose.base.yml
+      service: probe-2
+    depends_on:
+      <<: *common-depends-on
+    build:
+      network: host
+      context: .
+      dockerfile: ./Probe/Dockerfile
 
-    probe-1:
-        volumes:
-            - ./Probe:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
+  synthetic-runner-2:
+    volumes:
+      - ./Probe:/usr/src/app:cached
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
+      - /usr/src/Common/node_modules/
+    extends:
+      file: ./docker-compose.base.yml
+      service: synthetic-runner-2
+    build:
+      network: host
+      context: .
+      dockerfile: ./Probe/Dockerfile
 
-            - /usr/src/Common/node_modules/
+  ai-agent:
+    volumes:
+      - ./AIAgent:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
 
+      - /usr/src/Common/node_modules/
 
-        extends:
-            file: ./docker-compose.base.yml
-            service: probe-1
-        depends_on:
-            <<: *common-depends-on
-        build:
-            network: host
-            context: .
-            dockerfile: ./Probe/Dockerfile
+    extends:
+      file: ./docker-compose.base.yml
+      service: ai-agent
+    depends_on:
+      <<: *common-depends-on
+    build:
+      network: host
+      context: .
+      dockerfile: ./AIAgent/Dockerfile
 
-    probe-2:
-        volumes:
-            - ./Probe:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
+  telemetry:
+    volumes:
+      - ./Telemetry:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+      - /usr/src/app/node_modules/
+      - ./Common:/usr/src/Common:cached
+      - /usr/src/Common/node_modules/
+    ports:
+      - "9938:9229" # Debugging port.
+    extends:
+      file: ./docker-compose.base.yml
+      service: telemetry
+    depends_on:
+      <<: *common-depends-on
+    build:
+      network: host
+      context: .
+      dockerfile: ./Telemetry/Dockerfile
 
-            - /usr/src/Common/node_modules/
+  # Fluentd. Required only for development. In  production its the responsibility of the customer to run fluentd and pipe logs to OneUptime.
+  # We run this container just for development, to see if logs are piped.
 
+  fluentd:
+    ports:
+      - 24224:24224
+      - 24224:24224/udp
+      - 8888:8888
+    user: fluent
+    extends:
+      file: ./docker-compose.base.yml
+      service: fluentd
+    volumes:
+      - ./Fluentd/fluent.conf:/fluentd/etc/fluent.conf
+    build:
+      network: host
+      context: ./Fluentd
+      dockerfile: ./Dockerfile
 
-        extends:
-            file: ./docker-compose.base.yml
-            service: probe-2
-        depends_on:
-            <<: *common-depends-on
-        build:
-            network: host
-            context: .
-            dockerfile: ./Probe/Dockerfile
+  fluent-bit:
+    ports:
+      - 24225:24224
+      - 24285:24284
+      - 2020:2020
+      - 8889:8889
+    extends:
+      file: ./docker-compose.base.yml
+      service: fluent-bit
+    volumes:
+      - ./FluentBit/etc:/fluent-bit/etc/
+    build:
+      network: host
+      context: .
+      dockerfile: ./FluentBit/Dockerfile
 
-    ai-agent:
-        volumes:
-            - ./AIAgent:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
+  ingress:
+    build:
+      network: host
+      context: .
+      dockerfile: ./Nginx/Dockerfile
+    extends:
+      file: ./docker-compose.base.yml
+      service: ingress
+    depends_on:
+      <<: *common-depends-on
 
-            - /usr/src/Common/node_modules/
-
-
-        extends:
-            file: ./docker-compose.base.yml
-            service: ai-agent
-        depends_on:
-            <<: *common-depends-on
-        build:
-            network: host
-            context: .
-            dockerfile: ./AIAgent/Dockerfile
-
-    telemetry:
-        volumes:
-            - ./Telemetry:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-            - /usr/src/Common/node_modules/
-        ports:
-          - '9938:9229' # Debugging port.
-        extends:
-            file: ./docker-compose.base.yml
-            service: telemetry
-        depends_on:
-            <<: *common-depends-on
-        build:
-            network: host
-            context: .
-            dockerfile: ./Telemetry/Dockerfile
-
-    # Fluentd. Required only for development. In  production its the responsibility of the customer to run fluentd and pipe logs to OneUptime.
-    # We run this container just for development, to see if logs are piped.
-
-    fluentd:
-        ports:
-            - 24224:24224
-            - 24224:24224/udp
-            - 8888:8888
-        user: fluent
-        extends:
-            file: ./docker-compose.base.yml
-            service: fluentd
-        volumes:
-            - ./Fluentd/fluent.conf:/fluentd/etc/fluent.conf
-        build:
-            network: host
-            context: ./Fluentd
-            dockerfile: ./Dockerfile
-
-    fluent-bit:
-        ports:
-            - 24225:24224
-            - 24285:24284
-            - 2020:2020
-            - 8889:8889
-        extends:
-            file: ./docker-compose.base.yml
-            service: fluent-bit
-        volumes:
-            - ./FluentBit/etc:/fluent-bit/etc/
-        build:
-            network: host
-            context: .
-            dockerfile: ./FluentBit/Dockerfile
-
-    ingress:
-        build:
-            network: host
-            context: .
-            dockerfile: ./Nginx/Dockerfile
-        extends:
-            file: ./docker-compose.base.yml
-            service: ingress
-        depends_on:
-            <<: *common-depends-on
-
-    # e2e tests
-    e2e:
-        extends:
-            file: ./docker-compose.base.yml
-            service: e2e
-        volumes:
-            - ./E2E/playwright-report:/usr/src/app/playwright-report
-            - ./E2E/test-results:/usr/src/app/test-results
-        build:
-            network: host
-            context: .
-            dockerfile: ./E2E/Dockerfile
+  # e2e tests
+  e2e:
+    extends:
+      file: ./docker-compose.base.yml
+      service: e2e
+    volumes:
+      - ./E2E/playwright-report:/usr/src/app/playwright-report
+      - ./E2E/test-results:/usr/src/app/test-results
+    build:
+      network: host
+      context: .
+      dockerfile: ./E2E/Dockerfile
 
 volumes:
-    postgres:
-    clickhouse:
+  postgres:
+  clickhouse:
 
 networks:
   oneuptime:

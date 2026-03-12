@@ -2,76 +2,80 @@
 # For example, if you want to use the image from Github Container Registry, you can change the image tag from oneuptime/dashboard:latest to ghcr.io/oneuptime/dashboard:latest
 
 x-common-depends-on: &common-depends-on
-    postgres:
-        condition: service_healthy
-    redis:
-        condition: service_healthy
-    clickhouse:
-        condition: service_healthy
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  clickhouse:
+    condition: service_healthy
 
 services:
+  redis:
+    extends:
+      file: ./docker-compose.base.yml
+      service: redis
 
-    redis:
-        extends:
-            file: ./docker-compose.base.yml
-            service: redis
+  clickhouse:
+    extends:
+      file: ./docker-compose.base.yml
+      service: clickhouse
 
-    clickhouse:
-        extends:
-            file: ./docker-compose.base.yml
-            service: clickhouse
+  postgres:
+    ports:
+      - "5400:5432" # for access to postgres for backups. If you don't need backup, you can comment this line out to make it more secure.
+    extends:
+      file: ./docker-compose.base.yml
+      service: postgres
 
-    postgres:
-        ports:
-          - "5400:5432" # for access to postgres for backups. If you don't need backup, you can comment this line out to make it more secure.
-        extends:
-            file: ./docker-compose.base.yml
-            service: postgres
+  app:
+    image: oneuptime/app:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: app
+    depends_on:
+      <<: *common-depends-on
 
+  worker:
+    image: oneuptime/worker:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: worker
+    depends_on:
+      <<: *common-depends-on
 
-    app:
-        image:  oneuptime/app:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: app
-        depends_on:
-            <<: *common-depends-on
+  probe-1:
+    image: oneuptime/probe:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: probe-1
+    depends_on:
+      <<: *common-depends-on
 
-    worker:
-        image:  oneuptime/worker:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: worker
-        depends_on:
-            <<: *common-depends-on
+  synthetic-runner-1:
+    image: oneuptime/probe:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: synthetic-runner-1
 
-    probe-1:
-        image:  oneuptime/probe:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: probe-1
-        depends_on:
-            <<: *common-depends-on
+  telemetry:
+    image: oneuptime/telemetry:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: telemetry
+    depends_on:
+      <<: *common-depends-on
 
-    telemetry:
-        image:  oneuptime/telemetry:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: telemetry
-        depends_on:
-            <<: *common-depends-on
-
-    ingress:
-       image:  oneuptime/nginx:${APP_TAG}
-       extends:
-            file: ./docker-compose.base.yml
-            service: ingress
-       depends_on:
-            <<: *common-depends-on
+  ingress:
+    image: oneuptime/nginx:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: ingress
+    depends_on:
+      <<: *common-depends-on
 
 volumes:
-    postgres:
-    clickhouse:
+  postgres:
+  clickhouse:
 
 networks:
   oneuptime:

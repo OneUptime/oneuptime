@@ -104,6 +104,8 @@ spec:
               value: {{ $val.syntheticMonitorScriptTimeoutInMs | squote }}
             - name: PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS
               value: {{ $val.customCodeMonitorScriptTimeoutInMs | squote }}
+            - name: PROBE_SYNTHETIC_RUNNER_URL
+              value: "http://127.0.0.1:3885"
             - name: PROBE_KEY
               {{- if $val.key }}
               value: {{ $val.key }}
@@ -140,6 +142,52 @@ spec:
           resources:
             {{- toYaml $val.resources | nindent 12 }}
           {{- end }}
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "probe") }}
+          name: synthetic-runner
+          {{- if $val.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $val.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          command:
+            - npm
+            - run
+            - start:synthetic-runner
+          env:
+            - name: LOG_LEVEL
+              value: {{ $.Values.logLevel }}
+            - name: PORT
+              value: "3885"
+            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+              value: {{ $.Values.openTelemetryExporter.headers }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+              value: {{ $.Values.openTelemetryExporter.endpoint }}
+            - name: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS
+              value: {{ $val.syntheticMonitorScriptTimeoutInMs | squote }}
+            {{- if $val.disableTelemetryCollection }}
+            - name: DISABLE_TELEMETRY
+              value: {{ $val.disableTelemetryCollection | quote }}
+            {{- end }}
+            {{- if and $val.proxy $val.proxy.httpProxyUrl }}
+            - name: HTTP_PROXY_URL
+              value: {{ $val.proxy.httpProxyUrl | squote }}
+            {{- end }}
+            {{- if and $val.proxy $val.proxy.httpsProxyUrl }}
+            - name: HTTPS_PROXY_URL
+              value: {{ $val.proxy.httpsProxyUrl | squote }}
+            {{- end }}
+            {{- if and $val.proxy $val.proxy.noProxy }}
+            - name: NO_PROXY
+              value: {{ $val.proxy.noProxy | squote }}
+            {{- end }}
+            {{- include "oneuptime.env.oneuptimeSecret" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+          ports:
+            - containerPort: 3885
+              protocol: TCP
+              name: synthetic-runner
         {{- if $val.additionalContainers }}
         {{ toYaml $val.additionalContainers | nindent 8 }}
         {{- end }}

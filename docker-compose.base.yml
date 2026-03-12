@@ -1,410 +1,450 @@
-
 x-common-variables: &common-variables
-    HOST: ${HOST}
-    PROVISION_SSL: ${PROVISION_SSL}
+  HOST: ${HOST}
+  PROVISION_SSL: ${PROVISION_SSL}
 
-    HTTP_PROTOCOL: ${HTTP_PROTOCOL}
+  HTTP_PROTOCOL: ${HTTP_PROTOCOL}
 
-    STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
+  STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
 
-    LOG_LEVEL: ${LOG_LEVEL}
+  LOG_LEVEL: ${LOG_LEVEL}
 
-    NODE_ENV: ${ENVIRONMENT}
-    BILLING_ENABLED: ${BILLING_ENABLED}
-    IS_ENTERPRISE_EDITION: ${IS_ENTERPRISE_EDITION}
-    BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
-    SUBSCRIPTION_PLAN_BASIC: ${SUBSCRIPTION_PLAN_BASIC}
-    SUBSCRIPTION_PLAN_GROWTH: ${SUBSCRIPTION_PLAN_GROWTH}
-    SUBSCRIPTION_PLAN_SCALE: ${SUBSCRIPTION_PLAN_SCALE}
-    SUBSCRIPTION_PLAN_ENTERPRISE: ${SUBSCRIPTION_PLAN_ENTERPRISE}
-    ANALYTICS_KEY: ${ANALYTICS_KEY}
-    ANALYTICS_HOST: ${ANALYTICS_HOST}
-    CAPTCHA_ENABLED: ${CAPTCHA_ENABLED}
-    CAPTCHA_SITE_KEY: ${CAPTCHA_SITE_KEY}
+  NODE_ENV: ${ENVIRONMENT}
+  BILLING_ENABLED: ${BILLING_ENABLED}
+  IS_ENTERPRISE_EDITION: ${IS_ENTERPRISE_EDITION}
+  BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
+  SUBSCRIPTION_PLAN_BASIC: ${SUBSCRIPTION_PLAN_BASIC}
+  SUBSCRIPTION_PLAN_GROWTH: ${SUBSCRIPTION_PLAN_GROWTH}
+  SUBSCRIPTION_PLAN_SCALE: ${SUBSCRIPTION_PLAN_SCALE}
+  SUBSCRIPTION_PLAN_ENTERPRISE: ${SUBSCRIPTION_PLAN_ENTERPRISE}
+  ANALYTICS_KEY: ${ANALYTICS_KEY}
+  ANALYTICS_HOST: ${ANALYTICS_HOST}
+  CAPTCHA_ENABLED: ${CAPTCHA_ENABLED}
+  CAPTCHA_SITE_KEY: ${CAPTCHA_SITE_KEY}
 
-    # VAPID keys for Web Push Notifications
-    VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
-    VAPID_SUBJECT: ${VAPID_SUBJECT}
+  # VAPID keys for Web Push Notifications
+  VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+  VAPID_SUBJECT: ${VAPID_SUBJECT}
 
-    ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
+  ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
-    SERVER_APP_HOSTNAME: app
-    SERVER_TELEMETRY_HOSTNAME: telemetry
-    SERVER_WORKER_HOSTNAME: worker
-    SERVER_HOME_HOSTNAME: home
-    #Ports. Usually they don't need to change.
-    APP_PORT: ${APP_PORT}
-    HOME_PORT: ${HOME_PORT}
-    TELEMETRY_PORT: ${TELEMETRY_PORT}
-    WORKER_PORT: ${WORKER_PORT}
-    OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-    OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+  SERVER_APP_HOSTNAME: app
+  SERVER_TELEMETRY_HOSTNAME: telemetry
+  SERVER_WORKER_HOSTNAME: worker
+  SERVER_HOME_HOSTNAME: home
+  #Ports. Usually they don't need to change.
+  APP_PORT: ${APP_PORT}
+  HOME_PORT: ${HOME_PORT}
+  TELEMETRY_PORT: ${TELEMETRY_PORT}
+  WORKER_PORT: ${WORKER_PORT}
+  OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+  OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
 
-    SLACK_APP_CLIENT_ID: ${SLACK_APP_CLIENT_ID}
+  SLACK_APP_CLIENT_ID: ${SLACK_APP_CLIENT_ID}
 
-
-    MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
-    MICROSOFT_TEAMS_APP_TENANT_ID: ${MICROSOFT_TEAMS_APP_TENANT_ID}
+  MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
+  MICROSOFT_TEAMS_APP_TENANT_ID: ${MICROSOFT_TEAMS_APP_TENANT_ID}
 
 x-common-runtime-variables: &common-runtime-variables
-    <<: *common-variables
-    ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+  <<: *common-variables
+  ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
 
-    VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+  VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
 
-    EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN}
-    PUSH_NOTIFICATION_RELAY_URL: ${PUSH_NOTIFICATION_RELAY_URL}
+  EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN}
+  PUSH_NOTIFICATION_RELAY_URL: ${PUSH_NOTIFICATION_RELAY_URL}
 
-    DATABASE_PORT: ${DATABASE_PORT}
-    DATABASE_USERNAME: ${DATABASE_USERNAME}
-    DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-    DATABASE_NAME: ${DATABASE_NAME}
-    DATABASE_HOST: ${DATABASE_HOST}
-    DATABASE_SSL_CA: ${DATABASE_SSL_CA}
-    DATABASE_SSL_KEY: ${DATABASE_SSL_KEY}
-    DATABASE_SSL_CERT: ${DATABASE_SSL_CERT}
-    DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED}
-    LETS_ENCRYPT_NOTIFICATION_EMAIL: ${LETS_ENCRYPT_NOTIFICATION_EMAIL}
-    LETS_ENCRYPT_ACCOUNT_KEY: ${LETS_ENCRYPT_ACCOUNT_KEY}
+  DATABASE_PORT: ${DATABASE_PORT}
+  DATABASE_USERNAME: ${DATABASE_USERNAME}
+  DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+  DATABASE_NAME: ${DATABASE_NAME}
+  DATABASE_HOST: ${DATABASE_HOST}
+  DATABASE_SSL_CA: ${DATABASE_SSL_CA}
+  DATABASE_SSL_KEY: ${DATABASE_SSL_KEY}
+  DATABASE_SSL_CERT: ${DATABASE_SSL_CERT}
+  DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED}
+  LETS_ENCRYPT_NOTIFICATION_EMAIL: ${LETS_ENCRYPT_NOTIFICATION_EMAIL}
+  LETS_ENCRYPT_ACCOUNT_KEY: ${LETS_ENCRYPT_ACCOUNT_KEY}
 
-    REDIS_USERNAME: ${REDIS_USERNAME}
-    REDIS_PASSWORD: ${REDIS_PASSWORD}
-    REDIS_HOST: ${REDIS_HOST}
-    REDIS_PORT: ${REDIS_PORT}
-    REDIS_DB: ${REDIS_DB}
-    REDIS_IP_FAMILY: ${REDIS_IP_FAMILY}
-    REDIS_TLS_CA: ${REDIS_TLS_CA}
-    REDIS_TLS_SENTINEL_MODE: ${REDIS_TLS_SENTINEL_MODE}
+  REDIS_USERNAME: ${REDIS_USERNAME}
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_HOST: ${REDIS_HOST}
+  REDIS_PORT: ${REDIS_PORT}
+  REDIS_DB: ${REDIS_DB}
+  REDIS_IP_FAMILY: ${REDIS_IP_FAMILY}
+  REDIS_TLS_CA: ${REDIS_TLS_CA}
+  REDIS_TLS_SENTINEL_MODE: ${REDIS_TLS_SENTINEL_MODE}
 
-    ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
+  ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
 
-    BILLING_PRIVATE_KEY: ${BILLING_PRIVATE_KEY}
-    BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
-    BILLING_ENABLED: ${BILLING_ENABLED}
-    BILLING_WEBHOOK_SECRET: ${BILLING_WEBHOOK_SECRET}
+  BILLING_PRIVATE_KEY: ${BILLING_PRIVATE_KEY}
+  BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
+  BILLING_ENABLED: ${BILLING_ENABLED}
+  BILLING_WEBHOOK_SECRET: ${BILLING_WEBHOOK_SECRET}
 
-    CLICKHOUSE_USER: ${CLICKHOUSE_USER}
-    CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-    CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}
-    CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
-    CLICKHOUSE_PORT: ${CLICKHOUSE_PORT}
+  CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+  CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}
+  CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
+  CLICKHOUSE_PORT: ${CLICKHOUSE_PORT}
 
-    AVERAGE_SPAN_ROW_SIZE_IN_BYTES: ${AVERAGE_SPAN_ROW_SIZE_IN_BYTES}
-    AVERAGE_LOG_ROW_SIZE_IN_BYTES: ${AVERAGE_LOG_ROW_SIZE_IN_BYTES}
-    AVERAGE_METRIC_ROW_SIZE_IN_BYTES: ${AVERAGE_METRIC_ROW_SIZE_IN_BYTES}
-    AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES: ${AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES}
+  AVERAGE_SPAN_ROW_SIZE_IN_BYTES: ${AVERAGE_SPAN_ROW_SIZE_IN_BYTES}
+  AVERAGE_LOG_ROW_SIZE_IN_BYTES: ${AVERAGE_LOG_ROW_SIZE_IN_BYTES}
+  AVERAGE_METRIC_ROW_SIZE_IN_BYTES: ${AVERAGE_METRIC_ROW_SIZE_IN_BYTES}
+  AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES: ${AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES}
 
-    WORKFLOW_SCRIPT_TIMEOUT_IN_MS: ${WORKFLOW_SCRIPT_TIMEOUT_IN_MS}
-    WORKFLOW_TIMEOUT_IN_MS: ${WORKFLOW_TIMEOUT_IN_MS}
+  WORKFLOW_SCRIPT_TIMEOUT_IN_MS: ${WORKFLOW_SCRIPT_TIMEOUT_IN_MS}
+  WORKFLOW_TIMEOUT_IN_MS: ${WORKFLOW_TIMEOUT_IN_MS}
 
-    DISABLE_AUTOMATIC_INCIDENT_CREATION: ${DISABLE_AUTOMATIC_INCIDENT_CREATION}
+  DISABLE_AUTOMATIC_INCIDENT_CREATION: ${DISABLE_AUTOMATIC_INCIDENT_CREATION}
 
-    DISABLE_AUTOMATIC_ALERT_CREATION: ${DISABLE_AUTOMATIC_ALERT_CREATION}
+  DISABLE_AUTOMATIC_ALERT_CREATION: ${DISABLE_AUTOMATIC_ALERT_CREATION}
 
-    # Open Source Deployment Webhook
-    OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL: ${OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL}
+  # Open Source Deployment Webhook
+  OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL: ${OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL}
 
-    # Notification Webhooks
-    NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER: ${NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER}
-    NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT: ${NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT}
-    NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT: ${NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT}
-    NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE: ${NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE}
+  # Notification Webhooks
+  NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER: ${NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER}
+  NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT: ${NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT}
+  NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT: ${NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT}
+  NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE: ${NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE}
 
-    SLACK_APP_CLIENT_SECRET: ${SLACK_APP_CLIENT_SECRET}
-    SLACK_APP_SIGNING_SECRET: ${SLACK_APP_SIGNING_SECRET}
+  SLACK_APP_CLIENT_SECRET: ${SLACK_APP_CLIENT_SECRET}
+  SLACK_APP_SIGNING_SECRET: ${SLACK_APP_SIGNING_SECRET}
 
-    # Microsoft Teams Configuration
+  # Microsoft Teams Configuration
 
-    MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
-    CAPTCHA_SECRET_KEY: ${CAPTCHA_SECRET_KEY}
+  MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
+  CAPTCHA_SECRET_KEY: ${CAPTCHA_SECRET_KEY}
 
-    # GitHub App Configuration
-    GITHUB_APP_ID: ${GITHUB_APP_ID}
-    GITHUB_APP_NAME: ${GITHUB_APP_NAME}
-    GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID}
-    GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET}
-    GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
-    GITHUB_APP_WEBHOOK_SECRET: ${GITHUB_APP_WEBHOOK_SECRET}
+  # GitHub App Configuration
+  GITHUB_APP_ID: ${GITHUB_APP_ID}
+  GITHUB_APP_NAME: ${GITHUB_APP_NAME}
+  GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID}
+  GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET}
+  GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
+  GITHUB_APP_WEBHOOK_SECRET: ${GITHUB_APP_WEBHOOK_SECRET}
 
-    # Inbound Email Configuration (for Incoming Email Monitor)
-    INBOUND_EMAIL_PROVIDER: ${INBOUND_EMAIL_PROVIDER}
-    INBOUND_EMAIL_DOMAIN: ${INBOUND_EMAIL_DOMAIN}
-    INBOUND_EMAIL_WEBHOOK_SECRET: ${INBOUND_EMAIL_WEBHOOK_SECRET}
+  # Inbound Email Configuration (for Incoming Email Monitor)
+  INBOUND_EMAIL_PROVIDER: ${INBOUND_EMAIL_PROVIDER}
+  INBOUND_EMAIL_DOMAIN: ${INBOUND_EMAIL_DOMAIN}
+  INBOUND_EMAIL_WEBHOOK_SECRET: ${INBOUND_EMAIL_WEBHOOK_SECRET}
 
 services:
+  redis:
+    image: redis:7.0.12
+    restart: always
+    networks:
+      - oneuptime
+    command: redis-server --requirepass "${REDIS_PASSWORD}" --save "" --appendonly no
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    
-    redis:
-        image: redis:7.0.12
-        restart: always
-        networks:
-          - oneuptime
-        command: redis-server --requirepass "${REDIS_PASSWORD}" --save "" --appendonly no
-        environment:
-            REDIS_PASSWORD: ${REDIS_PASSWORD}
-        healthcheck:
-            test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-            start_period: 10s
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.7
+    restart: always
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    networks:
+      - oneuptime
+    volumes:
+      - clickhouse:/var/lib/clickhouse/
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    clickhouse:
-        image: clickhouse/clickhouse-server:25.7
-        restart: always
-        environment:
-            CLICKHOUSE_USER: ${CLICKHOUSE_USER}
-            CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-            CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE}
-            CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-        networks:
-          - oneuptime
-        volumes:
-            - clickhouse:/var/lib/clickhouse/
-        healthcheck:
-            test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-            start_period: 15s
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    networks:
+      - oneuptime
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    postgres:
-        image: postgres:15
-        restart: always
-        environment:
-            POSTGRES_USER: ${DATABASE_USERNAME}
-            POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-            POSTGRES_DB: ${DATABASE_NAME}
-        networks:
-          - oneuptime
-        volumes:
-            - postgres:/var/lib/postgresql/data
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-            start_period: 15s
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-        
-    llm: 
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: 8547
-            HF_TOKEN: ${LLM_SERVER_HUGGINGFACE_TOKEN}
-            HF_MODEL_NAME: ${LLM_SERVER_HUGGINGFACE_MODEL_NAME}
-        volumes:
-            - ./LLM/Models:/app/Models
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  llm:
+    networks:
+      - oneuptime
+    restart: always
+    environment:
+      <<: *common-runtime-variables
+      PORT: 8547
+      HF_TOKEN: ${LLM_SERVER_HUGGINGFACE_TOKEN}
+      HF_MODEL_NAME: ${LLM_SERVER_HUGGINGFACE_MODEL_NAME}
+    volumes:
+      - ./LLM/Models:/app/Models
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    test-server:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${TEST_SERVER_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TEST_SERVER}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-            
+  test-server:
+    networks:
+      - oneuptime
+    restart: always
+    environment:
+      <<: *common-runtime-variables
+      PORT: ${TEST_SERVER_PORT}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TEST_SERVER}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    app:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${APP_PORT}
-            SMS_DEFAULT_COST_IN_CENTS: ${SMS_DEFAULT_COST_IN_CENTS}
-            WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS: ${WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS}
-            CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE: ${CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE}
-            SMS_HIGH_RISK_COST_IN_CENTS: ${SMS_HIGH_RISK_COST_IN_CENTS}
-            CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE: ${CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  app:
+    networks:
+      - oneuptime
+    restart: always
+    environment:
+      <<: *common-runtime-variables
+      PORT: ${APP_PORT}
+      SMS_DEFAULT_COST_IN_CENTS: ${SMS_DEFAULT_COST_IN_CENTS}
+      WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS: ${WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS}
+      CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE: ${CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE}
+      SMS_HIGH_RISK_COST_IN_CENTS: ${SMS_HIGH_RISK_COST_IN_CENTS}
+      CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE: ${CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    home:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${HOME_PORT}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  home:
+    networks:
+      - oneuptime
+    restart: always
+    environment:
+      <<: *common-runtime-variables
+      PORT: ${HOME_PORT}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    worker:
-        networks:
-          - oneuptime
-        restart: always
-        environment: 
-            <<: *common-runtime-variables
-            PORT: ${WORKER_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
-            WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  worker:
+    networks:
+      - oneuptime
+    restart: always
+    environment:
+      <<: *common-runtime-variables
+      PORT: ${WORKER_PORT}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    probe-1:
-        restart: always
-        network_mode: host
-        environment:
-            ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
-            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
-            PROBE_NAME: ${GLOBAL_PROBE_1_NAME}
-            PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
-            PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
-            PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
-            PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-            PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-            PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
-            PORT: ${GLOBAL_PROBE_1_PORT}
-            NODE_ENV: ${ENVIRONMENT}
-            LOG_LEVEL: ${LOG_LEVEL}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  probe-1:
+    restart: always
+    network_mode: host
+    environment:
+      ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
+      REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
+      PROBE_NAME: ${GLOBAL_PROBE_1_NAME}
+      PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
+      PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
+      PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
+      PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
+      PROBE_SYNTHETIC_RUNNER_URL: http://127.0.0.1:${GLOBAL_PROBE_1_SYNTHETIC_RUNNER_PORT:-3885}
+      HTTP_PROXY_URL: ${GLOBAL_PROBE_1_PROXY_URL}
+      HTTPS_PROXY_URL: ${GLOBAL_PROBE_1_PROXY_URL}
+      PORT: ${GLOBAL_PROBE_1_PORT}
+      NODE_ENV: ${ENVIRONMENT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+      OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+      OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    probe-2:
-        restart: always
-        network_mode: host
-        environment:
-            ONEUPTIME_URL: ${GLOBAL_PROBE_2_ONEUPTIME_URL}
-            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
-            PROBE_NAME: ${GLOBAL_PROBE_2_NAME}
-            PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
-            PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
-            PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
-            PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-            PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-            PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
-            PORT: ${GLOBAL_PROBE_2_PORT}
-            NODE_ENV: ${ENVIRONMENT}
-            LOG_LEVEL: ${LOG_LEVEL}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
-            OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-            OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  probe-2:
+    restart: always
+    network_mode: host
+    environment:
+      ONEUPTIME_URL: ${GLOBAL_PROBE_2_ONEUPTIME_URL}
+      REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
+      PROBE_NAME: ${GLOBAL_PROBE_2_NAME}
+      PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
+      PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
+      PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
+      PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
+      PROBE_SYNTHETIC_RUNNER_URL: http://127.0.0.1:${GLOBAL_PROBE_2_SYNTHETIC_RUNNER_PORT:-3886}
+      HTTP_PROXY_URL: ${GLOBAL_PROBE_2_PROXY_URL}
+      HTTPS_PROXY_URL: ${GLOBAL_PROBE_2_PROXY_URL}
+      PORT: ${GLOBAL_PROBE_2_PORT}
+      NODE_ENV: ${ENVIRONMENT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+      OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+      OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    ai-agent:
-        restart: always
-        network_mode: host
-        environment:
-            <<: *common-runtime-variables
-            AI_AGENT_KEY: ${AI_AGENT_KEY}
-            ONEUPTIME_URL: ${AI_AGENT_ONEUPTIME_URL}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_AI_AGENT}
-            PORT: ${AI_AGENT_PORT}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  synthetic-runner-1:
+    restart: always
+    network_mode: host
+    command: npm run start:synthetic-runner
+    environment:
+      ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+      PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      HTTP_PROXY_URL: ${GLOBAL_PROBE_1_PROXY_URL}
+      HTTPS_PROXY_URL: ${GLOBAL_PROBE_1_PROXY_URL}
+      PORT: ${GLOBAL_PROBE_1_SYNTHETIC_RUNNER_PORT:-3885}
+      NODE_ENV: ${ENVIRONMENT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+      OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+      OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    fluentd:
-        networks:
-          - oneuptime
-        restart: always
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-    
-    fluent-bit: 
-        networks:
-          - oneuptime
-        restart: always
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  synthetic-runner-2:
+    restart: always
+    network_mode: host
+    command: npm run start:synthetic-runner
+    environment:
+      ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+      PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      HTTP_PROXY_URL: ${GLOBAL_PROBE_2_PROXY_URL}
+      HTTPS_PROXY_URL: ${GLOBAL_PROBE_2_PROXY_URL}
+      PORT: ${GLOBAL_PROBE_2_SYNTHETIC_RUNNER_PORT:-3886}
+      NODE_ENV: ${ENVIRONMENT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE}
+      OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+      OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    telemetry:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            <<: *common-runtime-variables
-            PORT: ${TELEMETRY_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TELEMETRY}
-            # Max concurrent telemetry jobs the worker will process
-            TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
-            REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
-    
-    e2e:
-        restart: "no"
-        network_mode: host # This is needed to access the host network,
-        environment:
-            <<: *common-variables
-            E2E_TEST_IS_USER_REGISTERED: ${E2E_TEST_IS_USER_REGISTERED}
-            E2E_TEST_REGISTERED_USER_EMAIL: ${E2E_TEST_REGISTERED_USER_EMAIL}
-            E2E_TEST_REGISTERED_USER_PASSWORD: ${E2E_TEST_REGISTERED_USER_PASSWORD}
-            E2E_TEST_STATUS_PAGE_URL: ${E2E_TEST_STATUS_PAGE_URL}
-            E2E_TESTS_FAILED_WEBHOOK_URL: ${E2E_TESTS_FAILED_WEBHOOK_URL}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  ai-agent:
+    restart: always
+    network_mode: host
+    environment:
+      <<: *common-runtime-variables
+      AI_AGENT_KEY: ${AI_AGENT_KEY}
+      ONEUPTIME_URL: ${AI_AGENT_ONEUPTIME_URL}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_AI_AGENT}
+      PORT: ${AI_AGENT_PORT}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-    ingress:
-        restart: always
-        networks:
-          - oneuptime
-        environment:
-            <<: *common-runtime-variables
-            ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
-            NGINX_LISTEN_ADDRESS: ${NGINX_LISTEN_ADDRESS}
-            NGINX_LISTEN_OPTIONS: ${NGINX_LISTEN_OPTIONS}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGRESS}
-        ports:
-            - '${ONEUPTIME_HTTP_PORT}:7849'
-            - '${STATUS_PAGE_HTTPS_PORT}:7850'
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
+  fluentd:
+    networks:
+      - oneuptime
+    restart: always
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
 
-                
+  fluent-bit:
+    networks:
+      - oneuptime
+    restart: always
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
+
+  telemetry:
+    networks:
+      - oneuptime
+    restart: always
+    environment:
+      <<: *common-runtime-variables
+      PORT: ${TELEMETRY_PORT}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TELEMETRY}
+      # Max concurrent telemetry jobs the worker will process
+      TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
+      REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
+
+  e2e:
+    restart: "no"
+    network_mode: host # This is needed to access the host network,
+    environment:
+      <<: *common-variables
+      E2E_TEST_IS_USER_REGISTERED: ${E2E_TEST_IS_USER_REGISTERED}
+      E2E_TEST_REGISTERED_USER_EMAIL: ${E2E_TEST_REGISTERED_USER_EMAIL}
+      E2E_TEST_REGISTERED_USER_PASSWORD: ${E2E_TEST_REGISTERED_USER_PASSWORD}
+      E2E_TEST_STATUS_PAGE_URL: ${E2E_TEST_STATUS_PAGE_URL}
+      E2E_TESTS_FAILED_WEBHOOK_URL: ${E2E_TESTS_FAILED_WEBHOOK_URL}
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
+
+  ingress:
+    restart: always
+    networks:
+      - oneuptime
+    environment:
+      <<: *common-runtime-variables
+      ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
+      NGINX_LISTEN_ADDRESS: ${NGINX_LISTEN_ADDRESS}
+      NGINX_LISTEN_OPTIONS: ${NGINX_LISTEN_OPTIONS}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGRESS}
+    ports:
+      - "${ONEUPTIME_HTTP_PORT}:7849"
+      - "${STATUS_PAGE_HTTPS_PORT}:7850"
+    logging:
+      driver: "local"
+      options:
+        max-size: "1000m"
+
 volumes:
-    postgres:
-    clickhouse:
+  postgres:
+  clickhouse:
 
 networks:
   oneuptime:

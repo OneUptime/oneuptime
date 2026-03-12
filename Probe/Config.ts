@@ -86,6 +86,10 @@ export const PORT: Port = new Port(
   }),
 );
 
+export const PROBE_SYNTHETIC_RUNNER_URL: URL = URL.fromString(
+  process.env["PROBE_SYNTHETIC_RUNNER_URL"] || "http://127.0.0.1:3885",
+);
+
 /*
  * Proxy configuration for all HTTP/HTTPS requests made by the probe
  * HTTP_PROXY_URL: Proxy for HTTP requests

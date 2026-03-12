@@ -9,6 +9,7 @@
   "main": "index.js",
   "scripts": {
     "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",
+    "start:synthetic-runner": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register SyntheticRunner/Index.ts",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "npx nodemon",
