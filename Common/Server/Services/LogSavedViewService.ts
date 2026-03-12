@@ -32,10 +32,12 @@ export class Service extends DatabaseService<Model> {
       createBy.data.isDefault = !existingDefaultView;
     }
 
-    await this.unsetOtherDefaultsIfNeeded({
-      projectId: createBy.data.projectId,
-      isDefault: createBy.data.isDefault,
-    });
+    if (createBy.data.projectId) {
+      await this.unsetOtherDefaultsIfNeeded({
+        projectId: createBy.data.projectId,
+        isDefault: createBy.data.isDefault || false,
+      });
+    }
 
     return { createBy, carryForward: null };
   }
@@ -61,11 +63,13 @@ export class Service extends DatabaseService<Model> {
     });
 
     for (const item of itemsToUpdate) {
-      await this.unsetOtherDefaultsIfNeeded({
-        projectId: item.projectId,
-        isDefault: true,
-        excludeIds: item._id ? [item._id] : [],
-      });
+      if (item.projectId) {
+        await this.unsetOtherDefaultsIfNeeded({
+          projectId: item.projectId,
+          isDefault: true,
+          excludeIds: item._id ? [item._id] : [],
+        });
+      }
     }
 
     return { updateBy, carryForward: null };

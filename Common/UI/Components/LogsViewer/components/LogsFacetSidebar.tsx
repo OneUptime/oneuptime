@@ -20,7 +20,7 @@ export interface LogsFacetSidebarProps {
   onExcludeFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
   savedViews?: Array<LogsSavedViewOption> | undefined;
-  selectedSavedViewId?: string | null;
+  selectedSavedViewId?: string | null | undefined;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
 }
 

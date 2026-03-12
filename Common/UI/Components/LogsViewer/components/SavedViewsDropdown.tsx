@@ -4,7 +4,7 @@ import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 
 export interface SavedViewsDropdownProps {
   savedViews: Array<LogsSavedViewOption>;
-  selectedSavedViewId?: string | null;
+  selectedSavedViewId?: string | null | undefined;
   onSelect: (viewId: string) => void;
   onCreate?: (() => void) | undefined;
   onEdit?: ((viewId: string) => void) | undefined;
