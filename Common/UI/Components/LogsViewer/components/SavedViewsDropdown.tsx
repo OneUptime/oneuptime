@@ -13,7 +13,7 @@ export interface SavedViewsDropdownProps {
 }
 
 const triggerButtonClassName: string =
-  "inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50";
+  "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50";
 
 const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   props: SavedViewsDropdownProps,
@@ -47,7 +47,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
       </button>
 
       {isComponentVisible && (
-        <div className="absolute right-0 z-20 mt-2 w-96 rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
+        <div className="absolute left-0 z-20 mt-2 w-96 rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-gray-900">Saved Views</h3>

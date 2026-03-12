@@ -51,6 +51,7 @@ import {
 } from "./types";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "../../../Types/Time/TimeRange";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -113,6 +114,32 @@ const severityWeight: Record<string, number> = {
   debug: 2,
   trace: 1,
 };
+
+function getEmptyMessageWithTimeRange(
+  timeRange: RangeStartAndEndDateTime | undefined,
+): string {
+  if (!timeRange) {
+    return "Adjust filters or check again later.";
+  }
+
+  if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
+    const startDate: Date = timeRange.startAndEndDate.startValue;
+    const endDate: Date = timeRange.startAndEndDate.endValue;
+    const fmt: (d: Date) => string = (d: Date): string => {
+      return d.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    };
+
+    return `Time range: ${fmt(startDate)} – ${fmt(endDate)}. Try adjusting filters or expanding the time range.`;
+  }
+
+  const rangeLabel: string = timeRange.range.toLowerCase();
+  return `Time range: ${rangeLabel}. Try adjusting filters or expanding the time range.`;
+}
 
 const getSeverityWeight: (severity: string | undefined) => number = (
   severity: string | undefined,
@@ -674,7 +701,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               logs={displayedLogs}
               serviceMap={serviceMap}
               isLoading={props.isLoading}
-              emptyMessage={props.noLogsMessage}
+              emptyMessage={props.noLogsMessage || getEmptyMessageWithTimeRange(props.timeRange)}
               onRowClick={(_log: Log, rowId: string) => {
                 setSelectedLogId((currentSelected: string | null) => {
                   if (currentSelected === rowId) {
