@@ -194,6 +194,11 @@ export default class SyslogIngestService extends OtelIngestBaseService {
               serviceName,
             });
 
+          const retentionDate: Date = OneUptimeDate.addRemoveDays(
+            ingestionDate,
+            serviceMetadata.dataRententionInDays || 15,
+          );
+
           const logRow: JSONObject = {
             _id: ObjectID.generate().toString(),
             createdAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
@@ -211,6 +216,8 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             traceId: "",
             spanId: "",
             body: parsed.message,
+            retentionDate:
+              OneUptimeDate.toClickhouseDateTime(retentionDate),
           } satisfies JSONObject;
 
           dbLogs.push(logRow);

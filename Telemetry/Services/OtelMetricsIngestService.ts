@@ -299,6 +299,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           metricName: metricName,
                           metricPointType: metricPointType,
                           aggregationTemporality: aggregationTemporality,
+                          dataRententionInDays:
+                            serviceMetadata.dataRententionInDays,
                           ...(typeof isMonotonic === "boolean"
                             ? { isMonotonic: isMonotonic }
                             : {}),
@@ -389,6 +391,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     metricPointType: MetricPointType;
     aggregationTemporality?: OtelAggregationTemporality;
     isMonotonic?: boolean;
+    dataRententionInDays: number;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
@@ -465,6 +468,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           })
       : [];
 
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      ingestionDate,
+      data.dataRententionInDays || 15,
+    );
+
     const row: JSONObject = {
       _id: ObjectID.generate().toString(),
       createdAt: ingestionTimestamp,
@@ -495,6 +503,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       max: max,
       bucketCounts: bucketCounts,
       explicitBounds: explicitBounds,
+      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
 
     if (startTimeFields) {

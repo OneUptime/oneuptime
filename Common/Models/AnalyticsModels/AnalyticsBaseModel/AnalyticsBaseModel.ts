@@ -45,6 +45,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     projections?: Array<Projection> | undefined;
     materializedViews?: Array<MaterializedView> | undefined;
     enableMCP?: boolean | undefined;
+    ttlExpression?: string | undefined; // e.g. "retentionDate DELETE"
   }) {
     super({
       tableColumns: data.tableColumns,
@@ -148,6 +149,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
     this.enableMCP = data.enableMCP || false;
+    this.ttlExpression = data.ttlExpression || "";
   }
 
   private _enableWorkflowOn: EnableWorkflowOn | undefined;
@@ -280,6 +282,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set enableMCP(v: boolean) {
     this._enableMCP = v;
+  }
+
+  private _ttlExpression: string = "";
+  public get ttlExpression(): string {
+    return this._ttlExpression;
+  }
+  public set ttlExpression(v: string) {
+    this._ttlExpression = v;
   }
 
   public getTenantColumn(): AnalyticsTableColumn | null {

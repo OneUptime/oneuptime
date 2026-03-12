@@ -59,6 +59,7 @@ type ExceptionEventPayload = {
   release: string;
   environment: string;
   parsedFrames: string;
+  dataRententionInDays: number;
 };
 
 export default class OtelTracesIngestService extends OtelIngestBaseService {
@@ -323,6 +324,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                         spanStatusCode: statusCode,
                         spanName: spanName,
                         resourceAttributes: resourceAttributes,
+                        dataRententionInDays:
+                          serviceDictionary[serviceName]!.dataRententionInDays,
                       },
                       dbExceptions,
                     );
@@ -361,6 +364,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     durationUnixNano: durationUnixNano,
                     events: spanEvents,
                     links: spanLinks,
+                    dataRententionInDays:
+                      serviceDictionary[serviceName]!.dataRententionInDays,
                   });
 
                   dbSpans.push(spanRow);
@@ -453,6 +458,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       spanStatusCode: SpanStatus;
       spanName: string;
       resourceAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+      dataRententionInDays: number;
     },
     dbExceptions: Array<JSONObject>,
   ): Array<JSONObject> {
@@ -550,6 +556,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 release: release,
                 environment: environment,
                 parsedFrames: parsedFramesJson,
+                dataRententionInDays: spanContext.dataRententionInDays,
               };
 
               dbExceptions.push(this.buildExceptionRow(exceptionData));
@@ -652,10 +659,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     durationUnixNano: string;
     events: Array<JSONObject>;
     links: Array<JSONObject>;
+    dataRententionInDays: number;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      ingestionDate,
+      data.dataRententionInDays || 15,
+    );
 
     return {
       _id: ObjectID.generate().toString(),
@@ -680,6 +692,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       kind: data.kind,
       events: data.events,
       links: data.links,
+      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
   }
 
@@ -687,6 +700,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      ingestionDate,
+      data.dataRententionInDays || 15,
+    );
 
     return {
       _id: ObjectID.generate().toString(),
@@ -712,6 +729,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       environment: data.environment || "",
       parsedFrames: data.parsedFrames || "[]",
       attributes: data.attributes || {},
+      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
   }
 

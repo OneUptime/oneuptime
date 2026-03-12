@@ -219,6 +219,11 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             ...entryAttributes,
           };
 
+          const retentionDate: Date = OneUptimeDate.addRemoveDays(
+            ingestionDate,
+            serviceMetadata.dataRententionInDays || 15,
+          );
+
           const logRow: JSONObject = {
             _id: ObjectID.generate().toString(),
             createdAt: ingestionDateTime,
@@ -234,6 +239,8 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             traceId,
             spanId,
             body,
+            retentionDate:
+              OneUptimeDate.toClickhouseDateTime(retentionDate),
           } satisfies JSONObject;
 
           dbLogs.push(logRow);

@@ -1,7 +1,9 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
-import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndexType,
+} from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -83,6 +85,12 @@ export default class Metric extends AnalyticsBaseModel {
       description: "Type of the service that this telemetry belongs to",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_service_type",
+        type: SkipIndexType.Set,
+        params: [5],
+        granularity: 4,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -107,6 +115,12 @@ export default class Metric extends AnalyticsBaseModel {
       description: "Name of the Metric",
       required: true,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_name",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -503,6 +517,16 @@ export default class Metric extends AnalyticsBaseModel {
       },
     );
 
+    const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "retentionDate",
+      title: "Retention Date",
+      description:
+        "Date after which this row is eligible for TTL deletion, computed at ingest time as time + service.retainTelemetryDataForDays",
+      required: true,
+      type: TableColumnType.Date,
+      defaultValue: undefined,
+    });
+
     super({
       tableName: "MetricItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -556,11 +580,13 @@ export default class Metric extends AnalyticsBaseModel {
         maxColumn,
         bucketCountsColumn,
         explicitBoundsColumn,
+        retentionDateColumn,
       ],
       projections: [],
       sortKeys: ["projectId", "time", "serviceId"],
       primaryKeys: ["projectId", "time", "serviceId"],
       partitionKey: "sipHash64(projectId) % 16",
+      ttlExpression: "retentionDate DELETE",
     });
   }
 
@@ -726,5 +752,13 @@ export default class Metric extends AnalyticsBaseModel {
 
   public set explicitBounds(v: Array<number> | undefined) {
     this.setColumnValue("explicitBounds", v);
+  }
+
+  public get retentionDate(): Date | undefined {
+    return this.getColumnValue("retentionDate") as Date | undefined;
+  }
+
+  public set retentionDate(v: Date | undefined) {
+    this.setColumnValue("retentionDate", v);
   }
 }

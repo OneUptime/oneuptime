@@ -27,6 +27,11 @@ export default class MonitorLogUtil {
     const logTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(logIngestionDate);
 
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      logIngestionDate,
+      15,
+    );
+
     const monitorLogRow: JSONObject = {
       _id: ObjectID.generate().toString(),
       createdAt: logTimestamp,
@@ -35,6 +40,7 @@ export default class MonitorLogUtil {
       monitorId: data.monitorId.toString(),
       time: logTimestamp,
       logBody: JSON.parse(JSON.stringify(data.dataToProcess)),
+      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
 
     MonitorLogService.insertJsonRows([monitorLogRow]).catch((err: Error) => {

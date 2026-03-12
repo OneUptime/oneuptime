@@ -407,31 +407,98 @@ INDEX idx_severity severityText TYPE set(10) GRANULARITY 4
 - `Telemetry/Services/OtelLogsIngestService.ts` (write DateTime64 timestamps)
 - `Worker/DataMigrations/` (new migration)
 
-### 5.4 Add TTL for Automatic Data Retention (High)
+### 5.4 Add TTL for Per-Service Automatic Data Retention (High)
 
-**Current**: The ingestion service tracks `dataRetentionInDays` per service but there is **no TTL clause** on the ClickHouse table. Data is never automatically deleted, leading to unbounded storage growth.
+**Current**: Each `Service` (PostgreSQL) has a `retainTelemetryDataForDays` field (default 15 days). Retention is enforced by an hourly cron job at `Worker/Jobs/TelemetryService/DeleteOldData.ts` that iterates over **every project → every service** and issues `ALTER TABLE DELETE` mutations per service. This is problematic because:
+- `ALTER TABLE DELETE` creates ClickHouse **mutations** — expensive async background operations that rewrite entire data parts
+- Running this for every service every hour can pile up hundreds of pending mutations
+- Mutations compete with ingestion for disk I/O and can degrade cluster performance
+- If the cron job fails or falls behind, data accumulates unboundedly
 
-**Target**: ClickHouse-native TTL so old data is automatically dropped.
+**Target**: ClickHouse-native TTL with per-service retention, eliminating the mutation-based cron job.
+
+**Approach: `retentionDate` column with row-level TTL**
+
+Since retention is per-service (not per-table), a simple `TTL time + INTERVAL N DAY` won't work — different rows in the same table need different expiry times. The solution is to compute the expiry date at ingest time and store it:
+
+1. Add a `retentionDate DateTime` column to `LogItem`
+2. At ingest time, compute `retentionDate = time + service.retainTelemetryDataForDays`
+3. Set the table TTL to `TTL retentionDate DELETE`
+4. ClickHouse automatically drops expired rows during background merges — no mutations, no cron job
 
 **Implementation**:
 
-- Add a TTL clause to the LogItem table definition:
-  ```sql
-  TTL time + INTERVAL 30 DAY DELETE
+- Add `retentionDate` column to the Log model at `Common/Models/AnalyticsModels/Log.ts`:
+  ```typescript
+  const retentionDateColumn = new AnalyticsTableColumn({
+    key: "retentionDate",
+    title: "Retention Date",
+    description: "Date after which this row is eligible for TTL deletion",
+    required: true,
+    type: TableColumnType.Date,
+    // no read/create access needed — internal-only column
+  });
   ```
-- For per-tenant or per-service retention, options include:
-  - A single global TTL (simplest) with a background job that deletes data beyond the service-specific retention
-  - A `retentionDate` column populated at ingest time (`time + dataRetentionInDays`) with `TTL retentionDate DELETE`
-- Extend `AnalyticsBaseModel` to support TTL configuration
-- Migration to add TTL to existing table: `ALTER TABLE LogItem MODIFY TTL time + INTERVAL 30 DAY DELETE`
 
-**Impact**: Prevents disk exhaustion. Without TTL, the only way to remove old data is manual `ALTER TABLE DELETE` which is expensive and must be scheduled externally.
+- Add TTL clause to table definition:
+  ```sql
+  TTL retentionDate DELETE
+  ```
+
+- Update ingestion in `OtelLogsIngestService.processLogsAsync()` to compute and store the retention date:
+  ```typescript
+  const retentionDays = serviceDictionary[serviceName]!.dataRententionInDays;
+  const retentionDate = OneUptimeDate.addRemoveDays(timeDate, retentionDays);
+
+  const logRow: JSONObject = {
+    // ... existing fields ...
+    retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
+  };
+  ```
+
+- Also update `FluentLogsIngestService` and `SyslogIngestService` (same pattern)
+
+- Data migration for existing data:
+  ```sql
+  -- Add the column
+  ALTER TABLE LogItem ADD COLUMN retentionDate DateTime DEFAULT time + INTERVAL 15 DAY;
+
+  -- Set the TTL
+  ALTER TABLE LogItem MODIFY TTL retentionDate DELETE;
+  ```
+  Existing rows without an explicit `retentionDate` will use the DEFAULT expression (`time + 15 days`) which provides a safe fallback.
+
+- Deprecate the cron job at `Worker/Jobs/TelemetryService/DeleteOldData.ts` — can be kept temporarily as a safety net for the transition period, then removed
+
+**Edge cases**:
+
+- **Retention policy changes**: If a user changes `retainTelemetryDataForDays` from 30 to 7, already-ingested rows still have the old `retentionDate`. Options:
+  - Accept that the change only applies to newly ingested data (simplest, recommended)
+  - Run a one-time `ALTER TABLE UPDATE retentionDate = time + INTERVAL 7 DAY WHERE serviceId = {sid}` mutation (expensive but correct). This could be triggered from the Service settings UI.
+- **Default retention**: If `retainTelemetryDataForDays` is not set on a service, default to 15 days (matching current behavior)
+- **Same approach for Span and Metric tables**: This pattern should be applied to `SpanItem` and `MetricItem` tables as well since they use the same cron-based deletion today
+
+**Why this is better than the current approach**:
+
+| | Current (cron + mutations) | Proposed (TTL + retentionDate) |
+|---|---|---|
+| Mechanism | Hourly `ALTER TABLE DELETE` per service | ClickHouse background merges |
+| Cost | Creates mutations that rewrite data parts | Free — part of normal merge cycle |
+| Reliability | Depends on cron job running | Built into ClickHouse engine |
+| Scale | O(projects × services) mutations/hour | Zero external operations |
+| Disk I/O | Heavy (mutation rewrites) | Minimal (parts dropped during merge) |
 
 **Files to modify**:
-- `Common/Models/AnalyticsModels/Log.ts` (add TTL config)
-- `Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel.ts` (TTL support)
-- `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` (emit TTL clause)
-- `Worker/DataMigrations/` (new migration)
+- `Common/Models/AnalyticsModels/Log.ts` (add `retentionDate` column + TTL config)
+- `Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel.ts` (TTL support in base model)
+- `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` (emit TTL clause in CREATE TABLE)
+- `Telemetry/Services/OtelLogsIngestService.ts` (compute and store `retentionDate`)
+- `Telemetry/Services/FluentLogsIngestService.ts` (same)
+- `Telemetry/Services/SyslogIngestService.ts` (same)
+- `Common/Server/Services/OpenTelemetryIngestService.ts` (ensure `dataRetentionInDays` is passed through)
+- `Worker/DataMigrations/` (new migration to add column + set TTL)
+- `Worker/Jobs/TelemetryService/DeleteOldData.ts` (deprecate after transition)
+- Apply same pattern to `Common/Models/AnalyticsModels/Span.ts` and `Common/Models/AnalyticsModels/Metric.ts`
 
 ### 5.5 Fix SQL Construction in `LogAggregationService` (High)
 

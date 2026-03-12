@@ -65,6 +65,11 @@ export default class MonitorMetricUtil {
     const attributeKeys: Array<string> =
       TelemetryUtil.getAttributeKeys(attributes);
 
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      ingestionDate,
+      15,
+    );
+
     return {
       _id: ObjectID.generate().toString(),
       createdAt: ingestionTimestamp,
@@ -89,6 +94,7 @@ export default class MonitorMetricUtil {
       bucketCounts: [],
       explicitBounds: [],
       value: data.value ?? null,
+      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     } as JSONObject;
   }
 

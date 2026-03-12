@@ -286,6 +286,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   const logTimestamp: string =
                     OneUptimeDate.toClickhouseDateTime(timeDate);
 
+                  const retentionDate: Date = OneUptimeDate.addRemoveDays(
+                    ingestionDate,
+                    serviceDictionary[serviceName]!.dataRententionInDays || 15,
+                  );
+
                   const logRow: JSONObject = {
                     _id: ObjectID.generate().toString(),
                     createdAt: ingestionTimestamp,
@@ -301,6 +306,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     traceId: traceId,
                     spanId: spanId,
                     body: body,
+                    retentionDate:
+                      OneUptimeDate.toClickhouseDateTime(retentionDate),
                   };
 
                   dbLogs.push(logRow);

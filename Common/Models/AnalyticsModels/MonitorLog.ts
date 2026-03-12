@@ -103,6 +103,16 @@ export default class MonitorLog extends AnalyticsBaseModel {
       },
     });
 
+    const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "retentionDate",
+      title: "Retention Date",
+      description:
+        "Date after which this row is eligible for TTL deletion, computed at ingest time as time + service.retainTelemetryDataForDays",
+      required: true,
+      type: TableColumnType.Date,
+      defaultValue: undefined,
+    });
+
     super({
       tableName: "MonitorLog",
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -140,11 +150,13 @@ export default class MonitorLog extends AnalyticsBaseModel {
         monitorIdColumn,
         timeColumn,
         logBodyColumn,
+        retentionDateColumn,
       ],
       projections: [],
       sortKeys: ["projectId", "time", "monitorId"],
       primaryKeys: ["projectId", "time", "monitorId"],
       partitionKey: "sipHash64(projectId) % 16",
+      ttlExpression: "retentionDate DELETE",
     });
   }
 
@@ -175,5 +187,13 @@ export default class MonitorLog extends AnalyticsBaseModel {
   }
   public set logBody(v: JSONObject | undefined) {
     this.setColumnValue("logBody", v);
+  }
+
+  public get retentionDate(): Date | undefined {
+    return this.getColumnValue("retentionDate") as Date | undefined;
+  }
+
+  public set retentionDate(v: Date | undefined) {
+    this.setColumnValue("retentionDate", v);
   }
 }

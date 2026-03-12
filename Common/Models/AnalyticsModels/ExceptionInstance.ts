@@ -1,7 +1,9 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
-import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndexType,
+} from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -108,6 +110,12 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       description: "Exception Type", // Examples: java.net.ConnectException; OSError; etc.
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_exception_type",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -131,6 +139,10 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       description: "Exception Stack Trace", // Examples: Division by zero; Can't convert 'int' object to str implicitly
       required: false,
       type: TableColumnType.Text,
+      codec: {
+        codec: "ZSTD",
+        level: 3,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -154,6 +166,10 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       description: "Exception Message", // Examples: Division by zero; Can't convert 'int' object to str implicitly
       required: false,
       type: TableColumnType.Text,
+      codec: {
+        codec: "ZSTD",
+        level: 3,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -225,6 +241,12 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       description: "ID of the trace",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_trace_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -248,6 +270,12 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       description: "ID of the span",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_span_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -271,6 +299,12 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       description: "Fingerprint of the exception",
       required: true,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_fingerprint",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -406,6 +440,16 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       },
     });
 
+    const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "retentionDate",
+      title: "Retention Date",
+      description:
+        "Date after which this row is eligible for TTL deletion, computed at ingest time as time + service.retainTelemetryDataForDays",
+      required: true,
+      type: TableColumnType.Date,
+      defaultValue: undefined,
+    });
+
     super({
       tableName: "ExceptionItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -459,11 +503,13 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         environmentColumn,
         parsedFramesColumn,
         attributesColumn,
+        retentionDateColumn,
       ],
       projections: [],
       sortKeys: ["projectId", "time", "serviceId", "fingerprint"],
       primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
       partitionKey: "sipHash64(projectId) % 16",
+      ttlExpression: "retentionDate DELETE",
     });
   }
 
@@ -601,5 +647,13 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
   public set parsedFrames(v: string | undefined) {
     this.setColumnValue("parsedFrames", v);
+  }
+
+  public get retentionDate(): Date | undefined {
+    return this.getColumnValue("retentionDate") as Date | undefined;
+  }
+
+  public set retentionDate(v: Date | undefined) {
+    this.setColumnValue("retentionDate", v);
   }
 }

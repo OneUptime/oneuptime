@@ -600,6 +600,31 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 .append(this.toColumnType(column.type))
                 .append(SQL`)`),
         );
+
+      // Append CODEC if specified
+      if (column.codec) {
+        const codecStr: string = column.codec.level !== undefined
+          ? `${column.codec.codec}(${column.codec.level})`
+          : column.codec.codec;
+        columns.append(` CODEC(${codecStr})`);
+      }
+    }
+
+    // Append skip indexes after column definitions
+    const skipIndexColumns: Array<AnalyticsTableColumn> = tableColumns.filter(
+      (col: AnalyticsTableColumn) => {
+        return col.skipIndex !== undefined;
+      },
+    );
+
+    for (const col of skipIndexColumns) {
+      const idx: AnalyticsTableColumn["skipIndex"] = col.skipIndex!;
+      const paramsStr: string = idx.params && idx.params.length > 0
+        ? `(${idx.params.join(", ")})`
+        : "";
+      columns.append(
+        `, INDEX ${idx.name} ${col.key} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+      );
     }
 
     return columns;
@@ -733,6 +758,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     statement.append(SQL`)`);
+
+    // Append TTL if specified
+    if (this.model.ttlExpression) {
+      statement.append(`\nTTL ${this.model.ttlExpression}`);
+    }
 
     /* eslint-enable prettier/prettier */
 

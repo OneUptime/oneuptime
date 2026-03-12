@@ -3,6 +3,29 @@ import { ColumnAccessControl } from "../BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../BaseDatabase/ColumnBillingAccessControl";
 import { JSONValue } from "../JSON";
 
+export enum SkipIndexType {
+  BloomFilter = "bloom_filter",
+  Set = "set",
+  TokenBF = "tokenbf_v1",
+  NgramBF = "ngrambf_v1",
+  MinMax = "minmax",
+}
+
+export interface SkipIndex {
+  name: string;
+  type: SkipIndexType;
+  // e.g. 0.01 for bloom_filter, 10 for set, or [10240, 3, 0] for tokenbf_v1
+  params?: Array<number> | undefined;
+  granularity: number;
+}
+
+export type ColumnCodec = "ZSTD" | "LZ4" | "LZ4HC" | "NONE";
+
+export interface ColumnCodecConfig {
+  codec: ColumnCodec;
+  level?: number | undefined; // e.g. 3 for ZSTD(3)
+}
+
 export default class AnalyticsTableColumn {
   private _key: string = "id";
 
@@ -103,6 +126,22 @@ export default class AnalyticsTableColumn {
     this._accessControl = v;
   }
 
+  private _skipIndex: SkipIndex | undefined;
+  public get skipIndex(): SkipIndex | undefined {
+    return this._skipIndex;
+  }
+  public set skipIndex(v: SkipIndex | undefined) {
+    this._skipIndex = v;
+  }
+
+  private _codec: ColumnCodecConfig | undefined;
+  public get codec(): ColumnCodecConfig | undefined {
+    return this._codec;
+  }
+  public set codec(v: ColumnCodecConfig | undefined) {
+    this._codec = v;
+  }
+
   public constructor(data: {
     key: string;
     title: string;
@@ -117,6 +156,8 @@ export default class AnalyticsTableColumn {
     forceGetDefaultValueOnCreate?:
       | (() => Date | string | number | boolean)
       | undefined;
+    skipIndex?: SkipIndex | undefined;
+    codec?: ColumnCodecConfig | undefined;
   }) {
     this.accessControl = data.accessControl;
     this.key = data.key;
@@ -130,5 +171,7 @@ export default class AnalyticsTableColumn {
     this.billingAccessControl = data.billingAccessControl;
     this.allowAccessIfSubscriptionIsUnpaid =
       data.allowAccessIfSubscriptionIsUnpaid || false;
+    this.skipIndex = data.skipIndex;
+    this.codec = data.codec;
   }
 }

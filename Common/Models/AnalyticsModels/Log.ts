@@ -1,7 +1,9 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
-import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndexType,
+} from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -109,6 +111,12 @@ export default class Log extends AnalyticsBaseModel {
       description: "Log Severity Text",
       required: true,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_severity",
+        type: SkipIndexType.Set,
+        params: [10],
+        granularity: 4,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -205,6 +213,12 @@ export default class Log extends AnalyticsBaseModel {
       description: "ID of the trace",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_trace_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -228,6 +242,12 @@ export default class Log extends AnalyticsBaseModel {
       description: "ID of the span",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_span_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -251,6 +271,16 @@ export default class Log extends AnalyticsBaseModel {
       description: "Body of the Log",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_body",
+        type: SkipIndexType.TokenBF,
+        params: [10240, 3, 0],
+        granularity: 4,
+      },
+      codec: {
+        codec: "ZSTD",
+        level: 3,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -266,6 +296,16 @@ export default class Log extends AnalyticsBaseModel {
         ],
         update: [],
       },
+    });
+
+    const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "retentionDate",
+      title: "Retention Date",
+      description:
+        "Date after which this row is eligible for TTL deletion, computed at ingest time as time + service.retainTelemetryDataForDays",
+      required: true,
+      type: TableColumnType.Date,
+      defaultValue: undefined,
     });
 
     super({
@@ -312,11 +352,13 @@ export default class Log extends AnalyticsBaseModel {
         traceIdColumn,
         spanIdColumn,
         bodyColumn,
+        retentionDateColumn,
       ],
       projections: [],
       sortKeys: ["projectId", "time", "serviceId"],
       primaryKeys: ["projectId", "time", "serviceId"],
       partitionKey: "sipHash64(projectId) % 16",
+      ttlExpression: "retentionDate DELETE",
     });
   }
 
@@ -406,5 +448,13 @@ export default class Log extends AnalyticsBaseModel {
 
   public set spanId(v: string | undefined) {
     this.setColumnValue("spanId", v);
+  }
+
+  public get retentionDate(): Date | undefined {
+    return this.getColumnValue("retentionDate") as Date | undefined;
+  }
+
+  public set retentionDate(v: Date | undefined) {
+    this.setColumnValue("retentionDate", v);
   }
 }

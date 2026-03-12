@@ -4,6 +4,7 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Includes from "../../Types/BaseDatabase/Includes";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 
@@ -204,39 +205,43 @@ export class LogAggregationService {
     >,
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
-      const idStrings: Array<string> = request.serviceIds.map(
-        (id: ObjectID): string => {
-          return `'${id.toString()}'`;
-        },
+      statement.append(
+        SQL` AND serviceId IN (${{
+          type: TableColumnType.ObjectID,
+          value: new Includes(
+            request.serviceIds.map((id: ObjectID) => {
+              return id.toString();
+            }),
+          ),
+        }})`,
       );
-      statement.append(` AND serviceId IN (${idStrings.join(",")})`);
     }
 
     if (request.severityTexts && request.severityTexts.length > 0) {
-      const sevStrings: Array<string> = request.severityTexts.map(
-        (s: string): string => {
-          return `'${LogAggregationService.escapeSingleQuotes(s)}'`;
-        },
+      statement.append(
+        SQL` AND severityText IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.severityTexts),
+        }})`,
       );
-      statement.append(` AND severityText IN (${sevStrings.join(",")})`);
     }
 
     if (request.traceIds && request.traceIds.length > 0) {
-      const traceStrings: Array<string> = request.traceIds.map(
-        (s: string): string => {
-          return `'${LogAggregationService.escapeSingleQuotes(s)}'`;
-        },
+      statement.append(
+        SQL` AND traceId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.traceIds),
+        }})`,
       );
-      statement.append(` AND traceId IN (${traceStrings.join(",")})`);
     }
 
     if (request.spanIds && request.spanIds.length > 0) {
-      const spanStrings: Array<string> = request.spanIds.map(
-        (s: string): string => {
-          return `'${LogAggregationService.escapeSingleQuotes(s)}'`;
-        },
+      statement.append(
+        SQL` AND spanId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.spanIds),
+        }})`,
       );
-      statement.append(` AND spanId IN (${spanStrings.join(",")})`);
     }
 
     if (request.bodySearchText && request.bodySearchText.trim().length > 0) {
@@ -276,9 +281,6 @@ export class LogAggregationService {
     }
   }
 
-  private static escapeSingleQuotes(value: string): string {
-    return value.replace(/'/g, "\\'");
-  }
 }
 
 export default LogAggregationService;
