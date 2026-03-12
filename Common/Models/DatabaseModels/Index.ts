@@ -36,6 +36,7 @@ import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
 //Labels.
 import Label from "./Label";
+import LogSavedView from "./LogSavedView";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -250,6 +251,7 @@ const AllModelTypes: Array<{
   TeamComplianceSetting,
   ApiKey,
   Label,
+  LogSavedView,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,

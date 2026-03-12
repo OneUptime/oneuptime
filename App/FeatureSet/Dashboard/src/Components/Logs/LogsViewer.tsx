@@ -551,6 +551,50 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }, [serviceIdStrings, timeRange]);
 
+  // --- Handlers (defined before effects that reference them) ---
+
+  const disableLiveMode: () => void = useCallback((): void => {
+    if (isLiveEnabled) {
+      setIsLiveEnabled(false);
+      liveRequestInFlight.current = false;
+      setIsLiveUpdating(false);
+    }
+  }, [isLiveEnabled]);
+
+  const applySavedView: (savedView: LogSavedView) => void = useCallback(
+    (savedView: LogSavedView): void => {
+      const baseQuery: Query<Log> = buildBaseQuery(props);
+      const savedQuery: Query<Log> = (JSONFunctions.deserialize(
+        JSONFunctions.serialize(
+          (savedView.query || {}) as unknown as JSONObject,
+        ),
+      ) || {}) as Query<Log>;
+      const mergedQuery: Query<Log> = {
+        ...savedQuery,
+        ...baseQuery,
+      } as Query<Log>;
+      const nextTimeRange: RangeStartAndEndDateTime | undefined =
+        resolveSavedTimeRange(savedQuery);
+
+      if (nextTimeRange) {
+        setTimeRange(nextTimeRange);
+      }
+
+      setAppliedFacetFilters(
+        buildFacetFiltersFromQuery(mergedQuery, baseQuery),
+      );
+      setFilterOptions(mergedQuery);
+      setPage(1);
+      setPageSize(savedView.pageSize || DEFAULT_PAGE_SIZE);
+      setSortField((savedView.sortField as LogsSortField) || "time");
+      setSortOrder(savedView.sortOrder || SortOrder.Descending);
+      setSelectedColumns(normalizeLogsTableColumns(savedView.columns || []));
+      setSelectedSavedViewId(savedView.id?.toString() || null);
+      disableLiveMode();
+    },
+    [disableLiveMode, props],
+  );
+
   // --- Effects ---
 
   useEffect(() => {
@@ -691,48 +735,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       setIsLiveEnabled(shouldEnable);
     },
     [page, sortField, sortOrder],
-  );
-
-  const disableLiveMode: () => void = useCallback((): void => {
-    if (isLiveEnabled) {
-      setIsLiveEnabled(false);
-      liveRequestInFlight.current = false;
-      setIsLiveUpdating(false);
-    }
-  }, [isLiveEnabled]);
-
-  const applySavedView: (savedView: LogSavedView) => void = useCallback(
-    (savedView: LogSavedView): void => {
-      const baseQuery: Query<Log> = buildBaseQuery(props);
-      const savedQuery: Query<Log> = (JSONFunctions.deserialize(
-        JSONFunctions.serialize(
-          (savedView.query || {}) as unknown as JSONObject,
-        ),
-      ) || {}) as Query<Log>;
-      const mergedQuery: Query<Log> = {
-        ...savedQuery,
-        ...baseQuery,
-      } as Query<Log>;
-      const nextTimeRange: RangeStartAndEndDateTime | undefined =
-        resolveSavedTimeRange(savedQuery);
-
-      if (nextTimeRange) {
-        setTimeRange(nextTimeRange);
-      }
-
-      setAppliedFacetFilters(
-        buildFacetFiltersFromQuery(mergedQuery, baseQuery),
-      );
-      setFilterOptions(mergedQuery);
-      setPage(1);
-      setPageSize(savedView.pageSize || DEFAULT_PAGE_SIZE);
-      setSortField((savedView.sortField as LogsSortField) || "time");
-      setSortOrder(savedView.sortOrder || SortOrder.Descending);
-      setSelectedColumns(normalizeLogsTableColumns(savedView.columns || []));
-      setSelectedSavedViewId(savedView.id?.toString() || null);
-      disableLiveMode();
-    },
-    [disableLiveMode, props],
   );
 
   const handleFilterChanged: (newFilter: Query<Log>) => void = useCallback(
