@@ -567,15 +567,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const applySavedView: (savedView: LogSavedView) => void = useCallback(
     (savedView: LogSavedView): void => {
       const baseQuery: Query<Log> = buildBaseQuery(props);
+      const rawQuery: JSONObject =
+        (savedView.query as unknown as JSONObject) || {};
       const savedQuery: Query<Log> = (JSONFunctions.deserialize(
-        JSONFunctions.serialize(
-          (savedView.query || {}) as unknown as JSONObject,
-        ),
+        JSONFunctions.serialize(rawQuery),
       ) || {}) as Query<Log>;
       const mergedQuery: Query<Log> = {
-        ...savedQuery,
-        ...baseQuery,
-      } as Query<Log>;
+        ...(savedQuery as unknown as JSONObject),
+        ...(baseQuery as unknown as JSONObject),
+      } as unknown as Query<Log>;
       const nextTimeRange: RangeStartAndEndDateTime | undefined =
         resolveSavedTimeRange(savedQuery);
 
