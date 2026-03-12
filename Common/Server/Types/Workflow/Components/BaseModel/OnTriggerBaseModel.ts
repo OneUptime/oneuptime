@@ -138,6 +138,19 @@ export default class OnTriggerBaseModel<
       select = JSONFunctions.parse(select) as Select<TBaseModel>;
     }
 
+    // Convert string "true"/"false" values to booleans in select.
+    // Workflow arguments may pass select values as strings (e.g. "true")
+    // which causes TypeORM to iterate string characters as property indices.
+    if (select && typeof select === "object") {
+      for (const key in select) {
+        if ((select as any)[key] === "true") {
+          (select as any)[key] = true;
+        } else if ((select as any)[key] === "false") {
+          (select as any)[key] = false;
+        }
+      }
+    }
+
     const model: TBaseModel | null = await this.service!.findOneById({
       id: new ObjectID(data["_id"].toString()),
       props: {
