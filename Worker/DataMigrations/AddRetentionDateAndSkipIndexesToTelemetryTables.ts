@@ -20,16 +20,8 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
 
   public override async migrate(): Promise<void> {
     // Add retentionDate column to all telemetry tables
-    await this.addRetentionDateColumn(
-      new Log(),
-      LogService,
-      "LogItem",
-    );
-    await this.addRetentionDateColumn(
-      new Span(),
-      SpanService,
-      "SpanItem",
-    );
+    await this.addRetentionDateColumn(new Log(), LogService, "LogItem");
+    await this.addRetentionDateColumn(new Span(), SpanService, "SpanItem");
     await this.addRetentionDateColumn(
       new Metric(),
       MetricService,
@@ -176,19 +168,23 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
 
   private async addRetentionDateColumn(
     model: { tableColumns: Array<AnalyticsTableColumn> },
-    service: { addColumnInDatabase: (column: AnalyticsTableColumn) => Promise<void>; getColumnTypeInDatabase: (column: AnalyticsTableColumn) => Promise<TableColumnType | null> },
+    service: {
+      addColumnInDatabase: (column: AnalyticsTableColumn) => Promise<void>;
+      getColumnTypeInDatabase: (
+        column: AnalyticsTableColumn,
+      ) => Promise<TableColumnType | null>;
+    },
     tableName: string,
   ): Promise<void> {
     try {
-      const column: AnalyticsTableColumn | undefined =
-        model.tableColumns.find((item: AnalyticsTableColumn) => {
+      const column: AnalyticsTableColumn | undefined = model.tableColumns.find(
+        (item: AnalyticsTableColumn) => {
           return item.key === "retentionDate";
-        });
+        },
+      );
 
       if (!column) {
-        logger.warn(
-          `retentionDate column not found in model for ${tableName}`,
-        );
+        logger.warn(`retentionDate column not found in model for ${tableName}`);
         return;
       }
 
@@ -197,14 +193,10 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
 
       if (!columnType) {
         await service.addColumnInDatabase(column);
-        logger.info(
-          `Added retentionDate column to ${tableName}`,
-        );
+        logger.info(`Added retentionDate column to ${tableName}`);
       }
     } catch (err) {
-      logger.error(
-        `Error adding retentionDate column to ${tableName}`,
-      );
+      logger.error(`Error adding retentionDate column to ${tableName}`);
       logger.error(err);
     }
   }
@@ -239,13 +231,9 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
       await service.execute(
         `ALTER TABLE ${tableName} MODIFY TTL retentionDate DELETE`,
       );
-      logger.info(
-        `Set TTL on ${tableName} using retentionDate column`,
-      );
+      logger.info(`Set TTL on ${tableName} using retentionDate column`);
     } catch (err) {
-      logger.error(
-        `Error setting TTL on ${tableName}: ${err}`,
-      );
+      logger.error(`Error setting TTL on ${tableName}: ${err}`);
     }
   }
 

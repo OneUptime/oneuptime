@@ -10,9 +10,11 @@ export default class FixTokenBFIndexesAndAddCodecs extends DataMigrationBase {
   }
 
   public override async migrate(): Promise<void> {
-    // Fix tokenbf_v1 indexes on Nullable columns by using assumeNotNull() wrapper.
-    // The original migration failed silently because ClickHouse does not support
-    // tokenbf_v1 on Nullable columns.
+    /*
+     * Fix tokenbf_v1 indexes on Nullable columns by using assumeNotNull() wrapper.
+     * The original migration failed silently because ClickHouse does not support
+     * tokenbf_v1 on Nullable columns.
+     */
 
     // Fix LogItem.body tokenbf_v1 index
     await this.executeWithLogging(
@@ -28,8 +30,10 @@ export default class FixTokenBFIndexesAndAddCodecs extends DataMigrationBase {
       "Add tokenbf_v1 index on SpanItem.name with assumeNotNull",
     );
 
-    // Apply ZSTD codecs to existing columns.
-    // The codec was defined in the model but never applied to existing tables via migration.
+    /*
+     * Apply ZSTD codecs to existing columns.
+     * The codec was defined in the model but never applied to existing tables via migration.
+     */
 
     // LogItem.body -> ZSTD(3)
     await this.executeWithLogging(

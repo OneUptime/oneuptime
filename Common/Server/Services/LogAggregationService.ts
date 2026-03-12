@@ -280,7 +280,6 @@ export class LogAggregationService {
       throw new BadDataException("Invalid facetKey");
     }
   }
-
 }
 
 export default LogAggregationService;

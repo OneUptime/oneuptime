@@ -11,7 +11,9 @@ import CommonModel, {
   Record,
   RecordValue,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
-import AnalyticsTableColumn, { SkipIndexType } from "../../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndexType,
+} from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
@@ -603,9 +605,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
       // Append CODEC if specified
       if (column.codec) {
-        const codecStr: string = column.codec.level !== undefined
-          ? `${column.codec.codec}(${column.codec.level})`
-          : column.codec.codec;
+        const codecStr: string =
+          column.codec.level !== undefined
+            ? `${column.codec.codec}(${column.codec.level})`
+            : column.codec.codec;
         columns.append(` CODEC(${codecStr})`);
       }
     }
@@ -619,14 +622,19 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     for (const col of skipIndexColumns) {
       const idx: AnalyticsTableColumn["skipIndex"] = col.skipIndex!;
-      const paramsStr: string = idx.params && idx.params.length > 0
-        ? `(${idx.params.join(", ")})`
-        : "";
-      // tokenbf_v1 and ngrambf_v1 indexes do not support Nullable columns in ClickHouse.
-      // Wrap with assumeNotNull() for Nullable (non-required) columns.
-      const needsAssumeNotNull: boolean = !col.required &&
-        (idx.type === SkipIndexType.TokenBF || idx.type === SkipIndexType.NgramBF);
-      const columnExpr: string = needsAssumeNotNull ? `assumeNotNull(${col.key})` : col.key;
+      const paramsStr: string =
+        idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
+      /*
+       * tokenbf_v1 and ngrambf_v1 indexes do not support Nullable columns in ClickHouse.
+       * Wrap with assumeNotNull() for Nullable (non-required) columns.
+       */
+      const needsAssumeNotNull: boolean =
+        !col.required &&
+        (idx.type === SkipIndexType.TokenBF ||
+          idx.type === SkipIndexType.NgramBF);
+      const columnExpr: string = needsAssumeNotNull
+        ? `assumeNotNull(${col.key})`
+        : col.key;
       columns.append(
         `, INDEX ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
       );

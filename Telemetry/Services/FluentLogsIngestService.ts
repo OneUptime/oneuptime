@@ -239,8 +239,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             traceId,
             spanId,
             body,
-            retentionDate:
-              OneUptimeDate.toClickhouseDateTime(retentionDate),
+            retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
           } satisfies JSONObject;
 
           dbLogs.push(logRow);

@@ -216,8 +216,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             traceId: "",
             spanId: "",
             body: parsed.message,
-            retentionDate:
-              OneUptimeDate.toClickhouseDateTime(retentionDate),
+            retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
           } satisfies JSONObject;
 
           dbLogs.push(logRow);

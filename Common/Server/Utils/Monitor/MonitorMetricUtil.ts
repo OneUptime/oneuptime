@@ -65,10 +65,7 @@ export default class MonitorMetricUtil {
     const attributeKeys: Array<string> =
       TelemetryUtil.getAttributeKeys(attributes);
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
-      ingestionDate,
-      15,
-    );
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(ingestionDate, 15);
 
     return {
       _id: ObjectID.generate().toString(),
