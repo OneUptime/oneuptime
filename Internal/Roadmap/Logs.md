@@ -2,15 +2,25 @@
 
 ## Context
 
-OneUptime's log management currently provides basic functionality: multi-protocol ingestion (OTLP, gRPC, Fluentd, Syslog), ClickHouse storage, text search on body, severity/time/attribute filtering, live tail (10s polling), and an expandable log detail view. While the foundation is solid, it falls significantly behind Datadog and New Relic in search UX, analytics, log processing, and operational features. This plan identifies the highest-impact gaps and proposes a phased implementation to close them.
+OneUptime's log management provides multi-protocol ingestion (OTLP, gRPC, Fluentd, Syslog), ClickHouse storage, a structured query language with field-specific searches and boolean operators, a log volume histogram with severity stacking, a faceted sidebar with attribute drill-down and service filtering, live tail, and an expandable log detail view. This plan identifies the remaining gaps vs Datadog and New Relic and proposes a phased implementation to close them.
+
+## Completed
+
+The following features have been implemented and removed from this plan:
+- **Phase 1.1** - Log Query Language / Search Bar (LogQueryParser, LogSearchBar with syntax highlighting and autocomplete)
+- **Phase 1.2** - Log Volume Histogram (recharts-based stacked bar chart with drag-to-zoom)
+- **Phase 1.3** - Faceted Sidebar with Attribute Drill-Down (LogsFacetSidebar with search, include/exclude filters)
+- **Phase 2.4** - Service Filter in Sidebar (implemented as part of the faceted sidebar)
+- **Phase 5.1** - Skip indexes for full-text search on `body`
+- **Phase 5.2** - Skip indexes for `traceId`, `spanId`, `severityText`
+- **Phase 5.4** - Per-service TTL via `retentionDate` column
+- **Phase 5.5** - Parameterized SQL in `LogAggregationService`
+- **Phase 5.6** - ZSTD compression on `body` column
 
 ## Gap Analysis Summary
 
 | Feature | OneUptime | Datadog | New Relic | Priority |
 |---------|-----------|---------|-----------|----------|
-| Full-text search with query syntax | Basic substring on `body` | Boolean, attribute, range, wildcard, NLQ | Lucene + NRQL | **P0** |
-| Log volume histogram (timeseries) | None | Always-on above log list | Always-on above log list | **P0** |
-| Faceted sidebar (attribute drill-down) | Hidden behind "Advanced Filters" | Left sidebar with counts, click-to-filter | Left sidebar with counts | **P0** |
 | Saved Views | None | Full state save/share | Full state save/share | **P1** |
 | Log Patterns (ML clustering) | None | Auto-clustering + Pattern Inspector | ML clustering + anomaly | **P1** |
 | Log-based analytics/charts | None | Timeseries, TopList, Table, Pie | Full NRQL charting | **P1** |
@@ -20,102 +30,9 @@ OneUptime's log management currently provides basic functionality: multi-protoco
 | Log-based Metrics | None | Count + Distribution, 15-month retention | Via NRQL | **P2** |
 | Drop Filters (pre-storage filtering) | None | Exclusion filters with sampling | Drop rules per NRQL | **P2** |
 | Export to CSV/JSON | None | CSV up to 100K rows | CSV/JSON up to 5K | **P2** |
-| Service filter in sidebar | None (only attribute filter) | Facet on `service` | Filter on entity | **P1** |
 | Keyboard shortcuts | None | Full keyboard nav | Basic | **P3** |
 | Sensitive Data Scrubbing | None | Multi-layer (SaaS + agent + pipeline) | Auto-obfuscation + custom rules | **P3** |
 | Data retention config UI | Referenced but no UI | Multi-tier (Standard/Flex/Archive) | Partitions + Live Archives | **P3** |
-
----
-
-## Phase 1: Search & Discovery UX (P0) — Highest Impact
-
-These changes directly improve the daily log investigation experience for every user.
-
-### 1.1 Log Query Language / Search Bar Enhancement
-
-**Current**: Single text input that does substring match on `body` field only.
-**Target**: A structured query bar supporting field-specific searches, boolean operators, and severity/service shortcuts.
-
-**Implementation**:
-
-- Create a new `LogQueryParser` utility at `Common/Types/Log/LogQueryParser.ts` that parses a query string into a `Query<Log>` object
-- Supported syntax:
-  - Free text: `connection refused` → substring match on `body`
-  - Field-specific: `service:api-gateway`, `severity:error`, `traceId:abc123`
-  - Attribute access: `@http.status_code:500`, `@user.id:12345`
-  - Boolean: `AND`, `OR`, `NOT` (e.g., `severity:error AND service:payments`)
-  - Negation: `-severity:debug` (exclude debug logs)
-  - Wildcards: `service:api-*`
-  - Numeric ranges on attributes: `@duration:>1000`
-  - Quoted phrases: `"connection refused"`
-- Replace the single text input in `LogsFilterCard.tsx` with a new `LogSearchBar` component featuring:
-  - Syntax highlighting (color-code field names, operators, values)
-  - Autocomplete dropdown suggesting field names (`service:`, `severity:`, `@attribute.name:`) and values
-  - Query validation with inline error indicators
-- The parser generates ClickHouse-compatible WHERE clauses via the existing `StatementGenerator`
-
-**Files to modify**:
-- `Common/Types/Log/LogQueryParser.ts` (new)
-- `Common/UI/Components/LogsViewer/components/LogSearchBar.tsx` (new)
-- `Common/UI/Components/LogsViewer/components/LogsFilterCard.tsx` (replace text input)
-- `Common/UI/Components/LogsViewer/LogsViewer.tsx` (wire new search bar)
-- `Common/Server/Services/AnalyticsDatabaseService.ts` (extend query translation for new operators)
-
-### 1.2 Log Volume Histogram
-
-**Current**: No visual representation of log volume over time.
-**Target**: A time-series bar chart above the log table showing log count per time bucket, colored by severity.
-
-**Implementation**:
-
-- Add a new API endpoint `POST /telemetry/logs/histogram` that runs a ClickHouse aggregation query:
-  ```sql
-  SELECT toStartOfInterval(time, INTERVAL {bucket_size}) AS bucket, severityText, count() AS cnt
-  FROM LogItem
-  WHERE projectId = {projectId} AND time BETWEEN {start} AND {end} [AND additional filters]
-  GROUP BY bucket, severityText
-  ORDER BY bucket
-  ```
-- Bucket size auto-calculated based on time range (e.g., 1min for last hour, 5min for last 6h, 1h for last week)
-- Create a `LogsHistogram` React component at `Common/UI/Components/LogsViewer/components/LogsHistogram.tsx`
-  - Stacked bar chart with severity colors (Error=red, Warning=amber, Info=blue, Debug=gray)
-  - Click-and-drag to zoom into a time range (updates the filter's start/end date)
-  - Hover tooltip showing exact count per severity at that time bucket
-- Place above the log table in `LogsViewer.tsx`
-
-**Files to modify**:
-- `Common/Server/API/TelemetryAPI.ts` (add histogram endpoint)
-- `Common/UI/Components/LogsViewer/components/LogsHistogram.tsx` (new)
-- `Common/UI/Components/LogsViewer/LogsViewer.tsx` (integrate histogram)
-
-### 1.3 Faceted Sidebar with Attribute Drill-Down
-
-**Current**: Attributes are a hidden "Advanced Filter" with JSON key-value input.
-**Target**: A persistent left sidebar showing top attribute values with counts, click-to-filter.
-
-**Implementation**:
-
-- Add a new API endpoint `POST /telemetry/logs/facets` that queries ClickHouse for top-N values of selected facet fields:
-  ```sql
-  SELECT JSONExtractString(attributes, {key}) AS val, count() AS cnt
-  FROM LogItem
-  WHERE projectId = {projectId} AND time BETWEEN {start} AND {end}
-  GROUP BY val ORDER BY cnt DESC LIMIT 10
-  ```
-- Default facets: `severityText`, `serviceId` (resolved to service name), and auto-discovered high-value attribute keys
-- Create `LogsFacetSidebar` component at `Common/UI/Components/LogsViewer/components/LogsFacetSidebar.tsx`:
-  - Each facet section shows the attribute name, top values with bar charts showing relative count
-  - Clicking a value adds it as a filter to the current query
-  - Clicking with "NOT" modifier excludes that value
-  - Expandable to see more values
-  - Search within a facet for specific values
-- Move from the current left nav (which just says "All Logs") to this facet sidebar
-
-**Files to modify**:
-- `Common/Server/API/TelemetryAPI.ts` (add facets endpoint)
-- `Common/UI/Components/LogsViewer/components/LogsFacetSidebar.tsx` (new)
-- `Common/UI/Components/LogsViewer/LogsViewer.tsx` (integrate sidebar layout)
-- `App/FeatureSet/Dashboard/src/Pages/Logs/Index.tsx` (adjust page layout)
 
 ---
 
@@ -178,18 +95,6 @@ These changes directly improve the daily log investigation experience for every 
 - `Common/UI/Components/LogsViewer/components/ColumnSelector.tsx` (new)
 - `Common/UI/Components/LogsViewer/components/LogsTable.tsx` (dynamic columns)
 - `Common/UI/Components/LogsViewer/LogsViewer.tsx` (column state management)
-
-### 2.4 Service Filter in Sidebar
-
-**Current**: No quick way to filter by service.
-**Target**: Service list with checkboxes in the facet sidebar.
-
-**Implementation**:
-
-- Part of the facet sidebar (1.3) - `serviceId` is a default facet
-- Service names resolved via the existing `serviceMap` loaded in `LogsViewer.tsx`
-- Multi-select: check multiple services to include, or click "Only" to isolate one
-- Color dots matching the service color coding already in the table
 
 ---
 
@@ -290,30 +195,18 @@ These changes directly improve the daily log investigation experience for every 
 
 ## Recommended Implementation Order
 
-1. **Phase 1.2** - Log Volume Histogram (highest visual impact, moderate effort)
-2. **Phase 1.3** - Faceted Sidebar (dramatically improves discovery UX)
-3. **Phase 1.1** - Query Language (the biggest effort but highest long-term value)
-4. **Phase 2.3** - Column Customization (small effort, high user value)
-5. **Phase 2.1** - Saved Views (moderate effort, high retention value)
-6. **Phase 3.4** - Export CSV/JSON (small effort, table-stakes feature)
-7. **Phase 3.1** - Log Context (moderate effort, high debugging value)
-8. **Phase 2.2** - Log Analytics View (larger effort, advanced user feature)
-9. **Phase 3.2** - Log Pipelines (large effort, platform capability)
-10. **Phase 3.3** - Drop Filters (moderate effort, cost optimization)
-11. **Phase 4.x** - Patterns, Shortcuts, Data Scrubbing (future)
+1. **Phase 2.3** - Column Customization (small effort, high user value)
+2. **Phase 2.1** - Saved Views (moderate effort, high retention value)
+3. **Phase 3.4** - Export CSV/JSON (small effort, table-stakes feature)
+4. **Phase 3.1** - Log Context (moderate effort, high debugging value)
+5. **Phase 2.2** - Log Analytics View (larger effort, advanced user feature)
+6. **Phase 3.2** - Log Pipelines (large effort, platform capability)
+7. **Phase 3.3** - Drop Filters (moderate effort, cost optimization)
+8. **Phase 4.x** - Patterns, Shortcuts, Data Scrubbing (future)
 
 ## Phase 5: ClickHouse Storage & Query Optimizations (P0) — Performance Foundation
 
 These optimizations address fundamental storage and indexing gaps in the telemetry tables that directly impact search speed, data correctness, and operational cost.
-
-### Completed
-
-The following items have been implemented:
-- **5.1** Skip indexes for full-text search on `body` (tokenbf_v1)
-- **5.2** Skip indexes for `traceId`, `spanId`, `severityText` (bloom_filter, set) — applied to Log, Span, Metric, Exception tables
-- **5.4** Per-service TTL via `retentionDate` column — applied to all 5 telemetry tables (Log, Span, Metric, Exception, MonitorLog) with ingestion-time computation
-- **5.5** Parameterized SQL in `LogAggregationService` — replaced string interpolation with `Includes`-based parameterized queries
-- **5.6** ZSTD compression on `body` column (Log), `stackTrace`/`message` (Exception)
 
 ### 5.3 Upgrade `time` Column to `DateTime64(9)` (High)
 
