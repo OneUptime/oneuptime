@@ -20,7 +20,7 @@ export interface LogsViewerToolbarProps {
   onTimeRangeChange?: (value: RangeStartAndEndDateTime) => void;
   onCreateSavedView?: (() => void) | undefined;
   savedViews?: Array<LogsSavedViewOption> | undefined;
-  selectedSavedViewId?: string | null;
+  selectedSavedViewId?: string | null | undefined;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
   onEditSavedView?: ((viewId: string) => void) | undefined;
   onDeleteSavedView?: ((viewId: string) => void) | undefined;
