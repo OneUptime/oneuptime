@@ -459,7 +459,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass $backend_telemetry;
     }
 
-    location /otlp/ {
+
+    location /otlp {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_telemetry http://${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT};
         proxy_set_header Host $host;
@@ -853,7 +854,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         client_max_body_size 50M;
     }
 
-    location /l/ { # Short URL for Link Shortener
+    location /l { # Short URL for Link Shortener
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;
