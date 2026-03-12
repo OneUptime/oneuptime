@@ -82,9 +82,7 @@ interface PivotedTimeseriesRow {
   [key: string]: number | string;
 }
 
-function pivotTimeseriesData(
-  rows: Array<AnalyticsTimeseriesRow>,
-): {
+function pivotTimeseriesData(rows: Array<AnalyticsTimeseriesRow>): {
   pivotedData: Array<PivotedTimeseriesRow>;
   seriesKeys: Array<string>;
 } {
@@ -102,8 +100,7 @@ function pivotTimeseriesData(
     const groupKey: string =
       Object.values(row.groupValues).join(" / ") || "count";
     seriesKeysSet.add(groupKey);
-    pivotRow[groupKey] =
-      ((pivotRow[groupKey] as number) || 0) + row.count;
+    pivotRow[groupKey] = ((pivotRow[groupKey] as number) || 0) + row.count;
   }
 
   return {
@@ -168,10 +165,8 @@ function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
 const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   props: LogsAnalyticsViewProps,
 ): ReactElement => {
-  const [chartType, setChartType] =
-    useState<AnalyticsChartType>("timeseries");
-  const [aggregation, setAggregation] =
-    useState<AnalyticsAggregation>("count");
+  const [chartType, setChartType] = useState<AnalyticsChartType>("timeseries");
+  const [aggregation, setAggregation] = useState<AnalyticsAggregation>("count");
   const [aggregationField, setAggregationField] = useState<string>("");
   const [groupByFields, setGroupByFields] = useState<Array<string>>([
     "severityText",
@@ -201,124 +196,125 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       return [...DIMENSION_OPTIONS, ...attributeOptions];
     }, [props.logAttributes]);
 
-  const fetchAnalytics: () => Promise<void> = useCallback(async (): Promise<void> => {
-    try {
-      setIsLoading(true);
+  const fetchAnalytics: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setIsLoading(true);
 
-      const dateRange: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.timeRange);
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.timeRange);
 
-      const startTime: Date = dateRange.startValue;
-      const endTime: Date = dateRange.endValue;
+        const startTime: Date = dateRange.startValue;
+        const endTime: Date = dateRange.endValue;
 
-      const requestData: JSONObject = {
-        chartType,
-        aggregation,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        bucketSizeInMinutes: computeDefaultBucketSize(startTime, endTime),
-      } as JSONObject;
+        const requestData: JSONObject = {
+          chartType,
+          aggregation,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          bucketSizeInMinutes: computeDefaultBucketSize(startTime, endTime),
+        } as JSONObject;
 
-      if (
-        groupByFields.length > 0 &&
-        groupByFields[0] &&
-        groupByFields[0].length > 0
-      ) {
-        (requestData as Record<string, unknown>)["groupBy"] =
-          groupByFields.filter((f: string) => {
-            return f.length > 0;
+        if (
+          groupByFields.length > 0 &&
+          groupByFields[0] &&
+          groupByFields[0].length > 0
+        ) {
+          (requestData as Record<string, unknown>)["groupBy"] =
+            groupByFields.filter((f: string) => {
+              return f.length > 0;
+            });
+        }
+
+        if (aggregation === "unique" && aggregationField) {
+          (requestData as Record<string, unknown>)["aggregationField"] =
+            aggregationField;
+        }
+
+        if (chartType === "toplist" || chartType === "table") {
+          (requestData as Record<string, unknown>)["limit"] = topListLimit;
+        }
+
+        if (props.serviceIds) {
+          (requestData as Record<string, unknown>)["serviceIds"] =
+            props.serviceIds;
+        }
+
+        // Apply facet filters
+        const severityValues: Set<string> | undefined =
+          props.appliedFacetFilters.get("severityText");
+
+        if (severityValues && severityValues.size > 0) {
+          (requestData as Record<string, unknown>)["severityTexts"] =
+            Array.from(severityValues);
+        }
+
+        const serviceFilterValues: Set<string> | undefined =
+          props.appliedFacetFilters.get("serviceId");
+
+        if (serviceFilterValues && serviceFilterValues.size > 0) {
+          (requestData as Record<string, unknown>)["serviceIds"] =
+            Array.from(serviceFilterValues);
+        }
+
+        const traceFilterValues: Set<string> | undefined =
+          props.appliedFacetFilters.get("traceId");
+
+        if (traceFilterValues && traceFilterValues.size > 0) {
+          (requestData as Record<string, unknown>)["traceIds"] =
+            Array.from(traceFilterValues);
+        }
+
+        const spanFilterValues: Set<string> | undefined =
+          props.appliedFacetFilters.get("spanId");
+
+        if (spanFilterValues && spanFilterValues.size > 0) {
+          (requestData as Record<string, unknown>)["spanIds"] =
+            Array.from(spanFilterValues);
+        }
+
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/logs/analytics",
+            ),
+            data: requestData,
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
           });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const data: unknown = response.data["data"] || [];
+
+        if (chartType === "timeseries") {
+          setTimeseriesData(data as Array<AnalyticsTimeseriesRow>);
+        } else if (chartType === "toplist") {
+          setTopListData(data as Array<AnalyticsTopItem>);
+        } else {
+          setTableData(data as Array<AnalyticsTableRow>);
+        }
+      } catch {
+        // Silently degrade
+        setTimeseriesData([]);
+        setTopListData([]);
+        setTableData([]);
+      } finally {
+        setIsLoading(false);
       }
-
-      if (aggregation === "unique" && aggregationField) {
-        (requestData as Record<string, unknown>)["aggregationField"] =
-          aggregationField;
-      }
-
-      if (chartType === "toplist" || chartType === "table") {
-        (requestData as Record<string, unknown>)["limit"] = topListLimit;
-      }
-
-      if (props.serviceIds) {
-        (requestData as Record<string, unknown>)["serviceIds"] =
-          props.serviceIds;
-      }
-
-      // Apply facet filters
-      const severityValues: Set<string> | undefined =
-        props.appliedFacetFilters.get("severityText");
-
-      if (severityValues && severityValues.size > 0) {
-        (requestData as Record<string, unknown>)["severityTexts"] =
-          Array.from(severityValues);
-      }
-
-      const serviceFilterValues: Set<string> | undefined =
-        props.appliedFacetFilters.get("serviceId");
-
-      if (serviceFilterValues && serviceFilterValues.size > 0) {
-        (requestData as Record<string, unknown>)["serviceIds"] =
-          Array.from(serviceFilterValues);
-      }
-
-      const traceFilterValues: Set<string> | undefined =
-        props.appliedFacetFilters.get("traceId");
-
-      if (traceFilterValues && traceFilterValues.size > 0) {
-        (requestData as Record<string, unknown>)["traceIds"] =
-          Array.from(traceFilterValues);
-      }
-
-      const spanFilterValues: Set<string> | undefined =
-        props.appliedFacetFilters.get("spanId");
-
-      if (spanFilterValues && spanFilterValues.size > 0) {
-        (requestData as Record<string, unknown>)["spanIds"] =
-          Array.from(spanFilterValues);
-      }
-
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/telemetry/logs/analytics",
-          ),
-          data: requestData,
-          headers: {
-            ...ModelAPI.getCommonHeaders(),
-          },
-        });
-
-      if (response instanceof HTTPErrorResponse) {
-        throw response;
-      }
-
-      const data: unknown = response.data["data"] || [];
-
-      if (chartType === "timeseries") {
-        setTimeseriesData(data as Array<AnalyticsTimeseriesRow>);
-      } else if (chartType === "toplist") {
-        setTopListData(data as Array<AnalyticsTopItem>);
-      } else {
-        setTableData(data as Array<AnalyticsTableRow>);
-      }
-    } catch {
-      // Silently degrade
-      setTimeseriesData([]);
-      setTopListData([]);
-      setTableData([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    chartType,
-    aggregation,
-    aggregationField,
-    groupByFields,
-    topListLimit,
-    props.timeRange,
-    props.serviceIds,
-    props.appliedFacetFilters,
-  ]);
+    }, [
+      chartType,
+      aggregation,
+      aggregationField,
+      groupByFields,
+      topListLimit,
+      props.timeRange,
+      props.serviceIds,
+      props.appliedFacetFilters,
+    ]);
 
   useEffect(() => {
     void fetchAnalytics();

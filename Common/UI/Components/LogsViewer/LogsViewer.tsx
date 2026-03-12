@@ -105,7 +105,12 @@ export interface ComponentProps {
 
 export type LogsSortField = LogsTableSortField;
 export type { LiveLogsOptions } from "./types";
-export type { HistogramBucket, FacetData, ActiveFilter, LogsViewMode } from "./types";
+export type {
+  HistogramBucket,
+  FacetData,
+  ActiveFilter,
+  LogsViewMode,
+} from "./types";
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const PAGE_SIZE_OPTIONS: Array<number> = [100, 250, 500, 1000];
@@ -609,8 +614,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={pageError} />;
   }
 
-  const currentViewMode: LogsViewMode =
-    props.viewMode ?? internalViewMode;
+  const currentViewMode: LogsViewMode = props.viewMode ?? internalViewMode;
 
   const handleViewModeChange: (mode: LogsViewMode) => void = (
     mode: LogsViewMode,
@@ -702,9 +706,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         <LogsAnalyticsView
           timeRange={props.timeRange || { range: TimeRange.PAST_ONE_HOUR }}
           serviceIds={props.analyticsServiceIds}
-          appliedFacetFilters={
-            props.analyticsAppliedFacetFilters || new Map()
-          }
+          appliedFacetFilters={props.analyticsAppliedFacetFilters || new Map()}
           logAttributes={logAttributes}
         />
       ) : (
