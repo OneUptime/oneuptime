@@ -52,8 +52,7 @@ export class LogAggregationService {
     "traceId",
     "spanId",
   ]);
-  private static readonly ATTRIBUTE_KEY_PATTERN: RegExp =
-    /^[a-zA-Z0-9._:/-]+$/;
+  private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
 
   @CaptureSpan()
@@ -254,7 +253,9 @@ export class LogAggregationService {
     return LogAggregationService.TOP_LEVEL_COLUMNS.has(key);
   }
 
-  private static validateFacetKey(facetKey: unknown): asserts facetKey is string {
+  private static validateFacetKey(
+    facetKey: unknown,
+  ): asserts facetKey is string {
     if (typeof facetKey !== "string") {
       throw new BadDataException("Invalid facetKey");
     }

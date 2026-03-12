@@ -366,8 +366,8 @@ router.post(
           ),
         ).toString();
 
-        logger.info("User forgot password: " + user.email?.toString());
-        logger.info("Reset Password URL: " + tokenVerifyUrl);
+        logger.debug("User forgot password: " + user.email?.toString());
+        logger.debug("Reset Password URL: " + tokenVerifyUrl);
 
         MailService.sendMail({
           toEmail: user.email!,

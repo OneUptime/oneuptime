@@ -15,9 +15,9 @@ describe("LogAggregationService", () => {
     limit: 15,
   };
 
-  const buildFacetStatement: (overrides?: Partial<FacetRequest>) => Statement = (
-    overrides: Partial<FacetRequest> = {},
-  ): Statement => {
+  const buildFacetStatement: (
+    overrides?: Partial<FacetRequest>,
+  ) => Statement = (overrides: Partial<FacetRequest> = {}): Statement => {
     return (LogAggregationService as any).buildFacetStatement({
       ...defaultRequest,
       ...overrides,
