@@ -298,6 +298,79 @@ export default class Log extends AnalyticsBaseModel {
       },
     });
 
+    const observedTimeUnixNanoColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "observedTimeUnixNano",
+        title: "Observed Time (in Unix Nano)",
+        description:
+          "When the log was observed/collected by the telemetry pipeline",
+        required: false,
+        type: TableColumnType.LongNumber,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
+    const droppedAttributesCountColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "droppedAttributesCount",
+        title: "Dropped Attributes Count",
+        description:
+          "Number of attributes that were dropped during collection",
+        required: false,
+        type: TableColumnType.Number,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
+    const flagsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "flags",
+      title: "Flags",
+      description: "Log record flags (e.g., W3C trace flags)",
+      required: false,
+      type: TableColumnType.Number,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       title: "Retention Date",
@@ -352,6 +425,9 @@ export default class Log extends AnalyticsBaseModel {
         traceIdColumn,
         spanIdColumn,
         bodyColumn,
+        observedTimeUnixNanoColumn,
+        droppedAttributesCountColumn,
+        flagsColumn,
         retentionDateColumn,
       ],
       projections: [],
@@ -448,6 +524,30 @@ export default class Log extends AnalyticsBaseModel {
 
   public set spanId(v: string | undefined) {
     this.setColumnValue("spanId", v);
+  }
+
+  public get observedTimeUnixNano(): number | undefined {
+    return this.getColumnValue("observedTimeUnixNano") as number | undefined;
+  }
+
+  public set observedTimeUnixNano(v: number | undefined) {
+    this.setColumnValue("observedTimeUnixNano", v);
+  }
+
+  public get droppedAttributesCount(): number | undefined {
+    return this.getColumnValue("droppedAttributesCount") as number | undefined;
+  }
+
+  public set droppedAttributesCount(v: number | undefined) {
+    this.setColumnValue("droppedAttributesCount", v);
+  }
+
+  public get flags(): number | undefined {
+    return this.getColumnValue("flags") as number | undefined;
+  }
+
+  public set flags(v: number | undefined) {
+    this.setColumnValue("flags", v);
   }
 
   public get retentionDate(): Date | undefined {
