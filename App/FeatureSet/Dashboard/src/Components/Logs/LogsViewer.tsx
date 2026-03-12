@@ -9,9 +9,23 @@ import LogsViewer, {
   FacetData,
   ActiveFilter,
 } from "Common/UI/Components/LogsViewer/LogsViewer";
+import {
+  DEFAULT_LOGS_TABLE_COLUMNS,
+  LogsSavedViewOption,
+  normalizeLogsTableColumns,
+} from "Common/UI/Components/LogsViewer/types";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import ModelAPI, {
+  ListResult as ModelListResult,
+} from "Common/UI/Utils/ModelAPI/ModelAPI";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -36,6 +50,7 @@ import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import { APP_API_URL } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RangeStartAndEndDateTime, {
@@ -58,6 +73,95 @@ export interface ComponentProps {
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
+const SAVED_VIEWS_LIMIT: number = 100;
+const FACET_FILTER_KEYS: Array<string> = [
+  "severityText",
+  "serviceId",
+  "traceId",
+  "spanId",
+];
+
+function getColumnsStorageKey(viewerId: string): string {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  return `logs-columns:${projectId?.toString() || "global"}:${viewerId}`;
+}
+
+function loadSelectedColumns(viewerId: string): Array<string> {
+  const savedValue: unknown = LocalStorage.getItem(
+    getColumnsStorageKey(viewerId),
+  );
+
+  if (Array.isArray(savedValue)) {
+    return normalizeLogsTableColumns(
+      savedValue.filter((value: unknown): value is string => {
+        return typeof value === "string";
+      }),
+    );
+  }
+
+  return [...DEFAULT_LOGS_TABLE_COLUMNS];
+}
+
+function getQueryValues(value: unknown): Array<string> {
+  if (value instanceof Includes) {
+    return value.values.map((item: string | number | ObjectID) => {
+      return item.toString();
+    });
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    value instanceof ObjectID
+  ) {
+    return [value.toString()];
+  }
+
+  return [];
+}
+
+function buildFacetFiltersFromQuery(
+  query: Query<Log>,
+  baseQuery: Query<Log>,
+): Map<string, Set<string>> {
+  const nextFilters: Map<string, Set<string>> = new Map();
+
+  for (const facetKey of FACET_FILTER_KEYS) {
+    if ((baseQuery as any)[facetKey] !== undefined) {
+      continue;
+    }
+
+    const values: Array<string> = getQueryValues((query as any)[facetKey]);
+
+    if (values.length > 0) {
+      nextFilters.set(facetKey, new Set(values));
+    }
+  }
+
+  return nextFilters;
+}
+
+function resolveSavedTimeRange(
+  query: Query<Log>,
+): RangeStartAndEndDateTime | undefined {
+  const timeFilter: unknown = (query as any).time;
+
+  if (!timeFilter || !(timeFilter instanceof InBetween)) {
+    return undefined;
+  }
+
+  const startTime: Date = new Date(timeFilter.startValue as string | Date);
+  const endTime: Date = new Date(timeFilter.endValue as string | Date);
+
+  if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+    return undefined;
+  }
+
+  return {
+    range: TimeRange.CUSTOM,
+    startAndEndDate: new InBetween<Date>(startTime, endTime),
+  };
+}
 
 function buildBaseQuery(props: ComponentProps): Query<Log> {
   const query: Query<Log> = {};
@@ -137,7 +241,25 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
   const [isLiveUpdating, setIsLiveUpdating] = useState<boolean>(false);
+  const [savedViews, setSavedViews] = useState<Array<LogSavedView>>([]);
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
+    null,
+  );
+  const [selectedColumns, setSelectedColumns] = useState<Array<string>>(() => {
+    return loadSelectedColumns(props.id);
+  });
+  const [showCreateSavedViewModal, setShowCreateSavedViewModal] =
+    useState<boolean>(false);
+  const [savedViewToEdit, setSavedViewToEdit] = useState<
+    LogSavedView | undefined
+  >(undefined);
+  const [savedViewToDelete, setSavedViewToDelete] = useState<
+    LogSavedView | undefined
+  >(undefined);
+  const [isSavedViewLoading, setIsSavedViewLoading] = useState<boolean>(false);
   const liveRequestInFlight: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const hasAppliedInitialSavedView: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
   // Histogram state
@@ -196,7 +318,73 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     });
   }, [props.serviceIds]);
 
+  const savedViewOptions: Array<LogsSavedViewOption> = useMemo(() => {
+    return [...savedViews]
+      .sort((left: LogSavedView, right: LogSavedView) => {
+        if (Boolean(left.isDefault) !== Boolean(right.isDefault)) {
+          return left.isDefault ? -1 : 1;
+        }
+
+        return (left.name || "").localeCompare(right.name || "");
+      })
+      .map((savedView: LogSavedView): LogsSavedViewOption => {
+        return {
+          id: savedView.id?.toString() || "",
+          name: savedView.name || "Untitled View",
+          isDefault: Boolean(savedView.isDefault),
+        };
+      });
+  }, [savedViews]);
+
+  const selectedSavedView: LogSavedView | undefined = useMemo(() => {
+    return savedViews.find((savedView: LogSavedView) => {
+      return savedView.id?.toString() === selectedSavedViewId;
+    });
+  }, [savedViews, selectedSavedViewId]);
+
   // --- Fetch logs ---
+
+  const fetchSavedViews: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setIsSavedViewLoading(true);
+
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+        if (!projectId) {
+          setSavedViews([]);
+          return;
+        }
+
+        const result: ModelListResult<LogSavedView> = await ModelAPI.getList({
+          modelType: LogSavedView,
+          query: {
+            projectId: projectId,
+          },
+          limit: SAVED_VIEWS_LIMIT,
+          skip: 0,
+          select: {
+            name: true,
+            query: true,
+            columns: true,
+            sortField: true,
+            sortOrder: true,
+            pageSize: true,
+            isDefault: true,
+            createdByUserId: true,
+          },
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
+
+        setSavedViews(result.data);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      } finally {
+        setIsSavedViewLoading(false);
+      }
+    }, []);
 
   type FetchOptions = {
     skipLoadingState?: boolean;
@@ -363,6 +551,50 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }, [serviceIdStrings, timeRange]);
 
+  // --- Handlers (defined before effects that reference them) ---
+
+  const disableLiveMode: () => void = useCallback((): void => {
+    if (isLiveEnabled) {
+      setIsLiveEnabled(false);
+      liveRequestInFlight.current = false;
+      setIsLiveUpdating(false);
+    }
+  }, [isLiveEnabled]);
+
+  const applySavedView: (savedView: LogSavedView) => void = useCallback(
+    (savedView: LogSavedView): void => {
+      const baseQuery: Query<Log> = buildBaseQuery(props);
+      const savedQuery: Query<Log> = (JSONFunctions.deserialize(
+        JSONFunctions.serialize(
+          (savedView.query || {}) as unknown as JSONObject,
+        ),
+      ) || {}) as Query<Log>;
+      const mergedQuery: Query<Log> = {
+        ...savedQuery,
+        ...baseQuery,
+      } as Query<Log>;
+      const nextTimeRange: RangeStartAndEndDateTime | undefined =
+        resolveSavedTimeRange(savedQuery);
+
+      if (nextTimeRange) {
+        setTimeRange(nextTimeRange);
+      }
+
+      setAppliedFacetFilters(
+        buildFacetFiltersFromQuery(mergedQuery, baseQuery),
+      );
+      setFilterOptions(mergedQuery);
+      setPage(1);
+      setPageSize(savedView.pageSize || DEFAULT_PAGE_SIZE);
+      setSortField((savedView.sortField as LogsSortField) || "time");
+      setSortOrder(savedView.sortOrder || SortOrder.Descending);
+      setSelectedColumns(normalizeLogsTableColumns(savedView.columns || []));
+      setSelectedSavedViewId(savedView.id?.toString() || null);
+      disableLiveMode();
+    },
+    [disableLiveMode, props],
+  );
+
   // --- Effects ---
 
   useEffect(() => {
@@ -378,6 +610,46 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     void fetchFacets();
   }, [fetchFacets]);
+
+  useEffect(() => {
+    void fetchSavedViews();
+  }, [fetchSavedViews]);
+
+  useEffect(() => {
+    LocalStorage.setItem(getColumnsStorageKey(props.id), selectedColumns);
+  }, [props.id, selectedColumns]);
+
+  useEffect(() => {
+    if (hasAppliedInitialSavedView.current || isSavedViewLoading) {
+      return;
+    }
+
+    hasAppliedInitialSavedView.current = true;
+
+    const defaultSavedView: LogSavedView | undefined = savedViews.find(
+      (savedView: LogSavedView) => {
+        return Boolean(savedView.isDefault);
+      },
+    );
+
+    if (defaultSavedView) {
+      applySavedView(defaultSavedView);
+    }
+  }, [applySavedView, isSavedViewLoading, savedViews]);
+
+  useEffect(() => {
+    if (!selectedSavedViewId) {
+      return;
+    }
+
+    const exists: boolean = savedViews.some((savedView: LogSavedView) => {
+      return savedView.id?.toString() === selectedSavedViewId;
+    });
+
+    if (!exists) {
+      setSelectedSavedViewId(null);
+    }
+  }, [savedViews, selectedSavedViewId]);
 
   // Live polling
   useEffect(() => {
@@ -464,14 +736,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     },
     [page, sortField, sortOrder],
   );
-
-  const disableLiveMode: () => void = useCallback((): void => {
-    if (isLiveEnabled) {
-      setIsLiveEnabled(false);
-      liveRequestInFlight.current = false;
-      setIsLiveUpdating(false);
-    }
-  }, [isLiveEnabled]);
 
   const handleFilterChanged: (newFilter: Query<Log>) => void = useCallback(
     (newFilter: Query<Log>): void => {
@@ -793,46 +1057,250 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div id={props.id}>
-      <LogsViewer
-        isLoading={isLoading}
-        onFilterChanged={handleFilterChanged}
-        filterData={filterOptions}
-        logs={logs}
-        showFilters={props.showFilters}
-        noLogsMessage={props.noLogsMessage}
-        totalCount={totalCount}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        sortField={sortField}
-        sortOrder={sortOrder}
-        onSortChange={handleSortChange}
-        liveOptions={{
-          isLive: isLiveEnabled,
-          onToggle: handleLiveToggle,
-          isDisabled: isLiveUpdating,
-        }}
-        getTraceRoute={getTraceRoute}
-        getSpanRoute={getSpanRoute}
-        histogramBuckets={histogramBuckets}
-        histogramLoading={histogramLoading}
-        onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
-        facetData={facetData}
-        facetLoading={facetLoading}
-        onFacetInclude={handleFacetInclude}
-        onFacetExclude={handleFacetExclude}
-        showFacetSidebar={true}
-        activeFilters={activeFilters}
-        onRemoveFilter={handleRemoveFilter}
-        onClearAllFilters={handleClearAllFilters}
-        valueSuggestions={valueSuggestions}
-        onFieldValueSelect={handleFieldValueSelect}
-        timeRange={timeRange}
-        onTimeRangeChange={handleTimeRangeChange}
-      />
-    </div>
+    <>
+      {showCreateSavedViewModal && (
+        <ModelFormModal<LogSavedView>
+          modelType={LogSavedView}
+          name="Save Log View"
+          title="Save Log View"
+          description="Save the current log explorer state as a reusable view."
+          onClose={() => {
+            setShowCreateSavedViewModal(false);
+          }}
+          submitButtonText="Save View"
+          onBeforeCreate={async (savedView: LogSavedView) => {
+            savedView.query = filterOptions;
+            savedView.columns = selectedColumns;
+            savedView.sortField = sortField;
+            savedView.sortOrder = sortOrder;
+            savedView.pageSize = pageSize;
+            return savedView;
+          }}
+          onSuccess={async (savedView: LogSavedView) => {
+            setShowCreateSavedViewModal(false);
+            await fetchSavedViews();
+            applySavedView(savedView);
+          }}
+          formProps={{
+            name: "Save Log View",
+            modelType: LogSavedView,
+            id: "save-log-view",
+            fields: [
+              {
+                field: {
+                  name: true,
+                },
+                fieldType: FormFieldSchemaType.Text,
+                title: "Name",
+                description: "Choose a name for this saved log view.",
+                placeholder: "Errors in checkout",
+                required: true,
+              },
+              {
+                field: {
+                  isDefault: true,
+                },
+                fieldType: FormFieldSchemaType.Checkbox,
+                title: "Set as default",
+                description: "Automatically apply this view when opening logs.",
+                required: false,
+              },
+            ],
+            formType: FormType.Create,
+          }}
+        />
+      )}
+
+      {savedViewToEdit && (
+        <ModelFormModal<LogSavedView>
+          modelType={LogSavedView}
+          modelIdToEdit={savedViewToEdit.id!}
+          name="Edit Log View"
+          title="Edit Log View"
+          description="Rename this saved view or change whether it loads by default."
+          onClose={() => {
+            setSavedViewToEdit(undefined);
+          }}
+          submitButtonText="Save Changes"
+          onSuccess={async () => {
+            setSavedViewToEdit(undefined);
+            await fetchSavedViews();
+          }}
+          formProps={{
+            name: "Edit Log View",
+            modelType: LogSavedView,
+            id: "edit-log-view",
+            fields: [
+              {
+                field: {
+                  name: true,
+                },
+                fieldType: FormFieldSchemaType.Text,
+                title: "Name",
+                description: "Update the name of this saved view.",
+                placeholder: "Errors in checkout",
+                required: true,
+              },
+              {
+                field: {
+                  isDefault: true,
+                },
+                fieldType: FormFieldSchemaType.Checkbox,
+                title: "Set as default",
+                description: "Automatically apply this view when opening logs.",
+                required: false,
+              },
+            ],
+            formType: FormType.Update,
+          }}
+        />
+      )}
+
+      {savedViewToDelete && (
+        <ConfirmModal
+          title={`Delete ${savedViewToDelete.name || "saved view"}`}
+          description={`Are you sure you want to delete ${savedViewToDelete.name || "this saved view"}?`}
+          isLoading={isSavedViewLoading}
+          submitButtonText="Delete"
+          submitButtonType={ButtonStyleType.DANGER}
+          onSubmit={async () => {
+            if (!savedViewToDelete.id) {
+              setSavedViewToDelete(undefined);
+              return;
+            }
+
+            setIsSavedViewLoading(true);
+
+            try {
+              await ModelAPI.deleteItem({
+                modelType: LogSavedView,
+                id: savedViewToDelete.id,
+              });
+
+              if (savedViewToDelete.id.toString() === selectedSavedViewId) {
+                setSelectedSavedViewId(null);
+              }
+
+              await fetchSavedViews();
+              setSavedViewToDelete(undefined);
+            } catch (err) {
+              setError(API.getFriendlyMessage(err));
+            } finally {
+              setIsSavedViewLoading(false);
+            }
+          }}
+          onClose={() => {
+            setSavedViewToDelete(undefined);
+          }}
+        />
+      )}
+
+      <div id={props.id}>
+        <LogsViewer
+          isLoading={isLoading}
+          onFilterChanged={handleFilterChanged}
+          filterData={filterOptions}
+          logs={logs}
+          showFilters={props.showFilters}
+          noLogsMessage={props.noLogsMessage}
+          totalCount={totalCount}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
+          liveOptions={{
+            isLive: isLiveEnabled,
+            onToggle: handleLiveToggle,
+            isDisabled: isLiveUpdating,
+          }}
+          getTraceRoute={getTraceRoute}
+          getSpanRoute={getSpanRoute}
+          histogramBuckets={histogramBuckets}
+          histogramLoading={histogramLoading}
+          onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
+          facetData={facetData}
+          facetLoading={facetLoading}
+          onFacetInclude={handleFacetInclude}
+          onFacetExclude={handleFacetExclude}
+          showFacetSidebar={true}
+          activeFilters={activeFilters}
+          onRemoveFilter={handleRemoveFilter}
+          onClearAllFilters={handleClearAllFilters}
+          valueSuggestions={valueSuggestions}
+          onFieldValueSelect={handleFieldValueSelect}
+          timeRange={timeRange}
+          onTimeRangeChange={handleTimeRangeChange}
+          selectedColumns={selectedColumns}
+          onSelectedColumnsChange={(columns: Array<string>) => {
+            setSelectedColumns(normalizeLogsTableColumns(columns));
+          }}
+          savedViews={savedViewOptions}
+          selectedSavedViewId={selectedSavedViewId}
+          onSavedViewSelect={(viewId: string) => {
+            const savedView: LogSavedView | undefined = savedViews.find(
+              (item: LogSavedView) => {
+                return item.id?.toString() === viewId;
+              },
+            );
+
+            if (savedView) {
+              applySavedView(savedView);
+            }
+          }}
+          onCreateSavedView={() => {
+            setShowCreateSavedViewModal(true);
+          }}
+          onEditSavedView={(viewId: string) => {
+            const savedView: LogSavedView | undefined = savedViews.find(
+              (item: LogSavedView) => {
+                return item.id?.toString() === viewId;
+              },
+            );
+
+            setSavedViewToEdit(savedView);
+          }}
+          onDeleteSavedView={(viewId: string) => {
+            const savedView: LogSavedView | undefined = savedViews.find(
+              (item: LogSavedView) => {
+                return item.id?.toString() === viewId;
+              },
+            );
+
+            setSavedViewToDelete(savedView);
+          }}
+          onUpdateCurrentSavedView={async () => {
+            if (!selectedSavedView?.id) {
+              return;
+            }
+
+            setIsSavedViewLoading(true);
+
+            try {
+              await ModelAPI.updateById({
+                modelType: LogSavedView,
+                id: selectedSavedView.id,
+                data: JSONFunctions.serialize({
+                  query: filterOptions,
+                  columns: selectedColumns,
+                  sortField: sortField,
+                  sortOrder: sortOrder,
+                  pageSize: pageSize,
+                } as JSONObject) as JSONObject,
+              });
+
+              await fetchSavedViews();
+            } catch (err) {
+              setError(API.getFriendlyMessage(err));
+            } finally {
+              setIsSavedViewLoading(false);
+            }
+          }}
+        />
+      </div>
+    </>
   );
 };
 

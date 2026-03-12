@@ -185,6 +185,9 @@ import IncidentPostmortemTemplateService, {
 import TableViewService, {
   Service as TableViewServiceType,
 } from "Common/Server/Services/TableViewService";
+import LogSavedViewService, {
+  Service as LogSavedViewServiceType,
+} from "Common/Server/Services/LogSavedViewService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -630,6 +633,7 @@ import ScheduledMaintenanceTemplateOwnerUserService, {
   Service as ScheduledMaintenanceTemplateOwnerUserServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
 import TableView from "Common/Models/DatabaseModels/TableView";
+import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 
 import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
@@ -1491,6 +1495,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TableView, TableViewServiceType>(
         TableView,
         TableViewService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<LogSavedView, LogSavedViewServiceType>(
+        LogSavedView,
+        LogSavedViewService,
       ).getRouter(),
     );
 

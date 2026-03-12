@@ -119,10 +119,10 @@ const LogTimeRangePicker: FunctionComponent<LogTimeRangePickerProps> = (
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
           isOpen
             ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
         }`}
         onClick={() => {
           setIsOpen(!isOpen);

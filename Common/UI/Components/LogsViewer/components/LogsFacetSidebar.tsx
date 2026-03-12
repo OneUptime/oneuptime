@@ -1,5 +1,10 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import { FacetData, FacetValue, ActiveFilter } from "../types";
+import {
+  FacetData,
+  FacetValue,
+  ActiveFilter,
+  LogsSavedViewOption,
+} from "../types";
 import FacetSection from "./FacetSection";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
@@ -14,6 +19,9 @@ export interface LogsFacetSidebarProps {
   onIncludeFilter: (facetKey: string, value: string) => void;
   onExcludeFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
+  savedViews?: Array<LogsSavedViewOption> | undefined;
+  selectedSavedViewId?: string | null;
+  onSavedViewSelect?: ((viewId: string) => void) | undefined;
 }
 
 const SEVERITY_ORDER: Array<string> = [
@@ -137,6 +145,43 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
       )}
 
       <div className="flex-1 overflow-y-auto">
+        {props.savedViews && props.savedViews.length > 0 && (
+          <div className="border-b border-gray-100 px-3 py-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+              Saved Views
+            </p>
+
+            <div className="space-y-1.5">
+              {props.savedViews.map((view: LogsSavedViewOption) => {
+                const isSelected: boolean =
+                  view.id === props.selectedSavedViewId;
+
+                return (
+                  <button
+                    key={view.id}
+                    type="button"
+                    className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
+                      isSelected
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                    }`}
+                    onClick={() => {
+                      props.onSavedViewSelect?.(view.id);
+                    }}
+                  >
+                    <span className="truncate">{view.name}</span>
+                    {view.isDefault && (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                        Default
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {facetKeys.map((key: string) => {
           const values: Array<FacetValue> = props.facetData[key] || [];
 

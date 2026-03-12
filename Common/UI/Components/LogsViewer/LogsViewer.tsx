@@ -42,9 +42,16 @@ import {
   HistogramBucket,
   FacetData,
   ActiveFilter,
+  CORE_LOGS_TABLE_COLUMN_OPTIONS,
+  DEFAULT_LOGS_TABLE_COLUMNS,
+  getLogsAttributeColumnId,
+  LogsSavedViewOption,
+  LogsTableColumnOption,
+  normalizeLogsTableColumns,
 } from "./types";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "../../../Types/Time/TimeRange";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -79,6 +86,15 @@ export interface ComponentProps {
   onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
   timeRange?: RangeStartAndEndDateTime | undefined;
   onTimeRangeChange?: ((value: RangeStartAndEndDateTime) => void) | undefined;
+  selectedColumns?: Array<string> | undefined;
+  onSelectedColumnsChange?: ((columns: Array<string>) => void) | undefined;
+  savedViews?: Array<LogsSavedViewOption> | undefined;
+  selectedSavedViewId?: string | null;
+  onSavedViewSelect?: ((viewId: string) => void) | undefined;
+  onCreateSavedView?: (() => void) | undefined;
+  onEditSavedView?: ((viewId: string) => void) | undefined;
+  onDeleteSavedView?: ((viewId: string) => void) | undefined;
+  onUpdateCurrentSavedView?: (() => void) | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
@@ -98,6 +114,32 @@ const severityWeight: Record<string, number> = {
   debug: 2,
   trace: 1,
 };
+
+function getEmptyMessageWithTimeRange(
+  timeRange: RangeStartAndEndDateTime | undefined,
+): string {
+  if (!timeRange) {
+    return "Adjust filters or check again later.";
+  }
+
+  if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
+    const startDate: Date = timeRange.startAndEndDate.startValue;
+    const endDate: Date = timeRange.startAndEndDate.endValue;
+    const fmt: (d: Date) => string = (d: Date): string => {
+      return d.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    };
+
+    return `Time range: ${fmt(startDate)} – ${fmt(endDate)}. Try adjusting filters or expanding the time range.`;
+  }
+
+  const rangeLabel: string = timeRange.range.toLowerCase();
+  return `Time range: ${rangeLabel}. Try adjusting filters or expanding the time range.`;
+}
 
 const getSeverityWeight: (severity: string | undefined) => number = (
   severity: string | undefined,
@@ -151,6 +193,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [localSortOrder, setLocalSortOrder] = useState<SortOrder>(
     SortOrder.Descending,
   );
+  const [internalSelectedColumns, setInternalSelectedColumns] = useState<
+    Array<string>
+  >(DEFAULT_LOGS_TABLE_COLUMNS);
 
   useEffect(() => {
     setFilterData(props.filterData);
@@ -173,6 +218,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       setInternalPageSize(props.pageSize);
     }
   }, [props.pageSize]);
+
+  useEffect(() => {
+    if (props.selectedColumns) {
+      setInternalSelectedColumns(
+        normalizeLogsTableColumns(props.selectedColumns),
+      );
+    }
+  }, [props.selectedColumns]);
 
   const currentPage: number = props.page ?? internalPage;
   const pageSize: number = props.pageSize ?? internalPageSize;
@@ -519,6 +572,26 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     };
   }, [props.onFieldValueSelect, serviceMap]);
 
+  const selectedColumns: Array<string> = props.selectedColumns
+    ? normalizeLogsTableColumns(props.selectedColumns)
+    : internalSelectedColumns;
+
+  const availableColumns: Array<LogsTableColumnOption> = useMemo(() => {
+    const attributeColumns: Array<LogsTableColumnOption> = [...logAttributes]
+      .sort((left: string, right: string) => {
+        return left.localeCompare(right);
+      })
+      .map((attributeKey: string): LogsTableColumnOption => {
+        return {
+          id: getLogsAttributeColumnId(attributeKey),
+          label: attributeKey,
+          attributeKey,
+        };
+      });
+
+    return [...CORE_LOGS_TABLE_COLUMN_OPTIONS, ...attributeColumns];
+  }, [logAttributes]);
+
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -531,6 +604,29 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     resultCount: totalItems,
     currentPage,
     totalPages,
+    savedViews: props.savedViews,
+    selectedSavedViewId: props.selectedSavedViewId,
+    onSavedViewSelect: props.onSavedViewSelect,
+    onCreateSavedView: props.onCreateSavedView,
+    onEditSavedView: props.onEditSavedView,
+    onDeleteSavedView: props.onDeleteSavedView,
+    onUpdateCurrentSavedView: props.onUpdateCurrentSavedView,
+    ...(props.onSelectedColumnsChange || props.selectedColumns
+      ? {
+          availableColumns,
+          selectedColumns,
+          onSelectedColumnsChange: (columns: Array<string>) => {
+            const nextColumns: Array<string> =
+              normalizeLogsTableColumns(columns);
+
+            if (!props.selectedColumns) {
+              setInternalSelectedColumns(nextColumns);
+            }
+
+            props.onSelectedColumnsChange?.(nextColumns);
+          },
+        }
+      : {}),
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
     ...(props.timeRange && props.onTimeRangeChange
       ? {
@@ -587,6 +683,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             onIncludeFilter={props.onFacetInclude || (() => {})}
             onExcludeFilter={props.onFacetExclude || (() => {})}
             activeFilters={props.activeFilters}
+            savedViews={props.savedViews}
+            selectedSavedViewId={props.selectedSavedViewId}
+            onSavedViewSelect={props.onSavedViewSelect}
           />
         )}
 
@@ -602,7 +701,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               logs={displayedLogs}
               serviceMap={serviceMap}
               isLoading={props.isLoading}
-              emptyMessage={props.noLogsMessage}
+              emptyMessage={props.noLogsMessage || getEmptyMessageWithTimeRange(props.timeRange)}
               onRowClick={(_log: Log, rowId: string) => {
                 setSelectedLogId((currentSelected: string | null) => {
                   if (currentSelected === rowId) {
@@ -616,6 +715,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               sortField={sortField}
               sortOrder={sortOrder}
               onSortChange={handleSortChange}
+              selectedColumns={selectedColumns}
               renderExpandedContent={(log: Log) => {
                 return (
                   <LogDetailsPanel

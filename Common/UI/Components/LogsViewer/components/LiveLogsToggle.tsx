@@ -9,10 +9,10 @@ const LiveLogsToggle: FunctionComponent<LiveLogsToggleProps> = (
   const { isLive, onToggle, isDisabled } = props;
 
   const baseClasses: string =
-    "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-emerald-200";
+    "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-200";
   const activeClasses: string = isLive
     ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50";
+    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50";
   const disabledClasses: string = isDisabled
     ? "cursor-not-allowed opacity-50"
     : "cursor-pointer";
@@ -36,7 +36,7 @@ const LiveLogsToggle: FunctionComponent<LiveLogsToggleProps> = (
           isLive ? "bg-emerald-500 animate-pulse" : "bg-gray-300"
         }`}
       />
-      <span className="font-semibold">Live</span>
+      <span>Live</span>
     </button>
   );
 
