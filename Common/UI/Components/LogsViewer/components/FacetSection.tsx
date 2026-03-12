@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useState, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useMemo,
+} from "react";
 import { FacetValue } from "../types";
 import FacetValueRow from "./FacetValueRow";
 import Icon from "../../Icon/Icon";
@@ -49,7 +54,8 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
       ? filteredValues
       : filteredValues.slice(0, visibleCount);
 
-  const hasMore: boolean = !searchText.trim() && filteredValues.length > visibleCount;
+  const hasMore: boolean =
+    !searchText.trim() && filteredValues.length > visibleCount;
 
   const maxCount: number =
     props.values.length > 0
