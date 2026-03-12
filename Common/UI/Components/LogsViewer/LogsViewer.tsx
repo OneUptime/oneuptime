@@ -110,6 +110,22 @@ const getSeverityWeight: (severity: string | undefined) => number = (
   return severityWeight[normalized] || 0;
 };
 
+// Resolve a human-readable service name to its UUID using the serviceMap.
+function resolveServiceNameToId(
+  name: string,
+  serviceMap: Dictionary<Service>,
+): string | undefined {
+  const lowerName: string = name.toLowerCase();
+
+  for (const [id, service] of Object.entries(serviceMap)) {
+    if (service?.name && service.name.toLowerCase() === lowerName) {
+      return id;
+    }
+  }
+
+  return undefined;
+}
+
 const LogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -356,6 +372,23 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     const queryFilter: Record<string, unknown> = queryStringToFilter(
       searchQuery,
     ) as Record<string, unknown>;
+
+    // Resolve human-readable service name to UUID if needed
+    if (
+      queryFilter["serviceId"] &&
+      typeof queryFilter["serviceId"] === "string"
+    ) {
+      const serviceName: string = queryFilter["serviceId"] as string;
+      const resolvedId: string | undefined = resolveServiceNameToId(
+        serviceName,
+        serviceMap,
+      );
+
+      if (resolvedId) {
+        queryFilter["serviceId"] = resolvedId;
+      }
+    }
+
     const mergedFilter: Query<Log> = {
       ...filterData,
       ...queryFilter,
@@ -456,6 +489,54 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const showSidebar: boolean =
     props.showFacetSidebar !== false && Boolean(props.facetData);
 
+  // Replace serviceId UUIDs with human-readable names in value suggestions
+  const resolvedValueSuggestions: Record<string, Array<string>> | undefined =
+    useMemo(() => {
+      if (!props.valueSuggestions) {
+        return undefined;
+      }
+
+      const suggestions: Record<string, Array<string>> = {
+        ...props.valueSuggestions,
+      };
+
+      if (suggestions["serviceId"] && Object.keys(serviceMap).length > 0) {
+        suggestions["serviceId"] = suggestions["serviceId"].map(
+          (id: string) => {
+            const service: Service | undefined = serviceMap[id];
+            return service?.name || id;
+          },
+        );
+      }
+
+      return suggestions;
+    }, [props.valueSuggestions, serviceMap]);
+
+  // Wrap onFieldValueSelect to resolve service names back to UUIDs
+  const handleFieldValueSelectWithServiceResolve:
+    | ((fieldKey: string, value: string) => void)
+    | undefined = useMemo(() => {
+    if (!props.onFieldValueSelect) {
+      return undefined;
+    }
+
+    return (fieldKey: string, value: string): void => {
+      if (fieldKey === "service") {
+        const resolvedId: string | undefined = resolveServiceNameToId(
+          value,
+          serviceMap,
+        );
+
+        if (resolvedId) {
+          props.onFieldValueSelect!(fieldKey, resolvedId);
+          return;
+        }
+      }
+
+      props.onFieldValueSelect!(fieldKey, value);
+    };
+  }, [props.onFieldValueSelect, serviceMap]);
+
   return (
     <div className="space-y-2">
       {props.showFilters && (
@@ -465,8 +546,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
             onSearchSubmit={handleSearchSubmit}
-            valueSuggestions={props.valueSuggestions}
-            onFieldValueSelect={props.onFieldValueSelect}
+            valueSuggestions={resolvedValueSuggestions}
+            onFieldValueSelect={handleFieldValueSelectWithServiceResolve}
             toolbar={<LogsViewerToolbar {...toolbarProps} />}
           />
         </div>

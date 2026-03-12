@@ -10,6 +10,7 @@ import {
   parseLogQuery,
 } from "./LogQueryParser";
 import Search from "../BaseDatabase/Search";
+import NotEqual from "../BaseDatabase/NotEqual";
 import GreaterThan from "../BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../BaseDatabase/GreaterThanOrEqual";
 import LessThan from "../BaseDatabase/LessThan";
@@ -33,12 +34,35 @@ const TOP_LEVEL_FIELDS: Set<string> = new Set([
   "body",
 ]);
 
+// Severity values stored in the database use title case (e.g. "Error", "Debug").
+// Normalise user input so that "error" matches "Error", etc.
+const SEVERITY_CANONICAL: Record<string, string> = {
+  fatal: "Fatal",
+  error: "Error",
+  warning: "Warning",
+  warn: "Warning",
+  information: "Information",
+  info: "Information",
+  debug: "Debug",
+  trace: "Trace",
+  unspecified: "Unspecified",
+};
+
+function normalizeSeverityValue(value: string): string {
+  return SEVERITY_CANONICAL[value.toLowerCase()] || value;
+}
+
 function applyFieldFilter(filter: LogFilter, token: ParsedToken): void {
   if (!token.field) {
     return;
   }
 
-  const value: string = token.value;
+  let value: string = token.value;
+
+  // Normalise severity values to match database casing
+  if (token.field === "severityText") {
+    value = normalizeSeverityValue(value);
+  }
 
   if (TOP_LEVEL_FIELDS.has(token.field)) {
     applyTopLevelFilter(filter, token.field, value, token.operator);
@@ -70,8 +94,10 @@ function applyTopLevelFilter(
     case FilterOperator.LessThanOrEqual:
       filter[field] = new LessThanOrEqual(parseNumericOrString(value));
       break;
-    case FilterOperator.Equals:
     case FilterOperator.NotEquals:
+      filter[field] = new NotEqual(value);
+      break;
+    case FilterOperator.Equals:
     default:
       filter[field] = value;
       break;
@@ -82,13 +108,41 @@ function applyAttributeFilter(
   filter: LogFilter,
   field: string,
   value: string,
-  _operator: FilterOperator,
+  operator: FilterOperator,
 ): void {
   if (!filter.attributes) {
     filter.attributes = {};
   }
 
-  filter.attributes[field] = value;
+  switch (operator) {
+    case FilterOperator.Contains:
+    case FilterOperator.Wildcard:
+      filter.attributes[field] = new Search(value.replace(/\*/g, ""));
+      break;
+    case FilterOperator.NotEquals:
+      filter.attributes[field] = new NotEqual(value);
+      break;
+    case FilterOperator.GreaterThan:
+      filter.attributes[field] = new GreaterThan(parseNumericOrString(value));
+      break;
+    case FilterOperator.GreaterThanOrEqual:
+      filter.attributes[field] = new GreaterThanOrEqual(
+        parseNumericOrString(value),
+      );
+      break;
+    case FilterOperator.LessThan:
+      filter.attributes[field] = new LessThan(parseNumericOrString(value));
+      break;
+    case FilterOperator.LessThanOrEqual:
+      filter.attributes[field] = new LessThanOrEqual(
+        parseNumericOrString(value),
+      );
+      break;
+    case FilterOperator.Equals:
+    default:
+      filter.attributes[field] = value;
+      break;
+  }
 }
 
 function applyFreeTextFilter(filter: LogFilter, token: ParsedToken): void {
