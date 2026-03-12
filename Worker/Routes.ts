@@ -134,9 +134,11 @@ import "./Jobs/Metrics/DeleteAlertMetricOlderThanXDays";
 
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
 
-// DeleteMonitorLogOlderThan24Hours cron job removed — TTL via retentionDate column
-// now handles automatic MonitorLog retention in ClickHouse. Retention days are read
-// from GlobalConfig.monitorLogRetentionInDays at ingestion time in MonitorLogUtil.
+/*
+ * DeleteMonitorLogOlderThan24Hours cron job removed — TTL via retentionDate column
+ * now handles automatic MonitorLog retention in ClickHouse. Retention days are read
+ * from GlobalConfig.monitorLogRetentionInDays at ingestion time in MonitorLogUtil.
+ */
 
 import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
 

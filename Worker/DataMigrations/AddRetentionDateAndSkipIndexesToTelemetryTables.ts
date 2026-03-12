@@ -183,8 +183,10 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
     await this.setTTL(ExceptionInstanceService, "ExceptionItem");
     await this.setTTL(MonitorLogService, "MonitorLog");
 
-    // Step 8: Fix retentionDate for pre-existing rows that have epoch-zero value.
-    // Without this fix, TTL would delete all pre-existing data on next merge.
+    /*
+     * Step 8: Fix retentionDate for pre-existing rows that have epoch-zero value.
+     * Without this fix, TTL would delete all pre-existing data on next merge.
+     */
     await this.executeWithLogging(
       LogService,
       `ALTER TABLE LogItem UPDATE retentionDate = time + INTERVAL 15 DAY WHERE retentionDate = toDateTime('1970-01-01 00:00:00') SETTINGS mutations_sync=0`,

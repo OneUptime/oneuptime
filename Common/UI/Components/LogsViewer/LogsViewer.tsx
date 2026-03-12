@@ -465,8 +465,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     });
   }, [props.activeFilters, serviceMap]);
 
-  // Replace serviceId UUIDs with human-readable names in value suggestions
-  // Must be before early returns to maintain consistent hook call order.
+  /*
+   * Replace serviceId UUIDs with human-readable names in value suggestions
+   * Must be before early returns to maintain consistent hook call order.
+   */
   const resolvedValueSuggestions: Record<string, Array<string>> | undefined =
     useMemo(() => {
       if (!props.valueSuggestions) {
@@ -489,8 +491,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       return suggestions;
     }, [props.valueSuggestions, serviceMap]);
 
-  // Wrap onFieldValueSelect to resolve service names back to UUIDs
-  // Must be before early returns to maintain consistent hook call order.
+  /*
+   * Wrap onFieldValueSelect to resolve service names back to UUIDs
+   * Must be before early returns to maintain consistent hook call order.
+   */
   const handleFieldValueSelectWithServiceResolve:
     | ((fieldKey: string, value: string) => void)
     | undefined = useMemo(() => {
