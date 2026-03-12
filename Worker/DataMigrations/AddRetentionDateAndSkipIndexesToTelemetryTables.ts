@@ -19,7 +19,7 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
   }
 
   public override async migrate(): Promise<void> {
-    // Add retentionDate column to all telemetry tables
+    // Step 1: Add retentionDate column to all telemetry tables
     await this.addRetentionDateColumn(new Log(), LogService, "LogItem");
     await this.addRetentionDateColumn(new Span(), SpanService, "SpanItem");
     await this.addRetentionDateColumn(
@@ -38,7 +38,7 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
       "MonitorLog",
     );
 
-    // Add skip indexes to Log table
+    // Step 2: Add skip indexes to Log table
     await this.addSkipIndex(
       LogService,
       "LogItem",
@@ -63,16 +63,17 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
       "bloom_filter(0.01)",
       1,
     );
+    // tokenbf_v1 requires assumeNotNull() wrapper for Nullable columns
     await this.addSkipIndex(
       LogService,
       "LogItem",
       "idx_body",
-      "body",
+      "assumeNotNull(body)",
       "tokenbf_v1(10240, 3, 0)",
       4,
     );
 
-    // Add skip indexes to Span table
+    // Step 3: Add skip indexes to Span table
     await this.addSkipIndex(
       SpanService,
       "SpanItem",
@@ -101,12 +102,12 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
       SpanService,
       "SpanItem",
       "idx_name",
-      "name",
+      "assumeNotNull(name)",
       "tokenbf_v1(10240, 3, 0)",
       4,
     );
 
-    // Add skip indexes to Metric table
+    // Step 4: Add skip indexes to Metric table
     await this.addSkipIndex(
       MetricService,
       "MetricItem",
@@ -124,7 +125,7 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
       4,
     );
 
-    // Add skip indexes to Exception table
+    // Step 5: Add skip indexes to Exception table
     await this.addSkipIndex(
       ExceptionInstanceService,
       "ExceptionItem",
@@ -158,12 +159,57 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
       1,
     );
 
-    // Set TTL on all tables
+    // Step 6: Apply ZSTD codecs to large text columns
+    await this.executeWithLogging(
+      LogService,
+      `ALTER TABLE LogItem MODIFY COLUMN body Nullable(String) CODEC(ZSTD(3))`,
+      "Apply ZSTD(3) codec to LogItem.body",
+    );
+    await this.executeWithLogging(
+      ExceptionInstanceService,
+      `ALTER TABLE ExceptionItem MODIFY COLUMN stackTrace Nullable(String) CODEC(ZSTD(3))`,
+      "Apply ZSTD(3) codec to ExceptionItem.stackTrace",
+    );
+    await this.executeWithLogging(
+      ExceptionInstanceService,
+      `ALTER TABLE ExceptionItem MODIFY COLUMN message Nullable(String) CODEC(ZSTD(3))`,
+      "Apply ZSTD(3) codec to ExceptionItem.message",
+    );
+
+    // Step 7: Set TTL on all tables
     await this.setTTL(LogService, "LogItem");
     await this.setTTL(SpanService, "SpanItem");
     await this.setTTL(MetricService, "MetricItem");
     await this.setTTL(ExceptionInstanceService, "ExceptionItem");
     await this.setTTL(MonitorLogService, "MonitorLog");
+
+    // Step 8: Fix retentionDate for pre-existing rows that have epoch-zero value.
+    // Without this fix, TTL would delete all pre-existing data on next merge.
+    await this.executeWithLogging(
+      LogService,
+      `ALTER TABLE LogItem UPDATE retentionDate = time + INTERVAL 15 DAY WHERE retentionDate = toDateTime('1970-01-01 00:00:00') SETTINGS mutations_sync=0`,
+      "Fix retentionDate for existing LogItem rows",
+    );
+    await this.executeWithLogging(
+      SpanService,
+      `ALTER TABLE SpanItem UPDATE retentionDate = startTime + INTERVAL 15 DAY WHERE retentionDate = toDateTime('1970-01-01 00:00:00') SETTINGS mutations_sync=0`,
+      "Fix retentionDate for existing SpanItem rows",
+    );
+    await this.executeWithLogging(
+      MetricService,
+      `ALTER TABLE MetricItem UPDATE retentionDate = time + INTERVAL 15 DAY WHERE retentionDate = toDateTime('1970-01-01 00:00:00') SETTINGS mutations_sync=0`,
+      "Fix retentionDate for existing MetricItem rows",
+    );
+    await this.executeWithLogging(
+      ExceptionInstanceService,
+      `ALTER TABLE ExceptionItem UPDATE retentionDate = time + INTERVAL 15 DAY WHERE retentionDate = toDateTime('1970-01-01 00:00:00') SETTINGS mutations_sync=0`,
+      "Fix retentionDate for existing ExceptionItem rows",
+    );
+    await this.executeWithLogging(
+      MonitorLogService,
+      `ALTER TABLE MonitorLog UPDATE retentionDate = time + INTERVAL 1 DAY WHERE retentionDate = toDateTime('1970-01-01 00:00:00') SETTINGS mutations_sync=0`,
+      "Fix retentionDate for existing MonitorLog rows",
+    );
   }
 
   private async addRetentionDateColumn(
@@ -205,16 +251,16 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
     service: { execute: (statement: string) => Promise<unknown> },
     tableName: string,
     indexName: string,
-    columnName: string,
+    columnExpression: string,
     indexType: string,
     granularity: number,
   ): Promise<void> {
     try {
       await service.execute(
-        `ALTER TABLE ${tableName} ADD INDEX IF NOT EXISTS ${indexName} ${columnName} TYPE ${indexType} GRANULARITY ${granularity}`,
+        `ALTER TABLE ${tableName} ADD INDEX IF NOT EXISTS ${indexName} ${columnExpression} TYPE ${indexType} GRANULARITY ${granularity}`,
       );
       logger.info(
-        `Added skip index ${indexName} on ${tableName}.${columnName}`,
+        `Added skip index ${indexName} on ${tableName}.${columnExpression}`,
       );
     } catch (err) {
       logger.error(
@@ -234,6 +280,19 @@ export default class AddRetentionDateAndSkipIndexesToTelemetryTables extends Dat
       logger.info(`Set TTL on ${tableName} using retentionDate column`);
     } catch (err) {
       logger.error(`Error setting TTL on ${tableName}: ${err}`);
+    }
+  }
+
+  private async executeWithLogging(
+    service: { execute: (statement: string) => Promise<unknown> },
+    sql: string,
+    description: string,
+  ): Promise<void> {
+    try {
+      await service.execute(sql);
+      logger.info(`${description} - SUCCESS`);
+    } catch (err) {
+      logger.error(`${description} - FAILED: ${err}`);
     }
   }
 
