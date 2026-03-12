@@ -14,6 +14,8 @@ Required flags:
 Optional flags:
 	--context <path>      Build context directory (default: .)
 	--platforms <list>    Comma-separated platforms passed to docker buildx (default: linux/amd64,linux/arm64)
+	                      When a single platform is given, tags are suffixed with the arch
+	                      (e.g. -amd64 or -arm64) so parallel builds don't overwrite each other.
 	--git-sha <sha>       Commit SHA used for the GIT_SHA build arg (default: detected via git)
 	--extra-tags <tag>    Additional tags for the community image (can be repeated)
 	--extra-enterprise-tags <tag>  Additional tags for the enterprise image (can be repeated)
@@ -88,6 +90,15 @@ if [[ -z "$GIT_SHA" ]]; then
 	fi
 fi
 
+# Determine if this is a single-platform build.
+# When building for a single platform, append the arch suffix to tags
+# so that parallel per-arch jobs don't overwrite each other.
+ARCH_SUFFIX=""
+if [[ "$PLATFORMS" != *","* ]]; then
+	# Single platform — extract arch (e.g. linux/amd64 -> amd64)
+	ARCH_SUFFIX="-${PLATFORMS#*/}"
+fi
+
 build_variant() {
 	local variant_prefix="$1"       # "" or "enterprise-"
 	local enterprise_flag="$2"      # false/true
@@ -95,24 +106,26 @@ build_variant() {
 	local sanitized_version
 	sanitized_version="${VERSION//+/-}"
 
+	local cache_scope="${IMAGE}-${variant_prefix:-community}"
+
 	local -a args
 	args=(
 		docker buildx build
 		--file "$DOCKERFILE"
 		--platform "$PLATFORMS"
 		--push
-		--cache-from "type=gha,scope=${IMAGE}-${variant_prefix:-community}"
-		--cache-to "type=gha,mode=max,scope=${IMAGE}-${variant_prefix:-community}"
+		--cache-from "type=registry,ref=ghcr.io/oneuptime/${IMAGE}:cache-${cache_scope}"
+		--cache-to "type=registry,ref=ghcr.io/oneuptime/${IMAGE}:cache-${cache_scope},mode=max"
 	)
 
 	args+=(
-		--tag "oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}"
-		--tag "ghcr.io/oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}"
+		--tag "oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}${ARCH_SUFFIX}"
+		--tag "ghcr.io/oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}${ARCH_SUFFIX}"
 	)
 
 	for tag_suffix in "${extra_tags_ref[@]}"; do
-		args+=(--tag "oneuptime/${IMAGE}:${tag_suffix}")
-		args+=(--tag "ghcr.io/oneuptime/${IMAGE}:${tag_suffix}")
+		args+=(--tag "oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
+		args+=(--tag "ghcr.io/oneuptime/${IMAGE}:${tag_suffix}${ARCH_SUFFIX}")
 	done
 
 	args+=(
@@ -125,8 +138,8 @@ build_variant() {
 	"${args[@]}"
 }
 
-echo "🚀 Building docker images for ${IMAGE} (${VERSION})"
+echo "🚀 Building docker images for ${IMAGE} (${VERSION}) [${PLATFORMS}]"
 build_variant "" false EXTRA_TAGS
-echo "✅ Pushed community image for ${IMAGE}:${VERSION}"
+echo "✅ Pushed community image for ${IMAGE}:${VERSION}${ARCH_SUFFIX}"
 build_variant "enterprise-" true EXTRA_ENTERPRISE_TAGS
-echo "✅ Pushed enterprise image for ${IMAGE}:enterprise-${VERSION}"
+echo "✅ Pushed enterprise image for ${IMAGE}:enterprise-${VERSION}${ARCH_SUFFIX}"

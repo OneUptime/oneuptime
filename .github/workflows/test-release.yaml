@@ -86,13 +86,21 @@ jobs:
           echo "patch=${target_patch}" >> "$GITHUB_OUTPUT"
           echo "Using version base: ${new_version}"
 
-  nginx-docker-image-deploy:
+  # ─── Docker image build jobs (per-arch matrix) ───────────────────────
+
+  nginx-docker-image-build:
     needs: [read-version, generate-build-number]
-    runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -102,17 +110,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/nginx
-            ghcr.io/oneuptime/nginx
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -122,19 +119,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy nginx.
 
       - name: Login to Docker Hub
         run: |
@@ -151,19 +140,52 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./Nginx/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-
-  e2e-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  nginx-docker-image-merge:
+    needs: [nginx-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image nginx \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+
+  e2e-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -173,17 +195,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/e2e
-            ghcr.io/oneuptime/e2e
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -193,19 +204,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy e2e.
 
       - name: Login to Docker Hub
         run: |
@@ -222,18 +225,51 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./E2E/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-  test-server-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  e2e-docker-image-merge:
+    needs: [e2e-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image e2e \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  test-server-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -243,17 +279,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/test-server
-            ghcr.io/oneuptime/test-server
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -263,19 +288,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy test-server.
 
       - name: Login to Docker Hub
         run: |
@@ -292,18 +309,51 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./TestServer/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-  home-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  test-server-docker-image-merge:
+    needs: [test-server-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image test-server \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  home-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -313,17 +363,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/home
-            ghcr.io/oneuptime/home
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -333,19 +372,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy home.
 
       - name: Login to Docker Hub
         run: |
@@ -362,20 +393,51 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./Home/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-
-
-  test-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  home-docker-image-merge:
+    needs: [home-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image home \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  test-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -385,17 +447,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/test
-            ghcr.io/oneuptime/test
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -405,19 +456,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy test.
 
       - name: Login to Docker Hub
         run: |
@@ -434,19 +477,51 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./Tests/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-
-  telemetry-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  test-docker-image-merge:
+    needs: [test-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image test \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  telemetry-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -456,17 +531,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/telemetry
-            ghcr.io/oneuptime/telemetry
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -476,19 +540,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy telemetry.
 
       - name: Login to Docker Hub
         run: |
@@ -505,18 +561,51 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./Telemetry/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-  probe-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  telemetry-docker-image-merge:
+    needs: [telemetry-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image telemetry \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  probe-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -526,17 +615,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/probe
-            ghcr.io/oneuptime/probe
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -546,19 +624,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy probe.
 
       - name: Login to Docker Hub
         run: |
@@ -575,18 +645,51 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./Probe/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-  app-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  probe-docker-image-merge:
+    needs: [probe-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image probe \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  app-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -596,17 +699,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/app
-            ghcr.io/oneuptime/app
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -616,19 +708,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy app.
 
       - name: Login to Docker Hub
         run: |
@@ -645,21 +729,51 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./App/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-
-
-
-  ai-agent-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  app-docker-image-merge:
+    needs: [app-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image app \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  ai-agent-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -669,17 +783,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/ai-agent
-            ghcr.io/oneuptime/ai-agent
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-
 
       - uses: actions/checkout@v4
         with:
@@ -689,18 +792,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy ai-agent.
 
       - name: Login to Docker Hub
         run: |
@@ -717,18 +813,51 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./AIAgent/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
-  worker-docker-image-deploy:
-    needs: [read-version, generate-build-number]
+  ai-agent-docker-image-merge:
+    needs: [ai-agent-docker-image-build, read-version]
     runs-on: ubuntu-latest
-    env:
-      QEMU_CPU: max
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image ai-agent \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  worker-docker-image-build:
+    needs: [read-version, generate-build-number]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'linux/amd64'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -738,17 +867,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/worker
-            ghcr.io/oneuptime/worker
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
-            
 
       - uses: actions/checkout@v4
         with:
@@ -758,19 +876,11 @@ jobs:
         with:
           node-version: latest
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         run: npm run prerun
-
-      # Build and deploy accounts.
 
       - name: Login to Docker Hub
         run: |
@@ -787,11 +897,39 @@ jobs:
             --version "${{needs.read-version.outputs.major_minor}}-test" \
             --dockerfile ./Worker/Dockerfile \
             --context . \
-            --platforms linux/amd64,linux/arm64 \
+            --platforms ${{ matrix.platform }} \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
 
+  worker-docker-image-merge:
+    needs: [worker-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}-test"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image worker \
+            --tags "${SANITIZED_VERSION},test,enterprise-${SANITIZED_VERSION},enterprise-test"
+
+  # ─── Non-Docker jobs (unchanged) ─────────────────────────────────────
 
   publish-terraform-provider:
     runs-on: ubuntu-latest
@@ -805,11 +943,10 @@ jobs:
           VERSION="${{needs.read-version.outputs.major_minor}}-test"
           echo "Skipping Terraform provider publish for test release $VERSION"
 
-                             
 
   test-helm-chart:
     runs-on: ubuntu-latest
-    needs: [infrastructure-agent-deploy, publish-terraform-provider, telemetry-docker-image-deploy, worker-docker-image-deploy, home-docker-image-deploy, test-server-docker-image-deploy, test-docker-image-deploy, probe-docker-image-deploy, app-docker-image-deploy, ai-agent-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy]
+    needs: [infrastructure-agent-deploy, publish-terraform-provider, telemetry-docker-image-merge, worker-docker-image-merge, home-docker-image-merge, test-server-docker-image-merge, test-docker-image-merge, probe-docker-image-merge, app-docker-image-merge, ai-agent-docker-image-merge, nginx-docker-image-merge, e2e-docker-image-merge]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -910,7 +1047,7 @@ jobs:
           retention-days: 7
 
 
-  test-e2e-test-self-hosted: 
+  test-e2e-test-self-hosted:
     runs-on: ubuntu-latest
     # After all the jobs runs
     needs: [test-helm-chart, generate-build-number, read-version]
@@ -1003,7 +1140,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
-          
+
       - name: Set up Go
         uses: actions/setup-go@v4
 
@@ -1027,7 +1164,7 @@ jobs:
 
       - name: Release MSI Images
         run: cd InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
-      
+
 
       - name: Upload Release Binaries
         uses: actions/upload-artifact@v4
@@ -1036,13 +1173,13 @@ jobs:
           # Name of the artifact to upload.
           # Optional. Default is 'artifact'
           name: binaries
-      
+
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
             ./InfrastructureAgent/dist
-      
-        
+
+
           # Duration after which artifact will expire in days. 0 means using default retention.
           # Minimum 1 day.
           # Maximum 90 days unless changed from the repository settings page.
