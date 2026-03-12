@@ -16,6 +16,12 @@ import LogAggregationService, {
   HistogramRequest,
   FacetValue,
   FacetRequest,
+  AnalyticsRequest,
+  AnalyticsChartType,
+  AnalyticsAggregation,
+  AnalyticsTimeseriesRow,
+  AnalyticsTopItem,
+  AnalyticsTableRow,
 } from "../Services/LogAggregationService";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -257,6 +263,146 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Log Analytics Endpoint ---
+
+router.post(
+  "/telemetry/logs/analytics",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const chartType: AnalyticsChartType =
+        (body["chartType"] as AnalyticsChartType) || "timeseries";
+
+      if (!["timeseries", "toplist", "table"].includes(chartType)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid chartType"),
+        );
+      }
+
+      const aggregation: AnalyticsAggregation =
+        (body["aggregation"] as AnalyticsAggregation) || "count";
+
+      if (!["count", "unique"].includes(aggregation)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid aggregation"),
+        );
+      }
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const bucketSizeInMinutes: number =
+        (body["bucketSizeInMinutes"] as number) ||
+        computeDefaultBucketSize(startTime, endTime);
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const severityTexts: Array<string> | undefined = body["severityTexts"]
+        ? (body["severityTexts"] as Array<string>)
+        : undefined;
+
+      const bodySearchText: string | undefined = body["bodySearchText"]
+        ? (body["bodySearchText"] as string)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const spanIds: Array<string> | undefined = body["spanIds"]
+        ? (body["spanIds"] as Array<string>)
+        : undefined;
+
+      const groupBy: Array<string> | undefined = body["groupBy"]
+        ? (body["groupBy"] as Array<string>)
+        : undefined;
+
+      const aggregationField: string | undefined = body["aggregationField"]
+        ? (body["aggregationField"] as string)
+        : undefined;
+
+      const limit: number | undefined = body["limit"]
+        ? (body["limit"] as number)
+        : undefined;
+
+      const request: AnalyticsRequest = {
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes,
+        chartType,
+        groupBy,
+        aggregation,
+        aggregationField,
+        serviceIds,
+        severityTexts,
+        bodySearchText,
+        traceIds,
+        spanIds,
+        limit,
+      };
+
+      if (chartType === "timeseries") {
+        const data: Array<AnalyticsTimeseriesRow> =
+          await LogAggregationService.getAnalyticsTimeseries(request);
+
+        return Response.sendJsonObjectResponse(req, res, {
+          data: data as unknown as JSONObject,
+        });
+      }
+
+      if (chartType === "toplist") {
+        const data: Array<AnalyticsTopItem> =
+          await LogAggregationService.getAnalyticsTopList(request);
+
+        return Response.sendJsonObjectResponse(req, res, {
+          data: data as unknown as JSONObject,
+        });
+      }
+
+      // table
+      const data: Array<AnalyticsTableRow> =
+        await LogAggregationService.getAnalyticsTable(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        data: data as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);

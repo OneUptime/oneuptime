@@ -24,6 +24,8 @@ export interface ActiveFilter {
   displayValue: string;
 }
 
+export type LogsViewMode = "list" | "analytics";
+
 export interface LogsSavedViewOption {
   id: string;
   name: string;

@@ -8,6 +8,7 @@ import LogsViewer, {
   HistogramBucket,
   FacetData,
   ActiveFilter,
+  LogsViewMode,
 } from "Common/UI/Components/LogsViewer/LogsViewer";
 import {
   DEFAULT_LOGS_TABLE_COLUMNS,
@@ -257,6 +258,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     LogSavedView | undefined
   >(undefined);
   const [isSavedViewLoading, setIsSavedViewLoading] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<LogsViewMode>("list");
+
   const liveRequestInFlight: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   const hasAppliedInitialSavedView: React.MutableRefObject<boolean> =
@@ -1271,6 +1274,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
             setSavedViewToDelete(savedView);
           }}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          analyticsServiceIds={serviceIdStrings}
+          analyticsAppliedFacetFilters={appliedFacetFilters}
           onUpdateCurrentSavedView={async () => {
             if (!selectedSavedView?.id) {
               return;

@@ -47,8 +47,10 @@ import {
   getLogsAttributeColumnId,
   LogsSavedViewOption,
   LogsTableColumnOption,
+  LogsViewMode,
   normalizeLogsTableColumns,
 } from "./types";
+import LogsAnalyticsView from "./components/LogsAnalyticsView";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -95,11 +97,15 @@ export interface ComponentProps {
   onEditSavedView?: ((viewId: string) => void) | undefined;
   onDeleteSavedView?: ((viewId: string) => void) | undefined;
   onUpdateCurrentSavedView?: (() => void) | undefined;
+  viewMode?: LogsViewMode | undefined;
+  onViewModeChange?: ((mode: LogsViewMode) => void) | undefined;
+  analyticsServiceIds?: Array<string> | undefined;
+  analyticsAppliedFacetFilters?: Map<string, Set<string>> | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
 export type { LiveLogsOptions } from "./types";
-export type { HistogramBucket, FacetData, ActiveFilter } from "./types";
+export type { HistogramBucket, FacetData, ActiveFilter, LogsViewMode } from "./types";
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const PAGE_SIZE_OPTIONS: Array<number> = [100, 250, 500, 1000];
@@ -196,6 +202,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [internalSelectedColumns, setInternalSelectedColumns] = useState<
     Array<string>
   >(DEFAULT_LOGS_TABLE_COLUMNS);
+
+  const [internalViewMode, setInternalViewMode] =
+    useState<LogsViewMode>("list");
 
   useEffect(() => {
     setFilterData(props.filterData);
@@ -600,10 +609,25 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={pageError} />;
   }
 
+  const currentViewMode: LogsViewMode =
+    props.viewMode ?? internalViewMode;
+
+  const handleViewModeChange: (mode: LogsViewMode) => void = (
+    mode: LogsViewMode,
+  ): void => {
+    if (!props.viewMode) {
+      setInternalViewMode(mode);
+    }
+
+    props.onViewModeChange?.(mode);
+  };
+
   const toolbarProps: LogsViewerToolbarProps = {
     resultCount: totalItems,
     currentPage,
     totalPages,
+    viewMode: currentViewMode,
+    onViewModeChange: handleViewModeChange,
     savedViews: props.savedViews,
     selectedSavedViewId: props.selectedSavedViewId,
     onSavedViewSelect: props.onSavedViewSelect,
@@ -673,80 +697,91 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         />
       )}
 
-      {/* Main content: sidebar + table */}
-      <div className="flex gap-3">
-        {showSidebar && props.facetData && (
-          <LogsFacetSidebar
-            facetData={props.facetData}
-            isLoading={props.facetLoading || false}
-            serviceMap={serviceMap}
-            onIncludeFilter={props.onFacetInclude || (() => {})}
-            onExcludeFilter={props.onFacetExclude || (() => {})}
-            activeFilters={props.activeFilters}
-            savedViews={props.savedViews}
-            selectedSavedViewId={props.selectedSavedViewId}
-            onSavedViewSelect={props.onSavedViewSelect}
-          />
-        )}
-
-        <div className="min-w-0 flex-1">
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-            {!props.showFilters && (
-              <div className="border-b border-gray-100 bg-gray-50/50 px-4 py-3">
-                <LogsViewerToolbar {...toolbarProps} />
-              </div>
-            )}
-
-            <LogsTable
-              logs={displayedLogs}
+      {/* Main content: analytics view or sidebar + table */}
+      {currentViewMode === "analytics" ? (
+        <LogsAnalyticsView
+          timeRange={props.timeRange || { range: TimeRange.PAST_ONE_HOUR }}
+          serviceIds={props.analyticsServiceIds}
+          appliedFacetFilters={
+            props.analyticsAppliedFacetFilters || new Map()
+          }
+          logAttributes={logAttributes}
+        />
+      ) : (
+        <div className="flex gap-3">
+          {showSidebar && props.facetData && (
+            <LogsFacetSidebar
+              facetData={props.facetData}
+              isLoading={props.facetLoading || false}
               serviceMap={serviceMap}
-              isLoading={props.isLoading}
-              emptyMessage={
-                props.noLogsMessage ||
-                getEmptyMessageWithTimeRange(props.timeRange)
-              }
-              onRowClick={(_log: Log, rowId: string) => {
-                setSelectedLogId((currentSelected: string | null) => {
-                  if (currentSelected === rowId) {
-                    return null;
-                  }
-
-                  return rowId;
-                });
-              }}
-              selectedLogId={selectedLogId}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSortChange={handleSortChange}
-              selectedColumns={selectedColumns}
-              renderExpandedContent={(log: Log) => {
-                return (
-                  <LogDetailsPanel
-                    log={log}
-                    serviceMap={serviceMap}
-                    onClose={() => {
-                      setSelectedLogId(null);
-                    }}
-                    getTraceRoute={props.getTraceRoute}
-                    getSpanRoute={props.getSpanRoute}
-                    variant="embedded"
-                  />
-                );
-              }}
+              onIncludeFilter={props.onFacetInclude || (() => {})}
+              onExcludeFilter={props.onFacetExclude || (() => {})}
+              activeFilters={props.activeFilters}
+              savedViews={props.savedViews}
+              selectedSavedViewId={props.selectedSavedViewId}
+              onSavedViewSelect={props.onSavedViewSelect}
             />
+          )}
 
-            <LogsPagination
-              currentPage={currentPage}
-              totalItems={totalItems}
-              pageSize={pageSize}
-              pageSizeOptions={PAGE_SIZE_OPTIONS}
-              onPageChange={handlePageChange}
-              onPageSizeChange={handlePageSizeChange}
-              isDisabled={props.isLoading || totalItems === 0}
-            />
+          <div className="min-w-0 flex-1">
+            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+              {!props.showFilters && (
+                <div className="border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+                  <LogsViewerToolbar {...toolbarProps} />
+                </div>
+              )}
+
+              <LogsTable
+                logs={displayedLogs}
+                serviceMap={serviceMap}
+                isLoading={props.isLoading}
+                emptyMessage={
+                  props.noLogsMessage ||
+                  getEmptyMessageWithTimeRange(props.timeRange)
+                }
+                onRowClick={(_log: Log, rowId: string) => {
+                  setSelectedLogId((currentSelected: string | null) => {
+                    if (currentSelected === rowId) {
+                      return null;
+                    }
+
+                    return rowId;
+                  });
+                }}
+                selectedLogId={selectedLogId}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSortChange={handleSortChange}
+                selectedColumns={selectedColumns}
+                renderExpandedContent={(log: Log) => {
+                  return (
+                    <LogDetailsPanel
+                      log={log}
+                      serviceMap={serviceMap}
+                      onClose={() => {
+                        setSelectedLogId(null);
+                      }}
+                      getTraceRoute={props.getTraceRoute}
+                      getSpanRoute={props.getSpanRoute}
+                      variant="embedded"
+                    />
+                  );
+                }}
+              />
+
+              <LogsPagination
+                currentPage={currentPage}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                pageSizeOptions={PAGE_SIZE_OPTIONS}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                isDisabled={props.isLoading || totalItems === 0}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
