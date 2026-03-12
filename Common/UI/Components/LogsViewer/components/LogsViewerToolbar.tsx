@@ -49,22 +49,11 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
             savedViews={props.savedViews}
             selectedSavedViewId={props.selectedSavedViewId}
             onSelect={props.onSavedViewSelect}
+            onCreate={props.onCreateSavedView}
             onEdit={props.onEditSavedView}
             onDelete={props.onDeleteSavedView}
             onUpdateCurrent={props.onUpdateCurrentSavedView}
           />
-        )}
-
-        {props.onCreateSavedView && (
-          <button
-            type="button"
-            className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
-            onClick={() => {
-              props.onCreateSavedView?.();
-            }}
-          >
-            Save View
-          </button>
         )}
 
         <div className="flex items-center gap-2 text-xs text-gray-500">
