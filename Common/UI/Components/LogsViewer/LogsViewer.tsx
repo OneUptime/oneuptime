@@ -701,7 +701,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               logs={displayedLogs}
               serviceMap={serviceMap}
               isLoading={props.isLoading}
-              emptyMessage={props.noLogsMessage || getEmptyMessageWithTimeRange(props.timeRange)}
+              emptyMessage={
+                props.noLogsMessage ||
+                getEmptyMessageWithTimeRange(props.timeRange)
+              }
               onRowClick={(_log: Log, rowId: string) => {
                 setSelectedLogId((currentSelected: string | null) => {
                   if (currentSelected === rowId) {

@@ -115,9 +115,11 @@ app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
   next();
 });
 
-// Parse protobuf (binary) bodies for OTLP ingestion before JSON/gzip middleware.
-// The .NET OpenTelemetry SDK (and others) send telemetry data as application/x-protobuf.
-// Without this, express.json() skips protobuf requests and req.body remains undefined.
+/*
+ * Parse protobuf (binary) bodies for OTLP ingestion before JSON/gzip middleware.
+ * The .NET OpenTelemetry SDK (and others) send telemetry data as application/x-protobuf.
+ * Without this, express.json() skips protobuf requests and req.body remains undefined.
+ */
 const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({
   type: ["application/x-protobuf", "application/protobuf"],
   limit: "50mb",

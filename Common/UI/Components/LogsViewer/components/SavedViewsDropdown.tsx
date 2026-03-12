@@ -63,9 +63,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                 <div
                   key={view.id}
                   className={`group flex items-center justify-between gap-2 px-3 py-1.5 ${
-                    isSelected
-                      ? "bg-indigo-50"
-                      : "hover:bg-gray-50"
+                    isSelected ? "bg-indigo-50" : "hover:bg-gray-50"
                   }`}
                 >
                   <button

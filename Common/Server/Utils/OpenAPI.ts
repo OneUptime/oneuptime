@@ -257,6 +257,20 @@ export default class OpenAPIUtil {
                 query: { $ref: `#/components/schemas/${querySchemaName}` },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
                 sort: { $ref: `#/components/schemas/${sortSchemaName}` },
+                limit: {
+                  type: "number",
+                  description:
+                    "Maximum number of items to return. Defaults to 10.",
+                  default: 10,
+                  minimum: 1,
+                },
+                skip: {
+                  type: "number",
+                  description:
+                    "Number of items to skip for pagination. Defaults to 0.",
+                  default: 0,
+                  minimum: 0,
+                },
               },
             },
           },
@@ -891,6 +905,20 @@ export default class OpenAPIUtil {
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
                 sort: { $ref: `#/components/schemas/${sortSchemaName}` },
                 groupBy: { $ref: `#/components/schemas/${groupBySchemaName}` },
+                limit: {
+                  type: "number",
+                  description:
+                    "Maximum number of items to return. Defaults to 10.",
+                  default: 10,
+                  minimum: 1,
+                },
+                skip: {
+                  type: "number",
+                  description:
+                    "Number of items to skip for pagination. Defaults to 0.",
+                  default: 0,
+                  minimum: 0,
+                },
               },
             },
           },
