@@ -465,31 +465,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     });
   }, [props.activeFilters, serviceMap]);
 
-  if (isPageLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (pageError) {
-    return <ErrorMessage message={pageError} />;
-  }
-
-  const toolbarProps: LogsViewerToolbarProps = {
-    resultCount: totalItems,
-    currentPage,
-    totalPages,
-    ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
-    ...(props.timeRange && props.onTimeRangeChange
-      ? {
-          timeRange: props.timeRange,
-          onTimeRangeChange: props.onTimeRangeChange,
-        }
-      : {}),
-  };
-
-  const showSidebar: boolean =
-    props.showFacetSidebar !== false && Boolean(props.facetData);
-
   // Replace serviceId UUIDs with human-readable names in value suggestions
+  // Must be before early returns to maintain consistent hook call order.
   const resolvedValueSuggestions: Record<string, Array<string>> | undefined =
     useMemo(() => {
       if (!props.valueSuggestions) {
@@ -513,6 +490,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }, [props.valueSuggestions, serviceMap]);
 
   // Wrap onFieldValueSelect to resolve service names back to UUIDs
+  // Must be before early returns to maintain consistent hook call order.
   const handleFieldValueSelectWithServiceResolve:
     | ((fieldKey: string, value: string) => void)
     | undefined = useMemo(() => {
@@ -536,6 +514,30 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       props.onFieldValueSelect!(fieldKey, value);
     };
   }, [props.onFieldValueSelect, serviceMap]);
+
+  if (isPageLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (pageError) {
+    return <ErrorMessage message={pageError} />;
+  }
+
+  const toolbarProps: LogsViewerToolbarProps = {
+    resultCount: totalItems,
+    currentPage,
+    totalPages,
+    ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
+    ...(props.timeRange && props.onTimeRangeChange
+      ? {
+          timeRange: props.timeRange,
+          onTimeRangeChange: props.onTimeRangeChange,
+        }
+      : {}),
+  };
+
+  const showSidebar: boolean =
+    props.showFacetSidebar !== false && Boolean(props.facetData);
 
   return (
     <div className="space-y-2">

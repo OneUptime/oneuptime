@@ -78,6 +78,51 @@ const Settings: FunctionComponent = (): ReactElement => {
           modelId: ObjectID.getZeroObjectID(),
         }}
       />
+
+      <CardModelDetail
+        name="Monitor Metric Retention Settings"
+        cardProps={{
+          title: "Monitor Metric Retention",
+          description:
+            "Configure how long monitor metrics are retained before being automatically deleted.",
+        }}
+        isEditable={true}
+        editButtonText="Edit Settings"
+        formFields={[
+          {
+            field: {
+              monitorMetricRetentionInDays: true,
+            },
+            title: "Monitor Metric Retention (Days)",
+            fieldType: FormFieldSchemaType.PositiveNumber,
+            required: false,
+            description:
+              "Number of days to retain monitor metrics. Monitor metrics older than this will be automatically deleted. Default is 1 day if not set. Minimum: 1 day, Maximum: 365 days.",
+            validation: {
+              minValue: 1,
+              maxValue: 365,
+            },
+            placeholder: "1",
+          },
+        ]}
+        modelDetailProps={{
+          modelType: GlobalConfig,
+          id: "model-detail-global-config-monitor-metric-retention",
+          fields: [
+            {
+              field: {
+                monitorMetricRetentionInDays: true,
+              },
+              fieldType: FieldType.Number,
+              title: "Monitor Metric Retention (Days)",
+              placeholder: "1 (default)",
+              description:
+                "Number of days to retain monitor metrics. Monitor metrics older than this will be automatically deleted.",
+            },
+          ],
+          modelId: ObjectID.getZeroObjectID(),
+        }}
+      />
     </Page>
   );
 };

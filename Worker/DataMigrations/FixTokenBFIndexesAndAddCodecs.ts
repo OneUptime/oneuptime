@@ -98,7 +98,7 @@ export default class FixTokenBFIndexesAndAddCodecs extends DataMigrationBase {
     // Fix MonitorLog retentionDate
     await this.executeWithLogging(
       MonitorLogService,
-      `ALTER TABLE MonitorLog UPDATE retentionDate = time + INTERVAL 15 DAY WHERE retentionDate = toDateTime('1970-01-01 00:00:00') SETTINGS mutations_sync=0`,
+      `ALTER TABLE MonitorLog UPDATE retentionDate = time + INTERVAL 1 DAY WHERE retentionDate = toDateTime('1970-01-01 00:00:00') SETTINGS mutations_sync=0`,
       "Fix retentionDate for existing MonitorLog rows",
     );
   }

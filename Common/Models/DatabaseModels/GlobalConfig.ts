@@ -605,4 +605,22 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
   })
   public monitorLogRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Monitor Metric Retention Days",
+    description:
+      "Number of days to retain monitor metrics. Monitor metrics older than this will be automatically deleted. Default is 1 day.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    unique: true,
+  })
+  public monitorMetricRetentionInDays?: number = undefined;
 }

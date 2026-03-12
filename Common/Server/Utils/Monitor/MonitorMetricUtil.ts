@@ -2,6 +2,8 @@ import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import MetricService from "../../Services/MetricService";
+import GlobalConfigService from "../../Services/GlobalConfigService";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import DataToProcess from "./DataToProcess";
 import {
   MetricPointType,
@@ -20,6 +22,63 @@ import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
 export default class MonitorMetricUtil {
+  // Default retention in days if GlobalConfig is not set
+  private static readonly DEFAULT_RETENTION_DAYS: number = 1;
+
+  // Cached retention value to avoid querying GlobalConfig on every monitor check
+  private static cachedRetentionDays: number | null = null;
+  private static lastCacheRefresh: Date | null = null;
+  private static readonly CACHE_TTL_MS: number = 5 * 60 * 1000; // 5 minutes
+
+  private static async getRetentionDays(): Promise<number> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    // Return cached value if still fresh
+    if (
+      this.cachedRetentionDays !== null &&
+      this.lastCacheRefresh !== null &&
+      now.getTime() - this.lastCacheRefresh.getTime() < this.CACHE_TTL_MS
+    ) {
+      return this.cachedRetentionDays;
+    }
+
+    try {
+      const globalConfig: GlobalConfig | null =
+        await GlobalConfigService.findOneBy({
+          query: {
+            _id: ObjectID.getZeroObjectID().toString(),
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            monitorMetricRetentionInDays: true,
+          },
+        });
+
+      if (
+        globalConfig &&
+        globalConfig.monitorMetricRetentionInDays !== undefined &&
+        globalConfig.monitorMetricRetentionInDays !== null &&
+        globalConfig.monitorMetricRetentionInDays > 0
+      ) {
+        this.cachedRetentionDays = globalConfig.monitorMetricRetentionInDays;
+      } else {
+        this.cachedRetentionDays = this.DEFAULT_RETENTION_DAYS;
+      }
+
+      this.lastCacheRefresh = now;
+    } catch (error) {
+      logger.error(
+        "Error fetching monitor metric retention config, using default:",
+      );
+      logger.error(error);
+      this.cachedRetentionDays = this.DEFAULT_RETENTION_DAYS;
+      this.lastCacheRefresh = now;
+    }
+
+    return this.cachedRetentionDays;
+  }
   private static buildMonitorMetricAttributes(data: {
     monitorId: ObjectID;
     projectId: ObjectID;
@@ -47,14 +106,14 @@ export default class MonitorMetricUtil {
     return attributes;
   }
 
-  private static buildMonitorMetricRow(data: {
+  private static async buildMonitorMetricRow(data: {
     projectId: ObjectID;
     monitorId: ObjectID;
     metricName: string;
     value: number | null | undefined;
     attributes: JSONObject;
     metricPointType?: MetricPointType;
-  }): JSONObject {
+  }): Promise<JSONObject> {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
@@ -65,7 +124,11 @@ export default class MonitorMetricUtil {
     const attributeKeys: Array<string> =
       TelemetryUtil.getAttributeKeys(attributes);
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(ingestionDate, 15);
+    const retentionDays: number = await this.getRetentionDays();
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      ingestionDate,
+      retentionDays,
+    );
 
     return {
       _id: ObjectID.generate().toString(),
@@ -149,7 +212,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
         });
 
-        const metricRow: JSONObject = this.buildMonitorMetricRow({
+        const metricRow: JSONObject = await this.buildMonitorMetricRow({
           projectId: data.projectId,
           monitorId: data.monitorId,
           metricName: MonitorMetricType.IsOnline,
@@ -186,7 +249,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
         });
 
-        const metricRow: JSONObject = this.buildMonitorMetricRow({
+        const metricRow: JSONObject = await this.buildMonitorMetricRow({
           projectId: data.projectId,
           monitorId: data.monitorId,
           metricName: MonitorMetricType.CPUUsagePercent,
@@ -214,7 +277,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
         });
 
-        const metricRow: JSONObject = this.buildMonitorMetricRow({
+        const metricRow: JSONObject = await this.buildMonitorMetricRow({
           projectId: data.projectId,
           monitorId: data.monitorId,
           metricName: MonitorMetricType.MemoryUsagePercent,
@@ -250,7 +313,7 @@ export default class MonitorMetricUtil {
             extraAttributes: extraAttributes,
           });
 
-          const metricRow: JSONObject = this.buildMonitorMetricRow({
+          const metricRow: JSONObject = await this.buildMonitorMetricRow({
             projectId: data.projectId,
             monitorId: data.monitorId,
             metricName: MonitorMetricType.DiskUsagePercent,
@@ -288,7 +351,7 @@ export default class MonitorMetricUtil {
         extraAttributes: extraAttributes,
       });
 
-      const metricRow: JSONObject = this.buildMonitorMetricRow({
+      const metricRow: JSONObject = await this.buildMonitorMetricRow({
         projectId: data.projectId,
         monitorId: data.monitorId,
         metricName: MonitorMetricType.ExecutionTime,
@@ -345,7 +408,7 @@ export default class MonitorMetricUtil {
           extraAttributes: extraAttributes,
         });
 
-        const metricRow: JSONObject = this.buildMonitorMetricRow({
+        const metricRow: JSONObject = await this.buildMonitorMetricRow({
           projectId: data.projectId,
           monitorId: data.monitorId,
           metricName: MonitorMetricType.ExecutionTime,
@@ -380,7 +443,7 @@ export default class MonitorMetricUtil {
         extraAttributes: extraAttributes,
       });
 
-      const metricRow: JSONObject = this.buildMonitorMetricRow({
+      const metricRow: JSONObject = await this.buildMonitorMetricRow({
         projectId: data.projectId,
         monitorId: data.monitorId,
         metricName: MonitorMetricType.ResponseTime,
@@ -415,7 +478,7 @@ export default class MonitorMetricUtil {
         extraAttributes: extraAttributes,
       });
 
-      const metricRow: JSONObject = this.buildMonitorMetricRow({
+      const metricRow: JSONObject = await this.buildMonitorMetricRow({
         projectId: data.projectId,
         monitorId: data.monitorId,
         metricName: MonitorMetricType.IsOnline,
@@ -449,7 +512,7 @@ export default class MonitorMetricUtil {
         extraAttributes: extraAttributes,
       });
 
-      const metricRow: JSONObject = this.buildMonitorMetricRow({
+      const metricRow: JSONObject = await this.buildMonitorMetricRow({
         projectId: data.projectId,
         monitorId: data.monitorId,
         metricName: MonitorMetricType.ResponseStatusCode,
