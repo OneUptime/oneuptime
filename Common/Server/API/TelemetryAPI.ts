@@ -212,7 +212,7 @@ router.post(
         ? OneUptimeDate.fromString(body["endTime"] as string)
         : OneUptimeDate.getCurrentDate();
 
-      const limit: number = (body["limit"] as number) || 10;
+      const limit: number = (body["limit"] as number) || 500;
 
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {

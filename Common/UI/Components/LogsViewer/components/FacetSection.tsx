@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement, useState, useMemo } from "react";
 import { FacetValue } from "../types";
 import FacetValueRow from "./FacetValueRow";
 import Icon from "../../Icon/Icon";
@@ -17,21 +17,39 @@ export interface FacetSectionProps {
 }
 
 const DEFAULT_VISIBLE_COUNT: number = 5;
+const SEARCH_THRESHOLD: number = 6;
 
 const FacetSection: FunctionComponent<FacetSectionProps> = (
   props: FacetSectionProps,
 ): ReactElement => {
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [showAll, setShowAll] = useState<boolean>(false);
+  const [searchText, setSearchText] = useState<string>("");
+
+  const showSearch: boolean = props.values.length >= SEARCH_THRESHOLD;
+
+  const filteredValues: Array<FacetValue> = useMemo(() => {
+    if (!searchText.trim()) {
+      return props.values;
+    }
+    const query: string = searchText.toLowerCase().trim();
+    return props.values.filter((facet: FacetValue) => {
+      const displayName: string =
+        props.valueDisplayMap?.[facet.value] ?? facet.value;
+      return displayName.toLowerCase().includes(query);
+    });
+  }, [props.values, props.valueDisplayMap, searchText]);
 
   const visibleCount: number =
     props.initialVisibleCount ?? DEFAULT_VISIBLE_COUNT;
 
-  const displayedValues: Array<FacetValue> = showAll
-    ? props.values
-    : props.values.slice(0, visibleCount);
+  const displayedValues: Array<FacetValue> = searchText.trim()
+    ? filteredValues
+    : showAll
+      ? filteredValues
+      : filteredValues.slice(0, visibleCount);
 
-  const hasMore: boolean = props.values.length > visibleCount;
+  const hasMore: boolean = !searchText.trim() && filteredValues.length > visibleCount;
 
   const maxCount: number =
     props.values.length > 0
@@ -71,6 +89,20 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
 
       {isExpanded && (
         <div className="mt-1 px-1">
+          {showSearch && (
+            <div className="mb-1 px-1">
+              <input
+                type="text"
+                placeholder={`Search ${props.title.toLowerCase()}...`}
+                value={searchText}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setSearchText(e.target.value);
+                }}
+                className="w-full rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] text-gray-700 placeholder-gray-400 outline-none focus:border-indigo-300 focus:bg-white focus:ring-1 focus:ring-indigo-200"
+              />
+            </div>
+          )}
+
           {displayedValues.map((facet: FacetValue) => {
             return (
               <FacetValueRow
@@ -91,9 +123,9 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
             );
           })}
 
-          {props.values.length === 0 && (
+          {displayedValues.length === 0 && (
             <p className="px-1 py-2 text-[11px] text-gray-400">
-              No values found
+              {searchText.trim() ? "No matches found" : "No values found"}
             </p>
           )}
 

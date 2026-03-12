@@ -45,7 +45,7 @@ export interface FacetRequest {
 }
 
 export class LogAggregationService {
-  private static readonly DEFAULT_FACET_LIMIT: number = 10;
+  private static readonly DEFAULT_FACET_LIMIT: number = 500;
   private static readonly TABLE_NAME: string = "LogItem";
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
     "severityText",
