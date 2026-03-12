@@ -110,9 +110,6 @@ import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
 // Status Page Reports
 import "./Jobs/StatusPage/SendReportsToSubscribers";
 
-// Telemetry Service
-import "./Jobs/TelemetryService/DeleteOldData";
-
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
@@ -137,7 +134,9 @@ import "./Jobs/Metrics/DeleteAlertMetricOlderThanXDays";
 
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
 
-import "./Jobs/Monitor/DeleteMonitorLogOlderThan24Hours";
+// DeleteMonitorLogOlderThan24Hours cron job removed — TTL via retentionDate column
+// now handles automatic MonitorLog retention in ClickHouse. Retention days are read
+// from GlobalConfig.monitorLogRetentionInDays at ingestion time in MonitorLogUtil.
 
 import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
 
