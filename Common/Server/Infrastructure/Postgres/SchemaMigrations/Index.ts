@@ -531,5 +531,5 @@ export default [
   MigrationName1772280000000,
   MigrationName1772350000000,
   AddLogSavedView1772355000000,
-  MigrationName1773344537755
+  MigrationName1773344537755,
 ];
