@@ -19,12 +19,37 @@ interface Token {
   value: string;
 }
 
+function getAttrValue(
+  attrs: Record<string, unknown>,
+  key: string,
+): unknown | undefined {
+  // Try exact key first
+  if (attrs[key] !== undefined && attrs[key] !== null) {
+    return attrs[key];
+  }
+  // Try with logAttributes. prefix (OTel log-level attributes)
+  if (
+    attrs[`logAttributes.${key}`] !== undefined &&
+    attrs[`logAttributes.${key}`] !== null
+  ) {
+    return attrs[`logAttributes.${key}`];
+  }
+  // Try with resource. prefix (OTel resource attributes)
+  if (
+    attrs[`resource.${key}`] !== undefined &&
+    attrs[`resource.${key}`] !== null
+  ) {
+    return attrs[`resource.${key}`];
+  }
+  return undefined;
+}
+
 function getFieldValue(logRow: JSONObject, fieldPath: string): string {
   if (fieldPath.startsWith("attributes.")) {
     const attrKey: string = fieldPath.slice("attributes.".length);
     const attrs: Record<string, unknown> =
       (logRow["attributes"] as Record<string, unknown>) || {};
-    const val: unknown = attrs[attrKey];
+    const val: unknown = getAttrValue(attrs, attrKey);
     if (val === undefined || val === null) {
       return "";
     }
