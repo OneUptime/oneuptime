@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useRef, useState } from "react";
 import LiveLogsToggle from "./LiveLogsToggle";
 import LogTimeRangePicker from "./LogTimeRangePicker";
 import ColumnSelector from "./ColumnSelector";
@@ -10,6 +10,7 @@ import {
   LogsViewMode,
 } from "../types";
 import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
+import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
@@ -31,6 +32,8 @@ export interface LogsViewerToolbarProps {
   onSelectedColumnsChange?: ((columns: Array<string>) => void) | undefined;
   viewMode?: LogsViewMode | undefined;
   onViewModeChange?: ((mode: LogsViewMode) => void) | undefined;
+  onExportCSV?: (() => void) | undefined;
+  onExportJSON?: (() => void) | undefined;
 }
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
@@ -40,6 +43,15 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
   const hasPaginationSummary: boolean = Boolean(
     currentPage && totalPages && totalPages > 0,
   );
+
+  const exportDropdownRef: React.RefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  useComponentOutsideClick(exportDropdownRef, () => {
+    setIsExportOpen(false);
+  });
+
+  const showExport: boolean = Boolean(props.onExportCSV || props.onExportJSON);
 
   return (
     <div
@@ -140,6 +152,74 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               onChange={props.onSelectedColumnsChange}
             />
           )}
+
+        {showExport && (
+          <div className="relative" ref={exportDropdownRef}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+              onClick={() => {
+                setIsExportOpen(!isExportOpen);
+              }}
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+                />
+              </svg>
+              Export
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                />
+              </svg>
+            </button>
+            {isExportOpen && (
+              <div className="absolute right-0 z-20 mt-1 w-40 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                {props.onExportCSV && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+                    onClick={() => {
+                      setIsExportOpen(false);
+                      props.onExportCSV!();
+                    }}
+                  >
+                    Export as CSV
+                  </button>
+                )}
+                {props.onExportJSON && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+                    onClick={() => {
+                      setIsExportOpen(false);
+                      props.onExportJSON!();
+                    }}
+                  >
+                    Export as JSON
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {props.timeRange && props.onTimeRangeChange && (
           <LogTimeRangePicker

@@ -1277,6 +1277,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           analyticsServiceIds={serviceIdStrings}
+          projectId={ProjectUtil.getCurrentProjectId() || undefined}
           analyticsAppliedFacetFilters={appliedFacetFilters}
           onUpdateCurrentSavedView={async () => {
             if (!selectedSavedView?.id) {

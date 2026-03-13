@@ -68,6 +68,24 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Terminal,
         },
+        {
+          link: {
+            title: "Log Pipelines",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route,
+            ),
+          },
+          icon: IconProp.Logs,
+        },
+        {
+          link: {
+            title: "Log Drop Filters",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route,
+            ),
+          },
+          icon: IconProp.Filter,
+        },
       ],
     },
     {

@@ -54,6 +54,8 @@ import LogsAnalyticsView from "./components/LogsAnalyticsView";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { exportLogs, LogExportFormat } from "../../Utils/LogExport";
+import ObjectID from "../../../Types/ObjectID";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -64,6 +66,7 @@ export interface ComponentProps {
   noLogsMessage?: string | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
   getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
+  projectId?: ObjectID | undefined;
   totalCount?: number | undefined;
   page?: number | undefined;
   pageSize?: number | undefined;
@@ -655,6 +658,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           },
         }
       : {}),
+    onExportCSV: () => {
+      exportLogs(displayedLogs, LogExportFormat.CSV, selectedColumns);
+    },
+    onExportJSON: () => {
+      exportLogs(displayedLogs, LogExportFormat.JSON, selectedColumns);
+    },
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
     ...(props.timeRange && props.onTimeRangeChange
       ? {
@@ -766,6 +775,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                       getTraceRoute={props.getTraceRoute}
                       getSpanRoute={props.getSpanRoute}
                       variant="embedded"
+                      projectId={props.projectId}
                     />
                   );
                 }}

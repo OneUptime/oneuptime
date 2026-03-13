@@ -37,6 +37,9 @@ import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
 //Labels.
 import Label from "./Label";
 import LogSavedView from "./LogSavedView";
+import LogPipeline from "./LogPipeline";
+import LogPipelineProcessor from "./LogPipelineProcessor";
+import LogDropFilter from "./LogDropFilter";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -252,6 +255,9 @@ const AllModelTypes: Array<{
   ApiKey,
   Label,
   LogSavedView,
+  LogPipeline,
+  LogPipelineProcessor,
+  LogDropFilter,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,
