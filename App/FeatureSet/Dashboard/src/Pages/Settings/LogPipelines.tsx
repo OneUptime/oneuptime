@@ -19,7 +19,7 @@ const LogPipelines: FunctionComponent<PageComponentProps> = (): ReactElement => 
         id="log-pipelines-table"
         name="Settings > Log Pipelines"
         userPreferencesKey="log-pipelines-table"
-        isDeleteable={true}
+        isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
