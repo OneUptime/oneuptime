@@ -17,6 +17,10 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   generate-build-number:
     runs-on: ubuntu-latest
@@ -1460,6 +1464,8 @@ jobs:
   infrastructure-agent-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -1516,6 +1522,8 @@ jobs:
   mobile-app-android-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1570,6 +1578,8 @@ jobs:
   mobile-app-ios-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:

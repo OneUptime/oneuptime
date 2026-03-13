@@ -8,6 +8,11 @@ on:
   push:
     branches:
       - "master"
+
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   generate-build-number:
     runs-on: ubuntu-latest
