@@ -7,6 +7,9 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Pill from "Common/UI/Components/Pill/Pill";
+import IconProp from "Common/Types/Icon/IconProp";
+import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import FilterQueryBuilder from "../../Components/LogPipeline/FilterQueryBuilder";
@@ -78,8 +81,18 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
               field: {
                 isEnabled: true,
               },
-              title: "Enabled",
+              title: "Status",
               fieldType: FieldType.Boolean,
+              getElement: (item: LogDropFilter): ReactElement => {
+                if (item.isEnabled) {
+                  return (
+                    <Pill color={Green} text="Enabled" icon={IconProp.Check} />
+                  );
+                }
+                return (
+                  <Pill color={Red} text="Disabled" icon={IconProp.Close} />
+                );
+              },
             },
           ],
           modelId: modelId,
@@ -92,7 +105,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Action",
           description:
-            "Choose whether to drop all matching logs or sample a percentage of them.",
+            "Choose whether to drop all matching logs or keep a sample.",
         }}
         isEditable={true}
         formFields={[
@@ -135,13 +148,78 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                 action: true,
               },
               title: "Action",
+              getElement: (item: LogDropFilter): ReactElement => {
+                if (item.action === "drop") {
+                  return (
+                    <div className="flex items-center gap-3">
+                      <Pill
+                        color={Red}
+                        text="Drop"
+                        icon={IconProp.Trash}
+                      />
+                      <span className="text-sm text-gray-500">
+                        All matching logs are permanently discarded
+                      </span>
+                    </div>
+                  );
+                }
+                if (item.action === "sample") {
+                  return (
+                    <div className="flex items-center gap-3">
+                      <Pill
+                        color={Yellow}
+                        text="Sample"
+                        icon={IconProp.Filter}
+                      />
+                      <span className="text-sm text-gray-500">
+                        Only a percentage of matching logs are kept
+                      </span>
+                    </div>
+                  );
+                }
+                return (
+                  <span className="text-sm text-gray-400">Not configured</span>
+                );
+              },
             },
             {
               field: {
                 samplePercentage: true,
               },
               title: "Sample Percentage",
-              fieldType: FieldType.Number,
+              showIf: (item: LogDropFilter): boolean => {
+                return item.action === "sample";
+              },
+              getElement: (item: LogDropFilter): ReactElement => {
+                const pct: number = item.samplePercentage || 0;
+                const discardPct: number = 100 - pct;
+
+                return (
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-900">
+                        {pct}%
+                      </span>
+                      <span className="text-sm text-gray-500">kept</span>
+                    </div>
+                    <div className="text-gray-300">•</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-400">
+                        {discardPct}%
+                      </span>
+                      <span className="text-sm text-gray-500">discarded</span>
+                    </div>
+                    <div className="flex-1 max-w-xs">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-green-500 h-2 rounded-full"
+                          style={{ width: `${pct}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              },
             },
           ],
           modelId: modelId,
