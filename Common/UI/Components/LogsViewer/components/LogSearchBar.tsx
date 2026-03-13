@@ -375,4 +375,6 @@ function getValueSuggestions(
   });
 }
 
+LogSearchBar.displayName = "LogSearchBar";
+
 export default LogSearchBar;

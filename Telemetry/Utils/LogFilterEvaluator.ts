@@ -48,7 +48,8 @@ function tokenize(query: string): Array<Token> {
 
   while (i < len) {
     // Skip whitespace
-    if ((/\s/).test(query[i]!)) {
+    // eslint-disable-next-line wrap-regex
+    if (/\s/.test(query[i]!)) {
       i++;
       continue;
     }
@@ -122,7 +123,8 @@ function tokenize(query: string): Array<Token> {
 
     // Field name or unquoted value
     let word: string = "";
-    while (i < len && !(/[\s()=!]/).test(query[i]!)) {
+    // eslint-disable-next-line wrap-regex
+    while (i < len && !/[\s()=!]/.test(query[i]!)) {
       word += query[i];
       i++;
     }

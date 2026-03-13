@@ -62,6 +62,7 @@ import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
 import SettingsLogPipelines from "../Pages/Settings/LogPipelines";
 import SettingsLogPipelineView from "../Pages/Settings/LogPipelineView";
 import SettingsLogDropFilters from "../Pages/Settings/LogDropFilters";
+import SettingsLogDropFilterView from "../Pages/Settings/LogDropFilterView";
 import SettingsLogScrubRules from "../Pages/Settings/LogScrubRules";
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
@@ -410,6 +411,20 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsLogDropFilters
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_LOG_DROP_FILTER_VIEW,
+            2,
+          )}
+          element={
+            <SettingsLogDropFilterView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_LOG_DROP_FILTER_VIEW] as Route
+              }
             />
           }
         />

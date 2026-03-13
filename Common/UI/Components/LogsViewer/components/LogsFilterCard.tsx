@@ -47,4 +47,6 @@ const LogsFilterCard: React.ForwardRefExoticComponent<
   },
 );
 
+LogsFilterCard.displayName = "LogsFilterCard";
+
 export default LogsFilterCard;

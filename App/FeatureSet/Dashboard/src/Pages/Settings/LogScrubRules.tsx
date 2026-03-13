@@ -283,8 +283,7 @@ const LogScrubRules: FunctionComponent<
             },
             title: "Custom Regex Pattern",
             stepId: "pattern-config",
-            description:
-              "A regular expression to match sensitive data.",
+            description: "A regular expression to match sensitive data.",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "e.g. \\bSECRET-[A-Z0-9]+\\b",
@@ -414,8 +413,7 @@ const LogScrubRules: FunctionComponent<
             title: "Pattern Type",
             type: FieldType.Element,
             getElement: (item: LogScrubRule): ReactElement => {
-              const key: string =
-                (item.patternType as string) || "unknown";
+              const key: string = (item.patternType as string) || "unknown";
               const config: PillConfig = patternTypeConfig[key] || {
                 label: key,
                 color: Blue500,
@@ -439,8 +437,7 @@ const LogScrubRules: FunctionComponent<
             title: "Scrub Action",
             type: FieldType.Element,
             getElement: (item: LogScrubRule): ReactElement => {
-              const key: string =
-                (item.scrubAction as string) || "unknown";
+              const key: string = (item.scrubAction as string) || "unknown";
               const config: PillConfig = scrubActionConfig[key] || {
                 label: key,
                 color: Blue500,
@@ -464,8 +461,7 @@ const LogScrubRules: FunctionComponent<
             title: "Fields",
             type: FieldType.Element,
             getElement: (item: LogScrubRule): ReactElement => {
-              const key: string =
-                (item.fieldsToScrub as string) || "unknown";
+              const key: string = (item.fieldsToScrub as string) || "unknown";
               const config: PillConfig = fieldsToScrubConfig[key] || {
                 label: key,
                 color: Blue500,

@@ -16,13 +16,18 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import FilterConditionElement, { FilterConditionData } from "./FilterCondition";
+import FilterConditionElement, {
+  FilterConditionData,
+} from "./FilterCondition";
 
 export interface ComponentProps {
-  pipelineId: ObjectID;
+  modelType: { new (): BaseModel };
+  modelId: ObjectID;
+  title?: string | undefined;
+  description?: string | undefined;
 }
 
 type LogicalConnector = "AND" | "OR";
@@ -147,37 +152,37 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [originalQuery, setOriginalQuery] = useState<string>("");
 
-  const loadPipeline: () => Promise<void> =
+  const loadModel: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       setIsLoading(true);
       try {
-        const pipeline: LogPipeline | null = await ModelAPI.getItem({
-          modelType: LogPipeline,
-          id: props.pipelineId,
-          select: { filterQuery: true },
+        const item: BaseModel | null = await ModelAPI.getItem({
+          modelType: props.modelType,
+          id: props.modelId,
+          select: { filterQuery: true } as any,
         });
 
-        if (pipeline?.filterQuery) {
+        if (item && (item as any).filterQuery) {
           const parsed: {
             conditions: Array<FilterConditionData>;
             connector: LogicalConnector;
-          } = parseFilterQuery(pipeline.filterQuery);
+          } = parseFilterQuery((item as any).filterQuery as string);
           setConditions(parsed.conditions);
           setConnector(parsed.connector);
-          setOriginalQuery(pipeline.filterQuery);
+          setOriginalQuery((item as any).filterQuery as string);
         }
-      } catch (err) {
+      } catch {
         setError("Failed to load filter conditions.");
       } finally {
         setIsLoading(false);
       }
-    }, [props.pipelineId]);
+    }, [props.modelId, props.modelType]);
 
   useEffect(() => {
-    loadPipeline().catch(() => {
-      // error handled in loadPipeline
+    loadModel().catch(() => {
+      // error handled in loadModel
     });
-  }, [loadPipeline]);
+  }, [loadModel]);
 
   const handleSave: () => Promise<void> = async (): Promise<void> => {
     setIsSaving(true);
@@ -188,8 +193,8 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
 
     try {
       await ModelAPI.updateById({
-        modelType: LogPipeline,
-        id: props.pipelineId,
+        modelType: props.modelType,
+        id: props.modelId,
         data: { filterQuery: query || "" },
       });
       setOriginalQuery(query);
@@ -197,7 +202,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
-    } catch (err) {
+    } catch {
       setError("Failed to save filter conditions.");
     } finally {
       setIsSaving(false);
@@ -212,9 +217,14 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const currentQuery: string = buildFilterQuery(conditions, connector);
   const hasChanges: boolean = currentQuery !== originalQuery;
 
+  const cardTitle: string = props.title || "Filter Conditions";
+  const cardDescription: string =
+    props.description ||
+    "Define which logs this rule applies to. Only logs that match these conditions will be affected. Leave empty to match all logs.";
+
   if (isLoading) {
     return (
-      <Card title="Filter Conditions" description="Loading...">
+      <Card title={cardTitle} description="Loading...">
         <div className="p-4 text-gray-400 text-sm">
           Loading filter conditions...
         </div>
@@ -224,8 +234,8 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title="Filter Conditions"
-      description="Define which logs this pipeline applies to. Only logs that match these conditions will be processed. Leave empty to process all logs."
+      title={cardTitle}
+      description={cardDescription}
       buttons={[
         {
           title: "Save",

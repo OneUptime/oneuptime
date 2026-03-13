@@ -188,7 +188,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
       });
 
       props.onProcessorCreated();
-    } catch (err) {
+    } catch {
       setError("Failed to create processor. Please try again.");
     } finally {
       setIsSaving(false);

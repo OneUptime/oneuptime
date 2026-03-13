@@ -170,7 +170,12 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
       />
 
       {/* Section 2: Filter Conditions (Visual Builder) */}
-      <FilterQueryBuilder pipelineId={modelId} />
+      <FilterQueryBuilder
+        modelType={LogPipeline}
+        modelId={modelId}
+        title="Filter Conditions"
+        description="Define which logs this pipeline applies to. Only logs that match these conditions will be processed. Leave empty to process all logs."
+      />
 
       {/* Section 3: Processors */}
       {showProcessorForm ? (

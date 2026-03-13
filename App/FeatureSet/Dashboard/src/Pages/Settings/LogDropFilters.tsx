@@ -3,6 +3,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -90,9 +91,10 @@ const LogDropFilters: FunctionComponent<
         id="log-drop-filters-table"
         name="Settings > Log Drop Filters"
         userPreferencesKey="log-drop-filters-table"
-        isDeleteable={true}
-        isEditable={true}
+        isDeleteable={false}
+        isEditable={false}
         isCreateable={true}
+        isViewable={true}
         sortBy="sortOrder"
         sortOrder={SortOrder.Ascending}
         enableDragAndDrop={true}
@@ -100,7 +102,7 @@ const LogDropFilters: FunctionComponent<
         cardProps={{
           title: "Log Drop Filters",
           description:
-            "Discard or sample logs before they are stored to reduce noise and storage costs. Filters run before pipeline processing.",
+            "Discard or sample logs before they are stored to reduce noise and storage costs. Click a filter to configure its conditions and action.",
         }}
         helpContent={{
           title: "How Log Drop Filters Work",
@@ -109,6 +111,7 @@ const LogDropFilters: FunctionComponent<
           markdown: documentationMarkdown,
         }}
         noItemsMessage={"No drop filters found."}
+        viewPageRoute={Navigation.getCurrentRoute()}
         formFields={[
           {
             field: {
@@ -130,50 +133,6 @@ const LogDropFilters: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Describe what this filter does.",
-          },
-          {
-            field: {
-              filterQuery: true,
-            },
-            title: "Filter Query",
-            fieldType: FormFieldSchemaType.LongText,
-            required: true,
-            placeholder: "e.g. severityText = 'DEBUG' OR body LIKE '%health%'",
-          },
-          {
-            field: {
-              action: true,
-            },
-            title: "Action",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Drop",
-                value: "drop",
-              },
-              {
-                label: "Sample",
-                value: "sample",
-              },
-            ],
-          },
-          {
-            field: {
-              samplePercentage: true,
-            },
-            title: "Sample Percentage",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "50 (keep this % of matching logs)",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
           },
         ]}
         showRefreshButton={true}
@@ -211,18 +170,18 @@ const LogDropFilters: FunctionComponent<
           },
           {
             field: {
+              description: true,
+            },
+            noValueMessage: "-",
+            title: "Description",
+            type: FieldType.LongText,
+          },
+          {
+            field: {
               action: true,
             },
             title: "Action",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              samplePercentage: true,
-            },
-            title: "Sample %",
-            type: FieldType.Number,
-            noValueMessage: "-",
           },
           {
             field: {

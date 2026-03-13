@@ -40,7 +40,6 @@ export interface LogDetailsPanelProps {
     | undefined;
   variant?: "floating" | "embedded";
   projectId?: ObjectID | undefined;
-  onLogSelect?: ((log: Log) => void) | undefined;
 }
 
 interface PreparedBody {
