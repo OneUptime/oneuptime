@@ -8,6 +8,67 @@ import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
+const documentationMarkdown: string = `
+### How Log Scrub Rules Work
+
+Log scrub rules automatically detect and remove sensitive data (PII) from your logs **at ingest time** — before they are stored. This ensures sensitive information never reaches your log storage.
+
+\`\`\`mermaid
+flowchart TD
+    A[Log Received] --> B{Match Against Scrub Rules}
+    B -->|Pattern Matches| C[Apply Scrub Action]
+    B -->|No Match| D[Store Log As-Is]
+    C -->|Redact| E["Replace with [REDACTED]"]
+    C -->|Mask| F["Partially hide e.g. j***@***.com"]
+    C -->|Hash| G[Replace with deterministic hash]
+    E --> H[Store Scrubbed Log]
+    F --> H
+    G --> H
+\`\`\`
+
+---
+
+### Pattern Types
+
+| Pattern | What It Detects | Example Match |
+|---------|----------------|---------------|
+| **Email Address** | Email addresses | user@example.com |
+| **Credit Card** | Credit card numbers | 4111-1111-1111-1111 |
+| **SSN** | US Social Security Numbers | 123-45-6789 |
+| **Phone Number** | Phone numbers | +1 (555) 123-4567 |
+| **IP Address** | IPv4 addresses | 192.168.1.1 |
+| **Custom Regex** | Your own pattern | Any regex you define |
+
+---
+
+### Scrub Actions Explained
+
+| Action | Behavior | Example |
+|--------|----------|---------|
+| **Redact** | Replaces the entire match with \`[REDACTED]\` | \`user@example.com\` → \`[REDACTED]\` |
+| **Mask** | Partially hides the value, preserving structure | \`user@example.com\` → \`u***@***.com\` |
+| **Hash** | Replaces with a deterministic SHA-256 hash | \`user@example.com\` → \`a1b2c3d4...\` |
+
+> **Tip:** Use **Hash** when you need to correlate occurrences of the same value across logs without exposing the actual data. The same input always produces the same hash.
+
+---
+
+### Fields to Scrub
+
+Each log entry has two parts that can contain sensitive data:
+
+- **Body**: The main log message text
+- **Attributes**: Key-value metadata attached to the log (e.g. \`user.email\`, \`client.ip\`)
+
+You can choose to scrub the body only, attributes only, or both.
+
+---
+
+### Rule Ordering
+
+Rules are evaluated in the order shown in the table. Drag and drop to reorder. Earlier rules are applied first, so place more specific rules before broader ones.
+`;
+
 const LogScrubRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -24,6 +85,9 @@ const LogScrubRules: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        createInitialValues={{
+          sortOrder: 0,
+        }}
         sortBy="sortOrder"
         sortOrder={SortOrder.Ascending}
         enableDragAndDrop={true}
@@ -32,6 +96,12 @@ const LogScrubRules: FunctionComponent<
           title: "Log Scrub Rules",
           description:
             "Automatically detect and scrub sensitive data (PII) from logs at ingest time. Matching patterns are masked, hashed, or redacted before storage. Drag to reorder.",
+        }}
+        helpContent={{
+          title: "How Log Scrub Rules Work",
+          description:
+            "Understanding pattern types, scrub actions, and how sensitive data is removed from logs at ingest time",
+          markdown: documentationMarkdown,
         }}
         noItemsMessage={"No scrub rules found."}
         formSteps={[

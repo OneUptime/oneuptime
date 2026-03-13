@@ -23,6 +23,75 @@ import React, {
   useState,
 } from "react";
 
+const processorsDocMarkdown: string = `
+### How Processors Work
+
+Processors are transformation steps that modify logs matched by this pipeline. They run **in order** — drag rows to reorder them.
+
+\`\`\`mermaid
+flowchart LR
+    A[Matched Log] --> B[Processor 1]
+    B --> C[Processor 2]
+    C --> D[Processor 3]
+    D --> E[Transformed Log]
+\`\`\`
+
+---
+
+### Processor Types
+
+#### Severity Remapper
+Maps a log field to a standard OpenTelemetry severity level.
+
+**When to use:** Your application logs severity as custom text (e.g., "warn", "fatal", "verbose") instead of standard levels like WARNING or FATAL.
+
+**How it works:**
+1. Reads the value from the **Source Key** (e.g., \`level\`)
+2. Looks up the value in your **Mappings** table
+3. If found, sets \`severityText\` and \`severityNumber\` on the log
+
+| Match Value | Severity Text | Severity Number |
+|-------------|--------------|-----------------|
+| trace | TRACE | 1 |
+| debug | DEBUG | 5 |
+| info | INFO | 9 |
+| warn | WARNING | 13 |
+| error | ERROR | 17 |
+| fatal | FATAL | 21 |
+
+---
+
+#### Attribute Remapper
+Renames or copies a log attribute from one key to another.
+
+**When to use:** Different services use different attribute names for the same concept (e.g., \`client_ip\` vs \`source_address\`).
+
+**How it works:**
+1. Reads the value from the **Source Key**
+2. Writes it to the **Target Key**
+3. Optionally removes the source key (**Preserve Source** = off)
+4. Optionally overwrites if target already exists (**Override on Conflict** = on)
+
+---
+
+#### Category Processor
+Tags logs with a category label based on filter conditions.
+
+**When to use:** You want to add business-level labels to logs (e.g., "Payment Error", "Auth Failure", "Rate Limit").
+
+**How it works:**
+1. Evaluates each **Category** rule in order
+2. The first matching rule sets the **Target Key** to that category name
+3. Uses the same filter syntax as pipeline filters
+
+---
+
+### Tips
+- **Order matters** — processors run sequentially, so a severity remapper should run before a category processor that filters by severity
+- **Disable without deleting** — toggle a processor off to temporarily skip it
+- **Test incrementally** — add one processor at a time and verify in the Logs view
+`;
+
 const LogPipelineView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
@@ -145,6 +214,12 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
                 icon: IconProp.Add,
               },
             ],
+          }}
+          helpContent={{
+            title: "How Log Processors Work",
+            description:
+              "Understanding Severity Remapper, Attribute Remapper, and Category Processor",
+            markdown: processorsDocMarkdown,
           }}
           noItemsMessage={
             "No processors configured. Click 'Add Processor' above to add your first processor."
