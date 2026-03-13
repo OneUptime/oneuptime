@@ -152,9 +152,22 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
               processorType: true,
             },
             title: "Processor Type",
-            fieldType: FormFieldSchemaType.Text,
+            fieldType: FormFieldSchemaType.Dropdown,
             required: true,
-            placeholder: "e.g. AttributeRemapper",
+            dropdownOptions: [
+              {
+                label: "Severity Remapper",
+                value: "SeverityRemapper",
+              },
+              {
+                label: "Attribute Remapper",
+                value: "AttributeRemapper",
+              },
+              {
+                label: "Category Processor",
+                value: "CategoryProcessor",
+              },
+            ],
           },
           {
             field: {
@@ -163,6 +176,8 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
             title: "Configuration (JSON)",
             fieldType: FormFieldSchemaType.JSON,
             required: true,
+            description:
+              'SeverityRemapper: {"sourceKey":"level","mappings":[{"matchValue":"warn","severityText":"WARNING","severityNumber":13}]} — AttributeRemapper: {"sourceKey":"src","targetKey":"dst","preserveSource":false} — CategoryProcessor: {"targetKey":"category","categories":[{"name":"Error","filterQuery":"severityText = \'ERROR\'"}]}',
           },
           {
             field: {
