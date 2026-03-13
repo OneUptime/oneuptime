@@ -56,24 +56,6 @@ const LogPipelines: FunctionComponent<PageComponentProps> = (): ReactElement => 
             required: false,
             placeholder: "Describe what this pipeline does.",
           },
-          {
-            field: {
-              filterQuery: true,
-            },
-            title: "Filter Query",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "e.g. severityText = 'ERROR' AND attributes.service = 'api'",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
         ]}
         showRefreshButton={true}
         showViewIdButton={true}
