@@ -168,19 +168,9 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               onClick={props.onToggleKeyboardShortcuts}
               title="Keyboard shortcuts (?)"
             >
-              <svg
-                className="h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"
-                />
-              </svg>
+              <kbd className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded border border-current px-0.5 font-mono text-[10px] font-semibold leading-none">
+                ?
+              </kbd>
             </button>
             {props.showKeyboardShortcuts && (
               <KeyboardShortcutsHelp
