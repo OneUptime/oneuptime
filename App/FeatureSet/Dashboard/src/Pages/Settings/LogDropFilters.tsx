@@ -7,6 +7,76 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
+const documentationMarkdown: string = `
+### How Log Drop Filters Work
+
+Drop filters let you **discard or sample logs before they are stored**, reducing storage costs and noise. They run **before** pipeline processing.
+
+\`\`\`mermaid
+flowchart TD
+    A[Log Arrives] --> B{Match Against Drop Filters}
+    B -->|Filter Matches| C{Action Type}
+    B -->|No Match| D[Continue to Pipelines]
+    C -->|Drop| E[Log Discarded]
+    C -->|Sample| F{Random Check}
+    F -->|Keep %| D
+    F -->|Discard %| E
+\`\`\`
+
+---
+
+### Actions
+
+| Action | Description |
+|--------|-------------|
+| **Drop** | Permanently discard all matching logs — they will never be stored |
+| **Sample** | Keep only a percentage of matching logs. For example, 10% means ~1 in 10 matching logs are kept |
+
+---
+
+### Filter Query Syntax
+
+Filter queries determine which logs this drop filter applies to.
+
+| Operator | Example | Description |
+|----------|---------|-------------|
+| \`=\` | \`severityText = 'DEBUG'\` | Exact match |
+| \`!=\` | \`severityText != 'ERROR'\` | Not equal |
+| \`LIKE\` | \`body LIKE '%healthcheck%'\` | Pattern match (\`%\` = wildcard) |
+| \`IN\` | \`severityText IN ('DEBUG', 'TRACE')\` | Match any value in list |
+| \`AND\` / \`OR\` | \`severityText = 'DEBUG' AND attributes.source = 'loadbalancer'\` | Combine conditions |
+
+**Available fields:** \`severityText\`, \`body\`, \`serviceId\`, \`attributes.<key>\`
+
+---
+
+### Examples
+
+#### Example 1: Drop all debug logs
+- **Filter Query:** \`severityText = 'DEBUG'\`
+- **Action:** Drop
+- **Result:** All debug-level logs are discarded before storage
+
+#### Example 2: Sample verbose health check logs
+- **Filter Query:** \`body LIKE '%healthcheck%' AND severityText = 'INFO'\`
+- **Action:** Sample
+- **Sample Percentage:** 5
+- **Result:** Only 5% of health check info logs are kept — enough to spot trends without the noise
+
+#### Example 3: Drop internal load balancer logs
+- **Filter Query:** \`attributes.source = 'internal-lb'\`
+- **Action:** Drop
+- **Result:** All logs from the internal load balancer are discarded
+
+---
+
+### Tips
+- **Order matters** — filters run in order. Drag rows to reorder
+- **Start with Sample** — if unsure, sample at 50% first to see the impact before dropping entirely
+- **Be specific** — use narrow filters to avoid accidentally dropping important logs
+- **Drop filters run before pipelines** — a dropped log will never reach any pipeline processor
+`;
+
 const LogDropFilters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -30,7 +100,13 @@ const LogDropFilters: FunctionComponent<
         cardProps={{
           title: "Log Drop Filters",
           description:
-            "Drop filters let you discard or sample logs before they are stored. Matching logs are dropped or sampled at the configured percentage. Drag to reorder.",
+            "Discard or sample logs before they are stored to reduce noise and storage costs. Filters run before pipeline processing.",
+        }}
+        helpContent={{
+          title: "How Log Drop Filters Work",
+          description:
+            "Understanding drop vs sample actions, filter queries, and how logs are discarded at ingest time",
+          markdown: documentationMarkdown,
         }}
         noItemsMessage={"No drop filters found."}
         formFields={[

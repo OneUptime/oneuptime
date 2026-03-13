@@ -85,9 +85,6 @@ const LogScrubRules: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
-        createInitialValues={{
-          sortOrder: 0,
-        }}
         sortBy="sortOrder"
         sortOrder={SortOrder.Ascending}
         enableDragAndDrop={true}

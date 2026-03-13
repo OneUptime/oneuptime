@@ -390,7 +390,7 @@ export default class LogScrubRule extends BaseModel {
   })
   @TableColumn({
     title: "Sort Order",
-    required: true,
+    required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     description:
