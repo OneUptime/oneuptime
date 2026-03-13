@@ -175,7 +175,6 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [_successMessage, _setSuccessMessage] = useState<string>("");
   const [originalQuery, setOriginalQuery] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(false);
 
@@ -220,7 +219,6 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const handleSave: () => Promise<void> = async (): Promise<void> => {
     setIsSaving(true);
     setError("");
-    setSuccessMessage("");
 
     const query: string = buildFilterQuery(modalConditions, modalConnector);
 
@@ -233,11 +231,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
       setConditions(modalConditions);
       setConnector(modalConnector);
       setOriginalQuery(query);
-      setSuccessMessage("Filter conditions saved.");
       setShowModal(false);
-      setTimeout(() => {
-        setSuccessMessage("");
-      }, 3000);
     } catch {
       setError("Failed to save filter conditions.");
     } finally {
@@ -296,18 +290,6 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
         ]}
       >
         <div className="p-2">
-          {successMessage && (
-            <div className="mb-4">
-              <Alert
-                type={AlertType.SUCCESS}
-                title={successMessage}
-                onClose={() => {
-                  setSuccessMessage("");
-                }}
-              />
-            </div>
-          )}
-
           {hasConditions ? (
             <div>
               {/* Show connector label */}
