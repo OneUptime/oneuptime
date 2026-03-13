@@ -23,6 +23,7 @@ const LogPipelines: FunctionComponent<PageComponentProps> = (): ReactElement => 
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        isViewable={true}
         cardProps={{
           title: "Log Pipelines",
           description:
