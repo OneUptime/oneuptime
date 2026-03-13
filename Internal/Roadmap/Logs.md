@@ -16,15 +16,16 @@ The following features have been implemented and removed from this plan:
 - **Phase 5.4** - Per-service TTL via `retentionDate` column
 - **Phase 5.5** - Parameterized SQL in `LogAggregationService`
 - **Phase 5.6** - ZSTD compression on `body` column
+- **Phase 2.1** - Saved Views (LogSavedView model, SavedViewsDropdown, CRUD API)
+- **Phase 2.2** - Log Analytics View (LogsAnalyticsView with timeseries, toplist, table charts; analytics endpoint)
+- **Phase 2.3** - Column Customization (ColumnSelector with dynamic columns from log attributes)
+- **Phase 5.8** - Store Missing OpenTelemetry Log Fields (observedTimeUnixNano, droppedAttributesCount, flags columns + ingestion + migration)
 
 ## Gap Analysis Summary
 
 | Feature | OneUptime | Datadog | New Relic | Priority |
 |---------|-----------|---------|-----------|----------|
-| Saved Views | None | Full state save/share | Full state save/share | **P1** |
 | Log Patterns (ML clustering) | None | Auto-clustering + Pattern Inspector | ML clustering + anomaly | **P1** |
-| Log-based analytics/charts | None | Timeseries, TopList, Table, Pie | Full NRQL charting | **P1** |
-| Column customization | Fixed 4 columns | Fully customizable | Configurable | **P1** |
 | Log context (surrounding logs) | None | Before/after from same host/service | Automatic via APM agent | **P2** |
 | Log Pipelines (server-side processing) | None (raw storage only) | 270+ OOTB, 14+ processor types | Grok parsing, built-in rules | **P2** |
 | Log-based Metrics | None | Count + Distribution, 15-month retention | Via NRQL | **P2** |
@@ -33,68 +34,6 @@ The following features have been implemented and removed from this plan:
 | Keyboard shortcuts | None | Full keyboard nav | Basic | **P3** |
 | Sensitive Data Scrubbing | None | Multi-layer (SaaS + agent + pipeline) | Auto-obfuscation + custom rules | **P3** |
 | Data retention config UI | Referenced but no UI | Multi-tier (Standard/Flex/Archive) | Partitions + Live Archives | **P3** |
-
----
-
-## Phase 2: Analytics & Organization (P1) — Power User Features
-
-### 2.1 Saved Views
-
-**Current**: No way to save filter/query state.
-**Target**: Users can save, name, and share log views.
-
-**Implementation**:
-
-- Create a new PostgreSQL model `LogSavedView` with fields: `id`, `projectId`, `name`, `query` (JSON), `columns` (JSON array), `sortField`, `sortOrder`, `pageSize`, `createdByUserId`, `isDefault`, timestamps
-- CRUD API via standard OneUptime model patterns
-- Add a "Save View" button in the toolbar and a dropdown to load saved views
-- Saved views appear in the left sidebar above the facets
-
-**Files to modify**:
-- `Common/Models/DatabaseModels/LogSavedView.ts` (new model)
-- `Common/Server/Services/LogSavedViewService.ts` (new service)
-- `Common/UI/Components/LogsViewer/components/SavedViewsDropdown.tsx` (new)
-- `Common/UI/Components/LogsViewer/components/LogsViewerToolbar.tsx` (add save/load buttons)
-
-### 2.2 Log Analytics View (Charts from Logs)
-
-**Current**: Logs are only viewable as a list.
-**Target**: A toggle to switch from "List" to "Analytics" mode showing aggregate visualizations.
-
-**Implementation**:
-
-- Add a view mode toggle in the toolbar: "List" | "Analytics"
-- Analytics view provides a query builder for:
-  - **Timeseries**: Count/unique count over time, grouped by up to 2 dimensions
-  - **Top List**: Top N values for a dimension by count
-  - **Table**: Pivot table with multiple group-by dimensions
-- Reuse the histogram endpoint with extended aggregation support
-- New API endpoint `POST /telemetry/logs/analytics` that supports flexible GROUP BY + aggregation queries
-- Create `LogsAnalyticsView` component using a charting library (recommend recharts, already likely in the project)
-
-**Files to modify**:
-- `Common/Server/API/TelemetryAPI.ts` (add analytics endpoint)
-- `Common/UI/Components/LogsViewer/components/LogsAnalyticsView.tsx` (new)
-- `Common/UI/Components/LogsViewer/components/LogsViewerToolbar.tsx` (add view toggle)
-- `Common/UI/Components/LogsViewer/LogsViewer.tsx` (conditional rendering)
-
-### 2.3 Column Customization
-
-**Current**: Fixed columns: Time, Service, Severity, Message.
-**Target**: Users can add/remove/reorder columns from log attributes.
-
-**Implementation**:
-
-- Add a "Columns" button in the toolbar that opens a dropdown/popover
-- Default columns: Time, Service, Severity, Message
-- Available columns: any discovered attribute key (from the existing get-attributes endpoint)
-- Selected columns persist in localStorage (and in Saved Views when that feature ships)
-- Extend `LogsTable.tsx` to dynamically render columns based on configuration
-
-**Files to modify**:
-- `Common/UI/Components/LogsViewer/components/ColumnSelector.tsx` (new)
-- `Common/UI/Components/LogsViewer/components/LogsTable.tsx` (dynamic columns)
-- `Common/UI/Components/LogsViewer/LogsViewer.tsx` (column state management)
 
 ---
 
@@ -195,14 +134,11 @@ The following features have been implemented and removed from this plan:
 
 ## Recommended Implementation Order
 
-1. **Phase 2.3** - Column Customization (small effort, high user value)
-2. **Phase 2.1** - Saved Views (moderate effort, high retention value)
-3. **Phase 3.4** - Export CSV/JSON (small effort, table-stakes feature)
-4. **Phase 3.1** - Log Context (moderate effort, high debugging value)
-5. **Phase 2.2** - Log Analytics View (larger effort, advanced user feature)
-6. **Phase 3.2** - Log Pipelines (large effort, platform capability)
-7. **Phase 3.3** - Drop Filters (moderate effort, cost optimization)
-8. **Phase 4.x** - Patterns, Shortcuts, Data Scrubbing (future)
+1. **Phase 3.4** - Export CSV/JSON (small effort, table-stakes feature)
+2. **Phase 3.1** - Log Context (moderate effort, high debugging value)
+3. **Phase 3.2** - Log Pipelines (large effort, platform capability)
+4. **Phase 3.3** - Drop Filters (moderate effort, cost optimization)
+5. **Phase 4.x** - Patterns, Shortcuts, Data Scrubbing (future)
 
 ## Phase 5: ClickHouse Storage & Query Optimizations (P0) — Performance Foundation
 
@@ -262,42 +198,17 @@ These optimizations address fundamental storage and indexing gaps in the telemet
 - `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` (emit PROJECTION clause)
 - `Worker/DataMigrations/` (new migration to materialize)
 
-### 5.8 Store Missing OpenTelemetry Log Fields (Low)
-
-**Current**: Several standard OTEL log record fields are dropped during ingestion:
-- `observedTimeUnixNano` — when the log was collected by the pipeline (useful for measuring ingestion lag)
-- `droppedAttributesCount` — signals data loss during collection
-- `flags` — log record flags (e.g., W3C trace flags)
-
-**Target**: Preserve these fields for full OTEL compliance and operational debugging.
-
-**Implementation**:
-
-- Add optional columns to the Log model:
-  - `observedTimeUnixNano` (LongNumber)
-  - `droppedAttributesCount` (Number, default 0)
-  - `flags` (Number, default 0)
-- Update `OtelLogsIngestService.processLogsAsync()` to extract and store these fields
-- Migration to add columns to existing table
-
-**Files to modify**:
-- `Common/Models/AnalyticsModels/Log.ts` (add columns)
-- `Telemetry/Services/OtelLogsIngestService.ts` (extract additional fields)
-- `Worker/DataMigrations/` (new migration)
-
 ### 5.x Remaining Performance Impact Summary
 
 | Optimization | Query Pattern Improved | Expected Speedup | Effort |
 |-------------|----------------------|-------------------|--------|
 | 5.3 DateTime64 time column | Sub-second log ordering | Correctness fix | Medium |
 | 5.7 Histogram projections | Histogram and severity aggregation | 5-10x | Medium |
-| 5.8 Missing OTEL fields | OTEL compliance | N/A (completeness) | Small |
 
 ### 5.x Recommended Remaining Order
 
 1. **5.3** — DateTime64 upgrade (correctness)
 2. **5.7** — Projections (performance polish)
-3. **5.8** — Missing OTEL fields (completeness)
 
 ---
 

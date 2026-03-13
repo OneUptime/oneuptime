@@ -280,6 +280,31 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     spanId = "";
                   }
 
+                  // Extract observedTimeUnixNano
+                  let observedTimeUnixNano: number = 0;
+                  if (log["observedTimeUnixNano"]) {
+                    try {
+                      if (typeof log["observedTimeUnixNano"] === "string") {
+                        observedTimeUnixNano = parseFloat(
+                          log["observedTimeUnixNano"],
+                        );
+                        if (isNaN(observedTimeUnixNano)) {
+                          observedTimeUnixNano = 0;
+                        }
+                      } else {
+                        observedTimeUnixNano =
+                          (log["observedTimeUnixNano"] as number) || 0;
+                      }
+                    } catch {
+                      observedTimeUnixNano = 0;
+                    }
+                  }
+
+                  const droppedAttributesCount: number =
+                    (log["droppedAttributesCount"] as number) || 0;
+
+                  const logFlags: number = (log["flags"] as number) || 0;
+
                   const ingestionDate: Date = OneUptimeDate.getCurrentDate();
                   const ingestionTimestamp: string =
                     OneUptimeDate.toClickhouseDateTime(ingestionDate);
@@ -306,6 +331,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     traceId: traceId,
                     spanId: spanId,
                     body: body,
+                    observedTimeUnixNano:
+                      Math.trunc(observedTimeUnixNano).toString(),
+                    droppedAttributesCount: droppedAttributesCount,
+                    flags: logFlags,
                     retentionDate:
                       OneUptimeDate.toClickhouseDateTime(retentionDate),
                   };
