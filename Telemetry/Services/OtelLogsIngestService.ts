@@ -27,6 +27,7 @@ import LogService from "Common/Server/Services/LogService";
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
 import LogDropFilterService from "./LogDropFilterService";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
+import LogScrubRuleService from "./LogScrubRuleService";
 
 export default class OtelLogsIngestService extends OtelIngestBaseService {
   private static async flushLogsBuffer(
@@ -95,16 +96,21 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalLogsProcessed: number = 0;
 
-      // Load pipelines and drop filters once per batch
+      // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       let loadedPipelines: Array<LoadedPipeline> = [];
       let loadedDropFilters: Array<LogDropFilter> = [];
+      let loadedScrubRules: Awaited<
+        ReturnType<typeof LogScrubRuleService.loadScrubRules>
+      > = [];
       try {
         loadedPipelines = await LogPipelineService.loadPipelines(projectId);
         loadedDropFilters =
           await LogDropFilterService.loadDropFilters(projectId);
+        loadedScrubRules =
+          await LogScrubRuleService.loadScrubRules(projectId);
       } catch (loadError) {
-        logger.error("Error loading pipelines/drop filters:");
+        logger.error("Error loading pipelines/drop filters/scrub rules:");
         logger.error(loadError);
       }
 
@@ -364,6 +370,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     )
                   ) {
                     continue;
+                  }
+
+                  // Sensitive data scrubbing
+                  if (loadedScrubRules.length > 0) {
+                    logRow = LogScrubRuleService.scrubLog(
+                      logRow,
+                      loadedScrubRules,
+                    );
                   }
 
                   // Pipeline processing

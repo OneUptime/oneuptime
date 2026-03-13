@@ -89,6 +89,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
+      title: "Data Privacy",
+      items: [
+        {
+          link: {
+            title: "Log Scrub Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LOG_SCRUB_RULES] as Route,
+            ),
+          },
+          icon: IconProp.ShieldCheck,
+        },
+      ],
+    },
+    {
       title: "Users and Teams",
       items: [
         {

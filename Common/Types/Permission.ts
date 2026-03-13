@@ -100,6 +100,12 @@ enum Permission {
   EditProjectLogDropFilter = "EditProjectLogDropFilter",
   ReadProjectLogDropFilter = "ReadProjectLogDropFilter",
 
+  // Log Scrub Rules
+  CreateProjectLogScrubRule = "CreateProjectLogScrubRule",
+  DeleteProjectLogScrubRule = "DeleteProjectLogScrubRule",
+  EditProjectLogScrubRule = "EditProjectLogScrubRule",
+  ReadProjectLogScrubRule = "ReadProjectLogScrubRule",
+
   // Exceptions
   CreateTelemetryException = "CreateTelemetryException",
   DeleteTelemetryException = "DeleteTelemetryException",
@@ -4108,6 +4114,44 @@ export class PermissionHelper {
         title: "Read Log Drop Filter",
         description:
           "This permission can read Log Drop Filters of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Log Scrub Rule Permissions
+      {
+        permission: Permission.CreateProjectLogScrubRule,
+        title: "Create Log Scrub Rule",
+        description:
+          "This permission can create Log Scrub Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLogScrubRule,
+        title: "Delete Log Scrub Rule",
+        description:
+          "This permission can delete Log Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLogScrubRule,
+        title: "Edit Log Scrub Rule",
+        description:
+          "This permission can edit Log Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLogScrubRule,
+        title: "Read Log Scrub Rule",
+        description:
+          "This permission can read Log Scrub Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         group: PermissionGroup.Telemetry,

@@ -40,6 +40,7 @@ import LogSavedView from "./LogSavedView";
 import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
+import LogScrubRule from "./LogScrubRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -258,6 +259,7 @@ const AllModelTypes: Array<{
   LogPipeline,
   LogPipelineProcessor,
   LogDropFilter,
+  LogScrubRule,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,
