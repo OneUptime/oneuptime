@@ -28,6 +28,7 @@ export interface LogsTableProps {
   sortOrder?: SortOrder | undefined;
   onSortChange?: (field: LogsTableSortField) => void;
   selectedColumns?: Array<string> | undefined;
+  focusedRowIndex?: number | undefined;
 }
 
 export const resolveLogIdentifier: (log: Log, index: number) => string = (
@@ -245,6 +246,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               const spanId: string = log.spanId?.toString() || "";
 
               const isSelected: boolean = props.selectedLogId === rowId;
+              const isFocused: boolean = props.focusedRowIndex === index;
               const severityTheme: SeverityTheme = getSeverityTheme(
                 log.severityText,
               );
@@ -258,8 +260,11 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                     className={`group cursor-pointer align-top transition-colors hover:bg-gray-50/70 border-l-[3px] ${severityTheme.borderClass} ${
                       isSelected
                         ? "bg-indigo-50/50 ring-1 ring-inset ring-indigo-200"
-                        : ""
+                        : isFocused
+                          ? "bg-gray-100/70 ring-1 ring-inset ring-gray-300"
+                          : ""
                     }`}
+                    data-focused={isFocused || undefined}
                     aria-selected={isSelected}
                     aria-expanded={isSelected}
                   >

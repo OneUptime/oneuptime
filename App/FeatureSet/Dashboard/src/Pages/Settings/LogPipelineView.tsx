@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
@@ -67,14 +68,6 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
-          {
-            field: {
-              sortOrder: true,
-            },
-            title: "Sort Order",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-          },
         ]}
         modelDetailProps={{
           modelType: LogPipeline,
@@ -105,13 +98,6 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
               title: "Enabled",
               fieldType: FieldType.Boolean,
             },
-            {
-              field: {
-                sortOrder: true,
-              },
-              title: "Sort Order",
-              fieldType: FieldType.Number,
-            },
           ],
           modelId: modelId,
         }}
@@ -128,10 +114,14 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        sortBy="sortOrder"
+        sortOrder={SortOrder.Ascending}
+        enableDragAndDrop={true}
+        dragDropIndexField="sortOrder"
         cardProps={{
           title: "Processors",
           description:
-            "Processors transform logs matched by this pipeline. They run in sort order.",
+            "Processors transform logs matched by this pipeline. They run in the order shown below. Drag to reorder.",
         }}
         noItemsMessage={"No processors configured for this pipeline."}
         formFields={[
@@ -187,15 +177,6 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
-          {
-            field: {
-              sortOrder: true,
-            },
-            title: "Sort Order",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "0",
-          },
         ]}
         showRefreshButton={true}
         createInitialValues={{
@@ -238,13 +219,6 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
             },
             title: "Enabled",
             type: FieldType.Boolean,
-          },
-          {
-            field: {
-              sortOrder: true,
-            },
-            title: "Sort Order",
-            type: FieldType.Number,
           },
         ]}
       />

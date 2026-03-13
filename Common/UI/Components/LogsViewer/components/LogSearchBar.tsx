@@ -1,10 +1,11 @@
 import React, {
-  FunctionComponent,
   ReactElement,
   useState,
   useCallback,
   useRef,
   useEffect,
+  useImperativeHandle,
+  forwardRef,
   KeyboardEvent,
 } from "react";
 import Icon from "../../Icon/Icon";
@@ -22,9 +23,16 @@ export interface LogSearchBarProps {
   placeholder?: string | undefined;
 }
 
-const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
+export interface LogSearchBarRef {
+  focus: () => void;
+}
+
+const LogSearchBar: React.ForwardRefExoticComponent<
+  LogSearchBarProps & React.RefAttributes<LogSearchBarRef>
+> = forwardRef<LogSearchBarRef, LogSearchBarProps>(function LogSearchBar(
   props: LogSearchBarProps,
-): ReactElement => {
+  ref: React.Ref<LogSearchBarRef>,
+): ReactElement {
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [showHelp, setShowHelp] = useState<boolean>(false);
@@ -35,6 +43,18 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
   );
   const containerRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
     null!,
+  );
+
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        focus: (): void => {
+          inputRef.current?.focus();
+        },
+      };
+    },
+    [],
   );
 
   const currentWord: string = extractCurrentWord(props.value);
@@ -317,7 +337,7 @@ const LogSearchBar: FunctionComponent<LogSearchBarProps> = (
       {shouldShowHelp && <LogSearchHelp onExampleClick={handleExampleClick} />}
     </div>
   );
-};
+});
 
 function extractCurrentWord(value: string): string {
   const parts: Array<string> = value.split(/\s+/);

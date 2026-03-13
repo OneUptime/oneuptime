@@ -1,10 +1,10 @@
 import PageComponentProps from "../PageComponentProps";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const LogDropFilters: FunctionComponent<
@@ -23,13 +23,16 @@ const LogDropFilters: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        sortBy="sortOrder"
+        sortOrder={SortOrder.Ascending}
+        enableDragAndDrop={true}
+        dragDropIndexField="sortOrder"
         cardProps={{
           title: "Log Drop Filters",
           description:
-            "Drop filters let you discard or sample logs before they are stored. Matching logs are dropped or sampled at the configured percentage. Filters run in sort order before pipeline processing.",
+            "Drop filters let you discard or sample logs before they are stored. Matching logs are dropped or sampled at the configured percentage. Drag to reorder.",
         }}
         noItemsMessage={"No drop filters found."}
-        viewPageRoute={Navigation.getCurrentRoute()}
         formFields={[
           {
             field: {
@@ -67,9 +70,18 @@ const LogDropFilters: FunctionComponent<
               action: true,
             },
             title: "Action",
-            fieldType: FormFieldSchemaType.Text,
+            fieldType: FormFieldSchemaType.Dropdown,
             required: true,
-            placeholder: "drop or sample",
+            dropdownOptions: [
+              {
+                label: "Drop",
+                value: "drop",
+              },
+              {
+                label: "Sample",
+                value: "sample",
+              },
+            ],
           },
           {
             field: {
@@ -87,15 +99,6 @@ const LogDropFilters: FunctionComponent<
             title: "Enabled",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-          },
-          {
-            field: {
-              sortOrder: true,
-            },
-            title: "Sort Order",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "0",
           },
         ]}
         showRefreshButton={true}
@@ -152,13 +155,6 @@ const LogDropFilters: FunctionComponent<
             },
             title: "Enabled",
             type: FieldType.Boolean,
-          },
-          {
-            field: {
-              sortOrder: true,
-            },
-            title: "Sort Order",
-            type: FieldType.Number,
           },
         ]}
       />

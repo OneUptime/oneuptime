@@ -1,12 +1,11 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Navigation from "Common/UI/Utils/Navigation";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Route from "Common/Types/API/Route";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const LogPipelines: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -21,18 +20,20 @@ const LogPipelines: FunctionComponent<PageComponentProps> = (): ReactElement => 
         name="Settings > Log Pipelines"
         userPreferencesKey="log-pipelines-table"
         isDeleteable={true}
-        isEditable={true}
+        isEditable={false}
         isCreateable={true}
         isViewable={true}
+        sortBy="sortOrder"
+        sortOrder={SortOrder.Ascending}
+        enableDragAndDrop={true}
+        dragDropIndexField="sortOrder"
         cardProps={{
           title: "Log Pipelines",
           description:
             "Configure server-side log processing pipelines that transform logs at ingest time. Pipelines run in sort order and apply processors to matching logs.",
         }}
         noItemsMessage={"No log pipelines found."}
-        viewPageRoute={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.SETTINGS_LOG_PIPELINE_VIEW] as Route,
-        )}
+        viewPageRoute={Navigation.getCurrentRoute()}
         formFields={[
           {
             field: {
@@ -72,15 +73,6 @@ const LogPipelines: FunctionComponent<PageComponentProps> = (): ReactElement => 
             title: "Enabled",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-          },
-          {
-            field: {
-              sortOrder: true,
-            },
-            title: "Sort Order",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "0",
           },
         ]}
         showRefreshButton={true}
@@ -123,13 +115,6 @@ const LogPipelines: FunctionComponent<PageComponentProps> = (): ReactElement => 
             },
             title: "Enabled",
             type: FieldType.Boolean,
-          },
-          {
-            field: {
-              sortOrder: true,
-            },
-            title: "Sort Order",
-            type: FieldType.Number,
           },
         ]}
       />
