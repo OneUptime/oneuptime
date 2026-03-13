@@ -14,6 +14,9 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Blue, Green } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -32,6 +35,31 @@ export interface ComponentProps {
 
 type LogicalConnector = "AND" | "OR";
 
+// Field label map for display
+const fieldLabels: Record<string, string> = {
+  severityText: "Severity",
+  body: "Log Body",
+  serviceId: "Service ID",
+};
+
+const operatorLabels: Record<string, string> = {
+  "=": "equals",
+  "!=": "does not equal",
+  LIKE: "contains",
+  IN: "is one of",
+};
+
+function getFieldLabel(field: string): string {
+  if (field.startsWith("attributes.")) {
+    return `attributes.${field.replace("attributes.", "")}`;
+  }
+  return fieldLabels[field] || field;
+}
+
+function getOperatorLabel(operator: string): string {
+  return operatorLabels[operator] || operator;
+}
+
 // Parse a filterQuery string into structured conditions
 function parseFilterQuery(query: string): {
   conditions: Array<FilterConditionData>;
@@ -49,7 +77,6 @@ function parseFilterQuery(query: string): {
     return defaultResult;
   }
 
-  // Detect connector
   const connector: LogicalConnector = query.includes(" OR ") ? "OR" : "AND";
   const connectorRegex: RegExp = connector === "AND" ? / AND /i : / OR /i;
   const parts: Array<string> = query.split(connectorRegex);
@@ -59,7 +86,6 @@ function parseFilterQuery(query: string): {
   for (const part of parts) {
     const trimmed: string = part.trim().replace(/^\(|\)$/g, "");
 
-    // Try to match: field OPERATOR 'value' or field OPERATOR value
     const likeMatch: RegExpMatchArray | null = trimmed.match(
       /^(\S+)\s+(LIKE)\s+'([^']*)'$/i,
     );
@@ -149,8 +175,15 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [_successMessage, _setSuccessMessage] = useState<string>("");
   const [originalQuery, setOriginalQuery] = useState<string>("");
+  const [showModal, setShowModal] = useState<boolean>(false);
+
+  // Snapshot of conditions/connector when modal opens (for cancel/revert)
+  const [modalConditions, setModalConditions] = useState<
+    Array<FilterConditionData>
+  >([]);
+  const [modalConnector, setModalConnector] = useState<LogicalConnector>("AND");
 
   const loadModel: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -189,7 +222,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
     setError("");
     setSuccessMessage("");
 
-    const query: string = buildFilterQuery(conditions, connector);
+    const query: string = buildFilterQuery(modalConditions, modalConnector);
 
     try {
       await ModelAPI.updateById({
@@ -197,8 +230,11 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
         id: props.modelId,
         data: { filterQuery: query || "" },
       });
+      setConditions(modalConditions);
+      setConnector(modalConnector);
       setOriginalQuery(query);
-      setSuccessMessage("Filter conditions saved successfully.");
+      setSuccessMessage("Filter conditions saved.");
+      setShowModal(false);
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
@@ -209,18 +245,30 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleClear: () => void = (): void => {
-    setConditions([{ field: "severityText", operator: "=", value: "" }]);
-    setConnector("AND");
+  const openModal: () => void = (): void => {
+    setModalConditions(conditions.map((c: FilterConditionData) => ({ ...c })));
+    setModalConnector(connector);
+    setError("");
+    setShowModal(true);
   };
 
-  const currentQuery: string = buildFilterQuery(conditions, connector);
-  const hasChanges: boolean = currentQuery !== originalQuery;
+  const closeModal: () => void = (): void => {
+    setShowModal(false);
+    setError("");
+  };
 
   const cardTitle: string = props.title || "Filter Conditions";
   const cardDescription: string =
     props.description ||
     "Define which logs this rule applies to. Only logs that match these conditions will be affected. Leave empty to match all logs.";
+
+  // Check if there are valid saved conditions
+  const savedConditions: Array<FilterConditionData> = conditions.filter(
+    (c: FilterConditionData) => {
+      return c.field && c.operator && c.value;
+    },
+  );
+  const hasConditions: boolean = savedConditions.length > 0;
 
   if (isLoading) {
     return (
@@ -233,150 +281,242 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <Card
-      title={cardTitle}
-      description={cardDescription}
-      buttons={[
-        {
-          title: "Save",
-          buttonStyle: ButtonStyleType.PRIMARY,
-          onClick: handleSave,
-          isLoading: isSaving,
-          disabled: isSaving || !hasChanges,
-          icon: IconProp.CheckCircle,
-        },
-      ]}
-    >
-      <div className="p-2">
-        {error && (
-          <div className="mb-4">
-            <Alert
-              type={AlertType.DANGER}
-              title={error}
-              onClose={() => {
-                setError("");
-              }}
-            />
-          </div>
-        )}
+    <>
+      {/* Read-only card view */}
+      <Card
+        title={cardTitle}
+        description={cardDescription}
+        buttons={[
+          {
+            title: "Edit",
+            buttonStyle: ButtonStyleType.NORMAL,
+            onClick: openModal,
+            icon: IconProp.Edit,
+          },
+        ]}
+      >
+        <div className="p-2">
+          {successMessage && (
+            <div className="mb-4">
+              <Alert
+                type={AlertType.SUCCESS}
+                title={successMessage}
+                onClose={() => {
+                  setSuccessMessage("");
+                }}
+              />
+            </div>
+          )}
 
-        {successMessage && (
-          <div className="mb-4">
-            <Alert
-              type={AlertType.SUCCESS}
-              title={successMessage}
-              onClose={() => {
-                setSuccessMessage("");
-              }}
-            />
-          </div>
-        )}
+          {hasConditions ? (
+            <div>
+              {/* Show connector label */}
+              {savedConditions.length > 1 && (
+                <div className="mb-3">
+                  <span className="text-sm text-gray-500">
+                    Match{" "}
+                    <span className="font-medium text-gray-700">
+                      {connector === "AND"
+                        ? "all conditions"
+                        : "any condition"}
+                    </span>
+                  </span>
+                </div>
+              )}
 
-        {/* Connector selector (only show if more than 1 condition) */}
-        {conditions.length > 1 && (
-          <div className="mb-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 font-medium">Match</span>
-              <div className="w-64">
-                <Dropdown
-                  options={connectorOptions}
-                  value={connectorOptions.find((opt: DropdownOption) => {
-                    return opt.value === connector;
-                  })}
-                  onChange={(
-                    value: DropdownValue | Array<DropdownValue> | null,
-                  ) => {
-                    setConnector(
-                      (value?.toString() as LogicalConnector) || "AND",
+              {/* Read-only condition list */}
+              <div className="space-y-2">
+                {savedConditions.map(
+                  (condition: FilterConditionData, index: number) => {
+                    return (
+                      <div key={index}>
+                        {index > 0 && (
+                          <div className="flex items-center justify-center my-1">
+                            <span
+                              className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                connector === "AND"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-amber-100 text-amber-700"
+                              }`}
+                            >
+                              {connector}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 rounded-md p-3 bg-gray-50 border border-gray-200">
+                          <Pill
+                            color={Blue}
+                            text={getFieldLabel(condition.field)}
+                          />
+                          <span className="text-sm text-gray-500">
+                            {getOperatorLabel(condition.operator)}
+                          </span>
+                          <Pill
+                            color={Green}
+                            text={condition.value || "(empty)"}
+                          />
+                        </div>
+                      </div>
                     );
-                  }}
-                />
+                  },
+                )}
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-sm text-gray-400 py-2">
+              No filter conditions configured — matches all logs.
+            </div>
+          )}
+        </div>
+      </Card>
 
-        {/* Condition rows */}
-        <div className="space-y-3">
-          {conditions.map((condition: FilterConditionData, index: number) => {
-            return (
-              <div key={index}>
-                {index > 0 && (
-                  <div className="flex items-center justify-center my-2">
-                    <div className="flex-1 border-t border-gray-200"></div>
-                    <span
-                      className={`mx-3 px-3 py-1 text-xs font-semibold rounded-full border ${
-                        connector === "AND"
-                          ? "bg-blue-100 text-blue-700 border-blue-200"
-                          : "bg-amber-100 text-amber-700 border-amber-200"
-                      }`}
-                    >
-                      {connector}
-                    </span>
-                    <div className="flex-1 border-t border-gray-200"></div>
-                  </div>
-                )}
-                <FilterConditionElement
-                  condition={condition}
-                  canDelete={conditions.length > 1}
-                  onChange={(updated: FilterConditionData) => {
-                    const newConditions: Array<FilterConditionData> = [
-                      ...conditions,
-                    ];
-                    newConditions[index] = updated;
-                    setConditions(newConditions);
-                  }}
-                  onDelete={() => {
-                    const newConditions: Array<FilterConditionData> =
-                      conditions.filter((_: FilterConditionData, i: number) => {
-                        return i !== index;
-                      });
-                    setConditions(newConditions);
+      {/* Edit modal */}
+      {showModal && (
+        <Modal
+          title="Edit Filter Conditions"
+          description="Define which logs this rule applies to. Add conditions to filter by severity, log body, service, or custom attributes."
+          onClose={closeModal}
+          modalWidth={ModalWidth.Large}
+          submitButtonText="Save"
+          onSubmit={() => {
+            handleSave().catch(() => {
+              // error handled inside handleSave
+            });
+          }}
+          isLoading={isSaving}
+          disableSubmitButton={isSaving}
+        >
+          <div>
+            {error && (
+              <div className="mb-4">
+                <Alert
+                  type={AlertType.DANGER}
+                  title={error}
+                  onClose={() => {
+                    setError("");
                   }}
                 />
               </div>
-            );
-          })}
-        </div>
+            )}
 
-        {/* Add condition + Clear buttons */}
-        <div className="mt-4 flex gap-2">
-          <Button
-            title="Add Condition"
-            icon={IconProp.Add}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              setConditions([
-                ...conditions,
-                { field: "severityText", operator: "=", value: "" },
-              ]);
-            }}
-          />
-          {conditions.length > 1 && (
-            <Button
-              title="Clear All"
-              icon={IconProp.Close}
-              buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-              buttonSize={ButtonSize.Small}
-              onClick={handleClear}
-            />
-          )}
-        </div>
+            {/* Connector selector */}
+            {modalConditions.length > 1 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600 font-medium">
+                    Match
+                  </span>
+                  <div className="w-64">
+                    <Dropdown
+                      options={connectorOptions}
+                      value={connectorOptions.find((opt: DropdownOption) => {
+                        return opt.value === modalConnector;
+                      })}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        setModalConnector(
+                          (value?.toString() as LogicalConnector) || "AND",
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
-        {/* Preview of generated query */}
-        {currentQuery && (
-          <div className="mt-4 p-3 bg-gray-100 rounded-md">
-            <p className="text-xs text-gray-500 font-medium mb-1">
-              Generated Filter Query
-            </p>
-            <code className="text-xs text-gray-700 break-all">
-              {currentQuery}
-            </code>
+            {/* Condition rows */}
+            <div className="space-y-3">
+              {modalConditions.map(
+                (condition: FilterConditionData, index: number) => {
+                  return (
+                    <div key={index}>
+                      {index > 0 && (
+                        <div className="flex items-center justify-center my-2">
+                          <div className="flex-1 border-t border-gray-200"></div>
+                          <span
+                            className={`mx-3 px-3 py-1 text-xs font-semibold rounded-full border ${
+                              modalConnector === "AND"
+                                ? "bg-blue-100 text-blue-700 border-blue-200"
+                                : "bg-amber-100 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {modalConnector}
+                          </span>
+                          <div className="flex-1 border-t border-gray-200"></div>
+                        </div>
+                      )}
+                      <FilterConditionElement
+                        condition={condition}
+                        canDelete={modalConditions.length > 1}
+                        onChange={(updated: FilterConditionData) => {
+                          const newConditions: Array<FilterConditionData> = [
+                            ...modalConditions,
+                          ];
+                          newConditions[index] = updated;
+                          setModalConditions(newConditions);
+                        }}
+                        onDelete={() => {
+                          const newConditions: Array<FilterConditionData> =
+                            modalConditions.filter(
+                              (_: FilterConditionData, i: number) => {
+                                return i !== index;
+                              },
+                            );
+                          setModalConditions(newConditions);
+                        }}
+                      />
+                    </div>
+                  );
+                },
+              )}
+            </div>
+
+            {/* Add condition + Clear buttons */}
+            <div className="mt-4 flex gap-2">
+              <Button
+                title="Add Condition"
+                icon={IconProp.Add}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                onClick={() => {
+                  setModalConditions([
+                    ...modalConditions,
+                    { field: "severityText", operator: "=", value: "" },
+                  ]);
+                }}
+              />
+              {modalConditions.length > 1 && (
+                <Button
+                  title="Clear All"
+                  icon={IconProp.Close}
+                  buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  onClick={() => {
+                    setModalConditions([
+                      { field: "severityText", operator: "=", value: "" },
+                    ]);
+                    setModalConnector("AND");
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Preview of generated query */}
+            {buildFilterQuery(modalConditions, modalConnector) && (
+              <div className="mt-4 p-3 bg-gray-100 rounded-md">
+                <p className="text-xs text-gray-500 font-medium mb-1">
+                  Generated Filter Query
+                </p>
+                <code className="text-xs text-gray-700 break-all">
+                  {buildFilterQuery(modalConditions, modalConnector)}
+                </code>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </Card>
+        </Modal>
+      )}
+    </>
   );
 };
 
