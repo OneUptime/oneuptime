@@ -1,6 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormValues } from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
@@ -115,10 +116,13 @@ const LogScrubRules: FunctionComponent<
             title: "Custom Regex Pattern",
             stepId: "pattern-config",
             description:
-              "A regular expression to match sensitive data. Only used when Pattern Type is 'Custom Regex'.",
+              "A regular expression to match sensitive data.",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "e.g. \\bSECRET-[A-Z0-9]+\\b",
+            showIf: (values: FormValues<LogScrubRule>): boolean => {
+              return values.patternType === "custom";
+            },
           },
           {
             field: {
