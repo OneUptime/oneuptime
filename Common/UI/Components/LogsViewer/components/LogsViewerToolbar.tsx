@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 import LiveLogsToggle from "./LiveLogsToggle";
 import LogTimeRangePicker from "./LogTimeRangePicker";
 import ColumnSelector from "./ColumnSelector";

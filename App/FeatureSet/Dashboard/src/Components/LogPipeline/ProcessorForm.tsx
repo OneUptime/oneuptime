@@ -1,8 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import Button, {
   ButtonSize,
@@ -29,7 +25,11 @@ export interface ComponentProps {
   onCancel: () => void;
 }
 
-type ProcessorType = "SeverityRemapper" | "AttributeRemapper" | "CategoryProcessor" | "";
+type ProcessorType =
+  | "SeverityRemapper"
+  | "AttributeRemapper"
+  | "CategoryProcessor"
+  | "";
 
 const processorTypeOptions: Array<DropdownOption> = [
   {
@@ -47,8 +47,7 @@ const processorTypeOptions: Array<DropdownOption> = [
   {
     value: "CategoryProcessor",
     label: "Category Processor",
-    description:
-      "Assign categories to logs based on filter conditions",
+    description: "Assign categories to logs based on filter conditions",
   },
 ];
 
@@ -92,9 +91,9 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
       case "SeverityRemapper":
         return {
           sourceKey: severitySourceKey,
-          mappings: severityMappings.filter(
-            (m: SeverityMapping) => m.matchValue && m.severityText,
-          ),
+          mappings: severityMappings.filter((m: SeverityMapping) => {
+            return m.matchValue && m.severityText;
+          }),
         };
       case "AttributeRemapper":
         return {
@@ -106,9 +105,9 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
       case "CategoryProcessor":
         return {
           targetKey: categoryTargetKey,
-          categories: categories.filter(
-            (c: CategoryRule) => c.name && c.filterQuery,
-          ),
+          categories: categories.filter((c: CategoryRule) => {
+            return c.name && c.filterQuery;
+          }),
         };
       default:
         return {};
@@ -128,10 +127,11 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
         if (!severitySourceKey.trim()) {
           return "Source key is required for Severity Remapper.";
         }
-        const validMappings: Array<SeverityMapping> =
-          severityMappings.filter(
-            (m: SeverityMapping) => m.matchValue && m.severityText,
-          );
+        const validMappings: Array<SeverityMapping> = severityMappings.filter(
+          (m: SeverityMapping) => {
+            return m.matchValue && m.severityText;
+          },
+        );
         if (validMappings.length === 0) {
           return "At least one severity mapping is required.";
         }
@@ -150,7 +150,9 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
           return "Target key is required.";
         }
         const validCategories: Array<CategoryRule> = categories.filter(
-          (c: CategoryRule) => c.name && c.filterQuery,
+          (c: CategoryRule) => {
+            return c.name && c.filterQuery;
+          },
         );
         if (validCategories.length === 0) {
           return "At least one category rule is required.";
@@ -249,19 +251,16 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
               options={processorTypeOptions}
               value={
                 processorType
-                  ? processorTypeOptions.find(
-                      (opt: DropdownOption) =>
-                        opt.value === processorType,
-                    )
+                  ? processorTypeOptions.find((opt: DropdownOption) => {
+                      return opt.value === processorType;
+                    })
                   : undefined
               }
               placeholder="Select processor type..."
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
-                setProcessorType(
-                  (value?.toString() as ProcessorType) || "",
-                );
+                setProcessorType((value?.toString() as ProcessorType) || "");
               }}
             />
           </div>
@@ -274,9 +273,9 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
               Severity Remapper Configuration
             </h4>
             <p className="text-xs text-gray-500 mb-4">
-              Map values from a log attribute to standard severity levels.
-              For example, map &quot;warn&quot; to WARNING, or
-              &quot;err&quot; to ERROR.
+              Map values from a log attribute to standard severity levels. For
+              example, map &quot;warn&quot; to WARNING, or &quot;err&quot; to
+              ERROR.
             </p>
 
             <div className="mb-4">
@@ -317,8 +316,9 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                         onDelete={() => {
                           setSeverityMappings(
                             severityMappings.filter(
-                              (_: SeverityMapping, i: number) =>
-                                i !== index,
+                              (_: SeverityMapping, i: number) => {
+                                return i !== index;
+                              },
                             ),
                           );
                         }}
@@ -414,8 +414,8 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
               Category Processor Configuration
             </h4>
             <p className="text-xs text-gray-500 mb-4">
-              Assign a category to logs based on filter conditions. The
-              first matching rule wins.
+              Assign a category to logs based on filter conditions. The first
+              matching rule wins.
             </p>
 
             <div className="mb-4">
@@ -439,74 +439,71 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 description="Define categories and the conditions that trigger them"
               />
               <div className="mt-2 space-y-2">
-                {categories.map(
-                  (cat: CategoryRule, index: number) => {
-                    return (
-                      <div
-                        key={index}
-                        className="grid grid-cols-12 gap-3 items-center p-3 bg-gray-50 rounded-md border border-gray-200"
-                      >
-                        <div className="col-span-4">
-                          <Input
-                            type={InputType.TEXT}
-                            placeholder="Category name (e.g. Error)"
-                            value={cat.name}
-                            onChange={(value: string) => {
-                              const newCats: Array<CategoryRule> = [
-                                ...categories,
-                              ];
-                              newCats[index] = {
-                                ...cat,
-                                name: value,
-                              };
-                              setCategories(newCats);
-                            }}
-                          />
-                        </div>
-                        <div className="col-span-1 flex justify-center">
-                          <span className="text-gray-400 text-sm font-medium">
-                            when
-                          </span>
-                        </div>
-                        <div className="col-span-6">
-                          <Input
-                            type={InputType.TEXT}
-                            placeholder="e.g. severityText = 'ERROR'"
-                            value={cat.filterQuery}
-                            onChange={(value: string) => {
-                              const newCats: Array<CategoryRule> = [
-                                ...categories,
-                              ];
-                              newCats[index] = {
-                                ...cat,
-                                filterQuery: value,
-                              };
-                              setCategories(newCats);
-                            }}
-                          />
-                        </div>
-                        <div className="col-span-1 flex justify-end">
-                          <Button
-                            icon={IconProp.Trash}
-                            buttonStyle={
-                              ButtonStyleType.DANGER_OUTLINE
-                            }
-                            buttonSize={ButtonSize.Small}
-                            onClick={() => {
-                              setCategories(
-                                categories.filter(
-                                  (_: CategoryRule, i: number) =>
-                                    i !== index,
-                                ),
-                              );
-                            }}
-                            disabled={categories.length <= 1}
-                          />
-                        </div>
+                {categories.map((cat: CategoryRule, index: number) => {
+                  return (
+                    <div
+                      key={index}
+                      className="grid grid-cols-12 gap-3 items-center p-3 bg-gray-50 rounded-md border border-gray-200"
+                    >
+                      <div className="col-span-4">
+                        <Input
+                          type={InputType.TEXT}
+                          placeholder="Category name (e.g. Error)"
+                          value={cat.name}
+                          onChange={(value: string) => {
+                            const newCats: Array<CategoryRule> = [
+                              ...categories,
+                            ];
+                            newCats[index] = {
+                              ...cat,
+                              name: value,
+                            };
+                            setCategories(newCats);
+                          }}
+                        />
                       </div>
-                    );
-                  },
-                )}
+                      <div className="col-span-1 flex justify-center">
+                        <span className="text-gray-400 text-sm font-medium">
+                          when
+                        </span>
+                      </div>
+                      <div className="col-span-6">
+                        <Input
+                          type={InputType.TEXT}
+                          placeholder="e.g. severityText = 'ERROR'"
+                          value={cat.filterQuery}
+                          onChange={(value: string) => {
+                            const newCats: Array<CategoryRule> = [
+                              ...categories,
+                            ];
+                            newCats[index] = {
+                              ...cat,
+                              filterQuery: value,
+                            };
+                            setCategories(newCats);
+                          }}
+                        />
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <Button
+                          icon={IconProp.Trash}
+                          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                          buttonSize={ButtonSize.Small}
+                          onClick={() => {
+                            setCategories(
+                              categories.filter(
+                                (_: CategoryRule, i: number) => {
+                                  return i !== index;
+                                },
+                              ),
+                            );
+                          }}
+                          disabled={categories.length <= 1}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-2">
                 <Button

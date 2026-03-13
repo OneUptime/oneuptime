@@ -130,8 +130,7 @@ export class LogPipelineService {
     logRow: JSONObject,
     processor: LogPipelineProcessor,
   ): JSONObject {
-    const config: JSONObject =
-      (processor.configuration as JSONObject) || {};
+    const config: JSONObject = (processor.configuration as JSONObject) || {};
 
     switch (processor.processorType) {
       case LogPipelineProcessorType.AttributeRemapper:

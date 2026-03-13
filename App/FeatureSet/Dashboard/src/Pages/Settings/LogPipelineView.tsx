@@ -16,7 +16,12 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import FilterQueryBuilder from "../../Components/LogPipeline/FilterQueryBuilder";
 import ProcessorForm from "../../Components/LogPipeline/ProcessorForm";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
 const LogPipelineView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -33,8 +38,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         name="Log Pipeline Details"
         cardProps={{
           title: "Pipeline Details",
-          description:
-            "Basic information about this pipeline.",
+          description: "Basic information about this pipeline.",
         }}
         isEditable={true}
         formFields={[

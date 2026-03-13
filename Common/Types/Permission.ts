@@ -4027,8 +4027,7 @@ export class PermissionHelper {
       {
         permission: Permission.EditProjectLogPipeline,
         title: "Edit Log Pipeline",
-        description:
-          "This permission can edit Log Pipelines of this project.",
+        description: "This permission can edit Log Pipelines of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         group: PermissionGroup.Telemetry,
@@ -4036,8 +4035,7 @@ export class PermissionHelper {
       {
         permission: Permission.ReadProjectLogPipeline,
         title: "Read Log Pipeline",
-        description:
-          "This permission can read Log Pipelines of this project.",
+        description: "This permission can read Log Pipelines of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         group: PermissionGroup.Telemetry,

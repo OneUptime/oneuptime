@@ -13,36 +13,38 @@ export interface LogsFilterCardProps {
 
 const LogsFilterCard: React.ForwardRefExoticComponent<
   LogsFilterCardProps & React.RefAttributes<LogSearchBarRef>
-> = forwardRef<LogSearchBarRef, LogsFilterCardProps>(function LogsFilterCard(
-  props: LogsFilterCardProps,
-  ref: React.Ref<LogSearchBarRef>,
-): ReactElement {
-  const searchBarSuggestions: Array<string> = [
-    "severity",
-    "service",
-    "trace",
-    "span",
-    ...props.logAttributes.map((attr: string) => {
-      return `@${attr}`;
-    }),
-  ];
+> = forwardRef<LogSearchBarRef, LogsFilterCardProps>(
+  (
+    props: LogsFilterCardProps,
+    ref: React.Ref<LogSearchBarRef>,
+  ): ReactElement => {
+    const searchBarSuggestions: Array<string> = [
+      "severity",
+      "service",
+      "trace",
+      "span",
+      ...props.logAttributes.map((attr: string) => {
+        return `@${attr}`;
+      }),
+    ];
 
-  return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <LogSearchBar
-          ref={ref}
-          value={props.searchQuery}
-          onChange={props.onSearchQueryChange}
-          onSubmit={props.onSearchSubmit}
-          suggestions={searchBarSuggestions}
-          valueSuggestions={props.valueSuggestions}
-          onFieldValueSelect={props.onFieldValueSelect}
-        />
+    return (
+      <div className="flex flex-col gap-3">
+        <div>
+          <LogSearchBar
+            ref={ref}
+            value={props.searchQuery}
+            onChange={props.onSearchQueryChange}
+            onSubmit={props.onSearchSubmit}
+            suggestions={searchBarSuggestions}
+            valueSuggestions={props.valueSuggestions}
+            onFieldValueSelect={props.onFieldValueSelect}
+          />
+        </div>
+        <div>{props.toolbar}</div>
       </div>
-      <div>{props.toolbar}</div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 export default LogsFilterCard;

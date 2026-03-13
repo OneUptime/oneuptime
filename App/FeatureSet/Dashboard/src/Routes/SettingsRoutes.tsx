@@ -382,15 +382,11 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_LOG_PIPELINES,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_PIPELINES)}
           element={
             <SettingsLogPipelines
               {...props}
-              pageRoute={
-                RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route
-              }
+              pageRoute={RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route}
             />
           }
         />
@@ -403,36 +399,26 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           element={
             <SettingsLogPipelineView
               {...props}
-              pageRoute={
-                RouteMap[PageMap.SETTINGS_LOG_PIPELINE_VIEW] as Route
-              }
+              pageRoute={RouteMap[PageMap.SETTINGS_LOG_PIPELINE_VIEW] as Route}
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_LOG_DROP_FILTERS,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_DROP_FILTERS)}
           element={
             <SettingsLogDropFilters
               {...props}
-              pageRoute={
-                RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route
-              }
+              pageRoute={RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route}
             />
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_LOG_SCRUB_RULES,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_SCRUB_RULES)}
           element={
             <SettingsLogScrubRules
               {...props}
-              pageRoute={
-                RouteMap[PageMap.SETTINGS_LOG_SCRUB_RULES] as Route
-              }
+              pageRoute={RouteMap[PageMap.SETTINGS_LOG_SCRUB_RULES] as Route}
             />
           }
         />

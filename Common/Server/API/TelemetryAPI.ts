@@ -442,10 +442,7 @@ router.post(
         ? OneUptimeDate.fromString(body["endTime"] as string)
         : OneUptimeDate.getCurrentDate();
 
-      const limit: number = Math.min(
-        (body["limit"] as number) || 10000,
-        10000,
-      );
+      const limit: number = Math.min((body["limit"] as number) || 10000, 10000);
 
       const format: string = (body["format"] as string) || "json";
 
@@ -471,8 +468,8 @@ router.post(
         ? (body["spanIds"] as Array<string>)
         : undefined;
 
-      const rows: Array<JSONObject> =
-        await LogAggregationService.getExportLogs({
+      const rows: Array<JSONObject> = await LogAggregationService.getExportLogs(
+        {
           projectId: databaseProps.tenantId,
           startTime,
           endTime,
@@ -482,7 +479,8 @@ router.post(
           bodySearchText,
           traceIds,
           spanIds,
-        });
+        },
+      );
 
       if (format === "csv") {
         const header: string =
@@ -491,12 +489,9 @@ router.post(
           const escapeCsv: (val: unknown) => string = (
             val: unknown,
           ): string => {
-            const str: string = val === null || val === undefined ? "" : String(val);
-            if (
-              str.includes(",") ||
-              str.includes('"') ||
-              str.includes("\n")
-            ) {
+            const str: string =
+              val === null || val === undefined ? "" : String(val);
+            if (str.includes(",") || str.includes('"') || str.includes("\n")) {
               return `"${str.replace(/"/g, '""')}"`;
             }
             return str;

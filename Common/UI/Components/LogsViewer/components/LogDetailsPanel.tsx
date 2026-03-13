@@ -127,8 +127,9 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
     }
 
     try {
-      const normalized: Record<string, unknown> =
-        JSONFunctions.unflattenObject(props.log.attributes || {});
+      const normalized: Record<string, unknown> = JSONFunctions.unflattenObject(
+        props.log.attributes || {},
+      );
       return JSON.stringify(normalized, null, 2);
     } catch {
       return null;
@@ -179,54 +180,55 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
     return undefined;
   }, [spanId, props, traceId]);
 
-  const loadContext: () => Promise<void> = useCallback(async (): Promise<void> => {
-    if (!props.projectId || !serviceId || !props.log.time) {
-      setContextError("Missing project or service information for context.");
-      return;
-    }
-
-    try {
-      setContextLoading(true);
-      setContextError("");
-
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/telemetry/logs/context",
-          ),
-          data: {
-            logId: props.log.getColumnValue("_id")?.toString() || "",
-            serviceId: serviceId,
-            time: props.log.time
-              ? OneUptimeDate.toString(props.log.time)
-              : "",
-            count: 5,
-          },
-          headers: {
-            ...ModelAPI.getCommonHeaders(),
-          },
-        });
-
-      if (response instanceof HTTPErrorResponse) {
-        throw response;
+  const loadContext: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      if (!props.projectId || !serviceId || !props.log.time) {
+        setContextError("Missing project or service information for context.");
+        return;
       }
 
-      const before: Array<JSONObject> =
-        (response.data["before"] as Array<JSONObject>) || [];
-      const after: Array<JSONObject> =
-        (response.data["after"] as Array<JSONObject>) || [];
+      try {
+        setContextLoading(true);
+        setContextError("");
 
-      setContextBefore(before.map(parseContextRow));
-      setContextAfter(after.map(parseContextRow));
-      setContextLoaded(true);
-    } catch (err) {
-      setContextError(
-        `Failed to load log context. ${API.getFriendlyErrorMessage(err as Error)}`,
-      );
-    } finally {
-      setContextLoading(false);
-    }
-  }, [props.projectId, serviceId, props.log]);
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/logs/context",
+            ),
+            data: {
+              logId: props.log.getColumnValue("_id")?.toString() || "",
+              serviceId: serviceId,
+              time: props.log.time
+                ? OneUptimeDate.toString(props.log.time)
+                : "",
+              count: 5,
+            },
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const before: Array<JSONObject> =
+          (response.data["before"] as Array<JSONObject>) || [];
+        const after: Array<JSONObject> =
+          (response.data["after"] as Array<JSONObject>) || [];
+
+        setContextBefore(before.map(parseContextRow));
+        setContextAfter(after.map(parseContextRow));
+        setContextLoaded(true);
+      } catch (err) {
+        setContextError(
+          `Failed to load log context. ${API.getFriendlyErrorMessage(err as Error)}`,
+        );
+      } finally {
+        setContextLoading(false);
+      }
+    }, [props.projectId, serviceId, props.log]);
 
   useEffect(() => {
     if (activeTab === "context" && !contextLoaded && !contextLoading) {
@@ -532,11 +534,8 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               {renderContextLogRow(
                 {
                   id: props.log.getColumnValue("_id")?.toString() || "current",
-                  time: props.log.time
-                    ? props.log.time.toString()
-                    : "",
-                  severity:
-                    props.log.severityText?.toString() || "Unspecified",
+                  time: props.log.time ? props.log.time.toString() : "",
+                  severity: props.log.severityText?.toString() || "Unspecified",
                   body: props.log.body || "",
                   serviceId: serviceId,
                 },

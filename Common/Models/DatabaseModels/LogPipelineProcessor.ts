@@ -124,8 +124,7 @@ export default class LogPipelineProcessor extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Project ID",
-    description:
-      "ID of the project this log pipeline processor belongs to.",
+    description: "ID of the project this log pipeline processor belongs to.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -154,8 +153,7 @@ export default class LogPipelineProcessor extends BaseModel {
     type: TableColumnType.Entity,
     modelType: LogPipeline,
     title: "Log Pipeline",
-    description:
-      "Relation to the log pipeline this processor belongs to.",
+    description: "Relation to the log pipeline this processor belongs to.",
   })
   @ManyToOne(
     () => {
@@ -192,8 +190,7 @@ export default class LogPipelineProcessor extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Log Pipeline ID",
-    description:
-      "ID of the log pipeline this processor belongs to.",
+    description: "ID of the log pipeline this processor belongs to.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -422,8 +419,7 @@ export default class LogPipelineProcessor extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Created By User ID",
-    description:
-      "ID of the user who created this log pipeline processor.",
+    description: "ID of the user who created this log pipeline processor.",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -8,7 +8,9 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const LogPipelines: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const LogPipelines: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<LogPipeline>

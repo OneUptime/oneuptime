@@ -589,7 +589,13 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [displayedLogs, focusedRowIndex, selectedLogId, showKeyboardShortcuts, handleSearchSubmit]);
+  }, [
+    displayedLogs,
+    focusedRowIndex,
+    selectedLogId,
+    showKeyboardShortcuts,
+    handleSearchSubmit,
+  ]);
 
   const handlePageChange: (page: number) => void = (page: number): void => {
     if (props.onPageChange) {
@@ -875,7 +881,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 logs={displayedLogs}
                 serviceMap={serviceMap}
                 isLoading={props.isLoading}
-                focusedRowIndex={focusedRowIndex >= 0 ? focusedRowIndex : undefined}
+                focusedRowIndex={
+                  focusedRowIndex >= 0 ? focusedRowIndex : undefined
+                }
                 emptyMessage={
                   props.noLogsMessage ||
                   getEmptyMessageWithTimeRange(props.timeRange)

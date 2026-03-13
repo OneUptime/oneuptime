@@ -1,8 +1,10 @@
 import { JSONObject } from "Common/Types/JSON";
 
-// Simple filter evaluator for log rows used by pipelines and drop filters.
-// Supports: =, !=, LIKE, IN, AND, OR, NOT, parentheses
-// Field paths: severityText, body, serviceId, attributes.<key>
+/*
+ * Simple filter evaluator for log rows used by pipelines and drop filters.
+ * Supports: =, !=, LIKE, IN, AND, OR, NOT, parentheses
+ * Field paths: severityText, body, serviceId, attributes.<key>
+ */
 
 interface Token {
   type:
@@ -46,7 +48,7 @@ function tokenize(query: string): Array<Token> {
 
   while (i < len) {
     // Skip whitespace
-    if (/\s/.test(query[i]!)) {
+    if ((/\s/).test(query[i]!)) {
       i++;
       continue;
     }
@@ -120,7 +122,7 @@ function tokenize(query: string): Array<Token> {
 
     // Field name or unquoted value
     let word: string = "";
-    while (i < len && !/[\s()=!]/.test(query[i]!)) {
+    while (i < len && !(/[\s()=!]/).test(query[i]!)) {
       word += query[i];
       i++;
     }
@@ -182,7 +184,10 @@ class Parser {
 
   private parseOr(): FilterExpression {
     let left: FilterExpression = this.parseAnd();
-    while (this.pos < this.tokens.length && this.tokens[this.pos]!.type === "or") {
+    while (
+      this.pos < this.tokens.length &&
+      this.tokens[this.pos]!.type === "or"
+    ) {
       this.pos++;
       const right: FilterExpression = this.parseAnd();
       left = { type: "or", left, right } as OrExpr;
@@ -192,7 +197,10 @@ class Parser {
 
   private parseAnd(): FilterExpression {
     let left: FilterExpression = this.parseUnary();
-    while (this.pos < this.tokens.length && this.tokens[this.pos]!.type === "and") {
+    while (
+      this.pos < this.tokens.length &&
+      this.tokens[this.pos]!.type === "and"
+    ) {
       this.pos++;
       const right: FilterExpression = this.parseUnary();
       left = { type: "and", left, right } as AndExpr;
@@ -349,7 +357,10 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
   }
 }
 
-export function evaluateFilter(logRow: JSONObject, filterQuery: string): boolean {
+export function evaluateFilter(
+  logRow: JSONObject,
+  filterQuery: string,
+): boolean {
   if (!filterQuery || filterQuery.trim().length === 0) {
     return true; // empty filter matches everything
   }

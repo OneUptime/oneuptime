@@ -62,8 +62,7 @@ const LogDropFilters: FunctionComponent<
             title: "Filter Query",
             fieldType: FormFieldSchemaType.LongText,
             required: true,
-            placeholder:
-              "e.g. severityText = 'DEBUG' OR body LIKE '%health%'",
+            placeholder: "e.g. severityText = 'DEBUG' OR body LIKE '%health%'",
           },
           {
             field: {

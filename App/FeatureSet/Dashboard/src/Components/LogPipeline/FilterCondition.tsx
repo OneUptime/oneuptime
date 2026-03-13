@@ -57,13 +57,13 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
   const isAttributeField: boolean = condition.field.startsWith("attributes.");
   const selectedFieldOption: DropdownOption | undefined = isAttributeField
     ? undefined
-    : fieldOptions.find(
-        (opt: DropdownOption) => opt.value === condition.field,
-      );
+    : fieldOptions.find((opt: DropdownOption) => {
+        return opt.value === condition.field;
+      });
   const selectedOperatorOption: DropdownOption | undefined =
-    operatorOptions.find(
-      (opt: DropdownOption) => opt.value === condition.operator,
-    );
+    operatorOptions.find((opt: DropdownOption) => {
+      return opt.value === condition.operator;
+    });
 
   return (
     <div className="rounded-md p-4 bg-gray-50 border-gray-200 border-solid border">
@@ -83,7 +83,9 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
               ]}
               value={selectedFieldOption}
               placeholder="Select field..."
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (value === "__custom_attribute__") {
                   props.onChange({
                     ...condition,
@@ -128,7 +130,9 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
               options={operatorOptions}
               value={selectedOperatorOption}
               placeholder="Select..."
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 props.onChange({
                   ...condition,
                   operator: value?.toString() || "=",

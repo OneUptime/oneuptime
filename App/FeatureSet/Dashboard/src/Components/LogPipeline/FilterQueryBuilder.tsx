@@ -19,9 +19,7 @@ import ObjectID from "Common/Types/ObjectID";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import FilterConditionElement, {
-  FilterConditionData,
-} from "./FilterCondition";
+import FilterConditionElement, { FilterConditionData } from "./FilterCondition";
 
 export interface ComponentProps {
   pipelineId: ObjectID;
@@ -47,11 +45,8 @@ function parseFilterQuery(query: string): {
   }
 
   // Detect connector
-  const connector: LogicalConnector = query.includes(" OR ")
-    ? "OR"
-    : "AND";
-  const connectorRegex: RegExp =
-    connector === "AND" ? / AND /i : / OR /i;
+  const connector: LogicalConnector = query.includes(" OR ") ? "OR" : "AND";
+  const connectorRegex: RegExp = connector === "AND" ? / AND /i : / OR /i;
   const parts: Array<string> = query.split(connectorRegex);
 
   const conditions: Array<FilterConditionData> = [];
@@ -104,10 +99,9 @@ function buildFilterQuery(
   connector: LogicalConnector,
 ): string {
   const parts: Array<string> = conditions
-    .filter(
-      (c: FilterConditionData) =>
-        c.field && c.operator && c.value,
-    )
+    .filter((c: FilterConditionData) => {
+      return c.field && c.operator && c.value;
+    })
     .map((c: FilterConditionData) => {
       if (c.operator === "LIKE") {
         return `${c.field} LIKE '${c.value}'`;
@@ -115,7 +109,9 @@ function buildFilterQuery(
       if (c.operator === "IN") {
         const values: string = c.value
           .split(",")
-          .map((v: string) => `'${v.trim()}'`)
+          .map((v: string) => {
+            return `'${v.trim()}'`;
+          })
           .join(", ");
         return `${c.field} IN (${values})`;
       }
@@ -151,30 +147,31 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [originalQuery, setOriginalQuery] = useState<string>("");
 
-  const loadPipeline: () => Promise<void> = useCallback(async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const pipeline: LogPipeline | null = await ModelAPI.getItem({
-        modelType: LogPipeline,
-        id: props.pipelineId,
-        select: { filterQuery: true },
-      });
+  const loadPipeline: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      setIsLoading(true);
+      try {
+        const pipeline: LogPipeline | null = await ModelAPI.getItem({
+          modelType: LogPipeline,
+          id: props.pipelineId,
+          select: { filterQuery: true },
+        });
 
-      if (pipeline?.filterQuery) {
-        const parsed: {
-          conditions: Array<FilterConditionData>;
-          connector: LogicalConnector;
-        } = parseFilterQuery(pipeline.filterQuery);
-        setConditions(parsed.conditions);
-        setConnector(parsed.connector);
-        setOriginalQuery(pipeline.filterQuery);
+        if (pipeline?.filterQuery) {
+          const parsed: {
+            conditions: Array<FilterConditionData>;
+            connector: LogicalConnector;
+          } = parseFilterQuery(pipeline.filterQuery);
+          setConditions(parsed.conditions);
+          setConnector(parsed.connector);
+          setOriginalQuery(pipeline.filterQuery);
+        }
+      } catch (err) {
+        setError("Failed to load filter conditions.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError("Failed to load filter conditions.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [props.pipelineId]);
+    }, [props.pipelineId]);
 
   useEffect(() => {
     loadPipeline().catch(() => {
@@ -217,10 +214,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
 
   if (isLoading) {
     return (
-      <Card
-        title="Filter Conditions"
-        description="Loading..."
-      >
+      <Card title="Filter Conditions" description="Loading...">
         <div className="p-4 text-gray-400 text-sm">
           Loading filter conditions...
         </div>
@@ -272,15 +266,13 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
         {conditions.length > 1 && (
           <div className="mb-4">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 font-medium">
-                Match
-              </span>
+              <span className="text-sm text-gray-600 font-medium">Match</span>
               <div className="w-64">
                 <Dropdown
                   options={connectorOptions}
-                  value={connectorOptions.find(
-                    (opt: DropdownOption) => opt.value === connector,
-                  )}
+                  value={connectorOptions.find((opt: DropdownOption) => {
+                    return opt.value === connector;
+                  })}
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
                   ) => {
@@ -296,48 +288,45 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
 
         {/* Condition rows */}
         <div className="space-y-3">
-          {conditions.map(
-            (condition: FilterConditionData, index: number) => {
-              return (
-                <div key={index}>
-                  {index > 0 && (
-                    <div className="flex items-center justify-center my-2">
-                      <div className="flex-1 border-t border-gray-200"></div>
-                      <span
-                        className={`mx-3 px-3 py-1 text-xs font-semibold rounded-full border ${
-                          connector === "AND"
-                            ? "bg-blue-100 text-blue-700 border-blue-200"
-                            : "bg-amber-100 text-amber-700 border-amber-200"
-                        }`}
-                      >
-                        {connector}
-                      </span>
-                      <div className="flex-1 border-t border-gray-200"></div>
-                    </div>
-                  )}
-                  <FilterConditionElement
-                    condition={condition}
-                    canDelete={conditions.length > 1}
-                    onChange={(updated: FilterConditionData) => {
-                      const newConditions: Array<FilterConditionData> = [
-                        ...conditions,
-                      ];
-                      newConditions[index] = updated;
-                      setConditions(newConditions);
-                    }}
-                    onDelete={() => {
-                      const newConditions: Array<FilterConditionData> =
-                        conditions.filter(
-                          (_: FilterConditionData, i: number) =>
-                            i !== index,
-                        );
-                      setConditions(newConditions);
-                    }}
-                  />
-                </div>
-              );
-            },
-          )}
+          {conditions.map((condition: FilterConditionData, index: number) => {
+            return (
+              <div key={index}>
+                {index > 0 && (
+                  <div className="flex items-center justify-center my-2">
+                    <div className="flex-1 border-t border-gray-200"></div>
+                    <span
+                      className={`mx-3 px-3 py-1 text-xs font-semibold rounded-full border ${
+                        connector === "AND"
+                          ? "bg-blue-100 text-blue-700 border-blue-200"
+                          : "bg-amber-100 text-amber-700 border-amber-200"
+                      }`}
+                    >
+                      {connector}
+                    </span>
+                    <div className="flex-1 border-t border-gray-200"></div>
+                  </div>
+                )}
+                <FilterConditionElement
+                  condition={condition}
+                  canDelete={conditions.length > 1}
+                  onChange={(updated: FilterConditionData) => {
+                    const newConditions: Array<FilterConditionData> = [
+                      ...conditions,
+                    ];
+                    newConditions[index] = updated;
+                    setConditions(newConditions);
+                  }}
+                  onDelete={() => {
+                    const newConditions: Array<FilterConditionData> =
+                      conditions.filter((_: FilterConditionData, i: number) => {
+                        return i !== index;
+                      });
+                    setConditions(newConditions);
+                  }}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {/* Add condition + Clear buttons */}

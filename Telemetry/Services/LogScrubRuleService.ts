@@ -152,11 +152,7 @@ export class LogScrubRuleService {
         if (atIndex > 0) {
           const dotIndex: number = value.lastIndexOf(".");
           if (dotIndex > atIndex) {
-            return (
-              value[0] +
-              "***@***" +
-              value.substring(dotIndex)
-            );
+            return value[0] + "***@***" + value.substring(dotIndex);
           }
         }
         return "***@***.***";
@@ -178,9 +174,7 @@ export class LogScrubRuleService {
         // Show last 4 digits only
         const phoneDigits: string = value.replace(/[^0-9]/g, "");
         if (phoneDigits.length >= 4) {
-          return (
-            "***-***-" + phoneDigits.substring(phoneDigits.length - 4)
-          );
+          return "***-***-" + phoneDigits.substring(phoneDigits.length - 4);
         }
         return "***-***-****";
       }
@@ -194,7 +188,9 @@ export class LogScrubRuleService {
           return "***";
         }
         return (
-          value[0] + "*".repeat(Math.max(value.length - 2, 3)) + value[value.length - 1]!
+          value[0] +
+          "*".repeat(Math.max(value.length - 2, 3)) +
+          value[value.length - 1]!
         );
       }
     }
@@ -210,7 +206,8 @@ export class LogScrubRuleService {
       // Reset lastIndex for global regex
       regex.lastIndex = 0;
 
-      const action: string = (rule.scrubAction as string) || LogScrubAction.Redact;
+      const action: string =
+        (rule.scrubAction as string) || LogScrubAction.Redact;
       const patternType: string = (rule.patternType as string) || "";
 
       result = result.replace(regex, (match: string) => {
@@ -230,12 +227,13 @@ export class LogScrubRuleService {
     }
 
     for (const { rule } of compiledRules) {
-      const fieldsToScrub: string =
-        (rule.fieldsToScrub as string) || "both";
+      const fieldsToScrub: string = (rule.fieldsToScrub as string) || "both";
 
       // Filter compiled rules to just this one for per-rule scrubbing
       const singleRule: Array<CompiledRule> = compiledRules.filter(
-        (cr: CompiledRule) => cr.rule === rule,
+        (cr: CompiledRule) => {
+          return cr.rule === rule;
+        },
       );
 
       // Scrub body
@@ -243,10 +241,7 @@ export class LogScrubRuleService {
         (fieldsToScrub === "body" || fieldsToScrub === "both") &&
         typeof logRow["body"] === "string"
       ) {
-        logRow["body"] = this.scrubString(
-          logRow["body"] as string,
-          singleRule,
-        );
+        logRow["body"] = this.scrubString(logRow["body"] as string, singleRule);
       }
 
       // Scrub attributes

@@ -107,8 +107,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         loadedPipelines = await LogPipelineService.loadPipelines(projectId);
         loadedDropFilters =
           await LogDropFilterService.loadDropFilters(projectId);
-        loadedScrubRules =
-          await LogScrubRuleService.loadScrubRules(projectId);
+        loadedScrubRules = await LogScrubRuleService.loadScrubRules(projectId);
       } catch (loadError) {
         logger.error("Error loading pipelines/drop filters/scrub rules:");
         logger.error(loadError);

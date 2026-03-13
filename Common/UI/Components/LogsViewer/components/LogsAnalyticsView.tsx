@@ -195,11 +195,9 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
 
   const entries: Array<{ key: string; value: number; color: string }> =
     props.payload
-      .filter(
-        (entry: { value: number }): boolean => {
-          return entry.value > 0;
-        },
-      )
+      .filter((entry: { value: number }): boolean => {
+        return entry.value > 0;
+      })
       .map(
         (entry: {
           dataKey: string;
@@ -253,27 +251,25 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
         {formatTime(props.label)}
       </p>
       <div className="space-y-1">
-        {entries.map(
-          (entry: { key: string; value: number; color: string }) => {
-            return (
-              <div
-                key={entry.key}
-                className="flex items-center justify-between gap-8"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-[3px]"
-                    style={{ backgroundColor: entry.color }}
-                  />
-                  <span className="text-xs text-gray-600">{entry.key}</span>
-                </div>
-                <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-                  {entry.value.toLocaleString()}
-                </span>
+        {entries.map((entry: { key: string; value: number; color: string }) => {
+          return (
+            <div
+              key={entry.key}
+              className="flex items-center justify-between gap-8"
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-[3px]"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-xs text-gray-600">{entry.key}</span>
               </div>
-            );
-          },
-        )}
+              <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
+                {entry.value.toLocaleString()}
+              </span>
+            </div>
+          );
+        })}
       </div>
       {entries.length > 1 && (
         <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
@@ -477,15 +473,13 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
             backgroundPosition: "right 6px center",
           }}
         >
-          {options.map(
-            (opt: { value: string | number; label: string }) => {
-              return (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              );
-            },
-          )}
+          {options.map((opt: { value: string | number; label: string }) => {
+            return (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            );
+          })}
         </select>
       </div>
     );
@@ -494,69 +488,88 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   const renderQueryBuilder: () => ReactElement = (): ReactElement => {
     return (
       <div className="flex flex-wrap items-center gap-4 border-b border-gray-100 px-5 py-3">
-        {renderSelectControl("Chart", chartType, (val: string) => {
-          setChartType(val as AnalyticsChartType);
-        }, [
-          { value: "timeseries", label: "Timeseries" },
-          { value: "toplist", label: "Top List" },
-          { value: "table", label: "Table" },
-        ])}
+        {renderSelectControl(
+          "Chart",
+          chartType,
+          (val: string) => {
+            setChartType(val as AnalyticsChartType);
+          },
+          [
+            { value: "timeseries", label: "Timeseries" },
+            { value: "toplist", label: "Top List" },
+            { value: "table", label: "Table" },
+          ],
+        )}
 
         <div className="h-4 w-px bg-gray-200" />
 
-        {renderSelectControl("Measure", aggregation, (val: string) => {
-          setAggregation(val as AnalyticsAggregation);
-        }, [
-          { value: "count", label: "Count" },
-          { value: "unique", label: "Unique Count" },
-        ])}
+        {renderSelectControl(
+          "Measure",
+          aggregation,
+          (val: string) => {
+            setAggregation(val as AnalyticsAggregation);
+          },
+          [
+            { value: "count", label: "Count" },
+            { value: "unique", label: "Unique Count" },
+          ],
+        )}
 
         {aggregation === "unique" && (
           <>
-            {renderSelectControl("of", aggregationField, (val: string) => {
-              setAggregationField(val);
-            }, [
-              { value: "", label: "Select field..." },
-              ...allDimensionOptions,
-            ])}
+            {renderSelectControl(
+              "of",
+              aggregationField,
+              (val: string) => {
+                setAggregationField(val);
+              },
+              [{ value: "", label: "Select field..." }, ...allDimensionOptions],
+            )}
           </>
         )}
 
         <div className="h-4 w-px bg-gray-200" />
 
-        {renderSelectControl("Group by", groupByFields[0] || "", (val: string) => {
-          setGroupByFields((prev: Array<string>) => {
-            const next: Array<string> = [...prev];
-            next[0] = val;
-            return next.filter((f: string) => {
-              return f.length > 0;
-            });
-          });
-        }, [
-          { value: "", label: "None" },
-          ...allDimensionOptions,
-        ])}
-
-        {groupByFields[0] && groupByFields[0].length > 0 && (
-          renderSelectControl("then by", groupByFields[1] || "", (val: string) => {
+        {renderSelectControl(
+          "Group by",
+          groupByFields[0] || "",
+          (val: string) => {
             setGroupByFields((prev: Array<string>) => {
-              const next: Array<string> = [prev[0] || ""];
-
-              if (val.length > 0) {
-                next.push(val);
-              }
-
+              const next: Array<string> = [...prev];
+              next[0] = val;
               return next.filter((f: string) => {
                 return f.length > 0;
               });
             });
-          }, [
-            { value: "", label: "None" },
-            ...allDimensionOptions.filter((opt: { value: string }) => {
-              return opt.value !== groupByFields[0];
-            }),
-          ])
+          },
+          [{ value: "", label: "None" }, ...allDimensionOptions],
         )}
+
+        {groupByFields[0] &&
+          groupByFields[0].length > 0 &&
+          renderSelectControl(
+            "then by",
+            groupByFields[1] || "",
+            (val: string) => {
+              setGroupByFields((prev: Array<string>) => {
+                const next: Array<string> = [prev[0] || ""];
+
+                if (val.length > 0) {
+                  next.push(val);
+                }
+
+                return next.filter((f: string) => {
+                  return f.length > 0;
+                });
+              });
+            },
+            [
+              { value: "", label: "None" },
+              ...allDimensionOptions.filter((opt: { value: string }) => {
+                return opt.value !== groupByFields[0];
+              }),
+            ],
+          )}
 
         {(chartType === "toplist" || chartType === "table") && (
           <>
@@ -590,8 +603,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
               <span
                 className="inline-block h-2.5 w-2.5 rounded-[3px]"
                 style={{
-                  backgroundColor:
-                    CHART_COLORS[index % CHART_COLORS.length],
+                  backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
                 }}
               />
               <span className="text-[11px] text-gray-500">{key}</span>
@@ -769,9 +781,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           {topListData.map((item: AnalyticsTopItem, index: number) => {
             const percentage: number = (item.count / maxCount) * 100;
             const sharePercent: number =
-              totalCount > 0
-                ? Math.round((item.count / totalCount) * 100)
-                : 0;
+              totalCount > 0 ? Math.round((item.count / totalCount) * 100) : 0;
             const color: string =
               CHART_COLORS[index % CHART_COLORS.length] || CHART_COLORS[0]!;
             const mutedColor: string =
@@ -866,8 +876,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
               {tableData.map((row: AnalyticsTableRow, index: number) => {
                 const barWidth: number = (row.count / maxCount) * 100;
                 const color: string =
-                  CHART_COLORS[index % CHART_COLORS.length] ||
-                  CHART_COLORS[0]!;
+                  CHART_COLORS[index % CHART_COLORS.length] || CHART_COLORS[0]!;
                 const mutedColor: string =
                   CHART_COLORS_MUTED[index % CHART_COLORS_MUTED.length] ||
                   CHART_COLORS_MUTED[0]!;
