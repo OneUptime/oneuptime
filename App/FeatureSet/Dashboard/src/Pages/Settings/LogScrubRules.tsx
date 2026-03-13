@@ -6,7 +6,108 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Pill from "Common/UI/Components/Pill/Pill";
+import Color from "Common/Types/Color";
+import IconProp from "Common/Types/Icon/IconProp";
+import {
+  Blue500,
+  Green500,
+  Purple500,
+  Cyan500,
+  Orange500,
+  Yellow500,
+  Teal500,
+  Indigo500,
+} from "Common/Types/BrandColors";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+
+interface PillConfig {
+  label: string;
+  color: Color;
+  icon: IconProp;
+  tooltip: string;
+}
+
+const patternTypeConfig: Record<string, PillConfig> = {
+  email: {
+    label: "Email Address",
+    color: Blue500,
+    icon: IconProp.Email,
+    tooltip: "Matches email addresses (e.g. user@example.com)",
+  },
+  creditCard: {
+    label: "Credit Card",
+    color: Orange500,
+    icon: IconProp.CreditCard,
+    tooltip: "Matches credit card numbers (e.g. 4111-1111-1111-1111)",
+  },
+  ssn: {
+    label: "SSN",
+    color: Purple500,
+    icon: IconProp.ShieldExclamation,
+    tooltip: "Matches US Social Security Numbers (e.g. 123-45-6789)",
+  },
+  phoneNumber: {
+    label: "Phone Number",
+    color: Teal500,
+    icon: IconProp.Phone,
+    tooltip: "Matches phone numbers (e.g. +1 555-123-4567)",
+  },
+  ipAddress: {
+    label: "IP Address",
+    color: Cyan500,
+    icon: IconProp.Globe,
+    tooltip: "Matches IPv4 addresses (e.g. 192.168.1.1)",
+  },
+  custom: {
+    label: "Custom Regex",
+    color: Indigo500,
+    icon: IconProp.Code,
+    tooltip: "Uses a custom regular expression pattern",
+  },
+};
+
+const scrubActionConfig: Record<string, PillConfig> = {
+  redact: {
+    label: "Redact",
+    color: Orange500,
+    icon: IconProp.EyeSlash,
+    tooltip: "Replace matched data with [REDACTED]",
+  },
+  mask: {
+    label: "Mask",
+    color: Yellow500,
+    icon: IconProp.Eye,
+    tooltip: "Partially hide data (e.g. j***@***.com)",
+  },
+  hash: {
+    label: "Hash",
+    color: Purple500,
+    icon: IconProp.Hashtag,
+    tooltip: "Replace with a deterministic SHA-256 hash",
+  },
+};
+
+const fieldsToScrubConfig: Record<string, PillConfig> = {
+  both: {
+    label: "Body & Attributes",
+    color: Green500,
+    icon: IconProp.ShieldCheck,
+    tooltip: "Scrub both the log body (message) and attribute values",
+  },
+  body: {
+    label: "Body Only",
+    color: Blue500,
+    icon: IconProp.File,
+    tooltip: "Scrub only the log body (message text)",
+  },
+  attributes: {
+    label: "Attributes Only",
+    color: Cyan500,
+    icon: IconProp.Settings,
+    tooltip: "Scrub only log attribute values",
+  },
+};
 
 const documentationMarkdown: string = `
 ### How Log Scrub Rules Work
@@ -287,30 +388,99 @@ const LogScrubRules: FunctionComponent<
           {
             field: {
               name: true,
+              description: true,
             },
             title: "Name",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: LogScrubRule): ReactElement => {
+              return (
+                <div>
+                  <div className="font-medium text-gray-900">
+                    {item.name || "Untitled"}
+                  </div>
+                  {item.description && (
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {item.description}
+                    </div>
+                  )}
+                </div>
+              );
+            },
           },
           {
             field: {
               patternType: true,
             },
             title: "Pattern Type",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: LogScrubRule): ReactElement => {
+              const key: string =
+                (item.patternType as string) || "unknown";
+              const config: PillConfig = patternTypeConfig[key] || {
+                label: key,
+                color: Blue500,
+                icon: IconProp.ShieldCheck,
+                tooltip: key,
+              };
+              return (
+                <Pill
+                  text={config.label}
+                  color={config.color}
+                  icon={config.icon}
+                  tooltip={config.tooltip}
+                />
+              );
+            },
           },
           {
             field: {
               scrubAction: true,
             },
             title: "Scrub Action",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: LogScrubRule): ReactElement => {
+              const key: string =
+                (item.scrubAction as string) || "unknown";
+              const config: PillConfig = scrubActionConfig[key] || {
+                label: key,
+                color: Blue500,
+                icon: IconProp.ShieldCheck,
+                tooltip: key,
+              };
+              return (
+                <Pill
+                  text={config.label}
+                  color={config.color}
+                  icon={config.icon}
+                  tooltip={config.tooltip}
+                />
+              );
+            },
           },
           {
             field: {
               fieldsToScrub: true,
             },
             title: "Fields",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: LogScrubRule): ReactElement => {
+              const key: string =
+                (item.fieldsToScrub as string) || "unknown";
+              const config: PillConfig = fieldsToScrubConfig[key] || {
+                label: key,
+                color: Blue500,
+                icon: IconProp.ShieldCheck,
+                tooltip: key,
+              };
+              return (
+                <Pill
+                  text={config.label}
+                  color={config.color}
+                  icon={config.icon}
+                  tooltip={config.tooltip}
+                />
+              );
+            },
           },
           {
             field: {
