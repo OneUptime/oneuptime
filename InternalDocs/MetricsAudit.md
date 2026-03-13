@@ -319,7 +319,110 @@ Metric Data -> Periodic baseline computation (hourly)
 
 ---
 
-## 8. Key Files Reference
+## 8. ClickHouse Storage Efficiency Audit
+
+### 8.1 Current Table Configuration
+
+```
+Table: MetricItem
+Engine: MergeTree
+Sort/Primary Key: (projectId, time, serviceId)
+Partition Key: sipHash64(projectId) % 16
+TTL: retentionDate DELETE
+Skip Indexes: BloomFilter on `name` (0.01 FPR, granularity 1), Set on `serviceType` (params [5], granularity 4)
+```
+
+### 8.2 Issues Found
+
+#### CRITICAL: `name` missing from sort key
+
+**Current:** `(projectId, time, serviceId)`
+**Problem:** Virtually every metric query filters by `name` (e.g., `http_request_duration`, `cpu_usage`). Without `name` in the sort key, ClickHouse must scan all metric names within the time range for a project, relying only on the BloomFilter skip index to skip granules. For a project with 500 distinct metric names, queries for a single metric scan ~500x more data than necessary.
+
+**Recommended sort key:** `(projectId, name, serviceId, time)`
+
+This matches the dominant query pattern: "for project X, give me metric Y, optionally for service Z, over time range T." ClickHouse can binary-search directly to the right metric name instead of scanning all names. The tradeoff is that pure time-range queries across all metrics for a project become slightly less efficient, but that is a rare query pattern — users almost always filter by metric name.
+
+#### HIGH: `DateTime` instead of `DateTime64` for time columns
+
+**Current:** `time` column uses ClickHouse `DateTime` (second precision).
+**Problem:** Metric data points often arrive at sub-second intervals from high-frequency instrumentation. Multiple data points within the same second share identical `time` values, making it impossible to distinguish ordering. The separate `timeUnixNano` column (stored as `Int128`) preserves nanosecond precision but is not in the sort key and is not used for time-range queries.
+
+**Recommendation:** Use `DateTime64(3)` (millisecond precision) or `DateTime64(6)` (microsecond precision) for the `time` column. This also removes the need for separate `timeUnixNano`/`startTimeUnixNano` columns, reducing storage overhead and schema complexity.
+
+#### MEDIUM: No skip index on `metricPointType`
+
+**Problem:** Queries that filter by metric type (Sum vs Gauge vs Histogram) have no index support. Users frequently query specific metric types, especially when computing histogram percentiles or gauge averages.
+
+**Recommendation:** Add a Set skip index on `metricPointType`, similar to the existing `serviceType` index:
+```
+skipIndex: { name: "idx_metric_point_type", type: Set, params: [5], granularity: 4 }
+```
+
+#### MEDIUM: `attributes` column type
+
+**Current:** Stored as ClickHouse `JSON` (was experimental, now generally available).
+**Consideration:** For attribute-based filtering, ClickHouse's `Map(String, String)` type allows direct key lookups without `JSONExtract*()` functions and is generally more performant for flat key-value data. However, since attributes can have nested values and mixed types, `JSON` may be intentional. The `attributeKeys` array column partially compensates by enabling key existence checks without parsing JSON.
+
+**Recommendation:** Evaluate whether attribute queries are a performance bottleneck. If so, consider `Map(LowCardinality(String), String)` for flat attributes, keeping `JSON` only if nested structure is required.
+
+#### LOW: No materialized views or projections
+
+**Current:** `projections: []` (empty).
+**Problem:** Common query patterns (aggregating by name+time, by service+time) could benefit from projections that pre-sort data in alternative orders, speeding up those queries without duplicating the full table.
+
+**Recommendation:** Add projections for common alternative sort orders, e.g.:
+- `(projectId, serviceId, name, time)` — for "show all metrics for service X" queries
+- Consider materialized views for rollup tables (see Section 6.1)
+
+#### LOW: `count` and `bucketCounts` use Int32
+
+**Current:** `count` column is `Int32`, `bucketCounts` is `Array(Int32)`.
+**Problem:** Histogram counts can exceed 2^31 (~2.1 billion) in high-throughput systems. Similarly, histogram bucket counts could overflow for high-cardinality histograms.
+
+**Recommendation:** Use `Int64` / `UInt64` for `count` and `Array(Int64)` for `bucketCounts`.
+
+### 8.3 What Is Done Well
+
+| Aspect | Assessment |
+|--------|-----------|
+| **Partitioning** | `sipHash64(projectId) % 16` provides good multi-tenant data isolation and even distribution |
+| **TTL-based retention** | `retentionDate DELETE` is clean and per-service configurable |
+| **Async inserts** | `async_insert=1, wait_for_async_insert=0` correctly configured for high-throughput ingestion |
+| **BloomFilter on `name`** | Good secondary defense for name lookups (but should not be the primary lookup path) |
+| **Decimal types** | `value`/`sum`/`min`/`max` use `Double` which prevents integer truncation for floating-point aggregations |
+| **Batch flushing** | Configurable batch size via `TELEMETRY_METRIC_FLUSH_BATCH_SIZE` prevents excessive small inserts |
+| **Attribute key extraction** | `attributeKeys` array column enables efficient key existence queries without parsing JSON |
+
+### 8.4 Recommended Changes Summary
+
+| Priority | Change | Impact |
+|----------|--------|--------|
+| CRITICAL | Change sort key to `(projectId, name, serviceId, time)` | ~100x improvement for name-filtered queries |
+| HIGH | Use `DateTime64(3)` or `DateTime64(6)` for time columns | Sub-second precision, removes need for `timeUnixNano` columns |
+| MEDIUM | Add Set skip index on `metricPointType` | Faster type-filtered queries |
+| MEDIUM | Evaluate `Map` type for `attributes` column | Faster attribute-based filtering |
+| LOW | Add projections for alternative sort orders | Faster service-centric queries |
+| LOW | Change `count` to `Int64`, `bucketCounts` to `Array(Int64)` | Prevents overflow for high-throughput histograms |
+
+### 8.5 Migration Notes
+
+Changing the sort key or column types on an existing table requires creating a new table with the desired schema and migrating data. ClickHouse does not support `ALTER TABLE ... MODIFY ORDER BY` on MergeTree tables (it only supports adding columns to the end of the sort key). The recommended migration approach:
+
+1. Create `MetricItem_v2` with the new sort key and column types
+2. Use `INSERT INTO MetricItem_v2 SELECT * FROM MetricItem` to backfill (can be done in batches)
+3. Switch ingestion to write to `MetricItem_v2`
+4. Update query layer to read from `MetricItem_v2`
+5. Drop `MetricItem` after validation
+
+For the `DateTime64` change, the migration must also convert existing `DateTime` values:
+```sql
+toDateTime64(time, 3) -- converts DateTime to DateTime64(3)
+```
+
+---
+
+## 9. Key Files Reference
 
 | Area | Key Files |
 |------|-----------|

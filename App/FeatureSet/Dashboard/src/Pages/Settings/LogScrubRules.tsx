@@ -33,12 +33,27 @@ const LogScrubRules: FunctionComponent<
             "Automatically detect and scrub sensitive data (PII) from logs at ingest time. Matching patterns are masked, hashed, or redacted before storage. Drag to reorder.",
         }}
         noItemsMessage={"No scrub rules found."}
+        formSteps={[
+          {
+            title: "Basic Info",
+            id: "basic-info",
+          },
+          {
+            title: "Pattern Configuration",
+            id: "pattern-config",
+          },
+          {
+            title: "Scrub Settings",
+            id: "scrub-settings",
+          },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "e.g. Scrub Email Addresses",
@@ -51,6 +66,7 @@ const LogScrubRules: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Describe what this scrub rule does.",
@@ -60,6 +76,7 @@ const LogScrubRules: FunctionComponent<
               patternType: true,
             },
             title: "Pattern Type",
+            stepId: "pattern-config",
             description:
               "The type of sensitive data to detect. Select 'Custom' to provide your own regex pattern.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -96,6 +113,7 @@ const LogScrubRules: FunctionComponent<
               customRegex: true,
             },
             title: "Custom Regex Pattern",
+            stepId: "pattern-config",
             description:
               "A regular expression to match sensitive data. Only used when Pattern Type is 'Custom Regex'.",
             fieldType: FormFieldSchemaType.LongText,
@@ -107,6 +125,7 @@ const LogScrubRules: FunctionComponent<
               scrubAction: true,
             },
             title: "Scrub Action",
+            stepId: "scrub-settings",
             description:
               "How to handle matched data. Mask: partially hide (e.g. j***@***.com). Hash: replace with deterministic hash. Redact: replace with [REDACTED].",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -131,6 +150,7 @@ const LogScrubRules: FunctionComponent<
               fieldsToScrub: true,
             },
             title: "Fields to Scrub",
+            stepId: "scrub-settings",
             description:
               "Which parts of the log to scrub: the log body (message), attribute values, or both.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -155,6 +175,7 @@ const LogScrubRules: FunctionComponent<
               isEnabled: true,
             },
             title: "Enabled",
+            stepId: "scrub-settings",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },

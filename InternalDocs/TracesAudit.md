@@ -49,9 +49,171 @@
 
 ---
 
-## 2. Gap Analysis vs Competition
+## 2. ClickHouse Storage Audit
 
-### 2.1 CRITICAL GAPS (Must-have to compete)
+**Date:** 2026-03-13
+**Purpose:** Verify the `SpanItem` ClickHouse schema is optimally configured for efficient searches and queries.
+
+### 2.1 Current Schema Summary
+
+| Setting | Value |
+|---------|-------|
+| **Table** | `SpanItem` |
+| **Engine** | MergeTree |
+| **Partition Key** | `sipHash64(projectId) % 16` |
+| **Primary/Sort Key** | `(projectId, startTime, serviceId, traceId)` |
+| **TTL** | `retentionDate DELETE` |
+| **Inserts** | `async_insert=1, wait_for_async_insert=0` (via both `StatementGenerator` and `AnalyticsDatabaseService.insertJsonRows`) |
+
+**Skip Indexes:**
+
+| Index Name | Column | Type | Params | Granularity |
+|-----------|--------|------|--------|-------------|
+| `idx_trace_id` | traceId | BloomFilter | [0.01] | 1 |
+| `idx_span_id` | spanId | BloomFilter | [0.01] | 1 |
+| `idx_status_code` | statusCode | Set | [5] | 4 |
+| `idx_name` | name | TokenBF | [10240, 3, 0] | 4 |
+
+### 2.2 What's Done Well
+
+1. **Primary/Sort key** — `(projectId, startTime, serviceId, traceId)` is well-ordered for the dominant query: "spans for project X in time range Y filtered by service". ClickHouse prunes by project first, then time range.
+2. **Hash-based partitioning** — `sipHash64(projectId) % 16` distributes data evenly across 16 partitions, prevents hot-partition issues.
+3. **Skip indexes** — BloomFilter on `traceId`/`spanId` (granularity 1) is tight, Set index on `statusCode` matches its low cardinality, TokenBF on `name` supports partial-match searches.
+4. **TTL** — `retentionDate DELETE` provides clean per-service automatic expiration.
+5. **Async inserts** — Both insert paths use `async_insert=1, wait_for_async_insert=0` preventing "too many parts" errors under high ingest. Batch flushing (`TELEMETRY_TRACE_FLUSH_BATCH_SIZE`) adds further protection.
+6. **Dual attribute storage** — `attributes` (full JSON as String) + `attributeKeys` (Array(String)) is pragmatic: full JSON for detail reads, extracted keys for fast enumeration/autocomplete.
+
+### 2.3 Issues Found
+
+#### Issue 1: `attributes` stored as opaque `String` — no indexed filtering (HIGH)
+
+**Problem:** `attributes` is `TableColumnType.JSON` → ClickHouse `String`. Querying by attribute value (e.g., "find spans where `http.status_code = 500`") requires `LIKE` or `JSONExtract()` scans on the full string. This is the most common trace query pattern after time-range filtering.
+
+**Recommendation:** Migrate to ClickHouse **`Map(String, String)`** type. This enables:
+- `attributes['http.method'] = 'GET'` without JSON parsing
+- Bloom filter skip indexes on map keys/values (`INDEX idx_attr_keys mapKeys(attributes) TYPE bloom_filter`)
+- Alternatively, extract high-cardinality hot attributes (`http.method`, `http.status_code`, `http.url`, `db.system`) into dedicated `LowCardinality(String)` columns with skip indexes.
+
+**Impact:** Significant query speedup for attribute-based span filtering.
+
+#### Issue 2: No compression codecs specified (HIGH)
+
+**Problem:** No explicit `CODEC` is set on any column. ClickHouse defaults to `LZ4`. For high-volume trace data, better codecs can reduce storage 30–50%.
+
+**Recommendation:**
+
+| Column(s) | Recommended CODEC | Reason |
+|-----------|-------------------|--------|
+| `startTimeUnixNano`, `endTimeUnixNano`, `durationUnixNano` | `CODEC(Delta, ZSTD)` | Nanosecond timestamps compress extremely well with delta encoding |
+| `statusCode` | `CODEC(T64, LZ4)` | Small integer set benefits from T64 |
+| `attributes`, `events`, `links` | `CODEC(ZSTD(3))` | JSON text compresses well with ZSTD |
+| `traceId`, `spanId`, `parentSpanId` | `CODEC(ZSTD(1))` | Hex strings with some repetition |
+
+**Impact:** 30–50% storage reduction on trace data, which also improves query speed (less I/O).
+
+#### Issue 3: `kind` column has no skip index (MEDIUM)
+
+**Problem:** `kind` is a low-cardinality enum (5 values: SERVER, CLIENT, PRODUCER, CONSUMER, INTERNAL). Filtering by span kind (e.g., "show all server spans") is common but has no index.
+
+**Recommendation:** Add a `Set` skip index on `kind`:
+```
+skipIndex: {
+  name: "idx_kind",
+  type: SkipIndexType.Set,
+  params: [5],
+  granularity: 4,
+}
+```
+Also consider using `LowCardinality(String)` column type for `kind`.
+
+#### Issue 4: `parentSpanId` has no skip index (MEDIUM)
+
+**Problem:** Finding root spans (`WHERE parentSpanId = ''`) and finding children of a parent span are common trace-reconstruction queries. No index exists.
+
+**Recommendation:** Add a BloomFilter skip index on `parentSpanId`:
+```
+skipIndex: {
+  name: "idx_parent_span_id",
+  type: SkipIndexType.BloomFilter,
+  params: [0.01],
+  granularity: 1,
+}
+```
+
+#### Issue 5: No aggregation projection (MEDIUM)
+
+**Problem:** `projections: []` is empty. Dashboard queries like "trace count by service over time" or "p99 latency by service" do full table scans against the primary sort key.
+
+**Recommendation:** Add a projection for common aggregation patterns:
+```sql
+PROJECTION agg_by_service (
+  SELECT
+    serviceId,
+    toStartOfMinute(startTime) AS minute,
+    count(),
+    avg(durationUnixNano),
+    quantile(0.99)(durationUnixNano)
+  GROUP BY serviceId, minute
+)
+```
+This allows ClickHouse to serve aggregation queries from the pre-sorted projection instead of scanning raw spans.
+
+#### Issue 6: Sort key trade-off for trace-by-ID lookups (LOW)
+
+**Problem:** Sort key `(projectId, startTime, serviceId, traceId)` places `traceId` 4th. The trace detail view query ("get all spans for traceId X") can't narrow using the primary index — it must rely on the BloomFilter skip index.
+
+**Current mitigation:** BloomFilter with granularity 1 and false positive rate 0.01 works reasonably well.
+
+**Recommendation for high-volume instances:** Add a **projection** sorted by `(projectId, traceId, startTime)` specifically for trace-by-ID lookups:
+```sql
+PROJECTION trace_lookup (
+  SELECT *
+  ORDER BY (projectId, traceId, startTime)
+)
+```
+
+#### Issue 7: `events` and `links` not queryable (LOW)
+
+**Problem:** `events` (JSONArray→String) and `links` (JSON→String) are opaque blobs. Filtering spans by "has exception event" requires string scanning.
+
+**Recommendation:** Add a `hasException` column (`UInt8` / Boolean) populated at ingest time. This is a very common filter ("show error spans with exceptions") that currently requires parsing the events JSON string.
+
+#### Issue 8: `links` default value is `{}` but should be `[]` (LOW)
+
+**Problem:** In `Span.ts` line 393, `links` column has `defaultValue: {}` but semantically represents an array of `SpanLink[]`. The ingest service correctly passes arrays, but the schema default is wrong.
+
+**Fix:** Change `defaultValue: {}` → `defaultValue: []` on the `links` column definition.
+
+### 2.4 Prioritized Action Items
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **HIGH** | Migrate `attributes` to `Map(String, String)` or extract hot attributes | Medium | Major query speedup for attribute filtering |
+| **HIGH** | Add compression codecs to all columns | Low | 30–50% storage reduction |
+| **MEDIUM** | Add `Set` skip index on `kind` | Low | Faster kind-based filtering |
+| **MEDIUM** | Add BloomFilter skip index on `parentSpanId` | Low | Faster trace tree reconstruction |
+| **MEDIUM** | Add aggregation projection | Low | Faster dashboard aggregation queries |
+| **LOW** | Add `hasException` boolean column | Low | Faster error span filtering |
+| **LOW** | Add trace-by-ID projection | Low | Faster trace detail view |
+| **LOW** | Fix `links` default value `{}` → `[]` | Trivial | Schema correctness |
+
+### 2.5 Key File Locations
+
+| File | Purpose |
+|------|---------|
+| `Common/Models/AnalyticsModels/Span.ts` | Span table schema definition (columns, indexes, sort key, partitioning, TTL) |
+| `Telemetry/Services/OtelTracesIngestService.ts` | Span ingestion processing, row building, batch flushing |
+| `Common/Server/Services/SpanService.ts` | Span CRUD operations |
+| `Common/Server/Services/AnalyticsDatabaseService.ts` | Generic ClickHouse insert/query (async insert settings) |
+| `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` | SQL generation for CREATE TABLE, INSERT, SELECT |
+| `Common/Types/AnalyticsDatabase/TableColumn.ts` | Column type and skip index type definitions |
+| `Worker/DataMigrations/AddRetentionDateAndSkipIndexesToTelemetryTables.ts` | Migration that added TTL and skip indexes |
+
+---
+
+## 3. Gap Analysis vs Competition
+
+### 3.1 CRITICAL GAPS (Must-have to compete)
 
 #### Gap 1: No Trace Analytics / Aggregation Engine
 **What competitors do:** DataDog has Trace Explorer with count/percentile aggregations. NewRelic has NRQL queries on span data. Grafana Tempo has TraceQL with `rate()`, `count_over_time()`, `quantile_over_time()`. Honeycomb allows arbitrary aggregation (COUNT, AVG, P50, P95, P99) on any span field.
@@ -104,7 +266,7 @@
 - When displaying metric charts, show exemplar dots that link to traces
 - Enable "view example traces" from any metric graph
 
-### 2.2 HIGH-VALUE GAPS (Differentiation opportunities)
+### 3.2 HIGH-VALUE GAPS (Differentiation opportunities)
 
 #### Gap 6: No Structural Trace Queries
 **What competitors do:** DataDog Trace Queries let you find traces based on properties of multiple spans and their structural relationships (e.g., "find traces where service A called service B and B returned an error"). Grafana TraceQL supports spanset pipelines and structural queries.
@@ -165,7 +327,7 @@
 - Prerequisite: Gap 2 (RED metrics from traces) must be implemented first
 - Integrate with existing OneUptime alerting/incident system
 
-### 2.3 NICE-TO-HAVE GAPS (Long-term roadmap)
+### 3.3 NICE-TO-HAVE GAPS (Long-term roadmap)
 
 #### Gap 12: No Continuous Profiling Integration
 **What competitors do:** DataDog has native continuous profiling with direct span-to-profile linking ("Code Hotspots"). Grafana has Pyroscope.
@@ -194,7 +356,7 @@
 
 ---
 
-## 3. Prioritized Roadmap Recommendation
+## 4. Prioritized Roadmap Recommendation
 
 ### Phase 1: Foundation (Highest Impact)
 1. **Trace Analytics Engine** (Gap 1) -- Without this, users can't answer basic performance questions
@@ -222,7 +384,7 @@
 
 ---
 
-## 4. Quick Wins (Low effort, high value)
+## 5. Quick Wins (Low effort, high value)
 
 These can be implemented relatively quickly:
 
@@ -236,7 +398,7 @@ These can be implemented relatively quickly:
 
 ---
 
-## 5. Architecture Notes
+## 6. Architecture Notes
 
 ### Why ClickHouse Is Well-Suited for These Improvements
 
@@ -264,7 +426,7 @@ The main work is building the API layer and UI, not the storage engine.
 
 ---
 
-## 6. Competitive Summary Matrix
+## 7. Competitive Summary Matrix
 
 | Feature | OneUptime | DataDog | NewRelic | Tempo | Honeycomb |
 |---------|-----------|---------|----------|-------|-----------|
@@ -296,7 +458,7 @@ The main work is building the API layer and UI, not the storage engine.
 
 ---
 
-## 7. Conclusion
+## 8. Conclusion
 
 OneUptime has a solid foundation for trace ingestion and storage with good OTLP support and ClickHouse as the backend. The core data model is complete (spans, events, links, attributes, resources are all captured).
 
