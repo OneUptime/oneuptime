@@ -3,6 +3,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -111,6 +113,9 @@ const LogDropFilters: FunctionComponent<
           markdown: documentationMarkdown,
         }}
         noItemsMessage={"No drop filters found."}
+        selectMoreFields={{
+          samplePercentage: true,
+        }}
         viewPageRoute={Navigation.getCurrentRoute()}
         formFields={[
           {
@@ -182,13 +187,33 @@ const LogDropFilters: FunctionComponent<
             },
             title: "Action",
             type: FieldType.Text,
+            getElement: (item: LogDropFilter): ReactElement => {
+              if (item.action === "drop") {
+                return <Pill color={Red} text="Drop" />;
+              }
+              if (item.action === "sample") {
+                return (
+                  <Pill
+                    color={Yellow}
+                    text={`Sample ${item.samplePercentage ? item.samplePercentage + "%" : ""}`}
+                  />
+                );
+              }
+              return <Pill color={Red} text={item.action || "-"} />;
+            },
           },
           {
             field: {
               isEnabled: true,
             },
-            title: "Enabled",
+            title: "Status",
             type: FieldType.Boolean,
+            getElement: (item: LogDropFilter): ReactElement => {
+              if (item.isEnabled) {
+                return <Pill color={Green} text="Enabled" />;
+              }
+              return <Pill color={Red} text="Disabled" />;
+            },
           },
         ]}
       />
