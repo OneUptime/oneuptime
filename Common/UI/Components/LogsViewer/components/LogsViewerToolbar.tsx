@@ -3,6 +3,7 @@ import LiveLogsToggle from "./LiveLogsToggle";
 import LogTimeRangePicker from "./LogTimeRangePicker";
 import ColumnSelector from "./ColumnSelector";
 import SavedViewsDropdown from "./SavedViewsDropdown";
+import KeyboardShortcutsHelp from "./KeyboardShortcutsHelp";
 import {
   LiveLogsOptions,
   LogsSavedViewOption,
@@ -34,6 +35,8 @@ export interface LogsViewerToolbarProps {
   onViewModeChange?: ((mode: LogsViewMode) => void) | undefined;
   onExportCSV?: (() => void) | undefined;
   onExportJSON?: (() => void) | undefined;
+  showKeyboardShortcuts?: boolean | undefined;
+  onToggleKeyboardShortcuts?: (() => void) | undefined;
 }
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
@@ -152,6 +155,40 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               onChange={props.onSelectedColumnsChange}
             />
           )}
+
+        {props.onToggleKeyboardShortcuts && (
+          <div className="relative">
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
+                props.showKeyboardShortcuts
+                  ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+              }`}
+              onClick={props.onToggleKeyboardShortcuts}
+              title="Keyboard shortcuts (?)"
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"
+                />
+              </svg>
+            </button>
+            {props.showKeyboardShortcuts && (
+              <KeyboardShortcutsHelp
+                onClose={props.onToggleKeyboardShortcuts}
+              />
+            )}
+          </div>
+        )}
 
         {showExport && (
           <div className="relative" ref={exportDropdownRef}>

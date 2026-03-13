@@ -219,6 +219,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [internalViewMode, setInternalViewMode] =
     useState<LogsViewMode>("list");
 
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] =
+    useState<boolean>(false);
+
   useEffect(() => {
     setFilterData(props.filterData);
   }, [props.filterData]);
@@ -526,7 +529,19 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         return;
       }
 
+      if (e.key === "?") {
+        e.preventDefault();
+        setShowKeyboardShortcuts((prev: boolean) => {
+          return !prev;
+        });
+        return;
+      }
+
       if (e.key === "Escape") {
+        if (showKeyboardShortcuts) {
+          setShowKeyboardShortcuts(false);
+          return;
+        }
         if (selectedLogId) {
           setSelectedLogId(null);
         }
@@ -574,7 +589,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [displayedLogs, focusedRowIndex, selectedLogId, handleSearchSubmit]);
+  }, [displayedLogs, focusedRowIndex, selectedLogId, showKeyboardShortcuts, handleSearchSubmit]);
 
   const handlePageChange: (page: number) => void = (page: number): void => {
     if (props.onPageChange) {
@@ -778,6 +793,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           onTimeRangeChange: props.onTimeRangeChange,
         }
       : {}),
+    showKeyboardShortcuts,
+    onToggleKeyboardShortcuts: () => {
+      setShowKeyboardShortcuts((prev: boolean) => {
+        return !prev;
+      });
+    },
   };
 
   const showSidebar: boolean =
