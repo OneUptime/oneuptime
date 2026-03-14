@@ -23,6 +23,7 @@ export interface ComponentProps {
   canDelete: boolean;
   index: number;
   connector: string;
+  isLast: boolean;
 }
 
 const fieldOptions: Array<DropdownOption> = [
@@ -82,143 +83,187 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
         ? "Comma-separated values"
         : undefined;
 
-  // Row prefix: "Where" for first row, connector for subsequent
-  const rowPrefix: string = props.index === 0 ? "Where" : props.connector;
+  const isFirst: boolean = props.index === 0;
+  const connectorColor: string =
+    props.connector === "AND" ? "text-indigo-600" : "text-amber-600";
+  const connectorBgColor: string =
+    props.connector === "AND"
+      ? "bg-indigo-50 border-indigo-200"
+      : "bg-amber-50 border-amber-200";
+  const lineColor: string =
+    props.connector === "AND" ? "bg-indigo-200" : "bg-amber-200";
 
   return (
-    <div className="group flex items-start gap-3 py-3">
-      {/* Row prefix label */}
-      <div className="flex-shrink-0 w-14 pt-1.5">
-        <span
-          className={`inline-block text-xs font-semibold uppercase tracking-wide ${
-            props.index === 0
-              ? "text-gray-400"
-              : props.connector === "AND"
-                ? "text-indigo-500"
-                : "text-amber-500"
-          }`}
-        >
-          {rowPrefix}
-        </span>
-      </div>
-
-      {/* Condition fields - inline row */}
-      <div className="flex-1 flex items-start gap-2 flex-wrap">
-        {/* Field */}
-        <div className="w-40">
-          <Dropdown
-            options={[
-              ...fieldOptions,
-              {
-                value: "__custom_attribute__",
-                label: "Custom Attribute...",
-                description: "Filter on a custom log attribute",
-              },
-            ]}
-            value={selectedFieldOption}
-            placeholder="Select field..."
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              if (value === "__custom_attribute__") {
-                props.onChange({
-                  ...condition,
-                  field: "attributes.",
-                });
-              } else {
-                props.onChange({
-                  ...condition,
-                  field: value?.toString() || "",
-                });
-              }
-            }}
+    <div className="relative flex">
+      {/* Timeline column */}
+      <div className="flex-shrink-0 w-16 flex flex-col items-center relative">
+        {/* Top line segment (hidden for first) */}
+        {!isFirst && (
+          <div
+            className={`w-0.5 h-3 ${lineColor}`}
           />
-        </div>
+        )}
+        {isFirst && <div className="h-3" />}
 
-        {/* Custom attribute name */}
-        {isAttributeField && (
-          <div className="w-32">
-            <Input
-              type={InputType.TEXT}
-              placeholder="attr name"
-              value={condition.field.replace("attributes.", "")}
-              onChange={(value: string) => {
-                props.onChange({
-                  ...condition,
-                  field: `attributes.${value}`,
-                });
-              }}
-            />
+        {/* Node: "Where" dot or connector badge */}
+        {isFirst ? (
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 border-2 border-gray-300">
+            <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </div>
+        ) : (
+          <div
+            className={`flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold border ${connectorBgColor} ${connectorColor}`}
+          >
+            {props.connector}
           </div>
         )}
 
-        {/* Operator */}
-        <div className="w-44">
-          <Dropdown
-            options={operatorOptions}
-            value={selectedOperatorOption}
-            placeholder="Select..."
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              props.onChange({
-                ...condition,
-                operator: value?.toString() || "=",
-              });
-            }}
-          />
-        </div>
+        {/* Bottom line segment (hidden for last) */}
+        {!props.isLast ? (
+          <div className={`w-0.5 flex-1 ${lineColor}`} />
+        ) : (
+          <div className="flex-1" />
+        )}
+      </div>
 
-        {/* Value */}
-        <div className="flex-1 min-w-[160px]">
-          {condition.field === "severityText" ? (
+      {/* Condition row */}
+      <div className="flex-1 group pb-3 pt-0.5">
+        <div className="flex items-start gap-2 rounded-lg border border-transparent hover:border-gray-200 hover:bg-gray-50/50 transition-all duration-150 p-2 -ml-1">
+          {/* Field */}
+          <div className="w-40 flex-shrink-0">
+            <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+              Field
+            </label>
             <Dropdown
-              options={severityOptions}
-              value={
-                condition.value
-                  ? { value: condition.value, label: condition.value }
-                  : undefined
-              }
-              placeholder="Select severity..."
+              options={[
+                ...fieldOptions,
+                {
+                  value: "__custom_attribute__",
+                  label: "Custom Attribute...",
+                  description: "Filter on a custom log attribute",
+                },
+              ]}
+              value={selectedFieldOption}
+              placeholder="Select field..."
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                if (value === "__custom_attribute__") {
+                  props.onChange({
+                    ...condition,
+                    field: "attributes.",
+                  });
+                } else {
+                  props.onChange({
+                    ...condition,
+                    field: value?.toString() || "",
+                  });
+                }
+              }}
+            />
+          </div>
+
+          {/* Custom attribute name */}
+          {isAttributeField && (
+            <div className="w-28 flex-shrink-0">
+              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                Attribute
+              </label>
+              <Input
+                type={InputType.TEXT}
+                placeholder="attr name"
+                value={condition.field.replace("attributes.", "")}
+                onChange={(value: string) => {
+                  props.onChange({
+                    ...condition,
+                    field: `attributes.${value}`,
+                  });
+                }}
+              />
+            </div>
+          )}
+
+          {/* Operator */}
+          <div className="w-40 flex-shrink-0">
+            <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+              Operator
+            </label>
+            <Dropdown
+              options={operatorOptions}
+              value={selectedOperatorOption}
+              placeholder="Select..."
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
                 props.onChange({
                   ...condition,
-                  value: value?.toString() || "",
+                  operator: value?.toString() || "=",
                 });
               }}
             />
-          ) : (
-            <div>
-              <Input
-                type={InputType.TEXT}
-                placeholder="Enter value..."
-                value={condition.value}
-                onChange={(value: string) => {
-                  props.onChange({ ...condition, value });
+          </div>
+
+          {/* Value */}
+          <div className="flex-1 min-w-[140px]">
+            <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+              Value
+            </label>
+            {condition.field === "severityText" ? (
+              <Dropdown
+                options={severityOptions}
+                value={
+                  condition.value
+                    ? { value: condition.value, label: condition.value }
+                    : undefined
+                }
+                placeholder="Select severity..."
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  props.onChange({
+                    ...condition,
+                    value: value?.toString() || "",
+                  });
                 }}
               />
-              {operatorHint && (
-                <p className="mt-0.5 text-[11px] text-gray-400 leading-tight">
-                  {operatorHint}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+            ) : (
+              <div>
+                <Input
+                  type={InputType.TEXT}
+                  placeholder="Enter value..."
+                  value={condition.value}
+                  onChange={(value: string) => {
+                    props.onChange({ ...condition, value });
+                  }}
+                />
+                {operatorHint && (
+                  <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
+                    {operatorHint}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
-      {/* Delete */}
-      <div className="flex-shrink-0 pt-0.5">
-        {props.canDelete ? (
-          <Button
-            icon={IconProp.Trash}
-            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-            buttonSize={ButtonSize.Small}
-            onClick={props.onDelete}
-            tooltip="Remove condition"
-          />
-        ) : (
-          // Spacer to keep alignment when delete is hidden
-          <div className="w-8" />
-        )}
+          {/* Delete */}
+          <div className="flex-shrink-0 pt-5">
+            {props.canDelete ? (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <Button
+                  icon={IconProp.Trash}
+                  buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  onClick={props.onDelete}
+                  tooltip="Remove condition"
+                />
+              </div>
+            ) : (
+              <div className="w-8" />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
