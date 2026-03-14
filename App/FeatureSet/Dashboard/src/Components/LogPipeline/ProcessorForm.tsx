@@ -16,7 +16,7 @@ import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProces
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import SeverityMappingRow, { SeverityMapping } from "./SeverityMappingRow";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 export interface ComponentProps {
@@ -94,7 +94,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
           sourceKey: severitySourceKey,
           mappings: severityMappings.filter((m: SeverityMapping) => {
             return m.matchValue && m.severityText;
-          }),
+          }) as unknown as JSONValue,
         };
       case "AttributeRemapper":
         return {
@@ -108,7 +108,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
           targetKey: categoryTargetKey,
           categories: categories.filter((c: CategoryRule) => {
             return c.name && c.filterQuery;
-          }),
+          }) as unknown as JSONValue,
         };
       default:
         return {};

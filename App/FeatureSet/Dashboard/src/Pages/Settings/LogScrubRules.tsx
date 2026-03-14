@@ -1,7 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormValues } from "Common/UI/Components/Forms/Types/FormValues";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";

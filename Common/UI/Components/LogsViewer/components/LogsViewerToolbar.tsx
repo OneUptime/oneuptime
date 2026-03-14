@@ -1,8 +1,6 @@
 import React, {
   FunctionComponent,
   ReactElement,
-  useRef,
-  useState,
 } from "react";
 import LiveLogsToggle from "./LiveLogsToggle";
 import LogTimeRangePicker from "./LogTimeRangePicker";
@@ -52,12 +50,8 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
     currentPage && totalPages && totalPages > 0,
   );
 
-  const exportDropdownRef: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
-  const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
-  useComponentOutsideClick(exportDropdownRef, () => {
-    setIsExportOpen(false);
-  });
+  const { ref: exportDropdownRef, isComponentVisible: isExportOpen, setIsComponentVisible: setIsExportOpen } =
+    useComponentOutsideClick(false);
 
   const showExport: boolean = Boolean(props.onExportCSV || props.onExportJSON);
 
