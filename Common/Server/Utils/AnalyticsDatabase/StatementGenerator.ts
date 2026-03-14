@@ -700,14 +700,63 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   public toAddColumnStatement(column: AnalyticsTableColumn): Statement {
+    // Build column definition without skip index (indexes must be added separately via ADD INDEX)
+    const columnDef: Statement = new Statement();
+
+    columnDef.append(column.key).append(SQL` `).append(
+      column.required
+        ? this.toColumnType(column.type)
+        : SQL`Nullable(`
+            .append(this.toColumnType(column.type))
+            .append(SQL`)`),
+    );
+
+    if (column.codec) {
+      const codecStr: string =
+        column.codec.level !== undefined
+          ? `${column.codec.codec}(${column.codec.level})`
+          : column.codec.codec;
+      columnDef.append(` CODEC(${codecStr})`);
+    }
+
     const statement: Statement = SQL`
             ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
               this.model.tableName
-            } ADD COLUMN IF NOT EXISTS `.append(
-      this.toColumnsCreateStatement([column]),
-    );
+            } ADD COLUMN IF NOT EXISTS `.append(columnDef);
 
     logger.debug(`${this.model.tableName} Add Column Statement`);
+    logger.debug(statement);
+
+    return statement;
+  }
+
+  public toAddSkipIndexStatement(
+    column: AnalyticsTableColumn,
+  ): Statement | null {
+    if (!column.skipIndex) {
+      return null;
+    }
+
+    const idx: AnalyticsTableColumn["skipIndex"] = column.skipIndex;
+    const paramsStr: string =
+      idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
+
+    const needsAssumeNotNull: boolean =
+      !column.required &&
+      (idx.type === SkipIndexType.TokenBF ||
+        idx.type === SkipIndexType.NgramBF);
+    const columnExpr: string = needsAssumeNotNull
+      ? `assumeNotNull(${column.key})`
+      : column.key;
+
+    const databaseName: string =
+      this.database.getDatasourceOptions().database!;
+    const statement: Statement = new Statement();
+    statement.append(
+      `ALTER TABLE ${databaseName}.${this.model.tableName} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+    );
+
+    logger.debug(`${this.model.tableName} Add Skip Index Statement`);
     logger.debug(statement);
 
     return statement;
