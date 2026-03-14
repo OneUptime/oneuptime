@@ -36,18 +36,19 @@ const processorTypeOptions: Array<DropdownOption> = [
     value: "SeverityRemapper",
     label: "Severity Remapper",
     description:
-      "Map log field values to standard severity levels (e.g. map 'warn' to WARNING)",
+      "Reads a raw value (e.g. 'warn') from a log attribute and maps it to a standard severity level (e.g. WARNING)",
   },
   {
     value: "AttributeRemapper",
     label: "Attribute Remapper",
     description:
-      "Rename or copy a log attribute to a different key (e.g. rename 'src' to 'source')",
+      "Renames or copies a log attribute key to a new key (e.g. rename 'src_ip' to 'source_ip')",
   },
   {
     value: "CategoryProcessor",
     label: "Category Processor",
-    description: "Assign categories to logs based on filter conditions",
+    description:
+      "Tags logs with a category name based on filter rules. Stored in log attributes for easy searching.",
   },
 ];
 
@@ -198,7 +199,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Add Processor"
-      description="Configure a new processor for this pipeline."
+      description="Processors transform logs as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the log before it is stored."
       modalWidth={ModalWidth.Large}
       submitButtonText="Create Processor"
       onSubmit={handleSave}
@@ -261,16 +262,33 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
               Severity Remapper Configuration
             </h4>
-            <p className="text-xs text-gray-500 mb-4">
-              Map values from a log attribute to standard severity levels. For
-              example, map &quot;warn&quot; to WARNING, or &quot;err&quot; to
-              ERROR.
+            <p className="text-xs text-gray-500 mb-3">
+              Normalizes raw severity values from your logs into standard
+              levels (TRACE, DEBUG, INFO, WARNING, ERROR, FATAL). This
+              processor reads a value from a log attribute and maps it to the
+              log&apos;s <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">severityText</code> field.
             </p>
+
+            {/* How it works */}
+            <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">How it works</p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <p>1. The processor reads the value from the Source Attribute in your log&apos;s <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">attributes</code> object.</p>
+                <p>2. It looks up the value in your mappings below.</p>
+                <p>3. If a match is found, the log&apos;s <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">severityText</code> is updated to the mapped severity level.</p>
+              </div>
+              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+                <span className="text-gray-500">// Example: incoming log</span><br />
+                <span className="text-amber-400">attributes</span>: {'{'} <span className="text-emerald-400">&quot;level&quot;</span>: <span className="text-sky-400">&quot;warn&quot;</span> {'}'}<br />
+                <span className="text-gray-500">// After processing (with mapping: warn → WARNING)</span><br />
+                <span className="text-amber-400">severityText</span>: <span className="text-sky-400">&quot;WARNING&quot;</span>
+              </div>
+            </div>
 
             <div className="mb-4">
               <FieldLabelElement
                 title="Source Attribute"
-                description="The log attribute that contains the severity value to map"
+                description={'The key in your log\'s attributes object that contains the raw severity value. Many logging libraries (Pino, Winston, Bunyan) use "level" by default.'}
               />
               <div className="mt-1 w-64">
                 <Input
@@ -280,12 +298,15 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                   onChange={setSeveritySourceKey}
                 />
               </div>
+              <p className="mt-1 text-[11px] text-gray-400">
+                Common values: <code className="text-gray-500">level</code>, <code className="text-gray-500">log_level</code>, <code className="text-gray-500">severity</code>, <code className="text-gray-500">priority</code>
+              </p>
             </div>
 
             <div>
               <FieldLabelElement
                 title="Mappings"
-                description="Define how attribute values map to severity levels"
+                description="Define how raw attribute values map to standard severity levels. The match value should be exactly what your application emits."
               />
               <div className="mt-2 space-y-2">
                 {severityMappings.map(
@@ -344,15 +365,33 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
               Attribute Remapper Configuration
             </h4>
-            <p className="text-xs text-gray-500 mb-4">
-              Rename or copy a log attribute from one key to another.
+            <p className="text-xs text-gray-500 mb-3">
+              Renames or copies a key inside the log&apos;s <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">attributes</code> object.
+              Useful for standardizing attribute names across services or
+              cleaning up legacy key names.
             </p>
+
+            {/* How it works */}
+            <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">How it works</p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <p>1. Reads the value from <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">attributes[sourceKey]</code>.</p>
+                <p>2. Writes that value to <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">attributes[targetKey]</code>.</p>
+                <p>3. Optionally removes the original source key (if Preserve Source is off).</p>
+              </div>
+              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+                <span className="text-gray-500">// Before: attributes has &quot;src_ip&quot;</span><br />
+                <span className="text-amber-400">attributes</span>: {'{'} <span className="text-emerald-400">&quot;src_ip&quot;</span>: <span className="text-sky-400">&quot;10.0.1.5&quot;</span> {'}'}<br />
+                <span className="text-gray-500">// After: renamed to &quot;source_ip&quot;</span><br />
+                <span className="text-amber-400">attributes</span>: {'{'} <span className="text-emerald-400">&quot;source_ip&quot;</span>: <span className="text-sky-400">&quot;10.0.1.5&quot;</span> {'}'}
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <FieldLabelElement
                   title="Source Key"
-                  description="The attribute to read from"
+                  description="The attribute key to read the value from"
                 />
                 <div className="mt-1">
                   <Input
@@ -366,7 +405,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
               <div>
                 <FieldLabelElement
                   title="Target Key"
-                  description="The attribute to write to"
+                  description="The new attribute key to write the value to"
                 />
                 <div className="mt-1">
                   <Input
@@ -382,13 +421,13 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
             <div className="grid grid-cols-2 gap-4">
               <Toggle
                 title="Preserve Source"
-                description="Keep the original attribute after remapping"
+                description="Keep the original source attribute after remapping. If off, the source key is removed."
                 value={preserveSource}
                 onChange={setPreserveSource}
               />
               <Toggle
                 title="Override on Conflict"
-                description="Overwrite the target if it already exists"
+                description="If the target key already exists, overwrite its value. If off and the target exists, the remap is skipped."
                 value={overrideOnConflict}
                 onChange={setOverrideOnConflict}
               />
@@ -402,15 +441,36 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
               Category Processor Configuration
             </h4>
-            <p className="text-xs text-gray-500 mb-4">
-              Assign a category to logs based on filter conditions. The first
-              matching rule wins.
+            <p className="text-xs text-gray-500 mb-3">
+              Tags each log with a category name based on filter rules. The
+              category value is stored in the log&apos;s <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">attributes</code> object
+              under the Target Attribute key. Rules are evaluated in order
+              and <strong>the first matching rule wins</strong>.
             </p>
+
+            {/* How it works */}
+            <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">How it works</p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <p>1. Each category rule has a filter condition (e.g. <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">severityText = &apos;ERROR&apos;</code>).</p>
+                <p>2. The processor evaluates rules top to bottom. The first rule that matches the log is applied.</p>
+                <p>3. The category name is stored at <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">attributes[targetAttribute]</code> on the log.</p>
+                <p>4. You can then filter and search logs by this attribute in the Logs Viewer.</p>
+              </div>
+              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+                <span className="text-gray-500">// Rule: &quot;Critical Errors&quot; when severityText = &apos;ERROR&apos;</span><br />
+                <span className="text-gray-500">// Target Attribute: &quot;category&quot;</span><br /><br />
+                <span className="text-gray-500">// Before processing</span><br />
+                <span className="text-amber-400">severityText</span>: <span className="text-sky-400">&quot;ERROR&quot;</span>, <span className="text-amber-400">attributes</span>: {'{'} {'}'}<br />
+                <span className="text-gray-500">// After processing</span><br />
+                <span className="text-amber-400">severityText</span>: <span className="text-sky-400">&quot;ERROR&quot;</span>, <span className="text-amber-400">attributes</span>: {'{'} <span className="text-emerald-400">&quot;category&quot;</span>: <span className="text-sky-400">&quot;Critical Errors&quot;</span> {'}'}
+              </div>
+            </div>
 
             <div className="mb-4">
               <FieldLabelElement
                 title="Target Attribute"
-                description="The attribute where the category name will be stored"
+                description={"The key in the log's attributes where the matched category name will be stored. You can search logs by this attribute in the Logs Viewer."}
               />
               <div className="mt-1 w-64">
                 <Input
@@ -420,12 +480,15 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                   onChange={setCategoryTargetKey}
                 />
               </div>
+              <p className="mt-1 text-[11px] text-gray-400">
+                The category will be accessible as <code className="text-gray-500">attributes.{categoryTargetKey || "category"}</code> in your logs.
+              </p>
             </div>
 
             <div>
               <FieldLabelElement
                 title="Category Rules"
-                description="Define categories and the conditions that trigger them"
+                description="Define categories and the filter conditions that trigger them. Rules are evaluated top to bottom — the first match wins."
               />
               <div className="mt-2 space-y-2">
                 {categories.map((cat: CategoryRule, index: number) => {
