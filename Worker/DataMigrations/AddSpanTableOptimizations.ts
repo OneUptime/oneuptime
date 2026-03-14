@@ -33,9 +33,11 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
     );
     logger.info("Added skip index idx_parent_span_id on SpanItem");
 
-    // Step 3: Apply compression codecs
-    // Use mutations_sync=0 so these operations return immediately and complete asynchronously.
-    // On large tables (76GB+), synchronous MODIFY COLUMN CODEC would time out.
+    /*
+     * Step 3: Apply compression codecs
+     * Use mutations_sync=0 so these operations return immediately and complete asynchronously.
+     * On large tables (76GB+), synchronous MODIFY COLUMN CODEC would time out.
+     */
     await SpanService.execute(
       `ALTER TABLE SpanItem MODIFY COLUMN startTimeUnixNano Int128 CODEC(ZSTD(1)) SETTINGS mutations_sync=0`,
     );

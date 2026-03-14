@@ -703,13 +703,16 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // Build column definition without skip index (indexes must be added separately via ADD INDEX)
     const columnDef: Statement = new Statement();
 
-    columnDef.append(column.key).append(SQL` `).append(
-      column.required
-        ? this.toColumnType(column.type)
-        : SQL`Nullable(`
-            .append(this.toColumnType(column.type))
-            .append(SQL`)`),
-    );
+    columnDef
+      .append(column.key)
+      .append(SQL` `)
+      .append(
+        column.required
+          ? this.toColumnType(column.type)
+          : SQL`Nullable(`
+              .append(this.toColumnType(column.type))
+              .append(SQL`)`),
+      );
 
     if (column.codec) {
       const codecStr: string =
@@ -749,8 +752,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       ? `assumeNotNull(${column.key})`
       : column.key;
 
-    const databaseName: string =
-      this.database.getDatasourceOptions().database!;
+    const databaseName: string = this.database.getDatasourceOptions().database!;
     const statement: Statement = new Statement();
     statement.append(
       `ALTER TABLE ${databaseName}.${this.model.tableName} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,

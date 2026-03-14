@@ -168,19 +168,11 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
               getElement: (item: LogPipeline): ReactElement => {
                 if (item.isEnabled) {
                   return (
-                    <Pill
-                      color={Green}
-                      text="Enabled"
-                      icon={IconProp.Check}
-                    />
+                    <Pill color={Green} text="Enabled" icon={IconProp.Check} />
                   );
                 }
                 return (
-                  <Pill
-                    color={Red}
-                    text="Disabled"
-                    icon={IconProp.Close}
-                  />
+                  <Pill color={Red} text="Disabled" icon={IconProp.Close} />
                 );
               },
             },
@@ -198,87 +190,87 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
       />
 
       {/* Section 3: Processors */}
-        <ModelTable<LogPipelineProcessor>
-          modelType={LogPipelineProcessor}
-          query={{
-            logPipelineId: modelId,
-          }}
-          id="log-pipeline-processors-table"
-          name="Log Pipeline > Processors"
-          userPreferencesKey="log-pipeline-processors-table"
-          isDeleteable={true}
-          isEditable={false}
-          isCreateable={false}
-          sortBy="sortOrder"
-          sortOrder={SortOrder.Ascending}
-          enableDragAndDrop={true}
-          dragDropIndexField="sortOrder"
-          cardProps={{
-            title: "Processors",
-            description:
-              "Processors transform logs matched by this pipeline. They run in the order shown below. Drag to reorder.",
-            buttons: [
-              {
-                title: "Add Processor",
-                buttonStyle: ButtonStyleType.NORMAL,
-                onClick: () => {
-                  setShowProcessorForm(true);
-                },
-                icon: IconProp.Add,
-              },
-            ],
-          }}
-          helpContent={{
-            title: "How Log Processors Work",
-            description:
-              "Understanding Severity Remapper, Attribute Remapper, and Category Processor",
-            markdown: processorsDocMarkdown,
-          }}
-          noItemsMessage={
-            "No processors configured. Click 'Add Processor' above to add your first processor."
-          }
-          showRefreshButton={true}
-          refreshToggle={refreshProcessorToggle}
-          filters={[
+      <ModelTable<LogPipelineProcessor>
+        modelType={LogPipelineProcessor}
+        query={{
+          logPipelineId: modelId,
+        }}
+        id="log-pipeline-processors-table"
+        name="Log Pipeline > Processors"
+        userPreferencesKey="log-pipeline-processors-table"
+        isDeleteable={true}
+        isEditable={false}
+        isCreateable={false}
+        sortBy="sortOrder"
+        sortOrder={SortOrder.Ascending}
+        enableDragAndDrop={true}
+        dragDropIndexField="sortOrder"
+        cardProps={{
+          title: "Processors",
+          description:
+            "Processors transform logs matched by this pipeline. They run in the order shown below. Drag to reorder.",
+          buttons: [
             {
-              field: {
-                name: true,
+              title: "Add Processor",
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setShowProcessorForm(true);
               },
-              type: FieldType.Text,
-              title: "Name",
+              icon: IconProp.Add,
             },
-            {
-              field: {
-                isEnabled: true,
-              },
-              type: FieldType.Boolean,
-              title: "Enabled",
+          ],
+        }}
+        helpContent={{
+          title: "How Log Processors Work",
+          description:
+            "Understanding Severity Remapper, Attribute Remapper, and Category Processor",
+          markdown: processorsDocMarkdown,
+        }}
+        noItemsMessage={
+          "No processors configured. Click 'Add Processor' above to add your first processor."
+        }
+        showRefreshButton={true}
+        refreshToggle={refreshProcessorToggle}
+        filters={[
+          {
+            field: {
+              name: true,
             },
-          ]}
-          columns={[
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              type: FieldType.Text,
+            type: FieldType.Text,
+            title: "Name",
+          },
+          {
+            field: {
+              isEnabled: true,
             },
-            {
-              field: {
-                processorType: true,
-              },
-              title: "Type",
-              type: FieldType.Text,
+            type: FieldType.Boolean,
+            title: "Enabled",
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              name: true,
             },
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              type: FieldType.Boolean,
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              processorType: true,
             },
-          ]}
-        />
+            title: "Type",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              isEnabled: true,
+            },
+            title: "Enabled",
+            type: FieldType.Boolean,
+          },
+        ]}
+      />
 
       {showProcessorForm && (
         <ProcessorForm

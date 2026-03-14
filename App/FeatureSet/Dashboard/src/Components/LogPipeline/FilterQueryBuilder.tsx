@@ -22,9 +22,7 @@ import ObjectID from "Common/Types/ObjectID";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import FilterConditionElement, {
-  FilterConditionData,
-} from "./FilterCondition";
+import FilterConditionElement, { FilterConditionData } from "./FilterCondition";
 
 export interface ComponentProps {
   modelType: { new (): BaseModel };
@@ -240,7 +238,11 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   };
 
   const openModal: () => void = (): void => {
-    setModalConditions(conditions.map((c: FilterConditionData) => ({ ...c })));
+    setModalConditions(
+      conditions.map((c: FilterConditionData) => {
+        return { ...c };
+      }),
+    );
     setModalConnector(connector);
     setError("");
     setShowModal(true);
@@ -298,9 +300,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                   <span className="text-sm text-gray-500">
                     Match{" "}
                     <span className="font-medium text-gray-700">
-                      {connector === "AND"
-                        ? "all conditions"
-                        : "any condition"}
+                      {connector === "AND" ? "all conditions" : "any condition"}
                     </span>
                   </span>
                 </div>

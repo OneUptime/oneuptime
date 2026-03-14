@@ -152,11 +152,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                 if (item.action === "drop") {
                   return (
                     <div className="flex items-center gap-3">
-                      <Pill
-                        color={Red}
-                        text="Drop"
-                        icon={IconProp.Trash}
-                      />
+                      <Pill color={Red} text="Drop" icon={IconProp.Trash} />
                       <span className="text-sm text-gray-500">
                         All matching logs are permanently discarded
                       </span>
