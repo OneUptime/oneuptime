@@ -182,6 +182,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
       processor.configuration = buildConfiguration();
       processor.isEnabled = isEnabled;
       processor.logPipelineId = props.pipelineId;
+      processor.sortOrder = 1;
 
       await ModelAPI.create({
         model: processor,
