@@ -313,8 +313,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     (span["traceState"] as string) || "";
 
                   let spanEvents: Array<JSONObject> = [];
+                  let hasException: boolean = false;
                   try {
-                    spanEvents = this.getSpanEvents(
+                    const spanEventsResult: {
+                      events: Array<JSONObject>;
+                      hasException: boolean;
+                    } = this.getSpanEvents(
                       span["events"] as JSONArray,
                       {
                         projectId: projectId,
@@ -329,6 +333,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       },
                       dbExceptions,
                     );
+                    spanEvents = spanEventsResult.events;
+                    hasException = spanEventsResult.hasException;
                   } catch (eventsError) {
                     logger.warn(
                       `Error processing span events: ${eventsError instanceof Error ? eventsError.message : String(eventsError)}`,
@@ -364,6 +370,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     durationUnixNano: durationUnixNano,
                     events: spanEvents,
                     links: spanLinks,
+                    hasException: hasException,
                     dataRententionInDays:
                       serviceDictionary[serviceName]!.dataRententionInDays,
                   });
@@ -461,8 +468,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       dataRententionInDays: number;
     },
     dbExceptions: Array<JSONObject>,
-  ): Array<JSONObject> {
+  ): { events: Array<JSONObject>; hasException: boolean } {
     const spanEvents: Array<JSONObject> = [];
+    let hasException: boolean = false;
 
     if (events && Array.isArray(events)) {
       for (const event of events) {
@@ -488,6 +496,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           });
 
           if (eventName === SpanEventType.Exception) {
+            hasException = true;
             try {
               const message: string =
                 (eventAttributes["exception.message"] as string) || "";
@@ -608,7 +617,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       }
     }
 
-    return spanEvents;
+    return { events: spanEvents, hasException };
   }
 
   private static getSpanLinks(links: JSONArray): Array<JSONObject> {
@@ -659,6 +668,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     durationUnixNano: string;
     events: Array<JSONObject>;
     links: Array<JSONObject>;
+    hasException: boolean;
     dataRententionInDays: number;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
@@ -692,6 +702,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       kind: data.kind,
       events: data.events,
       links: data.links,
+      hasException: data.hasException,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
   }

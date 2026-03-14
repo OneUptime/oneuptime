@@ -59,6 +59,7 @@ import UpdateObserverRoleToAllowMultipleUsers from "./UpdateObserverRoleToAllowM
 import AddColumnsToExceptionInstance from "./AddColumnsToExceptionInstance";
 import AddRetentionDateAndSkipIndexesToTelemetryTables from "./AddRetentionDateAndSkipIndexesToTelemetryTables";
 import AddOtelFieldsToLogTable from "./AddOtelFieldsToLogTable";
+import AddSpanTableOptimizations from "./AddSpanTableOptimizations";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -122,6 +123,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddColumnsToExceptionInstance(),
   new AddRetentionDateAndSkipIndexesToTelemetryTables(),
   new AddOtelFieldsToLogTable(),
+  new AddSpanTableOptimizations(),
 ];
 
 export default DataMigrations;
