@@ -1,5 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -366,9 +366,12 @@ const SubscriberNotificationTemplateView: FunctionComponent<
         modelId={Navigation.getLastParamAsObjectID()}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[
-              PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
-            ] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.STATUS_PAGES_SETTINGS_SUBSCRIBER_NOTIFICATION_TEMPLATES
+              ] as Route,
+              { modelId },
+            ),
           );
         }}
       />

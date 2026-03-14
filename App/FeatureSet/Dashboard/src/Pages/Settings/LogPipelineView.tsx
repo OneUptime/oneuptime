@@ -1,5 +1,5 @@
 import PageMap from "../../Utils/PageMap";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -291,7 +291,10 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route,
+              { modelId },
+            ),
           );
         }}
       />

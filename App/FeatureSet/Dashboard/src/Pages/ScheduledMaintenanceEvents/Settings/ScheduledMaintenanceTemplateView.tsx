@@ -5,7 +5,7 @@ import UserElement from "../../../Components/User/User";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../../Utils/PageMap";
 import ProjectUser from "../../../Utils/ProjectUser";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -464,9 +464,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelId={Navigation.getLastParamAsObjectID()}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[
-              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
-            ] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
+              ] as Route,
+              { modelId },
+            ),
           );
         }}
       />

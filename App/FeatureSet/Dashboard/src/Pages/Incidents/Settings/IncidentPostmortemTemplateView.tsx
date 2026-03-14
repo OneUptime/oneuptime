@@ -1,5 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -129,7 +129,10 @@ const IncidentPostmortemTemplateView: FunctionComponent<
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES] as Route,
+              { modelId },
+            ),
           );
         }}
       />

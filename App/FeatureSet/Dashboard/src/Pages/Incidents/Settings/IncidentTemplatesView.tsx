@@ -6,7 +6,7 @@ import UserElement from "../../../Components/User/User";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../../Utils/PageMap";
 import ProjectUser from "../../../Utils/ProjectUser";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
@@ -534,7 +534,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelId={Navigation.getLastParamAsObjectID()}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
+              { modelId },
+            ),
           );
         }}
       />

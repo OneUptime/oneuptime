@@ -1,5 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -20,7 +20,10 @@ const IncidentDelete: FunctionComponent<
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
+              { modelId },
+            ),
           );
         }}
       />

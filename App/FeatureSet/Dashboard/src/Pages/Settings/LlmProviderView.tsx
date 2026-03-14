@@ -1,5 +1,5 @@
 import PageMap from "../../Utils/PageMap";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -196,7 +196,10 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
+              { modelId },
+            ),
           );
         }}
       />
