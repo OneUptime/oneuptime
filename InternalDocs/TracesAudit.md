@@ -73,6 +73,9 @@
 | `idx_span_id` | spanId | BloomFilter | [0.01] | 1 |
 | `idx_status_code` | statusCode | Set | [5] | 4 |
 | `idx_name` | name | TokenBF | [10240, 3, 0] | 4 |
+| `idx_kind` | kind | Set | [5] | 4 |
+| `idx_parent_span_id` | parentSpanId | BloomFilter | [0.01] | 1 |
+| `idx_has_exception` | hasException | Set | [2] | 4 |
 
 ### 2.2 What's Done Well
 
@@ -96,49 +99,17 @@
 
 **Impact:** Significant query speedup for attribute-based span filtering.
 
-#### Issue 2: No compression codecs specified (HIGH)
+#### ~~Issue 2: No compression codecs specified~~ ✅ DONE
 
-**Problem:** No explicit `CODEC` is set on any column. ClickHouse defaults to `LZ4`. For high-volume trace data, better codecs can reduce storage 30–50%.
+ZSTD codecs have been applied: `ZSTD(1)` on `startTimeUnixNano`, `endTimeUnixNano`, `durationUnixNano`, `traceId`, `spanId`, `parentSpanId`; `ZSTD(3)` on `attributes`, `events`, `links`.
 
-**Recommendation:**
+#### ~~Issue 3: `kind` column has no skip index~~ ✅ DONE
 
-| Column(s) | Recommended CODEC | Reason |
-|-----------|-------------------|--------|
-| `startTimeUnixNano`, `endTimeUnixNano`, `durationUnixNano` | `CODEC(Delta, ZSTD)` | Nanosecond timestamps compress extremely well with delta encoding |
-| `statusCode` | `CODEC(T64, LZ4)` | Small integer set benefits from T64 |
-| `attributes`, `events`, `links` | `CODEC(ZSTD(3))` | JSON text compresses well with ZSTD |
-| `traceId`, `spanId`, `parentSpanId` | `CODEC(ZSTD(1))` | Hex strings with some repetition |
+`idx_kind` Set skip index added on `kind` column.
 
-**Impact:** 30–50% storage reduction on trace data, which also improves query speed (less I/O).
+#### ~~Issue 4: `parentSpanId` has no skip index~~ ✅ DONE
 
-#### Issue 3: `kind` column has no skip index (MEDIUM)
-
-**Problem:** `kind` is a low-cardinality enum (5 values: SERVER, CLIENT, PRODUCER, CONSUMER, INTERNAL). Filtering by span kind (e.g., "show all server spans") is common but has no index.
-
-**Recommendation:** Add a `Set` skip index on `kind`:
-```
-skipIndex: {
-  name: "idx_kind",
-  type: SkipIndexType.Set,
-  params: [5],
-  granularity: 4,
-}
-```
-Also consider using `LowCardinality(String)` column type for `kind`.
-
-#### Issue 4: `parentSpanId` has no skip index (MEDIUM)
-
-**Problem:** Finding root spans (`WHERE parentSpanId = ''`) and finding children of a parent span are common trace-reconstruction queries. No index exists.
-
-**Recommendation:** Add a BloomFilter skip index on `parentSpanId`:
-```
-skipIndex: {
-  name: "idx_parent_span_id",
-  type: SkipIndexType.BloomFilter,
-  params: [0.01],
-  granularity: 1,
-}
-```
+`idx_parent_span_id` BloomFilter skip index added on `parentSpanId` column.
 
 #### Issue 5: No aggregation projection (MEDIUM)
 
@@ -172,30 +143,26 @@ PROJECTION trace_lookup (
 )
 ```
 
-#### Issue 7: `events` and `links` not queryable (LOW)
+#### ~~Issue 7: `events` and `links` not queryable~~ ✅ DONE
 
-**Problem:** `events` (JSONArray→String) and `links` (JSON→String) are opaque blobs. Filtering spans by "has exception event" requires string scanning.
+`hasException` Bool column added with `idx_has_exception` Set skip index. Populated at ingest time.
 
-**Recommendation:** Add a `hasException` column (`UInt8` / Boolean) populated at ingest time. This is a very common filter ("show error spans with exceptions") that currently requires parsing the events JSON string.
+#### ~~Issue 8: `links` default value is `{}` but should be `[]`~~ ✅ DONE
 
-#### Issue 8: `links` default value is `{}` but should be `[]` (LOW)
-
-**Problem:** In `Span.ts` line 393, `links` column has `defaultValue: {}` but semantically represents an array of `SpanLink[]`. The ingest service correctly passes arrays, but the schema default is wrong.
-
-**Fix:** Change `defaultValue: {}` → `defaultValue: []` on the `links` column definition.
+`links` column default value corrected to `[]`.
 
 ### 2.4 Prioritized Action Items
 
-| Priority | Issue | Effort | Impact |
-|----------|-------|--------|--------|
-| **HIGH** | Migrate `attributes` to `Map(String, String)` or extract hot attributes | Medium | Major query speedup for attribute filtering |
-| **HIGH** | Add compression codecs to all columns | Low | 30–50% storage reduction |
-| **MEDIUM** | Add `Set` skip index on `kind` | Low | Faster kind-based filtering |
-| **MEDIUM** | Add BloomFilter skip index on `parentSpanId` | Low | Faster trace tree reconstruction |
-| **MEDIUM** | Add aggregation projection | Low | Faster dashboard aggregation queries |
-| **LOW** | Add `hasException` boolean column | Low | Faster error span filtering |
-| **LOW** | Add trace-by-ID projection | Low | Faster trace detail view |
-| **LOW** | Fix `links` default value `{}` → `[]` | Trivial | Schema correctness |
+| Priority | Issue | Effort | Impact | Status |
+|----------|-------|--------|--------|--------|
+| **HIGH** | Migrate `attributes` to `Map(String, String)` or extract hot attributes | Medium | Major query speedup for attribute filtering | TODO |
+| ~~**HIGH**~~ | ~~Add compression codecs to all columns~~ | ~~Low~~ | ~~30–50% storage reduction~~ | ✅ DONE |
+| ~~**MEDIUM**~~ | ~~Add `Set` skip index on `kind`~~ | ~~Low~~ | ~~Faster kind-based filtering~~ | ✅ DONE |
+| ~~**MEDIUM**~~ | ~~Add BloomFilter skip index on `parentSpanId`~~ | ~~Low~~ | ~~Faster trace tree reconstruction~~ | ✅ DONE |
+| **MEDIUM** | Add aggregation projection | Low | Faster dashboard aggregation queries | TODO |
+| ~~**LOW**~~ | ~~Add `hasException` boolean column~~ | ~~Low~~ | ~~Faster error span filtering~~ | ✅ DONE |
+| **LOW** | Add trace-by-ID projection | Low | Faster trace detail view | TODO |
+| ~~**LOW**~~ | ~~Fix `links` default value `{}` → `[]`~~ | ~~Trivial~~ | ~~Schema correctness~~ | ✅ DONE |
 
 ### 2.5 Key File Locations
 
