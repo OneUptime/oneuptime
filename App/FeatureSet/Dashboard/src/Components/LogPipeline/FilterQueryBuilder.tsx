@@ -335,9 +335,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                         <div className="flex-shrink-0 w-10 flex flex-col items-center">
                           {/* Top line */}
                           {!isFirst && (
-                            <div
-                              className={`w-px h-2 ${connectorLineColor}`}
-                            />
+                            <div className={`w-px h-2 ${connectorLineColor}`} />
                           )}
                           {isFirst && <div className="h-2" />}
 

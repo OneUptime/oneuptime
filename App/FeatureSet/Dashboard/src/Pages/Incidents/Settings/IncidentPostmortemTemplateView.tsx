@@ -130,7 +130,9 @@ const IncidentPostmortemTemplateView: FunctionComponent<
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES] as Route,
+              RouteMap[
+                PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES
+              ] as Route,
               { modelId },
             ),
           );

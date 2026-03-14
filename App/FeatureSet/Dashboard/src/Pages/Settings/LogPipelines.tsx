@@ -130,6 +130,9 @@ const LogPipelines: FunctionComponent<
         }}
         noItemsMessage={"No log pipelines found."}
         viewPageRoute={Navigation.getCurrentRoute()}
+        createInitialValues={{
+          isEnabled: true,
+        }}
         formFields={[
           {
             field: {
@@ -151,6 +154,14 @@ const LogPipelines: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Describe what this pipeline does.",
+          },
+          {
+            field: {
+              isEnabled: true,
+            },
+            title: "Enabled",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
           },
         ]}
         showRefreshButton={true}

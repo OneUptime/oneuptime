@@ -98,18 +98,24 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
       {/* Timeline column */}
       <div className="flex-shrink-0 w-16 flex flex-col items-center relative">
         {/* Top line segment (hidden for first) */}
-        {!isFirst && (
-          <div
-            className={`w-0.5 h-3 ${lineColor}`}
-          />
-        )}
+        {!isFirst && <div className={`w-0.5 h-3 ${lineColor}`} />}
         {isFirst && <div className="h-3" />}
 
         {/* Node: "Where" dot or connector badge */}
         {isFirst ? (
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 border-2 border-gray-300">
-            <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            <svg
+              className="w-3 h-3 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
             </svg>
           </div>
         ) : (
