@@ -34,20 +34,22 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
     logger.info("Added skip index idx_parent_span_id on SpanItem");
 
     // Step 3: Apply compression codecs
+    // Use mutations_sync=0 so these operations return immediately and complete asynchronously.
+    // On large tables (76GB+), synchronous MODIFY COLUMN CODEC would time out.
     await SpanService.execute(
-      `ALTER TABLE SpanItem MODIFY COLUMN startTimeUnixNano Int128 CODEC(ZSTD(1))`,
+      `ALTER TABLE SpanItem MODIFY COLUMN startTimeUnixNano Int128 CODEC(ZSTD(1)) SETTINGS mutations_sync=0`,
     );
-    logger.info("Applied ZSTD(1) codec to SpanItem.startTimeUnixNano");
+    logger.info("Applied ZSTD(1) codec to SpanItem.startTimeUnixNano (async)");
 
     await SpanService.execute(
-      `ALTER TABLE SpanItem MODIFY COLUMN endTimeUnixNano Int128 CODEC(ZSTD(1))`,
+      `ALTER TABLE SpanItem MODIFY COLUMN endTimeUnixNano Int128 CODEC(ZSTD(1)) SETTINGS mutations_sync=0`,
     );
-    logger.info("Applied ZSTD(1) codec to SpanItem.endTimeUnixNano");
+    logger.info("Applied ZSTD(1) codec to SpanItem.endTimeUnixNano (async)");
 
     await SpanService.execute(
-      `ALTER TABLE SpanItem MODIFY COLUMN durationUnixNano Int128 CODEC(ZSTD(1))`,
+      `ALTER TABLE SpanItem MODIFY COLUMN durationUnixNano Int128 CODEC(ZSTD(1)) SETTINGS mutations_sync=0`,
     );
-    logger.info("Applied ZSTD(1) codec to SpanItem.durationUnixNano");
+    logger.info("Applied ZSTD(1) codec to SpanItem.durationUnixNano (async)");
 
     // traceId and spanId have bloom_filter indexes — must drop index, apply codec, re-add index
     await this.applyCodecWithIndex(
@@ -71,24 +73,24 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
     );
 
     await SpanService.execute(
-      `ALTER TABLE SpanItem MODIFY COLUMN parentSpanId Nullable(String) CODEC(ZSTD(1))`,
+      `ALTER TABLE SpanItem MODIFY COLUMN parentSpanId Nullable(String) CODEC(ZSTD(1)) SETTINGS mutations_sync=0`,
     );
-    logger.info("Applied ZSTD(1) codec to SpanItem.parentSpanId");
+    logger.info("Applied ZSTD(1) codec to SpanItem.parentSpanId (async)");
 
     await SpanService.execute(
-      `ALTER TABLE SpanItem MODIFY COLUMN attributes String CODEC(ZSTD(3))`,
+      `ALTER TABLE SpanItem MODIFY COLUMN attributes String CODEC(ZSTD(3)) SETTINGS mutations_sync=0`,
     );
-    logger.info("Applied ZSTD(3) codec to SpanItem.attributes");
+    logger.info("Applied ZSTD(3) codec to SpanItem.attributes (async)");
 
     await SpanService.execute(
-      `ALTER TABLE SpanItem MODIFY COLUMN events String CODEC(ZSTD(3))`,
+      `ALTER TABLE SpanItem MODIFY COLUMN events String CODEC(ZSTD(3)) SETTINGS mutations_sync=0`,
     );
-    logger.info("Applied ZSTD(3) codec to SpanItem.events");
+    logger.info("Applied ZSTD(3) codec to SpanItem.events (async)");
 
     await SpanService.execute(
-      `ALTER TABLE SpanItem MODIFY COLUMN links String CODEC(ZSTD(3))`,
+      `ALTER TABLE SpanItem MODIFY COLUMN links String CODEC(ZSTD(3)) SETTINGS mutations_sync=0`,
     );
-    logger.info("Applied ZSTD(3) codec to SpanItem.links");
+    logger.info("Applied ZSTD(3) codec to SpanItem.links (async)");
 
     // Step 4: Backfill hasException for existing rows containing exception events
     await SpanService.execute(
@@ -108,23 +110,23 @@ export default class AddSpanTableOptimizations extends DataMigrationBase {
     indexType: string,
     granularity: number,
   ): Promise<void> {
-    // Drop the index first so the column can be modified
+    // Drop the index first so the column can be modified (async to avoid timeout)
     await SpanService.execute(
-      `ALTER TABLE SpanItem DROP INDEX IF EXISTS ${indexName}`,
+      `ALTER TABLE SpanItem DROP INDEX IF EXISTS ${indexName} SETTINGS mutations_sync=0`,
     );
-    logger.info(`Dropped index ${indexName} on SpanItem`);
+    logger.info(`Dropped index ${indexName} on SpanItem (async)`);
 
-    // Apply the codec
+    // Apply the codec (async)
     await SpanService.execute(
-      `ALTER TABLE SpanItem MODIFY COLUMN ${columnName} ${columnType} CODEC(${codec})`,
+      `ALTER TABLE SpanItem MODIFY COLUMN ${columnName} ${columnType} CODEC(${codec}) SETTINGS mutations_sync=0`,
     );
-    logger.info(`Applied ${codec} codec to SpanItem.${columnName}`);
+    logger.info(`Applied ${codec} codec to SpanItem.${columnName} (async)`);
 
-    // Re-add the index
+    // Re-add the index (async)
     await SpanService.execute(
-      `ALTER TABLE SpanItem ADD INDEX IF NOT EXISTS ${indexName} ${indexExpr} TYPE ${indexType} GRANULARITY ${granularity}`,
+      `ALTER TABLE SpanItem ADD INDEX IF NOT EXISTS ${indexName} ${indexExpr} TYPE ${indexType} GRANULARITY ${granularity} SETTINGS mutations_sync=0`,
     );
-    logger.info(`Re-added index ${indexName} on SpanItem`);
+    logger.info(`Re-added index ${indexName} on SpanItem (async)`);
   }
 
   public override async rollback(): Promise<void> {
