@@ -235,7 +235,7 @@ export class LogPipelineService {
     // Update attributeKeys
     const attributeKeys: Array<string> = Object.keys(attrs);
 
-    return { ...logRow, attributes: attrs, attributeKeys };
+    return { ...logRow, attributes: attrs as JSONObject, attributeKeys };
   }
 
   private static applySeverityRemapper(
@@ -282,7 +282,7 @@ export class LogPipelineService {
         };
         attrs[resolvedTargetKey] = category.name;
         const attributeKeys: Array<string> = Object.keys(attrs);
-        return { ...logRow, attributes: attrs, attributeKeys };
+        return { ...logRow, attributes: attrs as JSONObject, attributeKeys };
       }
     }
 
