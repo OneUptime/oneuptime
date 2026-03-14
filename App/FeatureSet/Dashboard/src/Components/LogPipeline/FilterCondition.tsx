@@ -247,18 +247,19 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             )}
           </div>
 
-          {/* Delete */}
-          <div className="flex-shrink-0 pt-5">
+          {/* Delete - uses same label spacer as other columns to align */}
+          <div className="flex-shrink-0">
+            <label className="block text-[10px] font-medium text-transparent uppercase tracking-wider mb-1">
+              &nbsp;
+            </label>
             {props.canDelete ? (
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                <Button
-                  icon={IconProp.Trash}
-                  buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  onClick={props.onDelete}
-                  tooltip="Remove condition"
-                />
-              </div>
+              <Button
+                icon={IconProp.Trash}
+                buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                buttonSize={ButtonSize.Small}
+                onClick={props.onDelete}
+                tooltip="Remove condition"
+              />
             ) : (
               <div className="w-8" />
             )}
