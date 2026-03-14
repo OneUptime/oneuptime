@@ -1,6 +1,6 @@
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -251,9 +251,12 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<
         modelId={Navigation.getLastParamAsObjectID()}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[
-              PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
-            ] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
+              ] as Route,
+              { modelId },
+            ),
           );
         }}
       />

@@ -238,6 +238,13 @@ export default class AnalyticsDatabaseService<
     const statement: Statement =
       this.statementGenerator.toAddColumnStatement(column);
     await this.execute(statement);
+
+    // Add skip index separately (ClickHouse requires ADD INDEX as a separate ALTER statement)
+    const indexStatement: Statement | null =
+      this.statementGenerator.toAddSkipIndexStatement(column);
+    if (indexStatement) {
+      await this.execute(indexStatement);
+    }
   }
 
   @CaptureSpan()

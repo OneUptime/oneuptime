@@ -59,6 +59,12 @@ import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
 
 import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
 
+import SettingsLogPipelines from "../Pages/Settings/LogPipelines";
+import SettingsLogPipelineView from "../Pages/Settings/LogPipelineView";
+import SettingsLogDropFilters from "../Pages/Settings/LogDropFilters";
+import SettingsLogDropFilterView from "../Pages/Settings/LogDropFilterView";
+import SettingsLogScrubRules from "../Pages/Settings/LogScrubRules";
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -372,6 +378,62 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsAIBilling
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_AI_BILLING] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_PIPELINES)}
+          element={
+            <SettingsLogPipelines
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_LOG_PIPELINES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_LOG_PIPELINE_VIEW,
+            2,
+          )}
+          element={
+            <SettingsLogPipelineView
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_LOG_PIPELINE_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_DROP_FILTERS)}
+          element={
+            <SettingsLogDropFilters
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_LOG_DROP_FILTERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_LOG_DROP_FILTER_VIEW,
+            2,
+          )}
+          element={
+            <SettingsLogDropFilterView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_LOG_DROP_FILTER_VIEW] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LOG_SCRUB_RULES)}
+          element={
+            <SettingsLogScrubRules
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_LOG_SCRUB_RULES] as Route}
             />
           }
         />

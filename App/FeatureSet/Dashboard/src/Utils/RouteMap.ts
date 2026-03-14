@@ -304,6 +304,11 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: `telemetry-ingestion-keys/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_LOG_PIPELINES]: `log-pipelines`,
+  [PageMap.SETTINGS_LOG_PIPELINE_VIEW]: `log-pipelines/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_LOG_DROP_FILTERS]: `log-drop-filters`,
+  [PageMap.SETTINGS_LOG_DROP_FILTER_VIEW]: `log-drop-filters/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_LOG_SCRUB_RULES]: `log-scrub-rules`,
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
 
@@ -2121,6 +2126,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_LOG_PIPELINES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_LOG_PIPELINES]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_LOG_PIPELINE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_LOG_PIPELINE_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_LOG_DROP_FILTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_LOG_DROP_FILTERS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_LOG_DROP_FILTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_LOG_DROP_FILTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_LOG_SCRUB_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_LOG_SCRUB_RULES]
     }`,
   ),
 

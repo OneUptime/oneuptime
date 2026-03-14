@@ -410,6 +410,267 @@ router.post(
   },
 );
 
+// --- Log Export Endpoint ---
+
+router.post(
+  "/telemetry/logs/export",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const limit: number = Math.min((body["limit"] as number) || 10000, 10000);
+
+      const format: string = (body["format"] as string) || "json";
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const severityTexts: Array<string> | undefined = body["severityTexts"]
+        ? (body["severityTexts"] as Array<string>)
+        : undefined;
+
+      const bodySearchText: string | undefined = body["bodySearchText"]
+        ? (body["bodySearchText"] as string)
+        : undefined;
+
+      const traceIds: Array<string> | undefined = body["traceIds"]
+        ? (body["traceIds"] as Array<string>)
+        : undefined;
+
+      const spanIds: Array<string> | undefined = body["spanIds"]
+        ? (body["spanIds"] as Array<string>)
+        : undefined;
+
+      const rows: Array<JSONObject> = await LogAggregationService.getExportLogs(
+        {
+          projectId: databaseProps.tenantId,
+          startTime,
+          endTime,
+          limit,
+          serviceIds,
+          severityTexts,
+          bodySearchText,
+          traceIds,
+          spanIds,
+        },
+      );
+
+      if (format === "csv") {
+        const header: string =
+          "time,serviceId,severityText,severityNumber,body,traceId,spanId,attributes";
+        const csvRows: Array<string> = rows.map((row: JSONObject) => {
+          const escapeCsv: (val: unknown) => string = (
+            val: unknown,
+          ): string => {
+            const str: string =
+              val === null || val === undefined ? "" : String(val);
+            if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+              return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+          };
+
+          return [
+            escapeCsv(row["time"]),
+            escapeCsv(row["serviceId"]),
+            escapeCsv(row["severityText"]),
+            escapeCsv(row["severityNumber"]),
+            escapeCsv(row["body"]),
+            escapeCsv(row["traceId"]),
+            escapeCsv(row["spanId"]),
+            escapeCsv(JSON.stringify(row["attributes"] || {})),
+          ].join(",");
+        });
+
+        const csv: string = [header, ...csvRows].join("\n");
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=logs-export.csv",
+        );
+        res.status(200).send(csv);
+        return;
+      }
+
+      // JSON format
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=logs-export.json",
+      );
+      res.status(200).send(JSON.stringify(rows, null, 2));
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Log Context Endpoint ---
+
+router.post(
+  "/telemetry/logs/context",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const logId: string | undefined = body["logId"] as string | undefined;
+      const serviceId: string | undefined = body["serviceId"] as
+        | string
+        | undefined;
+      const time: string | undefined = body["time"] as string | undefined;
+
+      if (!logId || !serviceId || !time) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("logId, serviceId, and time are required"),
+        );
+      }
+
+      const count: number = (body["count"] as number) || 5;
+
+      const result: {
+        before: Array<JSONObject>;
+        after: Array<JSONObject>;
+      } = await LogAggregationService.getLogContext({
+        projectId: databaseProps.tenantId,
+        serviceId: new ObjectID(serviceId),
+        time: OneUptimeDate.fromString(time),
+        logId,
+        count,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        before: result.before as unknown as JSONObject,
+        after: result.after as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Drop Filter Estimate Endpoint ---
+
+router.post(
+  "/telemetry/logs/drop-filter-estimate",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const filterQuery: string | undefined = body["filterQuery"] as
+        | string
+        | undefined;
+
+      if (!filterQuery) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("filterQuery is required"),
+        );
+      }
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -24);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const severityTexts: Array<string> | undefined = body["severityTexts"]
+        ? (body["severityTexts"] as Array<string>)
+        : undefined;
+
+      const result: {
+        totalLogs: number;
+        matchingLogs: number;
+        estimatedReductionPercent: number;
+      } = await LogAggregationService.getDropFilterEstimate({
+        projectId: databaseProps.tenantId,
+        startTime,
+        endTime,
+        filterQuery,
+        serviceIds,
+        severityTexts,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        totalLogs: result.totalLogs,
+        matchingLogs: result.matchingLogs,
+        estimatedReductionPercent: result.estimatedReductionPercent,
+      } as unknown as JSONObject);
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
 // --- Helpers ---
 
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {

@@ -82,6 +82,30 @@ enum Permission {
   EditTelemetryServiceLog = "EditTelemetryServiceLog",
   ReadTelemetryServiceLog = "ReadTelemetryServiceLog",
 
+  // Log Pipelines
+  CreateProjectLogPipeline = "CreateProjectLogPipeline",
+  DeleteProjectLogPipeline = "DeleteProjectLogPipeline",
+  EditProjectLogPipeline = "EditProjectLogPipeline",
+  ReadProjectLogPipeline = "ReadProjectLogPipeline",
+
+  // Log Pipeline Processors
+  CreateProjectLogPipelineProcessor = "CreateProjectLogPipelineProcessor",
+  DeleteProjectLogPipelineProcessor = "DeleteProjectLogPipelineProcessor",
+  EditProjectLogPipelineProcessor = "EditProjectLogPipelineProcessor",
+  ReadProjectLogPipelineProcessor = "ReadProjectLogPipelineProcessor",
+
+  // Log Drop Filters
+  CreateProjectLogDropFilter = "CreateProjectLogDropFilter",
+  DeleteProjectLogDropFilter = "DeleteProjectLogDropFilter",
+  EditProjectLogDropFilter = "EditProjectLogDropFilter",
+  ReadProjectLogDropFilter = "ReadProjectLogDropFilter",
+
+  // Log Scrub Rules
+  CreateProjectLogScrubRule = "CreateProjectLogScrubRule",
+  DeleteProjectLogScrubRule = "DeleteProjectLogScrubRule",
+  EditProjectLogScrubRule = "EditProjectLogScrubRule",
+  ReadProjectLogScrubRule = "ReadProjectLogScrubRule",
+
   // Exceptions
   CreateTelemetryException = "CreateTelemetryException",
   DeleteTelemetryException = "DeleteTelemetryException",
@@ -3976,6 +4000,156 @@ export class PermissionHelper {
         title: "Read Telemetry Service Log",
         description:
           "This permission can read Telemetry Service Log of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Log Pipeline Permissions
+      {
+        permission: Permission.CreateProjectLogPipeline,
+        title: "Create Log Pipeline",
+        description:
+          "This permission can create Log Pipelines in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLogPipeline,
+        title: "Delete Log Pipeline",
+        description:
+          "This permission can delete Log Pipelines of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLogPipeline,
+        title: "Edit Log Pipeline",
+        description: "This permission can edit Log Pipelines of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLogPipeline,
+        title: "Read Log Pipeline",
+        description: "This permission can read Log Pipelines of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Log Pipeline Processor Permissions
+      {
+        permission: Permission.CreateProjectLogPipelineProcessor,
+        title: "Create Log Pipeline Processor",
+        description:
+          "This permission can create Log Pipeline Processors in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLogPipelineProcessor,
+        title: "Delete Log Pipeline Processor",
+        description:
+          "This permission can delete Log Pipeline Processors of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLogPipelineProcessor,
+        title: "Edit Log Pipeline Processor",
+        description:
+          "This permission can edit Log Pipeline Processors of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLogPipelineProcessor,
+        title: "Read Log Pipeline Processor",
+        description:
+          "This permission can read Log Pipeline Processors of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Log Drop Filter Permissions
+      {
+        permission: Permission.CreateProjectLogDropFilter,
+        title: "Create Log Drop Filter",
+        description:
+          "This permission can create Log Drop Filters in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLogDropFilter,
+        title: "Delete Log Drop Filter",
+        description:
+          "This permission can delete Log Drop Filters of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLogDropFilter,
+        title: "Edit Log Drop Filter",
+        description:
+          "This permission can edit Log Drop Filters of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLogDropFilter,
+        title: "Read Log Drop Filter",
+        description:
+          "This permission can read Log Drop Filters of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Log Scrub Rule Permissions
+      {
+        permission: Permission.CreateProjectLogScrubRule,
+        title: "Create Log Scrub Rule",
+        description:
+          "This permission can create Log Scrub Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLogScrubRule,
+        title: "Delete Log Scrub Rule",
+        description:
+          "This permission can delete Log Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLogScrubRule,
+        title: "Edit Log Scrub Rule",
+        description:
+          "This permission can edit Log Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLogScrubRule,
+        title: "Read Log Scrub Rule",
+        description:
+          "This permission can read Log Scrub Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         group: PermissionGroup.Telemetry,

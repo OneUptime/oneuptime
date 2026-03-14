@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Query from "../../../Types/BaseDatabase/Query";
@@ -51,9 +52,12 @@ import {
   normalizeLogsTableColumns,
 } from "./types";
 import LogsAnalyticsView from "./components/LogsAnalyticsView";
+import { LogSearchBarRef } from "./components/LogSearchBar";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { exportLogs, LogExportFormat } from "../../Utils/LogExport";
+import ObjectID from "../../../Types/ObjectID";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -64,6 +68,7 @@ export interface ComponentProps {
   noLogsMessage?: string | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
   getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
+  projectId?: ObjectID | undefined;
   totalCount?: number | undefined;
   page?: number | undefined;
   pageSize?: number | undefined;
@@ -195,6 +200,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [serviceMap, setServiceMap] = useState<Dictionary<Service>>({});
 
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
+  const searchBarRef: React.RefObject<LogSearchBarRef> =
+    useRef<LogSearchBarRef>(null!);
 
   const [internalPage, setInternalPage] = useState<number>(1);
   const [internalPageSize, setInternalPageSize] =
@@ -210,6 +218,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
   const [internalViewMode, setInternalViewMode] =
     useState<LogsViewMode>("list");
+
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] =
+    useState<boolean>(false);
 
   useEffect(() => {
     setFilterData(props.filterData);
@@ -425,7 +436,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [attributesLoaded, attributesLoading, loadAttributes]);
 
-  const resetPage: () => void = (): void => {
+  // Reset focused row when displayed logs change
+  useEffect(() => {
+    setFocusedRowIndex(-1);
+  }, [displayedLogs]);
+
+  const resetPage: () => void = useCallback((): void => {
     if (props.onPageChange) {
       props.onPageChange(1);
     }
@@ -433,9 +449,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     if (props.page === undefined) {
       setInternalPage(1);
     }
-  };
+  }, [props.onPageChange, props.page]);
 
-  const handleSearchSubmit: () => void = (): void => {
+  const handleSearchSubmit: () => void = useCallback((): void => {
     const queryFilter: Record<string, unknown> = queryStringToFilter(
       searchQuery,
     ) as Record<string, unknown>;
@@ -464,7 +480,122 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     resetPage();
     setSelectedLogId(null);
     props.onFilterChanged(mergedFilter);
-  };
+  }, [searchQuery, serviceMap, filterData, resetPage, props]);
+
+  // Scroll focused row into view
+  useEffect(() => {
+    if (focusedRowIndex < 0) {
+      return;
+    }
+
+    // Use requestAnimationFrame to ensure the DOM has updated with data-focused
+    requestAnimationFrame(() => {
+      const focusedRow: Element | null = document.querySelector(
+        `tr[data-focused="true"]`,
+      );
+      if (focusedRow) {
+        focusedRow.scrollIntoView({ block: "nearest" });
+      }
+    });
+  }, [focusedRowIndex]);
+
+  // Keyboard shortcuts: j/k navigate, Enter expand/collapse, Escape close, / focus search, Ctrl+Enter apply
+  useEffect(() => {
+    const handleKeyDown: (e: KeyboardEvent) => void = (
+      e: KeyboardEvent,
+    ): void => {
+      const target: EventTarget | null = e.target;
+      const isInputFocused: boolean =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable);
+
+      // Ctrl+Enter applies filters even when search bar is focused
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleSearchSubmit();
+        return;
+      }
+
+      // Skip other shortcuts when an input is focused
+      if (isInputFocused) {
+        return;
+      }
+
+      if (e.key === "/") {
+        e.preventDefault();
+        searchBarRef.current?.focus();
+        return;
+      }
+
+      if (e.key === "?") {
+        e.preventDefault();
+        setShowKeyboardShortcuts((prev: boolean) => {
+          return !prev;
+        });
+        return;
+      }
+
+      if (e.key === "Escape") {
+        if (showKeyboardShortcuts) {
+          setShowKeyboardShortcuts(false);
+          return;
+        }
+        if (selectedLogId) {
+          setSelectedLogId(null);
+        }
+        return;
+      }
+
+      const logCount: number = displayedLogs.length;
+
+      if (logCount === 0) {
+        return;
+      }
+
+      if (e.key === "j") {
+        e.preventDefault();
+        setFocusedRowIndex((prev: number): number => {
+          return Math.min(prev + 1, logCount - 1);
+        });
+        return;
+      }
+
+      if (e.key === "k") {
+        e.preventDefault();
+        setFocusedRowIndex((prev: number): number => {
+          return Math.max(prev - 1, 0);
+        });
+        return;
+      }
+
+      if (e.key === "Enter") {
+        if (focusedRowIndex >= 0 && focusedRowIndex < logCount) {
+          const log: Log = displayedLogs[focusedRowIndex]!;
+          const rowId: string = resolveLogIdentifier(log, focusedRowIndex);
+          setSelectedLogId((currentSelected: string | null) => {
+            if (currentSelected === rowId) {
+              return null;
+            }
+            return rowId;
+          });
+        }
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    displayedLogs,
+    focusedRowIndex,
+    selectedLogId,
+    showKeyboardShortcuts,
+    handleSearchSubmit,
+  ]);
 
   const handlePageChange: (page: number) => void = (page: number): void => {
     if (props.onPageChange) {
@@ -655,6 +786,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           },
         }
       : {}),
+    onExportCSV: () => {
+      exportLogs(displayedLogs, LogExportFormat.CSV, selectedColumns);
+    },
+    onExportJSON: () => {
+      exportLogs(displayedLogs, LogExportFormat.JSON, selectedColumns);
+    },
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
     ...(props.timeRange && props.onTimeRangeChange
       ? {
@@ -662,6 +799,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           onTimeRangeChange: props.onTimeRangeChange,
         }
       : {}),
+    showKeyboardShortcuts,
+    onToggleKeyboardShortcuts: () => {
+      setShowKeyboardShortcuts((prev: boolean) => {
+        return !prev;
+      });
+    },
   };
 
   const showSidebar: boolean =
@@ -672,6 +815,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       {props.showFilters && (
         <div>
           <LogsFilterCard
+            ref={searchBarRef}
             logAttributes={logAttributes}
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
@@ -737,6 +881,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 logs={displayedLogs}
                 serviceMap={serviceMap}
                 isLoading={props.isLoading}
+                focusedRowIndex={
+                  focusedRowIndex >= 0 ? focusedRowIndex : undefined
+                }
                 emptyMessage={
                   props.noLogsMessage ||
                   getEmptyMessageWithTimeRange(props.timeRange)
@@ -766,6 +913,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                       getTraceRoute={props.getTraceRoute}
                       getSpanRoute={props.getSpanRoute}
                       variant="embedded"
+                      projectId={props.projectId}
                     />
                   );
                 }}

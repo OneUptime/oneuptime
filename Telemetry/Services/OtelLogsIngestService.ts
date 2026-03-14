@@ -24,6 +24,10 @@ import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import LogService from "Common/Server/Services/LogService";
+import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
+import LogDropFilterService from "./LogDropFilterService";
+import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
+import LogScrubRuleService from "./LogScrubRuleService";
 
 export default class OtelLogsIngestService extends OtelIngestBaseService {
   private static async flushLogsBuffer(
@@ -91,6 +95,23 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       const dbLogs: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalLogsProcessed: number = 0;
+
+      // Load pipelines, drop filters, and scrub rules once per batch
+      const projectId: ObjectID = (req as TelemetryRequest).projectId;
+      let loadedPipelines: Array<LoadedPipeline> = [];
+      let loadedDropFilters: Array<LogDropFilter> = [];
+      let loadedScrubRules: Awaited<
+        ReturnType<typeof LogScrubRuleService.loadScrubRules>
+      > = [];
+      try {
+        loadedPipelines = await LogPipelineService.loadPipelines(projectId);
+        loadedDropFilters =
+          await LogDropFilterService.loadDropFilters(projectId);
+        loadedScrubRules = await LogScrubRuleService.loadScrubRules(projectId);
+      } catch (loadError) {
+        logger.error("Error loading pipelines/drop filters/scrub rules:");
+        logger.error(loadError);
+      }
 
       let resourceLogCounter: number = 0;
       for (const resourceLog of resourceLogs) {
@@ -316,7 +337,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     serviceDictionary[serviceName]!.dataRententionInDays || 15,
                   );
 
-                  const logRow: JSONObject = {
+                  let logRow: JSONObject = {
                     _id: ObjectID.generate().toString(),
                     createdAt: ingestionTimestamp,
                     updatedAt: ingestionTimestamp,
@@ -338,6 +359,33 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     retentionDate:
                       OneUptimeDate.toClickhouseDateTime(retentionDate),
                   };
+
+                  // Drop filter check (before pipeline processing)
+                  if (
+                    loadedDropFilters.length > 0 &&
+                    LogDropFilterService.shouldDropLog(
+                      logRow,
+                      loadedDropFilters,
+                    )
+                  ) {
+                    continue;
+                  }
+
+                  // Sensitive data scrubbing
+                  if (loadedScrubRules.length > 0) {
+                    logRow = LogScrubRuleService.scrubLog(
+                      logRow,
+                      loadedScrubRules,
+                    );
+                  }
+
+                  // Pipeline processing
+                  if (loadedPipelines.length > 0) {
+                    logRow = LogPipelineService.processLog(
+                      logRow,
+                      loadedPipelines,
+                    );
+                  }
 
                   dbLogs.push(logRow);
                   totalLogsProcessed++;

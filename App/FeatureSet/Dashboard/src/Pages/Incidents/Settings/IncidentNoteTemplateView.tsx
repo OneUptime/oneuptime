@@ -1,5 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -127,7 +127,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelId={Navigation.getLastParamAsObjectID()}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route,
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES] as Route,
+              { modelId },
+            ),
           );
         }}
       />

@@ -641,6 +641,243 @@ export class LogAggregationService {
     }
   }
 
+  @CaptureSpan()
+  public static async getExportLogs(request: {
+    projectId: ObjectID;
+    startTime: Date;
+    endTime: Date;
+    limit: number;
+    serviceIds?: Array<ObjectID> | undefined;
+    severityTexts?: Array<string> | undefined;
+    bodySearchText?: string | undefined;
+    traceIds?: Array<string> | undefined;
+    spanIds?: Array<string> | undefined;
+  }): Promise<Array<JSONObject>> {
+    const maxLimit: number = Math.min(request.limit || 10000, 10000);
+
+    const statement: Statement = SQL`
+      SELECT
+        time,
+        serviceId,
+        severityText,
+        severityNumber,
+        body,
+        traceId,
+        spanId,
+        attributes
+      FROM ${LogAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND time >= ${{
+          type: TableColumnType.Date,
+          value: request.startTime,
+        }}
+        AND time <= ${{
+          type: TableColumnType.Date,
+          value: request.endTime,
+        }}
+    `;
+
+    LogAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(
+      SQL` ORDER BY time DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: maxLimit,
+      }}`,
+    );
+
+    const dbResult: Results = await LogDatabaseService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return response.data || [];
+  }
+
+  @CaptureSpan()
+  public static async getLogContext(request: {
+    projectId: ObjectID;
+    serviceId: ObjectID;
+    time: Date;
+    logId: string;
+    count: number;
+  }): Promise<{ before: Array<JSONObject>; after: Array<JSONObject> }> {
+    const count: number = Math.min(request.count || 5, 20);
+
+    const beforeStatement: Statement = SQL`
+      SELECT
+        _id,
+        time,
+        timeUnixNano,
+        serviceId,
+        severityText,
+        severityNumber,
+        body,
+        traceId,
+        spanId,
+        attributes
+      FROM ${LogAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND serviceId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.serviceId,
+        }}
+        AND time <= ${{
+          type: TableColumnType.Date,
+          value: request.time,
+        }}
+        AND _id != ${{
+          type: TableColumnType.Text,
+          value: request.logId,
+        }}
+      ORDER BY time DESC, timeUnixNano DESC
+      LIMIT ${{
+        type: TableColumnType.Number,
+        value: count,
+      }}
+    `;
+
+    const afterStatement: Statement = SQL`
+      SELECT
+        _id,
+        time,
+        timeUnixNano,
+        serviceId,
+        severityText,
+        severityNumber,
+        body,
+        traceId,
+        spanId,
+        attributes
+      FROM ${LogAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND serviceId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.serviceId,
+        }}
+        AND time >= ${{
+          type: TableColumnType.Date,
+          value: request.time,
+        }}
+        AND _id != ${{
+          type: TableColumnType.Text,
+          value: request.logId,
+        }}
+      ORDER BY time ASC, timeUnixNano ASC
+      LIMIT ${{
+        type: TableColumnType.Number,
+        value: count,
+      }}
+    `;
+
+    const [beforeResult, afterResult] = await Promise.all([
+      LogDatabaseService.executeQuery(beforeStatement),
+      LogDatabaseService.executeQuery(afterStatement),
+    ]);
+
+    const beforeResponse: DbJSONResponse = await beforeResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const afterResponse: DbJSONResponse = await afterResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const beforeRows: Array<JSONObject> = (beforeResponse.data || []).reverse();
+    const afterRows: Array<JSONObject> = afterResponse.data || [];
+
+    return { before: beforeRows, after: afterRows };
+  }
+
+  @CaptureSpan()
+  public static async getDropFilterEstimate(request: {
+    projectId: ObjectID;
+    startTime: Date;
+    endTime: Date;
+    filterQuery: string;
+    serviceIds?: Array<ObjectID> | undefined;
+    severityTexts?: Array<string> | undefined;
+    bodySearchText?: string | undefined;
+  }): Promise<{
+    totalLogs: number;
+    matchingLogs: number;
+    estimatedReductionPercent: number;
+  }> {
+    // Get total count
+    const totalStatement: Statement = SQL`
+      SELECT count() AS cnt
+      FROM ${LogAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND time >= ${{
+          type: TableColumnType.Date,
+          value: request.startTime,
+        }}
+        AND time <= ${{
+          type: TableColumnType.Date,
+          value: request.endTime,
+        }}
+    `;
+
+    LogAggregationService.appendCommonFilters(totalStatement, request);
+
+    // Get matching count using the filter query as body search
+    const matchStatement: Statement = SQL`
+      SELECT count() AS cnt
+      FROM ${LogAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND time >= ${{
+          type: TableColumnType.Date,
+          value: request.startTime,
+        }}
+        AND time <= ${{
+          type: TableColumnType.Date,
+          value: request.endTime,
+        }}
+    `;
+
+    LogAggregationService.appendCommonFilters(matchStatement, {
+      ...request,
+      bodySearchText: request.filterQuery,
+    });
+
+    const [totalResult, matchResult] = await Promise.all([
+      LogDatabaseService.executeQuery(totalStatement),
+      LogDatabaseService.executeQuery(matchStatement),
+    ]);
+
+    const totalResponse: DbJSONResponse = await totalResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const matchResponse: DbJSONResponse = await matchResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const totalLogs: number = Number(
+      (totalResponse.data || [])[0]?.["cnt"] || 0,
+    );
+    const matchingLogs: number = Number(
+      (matchResponse.data || [])[0]?.["cnt"] || 0,
+    );
+    const estimatedReductionPercent: number =
+      totalLogs > 0 ? Math.round((matchingLogs / totalLogs) * 100) : 0;
+
+    return { totalLogs, matchingLogs, estimatedReductionPercent };
+  }
+
   private static isTopLevelColumn(key: string): boolean {
     return LogAggregationService.TOP_LEVEL_COLUMNS.has(key);
   }

@@ -143,6 +143,7 @@ export default class Span extends AnalyticsBaseModel {
         description: "When did the span start?",
         required: true,
         type: TableColumnType.LongNumber,
+        codec: { codec: "ZSTD", level: 1 },
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -167,6 +168,7 @@ export default class Span extends AnalyticsBaseModel {
         description: "How long did the span last?",
         required: true,
         type: TableColumnType.LongNumber,
+        codec: { codec: "ZSTD", level: 1 },
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -191,6 +193,7 @@ export default class Span extends AnalyticsBaseModel {
         description: "When did the span end?",
         required: true,
         type: TableColumnType.LongNumber,
+        codec: { codec: "ZSTD", level: 1 },
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -214,6 +217,7 @@ export default class Span extends AnalyticsBaseModel {
       description: "ID of the trace",
       required: true,
       type: TableColumnType.Text,
+      codec: { codec: "ZSTD", level: 1 },
       skipIndex: {
         name: "idx_trace_id",
         type: SkipIndexType.BloomFilter,
@@ -243,6 +247,7 @@ export default class Span extends AnalyticsBaseModel {
       description: "ID of the span",
       required: true,
       type: TableColumnType.Text,
+      codec: { codec: "ZSTD", level: 1 },
       skipIndex: {
         name: "idx_span_id",
         type: SkipIndexType.BloomFilter,
@@ -272,6 +277,13 @@ export default class Span extends AnalyticsBaseModel {
       description: "ID of the parent span",
       required: false,
       type: TableColumnType.Text,
+      codec: { codec: "ZSTD", level: 1 },
+      skipIndex: {
+        name: "idx_parent_span_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -319,6 +331,7 @@ export default class Span extends AnalyticsBaseModel {
       required: true,
       defaultValue: {},
       type: TableColumnType.JSON,
+      codec: { codec: "ZSTD", level: 3 },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -367,6 +380,7 @@ export default class Span extends AnalyticsBaseModel {
       required: true,
       defaultValue: [],
       type: TableColumnType.JSONArray,
+      codec: { codec: "ZSTD", level: 3 },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -389,8 +403,9 @@ export default class Span extends AnalyticsBaseModel {
       title: "Links",
       description: "Span Links",
       required: true,
-      defaultValue: {},
+      defaultValue: [],
       type: TableColumnType.JSON,
+      codec: { codec: "ZSTD", level: 3 },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -495,6 +510,43 @@ export default class Span extends AnalyticsBaseModel {
       description: "Kind of the span",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_kind",
+        type: SkipIndexType.Set,
+        params: [5],
+        granularity: 4,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const hasExceptionColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "hasException",
+      title: "Has Exception",
+      description:
+        "Whether this span contains an exception event, populated at ingest time for fast error filtering",
+      required: true,
+      defaultValue: false,
+      type: TableColumnType.Boolean,
+      skipIndex: {
+        name: "idx_has_exception",
+        type: SkipIndexType.Set,
+        params: [2],
+        granularity: 4,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -574,6 +626,7 @@ export default class Span extends AnalyticsBaseModel {
         statusMessageColumn,
         nameColumn,
         kindColumn,
+        hasExceptionColumn,
         retentionDateColumn,
       ],
       projections: [],
@@ -734,6 +787,14 @@ export default class Span extends AnalyticsBaseModel {
 
   public set statusMessage(v: string | undefined) {
     this.setColumnValue("statusMessage", v);
+  }
+
+  public get hasException(): boolean | undefined {
+    return this.getColumnValue("hasException") as boolean | undefined;
+  }
+
+  public set hasException(v: boolean | undefined) {
+    this.setColumnValue("hasException", v);
   }
 
   public get retentionDate(): Date | undefined {
