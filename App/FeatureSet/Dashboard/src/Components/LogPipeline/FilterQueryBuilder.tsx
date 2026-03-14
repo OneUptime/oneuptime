@@ -173,7 +173,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [originalQuery, setOriginalQuery] = useState<string>("");
+
   const [showModal, setShowModal] = useState<boolean>(false);
 
   // Snapshot of conditions/connector when modal opens (for cancel/revert)
@@ -199,7 +199,6 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
           } = parseFilterQuery((item as any).filterQuery as string);
           setConditions(parsed.conditions);
           setConnector(parsed.connector);
-          setOriginalQuery((item as any).filterQuery as string);
         }
       } catch {
         setError("Failed to load filter conditions.");
@@ -228,7 +227,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
       });
       setConditions(modalConditions);
       setConnector(modalConnector);
-      setOriginalQuery(query);
+
       setShowModal(false);
     } catch {
       setError("Failed to save filter conditions.");
