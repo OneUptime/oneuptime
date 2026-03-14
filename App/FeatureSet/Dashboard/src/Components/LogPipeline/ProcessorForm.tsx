@@ -1,5 +1,4 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import Card from "Common/UI/Components/Card/Card";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -18,6 +17,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import SeverityMappingRow, { SeverityMapping } from "./SeverityMappingRow";
 import { JSONObject } from "Common/Types/JSON";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 export interface ComponentProps {
   pipelineId: ObjectID;
@@ -196,25 +196,14 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <Card
+    <Modal
       title="Add Processor"
       description="Configure a new processor for this pipeline."
-      buttons={[
-        {
-          title: "Cancel",
-          buttonStyle: ButtonStyleType.NORMAL,
-          onClick: props.onCancel,
-          icon: IconProp.Close,
-        },
-        {
-          title: "Create Processor",
-          buttonStyle: ButtonStyleType.PRIMARY,
-          onClick: handleSave,
-          isLoading: isSaving,
-          disabled: isSaving,
-          icon: IconProp.CheckCircle,
-        },
-      ]}
+      modalWidth={ModalWidth.Large}
+      submitButtonText="Create Processor"
+      onSubmit={handleSave}
+      isLoading={isSaving}
+      onClose={props.onCancel}
     >
       <div className="p-2 space-y-5">
         {error && (
@@ -535,7 +524,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
-    </Card>
+    </Modal>
   );
 };
 

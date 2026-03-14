@@ -198,18 +198,6 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
       />
 
       {/* Section 3: Processors */}
-      {showProcessorForm ? (
-        <ProcessorForm
-          pipelineId={modelId}
-          onProcessorCreated={() => {
-            setShowProcessorForm(false);
-            setRefreshProcessorToggle(Date.now().toString());
-          }}
-          onCancel={() => {
-            setShowProcessorForm(false);
-          }}
-        />
-      ) : (
         <ModelTable<LogPipelineProcessor>
           modelType={LogPipelineProcessor}
           query={{
@@ -232,7 +220,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
             buttons: [
               {
                 title: "Add Processor",
-                buttonStyle: ButtonStyleType.PRIMARY,
+                buttonStyle: ButtonStyleType.NORMAL,
                 onClick: () => {
                   setShowProcessorForm(true);
                 },
@@ -290,6 +278,18 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
               type: FieldType.Boolean,
             },
           ]}
+        />
+
+      {showProcessorForm && (
+        <ProcessorForm
+          pipelineId={modelId}
+          onProcessorCreated={() => {
+            setShowProcessorForm(false);
+            setRefreshProcessorToggle(Date.now().toString());
+          }}
+          onCancel={() => {
+            setShowProcessorForm(false);
+          }}
         />
       )}
 
