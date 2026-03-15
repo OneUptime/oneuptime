@@ -869,12 +869,8 @@ export class LogAggregationService {
     const totalData: Array<JSONObject> = totalResponse.data || [];
     const matchData: Array<JSONObject> = matchResponse.data || [];
 
-    const totalLogs: number = Number(
-      totalData[0]?.["cnt"] || 0,
-    );
-    const matchingLogs: number = Number(
-      matchData[0]?.["cnt"] || 0,
-    );
+    const totalLogs: number = Number(totalData[0]?.["cnt"] || 0);
+    const matchingLogs: number = Number(matchData[0]?.["cnt"] || 0);
     const estimatedReductionPercent: number =
       totalLogs > 0 ? Math.round((matchingLogs / totalLogs) * 100) : 0;
 

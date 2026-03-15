@@ -1,7 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import LiveLogsToggle from "./LiveLogsToggle";
 import LogTimeRangePicker from "./LogTimeRangePicker";
 import ColumnSelector from "./ColumnSelector";
@@ -50,8 +47,11 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
     currentPage && totalPages && totalPages > 0,
   );
 
-  const { ref: exportDropdownRef, isComponentVisible: isExportOpen, setIsComponentVisible: setIsExportOpen } =
-    useComponentOutsideClick(false);
+  const {
+    ref: exportDropdownRef,
+    isComponentVisible: isExportOpen,
+    setIsComponentVisible: setIsExportOpen,
+  } = useComponentOutsideClick(false);
 
   const showExport: boolean = Boolean(props.onExportCSV || props.onExportJSON);
 
