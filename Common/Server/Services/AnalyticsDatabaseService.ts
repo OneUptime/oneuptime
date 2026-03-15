@@ -254,6 +254,60 @@ export default class AnalyticsDatabaseService<
     );
   }
 
+  public async doesColumnExist(columnName: string): Promise<boolean> {
+    const tableName: string = this.model.tableName;
+    const result: { data: Array<JSONObject> } = await (
+      await this.executeQuery(
+        `SELECT count() as cnt FROM system.columns WHERE database = currentDatabase() AND table = '${tableName}' AND name = '${columnName}'`,
+      )
+    ).json();
+
+    const rows: Array<JSONObject> = result.data || [];
+
+    return rows.length > 0 && Number(rows[0]!.cnt) > 0;
+  }
+
+  public async getColumnCodec(columnName: string): Promise<string> {
+    const tableName: string = this.model.tableName;
+    const result: { data: Array<JSONObject> } = await (
+      await this.executeQuery(
+        `SELECT compression_codec FROM system.columns WHERE database = currentDatabase() AND table = '${tableName}' AND name = '${columnName}'`,
+      )
+    ).json();
+
+    const rows: Array<JSONObject> = result.data || [];
+
+    if (rows.length === 0) {
+      return "";
+    }
+
+    return (rows[0]!.compression_codec as string) || "";
+  }
+
+  public async setColumnCodecIfNotSet(data: {
+    columnName: string;
+    columnType: string;
+    codec: string;
+    expectedCodecValue: string;
+  }): Promise<void> {
+    const tableName: string = this.model.tableName;
+    const currentCodec: string = await this.getColumnCodec(data.columnName);
+
+    if (currentCodec === data.expectedCodecValue) {
+      logger.info(
+        `${tableName}.${data.columnName} already has ${data.expectedCodecValue}, skipping`,
+      );
+      return;
+    }
+
+    await this.execute(
+      `ALTER TABLE ${tableName} MODIFY COLUMN ${data.columnName} ${data.columnType} CODEC(${data.codec}) SETTINGS mutations_sync=0`,
+    );
+    logger.info(
+      `Applied ${data.codec} codec to ${tableName}.${data.columnName} (async)`,
+    );
+  }
+
   @CaptureSpan()
   public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
     return await this._findBy(findBy);
