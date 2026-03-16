@@ -63,7 +63,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       title: "Time",
       description: "When was the log created?",
       required: true,
-      type: TableColumnType.Date,
+      type: TableColumnType.DateTime64,
       accessControl: {
         read: [
           Permission.ProjectOwner,
