@@ -1,6 +1,7 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
+import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
@@ -381,7 +382,7 @@ export default class Log extends AnalyticsBaseModel {
     });
 
     super({
-      tableName: "LogItemV2",
+      tableName: AnalyticsTableName.Log,
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Log",
       accessControl: {

@@ -5,6 +5,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
+import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 
@@ -82,7 +83,7 @@ export interface AnalyticsTableRow {
 
 export class LogAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
-  private static readonly TABLE_NAME: string = "LogItem";
+  private static readonly TABLE_NAME: string = AnalyticsTableName.Log;
   private static readonly TOP_LEVEL_COLUMNS: Set<string> = new Set([
     "severityText",
     "serviceId",

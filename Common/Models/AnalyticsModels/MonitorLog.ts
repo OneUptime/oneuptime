@@ -1,6 +1,7 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
+import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -115,7 +116,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
     });
 
     super({
-      tableName: "MonitorLogV2",
+      tableName: AnalyticsTableName.MonitorLog,
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Monitor Log",
       accessControl: {

@@ -1,4 +1,5 @@
 import { generateAllFieldsSelect } from "../Utils/SelectFieldGenerator";
+import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import { JSONObject } from "Common/Types/JSON";
 
 describe("SelectFieldGenerator", () => {
@@ -47,10 +48,9 @@ describe("SelectFieldGenerator", () => {
     });
 
     describe("analytics models", () => {
-      it("should return default select for known analytics model (LogItem)", () => {
-        // The Log analytics model has tableName "LogItem"
+      it("should return default select for known analytics model (Log)", () => {
         const select: JSONObject = generateAllFieldsSelect(
-          "LogItem",
+          AnalyticsTableName.Log,
           "analytics",
         );
         expect(select).toEqual({

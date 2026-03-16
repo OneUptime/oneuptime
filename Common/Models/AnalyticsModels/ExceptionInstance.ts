@@ -1,6 +1,7 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
+import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
@@ -469,7 +470,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
     });
 
     super({
-      tableName: "ExceptionItemV2",
+      tableName: AnalyticsTableName.ExceptionInstance,
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Exception Instance",
       pluralName: "Exception Instances",
