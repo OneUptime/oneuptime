@@ -22,6 +22,8 @@ The following features have been implemented:
 - **hasException boolean column** for fast error span filtering
 - **links default value** corrected to `[]`
 - **Basic Trace-Based Alerting** - MonitorType.Traces with span count threshold alerting, span name/status/service/attribute filtering, time window (5s-24h), worker job running every minute, frontend form with preview
+- **S.1** - Migrate `attributes` to Map(String, String) (TableColumnType.MapStringString in Span model with `attributeKeys` array for fast enumeration)
+- **S.2** - Aggregation Projections (`proj_agg_by_service` for service-level COUNT/AVG/P99 aggregation, `proj_trace_by_id` for trace-by-ID queries)
 
 ## Gap Analysis Summary
 
@@ -366,41 +368,9 @@ Without these, users cannot answer basic questions like "is my service healthy?"
 
 ## ClickHouse Storage Improvements
 
-### S.1 Migrate `attributes` to Map(String, String) (HIGH)
-
-**Current**: `attributes` is stored as opaque `String` (JSON). Querying by attribute value requires `LIKE` or `JSONExtract()` scans.
-**Target**: `Map(String, String)` type enabling `attributes['http.method'] = 'GET'` without JSON parsing.
-
-**Impact**: Significant query speedup for attribute-based span filtering -- the most common query pattern after time-range filtering.
-
-**Files to modify**:
-- `Common/Models/AnalyticsModels/Span.ts` (change column type)
-- `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` (handle Map type)
-- `Telemetry/Services/OtelTracesIngestService.ts` (write Map format)
-- `Worker/DataMigrations/` (new migration)
-
-### S.2 Add Aggregation Projection (MEDIUM)
-
-**Current**: `projections: []` is empty.
-**Target**: Pre-aggregation projection for common dashboard queries.
-
-```sql
-PROJECTION agg_by_service (
-  SELECT
-    serviceId,
-    toStartOfMinute(startTime) AS minute,
-    count(),
-    avg(durationUnixNano),
-    quantile(0.99)(durationUnixNano)
-  GROUP BY serviceId, minute
-)
-```
-
-**Impact**: 5-10x faster aggregation queries for service overview dashboards.
-
 ### S.3 Add Trace-by-ID Projection (LOW)
 
-**Current**: Trace detail view relies on BloomFilter skip index for traceId lookups.
+**Current**: Trace detail view relies on BloomFilter skip index for traceId lookups. (Note: `proj_trace_by_id` projection has been added but may need evaluation for further optimization.)
 **Target**: Projection sorted by `(projectId, traceId, startTime)` for faster trace-by-ID queries.
 
 ---
@@ -426,11 +396,10 @@ PROJECTION agg_by_service (
 5. **Phase 2.1** - Flame Graph View (industry-standard visualization)
 6. **Phase 2.2** - Critical Path Analysis (key debugging capability)
 7. **Phase 1.4** - Head-Based Sampling (essential for high-volume users)
-8. **S.1** - Migrate attributes to Map type (storage optimization)
-9. **Phase 2.3-2.5** - In-trace search, per-trace map, span links
-10. **Phase 3.1** - Trace-to-Metric Exemplars
-11. **Phase 3.2-3.4** - Custom metrics, structural queries, comparison
-12. **Phase 4.x** - AI/ML, RUM, profiling (long-term)
+8. **Phase 2.3-2.5** - In-trace search, per-trace map, span links
+9. **Phase 3.1** - Trace-to-Metric Exemplars
+10. **Phase 3.2-3.4** - Custom metrics, structural queries, comparison
+11. **Phase 4.x** - AI/ML, RUM, profiling (long-term)
 
 ## Verification
 

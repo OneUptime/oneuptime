@@ -27,6 +27,7 @@ The following features have been implemented and removed from this plan:
 - **Phase 4.2** - Keyboard Shortcuts (j/k navigation, Enter expand/collapse, Esc close, / focus search, Ctrl+Enter apply filters, ? help)
 - **Phase 4.3** - Sensitive Data Scrubbing (LogScrubRule model with PII patterns: Email, CreditCard, SSN, PhoneNumber, IPAddress, custom regex)
 - **Phase 5.3** - DateTime64 time column upgrade (DateTime64(9) nanosecond precision, toClickhouseDateTime64 utility, data migration, all ingestion services updated)
+- **Phase 5.7** - Histogram Projections (`proj_severity_histogram` projection defined in Log model, aggregating by projectId, severityText, and 1-minute intervals; Projection type extended; StatementGenerator emits PROJECTION clause)
 
 ## Gap Analysis Summary
 
@@ -57,54 +58,11 @@ The following features have been implemented and removed from this plan:
 **Current**: `retainTelemetryDataForDays` exists on the service model and is displayed in usage history, but there is no dedicated UI to configure retention settings.
 **Target**: Settings page for configuring per-service log data retention.
 
-## Phase 5: ClickHouse Storage & Query Optimizations (P0) — Performance Foundation
-
-These optimizations address fundamental storage and indexing gaps in the telemetry tables that directly impact search speed, data correctness, and operational cost.
-
-### 5.7 Add Projections for Histogram Queries (Medium)
-
-**Current**: `projections: []` is empty. Every histogram query (group by time bucket + severity) and facet query scans raw data and performs the aggregation from scratch.
-
-**Target**: ClickHouse projections that pre-aggregate data for the most common query patterns.
-
-**Implementation**:
-
-- Add a projection for histogram/severity aggregation:
-  ```sql
-  PROJECTION proj_severity_histogram (
-    SELECT
-      severityText,
-      toStartOfInterval(time, INTERVAL 1 MINUTE) AS minute,
-      count() AS cnt
-    ORDER BY (projectId, minute, severityText)
-  )
-  ```
-- Extend the existing `Projection` type at `Common/Types/AnalyticsDatabase/Projection.ts` to support full projection definitions
-- Wire projection creation into `StatementGenerator.toTableCreateStatement()`
-- Migration to materialize the projection on existing data: `ALTER TABLE LogItem MATERIALIZE PROJECTION proj_severity_histogram`
-
-**Expected improvement**: 5-10x faster histogram queries since ClickHouse reads the pre-aggregated projection instead of scanning raw log rows.
-
-**Files to modify**:
-- `Common/Models/AnalyticsModels/Log.ts` (define projections)
-- `Common/Types/AnalyticsDatabase/Projection.ts` (extend type)
-- `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` (emit PROJECTION clause)
-- `Worker/DataMigrations/` (new migration to materialize)
-
-### 5.x Remaining Performance Impact Summary
-
-| Optimization | Query Pattern Improved | Expected Speedup | Effort |
-|-------------|----------------------|-------------------|--------|
-| 5.7 Histogram projections | Histogram and severity aggregation | 5-10x | Medium |
-
----
-
 ## Recommended Remaining Implementation Order
 
-1. **5.7** — Projections (performance polish)
-2. **Log-based Metrics** (platform capability)
-3. **Data Retention Config UI** (operational)
-4. **Log Patterns / ML Clustering** (advanced, larger effort)
+1. **Log-based Metrics** (platform capability)
+2. **Data Retention Config UI** (operational)
+3. **Log Patterns / ML Clustering** (advanced, larger effort)
 
 ---
 

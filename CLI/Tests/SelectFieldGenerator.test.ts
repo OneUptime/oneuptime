@@ -6,7 +6,7 @@ import { JSONObject } from "Common/Types/JSON";
  * fail when transitive dependencies are not resolvable by ts-jest).
  */
 const AnalyticsTableName: {
-    readonly Log: "LogItemV2";
+  readonly Log: "LogItemV2";
 } = {
   Log: "LogItemV2",
 } as const;
