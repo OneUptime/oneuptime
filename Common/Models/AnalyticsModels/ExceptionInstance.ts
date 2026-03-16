@@ -328,6 +328,12 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       description: "Name of the span",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_span_name",
+        type: SkipIndexType.TokenBF,
+        params: [10240, 3, 0],
+        granularity: 4,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -352,6 +358,12 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         "Service version / release from service.version resource attribute",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_release",
+        type: SkipIndexType.Set,
+        params: [100],
+        granularity: 4,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -376,6 +388,12 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         "Deployment environment from deployment.environment resource attribute",
       required: false,
       type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_environment",
+        type: SkipIndexType.Set,
+        params: [10],
+        granularity: 4,
+      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -505,7 +523,13 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         attributesColumn,
         retentionDateColumn,
       ],
-      projections: [],
+      projections: [
+        {
+          name: "proj_exception_group",
+          query:
+            "SELECT projectId, serviceId, fingerprint, exceptionType, count() AS cnt, max(time) AS last_seen ORDER BY (projectId, serviceId, fingerprint)",
+        },
+      ],
       sortKeys: ["projectId", "time", "serviceId", "fingerprint"],
       primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
       partitionKey: "sipHash64(projectId) % 16",

@@ -86,6 +86,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
       required: true,
       defaultValue: {},
       type: TableColumnType.JSON,
+      codec: { codec: "ZSTD", level: 3 },
       accessControl: {
         read: [
           Permission.ProjectOwner,

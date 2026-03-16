@@ -457,6 +457,7 @@ export default class Span extends AnalyticsBaseModel {
       description: "Status Message",
       required: false,
       type: TableColumnType.Text,
+      codec: { codec: "ZSTD", level: 1 },
       accessControl: {
         read: [
           Permission.ProjectOwner,
