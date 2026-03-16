@@ -95,7 +95,7 @@ export default class Span extends AnalyticsBaseModel {
       title: "Start Time",
       description: "When did the span start?",
       required: true,
-      type: TableColumnType.Date,
+      type: TableColumnType.DateTime64,
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -118,7 +118,7 @@ export default class Span extends AnalyticsBaseModel {
       title: "End Time",
       description: "When did the span end?",
       required: true,
-      type: TableColumnType.Date,
+      type: TableColumnType.DateTime64,
       accessControl: {
         read: [
           Permission.ProjectOwner,

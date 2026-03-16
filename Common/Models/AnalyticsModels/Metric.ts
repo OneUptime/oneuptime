@@ -192,7 +192,7 @@ export default class Metric extends AnalyticsBaseModel {
       title: "Time",
       description: "When did the Metric happen?",
       required: true,
-      type: TableColumnType.Date,
+      type: TableColumnType.DateTime64,
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -215,7 +215,7 @@ export default class Metric extends AnalyticsBaseModel {
       title: "Start Time",
       description: "When did the Metric happen?",
       required: false,
-      type: TableColumnType.Date,
+      type: TableColumnType.DateTime64,
       accessControl: {
         read: [
           Permission.ProjectOwner,
