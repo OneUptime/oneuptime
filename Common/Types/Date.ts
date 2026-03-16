@@ -1530,9 +1530,7 @@ export default class OneUptimeDate {
     nanoTimestamp?: number,
   ): string {
     const parsedDate: Date = this.fromString(date);
-    const base: string = moment(parsedDate)
-      .utc()
-      .format("YYYY-MM-DD HH:mm:ss");
+    const base: string = moment(parsedDate).utc().format("YYYY-MM-DD HH:mm:ss");
 
     let nanoFraction: string;
 
