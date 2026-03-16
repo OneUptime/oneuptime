@@ -381,7 +381,7 @@ export default class Log extends AnalyticsBaseModel {
     });
 
     super({
-      tableName: "LogItem",
+      tableName: "LogItemV2",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Log",
       accessControl: {

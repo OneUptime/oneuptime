@@ -534,7 +534,7 @@ export default class Metric extends AnalyticsBaseModel {
     });
 
     super({
-      tableName: "MetricItem",
+      tableName: "MetricItemV2",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Metric",
       pluralName: "Metrics",

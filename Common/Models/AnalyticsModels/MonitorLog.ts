@@ -115,7 +115,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
     });
 
     super({
-      tableName: "MonitorLog",
+      tableName: "MonitorLogV2",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Monitor Log",
       accessControl: {

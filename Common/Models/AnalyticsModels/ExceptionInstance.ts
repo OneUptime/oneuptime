@@ -469,7 +469,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
     });
 
     super({
-      tableName: "ExceptionItem",
+      tableName: "ExceptionItemV2",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Exception Instance",
       pluralName: "Exception Instances",

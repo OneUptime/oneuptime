@@ -575,7 +575,7 @@ export default class Span extends AnalyticsBaseModel {
     });
 
     super({
-      tableName: "SpanItem",
+      tableName: "SpanItemV2",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Span",
       pluralName: "Spans",
