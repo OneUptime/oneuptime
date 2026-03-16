@@ -57,10 +57,6 @@ import AddDefaultIncidentRolesToExistingProjects from "./AddDefaultIncidentRoles
 import AddDefaultIconsToIncidentRoles from "./AddDefaultIconsToIncidentRoles";
 import UpdateObserverRoleToAllowMultipleUsers from "./UpdateObserverRoleToAllowMultipleUsers";
 import AddColumnsToExceptionInstance from "./AddColumnsToExceptionInstance";
-import AddRetentionDateAndSkipIndexesToTelemetryTables from "./AddRetentionDateAndSkipIndexesToTelemetryTables";
-import AddOtelFieldsToLogTable from "./AddOtelFieldsToLogTable";
-import AddSpanTableOptimizations from "./AddSpanTableOptimizations";
-import ChangeLogTimeColumnToDateTime64 from "./ChangeLogTimeColumnToDateTime64";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 

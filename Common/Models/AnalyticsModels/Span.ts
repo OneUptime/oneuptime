@@ -634,7 +634,7 @@ export default class Span extends AnalyticsBaseModel {
         {
           name: "proj_agg_by_service",
           query:
-            "SELECT projectId, serviceId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration ORDER BY (projectId, serviceId, minute)",
+            "SELECT projectId, serviceId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration GROUP BY projectId, serviceId, minute",
         },
         {
           name: "proj_trace_by_id",

@@ -528,7 +528,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         {
           name: "proj_exception_group",
           query:
-            "SELECT projectId, serviceId, fingerprint, exceptionType, count() AS cnt, max(time) AS last_seen ORDER BY (projectId, serviceId, fingerprint)",
+            "SELECT projectId, serviceId, fingerprint, exceptionType, count() AS cnt, max(time) AS last_seen GROUP BY projectId, serviceId, fingerprint, exceptionType",
         },
       ],
       sortKeys: ["projectId", "time", "serviceId", "fingerprint"],

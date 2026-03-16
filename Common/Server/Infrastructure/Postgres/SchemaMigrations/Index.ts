@@ -265,8 +265,7 @@ import { MigrationName1772350000000 } from "./1772350000000-MigrationName";
 import { AddLogSavedView1772355000000 } from "./1772355000000-AddLogSavedView";
 import { MigrationName1773344537755 } from "./1773344537755-MigrationName";
 import { MigrationName1773402621107 } from "./1773402621107-MigrationName";
-import { MigrationName1773414578773 } from "./1773414578773-MigrationName";
-import { MigrationName1773500000000 } from "./1773500000000-MigrationName";
+import { MigrationName1773676206197 } from "./1773676206197-MigrationName";
 
 export default [
   InitialMigration,
@@ -536,6 +535,5 @@ export default [
   AddLogSavedView1772355000000,
   MigrationName1773344537755,
   MigrationName1773402621107,
-  MigrationName1773500000000,
-  MigrationName1773414578773,
+  MigrationName1773676206197
 ];
