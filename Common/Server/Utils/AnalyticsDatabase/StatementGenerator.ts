@@ -251,6 +251,34 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       value = `CAST(${this.escapeStringLiteral(value.toString())} AS Int128)`;
     }
 
+    if (column.type === TableColumnType.BigNumber) {
+      if (typeof value === "string") {
+        value = parseInt(value);
+      }
+    }
+
+    if (column.type === TableColumnType.ArrayBigNumber) {
+      value = `[${(value as Array<number>)
+        .map((v: number) => {
+          if (v && typeof v !== "number") {
+            v = parseFloat(v);
+            return isNaN(v) ? "NULL" : v;
+          }
+          return v;
+        })
+        .join(", ")}]`;
+    }
+
+    if (column.type === TableColumnType.MapStringString) {
+      const mapObj: Record<string, string> = value as Record<string, string>;
+      const entries: Array<string> = Object.entries(mapObj).map(
+        ([k, v]: [string, string]) => {
+          return `${this.escapeStringLiteral(k)}, ${this.escapeStringLiteral(v)}`;
+        },
+      );
+      value = `map(${entries.join(", ")})`;
+    }
+
     return value;
   }
 
@@ -386,6 +414,25 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           whereStatement.append(SQL`AND (${key} IS NULL OR ${key} = '')`);
         } else {
           whereStatement.append(SQL`AND ${key} IS NULL`);
+        }
+      } else if (
+        tableColumn.type === TableColumnType.MapStringString &&
+        typeof value === "object"
+      ) {
+        const mapValue: Record<string, string> = value as Record<string, string>;
+        for (const mapKey in mapValue) {
+          if (mapValue[mapKey] === undefined) {
+            continue;
+          }
+          whereStatement.append(
+            SQL`AND ${key}[${{
+              value: mapKey,
+              type: TableColumnType.Text,
+            }}] = ${{
+              value: mapValue[mapKey] as string,
+              type: TableColumnType.Text,
+            }}`,
+          );
         }
       } else if (
         (tableColumn.type === TableColumnType.JSON ||
@@ -640,6 +687,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       );
     }
 
+    // Append projections after indexes
+    if (this.model.projections && this.model.projections.length > 0) {
+      for (const projection of this.model.projections) {
+        columns.append(
+          `, PROJECTION ${projection.name} (${projection.query})`,
+        );
+      }
+    }
+
     return columns;
   }
 
@@ -649,7 +705,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return {
       String: TableColumnType.Text,
       Int32: TableColumnType.Number,
-      Int64: TableColumnType.LongNumber,
+      Int64: TableColumnType.BigNumber,
       Int128: TableColumnType.LongNumber,
       Float32: TableColumnType.Decimal,
       Float64: TableColumnType.Decimal,
@@ -657,6 +713,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       "DateTime64(9)": TableColumnType.DateTime64,
       "Array(String)": TableColumnType.ArrayText,
       "Array(Int32)": TableColumnType.ArrayNumber,
+      "Array(Int64)": TableColumnType.ArrayBigNumber,
+      "Map(String, String)": TableColumnType.MapStringString,
       JSON: TableColumnType.JSON, //JSONArray is also JSON
       Bool: TableColumnType.Boolean,
     }[clickhouseType];
@@ -676,8 +734,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.JSON]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
       [TableColumnType.JSONArray]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
       [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,
+      [TableColumnType.ArrayBigNumber]: SQL`Array(Int64)`,
       [TableColumnType.ArrayText]: SQL`Array(String)`,
       [TableColumnType.LongNumber]: SQL`Int128`,
+      [TableColumnType.BigNumber]: SQL`Int64`,
+      [TableColumnType.MapStringString]: SQL`Map(String, String)`,
     }[type];
 
     if (!statement) {

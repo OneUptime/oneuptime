@@ -422,7 +422,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       description: "Attributes",
       required: true,
       defaultValue: {},
-      type: TableColumnType.JSON,
+      type: TableColumnType.MapStringString,
       accessControl: {
         read: [
           Permission.ProjectOwner,

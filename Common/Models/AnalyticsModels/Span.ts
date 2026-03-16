@@ -330,8 +330,7 @@ export default class Span extends AnalyticsBaseModel {
       description: "Attributes",
       required: true,
       defaultValue: {},
-      type: TableColumnType.JSON,
-      codec: { codec: "ZSTD", level: 3 },
+      type: TableColumnType.MapStringString,
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -629,7 +628,18 @@ export default class Span extends AnalyticsBaseModel {
         hasExceptionColumn,
         retentionDateColumn,
       ],
-      projections: [],
+      projections: [
+        {
+          name: "proj_agg_by_service",
+          query:
+            "SELECT projectId, serviceId, toStartOfMinute(startTime) AS minute, count() AS cnt, avg(durationUnixNano) AS avg_duration, quantile(0.99)(durationUnixNano) AS p99_duration ORDER BY (projectId, serviceId, minute)",
+        },
+        {
+          name: "proj_trace_by_id",
+          query:
+            "SELECT projectId, traceId, startTime, serviceId, spanId, parentSpanId, name, durationUnixNano, statusCode, hasException ORDER BY (projectId, traceId, startTime)",
+        },
+      ],
       sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
       primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
       partitionKey: "sipHash64(projectId) % 16",

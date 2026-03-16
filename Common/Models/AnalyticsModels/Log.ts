@@ -165,7 +165,7 @@ export default class Log extends AnalyticsBaseModel {
       description: "Attributes",
       required: true,
       defaultValue: {},
-      type: TableColumnType.JSON,
+      type: TableColumnType.MapStringString,
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -429,7 +429,13 @@ export default class Log extends AnalyticsBaseModel {
         flagsColumn,
         retentionDateColumn,
       ],
-      projections: [],
+      projections: [
+        {
+          name: "proj_severity_histogram",
+          query:
+            "SELECT projectId, severityText, toStartOfInterval(time, INTERVAL 1 MINUTE) AS minute, count() AS cnt ORDER BY (projectId, minute, severityText)",
+        },
+      ],
       sortKeys: ["projectId", "time", "serviceId"],
       primaryKeys: ["projectId", "time", "serviceId"],
       partitionKey: "sipHash64(projectId) % 16",

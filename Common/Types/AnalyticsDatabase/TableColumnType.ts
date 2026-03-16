@@ -10,9 +10,12 @@ enum ColumnType {
   ArrayNumber = "Array of Numbers",
   ArrayText = "Array of Text",
   LongNumber = "Long Number",
+  BigNumber = "Big Number",
   DateTime64 = "DateTime64",
   IP = "IP",
   Port = "Port",
+  MapStringString = "Map(String, String)",
+  ArrayBigNumber = "Array of Big Numbers",
 }
 
 export default ColumnType;

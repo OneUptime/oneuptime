@@ -169,6 +169,12 @@ export default class Metric extends AnalyticsBaseModel {
         description: "Metric Point Type of this Metric",
         required: false,
         type: TableColumnType.Text,
+        skipIndex: {
+          name: "idx_metric_point_type",
+          type: SkipIndexType.Set,
+          params: [5],
+          granularity: 4,
+        },
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -286,7 +292,7 @@ export default class Metric extends AnalyticsBaseModel {
       title: "Attributes",
       description: "Attributes",
       required: true,
-      type: TableColumnType.JSON,
+      type: TableColumnType.MapStringString,
       defaultValue: {},
       accessControl: {
         read: [
@@ -357,7 +363,7 @@ export default class Metric extends AnalyticsBaseModel {
       title: "Count",
       description: "Count",
       required: false,
-      type: TableColumnType.Number,
+      type: TableColumnType.BigNumber,
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -473,7 +479,7 @@ export default class Metric extends AnalyticsBaseModel {
       description: "Bucket Counts",
       required: true,
       defaultValue: [],
-      type: TableColumnType.ArrayNumber,
+      type: TableColumnType.ArrayBigNumber,
       accessControl: {
         read: [
           Permission.ProjectOwner,
@@ -498,7 +504,7 @@ export default class Metric extends AnalyticsBaseModel {
         description: "Explicit Bonds",
         required: true,
         defaultValue: [],
-        type: TableColumnType.ArrayNumber,
+        type: TableColumnType.ArrayBigNumber,
         accessControl: {
           read: [
             Permission.ProjectOwner,
@@ -583,8 +589,8 @@ export default class Metric extends AnalyticsBaseModel {
         retentionDateColumn,
       ],
       projections: [],
-      sortKeys: ["projectId", "time", "serviceId"],
-      primaryKeys: ["projectId", "time", "serviceId"],
+      sortKeys: ["projectId", "name", "serviceId", "time"],
+      primaryKeys: ["projectId", "name", "serviceId", "time"],
       partitionKey: "sipHash64(projectId) % 16",
       ttlExpression: "retentionDate DELETE",
     });
