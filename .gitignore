@@ -141,3 +141,5 @@ terraform.tfstate.backup
 .terraform.lock.hcl
 .claude/worktrees/**
 App/FeatureSet/Dashboard/public/sw.js
+
+RFP/
