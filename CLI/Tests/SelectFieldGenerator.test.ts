@@ -1,9 +1,13 @@
 import { generateAllFieldsSelect } from "../Utils/SelectFieldGenerator";
 import { JSONObject } from "Common/Types/JSON";
 
-// AnalyticsTableName enum values used in tests (avoids deep import that can
-// fail when transitive dependencies are not resolvable by ts-jest).
-const AnalyticsTableName = {
+/*
+ * AnalyticsTableName enum values used in tests (avoids deep import that can
+ * fail when transitive dependencies are not resolvable by ts-jest).
+ */
+const AnalyticsTableName: {
+  readonly Log: "LogItemV2";
+} = {
   Log: "LogItemV2",
 } as const;
 

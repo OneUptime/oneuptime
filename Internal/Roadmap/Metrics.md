@@ -20,6 +20,10 @@ The following features have been implemented:
 - **MetricType Auto-Discovery** - Name, description, unit captured on first ingest
 - **Attribute Storage** - Full JSON with extracted `attributeKeys` array for fast enumeration
 - **BloomFilter index** on `name`, Set index on `serviceType`
+- **Phase 2.3** - Render Metric Units on Charts (MetricType.unit passed through to chart Y-axis and tooltip formatting)
+- **S.1** - Fix Sort Key Order (sort key changed to `projectId, name, serviceId, time` for optimal metric name filtering)
+- **S.2** - Upgrade time to DateTime64 (time column uses `TableColumnType.DateTime64` for sub-second precision)
+- **S.3** - Add Skip Index on metricPointType (Set skip index `idx_metric_point_type` added to Metric model)
 
 ## Gap Analysis Summary
 
@@ -41,7 +45,6 @@ The following features have been implemented:
 | Cardinality management | None | Metrics Without Limits + Explorer | Budget system + pruning rules | **P2** |
 | More chart types | Line and bar only | 12+ types | 10+ types with conditional coloring | **P2** |
 | Dashboard templates | None | Pre-built integration dashboards | Pre-built entity dashboards | **P2** |
-| Units on charts | Stored but not rendered | Auto-formatted by unit type | Y-axis unit customization | **P2** |
 | Natural language querying | None | NLQ translates English to queries | None | **P3** |
 | Metric cost/volume management | None | Cost attribution dashboards | Volume dashboards | **P3** |
 
@@ -173,25 +176,6 @@ These are table-stakes features without which the metrics product is fundamental
 - `App/FeatureSet/Dashboard/src/Components/Metrics/MetricExplorer.tsx` (add compare dropdown)
 - `Common/Types/Metrics/MetricsQuery.ts` (add compareWith field)
 - `App/FeatureSet/Dashboard/src/Components/Metrics/MetricGraph.tsx` (render comparison series)
-
-### 2.3 Render Metric Units on Charts
-
-**Current**: Units stored in MetricType but not rendered on chart axes.
-**Target**: Display units on Y-axis labels and tooltips with smart formatting.
-
-**Implementation**:
-
-- Pass `MetricType.unit` through to chart rendering
-- Implement unit-aware formatting:
-  - Bytes: auto-convert to KB/MB/GB/TB
-  - Duration: auto-convert ns/us/ms/s
-  - Percentage: append `%`
-  - Rate: append `/s`
-- Display formatted unit on Y-axis label and in tooltip values
-
-**Files to modify**:
-- `App/FeatureSet/Dashboard/src/Components/Metrics/MetricGraph.tsx` (Y-axis unit formatting)
-- `Common/Utils/Metrics/UnitFormatter.ts` (new - unit formatting logic)
 
 ### 2.4 Dashboard Templates
 
@@ -380,40 +364,6 @@ These are table-stakes features without which the metrics product is fundamental
 
 ## ClickHouse Storage Improvements
 
-### S.1 Fix Sort Key Order (CRITICAL)
-
-**Current**: Sort key is `(projectId, time, serviceId)`.
-**Target**: Change to `(projectId, name, serviceId, time)`.
-
-**Impact**: ~100x improvement for name-filtered queries. Virtually every metric query filters by `name`, but currently ClickHouse must scan all metric names within the time range.
-
-**Migration**: Requires creating `MetricItem_v2` with new sort key and migrating data (ClickHouse doesn't support `ALTER TABLE MODIFY ORDER BY`).
-
-**Files to modify**:
-- `Common/Models/AnalyticsModels/Metric.ts` (change sort key)
-- `Worker/DataMigrations/` (new migration - create v2 table, backfill, swap)
-
-### S.2 Upgrade time to DateTime64 (HIGH)
-
-**Current**: `DateTime` with second precision.
-**Target**: `DateTime64(3)` or `DateTime64(6)` for sub-second precision.
-
-**Impact**: Correct sub-second metric ordering. Removes need for separate `timeUnixNano`/`startTimeUnixNano` columns.
-
-**Files to modify**:
-- `Common/Models/AnalyticsModels/Metric.ts` (change column type)
-- `Common/Types/AnalyticsDatabase/TableColumnType.ts` (add DateTime64 type if not present)
-- `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` (handle DateTime64)
-- `Worker/DataMigrations/` (migration)
-
-### S.3 Add Skip Index on metricPointType (MEDIUM)
-
-**Current**: No index support for metric type filtering.
-**Target**: Set skip index on `metricPointType`.
-
-**Files to modify**:
-- `Common/Models/AnalyticsModels/Metric.ts` (add skip index)
-
 ### S.4 Evaluate Map Type for Attributes (MEDIUM)
 
 **Current**: Attributes stored as JSON.
@@ -428,34 +378,30 @@ These are table-stakes features without which the metrics product is fundamental
 
 ## Quick Wins (Can Ship This Week)
 
-1. **Display units on chart Y-axes** - Data exists in MetricType, just needs wiring to chart rendering
-2. **Add p50/p95/p99 to aggregation dropdown** - ClickHouse `quantile()` is straightforward to add
-3. **Extend default retention** - 15 days is too short; increase default to 30 days
-4. **Multi-attribute GROUP BY** - Change `groupByAttribute: string` to `groupByAttribute: string[]`
-5. **Add stacked area chart type** - Simple extension of existing line chart
-6. **Add skip index on metricPointType** - Low effort, faster type-filtered queries
+1. **Add p50/p95/p99 to aggregation dropdown** - ClickHouse `quantile()` is straightforward to add
+2. **Extend default retention** - 15 days is too short; increase default to 30 days
+3. **Multi-attribute GROUP BY** - Change `groupByAttribute: string` to `groupByAttribute: string[]`
+4. **Add stacked area chart type** - Simple extension of existing line chart
 
 ---
 
 ## Recommended Implementation Order
 
-1. **Quick Wins** - Ship units on charts, p50/p95/p99, multi-attribute GROUP BY, stacked area
+1. **Quick Wins** - Ship p50/p95/p99, multi-attribute GROUP BY, stacked area
 2. **Phase 1.1** - Percentile aggregations (full implementation beyond quick win)
 3. **Phase 1.2** - Rate/derivative calculations
-4. **S.1** - Fix sort key order (critical performance improvement)
-5. **Phase 1.4** - Rollups/downsampling (enables long-range queries)
-6. **Phase 2.1** - More chart types (heatmap, pie, gauge, billboard)
-7. **Phase 2.2** - Time-over-time comparison
-8. **Phase 1.3** - Multi-attribute GROUP BY (full implementation)
-9. **S.2** - Upgrade time to DateTime64
-10. **Phase 3.1** - Anomaly detection
-11. **Phase 3.2** - SLO/SLI tracking
-12. **Phase 2.4** - Dashboard templates
-13. **Phase 4.1** - Cardinality management
-14. **Phase 4.2** - Query language
-15. **Phase 4.3** - Golden Signals dashboards
-16. **Phase 4.4** - Predictive alerting
-17. **Phase 3.3** - Metric correlations
+4. **Phase 1.4** - Rollups/downsampling (enables long-range queries)
+5. **Phase 2.1** - More chart types (heatmap, pie, gauge, billboard)
+6. **Phase 2.2** - Time-over-time comparison
+7. **Phase 1.3** - Multi-attribute GROUP BY (full implementation)
+8. **Phase 3.1** - Anomaly detection
+9. **Phase 3.2** - SLO/SLI tracking
+10. **Phase 2.4** - Dashboard templates
+11. **Phase 4.1** - Cardinality management
+12. **Phase 4.2** - Query language
+13. **Phase 4.3** - Golden Signals dashboards
+14. **Phase 4.4** - Predictive alerting
+15. **Phase 3.3** - Metric correlations
 
 ## Verification
 

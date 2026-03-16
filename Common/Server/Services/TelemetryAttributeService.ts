@@ -227,8 +227,8 @@ export class TelemetryAttributeService {
       WITH filtered AS (
         SELECT arrayJoin(
             if(
-              ${data.attributeKeysColumn} IS NULL OR empty(${data.attributeKeysColumn}),
-              JSONExtractKeys(${data.attributesColumn}),
+              empty(${data.attributeKeysColumn}),
+              mapKeys(${data.attributesColumn}),
               ${data.attributeKeysColumn}
             )
           ) AS attribute
@@ -238,10 +238,8 @@ export class TelemetryAttributeService {
           value: data.projectId,
         }}
           AND (
-            ${data.attributeKeysColumn} IS NOT NULL OR (
-              ${data.attributesColumn} IS NOT NULL AND
-              ${data.attributesColumn} != ''
-            )
+            NOT empty(${data.attributeKeysColumn}) OR
+            NOT empty(${data.attributesColumn})
           )
           AND ${data.timeColumn} >= ${{
             type: TableColumnType.Date,
