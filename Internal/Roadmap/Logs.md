@@ -26,6 +26,7 @@ The following features have been implemented and removed from this plan:
 - **Phase 3.4** - Export to CSV/JSON (Export button in toolbar, LogExport utility with CSV and JSON support)
 - **Phase 4.2** - Keyboard Shortcuts (j/k navigation, Enter expand/collapse, Esc close, / focus search, Ctrl+Enter apply filters, ? help)
 - **Phase 4.3** - Sensitive Data Scrubbing (LogScrubRule model with PII patterns: Email, CreditCard, SSN, PhoneNumber, IPAddress, custom regex)
+- **Phase 5.3** - DateTime64 time column upgrade (DateTime64(9) nanosecond precision, toClickhouseDateTime64 utility, data migration, all ingestion services updated)
 
 ## Gap Analysis Summary
 
@@ -59,30 +60,6 @@ The following features have been implemented and removed from this plan:
 ## Phase 5: ClickHouse Storage & Query Optimizations (P0) — Performance Foundation
 
 These optimizations address fundamental storage and indexing gaps in the telemetry tables that directly impact search speed, data correctness, and operational cost.
-
-### 5.3 Upgrade `time` Column to `DateTime64(9)` (High)
-
-**Current**: The `time` column uses ClickHouse `DateTime` which has **1-second granularity**. Logs within the same second from the same service are stored in arbitrary order. The `timeUnixNano` field (Int128) preserves nanosecond precision but is not in the sort key, so it cannot be used for sub-second ordering.
-
-**Target**: Use `DateTime64(9)` (nanosecond precision) so the sort key naturally orders logs at sub-second resolution.
-
-**Implementation**:
-
-- Change the `time` column type from `TableColumnType.Date` to a new `TableColumnType.DateTime64` in the Log model
-- Add `DateTime64` support to `StatementGenerator` and the ClickHouse type mapping in `Statement.ts`
-- Update ingestion code in `OtelLogsIngestService.ts` to write DateTime64-compatible timestamps
-- Migration: `ALTER TABLE LogItem MODIFY COLUMN time DateTime64(9)` (this is a metadata-only operation in ClickHouse for MergeTree tables)
-- Consider whether `timeUnixNano` column can be deprecated after this change since `time` would carry the same precision
-
-**Impact**: Correct sub-second log ordering. Currently, logs from a burst of activity within the same second may appear in wrong order.
-
-**Files to modify**:
-- `Common/Models/AnalyticsModels/Log.ts` (change column type)
-- `Common/Types/AnalyticsDatabase/TableColumnType.ts` (add DateTime64 type)
-- `Common/Server/Utils/AnalyticsDatabase/Statement.ts` (add DateTime64 mapping)
-- `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` (handle DateTime64 in CREATE/SELECT)
-- `Telemetry/Services/OtelLogsIngestService.ts` (write DateTime64 timestamps)
-- `Worker/DataMigrations/` (new migration)
 
 ### 5.7 Add Projections for Histogram Queries (Medium)
 
@@ -118,18 +95,16 @@ These optimizations address fundamental storage and indexing gaps in the telemet
 
 | Optimization | Query Pattern Improved | Expected Speedup | Effort |
 |-------------|----------------------|-------------------|--------|
-| 5.3 DateTime64 time column | Sub-second log ordering | Correctness fix | Medium |
 | 5.7 Histogram projections | Histogram and severity aggregation | 5-10x | Medium |
 
 ---
 
 ## Recommended Remaining Implementation Order
 
-1. **5.3** — DateTime64 upgrade (correctness)
-2. **5.7** — Projections (performance polish)
-3. **Log-based Metrics** (platform capability)
-4. **Data Retention Config UI** (operational)
-5. **Log Patterns / ML Clustering** (advanced, larger effort)
+1. **5.7** — Projections (performance polish)
+2. **Log-based Metrics** (platform capability)
+3. **Data Retention Config UI** (operational)
+4. **Log Patterns / ML Clustering** (advanced, larger effort)
 
 ---
 

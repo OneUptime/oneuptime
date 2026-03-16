@@ -654,6 +654,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       Float32: TableColumnType.Decimal,
       Float64: TableColumnType.Decimal,
       DateTime: TableColumnType.Date,
+      "DateTime64(9)": TableColumnType.DateTime64,
       "Array(String)": TableColumnType.ArrayText,
       "Array(Int32)": TableColumnType.ArrayNumber,
       JSON: TableColumnType.JSON, //JSONArray is also JSON
@@ -671,6 +672,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.IP]: SQL`String`,
       [TableColumnType.Port]: SQL`String`,
       [TableColumnType.Date]: SQL`DateTime`,
+      [TableColumnType.DateTime64]: SQL`DateTime64(9)`,
       [TableColumnType.JSON]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
       [TableColumnType.JSONArray]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
       [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,

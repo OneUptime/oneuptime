@@ -120,7 +120,11 @@ export class Statement implements BaseQueryParams {
         finalValue = v.value.values;
       }
     } else if (v.value instanceof Date) {
-      finalValue = OneUptimeDate.toClickhouseDateTime(v.value);
+      if (typeof v !== "string" && v.type === TableColumnType.DateTime64) {
+        finalValue = OneUptimeDate.toClickhouseDateTime64(v.value);
+      } else {
+        finalValue = OneUptimeDate.toClickhouseDateTime(v.value);
+      }
     } else {
       finalValue = v.value;
     }
@@ -134,6 +138,15 @@ export class Statement implements BaseQueryParams {
     ) {
       finalValue = OneUptimeDate.fromString(finalValue as string);
       finalValue = OneUptimeDate.toClickhouseDateTime(finalValue);
+    }
+
+    if (
+      typeof v !== "string" &&
+      v.type === TableColumnType.DateTime64 &&
+      !(v.value instanceof Date)
+    ) {
+      finalValue = OneUptimeDate.fromString(finalValue as string);
+      finalValue = OneUptimeDate.toClickhouseDateTime64(finalValue);
     }
 
     return finalValue;
@@ -176,6 +189,7 @@ export class Statement implements BaseQueryParams {
       [TableColumnType.Number]: "Int32",
       [TableColumnType.Decimal]: "Double",
       [TableColumnType.Date]: "DateTime",
+      [TableColumnType.DateTime64]: "DateTime64(9)",
       [TableColumnType.JSON]: "JSON",
       [TableColumnType.ArrayNumber]: "Array(Int32)",
       [TableColumnType.ArrayText]: "Array(String)",

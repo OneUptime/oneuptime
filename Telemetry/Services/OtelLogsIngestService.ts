@@ -330,7 +330,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   const ingestionTimestamp: string =
                     OneUptimeDate.toClickhouseDateTime(ingestionDate);
                   const logTimestamp: string =
-                    OneUptimeDate.toClickhouseDateTime(timeDate);
+                    OneUptimeDate.toClickhouseDateTime64(
+                      timeDate,
+                      timeUnixNanoNumeric,
+                    );
 
                   const retentionDate: Date = OneUptimeDate.addRemoveDays(
                     ingestionDate,

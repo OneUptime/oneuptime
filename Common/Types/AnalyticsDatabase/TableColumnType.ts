@@ -10,6 +10,7 @@ enum ColumnType {
   ArrayNumber = "Array of Numbers",
   ArrayText = "Array of Text",
   LongNumber = "Long Number",
+  DateTime64 = "DateTime64",
   IP = "IP",
   Port = "Port",
 }

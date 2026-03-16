@@ -1524,4 +1524,28 @@ export default class OneUptimeDate {
     const parsedDate: Date = this.fromString(date);
     return moment(parsedDate).utc().format("YYYY-MM-DD HH:mm:ss");
   }
+
+  public static toClickhouseDateTime64(
+    date: Date | string,
+    nanoTimestamp?: number,
+  ): string {
+    const parsedDate: Date = this.fromString(date);
+    const base: string = moment(parsedDate)
+      .utc()
+      .format("YYYY-MM-DD HH:mm:ss");
+
+    let nanoFraction: string;
+
+    if (nanoTimestamp !== undefined && nanoTimestamp > 0) {
+      // Extract sub-second nanoseconds from the unix nano timestamp
+      const subSecondNanos: number = nanoTimestamp % 1_000_000_000;
+      nanoFraction = subSecondNanos.toString().padStart(9, "0");
+    } else {
+      // Fall back to milliseconds from the Date object
+      const ms: number = parsedDate.getMilliseconds();
+      nanoFraction = (ms * 1_000_000).toString().padStart(9, "0");
+    }
+
+    return `${base}.${nanoFraction}`;
+  }
 }
