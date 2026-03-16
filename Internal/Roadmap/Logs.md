@@ -20,125 +20,41 @@ The following features have been implemented and removed from this plan:
 - **Phase 2.2** - Log Analytics View (LogsAnalyticsView with timeseries, toplist, table charts; analytics endpoint)
 - **Phase 2.3** - Column Customization (ColumnSelector with dynamic columns from log attributes)
 - **Phase 5.8** - Store Missing OpenTelemetry Log Fields (observedTimeUnixNano, droppedAttributesCount, flags columns + ingestion + migration)
+- **Phase 3.1** - Log Context / Surrounding Logs (Context tab in LogDetailsPanel, context endpoint in TelemetryAPI)
+- **Phase 3.2** - Log Pipelines (LogPipeline + LogPipelineProcessor models, GrokParser/AttributeRemapper/SeverityRemapper/CategoryProcessor, pipeline execution service)
+- **Phase 3.3** - Drop Filters (LogDropFilter model, LogDropFilterService, dashboard UI for configuration)
+- **Phase 3.4** - Export to CSV/JSON (Export button in toolbar, LogExport utility with CSV and JSON support)
+- **Phase 4.2** - Keyboard Shortcuts (j/k navigation, Enter expand/collapse, Esc close, / focus search, Ctrl+Enter apply filters, ? help)
+- **Phase 4.3** - Sensitive Data Scrubbing (LogScrubRule model with PII patterns: Email, CreditCard, SSN, PhoneNumber, IPAddress, custom regex)
 
 ## Gap Analysis Summary
 
 | Feature | OneUptime | Datadog | New Relic | Priority |
 |---------|-----------|---------|-----------|----------|
 | Log Patterns (ML clustering) | None | Auto-clustering + Pattern Inspector | ML clustering + anomaly | **P1** |
-| Log context (surrounding logs) | None | Before/after from same host/service | Automatic via APM agent | **P2** |
-| Log Pipelines (server-side processing) | None (raw storage only) | 270+ OOTB, 14+ processor types | Grok parsing, built-in rules | **P2** |
 | Log-based Metrics | None | Count + Distribution, 15-month retention | Via NRQL | **P2** |
-| Drop Filters (pre-storage filtering) | None | Exclusion filters with sampling | Drop rules per NRQL | **P2** |
-| Export to CSV/JSON | None | CSV up to 100K rows | CSV/JSON up to 5K | **P2** |
-| Keyboard shortcuts | None | Full keyboard nav | Basic | **P3** |
-| Sensitive Data Scrubbing | None | Multi-layer (SaaS + agent + pipeline) | Auto-obfuscation + custom rules | **P3** |
 | Data retention config UI | Referenced but no UI | Multi-tier (Standard/Flex/Archive) | Partitions + Live Archives | **P3** |
 
 ---
 
-## Phase 3: Processing & Operations (P2) — Platform Capabilities
-
-### 3.1 Log Context (Surrounding Logs)
-
-**Current**: Clicking a log shows only that log's details.
-**Target**: A "Context" tab in the log detail panel showing N logs before/after from the same service.
-
-**Implementation**:
-
-- When a log is expanded, add a "Context" tab that queries ClickHouse:
-  ```sql
-  (SELECT * FROM LogItem WHERE projectId={pid} AND serviceId={sid} AND time < {logTime} ORDER BY time DESC LIMIT 5)
-  UNION ALL
-  (SELECT * FROM LogItem WHERE projectId={pid} AND serviceId={sid} AND time >= {logTime} ORDER BY time ASC LIMIT 6)
-  ```
-- Display as a mini log list with the current log highlighted
-- Add to `LogDetailsPanel.tsx` as a tabbed section alongside the existing body/attributes view
-
-**Files to modify**:
-- `Common/Server/API/TelemetryAPI.ts` (add context endpoint)
-- `Common/UI/Components/LogsViewer/components/LogDetailsPanel.tsx` (add tabs + context view)
-
-### 3.2 Log Pipelines (Server-Side Processing)
-
-**Current**: Logs are stored raw as received (after OTLP normalization).
-**Target**: Configurable processing pipelines that transform logs at ingest time.
-
-**Implementation**:
-
-- Create `LogPipeline` and `LogPipelineProcessor` PostgreSQL models
-- Pipeline has: name, filter (which logs it applies to), enabled flag, sort order
-- Processor types (start with these 4):
-  - **Grok Parser**: Parse body text into structured attributes using Grok patterns
-  - **Attribute Remapper**: Rename/copy one attribute to another
-  - **Severity Remapper**: Map an attribute value to the severity field
-  - **Category Processor**: Assign a new attribute value based on if/else conditions
-- Processing runs in the telemetry ingestion worker (`Telemetry/Jobs/TelemetryIngest/ProcessTelemetry.ts`) after normalization but before ClickHouse insert
-- Pipeline configuration UI under Settings > Log Pipelines
-
-**Files to modify**:
-- `Common/Models/DatabaseModels/LogPipeline.ts` (new)
-- `Common/Models/DatabaseModels/LogPipelineProcessor.ts` (new)
-- `Telemetry/Services/LogPipelineService.ts` (new - pipeline execution engine)
-- `Telemetry/Services/OtelLogsIngestService.ts` (hook pipeline execution before insert)
-- Dashboard: new Settings page for pipeline configuration
-
-### 3.3 Drop Filters (Pre-Storage Filtering)
-
-**Current**: All ingested logs are stored.
-**Target**: Configurable rules to drop or sample logs before storage.
-
-**Implementation**:
-
-- Create `LogDropFilter` PostgreSQL model: name, filter query, action (drop or sample at N%), enabled
-- Evaluate drop filters in the ingestion pipeline before ClickHouse insert
-- UI under Settings > Log Configuration > Drop Filters
-- Show estimated volume savings based on recent log volume
-
-### 3.4 Export to CSV/JSON
-
-**Current**: No export capability.
-**Target**: Download current filtered log results as CSV or JSON.
-
-**Implementation**:
-
-- Add "Export" button in the toolbar
-- Client-side: serialize current page of logs to CSV/JSON and trigger browser download
-- Server-side (for large exports): new endpoint that streams results to a downloadable file (up to 10K rows)
-
-**Files to modify**:
-- `Common/UI/Components/LogsViewer/components/LogsViewerToolbar.tsx` (add export button)
-- `Common/UI/Utils/LogExport.ts` (new - CSV/JSON serialization)
-- `Common/Server/API/TelemetryAPI.ts` (add export endpoint for large exports)
-
 ---
 
-## Phase 4: Advanced Features (P3) — Differentiation
+## Remaining Features
 
+### Log Patterns (ML Clustering) — P1
 
-### 4.2 Keyboard Shortcuts
+**Current**: No pattern detection.
+**Target**: Auto-cluster similar log messages and surface pattern groups with anomaly detection.
 
-- `j`/`k` to navigate between log rows
-- `Enter` to expand/collapse selected log
-- `Escape` to close detail panel
-- `/` to focus search bar
-- `Ctrl+Enter` to apply filters
+### Log-based Metrics — P2
 
-### 4.3 Sensitive Data Scrubbing
+**Current**: No log-to-metric conversion.
+**Target**: Create count/distribution metrics from log queries with long-term retention.
 
-- Auto-detect common PII patterns (credit cards, SSNs, emails) at ingest time
-- Configurable scrubbing rules: mask, hash, or redact
-- UI under Settings > Data Privacy
+### Data Retention Config UI — P3
 
----
-
-## Recommended Implementation Order
-
-1. **Phase 3.4** - Export CSV/JSON (small effort, table-stakes feature)
-2. **Phase 3.1** - Log Context (moderate effort, high debugging value)
-3. **Phase 3.2** - Log Pipelines (large effort, platform capability)
-4. **Phase 3.3** - Drop Filters (moderate effort, cost optimization)
-5. **Phase 4.x** - Patterns, Shortcuts, Data Scrubbing (future)
+**Current**: `retainTelemetryDataForDays` exists on the service model and is displayed in usage history, but there is no dedicated UI to configure retention settings.
+**Target**: Settings page for configuring per-service log data retention.
 
 ## Phase 5: ClickHouse Storage & Query Optimizations (P0) — Performance Foundation
 
@@ -205,18 +121,22 @@ These optimizations address fundamental storage and indexing gaps in the telemet
 | 5.3 DateTime64 time column | Sub-second log ordering | Correctness fix | Medium |
 | 5.7 Histogram projections | Histogram and severity aggregation | 5-10x | Medium |
 
-### 5.x Recommended Remaining Order
+---
+
+## Recommended Remaining Implementation Order
 
 1. **5.3** — DateTime64 upgrade (correctness)
 2. **5.7** — Projections (performance polish)
+3. **Log-based Metrics** (platform capability)
+4. **Data Retention Config UI** (operational)
+5. **Log Patterns / ML Clustering** (advanced, larger effort)
 
 ---
 
 ## Verification
 
-For each feature:
-1. Unit tests for new parsers/utilities (LogQueryParser, CSV export, etc.)
-2. Integration tests for new API endpoints (histogram, facets, analytics, context)
+For each remaining feature:
+1. Unit tests for new utilities
+2. Integration tests for new API endpoints
 3. Manual verification via the dev server at `https://oneuptimedev.genosyn.com/dashboard/{projectId}/logs`
 4. Check ClickHouse query performance with `EXPLAIN` for new aggregation queries
-5. Verify real-time/live mode still works correctly with new UI components

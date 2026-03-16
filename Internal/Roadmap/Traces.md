@@ -1,0 +1,412 @@
+# Plan: Bring OneUptime Traces to Industry Parity and Beyond
+
+## Context
+
+OneUptime's trace implementation provides OTLP-native ingestion (HTTP and gRPC), ClickHouse storage with a full OpenTelemetry span model (events, links, status, attributes, resources, scope), a Gantt/waterfall visualization, trace-to-log and trace-to-exception correlation, a basic service dependency graph, queue-based async ingestion, and per-service data retention with TTL. ClickHouse schema has been optimized with BloomFilter indexes on traceId/spanId/parentSpanId, Set indexes on statusCode/kind/hasException, TokenBF on name, and ZSTD compression on key columns.
+
+This plan identifies the remaining gaps vs DataDog, NewRelic, Honeycomb, and Grafana Tempo, and proposes a phased implementation to close them and surpass competition.
+
+## Completed
+
+The following features have been implemented:
+- **OTLP Ingestion** - HTTP and gRPC trace ingestion with async queue-based processing
+- **ClickHouse Storage** - MergeTree with `sipHash64(projectId) % 16` partitioning, per-service TTL
+- **Gantt/Waterfall View** - Hierarchical span visualization with color-coded services, time-unit auto-scaling, error indicators
+- **Trace-to-Log Correlation** - Log model has traceId/spanId columns; SpanViewer shows associated logs
+- **Trace-to-Exception Correlation** - ExceptionInstance model links to traceId/spanId with stack trace parsing and fingerprinting
+- **Span Detail Panel** - Side-over with tabs for Basic Info, Logs, Attributes, Events, Exceptions
+- **BloomFilter indexes** on traceId, spanId, parentSpanId
+- **Set indexes** on statusCode, kind, hasException
+- **TokenBF index** on name
+- **ZSTD compression** on time/ID/attribute columns
+- **hasException boolean column** for fast error span filtering
+- **links default value** corrected to `[]`
+
+## Gap Analysis Summary
+
+| Feature | OneUptime | DataDog | NewRelic | Tempo/Honeycomb | Priority |
+|---------|-----------|---------|----------|-----------------|----------|
+| Trace analytics / aggregation engine | None | Trace Explorer with COUNT/percentiles | NRQL on span data | TraceQL rate/count/quantile | **P0** |
+| RED metrics from traces | None | Auto-computed on 100% traffic | Derived golden signals | Metrics-generator to Prometheus | **P0** |
+| Trace-based alerting | None | APM Monitors (p50-p99, error rate, Apdex) | NRQL alert conditions | Via Grafana alerting / Triggers | **P0** |
+| Sampling controls | None (100% ingestion) | Head-based adaptive + retention filters | Infinite Tracing (tail-based) | Refinery (rules/dynamic/tail) | **P0** |
+| Flame graph view | None | Yes (default view) | No | No | **P1** |
+| Latency breakdown / critical path | None | Per-hop latency, bottleneck detection | No | BubbleUp (Honeycomb) | **P1** |
+| In-trace search | None | Yes | No | No | **P1** |
+| Per-trace service map | None | Yes (Map view) | No | No | **P1** |
+| Trace-to-metric exemplars | None | Pivot from metric graph to traces | Metric-to-trace linking | Prometheus exemplars | **P1** |
+| Custom metrics from spans | None | Generate count/distribution/gauge from tags | Via NRQL | SLOs from span data | **P2** |
+| Structural trace queries | None | Trace Queries (multi-span relationships) | Via NRQL | TraceQL spanset pipelines | **P2** |
+| Trace comparison / diffing | None | Partial | Side-by-side comparison | compare() in TraceQL | **P2** |
+| AI/ML on traces | None | Watchdog (auto anomaly + RCA) | NRAI | BubbleUp (pattern detection) | **P3** |
+| RUM correlation | None | Frontend-to-backend trace linking | Yes | Faro / frontend observability | **P3** |
+| Continuous profiling | None | Code Hotspots (span-to-profile) | Partial | Pyroscope | **P3** |
+
+---
+
+## Phase 1: Analytics & Alerting Foundation (P0) — Highest Impact
+
+Without these, users cannot answer basic questions like "is my service healthy?" from trace data.
+
+### 1.1 Trace Analytics / Aggregation Engine
+
+**Current**: Can list/filter individual spans and view individual traces. No way to aggregate or compute statistics.
+**Target**: Full trace analytics supporting COUNT, AVG, SUM, MIN, MAX, P50/P75/P90/P95/P99 aggregations with GROUP BY on any span attribute and time-series bucketing.
+
+**Implementation**:
+
+- Build a trace analytics API endpoint that translates query configs into ClickHouse aggregation queries
+- Use ClickHouse's native functions: `quantile(0.99)(durationUnixNano)`, `countIf(statusCode = 2)`, `toStartOfInterval(startTime, INTERVAL 1 MINUTE)`
+- Support GROUP BY on service, span name, kind, status, and any custom attribute (via JSON extraction)
+- Frontend: Add an "Analytics" tab to the Traces page with chart types (timeseries, top list, table) similar to the existing LogsAnalyticsView
+- Support switching between "List" view (current) and "Analytics" view
+
+**Files to modify**:
+- `Common/Server/API/TelemetryAPI.ts` (add trace analytics endpoint)
+- `Common/Server/Services/SpanService.ts` (add aggregation query methods)
+- `Common/Types/Traces/TraceAnalyticsQuery.ts` (new - query interface)
+- `App/FeatureSet/Dashboard/src/Pages/Traces/Index.tsx` (add analytics view toggle)
+- `App/FeatureSet/Dashboard/src/Components/Traces/TraceAnalyticsView.tsx` (new - analytics UI)
+
+### 1.2 RED Metrics from Traces (Request Rate, Error Rate, Duration)
+
+**Current**: No automatic computation of service-level metrics from trace data.
+**Target**: Auto-computed per-service, per-operation RED metrics displayed on a Service Overview page.
+
+**Implementation**:
+
+- Create a ClickHouse materialized view that aggregates spans into per-service, per-operation metrics at 1-minute intervals:
+  ```sql
+  CREATE MATERIALIZED VIEW span_red_metrics
+  ENGINE = AggregatingMergeTree()
+  ORDER BY (projectId, serviceId, name, minute)
+  AS SELECT
+    projectId, serviceId, name,
+    toStartOfMinute(startTime) AS minute,
+    countState() AS request_count,
+    countIfState(statusCode = 2) AS error_count,
+    quantileState(0.50)(durationUnixNano) AS p50_duration,
+    quantileState(0.95)(durationUnixNano) AS p95_duration,
+    quantileState(0.99)(durationUnixNano) AS p99_duration
+  FROM SpanItem
+  GROUP BY projectId, serviceId, name, minute
+  ```
+- Build a Service Overview page showing: request rate chart, error rate chart, p50/p95/p99 latency charts
+- Add an API endpoint to query the materialized view
+
+**Files to modify**:
+- `Common/Models/AnalyticsModels/SpanRedMetrics.ts` (new - materialized view model)
+- `Telemetry/Services/SpanRedMetricsService.ts` (new - query service)
+- `App/FeatureSet/Dashboard/src/Pages/Service/View/Overview.tsx` (new or enhanced - RED dashboard)
+- `Worker/DataMigrations/` (new migration to create materialized view)
+
+### 1.3 Trace-Based Alerting
+
+**Current**: No ability to alert on trace data.
+**Target**: Create alerts on p50/p75/p90/p95/p99 latency thresholds, error rate thresholds, and request rate anomalies per service/operation.
+
+**Implementation**:
+
+- Extend the existing monitor system to add a `TraceMonitor` type
+- Monitor evaluates against the RED metrics materialized view (depends on 1.2)
+- Alert conditions: latency exceeds threshold, error rate exceeds threshold, request rate drops below threshold
+- Integrate with existing OneUptime alerting/incident system
+- UI: Add "Trace Monitor" as a new monitor type in the monitor creation wizard
+
+**Files to modify**:
+- `Common/Types/Monitor/MonitorType.ts` (add Trace monitor type)
+- `Common/Types/Monitor/MonitorStepTraceMonitor.ts` (new - trace monitor config)
+- `Common/Server/Utils/Monitor/Criteria/TraceMonitorCriteria.ts` (new - evaluation logic)
+- `App/FeatureSet/Dashboard/src/Components/Form/Monitor/TraceMonitor/` (new - monitor form UI)
+
+### 1.4 Head-Based Probabilistic Sampling
+
+**Current**: Ingests 100% of received traces.
+**Target**: Configurable per-service probabilistic sampling with rules to always keep errors and slow traces.
+
+**Implementation**:
+
+- Create `TraceSamplingRule` PostgreSQL model: service filter, sample rate (0-100%), conditions to always keep (error status, duration > threshold)
+- Evaluate sampling rules in `OtelTracesIngestService.ts` before ClickHouse insert
+- Use deterministic sampling based on traceId hash (so all spans from the same trace are kept or dropped together)
+- UI under Settings > Trace Configuration > Sampling Rules
+- Show estimated storage savings
+
+**Files to modify**:
+- `Common/Models/DatabaseModels/TraceSamplingRule.ts` (new)
+- `Telemetry/Services/OtelTracesIngestService.ts` (add sampling logic)
+- Dashboard: new Settings page for sampling configuration
+
+---
+
+## Phase 2: Visualization & Debugging UX (P1) — Industry-Standard Features
+
+### 2.1 Flame Graph View
+
+**Current**: Only Gantt/waterfall view.
+**Target**: Flame graph visualization showing proportional time spent in each span, with service color coding.
+
+**Implementation**:
+
+- Build a flame graph component that renders spans as horizontally stacked rectangles proportional to duration
+- Allow switching between Waterfall and Flame Graph views in TraceExplorer
+- Color-code by service (consistent with waterfall view)
+- Click a span rectangle to focus/zoom into that subtree
+- Show tooltip with span name, service, duration, self-time on hover
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Components/Traces/FlameGraph.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx` (add view toggle)
+
+### 2.2 Latency Breakdown / Critical Path Analysis
+
+**Current**: Shows individual span durations but no automated analysis.
+**Target**: Compute and display critical path, self-time vs child-time, and bottleneck identification.
+
+**Implementation**:
+
+- Compute critical path: the longest sequential chain of spans through the trace (accounts for parallelism)
+- Calculate "self time" per span: `span.duration - sum(child.duration)` (clamped to 0 for overlapping children)
+- Display latency breakdown by service: percentage of total trace time spent in each service
+- Highlight bottleneck spans (spans contributing most to critical path duration)
+- Add "Critical Path" toggle in TraceExplorer that highlights the critical path spans
+
+**Files to modify**:
+- `Common/Utils/Traces/CriticalPath.ts` (new - critical path algorithm)
+- `App/FeatureSet/Dashboard/src/Components/Span/SpanViewer.tsx` (show self-time)
+- `App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx` (add critical path view)
+
+### 2.3 In-Trace Span Search
+
+**Current**: TraceExplorer shows all spans with service filtering and error toggle, but no text search.
+**Target**: Search box to filter spans by name, attribute values, or status within the current trace.
+
+**Implementation**:
+
+- Add a search input in TraceExplorer toolbar
+- Client-side filtering: match span name, service name, attribute keys/values against search text
+- Highlight matching spans in the waterfall/flame graph
+- Show match count (e.g., "3 of 47 spans")
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx` (add search bar and filtering)
+
+### 2.4 Per-Trace Service Flow Map
+
+**Current**: Service dependency graph exists globally but not per-trace.
+**Target**: Per-trace visualization showing the path of a request through services with latency annotations.
+
+**Implementation**:
+
+- Build a directed graph from the spans in a single trace (services as nodes, calls as edges)
+- Annotate edges with call count and latency
+- Color-code nodes by error status
+- Add as a new view tab alongside Waterfall and Flame Graph
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Components/Traces/TraceServiceMap.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx` (add view tab)
+
+### 2.5 Span Link Navigation
+
+**Current**: Links data is stored in spans but not navigable in the UI.
+**Target**: Clickable links in the span detail panel that navigate to related traces/spans.
+
+**Implementation**:
+
+- In the SpanViewer detail panel, render the `links` array as clickable items
+- Each link shows the linked traceId, spanId, and relationship type
+- Clicking navigates to the linked trace view
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Components/Span/SpanViewer.tsx` (render clickable links)
+
+---
+
+## Phase 3: Advanced Analytics & Correlation (P2) — Power Features
+
+### 3.1 Trace-to-Metric Exemplars
+
+**Current**: Metric model has no traceId/spanId fields.
+**Target**: Link metric data points to trace IDs; show exemplar dots on metric charts that navigate to traces.
+
+**Implementation**:
+
+- Add optional `traceId` and `spanId` columns to the Metric ClickHouse model
+- During metric ingestion, extract exemplar trace/span IDs from OTLP exemplar fields
+- On metric charts, render exemplar dots at data points that have associated traces
+- Clicking an exemplar dot navigates to the trace view
+
+**Files to modify**:
+- `Common/Models/AnalyticsModels/Metric.ts` (add traceId/spanId columns)
+- `Telemetry/Services/OtelMetricsIngestService.ts` (extract exemplars)
+- `App/FeatureSet/Dashboard/src/Components/Metrics/MetricGraph.tsx` (render exemplar dots)
+
+### 3.2 Custom Metrics from Spans
+
+**Current**: No way to create persistent metrics from trace data.
+**Target**: Users define custom metrics from span attributes that are computed via ClickHouse materialized views and available for alerting and dashboards.
+
+**Implementation**:
+
+- Create `SpanDerivedMetric` model: name, filter query (which spans), aggregation (count/avg/p99 of what field), GROUP BY attributes
+- Use ClickHouse materialized views for efficient computation
+- Surface derived metrics in the metric explorer and alerting system
+
+**Files to modify**:
+- `Common/Models/DatabaseModels/SpanDerivedMetric.ts` (new)
+- `Common/Server/Services/SpanDerivedMetricService.ts` (new)
+- Dashboard: UI for defining derived metrics
+
+### 3.3 Structural Trace Queries
+
+**Current**: Can only filter on individual span attributes.
+**Target**: Query traces based on properties of multiple spans and their relationships (e.g., "find traces where service A called service B and B returned an error").
+
+**Implementation**:
+
+- Design a visual query builder for structural queries (easier adoption than a query language)
+- Translate structural queries to ClickHouse subqueries with JOINs on traceId
+- Example: "Find traces where span with service=frontend has child span with service=database AND duration > 500ms"
+  ```sql
+  SELECT DISTINCT s1.traceId FROM SpanItem s1
+  JOIN SpanItem s2 ON s1.traceId = s2.traceId AND s1.spanId = s2.parentSpanId
+  WHERE s1.projectId = {pid}
+    AND JSONExtractString(s1.attributes, 'service.name') = 'frontend'
+    AND JSONExtractString(s2.attributes, 'service.name') = 'database'
+    AND s2.durationUnixNano > 500000000
+  ```
+
+**Files to modify**:
+- `Common/Types/Traces/StructuralTraceQuery.ts` (new - query model)
+- `Common/Server/Services/SpanService.ts` (add structural query execution)
+- `App/FeatureSet/Dashboard/src/Components/Traces/StructuralQueryBuilder.tsx` (new - visual builder)
+
+### 3.4 Trace Comparison / Diffing
+
+**Current**: No way to compare traces.
+**Target**: Side-by-side comparison of two traces of the same operation, highlighting differences in span count, latency, and structure.
+
+**Implementation**:
+
+- Add "Compare" action to trace list (select two traces)
+- Build a diff view showing: added/removed spans, latency differences per span, structural changes
+- Useful for comparing a slow trace to a fast trace of the same operation
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Components/Traces/TraceComparison.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Pages/Traces/Compare.tsx` (new page)
+
+---
+
+## Phase 4: Competitive Differentiation (P3) — Long-Term
+
+### 4.1 Rules-Based and Tail-Based Sampling
+
+**Current**: Phase 1 adds head-based probabilistic sampling.
+**Target**: Rules-based sampling (always keep errors/slow traces, sample successes) and eventually tail-based sampling (buffer complete traces, decide after seeing all spans).
+
+**Implementation**:
+
+- Rules engine: configurable conditions (service, status, duration, attributes) with per-rule sample rates
+- Tail-based: buffer spans for a configurable window (30s), assemble complete traces, then apply retention decisions
+- Tail-based is complex; consider integrating with OpenTelemetry Collector's tail sampling processor as an alternative
+
+### 4.2 AI/ML on Trace Data
+
+- **Anomaly detection** on RED metrics (statistical deviation from baseline)
+- **Auto-surfacing correlated attributes** when latency spikes (similar to Honeycomb BubbleUp)
+- **Natural language trace queries** ("show me slow database calls from the last hour")
+- **Automatic root cause analysis** from trace data during incidents
+
+### 4.3 RUM (Real User Monitoring) Correlation
+
+- Browser SDK that propagates W3C trace context from frontend to backend
+- Link frontend page loads, interactions, and web vitals to backend traces
+- Show end-to-end user experience from browser to backend services
+
+### 4.4 Continuous Profiling Integration
+
+- Integrate with a profiling backend (e.g., Pyroscope)
+- Link profile data to span time windows
+- Show "Code Hotspots" within spans (similar to DataDog)
+
+---
+
+## ClickHouse Storage Improvements
+
+### S.1 Migrate `attributes` to Map(String, String) (HIGH)
+
+**Current**: `attributes` is stored as opaque `String` (JSON). Querying by attribute value requires `LIKE` or `JSONExtract()` scans.
+**Target**: `Map(String, String)` type enabling `attributes['http.method'] = 'GET'` without JSON parsing.
+
+**Impact**: Significant query speedup for attribute-based span filtering -- the most common query pattern after time-range filtering.
+
+**Files to modify**:
+- `Common/Models/AnalyticsModels/Span.ts` (change column type)
+- `Common/Server/Utils/AnalyticsDatabase/StatementGenerator.ts` (handle Map type)
+- `Telemetry/Services/OtelTracesIngestService.ts` (write Map format)
+- `Worker/DataMigrations/` (new migration)
+
+### S.2 Add Aggregation Projection (MEDIUM)
+
+**Current**: `projections: []` is empty.
+**Target**: Pre-aggregation projection for common dashboard queries.
+
+```sql
+PROJECTION agg_by_service (
+  SELECT
+    serviceId,
+    toStartOfMinute(startTime) AS minute,
+    count(),
+    avg(durationUnixNano),
+    quantile(0.99)(durationUnixNano)
+  GROUP BY serviceId, minute
+)
+```
+
+**Impact**: 5-10x faster aggregation queries for service overview dashboards.
+
+### S.3 Add Trace-by-ID Projection (LOW)
+
+**Current**: Trace detail view relies on BloomFilter skip index for traceId lookups.
+**Target**: Projection sorted by `(projectId, traceId, startTime)` for faster trace-by-ID queries.
+
+---
+
+## Quick Wins (Can Ship This Week)
+
+1. **In-trace span search** - Add a text filter in TraceExplorer (few hours of work)
+2. **Self-time calculation** - Show "self time" (span duration minus child durations) in SpanViewer
+3. **Span link navigation** - Links data is stored but not clickable in UI
+4. **Top-N slowest operations** - Simple ClickHouse query: `ORDER BY durationUnixNano DESC LIMIT N`
+5. **Error rate by service** - Aggregate `statusCode=2` counts grouped by serviceId
+6. **Trace duration distribution histogram** - Use ClickHouse `histogram()` on durationUnixNano
+7. **Span count per service display** - Already tracked in `servicesInTrace`, just needs better display
+
+---
+
+## Recommended Implementation Order
+
+1. **Phase 1.1** - Trace Analytics Engine (highest impact, unlocks everything else)
+2. **Phase 1.2** - RED Metrics from Traces (prerequisite for alerting, service overview)
+3. **Quick Wins** - Ship in-trace search, self-time, span links, top-N operations
+4. **Phase 1.3** - Trace-Based Alerting (core observability workflow)
+5. **Phase 2.1** - Flame Graph View (industry-standard visualization)
+6. **Phase 2.2** - Critical Path Analysis (key debugging capability)
+7. **Phase 1.4** - Head-Based Sampling (essential for high-volume users)
+8. **S.1** - Migrate attributes to Map type (storage optimization)
+9. **Phase 2.3-2.5** - In-trace search, per-trace map, span links
+10. **Phase 3.1** - Trace-to-Metric Exemplars
+11. **Phase 3.2-3.4** - Custom metrics, structural queries, comparison
+12. **Phase 4.x** - AI/ML, RUM, profiling (long-term)
+
+## Verification
+
+For each feature:
+1. Unit tests for new query builders, critical path algorithm, sampling logic
+2. Integration tests for new API endpoints (analytics, RED metrics, sampling)
+3. Manual verification via the dev server at `https://oneuptimedev.genosyn.com/dashboard/{projectId}/traces`
+4. Check ClickHouse query performance with `EXPLAIN` for new aggregation queries
+5. Verify trace correlation (logs, exceptions, metrics) still works correctly with new features
+6. Load test sampling logic to ensure it doesn't add ingestion latency
