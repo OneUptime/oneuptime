@@ -52,7 +52,14 @@ Usage:
   value: {{ $.Values.openTelemetryExporter.headers }}
 {{- end }}
 - name: SLACK_APP_CLIENT_ID
+  {{- if $.Values.slackApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.slackApp.existingSecret.name }}
+      key: {{ $.Values.slackApp.existingSecret.clientIdKey }}
+  {{- else }}
   value: {{ $.Values.slackApp.clientId | quote }}
+  {{- end }}
 - name: GITHUB_APP_ID
   value: {{ $.Values.gitHubApp.id | quote }}
 - name: GITHUB_APP_NAME
@@ -167,10 +174,24 @@ Usage:
   value: {{ default "https://oneuptime.com/api/notification/push-relay/send" $.Values.pushNotification.relayUrl | quote }}
 
 - name: SLACK_APP_CLIENT_SECRET
+  {{- if $.Values.slackApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.slackApp.existingSecret.name }}
+      key: {{ $.Values.slackApp.existingSecret.clientSecretKey }}
+  {{- else }}
   value: {{ $.Values.slackApp.clientSecret }}
+  {{- end }}
 
 - name: SLACK_APP_SIGNING_SECRET
-  value: {{ $.Values.slackApp.signingSecret }}
+  {{- if $.Values.slackApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.slackApp.existingSecret.name }}
+      key: {{ $.Values.slackApp.existingSecret.signingSecretKey }}
+  {{- else }}
+  value: {{ $.Values.slackApp.signingSecret | quote }}
+  {{- end }}
 
 - name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
   value: {{ $.Values.microsoftTeamsApp.clientSecret }}
@@ -186,7 +207,6 @@ Usage:
 
 - name: CAPTCHA_SECRET_KEY
   value: {{ default "" $.Values.captcha.secretKey | quote }}
-
 
 - name: OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL
   value: {{ default "" $.Values.openSourceDeployment.webhookUrl | quote }}
