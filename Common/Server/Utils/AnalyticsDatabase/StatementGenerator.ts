@@ -503,6 +503,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     let first: boolean = true;
     for (const key in groupBy) {
+      if (!this.model.getTableColumn(key)) {
+        throw new BadDataException(`Unknown column: ${key}`);
+      }
+
       if (first) {
         first = false;
       } else {
@@ -518,6 +522,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const sortStatement: Statement = new Statement();
 
     for (const key in sort) {
+      if (!this.model.getTableColumn(key)) {
+        throw new BadDataException(`Unknown column: ${key}`);
+      }
+
       const value: SortOrder = sort[key]!;
       sortStatement.append(SQL`${key} `).append(
         {
@@ -541,6 +549,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     for (const key in select) {
       const value: any = select[key];
       if (value) {
+        if (!this.model.getTableColumn(key)) {
+          throw new BadDataException(`Unknown column: ${key}`);
+        }
+
         columns.push(key);
         if (first) {
           first = false;
