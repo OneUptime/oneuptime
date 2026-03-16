@@ -434,7 +434,7 @@ export default class Log extends AnalyticsBaseModel {
         {
           name: "proj_severity_histogram",
           query:
-            "SELECT projectId, severityText, toStartOfInterval(time, INTERVAL 1 MINUTE) AS minute, count() AS cnt ORDER BY (projectId, minute, severityText)",
+            "SELECT projectId, severityText, toStartOfInterval(time, INTERVAL 1 MINUTE) AS minute, count() AS cnt GROUP BY projectId, severityText, minute ORDER BY (projectId, minute, severityText)",
         },
       ],
       sortKeys: ["projectId", "time", "serviceId"],
