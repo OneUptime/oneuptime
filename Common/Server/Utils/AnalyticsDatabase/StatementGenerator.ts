@@ -419,7 +419,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         tableColumn.type === TableColumnType.MapStringString &&
         typeof value === "object"
       ) {
-        const mapValue: Record<string, string> = value as Record<string, string>;
+        const mapValue: Record<string, string> = value as Record<
+          string,
+          string
+        >;
         for (const mapKey in mapValue) {
           if (mapValue[mapKey] === undefined) {
             continue;
@@ -690,9 +693,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // Append projections after indexes
     if (this.model.projections && this.model.projections.length > 0) {
       for (const projection of this.model.projections) {
-        columns.append(
-          `, PROJECTION ${projection.name} (${projection.query})`,
-        );
+        columns.append(`, PROJECTION ${projection.name} (${projection.query})`);
       }
     }
 

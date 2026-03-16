@@ -117,7 +117,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddDefaultIncidentRolesToExistingProjects(),
   new AddDefaultIconsToIncidentRoles(),
   new UpdateObserverRoleToAllowMultipleUsers(),
-  new AddColumnsToExceptionInstance()
+  new AddColumnsToExceptionInstance(),
 ];
 
 export default DataMigrations;

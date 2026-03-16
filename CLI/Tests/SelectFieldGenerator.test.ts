@@ -1,6 +1,11 @@
 import { generateAllFieldsSelect } from "../Utils/SelectFieldGenerator";
-import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import { JSONObject } from "Common/Types/JSON";
+
+// AnalyticsTableName enum values used in tests (avoids deep import that can
+// fail when transitive dependencies are not resolvable by ts-jest).
+const AnalyticsTableName = {
+  Log: "LogItemV2",
+} as const;
 
 describe("SelectFieldGenerator", () => {
   describe("generateAllFieldsSelect", () => {
