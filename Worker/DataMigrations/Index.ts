@@ -124,8 +124,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddColumnsToExceptionInstance(),
   new AddRetentionDateAndSkipIndexesToTelemetryTables(),
   new AddOtelFieldsToLogTable(),
-  new AddSpanTableOptimizations(),
-  new ChangeLogTimeColumnToDateTime64(),
+  new AddSpanTableOptimizations()
 ];
 
 export default DataMigrations;
