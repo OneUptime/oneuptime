@@ -8,7 +8,7 @@ import logger from "../Logger";
 import { SQL, Statement } from "./Statement";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CommonModel, {
-  Record,
+  Record as AnalyticsRecord,
   RecordValue,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
 import AnalyticsTableColumn, {
@@ -85,7 +85,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return columnNames;
   }
 
-  public getRecordValuesStatement(record: Record): string {
+  public getRecordValuesStatement(record: AnalyticsRecord): string {
     let valueStatement: string = "";
 
     for (const value of record) {
@@ -106,7 +106,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return valueStatement;
   }
 
-  public getValuesStatement(records: Array<Record>): string {
+  public getValuesStatement(records: Array<AnalyticsRecord>): string {
     let statement: string = "";
     for (const record of records) {
       statement += `(${this.getRecordValuesStatement(record)}), `;
@@ -126,10 +126,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       this.model.getTableColumns(),
     );
 
-    const records: Array<Record> = [];
+    const records: Array<AnalyticsRecord> = [];
 
     for (const item of data.item) {
-      const record: Record = this.getRecord(item);
+      const record: AnalyticsRecord = this.getRecord(item);
       records.push(record);
     }
 
@@ -154,8 +154,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return statement;
   }
 
-  private getRecord(item: CommonModel): Record {
-    const record: Record = [];
+  private getRecord(item: CommonModel): AnalyticsRecord {
+    const record: AnalyticsRecord = [];
 
     for (const column of item.getTableColumns()) {
       const value: RecordValue | undefined = this.sanitizeValue(
