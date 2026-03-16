@@ -21,6 +21,7 @@ The following features have been implemented:
 - **ZSTD compression** on time/ID/attribute columns
 - **hasException boolean column** for fast error span filtering
 - **links default value** corrected to `[]`
+- **Basic Trace-Based Alerting** - MonitorType.Traces with span count threshold alerting, span name/status/service/attribute filtering, time window (5s-24h), worker job running every minute, frontend form with preview
 
 ## Gap Analysis Summary
 
@@ -28,7 +29,7 @@ The following features have been implemented:
 |---------|-----------|---------|----------|-----------------|----------|
 | Trace analytics / aggregation engine | None | Trace Explorer with COUNT/percentiles | NRQL on span data | TraceQL rate/count/quantile | **P0** |
 | RED metrics from traces | None | Auto-computed on 100% traffic | Derived golden signals | Metrics-generator to Prometheus | **P0** |
-| Trace-based alerting | None | APM Monitors (p50-p99, error rate, Apdex) | NRQL alert conditions | Via Grafana alerting / Triggers | **P0** |
+| Trace-based alerting | **Partial** — span count only, no latency/error rate/Apdex | APM Monitors (p50-p99, error rate, Apdex) | NRQL alert conditions | Via Grafana alerting / Triggers | **P0** |
 | Sampling controls | None (100% ingestion) | Head-based adaptive + retention filters | Infinite Tracing (tail-based) | Refinery (rules/dynamic/tail) | **P0** |
 | Flame graph view | None | Yes (default view) | No | No | **P1** |
 | Latency breakdown / critical path | None | Per-hop latency, bottleneck detection | No | BubbleUp (Honeycomb) | **P1** |
@@ -100,24 +101,54 @@ Without these, users cannot answer basic questions like "is my service healthy?"
 - `App/FeatureSet/Dashboard/src/Pages/Service/View/Overview.tsx` (new or enhanced - RED dashboard)
 - `Worker/DataMigrations/` (new migration to create materialized view)
 
-### 1.3 Trace-Based Alerting
+### 1.3 Trace-Based Alerting — Extend Beyond Span Count
 
-**Current**: No ability to alert on trace data.
-**Target**: Create alerts on p50/p75/p90/p95/p99 latency thresholds, error rate thresholds, and request rate anomalies per service/operation.
+**Current**: Basic trace alerting is implemented with `MonitorType.Traces`. The existing system supports:
+- Filtering by span name, span status (Unset/Ok/Error), service, and attributes
+- Configurable time windows (5s to 24h)
+- Worker job evaluating every minute via `MonitorTelemetryMonitor`
+- **Only one criteria check**: `CheckOn.SpanCount` — compares matching span count against a threshold
+- Frontend form (`TraceMonitorStepForm.tsx`) with preview of matching spans
 
-**Implementation**:
+**What's missing**: The current implementation can only answer "are there more/fewer than N spans matching this filter?" It cannot alert on latency, error rates, or throughput — the core APM alerting use cases.
 
-- Extend the existing monitor system to add a `TraceMonitor` type
-- Monitor evaluates against the RED metrics materialized view (depends on 1.2)
-- Alert conditions: latency exceeds threshold, error rate exceeds threshold, request rate drops below threshold
-- Integrate with existing OneUptime alerting/incident system
-- UI: Add "Trace Monitor" as a new monitor type in the monitor creation wizard
+**Target**: Full APM-grade alerting with latency percentiles, error rate, request rate, and Apdex.
+
+**Implementation — extend existing infrastructure**:
+
+#### 1.3.1 Add Latency Percentile Alerts (P50/P90/P95/P99)
+- Add `CheckOn.P50Latency`, `CheckOn.P90Latency`, `CheckOn.P95Latency`, `CheckOn.P99Latency` to `CriteriaFilter.ts`
+- In `monitorTrace()` worker function, compute `quantile(0.50)(durationUnixNano)` etc. via ClickHouse instead of just `countBy()`
+- Return latency values in `TraceMonitorResponse` alongside span count
+- Add latency criteria evaluation in `TraceMonitorCriteria.ts`
+
+#### 1.3.2 Add Error Rate Alerts
+- Add `CheckOn.ErrorRate` to `CriteriaFilter.ts`
+- Compute `countIf(statusCode = 2) / count() * 100` in the worker query
+- Return error rate percentage in `TraceMonitorResponse`
+- Criteria: "alert if error rate > 5%"
+
+#### 1.3.3 Add Average/Max Duration Alerts
+- Add `CheckOn.AvgDuration`, `CheckOn.MaxDuration` to `CriteriaFilter.ts`
+- Compute `avg(durationUnixNano)`, `max(durationUnixNano)` in worker query
+- Useful for simpler latency alerts without percentile overhead
+
+#### 1.3.4 Add Request Rate (Throughput) Alerts
+- Add `CheckOn.SpanRate` to `CriteriaFilter.ts`
+- Compute `count() / time_window_seconds` to normalize to spans/second
+- Criteria: "alert if request rate drops below 10 req/s" (detects outages)
+
+#### 1.3.5 Add Apdex Score (Nice-to-have)
+- Add `CheckOn.ApdexScore` to `CriteriaFilter.ts`
+- Compute from duration thresholds: `(satisfied + tolerating*0.5) / total`
+- Allow configuring satisfied/tolerating thresholds per monitor (e.g., satisfied < 500ms, tolerating < 2s)
 
 **Files to modify**:
-- `Common/Types/Monitor/MonitorType.ts` (add Trace monitor type)
-- `Common/Types/Monitor/MonitorStepTraceMonitor.ts` (new - trace monitor config)
-- `Common/Server/Utils/Monitor/Criteria/TraceMonitorCriteria.ts` (new - evaluation logic)
-- `App/FeatureSet/Dashboard/src/Components/Form/Monitor/TraceMonitor/` (new - monitor form UI)
+- `Common/Types/Monitor/CriteriaFilter.ts` (add new CheckOn values: P50Latency, P90Latency, P95Latency, P99Latency, ErrorRate, AvgDuration, MaxDuration, SpanRate, ApdexScore)
+- `Common/Types/Monitor/TraceMonitor/TraceMonitorResponse.ts` (add latency, error rate, throughput fields)
+- `Common/Server/Utils/Monitor/Criteria/TraceMonitorCriteria.ts` (add evaluation for new criteria types)
+- `Worker/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts` (change `monitorTrace()` from `countBy()` to aggregation query returning all metrics)
+- `App/FeatureSet/Dashboard/src/Components/Form/Monitor/TraceMonitor/TraceMonitorStepForm.tsx` (add criteria type selector for latency/error rate/throughput)
 
 ### 1.4 Head-Based Probabilistic Sampling
 
