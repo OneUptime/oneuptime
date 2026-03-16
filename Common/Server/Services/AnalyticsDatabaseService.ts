@@ -264,7 +264,7 @@ export default class AnalyticsDatabaseService<
 
     const rows: Array<JSONObject> = result.data || [];
 
-    return rows.length > 0 && Number(rows[0]!.cnt) > 0;
+    return rows.length > 0 && Number(rows[0]!["cnt"]) > 0;
   }
 
   public async getColumnCodec(columnName: string): Promise<string> {
@@ -281,7 +281,7 @@ export default class AnalyticsDatabaseService<
       return "";
     }
 
-    return (rows[0]!.compression_codec as string) || "";
+    return (rows[0]!["compression_codec"] as string) || "";
   }
 
   public async setColumnCodecIfNotSet(data: {
