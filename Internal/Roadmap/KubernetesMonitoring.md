@@ -79,7 +79,7 @@ Multi-cluster is table stakes — most production environments have 2+ clusters 
 
 ### OTel Collector vs Custom Agent
 
-The OpenTelemetry Collector handles **~80% of Kubernetes data collection** with zero custom agent code. The remaining 20% is backend intelligence built on top of the data OTel delivers.
+The OpenTelemetry Collector handles **~80% of Kubernetes data collection** with zero custom agent code. The remaining 20% is backend intelligence built on top of the data OTel delivers. Do not dsign the custom agent.
 
 **What OTel Collector handles (no custom agent needed):**
 
