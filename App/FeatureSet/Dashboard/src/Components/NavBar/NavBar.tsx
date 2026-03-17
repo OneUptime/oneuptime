@@ -144,6 +144,17 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       iconColor: "indigo",
       category: "Observability",
     },
+    {
+      title: "Kubernetes",
+      description: "Monitor Kubernetes clusters.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.KUBERNETES_CLUSTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.KUBERNETES_CLUSTERS],
+      icon: IconProp.Cube,
+      iconColor: "teal",
+      category: "Observability",
+    },
     // Automation & Analytics
     {
       title: "Dashboards",

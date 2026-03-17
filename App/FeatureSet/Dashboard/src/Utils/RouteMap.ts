@@ -59,6 +59,18 @@ export const CodeRepositoryRoutePath: Dictionary<string> = {
   [PageMap.CODE_REPOSITORY_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
 };
 
+export const KubernetesRoutePath: Dictionary<string> = {
+  [PageMap.KUBERNETES_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PODS]: `${RouteParams.ModelID}/pods`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL]: `${RouteParams.ModelID}/pods/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+};
+
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
@@ -1462,6 +1474,70 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_REPOSITORY_VIEW_SERVICES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code-repository/${
       CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SERVICES]
+    }`,
+  ),
+
+  // Kubernetes
+
+  [PageMap.KUBERNETES_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/*`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PODS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_PODS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_NODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_NODES]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS]
     }`,
   ),
 

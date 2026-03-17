@@ -1,0 +1,176 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-deployment
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      # Collect node, pod, and container resource metrics from kubelet
+      kubeletstats:
+        collection_interval: {{ .Values.collectionInterval }}
+        auth_type: serviceAccount
+        endpoint: "https://${env:NODE_NAME}:10250"
+        insecure_skip_verify: true
+        metric_groups:
+          - node
+          - pod
+          - container
+        extra_metadata_labels:
+          - container.id
+        k8s_api_config:
+          auth_type: serviceAccount
+
+      # Collect cluster-level metrics from the Kubernetes API
+      k8s_cluster:
+        collection_interval: {{ .Values.collectionInterval }}
+        node_conditions_to_report:
+          - Ready
+          - MemoryPressure
+          - DiskPressure
+          - PIDPressure
+          - NetworkUnavailable
+        allocatable_types_to_report:
+          - cpu
+          - memory
+          - storage
+
+      # Watch Kubernetes events and ingest as logs
+      k8sobjects:
+        objects:
+          - name: events
+            mode: watch
+            group: events.k8s.io
+
+      {{- if .Values.controlPlane.enabled }}
+      # Scrape control plane metrics via Prometheus endpoints
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: etcd
+              scheme: https
+              tls_config:
+                insecure_skip_verify: {{ .Values.controlPlane.etcd.insecureSkipVerify }}
+              static_configs:
+                {{- range .Values.controlPlane.etcd.endpoints }}
+                - targets:
+                    - {{ . | quote }}
+                {{- end }}
+            - job_name: kube-apiserver
+              scheme: https
+              tls_config:
+                insecure_skip_verify: {{ .Values.controlPlane.apiServer.insecureSkipVerify }}
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              static_configs:
+                {{- range .Values.controlPlane.apiServer.endpoints }}
+                - targets:
+                    - {{ . | quote }}
+                {{- end }}
+            - job_name: kube-scheduler
+              scheme: https
+              tls_config:
+                insecure_skip_verify: {{ .Values.controlPlane.scheduler.insecureSkipVerify }}
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              static_configs:
+                {{- range .Values.controlPlane.scheduler.endpoints }}
+                - targets:
+                    - {{ . | quote }}
+                {{- end }}
+            - job_name: kube-controller-manager
+              scheme: https
+              tls_config:
+                insecure_skip_verify: {{ .Values.controlPlane.controllerManager.insecureSkipVerify }}
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              static_configs:
+                {{- range .Values.controlPlane.controllerManager.endpoints }}
+                - targets:
+                    - {{ . | quote }}
+                {{- end }}
+      {{- end }}
+
+    processors:
+      # Enrich all telemetry with Kubernetes metadata
+      k8sattributes:
+        auth_type: serviceAccount
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.deployment.name
+            - k8s.replicaset.name
+            - k8s.statefulset.name
+            - k8s.daemonset.name
+            - k8s.job.name
+            - k8s.cronjob.name
+            - k8s.container.name
+          labels:
+            - tag_name: k8s.pod.label.app
+              key: app
+              from: pod
+            - tag_name: k8s.pod.label.app.kubernetes.io/name
+              key: app.kubernetes.io/name
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: connection
+
+      # Stamp all telemetry with the cluster name
+      resource:
+        attributes:
+          - key: k8s.cluster.name
+            value: {{ .Values.clusterName | quote }}
+            action: upsert
+
+      # Batch telemetry for efficient export
+      batch:
+        send_batch_size: 1024
+        timeout: 10s
+
+      # Limit memory usage
+      memory_limiter:
+        check_interval: 5s
+        limit_mib: 400
+        spike_limit_mib: 100
+
+    exporters:
+      otlphttp:
+        endpoint: "{{ .Values.oneuptime.url }}"
+        headers:
+          x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
+
+    service:
+      pipelines:
+        metrics:
+          receivers:
+            - kubeletstats
+            - k8s_cluster
+            {{- if .Values.controlPlane.enabled }}
+            - prometheus
+            {{- end }}
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - batch
+          exporters:
+            - otlphttp
+        logs:
+          receivers:
+            - k8sobjects
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - batch
+          exporters:
+            - otlphttp

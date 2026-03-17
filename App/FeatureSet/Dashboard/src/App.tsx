@@ -181,6 +181,15 @@ const ServiceRoutes: React.LazyExoticComponent<
     };
   });
 });
+const KubernetesRoutes: React.LazyExoticComponent<
+  AllRoutesModule["KubernetesRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.KubernetesRoutes,
+    };
+  });
+});
 const CodeRepositoryRoutes: React.LazyExoticComponent<
   AllRoutesModule["CodeRepositoryRoutes"]
 > = lazy(() => {
@@ -526,6 +535,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.SERVICE_ROOT]?.toString() || ""}
             element={<ServiceRoutes {...commonPageProps} />}
+          />
+
+          {/* Kubernetes */}
+          <PageRoute
+            path={RouteMap[PageMap.KUBERNETES_ROOT]?.toString() || ""}
+            element={<KubernetesRoutes {...commonPageProps} />}
           />
 
           {/* Code Repository */}

@@ -705,6 +705,11 @@ enum Permission {
   DeleteAlertSeverity = "DeleteAlertSeverity",
   ReadAlertSeverity = "ReadAlertSeverity",
 
+  CreateKubernetesCluster = "CreateKubernetesCluster",
+  DeleteKubernetesCluster = "DeleteKubernetesCluster",
+  EditKubernetesCluster = "EditKubernetesCluster",
+  ReadKubernetesCluster = "ReadKubernetesCluster",
+
   CreateService = "CreateService",
   DeleteService = "DeleteService",
   EditService = "EditService",
@@ -4322,6 +4327,43 @@ export class PermissionHelper {
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         group: PermissionGroup.AIAgent,
+      },
+
+      {
+        permission: Permission.CreateKubernetesCluster,
+        title: "Create Kubernetes Cluster",
+        description:
+          "This permission can create Kubernetes Cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteKubernetesCluster,
+        title: "Delete Kubernetes Cluster",
+        description:
+          "This permission can delete Kubernetes Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditKubernetesCluster,
+        title: "Edit Kubernetes Cluster",
+        description:
+          "This permission can edit Kubernetes Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadKubernetesCluster,
+        title: "Read Kubernetes Cluster",
+        description:
+          "This permission can read Kubernetes Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Telemetry,
       },
 
       {

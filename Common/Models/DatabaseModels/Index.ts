@@ -1,5 +1,6 @@
 import AcmeCertificate from "./AcmeCertificate";
 import AcmeChallenge from "./AcmeChallenge";
+import KubernetesCluster from "./KubernetesCluster";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -499,6 +500,8 @@ const AllModelTypes: Array<{
   ProjectSCIM,
   ProjectSCIMLog,
   StatusPageSCIMLog,
+
+  KubernetesCluster,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
