@@ -19,7 +19,7 @@ const TracesPage: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <TraceTable />
-      <TelemetryDocumentation />
+      <TelemetryDocumentation telemetryType="traces" />
     </Fragment>
   );
 };

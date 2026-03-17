@@ -25,7 +25,7 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
         enableRealtime={true}
         id="logs"
       />
-      <TelemetryDocumentation />
+      <TelemetryDocumentation telemetryType="logs" />
     </Fragment>
   );
 };

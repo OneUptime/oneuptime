@@ -26,7 +26,7 @@ const UnresolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
         title="Unresolved Exceptions"
         description="All the exceptions that have not been resolved."
       />
-      <TelemetryDocumentation />
+      <TelemetryDocumentation telemetryType="exceptions" />
     </Fragment>
   );
 };

@@ -19,7 +19,7 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <MetricsTable />
-      <TelemetryDocumentation />
+      <TelemetryDocumentation telemetryType="metrics" />
     </Fragment>
   );
 };
