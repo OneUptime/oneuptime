@@ -12,6 +12,7 @@ import {
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import WhatsAppAuthorization from "Common/Server/Middleware/WhatsAppAuthorization";
 import WhatsAppLogService from "Common/Server/Services/WhatsAppLogService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import Express, {
@@ -371,6 +372,7 @@ router.get("/webhook", async (req: ExpressRequest, res: ExpressResponse) => {
 
 router.post(
   "/webhook",
+  WhatsAppAuthorization.isAuthorizedWhatsAppRequest,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
