@@ -111,6 +111,7 @@ export default function MonitorsScreen(): React.JSX.Element {
     items: allMonitors,
     isLoading,
     isError,
+    error,
     refetch,
   } = useAllProjectMonitors();
   const { lightImpact } = useHaptics();
@@ -195,6 +196,16 @@ export default function MonitorsScreen(): React.JSX.Element {
   }
 
   if (isError) {
+    const errorMessage: string = error?.message ?? "Unknown error";
+    const errorDetails: string =
+      (error as unknown as Record<string, unknown>)?.response
+        ? JSON.stringify(
+            (
+              (error as unknown as Record<string, unknown>)
+                .response as Record<string, unknown>
+            ).data,
+          )
+        : "";
     return (
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
@@ -202,7 +213,7 @@ export default function MonitorsScreen(): React.JSX.Element {
         <ScrollView contentInsetAdjustmentBehavior="automatic">
           <EmptyState
             title="Something went wrong"
-            subtitle="Failed to load monitors. Pull to refresh or try again."
+            subtitle={`${errorMessage}${errorDetails ? `\n\n${errorDetails}` : ""}`}
             icon="monitors"
             actionLabel="Retry"
             onAction={() => {

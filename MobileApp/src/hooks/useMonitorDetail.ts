@@ -2,7 +2,9 @@ import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   fetchMonitorById,
   fetchMonitorFeed,
+  fetchMonitorStatusTimeline,
 } from "../api/monitors";
+import type { MonitorStatusTimelineItem } from "../api/monitors";
 import type { MonitorItem, FeedItem } from "../api/types";
 
 export function useMonitorDetail(
@@ -13,6 +15,19 @@ export function useMonitorDetail(
     queryKey: ["monitor", projectId, monitorId],
     queryFn: () => {
       return fetchMonitorById(projectId, monitorId);
+    },
+    enabled: Boolean(projectId) && Boolean(monitorId),
+  });
+}
+
+export function useMonitorStatusTimeline(
+  projectId: string,
+  monitorId: string,
+): UseQueryResult<MonitorStatusTimelineItem[], Error> {
+  return useQuery({
+    queryKey: ["monitor-status-timeline", projectId, monitorId],
+    queryFn: () => {
+      return fetchMonitorStatusTimeline(projectId, monitorId);
     },
     enabled: Boolean(projectId) && Boolean(monitorId),
   });

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import { useQueries, UseQueryResult } from "@tanstack/react-query";
 import { useProject } from "./useProject";
-import { fetchAllMonitors } from "../api/monitors";
+import { fetchMonitors } from "../api/monitors";
 import type {
   ListResponse,
   MonitorItem,
@@ -15,19 +15,44 @@ interface UseAllProjectMonitorsResult {
   items: ProjectMonitorItem[];
   isLoading: boolean;
   isError: boolean;
+  error: Error | null;
   refetch: () => Promise<void>;
 }
 
 export function useAllProjectMonitors(): UseAllProjectMonitorsResult {
   const { projectList } = useProject();
 
-  const query: UseQueryResult<ListResponse<MonitorItem>, Error> = useQuery({
-    queryKey: ["monitors", "all-projects"],
-    queryFn: () => {
-      return fetchAllMonitors({ skip: 0, limit: FETCH_LIMIT });
+  const queries: UseQueryResult<ListResponse<MonitorItem>, Error>[] =
+    useQueries({
+      queries: projectList.map((project: ProjectItem) => {
+        return {
+          queryKey: ["monitors", project._id],
+          queryFn: () => {
+            return fetchMonitors(project._id, {
+              skip: 0,
+              limit: FETCH_LIMIT,
+            });
+          },
+        };
+      }),
+    });
+
+  const isLoading: boolean = queries.some(
+    (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+      return q.isLoading;
     },
-    enabled: projectList.length > 0,
-  });
+  );
+  const isError: boolean = queries.some(
+    (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+      return q.isError;
+    },
+  );
+  const firstError: Error | null =
+    queries.find(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.error;
+      },
+    )?.error ?? null;
 
   const projectMap: Map<string, string> = useMemo(() => {
     const map: Map<string, string> = new Map();
@@ -38,27 +63,39 @@ export function useAllProjectMonitors(): UseAllProjectMonitorsResult {
   }, [projectList]);
 
   const items: ProjectMonitorItem[] = useMemo(() => {
-    if (!query.data) {
-      return [];
+    const allItems: ProjectMonitorItem[] = [];
+    for (let i: number = 0; i < queries.length; i++) {
+      const query: UseQueryResult<ListResponse<MonitorItem>, Error> =
+        queries[i]!;
+      const projectId: string = projectList[i]?._id ?? "";
+      if (query.data) {
+        for (const item of query.data.data) {
+          allItems.push({
+            item,
+            projectId,
+            projectName: projectMap.get(projectId) ?? "",
+          });
+        }
+      }
     }
-    return query.data.data.map((item: MonitorItem): ProjectMonitorItem => {
-      const pid: string = item.projectId ?? "";
-      return {
-        item,
-        projectId: pid,
-        projectName: projectMap.get(pid) ?? "",
-      };
-    });
-  }, [query.data, projectMap]);
+    return allItems;
+  }, [queries, projectList, projectMap]);
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
-    await query.refetch();
+    await Promise.all(
+      queries.map(
+        (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+          return q.refetch();
+        },
+      ),
+    );
   };
 
   return {
     items,
-    isLoading: query.isPending,
-    isError: query.isError,
+    isLoading,
+    isError,
+    error: firstError,
     refetch,
   };
 }

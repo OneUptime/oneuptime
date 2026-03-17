@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mobile-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd MobileApp && npx expo start --port 8081"],
+      "port": 8081
+    }
+  ]
+}

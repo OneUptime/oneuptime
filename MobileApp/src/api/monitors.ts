@@ -7,7 +7,8 @@ import type {
   FeedItem,
 } from "./types";
 
-export async function fetchAllMonitors(
+export async function fetchMonitors(
+  projectId: string,
   options: { skip?: number; limit?: number } = {},
 ): Promise<ListResponse<MonitorItem>> {
   const { skip = 0, limit = 100 } = options;
@@ -26,10 +27,10 @@ export async function fetchAllMonitors(
         createdAt: true,
         projectId: true,
       },
-      sort: { name: "ASC" },
+      sort: { createdAt: "DESC" },
     },
     {
-      headers: { "is-multi-tenant-query": "true" },
+      headers: { tenantid: projectId },
     },
   );
   return response.data;
@@ -85,23 +86,34 @@ export async function fetchMonitorStatuses(
   return response.data.data;
 }
 
+export interface MonitorStatusTimelineItem {
+  _id: string;
+  createdAt: string;
+  startsAt?: string;
+  endsAt?: string;
+  monitorStatus?: {
+    _id: string;
+    name: string;
+    color: { r: number; g: number; b: number };
+  };
+  rootCause?: string;
+}
+
 export async function fetchMonitorStatusTimeline(
   projectId: string,
   monitorId: string,
-): Promise<FeedItem[]> {
+): Promise<MonitorStatusTimelineItem[]> {
   const response: AxiosResponse = await apiClient.post(
     "/api/monitor-status-timeline/get-list?skip=0&limit=50",
     {
       query: { monitorId },
       select: {
         _id: true,
-        feedInfoInMarkdown: true,
-        moreInformationInMarkdown: true,
-        displayColor: true,
-        postedAt: true,
         createdAt: true,
-        monitorStatus: { _id: true, name: true, color: true },
         startsAt: true,
+        endsAt: true,
+        monitorStatus: { _id: true, name: true, color: true },
+        rootCause: true,
       },
       sort: { createdAt: "DESC" },
     },
@@ -137,9 +149,9 @@ export async function fetchMonitorFeed(
   return response.data.data;
 }
 
-export async function fetchAllMonitorCount(): Promise<
-  ListResponse<MonitorItem>
-> {
+export async function fetchMonitorCount(
+  projectId: string,
+): Promise<ListResponse<MonitorItem>> {
   const response: AxiosResponse = await apiClient.post(
     "/api/monitor/get-list?skip=0&limit=1",
     {
@@ -150,7 +162,47 @@ export async function fetchAllMonitorCount(): Promise<
       sort: {},
     },
     {
-      headers: { "is-multi-tenant-query": "true" },
+      headers: { tenantid: projectId },
+    },
+  );
+  return response.data;
+}
+
+export async function fetchDisabledMonitorCount(
+  projectId: string,
+): Promise<ListResponse<MonitorItem>> {
+  const response: AxiosResponse = await apiClient.post(
+    "/api/monitor/get-list?skip=0&limit=1",
+    {
+      query: { disableActiveMonitoring: true },
+      select: {
+        _id: true,
+      },
+      sort: {},
+    },
+    {
+      headers: { tenantid: projectId },
+    },
+  );
+  return response.data;
+}
+
+export async function fetchInoperationalMonitorCount(
+  projectId: string,
+): Promise<ListResponse<MonitorItem>> {
+  const response: AxiosResponse = await apiClient.post(
+    "/api/monitor/get-list?skip=0&limit=1",
+    {
+      query: {
+        currentMonitorStatus: { isOperationalState: false },
+      },
+      select: {
+        _id: true,
+      },
+      sort: {},
+    },
+    {
+      headers: { tenantid: projectId },
     },
   );
   return response.data;

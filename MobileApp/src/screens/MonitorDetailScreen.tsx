@@ -3,11 +3,16 @@ import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import { useMonitorDetail, useMonitorFeed } from "../hooks/useMonitorDetail";
+import {
+  useMonitorDetail,
+  useMonitorStatusTimeline,
+  useMonitorFeed,
+} from "../hooks/useMonitorDetail";
 import { rgbToHex } from "../utils/color";
-import { formatDateTime } from "../utils/date";
+import { formatDateTime, formatRelativeTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
 import type { MonitorsStackParamList } from "../navigation/types";
+import type { MonitorStatusTimelineItem } from "../api/monitors";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
@@ -51,14 +56,16 @@ export default function MonitorDetailScreen({
     isLoading,
     refetch: refetchMonitor,
   } = useMonitorDetail(projectId, monitorId);
+  const { data: statusTimeline, refetch: refetchTimeline } =
+    useMonitorStatusTimeline(projectId, monitorId);
   const { data: feed, refetch: refetchFeed } = useMonitorFeed(
     projectId,
     monitorId,
   );
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([refetchMonitor(), refetchFeed()]);
-  }, [refetchMonitor, refetchFeed]);
+    await Promise.all([refetchMonitor(), refetchTimeline(), refetchFeed()]);
+  }, [refetchMonitor, refetchTimeline, refetchFeed]);
 
   if (isLoading) {
     return (
@@ -333,6 +340,84 @@ export default function MonitorDetailScreen({
           </View>
         </View>
       </View>
+
+      {/* Status Timeline */}
+      {statusTimeline && statusTimeline.length > 0 ? (
+        <View style={{ marginBottom: 24 }}>
+          <SectionHeader title="Status History" iconName="time-outline" />
+          <View
+            style={{
+              borderRadius: 16,
+              overflow: "hidden",
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
+          >
+            {statusTimeline.map(
+              (entry: MonitorStatusTimelineItem, index: number) => {
+                const entryColor: string = entry.monitorStatus?.color
+                  ? rgbToHex(entry.monitorStatus.color)
+                  : theme.colors.textTertiary;
+                return (
+                  <View
+                    key={entry._id}
+                    style={{
+                      padding: 14,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      borderTopWidth: index > 0 ? 1 : 0,
+                      borderTopColor: theme.colors.borderSubtle,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 9999,
+                        marginRight: 12,
+                        backgroundColor: entryColor,
+                      }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "600",
+                          color: entryColor,
+                        }}
+                      >
+                        {entry.monitorStatus?.name ?? "Unknown"}
+                      </Text>
+                      {entry.rootCause ? (
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: theme.colors.textSecondary,
+                            marginTop: 2,
+                          }}
+                          numberOfLines={2}
+                        >
+                          {toPlainText(entry.rootCause)}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: theme.colors.textTertiary,
+                        marginLeft: 8,
+                      }}
+                    >
+                      {formatRelativeTime(entry.startsAt ?? entry.createdAt)}
+                    </Text>
+                  </View>
+                );
+              },
+            )}
+          </View>
+        </View>
+      ) : null}
 
       {/* Activity Feed */}
       {feed && feed.length > 0 ? (

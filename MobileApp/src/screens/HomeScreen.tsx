@@ -167,6 +167,8 @@ export default function HomeScreen(): React.JSX.Element {
     incidentEpisodeCount,
     alertEpisodeCount,
     monitorCount,
+    disabledMonitorCount,
+    inoperationalMonitorCount,
     isLoading: anyLoading,
     refetch,
   } = useAllProjectCounts();
@@ -649,6 +651,33 @@ export default function HomeScreen(): React.JSX.Element {
                 }}
               />
             </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <StatCard
+                count={inoperationalMonitorCount}
+                label="Inoperational"
+                accentColor={theme.colors.severityCritical}
+                iconName="close-circle-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Monitors");
+                }}
+              />
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", marginTop: 12 }}>
+            <View style={{ flex: 1 }}>
+              <StatCard
+                count={disabledMonitorCount}
+                label="Disabled"
+                accentColor={theme.colors.textTertiary}
+                iconName="pause-circle-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Monitors");
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }} />
           </View>
         </View>
 
