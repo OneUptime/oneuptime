@@ -444,6 +444,167 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase makes
 - Show deployment history per workload with rollback status
 - Alert when deployment sync fails or drift is detected
 
+### 4.6 Auto-Discovery and Zero-Config Onboarding
+
+**Current**: K8s monitoring requires manual Helm config and receiver setup.
+**Target**: Automatic workload, service, and dependency detection with zero manual configuration.
+
+- Auto-detect all running workloads, services, and dependencies upon agent installation
+- Automatically create monitors and dashboards for discovered services
+- Suggest relevant alert templates based on discovered workload types (e.g., StatefulSet → PVC alerts)
+- No manual namespace or receiver configuration required — monitor everything by default, allow exclusions
+- This is Dynatrace's primary differentiator (OneAgent auto-discovers thousands of pods with no config)
+
+### 4.7 AI/ML-Driven Root Cause Analysis
+
+**Current**: No automated root cause analysis. Users must manually investigate K8s failures.
+**Target**: Automatically correlate K8s events, metrics, and logs to pinpoint root causes of failures.
+
+- When an alert fires (e.g., pod CrashLoopBackOff), automatically:
+  - Gather correlated K8s events (OOMKilled, FailedMount, ImagePullBackOff, etc.)
+  - Check recent deployment changes that may have caused the regression
+  - Analyze resource utilization trends leading up to the failure
+  - Check node health and scheduling constraints
+- Surface a ranked list of probable root causes with supporting evidence
+- Competitors: Dynatrace Davis AI (automatic root cause), Datadog Watchdog (anomaly detection)
+
+### 4.8 Kubernetes-Native Incident Automation
+
+**Current**: K8s monitoring and incident management exist but are not deeply integrated.
+**Target**: End-to-end automation from K8s failure detection to incident resolution — leveraging OneUptime's unique all-in-one platform.
+
+- Auto-create incidents from K8s failures with full context:
+  - Pod/node/deployment details, relevant events, logs, and metrics pre-attached
+  - Suggested root cause and remediation steps
+  - Automatic status page component mapping (e.g., a failed deployment auto-degrades the associated status page component)
+- Auto-resolve incidents when K8s state recovers (e.g., pod returns to Running, replicas match desired)
+- On-call notification with K8s-specific context (not just "metric threshold exceeded" but "Pod X in namespace Y is CrashLoopBackOff due to OOMKilled")
+- This is OneUptime's unique moat — no pure observability tool offers monitoring + incidents + status pages + on-call in one flow
+
+### 4.9 Kubernetes-Aware Status Pages
+
+**Current**: Status pages are manually configured. No automatic reflection of K8s cluster health.
+**Target**: Automatically map K8s services/workloads to status page components and reflect real-time health.
+
+- Map K8s namespaces, deployments, or services to status page components
+- Automatically update component status based on K8s health (e.g., if >50% of pods in a deployment are unhealthy, degrade the component)
+- Show K8s-sourced incident details on the public status page
+- No competitor offers this — this is a unique differentiator for OneUptime
+
+### 4.10 Live YAML / Resource Inspection
+
+**Current**: No ability to view actual K8s resource specs from within OneUptime.
+**Target**: View live YAML definitions for any K8s object alongside its metrics and events.
+
+- Fetch and display the current YAML spec for any K8s resource (Deployments, Services, Ingresses, ConfigMaps, PVCs, NetworkPolicies, CRDs)
+- Diff view showing recent spec changes
+- Correlate spec changes with metric anomalies
+- Dynatrace shipped this in Jan 2026 — increasingly a buyer expectation
+
+### 4.11 Topology / Service Dependency Map
+
+**Current**: No visual service-to-service dependency mapping.
+**Target**: Auto-generated service dependency map derived from K8s metadata and network traffic.
+
+- Build dependency graph from K8s Service selectors, Ingress rules, and network traffic patterns
+- Visual map showing services, request flow, latency, and error rates between services
+- Click any edge to see request metrics between two services
+- Highlight unhealthy edges and propagation paths
+- Competitors: Datadog Service Map, Dynatrace Smartscape topology
+
+### 4.12 Managed Kubernetes Provider Integrations
+
+**Current**: Generic K8s monitoring only. No provider-specific integrations.
+**Target**: Dedicated integrations for EKS, GKE, and AKS with provider-specific metrics and features.
+
+- **EKS**: CloudWatch integration for control plane logs, EKS-specific IAM/IRSA setup guidance, Fargate pod monitoring
+- **GKE**: GKE Autopilot support, Workload Identity configuration, GKE-specific system metrics
+- **AKS**: Azure Monitor integration, AKS-specific diagnostics, Azure AD pod identity support
+- Per-provider documentation for control plane metric access (which varies significantly)
+- Auto-detect provider and suggest appropriate configuration
+
+### 4.13 Deployment Tracking and Change Correlation
+
+**Current**: No deployment event tracking or change correlation.
+**Target**: Overlay deployment events on metric charts to answer "did a deploy cause this regression?"
+
+- Capture deployment events (kubectl rollout, Helm release, ArgoCD sync, Flux reconciliation)
+- Display as vertical annotations on all metric time-series charts
+- Auto-correlate: when a metric anomaly occurs, flag any deployments that happened in the preceding window
+- Deployment detail view: show before/after metrics comparison for each deploy
+- This is a basic expectation in Datadog and New Relic — should be P1 priority
+
+---
+
+## Competitive Analysis (March 2026)
+
+### Feature Comparison Matrix
+
+| Area | OneUptime (Roadmap) | Datadog | Dynatrace | New Relic | Grafana/Prometheus | Sysdig |
+|---|---|---|---|---|---|---|
+| Core metrics (pods/nodes/containers) | P0 | Yes | Yes | Yes | Yes | Yes |
+| Control plane monitoring | P0 | Yes | Yes | Yes | Yes (kube-prometheus-stack) | Yes |
+| K8s events | P0 | Auto-collected | Unified view | OTel-based | Event exporters | Yes |
+| Pre-built alert templates | P1 | Auto-monitors | Auto-baselines | Pre-built alerts | PrometheusRule CRDs | Yes |
+| Resource inventory | P1 | Orchestrator Explorer | Expanded Jan 2026 (CRDs, NetworkPolicies, PVCs with live YAML) | Cluster explorer | None native | Yes |
+| HPA monitoring | P1 | Yes | Yes | Yes (custom metrics adapter) | Via kube-state-metrics | Yes |
+| Cost optimization | P3 | Pod-level granularity, autoscaling recs | Cost & Carbon Optimization, idle workload detection | Resource optimization recs | OpenCost integration | Cost Advisor (~40% waste reduction) |
+| Multi-cluster | P2 | Fleet Automation | Per-cluster pod-hour billing | Fleet Control GA | Thanos/Mimir/Cortex | CLUSTER_NAME labeling |
+| eBPF-based observability | P3 | Network monitoring, file integrity (35% CPU reduction) | eBPF Discovery in OneAgent | eAPM (zero-instrumentation GA) | Cilium/Hubble, Beyla | Core agent eBPF |
+| Network monitoring | P3 | Full NPM (Layer 4 eBPF) | Horizontal topology mapping | Via Pixie/eBPF | Cilium/Hubble | Deep traffic analysis |
+| Security/compliance | P3 | CSM, Falco integration | Security posture monitoring | RBAC-aware deployment | OPA/Gatekeeper dashboards | Core brand (runtime security) |
+| GitOps integration | P3 | Flux/ArgoCD with health metrics | Limited (Operator CRDs) | Agent Control + Fleet Control | GitOps-native by design | Limited |
+| Service mesh | P2 | Istio/Envoy with RBAC telemetry | Istio/Envoy via Prometheus | Via OpenTelemetry | Istio dashboards, Cilium | Yes |
+| Auto-discovery | Not planned | Automatic workload detection | Zero-config (thousands of pods) | eBPF eAPM auto-discovers all services | Prometheus K8s service discovery | eBPF auto-discovery |
+| AI root cause analysis | Not planned | Watchdog anomaly detection | Davis AI (automated RCA) | AI-driven anomaly detection | None native | Anomaly/threat detection |
+| Log aggregation | P2 | Unified DaemonSet agent | Fully automated Log Module | OTel-based collection | Loki + Promtail/Alloy | Log forwarding |
+| OpenTelemetry native | Yes (core architecture) | OTel Collector ingestion | OTel-native ingestion | OTel-first strategy | OTel Collector recommended | OTel compatible |
+| Helm chart deployment | Yes | Operator + Helm | Operator Helm chart | nri-kubernetes Helm | kube-prometheus-stack | Agent Helm chart |
+| Custom metrics | Via OTLP | 1000+ integrations | Extensions + custom API | NRQL, metric adapter | PromQL (native strength) | Prometheus-compatible |
+
+### Competitor Differentiators
+
+- **Datadog**: Broadest integration ecosystem (1000+), pod-level cost management, Fleet Automation for multi-cluster, eBPF network monitoring. Highest cost at scale.
+- **Dynatrace**: Zero-config auto-discovery, Davis AI root cause analysis, Cost & Carbon Optimization. Jan 2026: expanded K8s object visibility with live YAML inspection.
+- **New Relic**: OpenTelemetry-first, eAPM (eBPF zero-instrumentation monitoring GA), Fleet Control GA, Windows node support. Competitive usage-based pricing.
+- **Grafana/Prometheus**: Open-source standard (75% K8s adoption), PromQL ecosystem, vendor independence, Cilium/Hubble eBPF partnership, OpenCost. Requires more operational effort.
+- **Sysdig**: Security-first (runtime security + monitoring), deep eBPF kernel instrumentation, managed Prometheus with long-term storage, Cost Advisor.
+
+### OneUptime's Unique Advantage
+
+OneUptime is the only platform that combines Kubernetes monitoring + incident management + status pages + on-call in a single product. No pure observability tool offers this end-to-end flow. The roadmap should aggressively leverage this advantage.
+
+---
+
+## Gaps and Recommendations
+
+### Critical Gaps Not Addressed in Original Roadmap
+
+1. **Auto-discovery / zero-config onboarding** — Dynatrace's killer feature. Our plan requires manual Helm config. Should be elevated to P1.
+2. **AI/ML-driven root cause analysis** — Dynatrace (Davis AI) and Datadog (Watchdog) do this automatically. No AI component in our roadmap.
+3. **Kubernetes-native incident automation** — Our all-in-one platform advantage is not leveraged. K8s failure → auto-incident → status page update → on-call notification should be a headline feature.
+4. **Kubernetes-aware status pages** — No competitor has this. Automatically reflecting K8s health on public status pages is a unique differentiator we're not building.
+5. **Live YAML / resource inspection** — Dynatrace shipped this Jan 2026. Increasingly a buyer expectation.
+6. **Topology / service dependency map** — Datadog and Dynatrace both offer visual service maps. We only mention this briefly under network policy monitoring.
+7. **Managed K8s provider integrations** — No EKS/GKE/AKS-specific plans. These providers expose different control plane metrics with unique quirks.
+8. **Cost optimization at P3 is too late** — Competitors treat cost optimization as core. It's the easiest way to show ROI to buyers.
+9. **Deployment tracking / change correlation** — Basic in Datadog. "Did a deploy cause this?" is a fundamental debugging workflow.
+10. **Windows container / node support** — New Relic supports Windows nodes. Niche but relevant for enterprise.
+
+### Strategic Recommendations
+
+1. **Double down on the all-in-one advantage** — K8s failure → auto-incident → status page update → on-call notification, all in one flow. Nobody else does this end-to-end. This should be the #1 marketing differentiator.
+2. **Move cost optimization to P1** — It's the easiest way to show ROI to buyers and justify switching from competitors.
+3. **Add a basic topology map in P1** — Visual service maps are a top buyer expectation during evaluations.
+4. **Add deployment annotations in P1** — Low effort, high value for debugging. Standard in every competitor.
+5. **Build K8s-aware status page automation as a headline feature** — This is our moat. No one else has it.
+6. **Invest in auto-discovery for P2** — Reduces onboarding friction dramatically. The current manual config approach will lose evaluations against Dynatrace.
+7. **Plan AI-driven RCA for P2-P3** — Without this, the product will feel "dumb" compared to Dynatrace Davis AI.
+
+### Overall Assessment
+
+The roadmap achieves **feature parity** on core K8s monitoring by P2. This is necessary but not differentiating — competitors have had years of maturity. To be **significantly better** than competition, OneUptime must aggressively leverage its unique all-in-one platform (monitoring + incidents + status pages + on-call) and build features no pure observability tool can match: automatic incident creation from K8s failures, K8s-aware status pages, and end-to-end remediation workflows.
+
 ---
 
 ## Quick Wins (Can Ship This Week)
