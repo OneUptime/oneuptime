@@ -320,6 +320,7 @@ enum IconProp {
   TableCellsIcon = "TableCellsIcon",
   UserIcon = "UserIcon",
   XCircle = "XCircle",
+  Kubernetes = "Kubernetes",
 }
 
 export default IconProp;

@@ -208,7 +208,7 @@ const CodeBlock: FunctionComponent<{
     (language ? language.charAt(0).toUpperCase() + language.slice(1) : "");
 
   return (
-    <div className="relative rounded-lg mt-4 mb-4 overflow-hidden border border-gray-700">
+    <div className="relative rounded-md mt-3 mb-3 overflow-hidden border border-gray-700">
       {/* Header bar */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800/60 border-b border-gray-700/60">
         <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400 select-none">
@@ -261,7 +261,7 @@ const CodeBlock: FunctionComponent<{
         children={content}
         language={language}
         style={vscDarkPlus}
-        className="!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-6 !pb-4 !px-4 text-sm !border-0"
+        className="!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-3 !pb-3 !px-4 text-sm !border-0"
         codeTagProps={{ className: "font-mono" }}
       />
     </div>

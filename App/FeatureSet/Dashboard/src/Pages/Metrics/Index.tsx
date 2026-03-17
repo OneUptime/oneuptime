@@ -1,7 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import MetricsTable from "../../Components/Metrics/MetricsTable";
+import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
 
 const MetricsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,7 +16,12 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <MetricsTable />;
+  return (
+    <Fragment>
+      <MetricsTable />
+      <TelemetryDocumentation />
+    </Fragment>
+  );
 };
 
 export default MetricsPage;

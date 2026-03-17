@@ -2733,6 +2733,28 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="m15 11.25 1.5 1.5.75-.75V8.758l2.276-.61a3 3 0 1 0-3.675-3.675l-.61 2.277H12l-.75.75 1.5 1.5M15 11.25l-8.47 8.47c-.34.34-.8.53-1.28.53s-.94-.19-1.28-.53a1.818 1.818 0 0 1 0-2.56l8.47-8.47M15 11.25 12 8.25"
       />,
     );
+  } else if (icon === IconProp.Kubernetes) {
+    // Kubernetes helm wheel icon (heptagon outline + inner wheel spokes)
+    return getSvgWrapper(
+      <>
+        {/* Heptagonal border */}
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 2l5.09 2.33 3.41 4.67.5 5.5-2.09 5.17L14.5 22h-5l-4.41-2.33L3 14.5l.5-5.5L6.91 4.33Z"
+        />
+        {/* Center circle */}
+        <circle cx="12" cy="12" r="2" strokeWidth="1.5" fill="none" stroke="currentColor" />
+        {/* Spokes radiating from center - 7 directions */}
+        <line x1="12" y1="10" x2="12" y2="5" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
+        <line x1="13.9" y1="10.7" x2="16.5" y2="6.5" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
+        <line x1="13.9" y1="13.3" x2="17.5" y2="14" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
+        <line x1="12" y1="14" x2="14.5" y2="18" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
+        <line x1="10.1" y1="13.3" x2="6.5" y2="14" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
+        <line x1="10.1" y1="10.7" x2="7.5" y2="6.5" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
+        <line x1="12" y1="14" x2="9.5" y2="18" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
+      </>,
+    );
   }
 
   return <></>;

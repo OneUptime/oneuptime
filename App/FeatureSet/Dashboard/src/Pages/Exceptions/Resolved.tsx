@@ -1,7 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ExceptionsTable from "../../Components/Exceptions/ExceptionsTable";
+import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
 
 const ResolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,14 +17,17 @@ const ResolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
   }
 
   return (
-    <ExceptionsTable
-      query={{
-        isResolved: true,
-        isArchived: false,
-      }}
-      title="Resolved Exceptions"
-      description="All the exceptions that have been resolved."
-    />
+    <Fragment>
+      <ExceptionsTable
+        query={{
+          isResolved: true,
+          isArchived: false,
+        }}
+        title="Resolved Exceptions"
+        description="All the exceptions that have been resolved."
+      />
+      <TelemetryDocumentation />
+    </Fragment>
   );
 };
 

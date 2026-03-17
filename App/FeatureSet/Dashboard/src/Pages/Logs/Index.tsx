@@ -1,7 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import DashboardLogsViewer from "../../Components/Logs/LogsViewer";
+import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
 
 const LogsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,13 +17,16 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
   }
 
   return (
-    <DashboardLogsViewer
-      showFilters={true}
-      serviceIds={[]}
-      limit={100}
-      enableRealtime={true}
-      id="logs"
-    />
+    <Fragment>
+      <DashboardLogsViewer
+        showFilters={true}
+        serviceIds={[]}
+        limit={100}
+        enableRealtime={true}
+        id="logs"
+      />
+      <TelemetryDocumentation />
+    </Fragment>
   );
 };
 

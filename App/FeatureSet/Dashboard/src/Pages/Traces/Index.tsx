@@ -1,7 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TraceTable from "../../Components/Traces/TraceTable";
+import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
 
 const TracesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -15,7 +16,12 @@ const TracesPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <TraceTable />;
+  return (
+    <Fragment>
+      <TraceTable />
+      <TelemetryDocumentation />
+    </Fragment>
+  );
 };
 
 export default TracesPage;

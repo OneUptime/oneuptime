@@ -30,24 +30,15 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Settings",
+            title: "Documentation",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
+              RouteMap[
+                PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION
+              ] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Settings}
-        />
-        <SideMenuItem
-          link={{
-            title: "Delete Cluster",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DELETE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Trash}
-          className="danger-on-hover"
+          icon={IconProp.Book}
         />
       </SideMenuSection>
 
@@ -89,11 +80,37 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Control Plane",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE] as Route,
+              RouteMap[
+                PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Activity}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
               { modelId: props.modelId },
             ),
           }}
           icon={IconProp.Settings}
+        />
+        <SideMenuItem
+          link={{
+            title: "Delete Cluster",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DELETE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Trash}
+          className="danger-on-hover"
         />
       </SideMenuSection>
     </SideMenu>

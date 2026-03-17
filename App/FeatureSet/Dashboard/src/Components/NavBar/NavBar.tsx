@@ -151,8 +151,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         RouteMap[PageMap.KUBERNETES_CLUSTERS] as Route,
       ),
       activeRoute: RouteMap[PageMap.KUBERNETES_CLUSTERS],
-      icon: IconProp.Cube,
-      iconColor: "teal",
+      icon: IconProp.Kubernetes,
+      iconColor: "blue",
       category: "Observability",
     },
     // Automation & Analytics
