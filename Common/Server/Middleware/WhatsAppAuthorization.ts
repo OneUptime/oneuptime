@@ -21,9 +21,9 @@ export default class WhatsAppAuthorization {
   ): Promise<void> {
     logger.debug("Starting WhatsApp webhook signature verification");
 
-    const signature: string | undefined = req.headers[
-      "x-hub-signature-256"
-    ] as string | undefined;
+    const signature: string | undefined = req.headers["x-hub-signature-256"] as
+      | string
+      | undefined;
 
     if (!signature) {
       logger.error(
@@ -32,9 +32,7 @@ export default class WhatsAppAuthorization {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException(
-          "Missing X-Hub-Signature-256 header.",
-        ),
+        new BadDataException("Missing X-Hub-Signature-256 header."),
       );
     }
 
@@ -61,9 +59,7 @@ export default class WhatsAppAuthorization {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException(
-          "Meta WhatsApp App Secret is not configured.",
-        ),
+        new BadDataException("Meta WhatsApp App Secret is not configured."),
       );
     }
 
@@ -81,9 +77,7 @@ export default class WhatsAppAuthorization {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException(
-          "WhatsApp webhook signature verification failed.",
-        ),
+        new BadDataException("WhatsApp webhook signature verification failed."),
       );
     }
 
