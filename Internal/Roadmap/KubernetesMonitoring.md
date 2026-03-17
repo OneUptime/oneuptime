@@ -31,6 +31,7 @@ This plan proposes a phased implementation to deliver first-class Kubernetes mon
 | Multi-cluster support | None | Yes | Yes | Thanos/Cortex | **P2** |
 | K8s log collection (pod stdout/stderr) | Via Fluentd example | DaemonSet agent | Fluent Bit integration | Loki + Promtail | **P2** |
 | Service mesh observability (Istio, Linkerd) | None | Yes | Yes | Partial | **P2** |
+| Control plane monitoring (etcd, API server, scheduler, controller-manager) | None | Yes (Agent check) | K8s integration | Prometheus scrape + mixins | **P0** |
 | Network policy monitoring | None | NPM | None | Cilium Hubble | **P3** |
 | eBPF-based deep observability | None | Universal Service Monitoring | Pixie | Cilium/Tetragon | **P3** |
 
@@ -86,6 +87,8 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase makes
   - **Top Consumers**: Top 10 pods by CPU usage, top 10 by memory usage
   - **Recent Events**: Kubernetes Warning events stream
   - **Container Restarts**: Pods with highest restart counts
+  - **Control Plane Health**: etcd leader status, API server request rate/error rate, scheduler pending pods
+  - **etcd**: DB size gauge, WAL fsync latency, peer RTT
 - Auto-detect K8s metrics and offer dashboard creation during onboarding
 - Use template variables for namespace and node filtering
 
@@ -157,6 +160,71 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase makes
 **Files to modify**:
 - `OTelCollector/otel-collector-config.template.yaml` (add k8sobjects receiver)
 - `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Events.tsx` (new)
+
+### 1.6 Control Plane Monitoring (etcd, API Server, Scheduler, Controller Manager)
+
+**Current**: No control plane visibility. Cluster-level failures (etcd latency, API server overload, scheduler backlog) are invisible.
+**Target**: Full control plane observability covering etcd, kube-apiserver, kube-scheduler, and kube-controller-manager.
+
+**Implementation**:
+
+- Add `prometheus` receiver to OTel Collector to scrape control plane metrics endpoints:
+  - **etcd** (typically `:2379/metrics`):
+    - `etcd_server_has_leader` — alert immediately if 0 (no leader elected)
+    - `etcd_server_leader_changes_seen_total` — rate of leader elections (frequent changes indicate instability)
+    - `etcd_disk_wal_fsync_duration_seconds` — WAL fsync latency (high values cause write stalls)
+    - `etcd_disk_backend_commit_duration_seconds` — backend commit latency
+    - `etcd_mvcc_db_total_size_in_bytes` — database size (alert when approaching quota, default 2GB)
+    - `etcd_network_peer_round_trip_time_seconds` — peer-to-peer RTT (network health between etcd members)
+    - `etcd_server_proposals_failed_total` — failed Raft proposals
+    - `etcd_server_proposals_pending` — pending proposals (backpressure indicator)
+    - `etcd_debugging_mvcc_keys_total` — total key count (cardinality tracking)
+    - `etcd_mvcc_db_total_size_in_use_in_bytes` — actual data size vs total DB size (fragmentation indicator)
+    - `grpc_server_handled_total` — gRPC request rate and error rate to etcd
+  - **kube-apiserver** (typically `:6443/metrics`):
+    - `apiserver_request_total` — request rate by verb, resource, and response code
+    - `apiserver_request_duration_seconds` — request latency by verb and resource
+    - `apiserver_current_inflight_requests` — concurrent in-flight requests (throttling indicator)
+    - `apiserver_dropped_requests_total` — dropped requests due to throttling
+    - `apiserver_storage_objects` — object count per resource type in etcd
+    - `apiserver_admission_webhook_rejection_count` — webhook rejections
+    - `workqueue_depth` — controller work queue depth (backlog indicator)
+    - `workqueue_adds_total` — work queue processing rate
+  - **kube-scheduler** (typically `:10259/metrics`):
+    - `scheduler_pending_pods` — pods waiting to be scheduled (by queue)
+    - `scheduler_scheduling_attempt_duration_seconds` — scheduling latency
+    - `scheduler_schedule_attempts_total` — scheduling attempts by result (scheduled/unschedulable/error)
+    - `scheduler_preemption_attempts_total` — preemption frequency
+  - **kube-controller-manager** (typically `:10257/metrics`):
+    - `workqueue_depth` — per-controller queue depth
+    - `workqueue_retries_total` — retry rate (indicator of failing reconciliation)
+    - `node_collector_evictions_total` — node eviction count
+- Handle access modes for different cluster types:
+  - Self-managed clusters: direct scrape with TLS client certs
+  - Managed clusters (EKS/GKE/AKS): use kube-proxy or metrics-server where control plane metrics are exposed; document limitations per provider
+  - Helm values for toggling control plane monitoring and configuring endpoints
+- Create etcd-specific alert templates:
+  - **No Leader**: `etcd_server_has_leader == 0` — critical, immediate page
+  - **Frequent Leader Elections**: rate of `etcd_server_leader_changes_seen_total` > 3/hour — warning
+  - **High WAL Fsync Latency**: `etcd_disk_wal_fsync_duration_seconds` p99 > 100ms — warning; > 500ms — critical
+  - **DB Size Near Quota**: `etcd_mvcc_db_total_size_in_bytes` > 80% of quota — warning; > 90% — critical
+  - **High Proposal Failure Rate**: `etcd_server_proposals_failed_total` rate > 0 sustained — warning
+  - **Peer RTT Degradation**: `etcd_network_peer_round_trip_time_seconds` p99 > 100ms — warning
+  - **API Server Throttling**: `apiserver_dropped_requests_total` rate > 0 — critical
+  - **API Server Latency**: `apiserver_request_duration_seconds` p99 > 1s for non-WATCH verbs — warning
+  - **Scheduler Backlog**: `scheduler_pending_pods` > 0 for > 5 minutes — warning
+- Control Plane dashboard template with panels:
+  - etcd: leader status, DB size gauge, WAL/commit latency, peer RTT, key count, proposal rates
+  - API Server: request rate by verb, error rate, latency heatmap, inflight requests, throttling events
+  - Scheduler: pending pods, scheduling latency, attempt success/failure rates
+  - Controller Manager: per-controller queue depth, retry rates, eviction counts
+
+**Files to modify**:
+- `OTelCollector/otel-collector-config.template.yaml` (add prometheus receiver with control plane scrape targets)
+- `HelmChart/Public/oneuptime/values.yaml` (add controlPlaneMonitoring config with endpoint overrides and TLS settings)
+- `HelmChart/Public/oneuptime/templates/otel-collector-rbac.yaml` (ensure access to control plane metrics endpoints)
+- `Common/Types/Dashboard/Templates/KubernetesControlPlane.ts` (new - control plane dashboard template)
+- `Common/Types/Monitor/Templates/KubernetesAlertTemplates.ts` (add etcd and control plane alert templates)
 
 ---
 
@@ -392,19 +460,20 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase makes
 
 1. **Quick Wins** - Enable MonitorType, k8sattributes processor, documentation
 2. **Phase 1.1** - OTel Collector K8s receivers (prerequisite for everything else)
-3. **Phase 1.5** - Kubernetes event ingestion (high value, uses existing log infrastructure)
-4. **Phase 1.2** - Cluster overview dashboard template
-5. **Phase 1.3** - Pod and container resource metrics pages
-6. **Phase 1.4** - Node health monitoring pages
-7. **Phase 2.1** - K8s-aware alert templates (makes monitoring actionable)
-8. **Phase 2.2** - Resource inventory pages
-9. **Phase 2.4** - Namespace quota monitoring
-10. **Phase 2.3** - HPA/VPA monitoring
-11. **Phase 3.1** - K8s log collection via DaemonSet
-12. **Phase 3.4** - K8s-to-telemetry correlation
-13. **Phase 3.2** - Multi-cluster support
-14. **Phase 3.3** - Service mesh observability
-15. **Phase 4.x** - Cost attribution, network policies, eBPF, compliance, GitOps
+3. **Phase 1.6** - Control plane monitoring — etcd, API server, scheduler, controller manager (critical for cluster health)
+4. **Phase 1.5** - Kubernetes event ingestion (high value, uses existing log infrastructure)
+5. **Phase 1.2** - Cluster overview dashboard template (now includes control plane panels)
+6. **Phase 1.3** - Pod and container resource metrics pages
+7. **Phase 1.4** - Node health monitoring pages
+8. **Phase 2.1** - K8s-aware alert templates, including etcd/control plane alerts (makes monitoring actionable)
+9. **Phase 2.2** - Resource inventory pages
+10. **Phase 2.4** - Namespace quota monitoring
+11. **Phase 2.3** - HPA/VPA monitoring
+12. **Phase 3.1** - K8s log collection via DaemonSet
+13. **Phase 3.4** - K8s-to-telemetry correlation
+14. **Phase 3.2** - Multi-cluster support
+15. **Phase 3.3** - Service mesh observability
+16. **Phase 4.x** - Cost attribution, network policies, eBPF, compliance, GitOps
 
 ## Verification
 
