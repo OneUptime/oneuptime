@@ -1,12 +1,41 @@
-import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import type { ProbeMonitorResponse, MonitorProbeItem } from "../api/monitors";
 
+/** Safely convert any value to a displayable string */
+function toDisplayString(val: unknown): string {
+  if (val === null || val === undefined) {
+    return "--";
+  }
+  if (typeof val === "string") {
+    return val;
+  }
+  if (typeof val === "number" || typeof val === "boolean") {
+    return String(val);
+  }
+  if (typeof val === "object") {
+    // Handle OneUptime typed objects like URL { _type, value }
+    const obj = val as Record<string, unknown>;
+    if (typeof obj.value === "string") {
+      return obj.value;
+    }
+    if (typeof obj.toString === "function" && obj.toString !== Object.prototype.toString) {
+      return obj.toString();
+    }
+    try {
+      return JSON.stringify(val);
+    } catch {
+      return String(val);
+    }
+  }
+  return String(val);
+}
+
 interface InfoRowProps {
   label: string;
-  value: string;
+  value: unknown;
   iconName: keyof typeof Ionicons.glyphMap;
   valueColor?: string;
 }
@@ -18,6 +47,7 @@ function InfoRow({
   valueColor,
 }: InfoRowProps): React.JSX.Element {
   const { theme } = useTheme();
+  const displayValue: string = toDisplayString(value);
   return (
     <View
       style={{
@@ -52,7 +82,7 @@ function InfoRow({
         }}
         numberOfLines={2}
       >
-        {value}
+        {displayValue}
       </Text>
     </View>
   );
@@ -181,12 +211,19 @@ function formatMsUnit(ms: number): string {
   return ms < 1000 ? "ms" : "s";
 }
 
-function formatDate(dateStr?: string): string {
-  if (!dateStr) {
+function formatDate(dateVal?: unknown): string {
+  if (!dateVal) {
+    return "--";
+  }
+  const str: string = toDisplayString(dateVal);
+  if (str === "--") {
     return "--";
   }
   try {
-    const d: Date = new Date(dateStr);
+    const d: Date = new Date(str);
+    if (isNaN(d.getTime())) {
+      return str;
+    }
     return d.toLocaleString(undefined, {
       month: "short",
       day: "numeric",
@@ -194,7 +231,7 @@ function formatDate(dateStr?: string): string {
       minute: "2-digit",
     });
   } catch {
-    return "--";
+    return str;
   }
 }
 
@@ -328,7 +365,7 @@ function PingSummary({
           <InfoRow
             label="Host"
             value={
-              response.monitorDestination +
+              toDisplayString(response.monitorDestination) +
               (response.monitorDestinationPort
                 ? `:${response.monitorDestinationPort}`
                 : "")
@@ -511,6 +548,103 @@ function GenericSummary({
   );
 }
 
+function getProbeResponse(
+  probe: MonitorProbeItem,
+): ProbeMonitorResponse | null {
+  const log: Record<string, ProbeMonitorResponse> | undefined =
+    probe.lastMonitoringLog;
+  if (!log) {
+    return null;
+  }
+  const keys: string[] = Object.keys(log);
+  if (keys.length > 0 && keys[0]) {
+    return log[keys[0]] ?? null;
+  }
+  return null;
+}
+
+function getProbeName(probe: MonitorProbeItem, index: number): string {
+  if (probe.probe?.name) {
+    return probe.probe.name;
+  }
+  return `Probe ${index + 1}`;
+}
+
+function ProbePicker({
+  probeItems,
+  selectedIndex,
+  onSelect,
+}: {
+  probeItems: MonitorProbeItem[];
+  selectedIndex: number;
+  onSelect: (index: number) => void;
+}): React.JSX.Element | null {
+  const { theme } = useTheme();
+
+  if (probeItems.length <= 1) {
+    return null;
+  }
+
+  return (
+    <View style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8 }}
+      >
+        {probeItems.map((probe: MonitorProbeItem, index: number) => {
+          const isSelected: boolean = index === selectedIndex;
+          return (
+            <TouchableOpacity
+              key={probe._id}
+              activeOpacity={0.7}
+              onPress={() => {
+                onSelect(index);
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor: isSelected
+                  ? theme.colors.actionPrimary + "1A"
+                  : theme.colors.backgroundTertiary,
+                borderWidth: 1,
+                borderColor: isSelected
+                  ? theme.colors.actionPrimary + "44"
+                  : theme.colors.borderSubtle,
+              }}
+            >
+              <Ionicons
+                name="radio-outline"
+                size={12}
+                color={
+                  isSelected
+                    ? theme.colors.actionPrimary
+                    : theme.colors.textTertiary
+                }
+                style={{ marginRight: 5 }}
+              />
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: isSelected ? "700" : "500",
+                  color: isSelected
+                    ? theme.colors.actionPrimary
+                    : theme.colors.textSecondary,
+                }}
+              >
+                {getProbeName(probe, index)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
 interface MonitorSummaryViewProps {
   monitorType?: string;
   probeItems: MonitorProbeItem[];
@@ -521,54 +655,45 @@ export default function MonitorSummaryView({
   probeItems,
 }: MonitorSummaryViewProps): React.JSX.Element | null {
   const { theme } = useTheme();
+  const [selectedProbeIndex, setSelectedProbeIndex] = useState(0);
 
-  // Extract the first probe response from the first available probe
+  const hasMultipleProbes: boolean = probeItems.length > 1;
+
   const latestResponse: ProbeMonitorResponse | null = useMemo(() => {
-    for (const probe of probeItems) {
-      const log: Record<string, ProbeMonitorResponse> | undefined =
-        probe.lastMonitoringLog;
-      if (log) {
-        const keys: string[] = Object.keys(log);
-        if (keys.length > 0 && keys[0]) {
-          return log[keys[0]] ?? null;
-        }
-      }
-    }
-    return null;
-  }, [probeItems]);
-
-  if (!latestResponse) {
-    return (
-      <View
-        style={{
-          borderRadius: 16,
-          padding: 20,
-          alignItems: "center",
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-        }}
-      >
-        <Ionicons
-          name="analytics-outline"
-          size={24}
-          color={theme.colors.textTertiary}
-          style={{ marginBottom: 8 }}
-        />
-        <Text
-          style={{
-            fontSize: 13,
-            color: theme.colors.textSecondary,
-            textAlign: "center",
-          }}
-        >
-          No monitoring data available yet.
-        </Text>
-      </View>
+    const safeIndex: number = Math.min(
+      selectedProbeIndex,
+      probeItems.length - 1,
     );
-  }
+    const probe: MonitorProbeItem | undefined = probeItems[safeIndex];
+    if (!probe) {
+      return null;
+    }
+    return getProbeResponse(probe);
+  }, [probeItems, selectedProbeIndex]);
 
   const renderContent = (): React.JSX.Element => {
+    if (!latestResponse) {
+      return (
+        <View style={{ padding: 20, alignItems: "center" }}>
+          <Ionicons
+            name="analytics-outline"
+            size={24}
+            color={theme.colors.textTertiary}
+            style={{ marginBottom: 8 }}
+          />
+          <Text
+            style={{
+              fontSize: 13,
+              color: theme.colors.textSecondary,
+              textAlign: "center",
+            }}
+          >
+            No monitoring data available yet.
+          </Text>
+        </View>
+      );
+    }
+
     switch (monitorType) {
       case "Website":
       case "API":
@@ -597,6 +722,13 @@ export default function MonitorSummaryView({
         borderColor: theme.colors.borderGlass,
       }}
     >
+      {hasMultipleProbes ? (
+        <ProbePicker
+          probeItems={probeItems}
+          selectedIndex={selectedProbeIndex}
+          onSelect={setSelectedProbeIndex}
+        />
+      ) : null}
       {renderContent()}
     </View>
   );

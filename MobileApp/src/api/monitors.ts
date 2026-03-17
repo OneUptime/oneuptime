@@ -181,6 +181,7 @@ export interface ProbeMonitorResponse {
 export interface MonitorProbeItem {
   _id: string;
   probeId?: string;
+  probe?: { _id: string; name: string };
   lastMonitoringLog?: Record<string, ProbeMonitorResponse>;
 }
 
@@ -195,6 +196,7 @@ export async function fetchMonitorProbes(
       select: {
         _id: true,
         probeId: true,
+        probe: { _id: true, name: true },
         lastMonitoringLog: true,
       },
       sort: {},

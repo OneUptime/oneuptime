@@ -410,16 +410,12 @@ export default function MonitorDetailScreen({
                         {entry.monitorStatus?.name ?? "Unknown"}
                       </Text>
                       {entry.rootCause ? (
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: theme.colors.textSecondary,
-                            marginTop: 2,
-                          }}
-                          numberOfLines={2}
-                        >
-                          {toPlainText(entry.rootCause)}
-                        </Text>
+                        <View style={{ marginTop: 2 }}>
+                          <MarkdownContent
+                            content={entry.rootCause}
+                            variant="secondary"
+                          />
+                        </View>
                       ) : null}
                     </View>
                     <Text
