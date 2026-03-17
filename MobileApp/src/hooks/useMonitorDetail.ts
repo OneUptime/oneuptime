@@ -3,8 +3,12 @@ import {
   fetchMonitorById,
   fetchMonitorFeed,
   fetchMonitorStatusTimeline,
+  fetchMonitorProbes,
 } from "../api/monitors";
-import type { MonitorStatusTimelineItem } from "../api/monitors";
+import type {
+  MonitorStatusTimelineItem,
+  MonitorProbeItem,
+} from "../api/monitors";
 import type { MonitorItem, FeedItem } from "../api/types";
 
 export function useMonitorDetail(
@@ -28,6 +32,19 @@ export function useMonitorStatusTimeline(
     queryKey: ["monitor-status-timeline", projectId, monitorId],
     queryFn: () => {
       return fetchMonitorStatusTimeline(projectId, monitorId);
+    },
+    enabled: Boolean(projectId) && Boolean(monitorId),
+  });
+}
+
+export function useMonitorProbes(
+  projectId: string,
+  monitorId: string,
+): UseQueryResult<MonitorProbeItem[], Error> {
+  return useQuery({
+    queryKey: ["monitor-probes", projectId, monitorId],
+    queryFn: () => {
+      return fetchMonitorProbes(projectId, monitorId);
     },
     enabled: Boolean(projectId) && Boolean(monitorId),
   });

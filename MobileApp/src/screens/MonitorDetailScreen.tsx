@@ -7,6 +7,7 @@ import {
   useMonitorDetail,
   useMonitorStatusTimeline,
   useMonitorFeed,
+  useMonitorProbes,
 } from "../hooks/useMonitorDetail";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime, formatRelativeTime } from "../utils/date";
@@ -17,6 +18,7 @@ import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
 import MarkdownContent from "../components/MarkdownContent";
+import MonitorSummaryView from "../components/MonitorSummaryView";
 
 type Props = NativeStackScreenProps<MonitorsStackParamList, "MonitorDetail">;
 
@@ -58,14 +60,23 @@ export default function MonitorDetailScreen({
   } = useMonitorDetail(projectId, monitorId);
   const { data: statusTimeline, refetch: refetchTimeline } =
     useMonitorStatusTimeline(projectId, monitorId);
+  const { data: probeItems, refetch: refetchProbes } = useMonitorProbes(
+    projectId,
+    monitorId,
+  );
   const { data: feed, refetch: refetchFeed } = useMonitorFeed(
     projectId,
     monitorId,
   );
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([refetchMonitor(), refetchTimeline(), refetchFeed()]);
-  }, [refetchMonitor, refetchTimeline, refetchFeed]);
+    await Promise.all([
+      refetchMonitor(),
+      refetchTimeline(),
+      refetchProbes(),
+      refetchFeed(),
+    ]);
+  }, [refetchMonitor, refetchTimeline, refetchProbes, refetchFeed]);
 
   if (isLoading) {
     return (
@@ -262,6 +273,15 @@ export default function MonitorDetailScreen({
           </View>
         </View>
       ) : null}
+
+      {/* Monitor Summary */}
+      <View style={{ marginBottom: 24 }}>
+        <SectionHeader title="Monitor Summary" iconName="analytics-outline" />
+        <MonitorSummaryView
+          monitorType={monitor.monitorType}
+          probeItems={probeItems ?? []}
+        />
+      </View>
 
       {/* Details */}
       <View style={{ marginBottom: 24 }}>

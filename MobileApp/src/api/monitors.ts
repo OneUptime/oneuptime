@@ -149,6 +149,63 @@ export async function fetchMonitorFeed(
   return response.data.data;
 }
 
+export interface ProbeMonitorResponse {
+  isOnline?: boolean;
+  monitorDestination?: string;
+  monitorDestinationPort?: number;
+  responseTimeInMs?: number;
+  responseCode?: number;
+  responseHeaders?: Record<string, string>;
+  responseBody?: string | Record<string, unknown>;
+  failureCause?: string;
+  monitoredAt?: string;
+  isTimeout?: boolean;
+  hostname?: string;
+  // Server monitor fields
+  basicInfrastructureMetrics?: {
+    cpuMetrics?: { percentUsed?: number; cores?: number };
+    memoryMetrics?: {
+      totalInGB?: number;
+      percentUsed?: number;
+      percentFree?: number;
+    };
+    diskMetrics?: Array<{
+      diskPath?: string;
+      totalInGB?: number;
+      percentUsed?: number;
+      percentFree?: number;
+    }>;
+  };
+}
+
+export interface MonitorProbeItem {
+  _id: string;
+  probeId?: string;
+  lastMonitoringLog?: Record<string, ProbeMonitorResponse>;
+}
+
+export async function fetchMonitorProbes(
+  projectId: string,
+  monitorId: string,
+): Promise<MonitorProbeItem[]> {
+  const response: AxiosResponse = await apiClient.post(
+    "/api/monitor-probe/get-list?skip=0&limit=10",
+    {
+      query: { monitorId },
+      select: {
+        _id: true,
+        probeId: true,
+        lastMonitoringLog: true,
+      },
+      sort: {},
+    },
+    {
+      headers: { tenantid: projectId },
+    },
+  );
+  return response.data.data;
+}
+
 export async function fetchMonitorCount(
   projectId: string,
 ): Promise<ListResponse<MonitorItem>> {
