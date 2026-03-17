@@ -1,0 +1,419 @@
+# Plan: Kubernetes Monitoring for OneUptime
+
+## Context
+
+OneUptime has foundational infrastructure for Kubernetes monitoring: OTLP ingestion (HTTP and gRPC), ClickHouse metric/log/trace storage, telemetry-based monitors (Metrics, Logs, Traces), and a Helm chart for deploying OneUptime itself on Kubernetes. A `Kubernetes` monitor type exists in the `MonitorType` enum but is currently disabled and has no implementation. The OpenTelemetry Collector config supports OTLP receivers but has no Kubernetes-specific receivers (kubelet, kube-state-metrics, Prometheus). Server monitoring exists but is limited to basic VM-level checks.
+
+This plan proposes a phased implementation to deliver first-class Kubernetes monitoring — from cluster health and workload observability to intelligent alerting — leveraging OneUptime's all-in-one observability platform (metrics, logs, traces, incidents, status pages).
+
+## Completed
+
+- **OTLP Metric Ingestion** - HTTP and gRPC metric ingestion with async queue-based batch processing
+- **ClickHouse Metric Storage** - MergeTree with partitioning, per-service TTL
+- **Telemetry-Based Monitors** - Metric, Log, Trace, and Exception monitors with configurable criteria
+- **Helm Chart** - OneUptime deploys on Kubernetes with KEDA auto-scaling support
+- **OpenTelemetry Collector** - Deployed via Helm, accepts OTLP on ports 4317/4318
+- **MonitorType.Kubernetes** - Enum value defined (but disabled and unimplemented)
+
+## Gap Analysis Summary
+
+| Feature | OneUptime | DataDog | New Relic | Grafana/Prometheus | Priority |
+|---------|-----------|---------|-----------|-------------------|----------|
+| K8s metric collection (kubelet, kube-state-metrics) | None | Agent auto-discovery | K8s integration | Prometheus + kube-state-metrics | **P0** |
+| Cluster overview dashboard | None | Out-of-box | Pre-built | Pre-built via mixins | **P0** |
+| Pod/Container resource metrics | None | Live Containers | K8s cluster explorer | cAdvisor + Grafana | **P0** |
+| Node health monitoring | None | Host Map + agent | Infrastructure UI | node-exporter + Grafana | **P0** |
+| Kubernetes event ingestion | None | Auto-collected | K8s events integration | Eventrouter/Exporter | **P0** |
+| Workload health alerts (CrashLoopBackOff, OOMKilled, etc.) | None | Auto-monitors | Pre-built alerts | PrometheusRule CRDs | **P1** |
+| Namespace/workload cost attribution | None | Container cost allocation | None | Kubecost integration | **P1** |
+| K8s resource inventory (deployments, services, ingresses) | None | Orchestrator Explorer | Cluster explorer | None native | **P1** |
+| HPA/VPA monitoring | None | Yes | Partial | Prometheus metrics | **P1** |
+| Multi-cluster support | None | Yes | Yes | Thanos/Cortex | **P2** |
+| K8s log collection (pod stdout/stderr) | Via Fluentd example | DaemonSet agent | Fluent Bit integration | Loki + Promtail | **P2** |
+| Service mesh observability (Istio, Linkerd) | None | Yes | Yes | Partial | **P2** |
+| Network policy monitoring | None | NPM | None | Cilium Hubble | **P3** |
+| eBPF-based deep observability | None | Universal Service Monitoring | Pixie | Cilium/Tetragon | **P3** |
+
+---
+
+## Phase 1: Foundation (P0) — Kubernetes Metric Collection & Visibility
+
+Without these, OneUptime cannot monitor any Kubernetes cluster. This phase makes K8s metrics flow into the platform and provides basic visibility.
+
+### 1.1 OpenTelemetry Collector Kubernetes Receivers
+
+**Current**: OTel Collector only has OTLP receivers. No Kubernetes-specific metric collection.
+**Target**: Pre-configured OTel Collector with receivers for kubelet, kube-state-metrics, and Kubernetes events.
+
+**Implementation**:
+
+- Add `kubeletstats` receiver to the OTel Collector config for node and pod resource metrics:
+  - CPU, memory, filesystem, network per node and per pod/container
+  - Collection interval: 30s
+  - Auth via serviceAccount token
+- Add `k8s_cluster` receiver for cluster-level metrics from the Kubernetes API:
+  - Deployment, ReplicaSet, StatefulSet, DaemonSet replica counts and status
+  - Pod phase, container states (waiting/running/terminated with reasons)
+  - Node conditions (Ready, MemoryPressure, DiskPressure, PIDPressure)
+  - Namespace resource quotas and limit ranges
+  - HPA current/desired replicas
+- Add `k8sobjects` receiver for Kubernetes events:
+  - Watch Events API for Warning and Normal events
+  - Ingest as logs with structured attributes (reason, involvedObject, message)
+- Add `k8s_events` receiver as alternative lightweight event collection
+- Configure `k8sattributes` processor to enrich all telemetry with K8s metadata:
+  - Pod name, namespace, node, deployment, replicaset, labels, annotations
+- Provide Helm values to enable/disable K8s monitoring and configure which namespaces to monitor
+
+**Files to modify**:
+- `OTelCollector/otel-collector-config.template.yaml` (add kubeletstats, k8s_cluster, k8sobjects receivers and k8sattributes processor)
+- `HelmChart/Public/oneuptime/templates/otel-collector.yaml` (restore and configure OTel Collector deployment with proper RBAC)
+- `HelmChart/Public/oneuptime/templates/otel-collector-rbac.yaml` (new - ClusterRole, ClusterRoleBinding, ServiceAccount for K8s API access)
+- `HelmChart/Public/oneuptime/values.yaml` (add kubernetesMonitoring config section)
+
+### 1.2 Kubernetes Cluster Overview Dashboard Template
+
+**Current**: No pre-built Kubernetes dashboards.
+**Target**: Auto-generated cluster overview dashboard showing key health indicators.
+
+**Implementation**:
+
+- Create a dashboard template with the following panels:
+  - **Cluster Summary**: Total nodes, pods (running/pending/failed), namespaces, deployments
+  - **Node Health**: CPU and memory utilization per node, node conditions
+  - **Pod Status**: Pod phase distribution (Running/Pending/Succeeded/Failed/Unknown)
+  - **Resource Utilization**: Cluster-wide CPU and memory usage vs capacity (requests, limits, actual)
+  - **Top Consumers**: Top 10 pods by CPU usage, top 10 by memory usage
+  - **Recent Events**: Kubernetes Warning events stream
+  - **Container Restarts**: Pods with highest restart counts
+- Auto-detect K8s metrics and offer dashboard creation during onboarding
+- Use template variables for namespace and node filtering
+
+**Files to modify**:
+- `Common/Types/Dashboard/Templates/KubernetesCluster.ts` (new - cluster overview template)
+- `Common/Types/Dashboard/Templates/KubernetesWorkload.ts` (new - per-namespace workload template)
+- `App/FeatureSet/Dashboard/src/Pages/Dashboards/Templates.tsx` (add K8s templates to gallery)
+
+### 1.3 Pod and Container Resource Metrics
+
+**Current**: No container-level visibility.
+**Target**: Detailed resource metrics for every pod and container with drill-down.
+
+**Implementation**:
+
+- Ensure the following kubeletstats metrics are ingested and queryable:
+  - `k8s.pod.cpu.utilization`, `k8s.pod.memory.usage`, `k8s.pod.memory.rss`
+  - `k8s.pod.network.io` (rx/tx bytes), `k8s.pod.filesystem.usage`
+  - `container.cpu.utilization`, `container.memory.usage`, `container.restarts`
+- Create a "Kubernetes" section in the dashboard navigation:
+  - Cluster > Namespace > Workload > Pod > Container drill-down hierarchy
+- Pod detail page showing: resource usage over time, container statuses, events, logs (linked), traces (linked)
+- Calculate resource efficiency: actual usage vs requests vs limits
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/` (new directory)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/ClusterOverview.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Namespaces.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Pods.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/PodDetail.tsx` (new)
+
+### 1.4 Node Health Monitoring
+
+**Current**: No node-level metrics.
+**Target**: Per-node resource utilization, conditions, and capacity tracking.
+
+**Implementation**:
+
+- Ingest node metrics via kubeletstats receiver:
+  - `k8s.node.cpu.utilization`, `k8s.node.memory.usage`, `k8s.node.memory.available`
+  - `k8s.node.filesystem.usage`, `k8s.node.filesystem.capacity`
+  - `k8s.node.network.io`, `k8s.node.condition` (Ready, MemoryPressure, etc.)
+- Node list page: table with all nodes showing CPU%, memory%, disk%, conditions, pod count
+- Node detail page: time-series charts for resource usage, pod list on node, events
+- Node capacity planning: show allocatable vs requested vs used per node
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Nodes.tsx` (new)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/NodeDetail.tsx` (new)
+
+### 1.5 Kubernetes Event Ingestion
+
+**Current**: No Kubernetes event collection.
+**Target**: Ingest and surface Kubernetes events as structured logs with correlation to resources.
+
+**Implementation**:
+
+- Configure `k8sobjects` receiver to watch Kubernetes Events
+- Map events to structured log entries:
+  - `severity` from event type (Warning -> WARN, Normal -> INFO)
+  - `body` from event message
+  - Attributes: `k8s.event.reason`, `k8s.event.count`, `k8s.object.kind`, `k8s.object.name`, `k8s.namespace.name`
+- Create a dedicated "Kubernetes Events" view:
+  - Filterable by namespace, event reason, object kind
+  - Timeline visualization showing event frequency
+  - Link events to related pods/deployments/nodes
+- Alert on specific event patterns (e.g., repeated FailedScheduling, FailedMount)
+
+**Files to modify**:
+- `OTelCollector/otel-collector-config.template.yaml` (add k8sobjects receiver)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Events.tsx` (new)
+
+---
+
+## Phase 2: Intelligent Alerting & Workload Health (P1) — Actionable Monitoring
+
+### 2.1 Kubernetes-Aware Alert Templates
+
+**Current**: Generic metric threshold alerts only. Users must manually configure alerts for K8s failure modes.
+**Target**: Pre-built alert templates for common Kubernetes failure patterns.
+
+**Implementation**:
+
+- Create alert templates for critical K8s conditions:
+  - **CrashLoopBackOff**: Alert when `k8s.container.restarts` increases rapidly (> N restarts in M minutes)
+  - **OOMKilled**: Alert on container termination reason = OOMKilled
+  - **Pod Pending**: Alert when pods remain in Pending phase for > N minutes
+  - **Node NotReady**: Alert when node condition transitions to NotReady
+  - **High Resource Utilization**: Alert when node CPU > 90% or memory > 85% sustained
+  - **Deployment Replica Mismatch**: Alert when available replicas < desired replicas for > N minutes
+  - **PVC Disk Full**: Alert when PV usage > 90% capacity
+  - **Failed Scheduling**: Alert on repeated FailedScheduling events
+  - **Image Pull Failures**: Alert on ErrImagePull/ImagePullBackOff events
+  - **Job/CronJob Failures**: Alert when job completion fails
+- One-click enable for each alert template during K8s monitoring setup
+- Auto-route alerts to the OneUptime incident management system
+
+**Files to modify**:
+- `Common/Types/Monitor/Templates/KubernetesAlertTemplates.ts` (new)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/AlertSetup.tsx` (new - guided alert configuration)
+- `Worker/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts` (support K8s-specific criteria evaluation)
+
+### 2.2 Kubernetes Resource Inventory
+
+**Current**: No visibility into K8s resource state.
+**Target**: Live inventory of Kubernetes resources with health status.
+
+**Implementation**:
+
+- Create a `KubernetesResource` model stored in ClickHouse (or PostgreSQL depending on query patterns):
+  - Kind, name, namespace, labels, annotations, status, conditions, timestamps
+  - Updated via the `k8s_cluster` receiver or periodic API sync
+- Resource pages:
+  - **Deployments**: List with replica status (ready/desired), last update, strategy
+  - **StatefulSets**: Ordered pod status, PVC bindings
+  - **DaemonSets**: Node coverage, desired vs current vs ready
+  - **Services**: Type (ClusterIP/NodePort/LoadBalancer), endpoints, selector
+  - **Ingresses**: Host rules, backend services, TLS status
+  - **ConfigMaps/Secrets**: List with last-modified (secrets show metadata only, never values)
+  - **PVCs**: Bound PV, capacity, access modes, storage class
+- Drill-down from any resource to its associated pods, events, and telemetry
+
+**Files to modify**:
+- `Common/Models/AnalyticsModels/KubernetesResource.ts` (new)
+- `Telemetry/Services/KubernetesResourceService.ts` (new - sync K8s resources)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Resources/` (new - pages for each resource kind)
+
+### 2.3 HPA and VPA Monitoring
+
+**Current**: No autoscaler visibility.
+**Target**: Track HPA/VPA behavior and scaling events.
+
+**Implementation**:
+
+- Ingest HPA metrics from `k8s_cluster` receiver:
+  - `k8s.hpa.current_replicas`, `k8s.hpa.desired_replicas`, `k8s.hpa.min_replicas`, `k8s.hpa.max_replicas`
+  - Target metric values vs actual
+- HPA overview page:
+  - List all HPAs with current/desired/min/max replicas
+  - Time-series chart showing scaling events overlaid with the target metric
+  - Alert when HPA is at max replicas sustained (capacity ceiling)
+  - Alert when scale-up frequency is abnormally high (thrashing)
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Autoscaling.tsx` (new)
+
+### 2.4 Namespace Resource Quota Monitoring
+
+**Current**: No quota tracking.
+**Target**: Track resource quota usage per namespace and alert on approaching limits.
+
+**Implementation**:
+
+- Ingest quota metrics from `k8s_cluster` receiver:
+  - `k8s.resource_quota.hard.cpu`, `k8s.resource_quota.used.cpu`
+  - `k8s.resource_quota.hard.memory`, `k8s.resource_quota.used.memory`
+  - `k8s.resource_quota.hard.pods`, `k8s.resource_quota.used.pods`
+- Namespace detail page showing quota utilization gauges
+- Alert when any quota usage exceeds 80% (configurable threshold)
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/NamespaceDetail.tsx` (new)
+
+---
+
+## Phase 3: Advanced Observability (P2) — Correlation & Deep Visibility
+
+### 3.1 Kubernetes Log Collection
+
+**Current**: Users can manually configure Fluentd to send logs. No built-in K8s log collection.
+**Target**: Automated pod log collection via OTel Collector with K8s metadata enrichment.
+
+**Implementation**:
+
+- Add `filelog` receiver to OTel Collector for collecting container logs from `/var/log/pods/`:
+  - Parse container runtime log format (Docker JSON, CRI)
+  - Extract pod name, namespace, container name from file path
+  - Enrich with K8s metadata via `k8sattributes` processor
+- Deploy OTel Collector as a DaemonSet (in addition to existing Deployment) for log collection
+- Helm values to configure:
+  - Namespace inclusion/exclusion filters
+  - Log level filtering (e.g., only collect WARN and above)
+  - Container name exclusion patterns
+- Link pod logs in the Kubernetes pod detail page
+
+**Files to modify**:
+- `HelmChart/Public/oneuptime/templates/otel-collector-daemonset.yaml` (new - DaemonSet for log collection)
+- `OTelCollector/otel-collector-daemonset-config.template.yaml` (new - DaemonSet-specific config with filelog receiver)
+- `HelmChart/Public/oneuptime/values.yaml` (add DaemonSet configuration options)
+
+### 3.2 Multi-Cluster Support
+
+**Current**: Single-cluster assumption.
+**Target**: Monitor multiple Kubernetes clusters from a single OneUptime project.
+
+**Implementation**:
+
+- Add `cluster` attribute to all K8s metrics via OTel Collector resource processor
+- Cluster registration: each cluster gets a unique name and OneUptime API key
+- Helm install per cluster with cluster-specific configuration
+- Cluster selector in the K8s monitoring UI (template variable)
+- Cross-cluster comparison views (e.g., resource utilization across clusters)
+- Unified alerting: same alert rules applied across all clusters or cluster-specific
+
+**Files to modify**:
+- `OTelCollector/otel-collector-config.template.yaml` (add resource processor with cluster name)
+- `HelmChart/Public/oneuptime/values.yaml` (add clusterName config)
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Clusters.tsx` (new - multi-cluster view)
+
+### 3.3 Service Mesh Observability
+
+**Current**: No service mesh integration.
+**Target**: Ingest and visualize service mesh metrics from Istio, Linkerd, or similar.
+
+**Implementation**:
+
+- Add Prometheus receiver to OTel Collector for scraping service mesh metrics:
+  - Istio: `istio_requests_total`, `istio_request_duration_milliseconds`, `istio_tcp_connections_opened_total`
+  - Linkerd: `request_total`, `response_latency_ms`
+- Service-to-service traffic map from mesh metrics
+- mTLS status visibility
+- Circuit breaker and retry metrics
+- Dashboard templates for Istio and Linkerd
+
+**Files to modify**:
+- `OTelCollector/otel-collector-config.template.yaml` (add prometheus receiver for mesh metrics)
+- `Common/Types/Dashboard/Templates/ServiceMesh.ts` (new - mesh dashboard templates)
+
+### 3.4 Kubernetes-to-Telemetry Correlation
+
+**Current**: K8s resources and telemetry (metrics, logs, traces) are separate.
+**Target**: Click on any K8s resource to see correlated telemetry.
+
+**Implementation**:
+
+- From any pod/deployment/service page, show:
+  - **Metrics**: CPU, memory, network filtered to that resource
+  - **Logs**: Logs from containers in that pod, filtered by K8s metadata attributes
+  - **Traces**: Traces originating from or passing through that service
+  - **Events**: Kubernetes events for that resource
+- Use `k8sattributes` processor enrichment to correlate:
+  - `k8s.pod.name`, `k8s.namespace.name`, `k8s.deployment.name` across all signals
+- Deep link from incident timeline to K8s resource view
+
+**Files to modify**:
+- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/PodDetail.tsx` (add telemetry correlation tabs)
+- `App/FeatureSet/Dashboard/src/Components/Kubernetes/ResourceTelemetryPanel.tsx` (new - reusable correlation panel)
+
+---
+
+## Phase 4: Intelligence & Differentiation (P3) — Long-Term
+
+### 4.1 Kubernetes Cost Attribution
+
+- Track CPU and memory usage per namespace, workload, and label
+- Calculate cost based on node instance pricing (configurable per cluster)
+- Show cost trends over time, cost per team/project (via labels)
+- Identify idle resources (requested but unused capacity)
+- Recommendations: right-size requests/limits based on actual usage
+
+### 4.2 Network Policy Monitoring
+
+- Visualize network policies and their effect on pod communication
+- Alert on denied network connections
+- Integration with Cilium Hubble or Calico for deep network visibility
+- Service dependency map derived from actual network traffic
+
+### 4.3 eBPF-Based Deep Observability
+
+- Kernel-level visibility without application instrumentation
+- Automatic service discovery and dependency mapping
+- DNS monitoring and latency
+- TCP connection tracking and retransmit analysis
+- Integration with tools like Tetragon, Pixie, or custom eBPF probes
+
+### 4.4 Kubernetes Compliance and Security Monitoring
+
+- Pod security standards compliance tracking
+- RBAC audit logging and visualization
+- Image vulnerability scanning status
+- Network policy coverage analysis
+- CIS Kubernetes Benchmark compliance scoring
+
+### 4.5 GitOps Integration
+
+- Track ArgoCD/Flux deployments as annotations on metric charts
+- Correlate deployment events with performance changes
+- Show deployment history per workload with rollback status
+- Alert when deployment sync fails or drift is detected
+
+---
+
+## Quick Wins (Can Ship This Week)
+
+1. **Enable Kubernetes MonitorType** - Uncomment the Kubernetes entry in `getAllMonitorTypeProps()` and wire it to existing telemetry monitors
+2. **Add k8sattributes processor** - Enrich all existing OTLP data with K8s metadata for free
+3. **Kubernetes dashboard template** - Create a basic cluster health dashboard using standard OTEL K8s metric names
+4. **K8s event alerting** - Use existing log monitors to alert on K8s Warning events once event ingestion is configured
+5. **Document OTel Collector K8s setup** - Guide for users to configure their own OTel Collector with K8s receivers pointing to OneUptime
+
+---
+
+## Recommended Implementation Order
+
+1. **Quick Wins** - Enable MonitorType, k8sattributes processor, documentation
+2. **Phase 1.1** - OTel Collector K8s receivers (prerequisite for everything else)
+3. **Phase 1.5** - Kubernetes event ingestion (high value, uses existing log infrastructure)
+4. **Phase 1.2** - Cluster overview dashboard template
+5. **Phase 1.3** - Pod and container resource metrics pages
+6. **Phase 1.4** - Node health monitoring pages
+7. **Phase 2.1** - K8s-aware alert templates (makes monitoring actionable)
+8. **Phase 2.2** - Resource inventory pages
+9. **Phase 2.4** - Namespace quota monitoring
+10. **Phase 2.3** - HPA/VPA monitoring
+11. **Phase 3.1** - K8s log collection via DaemonSet
+12. **Phase 3.4** - K8s-to-telemetry correlation
+13. **Phase 3.2** - Multi-cluster support
+14. **Phase 3.3** - Service mesh observability
+15. **Phase 4.x** - Cost attribution, network policies, eBPF, compliance, GitOps
+
+## Verification
+
+For each feature:
+1. Unit tests for new K8s metric query builders, resource models, and alert template logic
+2. Integration tests for OTel Collector K8s receivers (use minikube or kind in CI)
+3. Manual verification on a test cluster (minikube/kind) with representative workloads
+4. Verify K8s metadata enrichment via `k8sattributes` processor across metrics, logs, and traces
+5. Check ClickHouse query performance for K8s-specific queries (namespace filtering, resource correlation)
+6. Load test with realistic cluster sizes (100+ nodes, 1000+ pods) to validate metric volume handling
+7. Verify RBAC permissions are minimal (principle of least privilege for ClusterRole)
+8. Test Helm chart upgrades to ensure K8s monitoring can be enabled without disruption
