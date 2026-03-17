@@ -123,9 +123,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {/* Uptime graph: Hidden on mobile, visible on larger screens */}
+      {/* Uptime graph: Scrollable on mobile, full width on larger screens */}
       {props.showHistoryChart && (
-        <div className="w-full overflow-hidden hidden sm:block">
+        <div className="w-full overflow-x-auto">
           <MonitorUptimeGraph
             error={undefined}
             barColorRules={props.statusPageHistoryChartBarColorRules}
@@ -140,9 +140,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* Time labels: Hidden on mobile, visible on larger screens */}
+      {/* Time labels: Visible on all screen sizes */}
       {props.showHistoryChart && (
-        <div className="text-xs sm:text-sm text-gray-400 mt-1 justify-between hidden sm:flex">
+        <div className="text-xs sm:text-sm text-gray-400 mt-1 justify-between flex">
           <div>90 days ago</div>
           <div>Today</div>
         </div>
