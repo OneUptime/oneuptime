@@ -302,9 +302,19 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           sortBy="startTime"
           sortOrder={SortOrder.Descending}
           onViewPage={(span: Span) => {
+            if (modelId) {
+              return Promise.resolve(
+                new Route(viewRoute.toString()).addRoute(
+                  span.traceId!.toString(),
+                ),
+              );
+            }
             return Promise.resolve(
-              new Route(viewRoute.toString()).addRoute(
-                span.traceId!.toString(),
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.TRACE_VIEW]!,
+                {
+                  modelId: span.traceId!.toString(),
+                },
               ),
             );
           }}
