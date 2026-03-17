@@ -166,6 +166,7 @@ export default function HomeScreen(): React.JSX.Element {
     alertCount,
     incidentEpisodeCount,
     alertEpisodeCount,
+    monitorCount,
     isLoading: anyLoading,
     refetch,
   } = useAllProjectCounts();
@@ -620,6 +621,35 @@ export default function HomeScreen(): React.JSX.Element {
               </View>
             </View>
           </Pressable>
+        </View>
+
+        <View>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
+              color: theme.colors.textSecondary,
+              letterSpacing: 1,
+            }}
+          >
+            Monitors
+          </Text>
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1 }}>
+              <StatCard
+                count={monitorCount}
+                label="Total Monitors"
+                accentColor={theme.colors.oncallActive}
+                iconName="pulse-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Monitors");
+                }}
+              />
+            </View>
+          </View>
         </View>
 
         <View>

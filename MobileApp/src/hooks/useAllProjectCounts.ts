@@ -4,12 +4,14 @@ import { fetchAllIncidents } from "../api/incidents";
 import { fetchAllAlerts } from "../api/alerts";
 import { fetchAllIncidentEpisodes } from "../api/incidentEpisodes";
 import { fetchAllAlertEpisodes } from "../api/alertEpisodes";
+import { fetchAllMonitorCount } from "../api/monitors";
 import type {
   ListResponse,
   IncidentItem,
   AlertItem,
   IncidentEpisodeItem,
   AlertEpisodeItem,
+  MonitorItem,
 } from "../api/types";
 
 interface UseAllProjectCountsResult {
@@ -17,6 +19,7 @@ interface UseAllProjectCountsResult {
   alertCount: number;
   incidentEpisodeCount: number;
   alertEpisodeCount: number;
+  monitorCount: number;
   isLoading: boolean;
   refetch: () => Promise<void>;
 }
@@ -78,11 +81,23 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     enabled,
   });
 
+  const monitorQuery: UseQueryResult<
+    ListResponse<MonitorItem>,
+    Error
+  > = useQuery({
+    queryKey: ["monitors", "count", "all-projects"],
+    queryFn: () => {
+      return fetchAllMonitorCount();
+    },
+    enabled,
+  });
+
   const isLoading: boolean =
     incidentQuery.isPending ||
     alertQuery.isPending ||
     incidentEpisodeQuery.isPending ||
-    alertEpisodeQuery.isPending;
+    alertEpisodeQuery.isPending ||
+    monitorQuery.isPending;
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
     await Promise.all([
@@ -90,6 +105,7 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
       alertQuery.refetch(),
       incidentEpisodeQuery.refetch(),
       alertEpisodeQuery.refetch(),
+      monitorQuery.refetch(),
     ]);
   };
 
@@ -98,6 +114,7 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     alertCount: alertQuery.data?.count ?? 0,
     incidentEpisodeCount: incidentEpisodeQuery.data?.count ?? 0,
     alertEpisodeCount: alertEpisodeQuery.data?.count ?? 0,
+    monitorCount: monitorQuery.data?.count ?? 0,
     isLoading,
     refetch,
   };

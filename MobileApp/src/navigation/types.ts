@@ -6,6 +6,7 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
+  Monitors: undefined;
   Incidents: undefined;
   Alerts: undefined;
   OnCall: undefined;
@@ -36,4 +37,9 @@ export type AlertsStackParamList = {
   AlertsList: undefined;
   AlertDetail: { alertId: string; projectId: string };
   AlertEpisodeDetail: { episodeId: string; projectId: string };
+};
+
+export type MonitorsStackParamList = {
+  MonitorsList: undefined;
+  MonitorDetail: { monitorId: string; projectId: string };
 };

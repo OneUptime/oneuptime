@@ -28,6 +28,7 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import Span, {
   SpanEvent,
   SpanEventType,
+  SpanLink,
 } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
@@ -37,6 +38,11 @@ import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import Link from "Common/UI/Components/Link/Link";
+import CriticalPathUtil, {
+  SpanData,
+  SpanSelfTime,
+} from "Common/Utils/Traces/CriticalPath";
 
 export interface ComponentProps {
   id: string;
@@ -45,6 +51,7 @@ export interface ComponentProps {
   onClose: () => void;
   telemetryService: Service;
   divisibilityFactor: DivisibilityFactor;
+  allTraceSpans?: Span[];
 }
 
 const SpanViewer: FunctionComponent<ComponentProps> = (
@@ -76,7 +83,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     serviceId: true,
     spanId: true,
     traceId: true,
+    parentSpanId: true,
     events: true,
+    links: true,
     startTime: true,
     endTime: true,
     startTimeUnixNano: true,
@@ -533,6 +542,109 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // Compute self-time for this span
+  const selfTimeInfo: SpanSelfTime | null = React.useMemo(() => {
+    if (!span || !props.allTraceSpans || props.allTraceSpans.length === 0) {
+      return null;
+    }
+
+    const spanDataList: SpanData[] = props.allTraceSpans.map(
+      (s: Span): SpanData => {
+        return {
+          spanId: s.spanId!,
+          parentSpanId: s.parentSpanId || undefined,
+          startTimeUnixNano: s.startTimeUnixNano!,
+          endTimeUnixNano: s.endTimeUnixNano!,
+          durationUnixNano: s.durationUnixNano!,
+          serviceId: s.serviceId?.toString(),
+          name: s.name,
+        };
+      },
+    );
+
+    const selfTimes: Map<string, SpanSelfTime> =
+      CriticalPathUtil.computeSelfTimes(spanDataList);
+    return selfTimes.get(span.spanId!) || null;
+  }, [span, props.allTraceSpans]);
+
+  const getLinksContentElement: GetReactElementFunction = (): ReactElement => {
+    if (!span) {
+      return <ErrorMessage message="Span not found" />;
+    }
+
+    const links: Array<SpanLink> | undefined = span.links;
+
+    if (!links || links.length === 0) {
+      return <ErrorMessage message="No linked spans found." />;
+    }
+
+    return (
+      <div className="space-y-2">
+        {links.map((link: SpanLink, index: number) => {
+          const traceRoute: Route = RouteUtil.populateRouteParams(
+            RouteMap[PageMap.TRACE_VIEW]!,
+            {
+              modelId: link.traceId,
+            },
+          );
+
+          const routeWithSpanId: Route = new Route(traceRoute.toString());
+          routeWithSpanId.addQueryParams({ spanId: link.spanId });
+
+          return (
+            <div
+              key={index}
+              className="rounded-md border border-gray-200 p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-medium text-gray-700">
+                  Link {index + 1}
+                </div>
+                <Link
+                  to={routeWithSpanId}
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                  openInNewTab={true}
+                >
+                  View Trace
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <div className="text-gray-500 font-medium">Trace ID</div>
+                  <code className="text-gray-800 font-mono text-[11px] break-all">
+                    {link.traceId}
+                  </code>
+                </div>
+                <div>
+                  <div className="text-gray-500 font-medium">Span ID</div>
+                  <code className="text-gray-800 font-mono text-[11px] break-all">
+                    {link.spanId}
+                  </code>
+                </div>
+              </div>
+              {link.attributes &&
+              Object.keys(link.attributes).length > 0 ? (
+                <div>
+                  <div className="text-xs text-gray-500 font-medium mb-1">
+                    Attributes
+                  </div>
+                  <JSONTable
+                    json={JSONFunctions.nestJson(
+                      (link.attributes as any) || {},
+                    )}
+                    title="Link Attributes"
+                  />
+                </div>
+              ) : (
+                <></>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const getBasicInfo: GetReactElementFunction = (): ReactElement => {
     if (!span) {
       return <ErrorMessage message="Span not found" />;
@@ -664,6 +776,33 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
               );
             },
           },
+          ...(selfTimeInfo
+            ? [
+                {
+                  key: "selfTime" as keyof Span,
+                  title: "Self Time",
+                  description:
+                    "Time spent in this span excluding child span durations.",
+                  fieldType: FieldType.Element,
+                  getElement: () => {
+                    return (
+                      <div className="flex items-center space-x-2">
+                        <span>
+                          {SpanUtil.getSpanDurationAsString({
+                            divisibilityFactor: props.divisibilityFactor,
+                            spanDurationInUnixNano:
+                              selfTimeInfo.selfTimeUnixNano,
+                          })}
+                        </span>
+                        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          {selfTimeInfo.selfTimePercent.toFixed(1)}% of span
+                        </span>
+                      </div>
+                    );
+                  },
+                },
+              ]
+            : []),
           {
             key: "kind",
             title: "Span Kind",
@@ -709,6 +848,12 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             countBadge: span?.events?.filter((event: SpanEvent) => {
               return event.name === SpanEventType.Exception.toLowerCase();
             }).length,
+          },
+          {
+            name: "Links",
+            children: getLinksContentElement(),
+            countBadge: span?.links?.length || 0,
+            tabType: TabType.Info,
           },
         ]}
         onTabChange={() => {}}

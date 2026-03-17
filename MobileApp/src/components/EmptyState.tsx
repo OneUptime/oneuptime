@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import GradientButton from "./GradientButton";
 
-type EmptyIcon = "incidents" | "alerts" | "episodes" | "notes" | "default";
+type EmptyIcon = "incidents" | "alerts" | "episodes" | "notes" | "monitors" | "default";
 
 interface EmptyStateProps {
   title: string;
@@ -19,6 +19,7 @@ const iconMap: Record<EmptyIcon, keyof typeof Ionicons.glyphMap> = {
   alerts: "notifications-outline",
   episodes: "layers-outline",
   notes: "document-text-outline",
+  monitors: "pulse-outline",
   default: "remove-circle-outline",
 };
 
