@@ -278,6 +278,28 @@ export type ProjectAlertItem = WithProject<AlertItem>;
 export type ProjectIncidentEpisodeItem = WithProject<IncidentEpisodeItem>;
 export type ProjectAlertEpisodeItem = WithProject<AlertEpisodeItem>;
 
+export interface MonitorItem {
+  _id: string;
+  name: string;
+  description?: string;
+  monitorType?: string;
+  currentMonitorStatus?: NamedEntityWithColor;
+  disableActiveMonitoring?: boolean;
+  createdAt: string;
+  projectId?: string;
+}
+
+export type ProjectMonitorItem = WithProject<MonitorItem>;
+
+export interface MonitorStatusItem {
+  _id: string;
+  name: string;
+  color: ColorField;
+  isOperationalState?: boolean;
+  isOfflineState?: boolean;
+  priority?: number;
+}
+
 interface OnCallPolicyRef
   extends RequiredModelFields<OnCallDutyPolicy, "name"> {
   _id?: string;

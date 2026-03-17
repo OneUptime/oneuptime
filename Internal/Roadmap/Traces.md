@@ -24,6 +24,11 @@ The following features have been implemented:
 - **Basic Trace-Based Alerting** - MonitorType.Traces with span count threshold alerting, span name/status/service/attribute filtering, time window (5s-24h), worker job running every minute, frontend form with preview
 - **S.1** - Migrate `attributes` to Map(String, String) (TableColumnType.MapStringString in Span model with `attributeKeys` array for fast enumeration)
 - **S.2** - Aggregation Projections (`proj_agg_by_service` for service-level COUNT/AVG/P99 aggregation, `proj_trace_by_id` for trace-by-ID queries)
+- **Phase 2.1** - Flame Graph View (`FlameGraph.tsx`) — proportional rectangles by duration, service color coding, double-click to zoom subtree, tooltip with name/service/duration/self-time
+- **Phase 2.2** - Latency Breakdown / Critical Path Analysis (`CriticalPath.ts`) — critical path algorithm (longest sequential chain), self-time computation (merged overlapping child intervals), service latency breakdown, critical path toggle in TraceExplorer, self-time display in SpanViewer
+- **Phase 2.3** - In-Trace Span Search — search bar in TraceExplorer filtering by span name, span ID, or service name with match count display
+- **Phase 2.4** - Per-Trace Service Flow Map (`TraceServiceMap.tsx`) — directed graph with Kahn's algorithm topological layout, SVG curved edges, call count/avg latency labels, error highlighting
+- **Phase 2.5** - Span Link Navigation — clickable SpanLink entries in SpanViewer "Links" tab with trace navigation
 
 ## Gap Analysis Summary
 
@@ -33,10 +38,10 @@ The following features have been implemented:
 | RED metrics from traces | None | Auto-computed on 100% traffic | Derived golden signals | Metrics-generator to Prometheus | **P0** |
 | Trace-based alerting | **Partial** — span count only, no latency/error rate/Apdex | APM Monitors (p50-p99, error rate, Apdex) | NRQL alert conditions | Via Grafana alerting / Triggers | **P0** |
 | Sampling controls | None (100% ingestion) | Head-based adaptive + retention filters | Infinite Tracing (tail-based) | Refinery (rules/dynamic/tail) | **P0** |
-| Flame graph view | None | Yes (default view) | No | No | **P1** |
-| Latency breakdown / critical path | None | Per-hop latency, bottleneck detection | No | BubbleUp (Honeycomb) | **P1** |
-| In-trace search | None | Yes | No | No | **P1** |
-| Per-trace service map | None | Yes (Map view) | No | No | **P1** |
+| Flame graph view | **Yes** | Yes (default view) | No | No | ~~P1~~ Done |
+| Latency breakdown / critical path | **Yes** | Per-hop latency, bottleneck detection | No | BubbleUp (Honeycomb) | ~~P1~~ Done |
+| In-trace search | **Yes** | Yes | No | No | ~~P1~~ Done |
+| Per-trace service map | **Yes** | Yes (Map view) | No | No | ~~P1~~ Done |
 | Trace-to-metric exemplars | None | Pivot from metric graph to traces | Metric-to-trace linking | Prometheus exemplars | **P1** |
 | Custom metrics from spans | None | Generate count/distribution/gauge from tags | Via NRQL | SLOs from span data | **P2** |
 | Structural trace queries | None | Trace Queries (multi-span relationships) | Via NRQL | TraceQL spanset pipelines | **P2** |
@@ -172,90 +177,6 @@ Without these, users cannot answer basic questions like "is my service healthy?"
 
 ---
 
-## Phase 2: Visualization & Debugging UX (P1) — Industry-Standard Features
-
-### 2.1 Flame Graph View
-
-**Current**: Only Gantt/waterfall view.
-**Target**: Flame graph visualization showing proportional time spent in each span, with service color coding.
-
-**Implementation**:
-
-- Build a flame graph component that renders spans as horizontally stacked rectangles proportional to duration
-- Allow switching between Waterfall and Flame Graph views in TraceExplorer
-- Color-code by service (consistent with waterfall view)
-- Click a span rectangle to focus/zoom into that subtree
-- Show tooltip with span name, service, duration, self-time on hover
-
-**Files to modify**:
-- `App/FeatureSet/Dashboard/src/Components/Traces/FlameGraph.tsx` (new)
-- `App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx` (add view toggle)
-
-### 2.2 Latency Breakdown / Critical Path Analysis
-
-**Current**: Shows individual span durations but no automated analysis.
-**Target**: Compute and display critical path, self-time vs child-time, and bottleneck identification.
-
-**Implementation**:
-
-- Compute critical path: the longest sequential chain of spans through the trace (accounts for parallelism)
-- Calculate "self time" per span: `span.duration - sum(child.duration)` (clamped to 0 for overlapping children)
-- Display latency breakdown by service: percentage of total trace time spent in each service
-- Highlight bottleneck spans (spans contributing most to critical path duration)
-- Add "Critical Path" toggle in TraceExplorer that highlights the critical path spans
-
-**Files to modify**:
-- `Common/Utils/Traces/CriticalPath.ts` (new - critical path algorithm)
-- `App/FeatureSet/Dashboard/src/Components/Span/SpanViewer.tsx` (show self-time)
-- `App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx` (add critical path view)
-
-### 2.3 In-Trace Span Search
-
-**Current**: TraceExplorer shows all spans with service filtering and error toggle, but no text search.
-**Target**: Search box to filter spans by name, attribute values, or status within the current trace.
-
-**Implementation**:
-
-- Add a search input in TraceExplorer toolbar
-- Client-side filtering: match span name, service name, attribute keys/values against search text
-- Highlight matching spans in the waterfall/flame graph
-- Show match count (e.g., "3 of 47 spans")
-
-**Files to modify**:
-- `App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx` (add search bar and filtering)
-
-### 2.4 Per-Trace Service Flow Map
-
-**Current**: Service dependency graph exists globally but not per-trace.
-**Target**: Per-trace visualization showing the path of a request through services with latency annotations.
-
-**Implementation**:
-
-- Build a directed graph from the spans in a single trace (services as nodes, calls as edges)
-- Annotate edges with call count and latency
-- Color-code nodes by error status
-- Add as a new view tab alongside Waterfall and Flame Graph
-
-**Files to modify**:
-- `App/FeatureSet/Dashboard/src/Components/Traces/TraceServiceMap.tsx` (new)
-- `App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx` (add view tab)
-
-### 2.5 Span Link Navigation
-
-**Current**: Links data is stored in spans but not navigable in the UI.
-**Target**: Clickable links in the span detail panel that navigate to related traces/spans.
-
-**Implementation**:
-
-- In the SpanViewer detail panel, render the `links` array as clickable items
-- Each link shows the linked traceId, spanId, and relationship type
-- Clicking navigates to the linked trace view
-
-**Files to modify**:
-- `App/FeatureSet/Dashboard/src/Components/Span/SpanViewer.tsx` (render clickable links)
-
----
-
 ## Phase 3: Advanced Analytics & Correlation (P2) — Power Features
 
 ### 3.1 Trace-to-Metric Exemplars
@@ -377,9 +298,9 @@ Without these, users cannot answer basic questions like "is my service healthy?"
 
 ## Quick Wins (Can Ship This Week)
 
-1. **In-trace span search** - Add a text filter in TraceExplorer (few hours of work)
-2. **Self-time calculation** - Show "self time" (span duration minus child durations) in SpanViewer
-3. **Span link navigation** - Links data is stored but not clickable in UI
+1. ~~**In-trace span search**~~ - Done (Phase 2.3)
+2. ~~**Self-time calculation**~~ - Done (Phase 2.2)
+3. ~~**Span link navigation**~~ - Done (Phase 2.5)
 4. **Top-N slowest operations** - Simple ClickHouse query: `ORDER BY durationUnixNano DESC LIMIT N`
 5. **Error rate by service** - Aggregate `statusCode=2` counts grouped by serviceId
 6. **Trace duration distribution histogram** - Use ClickHouse `histogram()` on durationUnixNano
@@ -391,15 +312,12 @@ Without these, users cannot answer basic questions like "is my service healthy?"
 
 1. **Phase 1.1** - Trace Analytics Engine (highest impact, unlocks everything else)
 2. **Phase 1.2** - RED Metrics from Traces (prerequisite for alerting, service overview)
-3. **Quick Wins** - Ship in-trace search, self-time, span links, top-N operations
+3. **Quick Wins** - Ship top-N operations, error rate by service, trace duration histogram, span count display
 4. **Phase 1.3** - Trace-Based Alerting (core observability workflow)
-5. **Phase 2.1** - Flame Graph View (industry-standard visualization)
-6. **Phase 2.2** - Critical Path Analysis (key debugging capability)
-7. **Phase 1.4** - Head-Based Sampling (essential for high-volume users)
-8. **Phase 2.3-2.5** - In-trace search, per-trace map, span links
-9. **Phase 3.1** - Trace-to-Metric Exemplars
-10. **Phase 3.2-3.4** - Custom metrics, structural queries, comparison
-11. **Phase 4.x** - AI/ML, RUM, profiling (long-term)
+5. **Phase 1.4** - Head-Based Sampling (essential for high-volume users)
+6. **Phase 3.1** - Trace-to-Metric Exemplars
+7. **Phase 3.2-3.4** - Custom metrics, structural queries, comparison
+8. **Phase 4.x** - AI/ML, RUM, profiling (long-term)
 
 ## Verification
 

@@ -166,6 +166,9 @@ export default function HomeScreen(): React.JSX.Element {
     alertCount,
     incidentEpisodeCount,
     alertEpisodeCount,
+    monitorCount,
+    disabledMonitorCount,
+    inoperationalMonitorCount,
     isLoading: anyLoading,
     refetch,
   } = useAllProjectCounts();
@@ -305,7 +308,7 @@ export default function HomeScreen(): React.JSX.Element {
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ paddingBottom: 48 }}
+      contentContainerStyle={{ paddingBottom: 120 }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -620,6 +623,62 @@ export default function HomeScreen(): React.JSX.Element {
               </View>
             </View>
           </Pressable>
+        </View>
+
+        <View>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
+              color: theme.colors.textSecondary,
+              letterSpacing: 1,
+            }}
+          >
+            Monitors
+          </Text>
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1 }}>
+              <StatCard
+                count={monitorCount}
+                label="Total Monitors"
+                accentColor={theme.colors.oncallActive}
+                iconName="pulse-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Monitors");
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <StatCard
+                count={inoperationalMonitorCount}
+                label="Inoperational"
+                accentColor={theme.colors.severityCritical}
+                iconName="close-circle-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Monitors");
+                }}
+              />
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", marginTop: 12 }}>
+            <View style={{ flex: 1 }}>
+              <StatCard
+                count={disabledMonitorCount}
+                label="Disabled"
+                accentColor={theme.colors.textTertiary}
+                iconName="pause-circle-outline"
+                isLoading={anyLoading}
+                onPress={() => {
+                  return navigation.navigate("Monitors");
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }} />
+          </View>
         </View>
 
         <View>

@@ -1,12 +1,19 @@
 import DashboardLogsViewer from "../Logs/LogsViewer";
 import SpanStatusElement from "../Span/SpanStatusElement";
 import SpanViewer from "../Span/SpanViewer";
+import FlameGraph from "./FlameGraph";
+import TraceServiceMap from "./TraceServiceMap";
 import ServiceElement from "..//Service/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SpanUtil, {
   DivisibilityFactor,
   IntervalUnit,
 } from "../../Utils/SpanUtil";
+import CriticalPathUtil, {
+  SpanData,
+  CriticalPathResult,
+  ServiceBreakdown,
+} from "Common/Utils/Traces/CriticalPath";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -32,6 +39,12 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+
+enum TraceViewMode {
+  Waterfall = "Waterfall",
+  FlameGraph = "Flame Graph",
+  ServiceMap = "Service Map",
+}
 
 const INITIAL_SPAN_FETCH_SIZE: number = 500;
 const SPAN_PAGE_SIZE: number = 500;
@@ -86,6 +99,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   // UI State Enhancements
   const [showErrorsOnly, setShowErrorsOnly] = React.useState<boolean>(false);
+  const [viewMode, setViewMode] = React.useState<TraceViewMode>(
+    TraceViewMode.Waterfall,
+  );
+  const [spanSearchText, setSpanSearchText] = React.useState<string>("");
+  const [showCriticalPath, setShowCriticalPath] =
+    React.useState<boolean>(false);
 
   const [traceId, setTraceId] = React.useState<string | null>(null);
 
@@ -654,7 +673,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     }
   }, [servicesInTrace, selectedServiceIds]);
 
-  // Final spans after applying filters
+  // Final spans after applying filters (including search)
   const displaySpans: Span[] = React.useMemo(() => {
     let filtered: Span[] = spans;
     if (showErrorsOnly) {
@@ -669,8 +688,77 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           : false;
       });
     }
+    if (spanSearchText.trim().length > 0) {
+      const searchLower: string = spanSearchText.trim().toLowerCase();
+      filtered = filtered.filter((s: Span): boolean => {
+        // Match against span name
+        if (s.name?.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        // Match against span ID
+        if (s.spanId?.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        // Match against service name
+        const service: Service | undefined = telemetryServices.find(
+          (svc: Service) => {
+            return svc._id?.toString() === s.serviceId?.toString();
+          },
+        );
+        if (service?.name?.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        return false;
+      });
+    }
     return filtered;
-  }, [spans, showErrorsOnly, selectedServiceIds]);
+  }, [spans, showErrorsOnly, selectedServiceIds, spanSearchText, telemetryServices]);
+
+  // Search match count for display
+  const searchMatchCount: number = React.useMemo(() => {
+    if (spanSearchText.trim().length === 0) {
+      return 0;
+    }
+    return displaySpans.length;
+  }, [displaySpans, spanSearchText]);
+
+  // Critical path computation
+  const criticalPathResult: CriticalPathResult | null = React.useMemo(() => {
+    if (!showCriticalPath || spans.length === 0) {
+      return null;
+    }
+    const spanDataList: SpanData[] = spans.map((s: Span): SpanData => {
+      return {
+        spanId: s.spanId!,
+        parentSpanId: s.parentSpanId || undefined,
+        startTimeUnixNano: s.startTimeUnixNano!,
+        endTimeUnixNano: s.endTimeUnixNano!,
+        durationUnixNano: s.durationUnixNano!,
+        serviceId: s.serviceId?.toString(),
+        name: s.name,
+      };
+    });
+    return CriticalPathUtil.computeCriticalPath(spanDataList);
+  }, [showCriticalPath, spans]);
+
+  // Service latency breakdown
+  const serviceBreakdown: ServiceBreakdown[] = React.useMemo(() => {
+    if (spans.length === 0) {
+      return [];
+    }
+    const spanDataList: SpanData[] = spans.map((s: Span): SpanData => {
+      return {
+        spanId: s.spanId!,
+        parentSpanId: s.parentSpanId || undefined,
+        startTimeUnixNano: s.startTimeUnixNano!,
+        endTimeUnixNano: s.endTimeUnixNano!,
+        durationUnixNano: s.durationUnixNano!,
+        serviceId: s.serviceId?.toString(),
+        name: s.name,
+      };
+    });
+    return CriticalPathUtil.computeServiceBreakdown(spanDataList);
+  }, [spans]);
 
   const spanStats: {
     totalSpans: number;
@@ -846,11 +934,27 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         }),
     );
 
-    const highlightableSpanIds: string[] = highlightSpanIds.filter(
+    // Combine highlight span IDs with critical path span IDs
+    let allHighlightSpanIds: string[] = highlightSpanIds.filter(
       (spanId: string) => {
         return displaySpanIds.has(spanId);
       },
     );
+
+    if (
+      criticalPathResult &&
+      criticalPathResult.criticalPathSpanIds.length > 0
+    ) {
+      const criticalPathIds: string[] =
+        criticalPathResult.criticalPathSpanIds.filter((spanId: string) => {
+          return displaySpanIds.has(spanId);
+        });
+      allHighlightSpanIds = [
+        ...new Set([...allHighlightSpanIds, ...criticalPathIds]),
+      ];
+    }
+
+    const highlightableSpanIds: string[] = allHighlightSpanIds;
 
     const ganttChart: GanttChartProps = {
       id: "chart",
@@ -869,7 +973,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     };
 
     setGanttChart(ganttChart);
-  }, [displaySpans, selectedSpans, highlightSpanIds]);
+  }, [displaySpans, selectedSpans, highlightSpanIds, criticalPathResult]);
 
   if (isLoading && spans.length === 0) {
     return <PageLoader isVisible={true} />;
@@ -1086,56 +1190,136 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             </div>
           </div>
 
-          {/* Toolbar */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => {
-                  return setShowErrorsOnly(false);
-                }}
-                className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${
-                  !showErrorsOnly
-                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                All Spans
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  return setShowErrorsOnly(true);
-                }}
-                className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all flex items-center space-x-1 ${
-                  showErrorsOnly
-                    ? "bg-red-600 text-white border-red-600 shadow-sm"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <span>Errors Only</span>
-                {spanStats.errorSpans > 0 ? (
-                  <span className="text-[10px] bg-white/20 rounded px-1">
-                    {spanStats.errorSpans}
-                  </span>
+          {/* View Mode Toggle */}
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-0.5">
+                {Object.values(TraceViewMode).map((mode: TraceViewMode) => {
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => {
+                        setViewMode(mode);
+                      }}
+                      className={`text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
+                        viewMode === mode
+                          ? "bg-white text-gray-800 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  placeholder="Search spans by name, ID, or service..."
+                  value={spanSearchText}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setSpanSearchText(e.target.value);
+                  }}
+                  className="text-xs border border-gray-200 rounded-md px-3 py-1.5 w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400"
+                />
+                {spanSearchText.length > 0 ? (
+                  <div className="absolute right-2 flex items-center space-x-1">
+                    <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                      {searchMatchCount} of {spans.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSpanSearchText("");
+                      }}
+                      className="text-gray-400 hover:text-gray-600 text-xs"
+                    >
+                      x
+                    </button>
+                  </div>
                 ) : (
                   <></>
                 )}
-              </button>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-3 text-xs text-gray-500">
-              <div className="flex items-center space-x-1">
-                <div className="h-2 w-2 rounded-full bg-rose-500" />
-                <span>Error</span>
+            {/* Toolbar Row 2: Filters & Controls */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    return setShowErrorsOnly(false);
+                  }}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${
+                    !showErrorsOnly
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  All Spans
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    return setShowErrorsOnly(true);
+                  }}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all flex items-center space-x-1 ${
+                    showErrorsOnly
+                      ? "bg-red-600 text-white border-red-600 shadow-sm"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <span>Errors Only</span>
+                  {spanStats.errorSpans > 0 ? (
+                    <span className="text-[10px] bg-white/20 rounded px-1">
+                      {spanStats.errorSpans}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </button>
+
+                {/* Critical Path Toggle */}
+                {viewMode === TraceViewMode.Waterfall ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCriticalPath(
+                        (prev: boolean) => {
+                          return !prev;
+                        },
+                      );
+                    }}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all flex items-center space-x-1 ${
+                      showCriticalPath
+                        ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <span>Critical Path</span>
+                  </button>
+                ) : (
+                  <></>
+                )}
               </div>
-              <div className="flex items-center space-x-1">
-                <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>OK</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="h-2 w-2 rounded-full bg-amber-500" />
-                <span>Other</span>
+
+              <div className="flex items-center space-x-3 text-xs text-gray-500">
+                <div className="flex items-center space-x-1">
+                  <div className="h-2 w-2 rounded-full bg-rose-500" />
+                  <span>Error</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>OK</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="h-2 w-2 rounded-full bg-amber-500" />
+                  <span>Other</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1236,13 +1420,127 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            {ganttChart ? (
-              <GanttChart chart={ganttChart} />
-            ) : (
-              <div className="p-8">
-                <ErrorMessage message={"No spans found"} />
+          {/* Service Latency Breakdown */}
+          {serviceBreakdown.length > 1 ? (
+            <div className="mb-4 border border-gray-100 rounded-lg p-3 bg-gradient-to-br from-gray-50/60 to-white">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium mb-2">
+                Latency Breakdown by Service
               </div>
+              <div className="space-y-1.5">
+                {serviceBreakdown.map((breakdown: ServiceBreakdown) => {
+                  const service: Service | undefined =
+                    telemetryServices.find((s: Service) => {
+                      return (
+                        s._id?.toString() === breakdown.serviceId
+                      );
+                    });
+                  const serviceName: string =
+                    service?.name || "Unknown";
+                  const serviceColor: string = String(
+                    (service?.serviceColor as unknown as string) ||
+                      "#6366f1",
+                  );
+                  const percent: number = Math.min(
+                    breakdown.percentOfTrace,
+                    100,
+                  );
+
+                  return (
+                    <div key={breakdown.serviceId} className="flex items-center space-x-2">
+                      <span
+                        className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10 flex-shrink-0"
+                        style={{
+                          backgroundColor: serviceColor,
+                        }}
+                      />
+                      <span className="text-[11px] font-medium text-gray-700 w-24 truncate">
+                        {serviceName}
+                      </span>
+                      <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${Math.max(percent, 1)}%`,
+                            backgroundColor: serviceColor,
+                            opacity: 0.7,
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-gray-500 w-20 text-right">
+                        {SpanUtil.getSpanDurationAsString({
+                          spanDurationInUnixNano:
+                            breakdown.selfTimeUnixNano,
+                          divisibilityFactor: divisibilityFactor,
+                        })}{" "}
+                        ({percent.toFixed(1)}%)
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {/* Critical Path Info */}
+          {showCriticalPath && criticalPathResult ? (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              <span className="font-medium">Critical Path:</span>{" "}
+              {criticalPathResult.criticalPathSpanIds.length} spans,{" "}
+              {SpanUtil.getSpanDurationAsString({
+                spanDurationInUnixNano:
+                  criticalPathResult.criticalPathDurationUnixNano,
+                divisibilityFactor: divisibilityFactor,
+              })}{" "}
+              of{" "}
+              {SpanUtil.getSpanDurationAsString({
+                spanDurationInUnixNano:
+                  criticalPathResult.totalTraceDurationUnixNano,
+                divisibilityFactor: divisibilityFactor,
+              })}{" "}
+              total trace duration (highlighted in waterfall)
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {/* Main Visualization */}
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            {viewMode === TraceViewMode.Waterfall ? (
+              <>
+                {ganttChart ? (
+                  <GanttChart chart={ganttChart} />
+                ) : (
+                  <div className="p-8">
+                    <ErrorMessage message={"No spans found"} />
+                  </div>
+                )}
+              </>
+            ) : viewMode === TraceViewMode.FlameGraph ? (
+              <div className="p-4">
+                <FlameGraph
+                  spans={displaySpans}
+                  telemetryServices={telemetryServices}
+                  onSpanSelect={(spanId: string) => {
+                    setSelectedSpans([spanId]);
+                  }}
+                  selectedSpanId={
+                    selectedSpans.length > 0
+                      ? selectedSpans[0]
+                      : undefined
+                  }
+                />
+              </div>
+            ) : viewMode === TraceViewMode.ServiceMap ? (
+              <div className="p-4">
+                <TraceServiceMap
+                  spans={displaySpans}
+                  telemetryServices={telemetryServices}
+                />
+              </div>
+            ) : (
+              <></>
             )}
           </div>
         </Card>
@@ -1296,6 +1594,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 })!
               }
               divisibilityFactor={divisibilityFactor}
+              allTraceSpans={spans}
             />
           </SideOver>
         ) : (

@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
+import MonitorsStackNavigator from "./MonitorsStackNavigator";
 import IncidentsStackNavigator from "./IncidentsStackNavigator";
 import AlertsStackNavigator from "./AlertsStackNavigator";
 import OnCallStackNavigator from "./OnCallStackNavigator";
@@ -114,6 +115,30 @@ export default function MainTabNavigator(): React.JSX.Element {
               <TabIcon
                 name="home-outline"
                 focusedName="home"
+                color={color}
+                focused={focused}
+                accentColor={theme.colors.actionPrimary}
+              />
+            );
+          },
+        }}
+      />
+      <Tab.Screen
+        name="Monitors"
+        component={MonitorsStackNavigator}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => {
+            return (
+              <TabIcon
+                name="pulse-outline"
+                focusedName="pulse"
                 color={color}
                 focused={focused}
                 accentColor={theme.colors.actionPrimary}
