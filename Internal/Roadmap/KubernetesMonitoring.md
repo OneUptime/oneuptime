@@ -68,9 +68,9 @@ Project (1)
 ```
 
 **How it works:**
-1. User deploys the OneUptime Helm chart per cluster with a unique `clusterName` in Helm values
-2. The OTel Collector's `resource` processor stamps every metric/log/event with `k8s.cluster.name`
-3. The `k8sattributes` processor enriches all telemetry with pod/namespace/deployment metadata
+1. User installs the `oneuptime/kubernetes-agent` Helm chart in each cluster with a unique `clusterName`, their OneUptime URL, and project API key
+2. The agent's OTel Collector `resource` processor stamps every metric/log/event with `k8s.cluster.name`
+3. The agent's `k8sattributes` processor enriches all telemetry with pod/namespace/deployment metadata
 4. OneUptime backend auto-discovers clusters from incoming telemetry (or user registers manually via UI)
 5. All dashboards, resource pages, and monitors are scoped per cluster
 6. Cross-cluster comparison views available from the Clusters List page
@@ -114,12 +114,41 @@ The current OTel Collector image (`otel/opentelemetry-collector-contrib`) alread
 
 **Current InfrastructureAgent (Go):** Collects basic VM metrics (CPU, memory, disk, processes) via `gopsutil`. **Not needed for K8s monitoring** — the `kubeletstats` receiver provides the same data and more. Keep the InfrastructureAgent for non-K8s servers (bare metal/VMs). Do not extend it for Kubernetes.
 
+### Two Helm Charts — Don't Confuse Them
+
+There are two separate Helm charts. OneUptime's own OTel Collector is **not modified** for K8s monitoring. Instead, a new separate Helm chart is deployed in the user's cluster.
+
+| Helm Chart | What It Is | Where It Runs | Purpose |
+|---|---|---|---|
+| `oneuptime/oneuptime` | The OneUptime platform | OneUptime's own infrastructure | Runs the backend, dashboard, ingestor, OTel Collector (OTLP receiver only) |
+| `oneuptime/kubernetes-agent` **(NEW)** | K8s monitoring agent | User's Kubernetes cluster(s) | Collects K8s metrics, logs, events and sends them to OneUptime via OTLP |
+
+**OneUptime's own OTel Collector** (`OTelCollector/otel-collector-config.template.yaml`) only has OTLP receivers — it accepts data from users. It should **NOT** be modified with `kubeletstats`, `k8s_cluster`, `k8sobjects`, or `prometheus` receivers. Those belong in the new `kubernetes-agent` Helm chart.
+
+**The `kubernetes-agent` Helm chart** is a new chart that users install in each cluster they want to monitor. It deploys:
+- An OTel Collector **Deployment** with `kubeletstats`, `k8s_cluster`, `k8sobjects`, `prometheus` receivers + `k8sattributes` and `resource` processors → exports via OTLP to OneUptime's ingestor
+- An OTel Collector **DaemonSet** (optional) with `filelog` receiver for pod log collection
+- ClusterRole + ClusterRoleBinding + ServiceAccount for read-only K8s API access
+- ConfigMap with the OTel Collector config, templated from Helm values
+
+**New files to create:**
+- `HelmChart/Public/kubernetes-agent/` (new chart directory)
+- `HelmChart/Public/kubernetes-agent/Chart.yaml`
+- `HelmChart/Public/kubernetes-agent/values.yaml`
+- `HelmChart/Public/kubernetes-agent/templates/deployment.yaml` (OTel Collector Deployment for metrics/events)
+- `HelmChart/Public/kubernetes-agent/templates/daemonset.yaml` (OTel Collector DaemonSet for logs)
+- `HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml` (OTel config for Deployment)
+- `HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml` (OTel config for DaemonSet)
+- `HelmChart/Public/kubernetes-agent/templates/rbac.yaml` (ClusterRole, ClusterRoleBinding, ServiceAccount)
+- `HelmChart/Public/kubernetes-agent/templates/secret.yaml` (OneUptime API key)
+
 **Summary of layers:**
 
 | Layer | Responsibility | Technology |
 |---|---|---|
-| Data collection (metrics, logs, events, control plane) | OTel Collector | Configure receivers in Helm chart |
-| Data enrichment (K8s metadata on all telemetry) | OTel Collector | `k8sattributes` processor |
+| Data collection (metrics, logs, events, control plane) | `kubernetes-agent` Helm chart | OTel Collector deployed in user's cluster |
+| Data enrichment (K8s metadata on all telemetry) | `kubernetes-agent` Helm chart | `k8sattributes` processor in the agent |
+| Data ingestion (receive OTLP from agents) | OneUptime's OTel Collector | Existing, unchanged |
 | Storage | ClickHouse | Already exists |
 | Cluster discovery, inventory, topology, cost, AI, incidents, status pages | OneUptime backend + frontend | Custom code |
 
@@ -153,37 +182,51 @@ The current OTel Collector image (`otel/opentelemetry-collector-contrib`) alread
 
 Without these, OneUptime cannot monitor any Kubernetes cluster. This phase creates the Kubernetes product in Observability, makes K8s metrics flow into the platform, and provides cluster visibility with multi-cluster support from the start.
 
-### 1.1 OpenTelemetry Collector Kubernetes Receivers
+### 1.1 `kubernetes-agent` Helm Chart — OTel Collector with K8s Receivers
 
-**Current**: OTel Collector only has OTLP receivers. No Kubernetes-specific metric collection.
-**Target**: Pre-configured OTel Collector with receivers for kubelet, kube-state-metrics, and Kubernetes events.
+**Current**: No Kubernetes-specific data collection. OneUptime's own OTel Collector only receives OTLP.
+**Target**: A new `oneuptime/kubernetes-agent` Helm chart that users install in their clusters to collect K8s metrics, events, and logs and send them to OneUptime.
+
+> **Important**: OneUptime's own OTel Collector (`OTelCollector/otel-collector-config.template.yaml`) is NOT modified. It stays as an OTLP receiver. All K8s collection lives in the new `kubernetes-agent` chart.
 
 **Implementation**:
 
-- Add `kubeletstats` receiver to the OTel Collector config for node and pod resource metrics:
-  - CPU, memory, filesystem, network per node and per pod/container
-  - Collection interval: 30s
-  - Auth via serviceAccount token
-- Add `k8s_cluster` receiver for cluster-level metrics from the Kubernetes API:
-  - Deployment, ReplicaSet, StatefulSet, DaemonSet replica counts and status
-  - Pod phase, container states (waiting/running/terminated with reasons)
-  - Node conditions (Ready, MemoryPressure, DiskPressure, PIDPressure)
-  - Namespace resource quotas and limit ranges
-  - HPA current/desired replicas
-- Add `k8sobjects` receiver for Kubernetes events:
-  - Watch Events API for Warning and Normal events
-  - Ingest as logs with structured attributes (reason, involvedObject, message)
-- Add `k8s_events` receiver as alternative lightweight event collection
-- Configure `k8sattributes` processor to enrich all telemetry with K8s metadata:
-  - Pod name, namespace, node, deployment, replicaset, labels, annotations
-- Add `resource` processor to stamp all telemetry with `k8s.cluster.name` from Helm values
-- Provide Helm values to enable/disable K8s monitoring and configure which namespaces to monitor
+- Create the `oneuptime/kubernetes-agent` Helm chart with an OTel Collector Deployment configured with:
+  - `kubeletstats` receiver for node and pod resource metrics:
+    - CPU, memory, filesystem, network per node and per pod/container
+    - Collection interval: 30s
+    - Auth via serviceAccount token
+  - `k8s_cluster` receiver for cluster-level metrics from the Kubernetes API:
+    - Deployment, ReplicaSet, StatefulSet, DaemonSet replica counts and status
+    - Pod phase, container states (waiting/running/terminated with reasons)
+    - Node conditions (Ready, MemoryPressure, DiskPressure, PIDPressure)
+    - Namespace resource quotas and limit ranges
+    - HPA current/desired replicas
+  - `k8sobjects` receiver for Kubernetes events:
+    - Watch Events API for Warning and Normal events
+    - Ingest as logs with structured attributes (reason, involvedObject, message)
+  - `k8s_events` receiver as alternative lightweight event collection
+  - `k8sattributes` processor to enrich all telemetry with K8s metadata:
+    - Pod name, namespace, node, deployment, replicaset, labels, annotations
+  - `resource` processor to stamp all telemetry with `k8s.cluster.name` from Helm values
+  - `otlphttp` exporter pointing to the user's OneUptime instance (URL + API key from Helm values)
+- Helm values for configuration:
+  - `oneuptime.url` (required) — OneUptime endpoint
+  - `oneuptime.apiKey` (required) — project API key
+  - `clusterName` (required) — unique cluster identifier
+  - `namespaceFilters.include` / `namespaceFilters.exclude` — limit which namespaces are monitored
+  - `controlPlane.enabled` — enable/disable control plane metric scraping
+  - `logs.enabled` — enable/disable pod log collection DaemonSet
+- RBAC resources: ClusterRole (read-only K8s API access), ClusterRoleBinding, ServiceAccount
+- Use `otel/opentelemetry-collector-contrib` image (already has all required receivers)
 
-**Files to modify**:
-- `OTelCollector/otel-collector-config.template.yaml` (add kubeletstats, k8s_cluster, k8sobjects receivers, k8sattributes processor, resource processor)
-- `HelmChart/Public/oneuptime/templates/otel-collector.yaml` (restore and configure OTel Collector deployment with proper RBAC)
-- `HelmChart/Public/oneuptime/templates/otel-collector-rbac.yaml` (new - ClusterRole, ClusterRoleBinding, ServiceAccount for K8s API access)
-- `HelmChart/Public/oneuptime/values.yaml` (add kubernetesMonitoring config section with clusterName, namespace filters)
+**Files to create**:
+- `HelmChart/Public/kubernetes-agent/Chart.yaml` (new chart)
+- `HelmChart/Public/kubernetes-agent/values.yaml` (default values)
+- `HelmChart/Public/kubernetes-agent/templates/deployment.yaml` (OTel Collector Deployment)
+- `HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml` (OTel config with K8s receivers)
+- `HelmChart/Public/kubernetes-agent/templates/rbac.yaml` (ClusterRole, ClusterRoleBinding, ServiceAccount)
+- `HelmChart/Public/kubernetes-agent/templates/secret.yaml` (OneUptime API key)
 
 ### 1.2 KubernetesCluster Database Model & Auto-Discovery
 
@@ -354,7 +397,7 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase creat
 - Alert on specific event patterns (e.g., repeated FailedScheduling, FailedMount)
 
 **Files to modify**:
-- `OTelCollector/otel-collector-config.template.yaml` (add k8sobjects receiver)
+- `HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml` (k8sobjects receiver already configured in 1.1)
 - `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Events.tsx` (new)
 
 ### 1.8 Control Plane Monitoring (etcd, API Server, Scheduler, Controller Manager)
@@ -364,7 +407,7 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase creat
 
 **Implementation**:
 
-- Add `prometheus` receiver to OTel Collector to scrape control plane metrics endpoints:
+- Add `prometheus` receiver to the `kubernetes-agent` OTel Collector config to scrape control plane metrics endpoints:
   - **etcd** (typically `:2379/metrics`):
     - `etcd_server_has_leader` — alert immediately if 0 (no leader elected)
     - `etcd_server_leader_changes_seen_total` — rate of leader elections (frequent changes indicate instability)
@@ -398,7 +441,7 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase creat
 - Handle access modes for different cluster types:
   - Self-managed clusters: direct scrape with TLS client certs
   - Managed clusters (EKS/GKE/AKS): use kube-proxy or metrics-server where control plane metrics are exposed; document limitations per provider
-  - Helm values for toggling control plane monitoring and configuring endpoints
+  - `kubernetes-agent` Helm values for toggling control plane monitoring and configuring endpoints
 - Control Plane page within cluster detail:
   - etcd: leader status, DB size gauge, WAL/commit latency, peer RTT, key count, proposal rates
   - API Server: request rate by verb, error rate, latency heatmap, inflight requests, throttling events
@@ -406,9 +449,9 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase creat
   - Controller Manager: per-controller queue depth, retry rates, eviction counts
 
 **Files to modify**:
-- `OTelCollector/otel-collector-config.template.yaml` (add prometheus receiver with control plane scrape targets)
-- `HelmChart/Public/oneuptime/values.yaml` (add controlPlaneMonitoring config with endpoint overrides and TLS settings)
-- `HelmChart/Public/oneuptime/templates/otel-collector-rbac.yaml` (ensure access to control plane metrics endpoints)
+- `HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml` (add prometheus receiver with control plane scrape targets)
+- `HelmChart/Public/kubernetes-agent/values.yaml` (add controlPlane config with endpoint overrides and TLS settings)
+- `HelmChart/Public/kubernetes-agent/templates/rbac.yaml` (ensure access to control plane metrics endpoints)
 - `App/FeatureSet/Dashboard/src/Pages/Kubernetes/ControlPlane.tsx` (new)
 
 ---
@@ -540,21 +583,22 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase creat
 
 **Implementation**:
 
-- Add `filelog` receiver to OTel Collector for collecting container logs from `/var/log/pods/`:
+- Add `filelog` receiver to the `kubernetes-agent` OTel Collector DaemonSet for collecting container logs from `/var/log/pods/`:
   - Parse container runtime log format (Docker JSON, CRI)
   - Extract pod name, namespace, container name from file path
   - Enrich with K8s metadata via `k8sattributes` processor
-- Deploy OTel Collector as a DaemonSet (in addition to existing Deployment) for log collection
-- Helm values to configure:
+- The DaemonSet is part of the `kubernetes-agent` Helm chart (separate from the Deployment that collects metrics)
+- `kubernetes-agent` Helm values to configure:
+  - `logs.enabled` — toggle DaemonSet on/off (default: true)
   - Namespace inclusion/exclusion filters
   - Log level filtering (e.g., only collect WARN and above)
   - Container name exclusion patterns
 - Link pod logs in the Kubernetes pod detail page
 
 **Files to modify**:
-- `HelmChart/Public/oneuptime/templates/otel-collector-daemonset.yaml` (new - DaemonSet for log collection)
-- `OTelCollector/otel-collector-daemonset-config.template.yaml` (new - DaemonSet-specific config with filelog receiver)
-- `HelmChart/Public/oneuptime/values.yaml` (add DaemonSet configuration options)
+- `HelmChart/Public/kubernetes-agent/templates/daemonset.yaml` (new - DaemonSet for log collection)
+- `HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml` (new - DaemonSet-specific config with filelog receiver)
+- `HelmChart/Public/kubernetes-agent/values.yaml` (add logs.* configuration options)
 
 ### 3.2 Service Mesh Observability
 
@@ -563,7 +607,7 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase creat
 
 **Implementation**:
 
-- Add Prometheus receiver to OTel Collector for scraping service mesh metrics:
+- Add Prometheus receiver to the `kubernetes-agent` OTel Collector config for scraping service mesh metrics:
   - Istio: `istio_requests_total`, `istio_request_duration_milliseconds`, `istio_tcp_connections_opened_total`
   - Linkerd: `request_total`, `response_latency_ms`
 - Service-to-service traffic map from mesh metrics
@@ -572,7 +616,7 @@ Without these, OneUptime cannot monitor any Kubernetes cluster. This phase creat
 - Dashboard templates for Istio and Linkerd
 
 **Files to modify**:
-- `OTelCollector/otel-collector-config.template.yaml` (add prometheus receiver for mesh metrics)
+- `HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml` (add prometheus receiver for mesh metrics)
 - `Common/Types/Dashboard/Templates/ServiceMesh.ts` (new - mesh dashboard templates)
 
 ### 3.3 Kubernetes-to-Telemetry Correlation
@@ -807,17 +851,17 @@ The roadmap achieves **feature parity** on core K8s monitoring by P2. This is ne
 ## Quick Wins (Can Ship This Week)
 
 1. **Enable Kubernetes MonitorType** - Uncomment the Kubernetes entry in `getAllMonitorTypeProps()` and wire it to existing telemetry monitors
-2. **Add k8sattributes processor** - Enrich all existing OTLP data with K8s metadata for free
-3. **Kubernetes dashboard template** - Create a basic cluster health dashboard using standard OTEL K8s metric names
+2. **Scaffold `kubernetes-agent` Helm chart** - Minimal chart with OTel Collector Deployment, `kubeletstats` + `k8s_cluster` receivers, and OTLP exporter to OneUptime
+3. **Kubernetes dashboard template** - Create a basic cluster health dashboard using standard OTel K8s metric names
 4. **K8s event alerting** - Use existing log monitors to alert on K8s Warning events once event ingestion is configured
-5. **Document OTel Collector K8s setup** - Guide for users to configure their own OTel Collector with K8s receivers pointing to OneUptime
+5. **Document `kubernetes-agent` setup** - Installation guide with Helm commands, values reference, and troubleshooting
 
 ---
 
 ## Recommended Implementation Order
 
-1. **Quick Wins** - Enable MonitorType, k8sattributes processor, documentation
-2. **Phase 1.1** - OTel Collector K8s receivers (prerequisite for everything else)
+1. **Quick Wins** - Enable MonitorType, scaffold `kubernetes-agent` Helm chart, documentation
+2. **Phase 1.1** - `kubernetes-agent` Helm chart with K8s receivers (prerequisite for everything else)
 3. **Phase 1.2** - KubernetesCluster database model and auto-discovery (multi-cluster from day one)
 4. **Phase 1.3** - Kubernetes Observability product — dashboard navigation and routes
 5. **Phase 1.8** - Control plane monitoring — etcd, API server, scheduler, controller manager

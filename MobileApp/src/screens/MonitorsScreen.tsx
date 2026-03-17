@@ -33,6 +33,136 @@ interface MonitorSection {
   data: ProjectMonitorItem[];
 }
 
+interface MonitorCounts {
+  total: number;
+  operational: number;
+  inoperational: number;
+  disabled: number;
+}
+
+function SummaryPill({
+  count,
+  label,
+  iconName,
+  color,
+}: {
+  count: number;
+  label: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  color: string;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        paddingVertical: 10,
+      }}
+    >
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: color + "14",
+          marginBottom: 6,
+        }}
+      >
+        <Ionicons name={iconName} size={16} color={color} />
+      </View>
+      <Text
+        style={{
+          fontSize: 20,
+          fontWeight: "bold",
+          color: theme.colors.textPrimary,
+          fontVariant: ["tabular-nums"],
+          letterSpacing: -0.5,
+        }}
+      >
+        {count}
+      </Text>
+      <Text
+        style={{
+          fontSize: 10,
+          fontWeight: "600",
+          color: theme.colors.textTertiary,
+          marginTop: 2,
+          letterSpacing: 0.2,
+        }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function MonitorSummary({
+  counts,
+}: {
+  counts: MonitorCounts;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View
+      style={{
+        marginHorizontal: 16,
+        marginTop: 8,
+        marginBottom: 12,
+        borderRadius: 18,
+        backgroundColor: theme.colors.backgroundElevated,
+        borderWidth: 1,
+        borderColor: theme.colors.borderGlass,
+        overflow: "hidden",
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+        }}
+      >
+        <SummaryPill
+          count={counts.operational}
+          label="Operational"
+          iconName="checkmark-circle"
+          color={theme.colors.oncallActive}
+        />
+        <View
+          style={{
+            width: 1,
+            marginVertical: 10,
+            backgroundColor: theme.colors.borderSubtle,
+          }}
+        />
+        <SummaryPill
+          count={counts.inoperational}
+          label="Inoperational"
+          iconName="close-circle"
+          color={theme.colors.severityCritical}
+        />
+        <View
+          style={{
+            width: 1,
+            marginVertical: 10,
+            backgroundColor: theme.colors.borderSubtle,
+          }}
+        />
+        <SummaryPill
+          count={counts.disabled}
+          label="Disabled"
+          iconName="pause-circle"
+          color={theme.colors.textTertiary}
+        />
+      </View>
+    </View>
+  );
+}
+
 function SectionHeader({
   title,
   count,
@@ -111,30 +241,37 @@ export default function MonitorsScreen(): React.JSX.Element {
     items: allMonitors,
     isLoading,
     isError,
-    error,
     refetch,
   } = useAllProjectMonitors();
   const { lightImpact } = useHaptics();
 
-  const monitorSections: MonitorSection[] = useMemo(() => {
+  const { monitorSections, counts } = useMemo(() => {
     const issues: ProjectMonitorItem[] = [];
     const operational: ProjectMonitorItem[] = [];
+    let disabledCount: number = 0;
+    let inoperationalCount: number = 0;
+
     for (const wrapped of allMonitors) {
       const statusName: string =
         wrapped.item.currentMonitorStatus?.name?.toLowerCase() ?? "";
       const isDisabled: boolean =
         wrapped.item.disableActiveMonitoring === true;
-      if (
-        isDisabled ||
+
+      if (isDisabled) {
+        disabledCount++;
+        issues.push(wrapped);
+      } else if (
         statusName === "offline" ||
         statusName === "degraded" ||
         statusName === "down"
       ) {
+        inoperationalCount++;
         issues.push(wrapped);
       } else {
         operational.push(wrapped);
       }
     }
+
     const sections: MonitorSection[] = [];
     if (issues.length > 0) {
       sections.push({
@@ -150,7 +287,16 @@ export default function MonitorsScreen(): React.JSX.Element {
         data: operational.slice(0, visibleCount),
       });
     }
-    return sections;
+
+    return {
+      monitorSections: sections,
+      counts: {
+        total: allMonitors.length,
+        operational: operational.length,
+        inoperational: inoperationalCount,
+        disabled: disabledCount,
+      },
+    };
   }, [allMonitors, visibleCount]);
 
   const totalCount: number = allMonitors.length;
@@ -196,16 +342,6 @@ export default function MonitorsScreen(): React.JSX.Element {
   }
 
   if (isError) {
-    const errorMessage: string = error?.message ?? "Unknown error";
-    const errorDetails: string =
-      (error as unknown as Record<string, unknown>)?.response
-        ? JSON.stringify(
-            (
-              (error as unknown as Record<string, unknown>)
-                .response as Record<string, unknown>
-            ).data,
-          )
-        : "";
     return (
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
@@ -213,7 +349,7 @@ export default function MonitorsScreen(): React.JSX.Element {
         <ScrollView contentInsetAdjustmentBehavior="automatic">
           <EmptyState
             title="Something went wrong"
-            subtitle={`${errorMessage}${errorDetails ? `\n\n${errorDetails}` : ""}`}
+            subtitle="Failed to load monitors. Pull to refresh or try again."
             icon="monitors"
             actionLabel="Retry"
             onAction={() => {
@@ -236,6 +372,9 @@ export default function MonitorsScreen(): React.JSX.Element {
         }}
         contentContainerStyle={
           monitorSections.length === 0 ? { flex: 1 } : { padding: 16 }
+        }
+        ListHeaderComponent={
+          totalCount > 0 ? <MonitorSummary counts={counts} /> : null
         }
         renderSectionHeader={(params: {
           section: DefaultSectionT & MonitorSection;

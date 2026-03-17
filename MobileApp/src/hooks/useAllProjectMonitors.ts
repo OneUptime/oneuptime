@@ -15,7 +15,6 @@ interface UseAllProjectMonitorsResult {
   items: ProjectMonitorItem[];
   isLoading: boolean;
   isError: boolean;
-  error: Error | null;
   refetch: () => Promise<void>;
 }
 
@@ -47,13 +46,6 @@ export function useAllProjectMonitors(): UseAllProjectMonitorsResult {
       return q.isError;
     },
   );
-  const firstError: Error | null =
-    queries.find(
-      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
-        return q.error;
-      },
-    )?.error ?? null;
-
   const projectMap: Map<string, string> = useMemo(() => {
     const map: Map<string, string> = new Map();
     projectList.forEach((p: ProjectItem) => {
@@ -95,7 +87,6 @@ export function useAllProjectMonitors(): UseAllProjectMonitorsResult {
     items,
     isLoading,
     isError,
-    error: firstError,
     refetch,
   };
 }
