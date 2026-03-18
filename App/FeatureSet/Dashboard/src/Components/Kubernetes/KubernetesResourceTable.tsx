@@ -3,9 +3,14 @@ import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../../Pages/Kubernetes/Utils/KubernetesResourceUtils";
 import Card from "Common/UI/Components/Card/Card";
+import Table from "Common/UI/Components/Table/Table";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Link from "Common/UI/Components/Link/Link";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Route from "Common/Types/API/Route";
+import Column from "Common/UI/Components/Table/Types/Column";
 
-export interface Column {
+export interface ResourceColumn {
   title: string;
   key: string;
   getValue?: (resource: KubernetesResource) => string;
@@ -15,7 +20,7 @@ export interface ComponentProps {
   resources: Array<KubernetesResource>;
   title: string;
   description: string;
-  columns?: Array<Column>;
+  columns?: Array<ResourceColumn>;
   showNamespace?: boolean;
   getViewRoute?: (resource: KubernetesResource) => Route;
   emptyMessage?: string;
@@ -26,120 +31,135 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const showNamespace: boolean = props.showNamespace !== false;
 
+  const tableColumns: Array<Column<KubernetesResource>> = [
+    {
+      title: "Name",
+      type: FieldType.Element,
+      key: "name",
+      disableSort: true,
+      getElement: (resource: KubernetesResource): ReactElement => {
+        return (
+          <span className="font-medium text-gray-900">{resource.name}</span>
+        );
+      },
+    },
+  ];
+
+  if (showNamespace) {
+    tableColumns.push({
+      title: "Namespace",
+      type: FieldType.Element,
+      key: "namespace",
+      disableSort: true,
+      getElement: (resource: KubernetesResource): ReactElement => {
+        return (
+          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700">
+            {resource.namespace || "default"}
+          </span>
+        );
+      },
+    });
+  }
+
+  if (props.columns) {
+    for (const col of props.columns) {
+      tableColumns.push({
+        title: col.title,
+        type: FieldType.Element,
+        key: col.key as keyof KubernetesResource,
+        disableSort: true,
+        getElement: (resource: KubernetesResource): ReactElement => {
+          const value: string = col.getValue
+            ? col.getValue(resource)
+            : resource.additionalAttributes[col.key] || "";
+          return <span>{value}</span>;
+        },
+      });
+    }
+  }
+
+  tableColumns.push(
+    {
+      title: "CPU",
+      type: FieldType.Element,
+      key: "cpuUtilization",
+      disableSort: true,
+      getElement: (resource: KubernetesResource): ReactElement => {
+        return (
+          <span
+            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+              resource.cpuUtilization !== null && resource.cpuUtilization > 80
+                ? "bg-red-50 text-red-700"
+                : resource.cpuUtilization !== null &&
+                    resource.cpuUtilization > 60
+                  ? "bg-yellow-50 text-yellow-700"
+                  : "bg-green-50 text-green-700"
+            }`}
+          >
+            {KubernetesResourceUtils.formatCpuValue(resource.cpuUtilization)}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Memory",
+      type: FieldType.Element,
+      key: "memoryUsageBytes",
+      disableSort: true,
+      getElement: (resource: KubernetesResource): ReactElement => {
+        return (
+          <span>
+            {KubernetesResourceUtils.formatMemoryValue(
+              resource.memoryUsageBytes,
+            )}
+          </span>
+        );
+      },
+    },
+  );
+
+  if (props.getViewRoute) {
+    tableColumns.push({
+      title: "Actions",
+      type: FieldType.Element,
+      key: "name",
+      disableSort: true,
+      getElement: (resource: KubernetesResource): ReactElement => {
+        return (
+          <Link
+            to={props.getViewRoute!(resource)}
+            className="text-indigo-600 hover:text-indigo-900 font-medium"
+          >
+            View
+          </Link>
+        );
+      },
+    });
+  }
+
   return (
     <Card title={props.title} description={props.description}>
-      {props.resources.length === 0 ? (
-        <p className="text-gray-500 text-sm p-4">
-          {props.emptyMessage ||
-            "No resources found. Resources will appear here once the kubernetes-agent is sending data."}
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                {showNamespace && (
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Namespace
-                  </th>
-                )}
-                {props.columns?.map((column: Column) => {
-                  return (
-                    <th
-                      key={column.key}
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {column.title}
-                    </th>
-                  );
-                })}
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  CPU
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Memory
-                </th>
-                {props.getViewRoute && (
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {props.resources.map(
-                (resource: KubernetesResource, index: number) => {
-                  return (
-                    <tr
-                      key={index}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {resource.name}
-                      </td>
-                      {showNamespace && (
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700">
-                            {resource.namespace || "default"}
-                          </span>
-                        </td>
-                      )}
-                      {props.columns?.map((column: Column) => {
-                        return (
-                          <td
-                            key={column.key}
-                            className="px-4 py-3 whitespace-nowrap text-sm text-gray-500"
-                          >
-                            {column.getValue
-                              ? column.getValue(resource)
-                              : resource.additionalAttributes[column.key] ||
-                                ""}
-                          </td>
-                        );
-                      })}
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        <span
-                          className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
-                            resource.cpuUtilization !== null &&
-                            resource.cpuUtilization > 80
-                              ? "bg-red-50 text-red-700"
-                              : resource.cpuUtilization !== null &&
-                                  resource.cpuUtilization > 60
-                                ? "bg-yellow-50 text-yellow-700"
-                                : "bg-green-50 text-green-700"
-                          }`}
-                        >
-                          {KubernetesResourceUtils.formatCpuValue(
-                            resource.cpuUtilization,
-                          )}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {KubernetesResourceUtils.formatMemoryValue(
-                          resource.memoryUsageBytes,
-                        )}
-                      </td>
-                      {props.getViewRoute && (
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <a
-                            href={props.getViewRoute(resource).toString()}
-                            className="text-indigo-600 hover:text-indigo-900 font-medium"
-                          >
-                            View
-                          </a>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                },
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Table<KubernetesResource>
+        id={`kubernetes-${props.title.toLowerCase().replace(/\s+/g, "-")}-table`}
+        columns={tableColumns}
+        data={props.resources}
+        singularLabel={props.title}
+        pluralLabel={props.title}
+        isLoading={false}
+        error=""
+        disablePagination={true}
+        currentPageNumber={1}
+        totalItemsCount={props.resources.length}
+        itemsOnPage={props.resources.length}
+        onNavigateToPage={() => {}}
+        sortBy={null}
+        sortOrder={SortOrder.Ascending}
+        onSortChanged={() => {}}
+        noItemsMessage={
+          props.emptyMessage ||
+          "No resources found. Resources will appear here once the kubernetes-agent is sending data."
+        }
+      />
     </Card>
   );
 };

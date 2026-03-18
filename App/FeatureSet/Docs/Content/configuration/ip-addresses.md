@@ -4,8 +4,7 @@ If you are using OneUptime.com and want to whitelist our IP's for security reaso
 
 Please whitelist the following IP's in your firewall to allow oneuptime.com to reach your resources.
 
-- 172.174.206.132
-- 57.151.99.117
+{{IP_WHITELIST}}
 
 These IP's can change, we will let you know in advance if this happens.
 
@@ -21,7 +20,7 @@ This returns a JSON response:
 
 ```json
 {
-  "ipWhitelist": ["172.174.206.132", "57.151.99.117"]
+  "ipWhitelist": ["<list of IPs>"]
 }
 ```
 
