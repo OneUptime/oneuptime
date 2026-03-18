@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["oneuptime", "clusterName"],
+  "properties": {
+    "oneuptime": {
+      "type": "object",
+      "description": "OneUptime instance connection details",
+      "required": ["url", "apiKey"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL of your OneUptime instance (e.g., https://oneuptime.example.com)"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "Project API key from OneUptime (Settings > API Keys)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "clusterName": {
+      "type": "string",
+      "description": "Unique name for this cluster (used as k8s.cluster.name attribute)"
+    },
+    "namespaceFilters": {
+      "type": "object",
+      "description": "Namespace filters to limit which namespaces are monitored",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "If set, only these namespaces are monitored (empty = all namespaces)"
+        },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Namespaces to exclude from monitoring"
+        }
+      },
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "object",
+      "description": "OTel Collector image configuration",
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "deployment": {
+      "type": "object",
+      "description": "Deployment (metrics + events collector) resource configuration",
+      "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "controlPlane": {
+      "type": "object",
+      "description": "Control plane monitoring configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "etcd": {
+          "type": "object",
+          "properties": {
+            "endpoints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "insecureSkipVerify": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "apiServer": {
+          "type": "object",
+          "properties": {
+            "endpoints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "insecureSkipVerify": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "scheduler": {
+          "type": "object",
+          "properties": {
+            "endpoints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "insecureSkipVerify": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "controllerManager": {
+          "type": "object",
+          "properties": {
+            "endpoints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "insecureSkipVerify": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "logs": {
+      "type": "object",
+      "description": "Pod log collection via DaemonSet with filelog receiver",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "collectionInterval": {
+      "type": "string",
+      "description": "Collection interval for metrics (e.g., 30s, 1m)"
+    },
+    "serviceAccount": {
+      "type": "object",
+      "description": "Service account configuration",
+      "properties": {
+        "create": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
