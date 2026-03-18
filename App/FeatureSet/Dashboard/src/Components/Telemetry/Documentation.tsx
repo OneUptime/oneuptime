@@ -2,10 +2,21 @@ import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { TELEMETRY_URL } from "Common/UI/Config";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import API from "Common/UI/Utils/API/API";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 
 export type TelemetryType = "logs" | "metrics" | "traces" | "exceptions";
 
@@ -42,6 +53,19 @@ interface IntegrationOption {
   key: IntegrationMethod;
   label: string;
   description: string;
+}
+
+// Helper to replace placeholders in code snippets
+function replacePlaceholders(
+  code: string,
+  otlpUrl: string,
+  otlpHost: string,
+  token: string,
+): string {
+  return code
+    .replace(/<YOUR_ONEUPTIME_OTLP_URL>/g, otlpUrl)
+    .replace(/<YOUR_ONEUPTIME_OTLP_HOST>/g, otlpHost)
+    .replace(/<YOUR_ONEUPTIME_TOKEN>/g, token);
 }
 
 // --- OpenTelemetry code snippets per language ---
@@ -422,10 +446,77 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const [selectedMethod, setSelectedMethod] =
     useState<IntegrationMethod>("opentelemetry");
 
+  // Token management state
+  const [ingestionKeys, setIngestionKeys] = useState<
+    Array<TelemetryIngestionKey>
+  >([]);
+  const [selectedKeyId, setSelectedKeyId] = useState<string>("");
+  const [isLoadingKeys, setIsLoadingKeys] = useState<boolean>(true);
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [keyError, setKeyError] = useState<string>("");
+
   const telemetryType: TelemetryType = props.telemetryType || "logs";
 
   const showLogCollectors: boolean =
     telemetryType === "logs" || telemetryType === "exceptions";
+
+  // Compute OTLP URL and host from config
+  const otlpUrl: string = TELEMETRY_URL.toString();
+  const otlpHost: string = TELEMETRY_URL.hostname.toString();
+
+  // Fetch ingestion keys on mount
+  useEffect(() => {
+    loadIngestionKeys().catch(() => {});
+  }, []);
+
+  const loadIngestionKeys: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setIsLoadingKeys(true);
+        setKeyError("");
+        const result: ListResult<TelemetryIngestionKey> =
+          await ModelAPI.getList<TelemetryIngestionKey>({
+            modelType: TelemetryIngestionKey,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            limit: 50,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+              secretKey: true,
+              description: true,
+            },
+            sort: {},
+          });
+
+        setIngestionKeys(result.data);
+
+        // Auto-select the first key if available and none selected
+        if (result.data.length > 0 && !selectedKeyId) {
+          setSelectedKeyId(
+            result.data[0]!.id?.toString() || "",
+          );
+        }
+      } catch (err) {
+        setKeyError(API.getFriendlyErrorMessage(err as Error));
+      } finally {
+        setIsLoadingKeys(false);
+      }
+    };
+
+  // Get the selected key object
+  const selectedKey: TelemetryIngestionKey | undefined = useMemo(() => {
+    return ingestionKeys.find((k: TelemetryIngestionKey) => {
+      return k.id?.toString() === selectedKeyId;
+    });
+  }, [ingestionKeys, selectedKeyId]);
+
+  // Get token string for code snippets
+  const tokenValue: string = selectedKey?.secretKey?.toString() || "<YOUR_ONEUPTIME_TOKEN>";
+  const otlpUrlValue: string = otlpUrl || "<YOUR_ONEUPTIME_OTLP_URL>";
+  const otlpHostValue: string = otlpHost || "<YOUR_ONEUPTIME_OTLP_HOST>";
 
   const integrationMethods: Array<IntegrationOption> = useMemo(() => {
     const methods: Array<IntegrationOption> = [
@@ -523,37 +614,110 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // Credentials info box
-  const renderCredentialsInfo: () => ReactElement = (): ReactElement => {
+  // Token selector section
+  const renderTokenSelector: () => ReactElement = (): ReactElement => {
+    if (isLoadingKeys) {
+      return (
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p className="text-sm text-gray-500">Loading ingestion keys...</p>
+        </div>
+      );
+    }
+
+    if (keyError) {
+      return (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-600">
+            Failed to load ingestion keys: {keyError}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              loadIngestionKeys().catch(() => {});
+            }}
+            className="mt-2 text-sm text-red-700 underline hover:text-red-800"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
     return (
-      <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+      <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
         <div className="px-5 py-4">
-          <h4 className="text-sm font-semibold text-gray-900 mb-2">
-            Where do I find my OTLP URL and Token?
-          </h4>
-          <ol className="text-sm text-gray-600 space-y-1.5 ml-4 list-decimal">
-            <li>
-              Navigate to <strong>Project Settings</strong> from the sidebar.
-            </li>
-            <li>
-              Click on <strong>Telemetry Ingestion Keys</strong>.
-            </li>
-            <li>
-              Copy the <strong>OTLP Endpoint</strong> and{" "}
-              <strong>Token</strong> values.
-            </li>
-            <li>
-              Replace{" "}
-              <code className="bg-white px-1.5 py-0.5 rounded text-xs font-mono border border-gray-200">
-                &lt;YOUR_ONEUPTIME_OTLP_URL&gt;
-              </code>{" "}
-              and{" "}
-              <code className="bg-white px-1.5 py-0.5 rounded text-xs font-mono border border-gray-200">
-                &lt;YOUR_ONEUPTIME_TOKEN&gt;
-              </code>{" "}
-              in the code snippets with these values.
-            </li>
-          </ol>
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Ingestion Token
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
+            >
+              <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
+              Create New Key
+            </button>
+          </div>
+
+          {ingestionKeys.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500 mb-3">
+                No ingestion keys found. Create one to get started.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              >
+                <Icon icon={IconProp.Add} className="w-4 h-4" />
+                Create Ingestion Key
+              </button>
+            </div>
+          ) : (
+            <div>
+              <select
+                value={selectedKeyId}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  setSelectedKeyId(e.target.value);
+                }}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              >
+                {ingestionKeys.map((key: TelemetryIngestionKey) => {
+                  return (
+                    <option key={key.id?.toString()} value={key.id?.toString()}>
+                      {key.name || "Unnamed Key"}
+                    </option>
+                  );
+                })}
+              </select>
+
+              {selectedKey && (
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-md bg-white border border-gray-200 px-3 py-2">
+                    <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">
+                      OTLP Endpoint
+                    </div>
+                    <div className="text-sm text-gray-900 font-mono break-all">
+                      {otlpUrlValue}
+                    </div>
+                  </div>
+                  <div className="rounded-md bg-white border border-gray-200 px-3 py-2">
+                    <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">
+                      Token
+                    </div>
+                    <div className="text-sm text-gray-900 font-mono break-all">
+                      {selectedKey.secretKey?.toString() || "—"}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -656,7 +820,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             "Configure the SDK",
             "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
             <CodeBlock
-              code={configSnippet.code}
+              code={replacePlaceholders(
+                configSnippet.code,
+                otlpUrlValue,
+                otlpHostValue,
+                tokenValue,
+              )}
               language={configSnippet.language}
             />,
           )}
@@ -665,12 +834,18 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             3,
             "Set Environment Variables (Alternative)",
             "You can also configure OpenTelemetry via environment variables instead of code.",
-            <CodeBlock code={getEnvVarSnippet()} language="bash" />,
+            <CodeBlock
+              code={replacePlaceholders(
+                getEnvVarSnippet(),
+                otlpUrlValue,
+                otlpHostValue,
+                tokenValue,
+              )}
+              language="bash"
+            />,
             true,
           )}
         </div>
-
-        {renderCredentialsInfo()}
       </div>
     );
   };
@@ -684,14 +859,30 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             1,
             "Create FluentBit Configuration",
             "Create a fluent-bit.conf file that reads logs and forwards them to OneUptime via the OpenTelemetry output plugin.",
-            <CodeBlock code={getFluentBitSnippet()} language="yaml" />,
+            <CodeBlock
+              code={replacePlaceholders(
+                getFluentBitSnippet(),
+                otlpUrlValue,
+                otlpHostValue,
+                tokenValue,
+              )}
+              language="yaml"
+            />,
           )}
 
           {renderStep(
             2,
             "Run with Docker (Optional)",
             "Run FluentBit as a Docker container alongside your application.",
-            <CodeBlock code={getFluentBitDockerSnippet()} language="yaml" />,
+            <CodeBlock
+              code={replacePlaceholders(
+                getFluentBitDockerSnippet(),
+                otlpUrlValue,
+                otlpHostValue,
+                tokenValue,
+              )}
+              language="yaml"
+            />,
           )}
 
           {renderStep(
@@ -705,8 +896,6 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             true,
           )}
         </div>
-
-        {renderCredentialsInfo()}
       </div>
     );
   };
@@ -720,14 +909,30 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             1,
             "Create Fluentd Configuration",
             "Create a fluentd.conf file that collects logs and sends them to OneUptime over HTTP.",
-            <CodeBlock code={getFluentdSnippet()} language="yaml" />,
+            <CodeBlock
+              code={replacePlaceholders(
+                getFluentdSnippet(),
+                otlpUrlValue,
+                otlpHostValue,
+                tokenValue,
+              )}
+              language="yaml"
+            />,
           )}
 
           {renderStep(
             2,
             "Run with Docker (Optional)",
             "Run Fluentd as a Docker container.",
-            <CodeBlock code={getFluentdDockerSnippet()} language="yaml" />,
+            <CodeBlock
+              code={replacePlaceholders(
+                getFluentdDockerSnippet(),
+                otlpUrlValue,
+                otlpHostValue,
+                tokenValue,
+              )}
+              language="yaml"
+            />,
           )}
 
           {renderStep(
@@ -741,8 +946,6 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             true,
           )}
         </div>
-
-        {renderCredentialsInfo()}
       </div>
     );
   };
@@ -792,10 +995,71 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
         {/* Body */}
         <div className="px-6 py-6">
+          {renderTokenSelector()}
           {renderMethodSelector()}
           {renderActiveContent()}
         </div>
       </div>
+
+      {/* Create Ingestion Key Modal */}
+      {showCreateModal && (
+        <ModelFormModal<TelemetryIngestionKey>
+          modelType={TelemetryIngestionKey}
+          name="Create Ingestion Key"
+          title="Create Ingestion Key"
+          description="Create a new telemetry ingestion key for sending data to OneUptime."
+          onClose={() => {
+            setShowCreateModal(false);
+          }}
+          submitButtonText="Create Key"
+          onSuccess={(item: TelemetryIngestionKey) => {
+            setShowCreateModal(false);
+            // Refresh the list and select the new key
+            loadIngestionKeys()
+              .then(() => {
+                if (item.id) {
+                  setSelectedKeyId(item.id.toString());
+                }
+              })
+              .catch(() => {});
+          }}
+          formProps={{
+            name: "Create Ingestion Key",
+            modelType: TelemetryIngestionKey,
+            id: "create-ingestion-key",
+            fields: [
+              {
+                field: {
+                  name: true,
+                },
+                title: "Name",
+                fieldType: FormFieldSchemaType.Text,
+                required: true,
+                placeholder: "e.g. Production Key",
+                validation: {
+                  minLength: 2,
+                },
+              },
+              {
+                field: {
+                  description: true,
+                },
+                title: "Description",
+                fieldType: FormFieldSchemaType.LongText,
+                required: false,
+                placeholder: "Optional description for this key",
+              },
+            ],
+            formType: FormType.Create,
+          }}
+          onBeforeCreate={(
+            item: TelemetryIngestionKey,
+          ): Promise<TelemetryIngestionKey> => {
+            item.projectId = ProjectUtil.getCurrentProjectId()!;
+            return Promise.resolve(item);
+          }}
+        />
+      )}
     </div>
   );
 };

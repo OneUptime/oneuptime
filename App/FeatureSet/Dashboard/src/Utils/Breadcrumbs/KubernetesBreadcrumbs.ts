@@ -53,12 +53,6 @@ export function getKubernetesBreadcrumbs(
       "View Cluster",
       "Delete Cluster",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS, [
-      "Project",
-      "Kubernetes",
-      "View Cluster",
-      "Settings",
-    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION,
       ["Project", "Kubernetes", "View Cluster", "Documentation"],

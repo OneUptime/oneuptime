@@ -93,16 +93,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
-            title: "Settings",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Settings}
-        />
-        <SideMenuItem
-          link={{
             title: "Delete Cluster",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DELETE] as Route,

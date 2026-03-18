@@ -17,7 +17,6 @@ import KubernetesClusterViewNodeDetail from "../Pages/Kubernetes/View/NodeDetail
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
-import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
 import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documentation";
 import KubernetesDocumentation from "../Pages/Kubernetes/Documentation";
 
@@ -127,16 +126,6 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesClusterViewDelete
               {...props}
               pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DELETE] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS)}
-          element={
-            <KubernetesClusterViewSettings
-              {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route}
             />
           }
         />

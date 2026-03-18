@@ -4,6 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, {
   Fragment,
@@ -116,12 +117,53 @@ const KubernetesClusterOverview: FunctionComponent<
 
       {/* Cluster Details */}
       <CardModelDetail<KubernetesCluster>
-        name="Cluster Overview"
+        name="Cluster Details"
         cardProps={{
           title: "Cluster Details",
           description: "Basic information about this Kubernetes cluster.",
         }}
-        isEditable={false}
+        isEditable={true}
+        editButtonText="Edit Cluster"
+        formFields={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "production-us-east",
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Production cluster running in US East",
+          },
+          {
+            field: {
+              clusterIdentifier: true,
+            },
+            title: "Cluster Identifier",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "production-us-east-1",
+            description:
+              "This should match the clusterName value in your kubernetes-agent Helm chart.",
+          },
+          {
+            field: {
+              provider: true,
+            },
+            title: "Provider",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "EKS, GKE, AKS, etc.",
+          },
+        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: KubernetesCluster,
@@ -140,6 +182,13 @@ const KubernetesClusterOverview: FunctionComponent<
                 clusterIdentifier: true,
               },
               title: "Cluster Identifier",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
               fieldType: FieldType.Text,
             },
             {
