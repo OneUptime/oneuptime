@@ -397,27 +397,26 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           blockquote: ({ children, ...props }: any) => {
             return (
               <blockquote
-                className="rounded-lg border border-blue-200 bg-blue-50/70 my-4 not-italic shadow-sm overflow-hidden"
+                className="rounded-lg border border-amber-200 bg-amber-50/50 my-4 not-italic overflow-hidden"
                 {...props}
               >
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-100/60 border-b border-blue-200/60">
+                <div className="flex items-start gap-3 px-4 py-3">
                   <svg
-                    className="h-4 w-4 flex-shrink-0 text-blue-500"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
+                    className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
                   >
                     <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                      clipRule="evenodd"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
                     />
                   </svg>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
-                    Note
-                  </span>
-                </div>
-                <div className="px-4 py-3 text-sm text-gray-600 leading-relaxed [&>p]:mt-0 [&>p]:mb-0 [&>p>strong:first-child]:hidden">
-                  {children}
+                  <div className="text-sm text-gray-700 leading-relaxed [&>p]:mt-0 [&>p]:mb-0 [&>p>strong:first-child]:text-amber-700 [&>p>strong:first-child]:mr-1">
+                    {children}
+                  </div>
                 </div>
               </blockquote>
             );
@@ -482,19 +481,31 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               return <MermaidDiagram chart={content} />;
             }
 
-            const codeClassName: string =
-              content.includes("\n") ||
-              (match &&
-                match?.filter((item: string) => {
-                  return item.includes("language-");
-                }).length > 0)
-                ? ""
-                : "text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono";
+            const isMultiline: boolean = content.includes("\n");
+            const hasLanguage: boolean = !!(
+              match &&
+              match?.filter((item: string) => {
+                return item.includes("language-");
+              }).length > 0
+            );
 
-            return match ? (
-              <CodeBlock language={match[1]!} content={content} rest={rest} />
-            ) : (
-              <code className={codeClassName} {...rest}>
+            // Multiline code blocks (with or without language) get the full CodeBlock treatment
+            if (hasLanguage || isMultiline) {
+              return (
+                <CodeBlock
+                  language={match ? match[1]! : "text"}
+                  content={content}
+                  rest={rest}
+                />
+              );
+            }
+
+            // Inline code
+            return (
+              <code
+                className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono"
+                {...rest}
+              >
                 {children}
               </code>
             );
