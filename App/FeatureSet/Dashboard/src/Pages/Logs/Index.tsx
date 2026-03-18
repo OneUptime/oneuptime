@@ -32,6 +32,17 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
+  if (showDocs) {
+    return (
+      <TelemetryDocumentation
+        telemetryType="logs"
+        onClose={() => {
+          setShowDocs(false);
+        }}
+      />
+    );
+  }
+
   return (
     <Fragment>
       <DashboardLogsViewer
@@ -46,9 +57,6 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
         }}
       />
       {!hasData && <TelemetryDocumentation telemetryType="logs" />}
-      {hasData && showDocs && (
-        <TelemetryDocumentation telemetryType="logs" />
-      )}
     </Fragment>
   );
 };

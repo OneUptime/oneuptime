@@ -23,6 +23,7 @@ export type TelemetryType = "logs" | "metrics" | "traces" | "exceptions";
 
 export interface ComponentProps {
   telemetryType?: TelemetryType | undefined;
+  onClose?: (() => void) | undefined;
 }
 
 type Language =
@@ -1366,7 +1367,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 />
               </svg>
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="text-lg font-semibold text-gray-900">
                 {titleForType[telemetryType]}
               </h2>
@@ -1374,6 +1375,28 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 {descriptionForType[telemetryType]}
               </p>
             </div>
+            {props.onClose && (
+              <button
+                type="button"
+                onClick={props.onClose}
+                className="flex-shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Close documentation"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
