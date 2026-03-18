@@ -3,14 +3,77 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import { getKubernetesInstallationMarkdown } from "./Utils/DocumentationMarkdown";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Card from "Common/UI/Components/Card/Card";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 const KubernetesClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const [clusterCount, setClusterCount] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const count: number = await ModelAPI.count({
+        modelType: KubernetesCluster,
+        query: {},
+      });
+      setClusterCount(count);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchClusterCount().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (clusterCount === 0) {
+    return (
+      <Fragment>
+        <Card
+          title="Getting Started with Kubernetes Monitoring"
+          description="No Kubernetes clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+        >
+          <div className="px-4 pb-6">
+            <MarkdownViewer
+              text={getKubernetesInstallationMarkdown("my-cluster")}
+            />
+          </div>
+        </Card>
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <ModelTable<KubernetesCluster>
@@ -28,7 +91,6 @@ const KubernetesClusters: FunctionComponent<
           description:
             "Clusters being monitored in this project. Install the OneUptime kubernetes-agent Helm chart to connect a cluster.",
         }}
-        noItemsMessage="No Kubernetes clusters connected yet."
         showViewIdButton={true}
         formFields={[
           {
