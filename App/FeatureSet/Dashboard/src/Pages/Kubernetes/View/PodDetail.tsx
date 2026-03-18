@@ -36,6 +36,16 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  const endDate: Date = OneUptimeDate.getCurrentDate();
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
+  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
+
+  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
+    startAndEndDate: startAndEndDate,
+    queryConfigs: [],
+    formulaConfigs: [],
+  });
+
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -72,10 +82,6 @@ const KubernetesClusterPodDetail: FunctionComponent<
   }
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
   const getContainerSeries: (data: AggregateModel) => ChartSeries = (
     data: AggregateModel,
@@ -185,12 +191,6 @@ const KubernetesClusterPodDetail: FunctionComponent<
     },
   };
 
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [podCpuQuery, podMemoryQuery, cpuQuery, memoryQuery],
-    formulaConfigs: [],
-  });
-
   return (
     <Fragment>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -203,7 +203,15 @@ const KubernetesClusterPodDetail: FunctionComponent<
         description="CPU, memory, and container-level resource usage for this pod over the last 6 hours."
       >
         <MetricView
-          data={metricViewData}
+          data={{
+            ...metricViewData,
+            queryConfigs: [
+              podCpuQuery,
+              podMemoryQuery,
+              cpuQuery,
+              memoryQuery,
+            ],
+          }}
           hideQueryElements={true}
           onChange={(data: MetricViewData) => {
             setMetricViewData({

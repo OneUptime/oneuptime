@@ -93,6 +93,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewNamespaceDetail
@@ -124,6 +125,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewPodDetail
@@ -153,6 +155,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewDeploymentDetail
@@ -184,6 +187,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewStatefulSetDetail
@@ -215,6 +219,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewDaemonSetDetail
@@ -246,6 +251,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewJobDetail
@@ -275,6 +281,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewCronJobDetail
@@ -306,6 +313,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewNodeDetail
@@ -335,6 +343,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL,
+            2,
           )}
           element={
             <KubernetesClusterViewContainerDetail

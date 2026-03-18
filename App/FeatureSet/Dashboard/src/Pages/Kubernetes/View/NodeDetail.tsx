@@ -33,6 +33,16 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  const endDate: Date = OneUptimeDate.getCurrentDate();
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
+  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
+
+  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
+    startAndEndDate: startAndEndDate,
+    queryConfigs: [],
+    formulaConfigs: [],
+  });
+
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -69,10 +79,6 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   }
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
@@ -194,18 +200,6 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     },
   };
 
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [
-      cpuQuery,
-      memoryQuery,
-      filesystemQuery,
-      networkRxQuery,
-      networkTxQuery,
-    ],
-    formulaConfigs: [],
-  });
-
   return (
     <Fragment>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -218,7 +212,16 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         description="CPU, memory, filesystem, and network usage for this node over the last 6 hours."
       >
         <MetricView
-          data={metricViewData}
+          data={{
+            ...metricViewData,
+            queryConfigs: [
+              cpuQuery,
+              memoryQuery,
+              filesystemQuery,
+              networkRxQuery,
+              networkTxQuery,
+            ],
+          }}
           hideQueryElements={true}
           onChange={(data: MetricViewData) => {
             setMetricViewData({

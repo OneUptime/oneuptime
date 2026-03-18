@@ -36,6 +36,16 @@ const KubernetesClusterContainerDetail: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  const endDate: Date = OneUptimeDate.getCurrentDate();
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
+  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
+
+  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
+    startAndEndDate: startAndEndDate,
+    queryConfigs: [],
+    formulaConfigs: [],
+  });
+
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -72,10 +82,6 @@ const KubernetesClusterContainerDetail: FunctionComponent<
   }
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
   const getSeries: (data: AggregateModel) => ChartSeries = (
     data: AggregateModel,
@@ -137,12 +143,6 @@ const KubernetesClusterContainerDetail: FunctionComponent<
     getSeries: getSeries,
   };
 
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [cpuQuery, memoryQuery],
-    formulaConfigs: [],
-  });
-
   return (
     <Fragment>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -155,7 +155,10 @@ const KubernetesClusterContainerDetail: FunctionComponent<
         description="CPU and memory usage for this container over the last 6 hours."
       >
         <MetricView
-          data={metricViewData}
+          data={{
+            ...metricViewData,
+            queryConfigs: [cpuQuery, memoryQuery],
+          }}
           hideQueryElements={true}
           onChange={(data: MetricViewData) => {
             setMetricViewData({
