@@ -53,7 +53,7 @@ const KubernetesClusterJobs: FunctionComponent<
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "k8s.job.name",
+          resourceNameAttribute: "resource.k8s.job.name",
         });
 
       setResources(jobList);

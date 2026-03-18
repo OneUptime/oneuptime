@@ -84,7 +84,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         filterData: {
           metricName: "etcd_mvcc_db_total_size_in_bytes",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -107,7 +107,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         filterData: {
           metricName: "apiserver_request_total",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Sum,
           aggregateBy: {},
@@ -130,7 +130,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         filterData: {
           metricName: "apiserver_request_duration_seconds",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -153,7 +153,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         filterData: {
           metricName: "scheduler_pending_pods",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -176,7 +176,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         filterData: {
           metricName: "scheduler_e2e_scheduling_duration_seconds",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -199,7 +199,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         filterData: {
           metricName: "workqueue_depth",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},

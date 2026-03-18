@@ -83,7 +83,7 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
     const attributes: Record<string, unknown> =
       (data["attributes"] as Record<string, unknown>) || {};
     const podName: string =
-      (attributes["k8s.pod.name"] as string) || "Unknown Pod";
+      (attributes["resource.k8s.pod.name"] as string) || "Unknown Pod";
     return { title: podName };
   };
 
@@ -100,7 +100,7 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
         metricName: "k8s.pod.cpu.utilization",
         attributes: {
           "k8s.cluster.name": clusterIdentifier,
-          "k8s.namespace.name": namespaceName,
+          "resource.k8s.namespace.name": namespaceName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -125,7 +125,7 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
         metricName: "k8s.pod.memory.usage",
         attributes: {
           "k8s.cluster.name": clusterIdentifier,
-          "k8s.namespace.name": namespaceName,
+          "resource.k8s.namespace.name": namespaceName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},

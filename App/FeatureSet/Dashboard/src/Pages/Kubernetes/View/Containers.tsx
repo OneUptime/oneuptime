@@ -53,8 +53,8 @@ const KubernetesClusterContainers: FunctionComponent<
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "container.cpu.utilization",
           memoryMetricName: "container.memory.usage",
-          resourceNameAttribute: "k8s.container.name",
-          additionalAttributes: ["k8s.pod.name"],
+          resourceNameAttribute: "resource.k8s.container.name",
+          additionalAttributes: ["resource.k8s.pod.name"],
         });
 
       setResources(containerList);
@@ -87,7 +87,7 @@ const KubernetesClusterContainers: FunctionComponent<
         columns={[
           {
             title: "Pod",
-            key: "k8s.pod.name",
+            key: "resource.k8s.pod.name",
           },
         ]}
         getViewRoute={(resource: KubernetesResource) => {

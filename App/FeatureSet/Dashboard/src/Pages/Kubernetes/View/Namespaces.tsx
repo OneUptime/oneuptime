@@ -53,8 +53,8 @@ const KubernetesClusterNamespaces: FunctionComponent<
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "k8s.namespace.name",
-          namespaceAttribute: "k8s.namespace.name",
+          resourceNameAttribute: "resource.k8s.namespace.name",
+          namespaceAttribute: "resource.k8s.namespace.name",
         });
 
       setResources(namespaceList);
