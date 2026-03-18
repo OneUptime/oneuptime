@@ -4,11 +4,15 @@ import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
 import React, {
   FunctionComponent,
   ReactElement,
-  useCallback,
+  useEffect,
   useState,
 } from "react";
 import MetricsTable from "../../Components/Metrics/MetricsTable";
-import MetricType from "Common/Models/DatabaseModels/MetricType";
+import Service from "Common/Models/DatabaseModels/Service";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 const MetricsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -16,17 +20,29 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
   const disableTelemetryForThisProject: boolean =
     props.currentProject?.reseller?.enableTelemetryFeatures === false;
 
-  const [hasData, setHasData] = useState<boolean | undefined>(undefined);
+  const [serviceCount, setServiceCount] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
-  const handleFetchSuccess: (
-    data: Array<MetricType>,
-    totalCount: number,
-  ) => void = useCallback(
-    (_data: Array<MetricType>, totalCount: number) => {
-      setHasData(totalCount > 0);
-    },
-    [],
-  );
+  const fetchServiceCount: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const count: number = await ModelAPI.count({
+        modelType: Service,
+        query: {},
+      });
+      setServiceCount(count);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchServiceCount().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
 
   if (disableTelemetryForThisProject) {
     return (
@@ -34,11 +50,19 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  if (hasData === false) {
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (serviceCount === 0) {
     return <TelemetryDocumentation telemetryType="metrics" />;
   }
 
-  return <MetricsTable onFetchSuccess={handleFetchSuccess} />;
+  return <MetricsTable />;
 };
 
 export default MetricsPage;

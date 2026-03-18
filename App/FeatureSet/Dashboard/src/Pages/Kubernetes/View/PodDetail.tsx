@@ -205,7 +205,12 @@ const KubernetesClusterPodDetail: FunctionComponent<
           onChange={(data: MetricViewData) => {
             setMetricViewData({
               ...data,
-              queryConfigs: [podCpuQuery, podMemoryQuery, cpuQuery, memoryQuery],
+              queryConfigs: [
+                podCpuQuery,
+                podMemoryQuery,
+                cpuQuery,
+                memoryQuery,
+              ],
               formulaConfigs: [],
             });
           }}

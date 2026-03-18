@@ -65,26 +65,25 @@ const KubernetesClusterEvents: FunctionComponent<
       const endDate: Date = OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
 
-      const listResult: ListResult<Log> =
-        await AnalyticsModelAPI.getList<Log>({
-          modelType: Log,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!.toString(),
-            time: new InBetween<Date>(startDate, endDate),
-          },
-          limit: 200,
-          skip: 0,
-          select: {
-            time: true,
-            body: true,
-            severityText: true,
-            attributes: true,
-          },
-          sort: {
-            time: SortOrder.Descending,
-          },
-          requestOptions: {},
-        });
+      const listResult: ListResult<Log> = await AnalyticsModelAPI.getList<Log>({
+        modelType: Log,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!.toString(),
+          time: new InBetween<Date>(startDate, endDate),
+        },
+        limit: 200,
+        skip: 0,
+        select: {
+          time: true,
+          body: true,
+          severityText: true,
+          attributes: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        requestOptions: {},
+      });
 
       // Helper to extract a string value from OTLP kvlistValue
       const getKvValue = (
@@ -94,7 +93,9 @@ const KubernetesClusterEvents: FunctionComponent<
         if (!kvList) {
           return "";
         }
-        const values = (kvList as JSONObject)["values"] as Array<JSONObject> | undefined;
+        const values = (kvList as JSONObject)["values"] as
+          | Array<JSONObject>
+          | undefined;
         if (!values) {
           return "";
         }
@@ -128,7 +129,9 @@ const KubernetesClusterEvents: FunctionComponent<
         if (!kvList) {
           return "";
         }
-        const values = (kvList as JSONObject)["values"] as Array<JSONObject> | undefined;
+        const values = (kvList as JSONObject)["values"] as
+          | Array<JSONObject>
+          | undefined;
         if (!values) {
           return "";
         }
@@ -193,10 +196,14 @@ const KubernetesClusterEvents: FunctionComponent<
         const note: string = getKvValue(objectKvList, "note") || "";
 
         // Get object details from "regarding" sub-object
-        const objectKind: string = getNestedKvValue(objectKvList, "regarding", "kind") || "";
-        const objectName: string = getNestedKvValue(objectKvList, "regarding", "name") || "";
-        const namespace: string = getNestedKvValue(objectKvList, "regarding", "namespace") ||
-          getNestedKvValue(objectKvList, "metadata", "namespace") || "";
+        const objectKind: string =
+          getNestedKvValue(objectKvList, "regarding", "kind") || "";
+        const objectName: string =
+          getNestedKvValue(objectKvList, "regarding", "name") || "";
+        const namespace: string =
+          getNestedKvValue(objectKvList, "regarding", "namespace") ||
+          getNestedKvValue(objectKvList, "metadata", "namespace") ||
+          "";
 
         if (eventType || reason) {
           k8sEvents.push({
@@ -275,47 +282,40 @@ const KubernetesClusterEvents: FunctionComponent<
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {events.map(
-                  (event: KubernetesEvent, index: number) => {
-                    const isWarning: boolean =
-                      event.type.toLowerCase() === "warning";
-                    return (
-                      <tr
-                        key={index}
-                        className={
-                          isWarning ? "bg-yellow-50" : ""
-                        }
-                      >
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {event.timestamp}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              isWarning
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {event.type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {event.reason}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {event.objectKind}/{event.objectName}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {event.namespace}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500 max-w-md truncate">
-                          {event.message}
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
+                {events.map((event: KubernetesEvent, index: number) => {
+                  const isWarning: boolean =
+                    event.type.toLowerCase() === "warning";
+                  return (
+                    <tr key={index} className={isWarning ? "bg-yellow-50" : ""}>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {event.timestamp}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            isWarning
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {event.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        {event.reason}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        {event.objectKind}/{event.objectName}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {event.namespace}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500 max-w-md truncate">
+                        {event.message}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -32,9 +32,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION
-              ] as Route,
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION] as Route,
               { modelId: props.modelId },
             ),
           }}
@@ -80,9 +78,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Control Plane",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE
-              ] as Route,
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE] as Route,
               { modelId: props.modelId },
             ),
           }}

@@ -712,7 +712,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       });
     }
     return filtered;
-  }, [spans, showErrorsOnly, selectedServiceIds, spanSearchText, telemetryServices]);
+  }, [
+    spans,
+    showErrorsOnly,
+    selectedServiceIds,
+    spanSearchText,
+    telemetryServices,
+  ]);
 
   // Search match count for display
   const searchMatchCount: number = React.useMemo(() => {
@@ -1288,11 +1294,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   <button
                     type="button"
                     onClick={() => {
-                      setShowCriticalPath(
-                        (prev: boolean) => {
-                          return !prev;
-                        },
-                      );
+                      setShowCriticalPath((prev: boolean) => {
+                        return !prev;
+                      });
                     }}
                     className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all flex items-center space-x-1 ${
                       showCriticalPath
@@ -1428,17 +1432,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               </div>
               <div className="space-y-1.5">
                 {serviceBreakdown.map((breakdown: ServiceBreakdown) => {
-                  const service: Service | undefined =
-                    telemetryServices.find((s: Service) => {
-                      return (
-                        s._id?.toString() === breakdown.serviceId
-                      );
-                    });
-                  const serviceName: string =
-                    service?.name || "Unknown";
+                  const service: Service | undefined = telemetryServices.find(
+                    (s: Service) => {
+                      return s._id?.toString() === breakdown.serviceId;
+                    },
+                  );
+                  const serviceName: string = service?.name || "Unknown";
                   const serviceColor: string = String(
-                    (service?.serviceColor as unknown as string) ||
-                      "#6366f1",
+                    (service?.serviceColor as unknown as string) || "#6366f1",
                   );
                   const percent: number = Math.min(
                     breakdown.percentOfTrace,
@@ -1446,7 +1447,10 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   );
 
                   return (
-                    <div key={breakdown.serviceId} className="flex items-center space-x-2">
+                    <div
+                      key={breakdown.serviceId}
+                      className="flex items-center space-x-2"
+                    >
                       <span
                         className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10 flex-shrink-0"
                         style={{
@@ -1468,8 +1472,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                       </div>
                       <span className="text-[10px] text-gray-500 w-20 text-right">
                         {SpanUtil.getSpanDurationAsString({
-                          spanDurationInUnixNano:
-                            breakdown.selfTimeUnixNano,
+                          spanDurationInUnixNano: breakdown.selfTimeUnixNano,
                           divisibilityFactor: divisibilityFactor,
                         })}{" "}
                         ({percent.toFixed(1)}%)
@@ -1526,9 +1529,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                     setSelectedSpans([spanId]);
                   }}
                   selectedSpanId={
-                    selectedSpans.length > 0
-                      ? selectedSpans[0]
-                      : undefined
+                    selectedSpans.length > 0 ? selectedSpans[0] : undefined
                   }
                 />
               </div>

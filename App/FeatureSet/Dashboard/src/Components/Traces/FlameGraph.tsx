@@ -37,7 +37,8 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
 
   const [hoveredSpanId, setHoveredSpanId] = React.useState<string | null>(null);
   const [focusedSpanId, setFocusedSpanId] = React.useState<string | null>(null);
-  const containerRef: React.RefObject<HTMLDivElement | null> = React.useRef<HTMLDivElement>(null);
+  const containerRef: React.RefObject<HTMLDivElement | null> =
+    React.useRef<HTMLDivElement>(null);
 
   // Build span data for critical path utility
   const spanDataList: SpanData[] = React.useMemo(() => {
@@ -90,9 +91,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       }
     }
 
-    const getServiceInfo = (
-      span: Span,
-    ): { color: Color; name: string } => {
+    const getServiceInfo = (span: Span): { color: Color; name: string } => {
       const service: Service | undefined = telemetryServices.find(
         (s: Service) => {
           return s._id?.toString() === span.serviceId?.toString();
@@ -123,7 +122,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
         startTimeUnixNano: span.startTimeUnixNano!,
         endTimeUnixNano: span.endTimeUnixNano!,
         durationUnixNano: span.durationUnixNano!,
-        selfTimeUnixNano: selfTime ? selfTime.selfTimeUnixNano : span.durationUnixNano!,
+        selfTimeUnixNano: selfTime
+          ? selfTime.selfTimeUnixNano
+          : span.durationUnixNano!,
         serviceColor: serviceInfo.color,
         serviceName: serviceInfo.name,
       };
@@ -220,13 +221,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
     }
 
     const leftPercent: number =
-      totalDuration > 0
-        ? ((nodeStart - viewStart) / totalDuration) * 100
-        : 0;
+      totalDuration > 0 ? ((nodeStart - viewStart) / totalDuration) * 100 : 0;
     const widthPercent: number =
-      totalDuration > 0
-        ? ((nodeEnd - nodeStart) / totalDuration) * 100
-        : 0;
+      totalDuration > 0 ? ((nodeEnd - nodeStart) / totalDuration) * 100 : 0;
 
     const isHovered: boolean = hoveredSpanId === node.span.spanId;
     const isSelected: boolean = selectedSpanId === node.span.spanId;

@@ -241,7 +241,10 @@ const init: InitFunction = async (
       },
     );
 
-    app.use(`/${appName}`, ExpressStatic(path.resolve(process.cwd(), "public")));
+    app.use(
+      `/${appName}`,
+      ExpressStatic(path.resolve(process.cwd(), "public")),
+    );
 
     app.get(
       `/${appName}/dist/Index.js`,

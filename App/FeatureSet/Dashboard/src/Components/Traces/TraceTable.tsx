@@ -44,7 +44,9 @@ export interface ComponentProps {
   spanQuery?: Query<Span> | undefined;
   isMinimalTable?: boolean | undefined;
   noItemsMessage?: string | undefined;
-  onFetchSuccess?: ((data: Array<Span>, totalCount: number) => void) | undefined;
+  onFetchSuccess?:
+    | ((data: Array<Span>, totalCount: number) => void)
+    | undefined;
 }
 
 const TraceTable: FunctionComponent<ComponentProps> = (
@@ -312,12 +314,9 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               );
             }
             return Promise.resolve(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.TRACE_VIEW]!,
-                {
-                  modelId: span.traceId!.toString(),
-                },
-              ),
+              RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
+                modelId: span.traceId!.toString(),
+              }),
             );
           }}
           filters={[

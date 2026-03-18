@@ -61,81 +61,113 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_PODS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_PODS,
+          )}
           element={
             <KubernetesClusterViewPods
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PODS] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PODS] as Route
+              }
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL,
+          )}
           element={
             <KubernetesClusterViewPodDetail
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route
+              }
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_NODES)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_NODES,
+          )}
           element={
             <KubernetesClusterViewNodes
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODES] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODES] as Route
+              }
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL,
+          )}
           element={
             <KubernetesClusterViewNodeDetail
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL] as Route
+              }
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS,
+          )}
           element={
             <KubernetesClusterViewEvents
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route
+              }
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE,
+          )}
           element={
             <KubernetesClusterViewControlPlane
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE] as Route
+              }
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_DELETE)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_DELETE,
+          )}
           element={
             <KubernetesClusterViewDelete
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DELETE] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DELETE] as Route
+              }
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION,
+          )}
           element={
             <KubernetesClusterViewDocumentation
               {...props}
-              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION] as Route}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION] as Route
+              }
             />
           }
         />

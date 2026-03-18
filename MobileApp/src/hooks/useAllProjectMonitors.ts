@@ -57,8 +57,9 @@ export function useAllProjectMonitors(): UseAllProjectMonitorsResult {
   const items: ProjectMonitorItem[] = useMemo(() => {
     const allItems: ProjectMonitorItem[] = [];
     for (let i: number = 0; i < queries.length; i++) {
-      const query: UseQueryResult<ListResponse<MonitorItem>, Error> =
-        queries[i]!;
+      const query: UseQueryResult<ListResponse<MonitorItem>, Error> = queries[
+        i
+      ]!;
       const projectId: string = projectList[i]?._id ?? "";
       if (query.data) {
         for (const item of query.data.data) {
@@ -75,11 +76,9 @@ export function useAllProjectMonitors(): UseAllProjectMonitorsResult {
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
     await Promise.all(
-      queries.map(
-        (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
-          return q.refetch();
-        },
-      ),
+      queries.map((q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.refetch();
+      }),
     );
   };
 

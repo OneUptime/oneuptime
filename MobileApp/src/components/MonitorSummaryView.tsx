@@ -21,7 +21,10 @@ function toDisplayString(val: unknown): string {
     if (typeof obj.value === "string") {
       return obj.value;
     }
-    if (typeof obj.toString === "function" && obj.toString !== Object.prototype.toString) {
+    if (
+      typeof obj.toString === "function" &&
+      obj.toString !== Object.prototype.toString
+    ) {
       return obj.toString();
     }
     try {

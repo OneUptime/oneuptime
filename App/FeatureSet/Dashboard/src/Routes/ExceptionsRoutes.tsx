@@ -64,9 +64,7 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           element={
             <ExceptionsDocumentationPage
               {...props}
-              pageRoute={
-                RouteMap[PageMap.EXCEPTIONS_DOCUMENTATION] as Route
-              }
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_DOCUMENTATION] as Route}
             />
           }
         />

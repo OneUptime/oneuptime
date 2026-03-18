@@ -352,9 +352,11 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               return <>{children}</>;
             }
 
-            // If the child is a custom component (CodeBlock, MermaidDiagram, etc.)
-            // rather than a plain HTML element like <code>, skip pre styling.
-            // Checking typeof type !== "string" is minification-safe unlike checking type.name.
+            /*
+             * If the child is a custom component (CodeBlock, MermaidDiagram, etc.)
+             * rather than a plain HTML element like <code>, skip pre styling.
+             * Checking typeof type !== "string" is minification-safe unlike checking type.name.
+             */
             const isCustomComponent: boolean =
               React.isValidElement(children) &&
               typeof (children as any).type !== "string";
@@ -439,10 +441,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           },
           tr: ({ ...props }: any) => {
             return (
-              <tr
-                className="hover:bg-gray-50 transition-colors"
-                {...props}
-              />
+              <tr className="hover:bg-gray-50 transition-colors" {...props} />
             );
           },
           th: ({ ...props }: any) => {
@@ -455,10 +454,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           },
           td: ({ ...props }: any) => {
             return (
-              <td
-                className="px-4 py-2.5 text-sm text-gray-700"
-                {...props}
-              />
+              <td className="px-4 py-2.5 text-sm text-gray-700" {...props} />
             );
           },
           hr: ({ ...props }: any) => {
@@ -482,11 +478,11 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             }
 
             const isMultiline: boolean = content.includes("\n");
-            const hasLanguage: boolean = !!(
+            const hasLanguage: boolean = Boolean(
               match &&
-              match?.filter((item: string) => {
-                return item.includes("language-");
-              }).length > 0
+                match?.filter((item: string) => {
+                  return item.includes("language-");
+                }).length > 0,
             );
 
             // Multiline code blocks (with or without language) get the full CodeBlock treatment

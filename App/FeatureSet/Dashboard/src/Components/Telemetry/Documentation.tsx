@@ -816,42 +816,39 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     loadIngestionKeys().catch(() => {});
   }, []);
 
-  const loadIngestionKeys: () => Promise<void> =
-    async (): Promise<void> => {
-      try {
-        setIsLoadingKeys(true);
-        setKeyError("");
-        const result: ListResult<TelemetryIngestionKey> =
-          await ModelAPI.getList<TelemetryIngestionKey>({
-            modelType: TelemetryIngestionKey,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: 50,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-              secretKey: true,
-              description: true,
-            },
-            sort: {},
-          });
+  const loadIngestionKeys: () => Promise<void> = async (): Promise<void> => {
+    try {
+      setIsLoadingKeys(true);
+      setKeyError("");
+      const result: ListResult<TelemetryIngestionKey> =
+        await ModelAPI.getList<TelemetryIngestionKey>({
+          modelType: TelemetryIngestionKey,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          limit: 50,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+            secretKey: true,
+            description: true,
+          },
+          sort: {},
+        });
 
-        setIngestionKeys(result.data);
+      setIngestionKeys(result.data);
 
-        // Auto-select the first key if available and none selected
-        if (result.data.length > 0 && !selectedKeyId) {
-          setSelectedKeyId(
-            result.data[0]!.id?.toString() || "",
-          );
-        }
-      } catch (err) {
-        setKeyError(API.getFriendlyErrorMessage(err as Error));
-      } finally {
-        setIsLoadingKeys(false);
+      // Auto-select the first key if available and none selected
+      if (result.data.length > 0 && !selectedKeyId) {
+        setSelectedKeyId(result.data[0]!.id?.toString() || "");
       }
-    };
+    } catch (err) {
+      setKeyError(API.getFriendlyErrorMessage(err as Error));
+    } finally {
+      setIsLoadingKeys(false);
+    }
+  };
 
   // Get the selected key object
   const selectedKey: TelemetryIngestionKey | undefined = useMemo(() => {
@@ -944,9 +941,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           <div className="w-9 h-9 rounded-full bg-indigo-50 border-2 border-indigo-500 text-indigo-600 flex items-center justify-center text-sm font-bold z-10">
             {stepNumber}
           </div>
-          {!isLast && (
-            <div className="w-0.5 flex-1 bg-gray-200 mt-2 mb-0" />
-          )}
+          {!isLast && <div className="w-0.5 flex-1 bg-gray-200 mt-2 mb-0" />}
         </div>
         {/* Step content */}
         <div className={`flex-1 min-w-0 ${isLast ? "pb-0" : "pb-8"}`}>
@@ -1023,15 +1018,19 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="flex items-center gap-2 mb-3">
           <div className="flex-1">
             <Dropdown
-              options={ingestionKeys.map((key: TelemetryIngestionKey): DropdownOption => {
-                return {
-                  value: key.id?.toString() || "",
-                  label: key.name || "Unnamed Key",
-                };
-              })}
+              options={ingestionKeys.map(
+                (key: TelemetryIngestionKey): DropdownOption => {
+                  return {
+                    value: key.id?.toString() || "",
+                    label: key.name || "Unnamed Key",
+                  };
+                },
+              )}
               value={
                 ingestionKeys
-                  .filter((key: TelemetryIngestionKey) => key.id?.toString() === selectedKeyId)
+                  .filter((key: TelemetryIngestionKey) => {
+                    return key.id?.toString() === selectedKeyId;
+                  })
                   .map((key: TelemetryIngestionKey): DropdownOption => {
                     return {
                       value: key.id?.toString() || "",
@@ -1039,7 +1038,9 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                     };
                   })[0]
               }
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (value) {
                   setSelectedKeyId(value.toString());
                 }
@@ -1195,7 +1196,11 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           {renderStep(
             2,
             "Install Dependencies",
-            `Install the OpenTelemetry SDK and exporters for ${languages.find((l: LanguageOption) => { return l.key === selectedLanguage; })?.label || selectedLanguage}.`,
+            `Install the OpenTelemetry SDK and exporters for ${
+              languages.find((l: LanguageOption) => {
+                return l.key === selectedLanguage;
+              })?.label || selectedLanguage
+            }.`,
             <CodeBlock
               code={installSnippet.code}
               language={installSnippet.language}
@@ -1283,10 +1288,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             4,
             "Run FluentBit",
             "Start FluentBit with your configuration file.",
-            <CodeBlock
-              code="fluent-bit -c fluent-bit.conf"
-              language="bash"
-            />,
+            <CodeBlock code="fluent-bit -c fluent-bit.conf" language="bash" />,
             true,
           )}
         </div>
@@ -1340,10 +1342,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             4,
             "Run Fluentd",
             "Start Fluentd with your configuration.",
-            <CodeBlock
-              code="fluentd -c fluentd.conf"
-              language="bash"
-            />,
+            <CodeBlock code="fluentd -c fluentd.conf" language="bash" />,
             true,
           )}
         </div>

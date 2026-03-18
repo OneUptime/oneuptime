@@ -334,7 +334,7 @@ export default function MonitorDetailScreen({
               >
                 {isDisabled
                   ? "Disabled"
-                  : (monitor.currentMonitorStatus?.name ?? "Unknown")}
+                  : monitor.currentMonitorStatus?.name ?? "Unknown"}
               </Text>
             </View>
 

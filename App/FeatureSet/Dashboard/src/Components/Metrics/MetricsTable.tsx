@@ -17,7 +17,9 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 
 export interface ComponentProps {
   serviceIds?: Array<ObjectID> | undefined;
-  onFetchSuccess?: ((data: Array<MetricType>, totalCount: number) => void) | undefined;
+  onFetchSuccess?:
+    | ((data: Array<MetricType>, totalCount: number) => void)
+    | undefined;
 }
 
 const MetricsTable: FunctionComponent<ComponentProps> = (

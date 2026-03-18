@@ -149,10 +149,9 @@ const KubernetesDocumentationCard: FunctionComponent<ComponentProps> = (
               )}
               value={
                 ingestionKeys
-                  .filter(
-                    (key: TelemetryIngestionKey) =>
-                      key.id?.toString() === selectedKeyId,
-                  )
+                  .filter((key: TelemetryIngestionKey) => {
+                    return key.id?.toString() === selectedKeyId;
+                  })
                   .map((key: TelemetryIngestionKey): DropdownOption => {
                     return {
                       value: key.id?.toString() || "",
