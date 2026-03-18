@@ -2,14 +2,10 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import MetricQueryConfigData, {
-  ChartSeries,
-} from "Common/Types/Metrics/MetricQueryConfigData";
-import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
+import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import KubernetesResourceUtils, {
+  KubernetesResource,
+} from "../Utils/KubernetesResourceUtils";
 import React, {
   Fragment,
   FunctionComponent,
@@ -22,31 +18,49 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 
 const KubernetesClusterPods: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
+  const [resources, setResources] = useState<Array<KubernetesResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [metricViewData, setMetricViewData] = useState<MetricViewData | null>(
-    null,
-  );
 
-  const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
+  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const item: KubernetesCluster | null = await ModelAPI.getItem({
+      const cluster: KubernetesCluster | null = await ModelAPI.getItem({
         modelType: KubernetesCluster,
         id: modelId,
         select: {
           clusterIdentifier: true,
         },
       });
-      setCluster(item);
+
+      if (!cluster?.clusterIdentifier) {
+        setError("Cluster not found.");
+        setIsLoading(false);
+        return;
+      }
+
+      const podList: Array<KubernetesResource> =
+        await KubernetesResourceUtils.fetchResourceListWithMemory({
+          clusterIdentifier: cluster.clusterIdentifier,
+          metricName: "k8s.pod.cpu.utilization",
+          memoryMetricName: "k8s.pod.memory.usage",
+          resourceNameAttribute: "resource.k8s.pod.name",
+          additionalAttributes: [
+            "resource.k8s.node.name",
+            "resource.k8s.deployment.name",
+          ],
+        });
+
+      setResources(podList);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -54,142 +68,10 @@ const KubernetesClusterPods: FunctionComponent<
   };
 
   useEffect(() => {
-    fetchCluster().catch((err: Error) => {
+    fetchData().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
   }, []);
-
-  useEffect(() => {
-    if (!cluster) {
-      return;
-    }
-
-    const clusterIdentifier: string = cluster.clusterIdentifier || "";
-    const endDate: Date = OneUptimeDate.getCurrentDate();
-    const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-    const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-    const getPodSeries: (data: AggregateModel) => ChartSeries = (
-      data: AggregateModel,
-    ): ChartSeries => {
-      const attributes: Record<string, unknown> =
-        (data["attributes"] as Record<string, unknown>) || {};
-      const podName: string =
-        (attributes["resource.k8s.pod.name"] as string) || "Unknown Pod";
-      const namespace: string =
-        (attributes["resource.k8s.namespace.name"] as string) || "";
-      return { title: namespace ? `${namespace}/${podName}` : podName };
-    };
-
-    const podCpuQuery: MetricQueryConfigData = {
-      metricAliasData: {
-        metricVariable: "pod_cpu",
-        title: "Pod CPU Utilization",
-        description: "CPU utilization by pod",
-        legend: "CPU",
-        legendUnit: "%",
-      },
-      metricQueryData: {
-        filterData: {
-          metricName: "k8s.pod.cpu.utilization",
-          attributes: {
-            "resource.k8s.cluster.name": clusterIdentifier,
-          },
-          aggegationType: AggregationType.Avg,
-          aggregateBy: {},
-        },
-        groupBy: {
-          attributes: true,
-        },
-      },
-      getSeries: getPodSeries,
-    };
-
-    const podMemoryQuery: MetricQueryConfigData = {
-      metricAliasData: {
-        metricVariable: "pod_memory",
-        title: "Pod Memory Usage",
-        description: "Memory usage by pod",
-        legend: "Memory",
-        legendUnit: "bytes",
-      },
-      metricQueryData: {
-        filterData: {
-          metricName: "k8s.pod.memory.usage",
-          attributes: {
-            "resource.k8s.cluster.name": clusterIdentifier,
-          },
-          aggegationType: AggregationType.Avg,
-          aggregateBy: {},
-        },
-        groupBy: {
-          attributes: true,
-        },
-      },
-      getSeries: getPodSeries,
-    };
-
-    const podNetworkRxQuery: MetricQueryConfigData = {
-      metricAliasData: {
-        metricVariable: "pod_network_rx",
-        title: "Pod Network Receive",
-        description: "Network bytes received by pod",
-        legend: "Network RX",
-        legendUnit: "bytes/s",
-      },
-      metricQueryData: {
-        filterData: {
-          metricName: "k8s.pod.network.io",
-          attributes: {
-            "resource.k8s.cluster.name": clusterIdentifier,
-            "metricAttributes.direction": "receive",
-          },
-          aggegationType: AggregationType.Avg,
-          aggregateBy: {},
-        },
-        groupBy: {
-          attributes: true,
-        },
-      },
-      getSeries: getPodSeries,
-    };
-
-    const podNetworkTxQuery: MetricQueryConfigData = {
-      metricAliasData: {
-        metricVariable: "pod_network_tx",
-        title: "Pod Network Transmit",
-        description: "Network bytes transmitted by pod",
-        legend: "Network TX",
-        legendUnit: "bytes/s",
-      },
-      metricQueryData: {
-        filterData: {
-          metricName: "k8s.pod.network.io",
-          attributes: {
-            "resource.k8s.cluster.name": clusterIdentifier,
-            "metricAttributes.direction": "transmit",
-          },
-          aggegationType: AggregationType.Avg,
-          aggregateBy: {},
-        },
-        groupBy: {
-          attributes: true,
-        },
-      },
-      getSeries: getPodSeries,
-    };
-
-    setMetricViewData({
-      startAndEndDate: startAndEndDate,
-      queryConfigs: [
-        podCpuQuery,
-        podMemoryQuery,
-        podNetworkRxQuery,
-        podNetworkTxQuery,
-      ],
-      formulaConfigs: [],
-    });
-  }, [cluster]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -199,21 +81,26 @@ const KubernetesClusterPods: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!cluster || !metricViewData) {
-    return <ErrorMessage message="Cluster not found." />;
-  }
-
   return (
     <Fragment>
-      <MetricView
-        data={metricViewData}
-        hideQueryElements={true}
-        onChange={(data: MetricViewData) => {
-          setMetricViewData({
-            ...data,
-            queryConfigs: metricViewData.queryConfigs,
-            formulaConfigs: [],
-          });
+      <KubernetesResourceTable
+        title="Pods"
+        description="All pods running in this cluster with their current resource usage."
+        resources={resources}
+        columns={[
+          {
+            title: "Node",
+            key: "resource.k8s.node.name",
+          },
+        ]}
+        getViewRoute={(resource: KubernetesResource) => {
+          return RouteUtil.populateRouteParams(
+            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route,
+            {
+              modelId: modelId,
+              subModelId: new ObjectID(resource.name),
+            },
+          );
         }}
       />
     </Fragment>
