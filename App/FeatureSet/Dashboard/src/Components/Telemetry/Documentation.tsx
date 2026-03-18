@@ -17,6 +17,10 @@ import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import Protocol from "Common/Types/API/Protocol";
 
 export type TelemetryType = "logs" | "metrics" | "traces" | "exceptions";
@@ -1017,21 +1021,33 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
       <div>
         {/* Key selector row */}
         <div className="flex items-center gap-2 mb-3">
-          <select
-            value={selectedKeyId}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-              setSelectedKeyId(e.target.value);
-            }}
-            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-          >
-            {ingestionKeys.map((key: TelemetryIngestionKey) => {
-              return (
-                <option key={key.id?.toString()} value={key.id?.toString()}>
-                  {key.name || "Unnamed Key"}
-                </option>
-              );
-            })}
-          </select>
+          <div className="flex-1">
+            <Dropdown
+              options={ingestionKeys.map((key: TelemetryIngestionKey): DropdownOption => {
+                return {
+                  value: key.id?.toString() || "",
+                  label: key.name || "Unnamed Key",
+                };
+              })}
+              value={
+                ingestionKeys
+                  .filter((key: TelemetryIngestionKey) => key.id?.toString() === selectedKeyId)
+                  .map((key: TelemetryIngestionKey): DropdownOption => {
+                    return {
+                      value: key.id?.toString() || "",
+                      label: key.name || "Unnamed Key",
+                    };
+                  })[0]
+              }
+              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                if (value) {
+                  setSelectedKeyId(value.toString());
+                }
+              }}
+              placeholder="Select an ingestion key"
+              ariaLabel="Select ingestion key"
+            />
+          </div>
           <button
             type="button"
             onClick={() => {
