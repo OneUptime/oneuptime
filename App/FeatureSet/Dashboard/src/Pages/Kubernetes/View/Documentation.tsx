@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Card from "Common/UI/Components/Card/Card";
 import React, {
   Fragment,
   FunctionComponent,
@@ -15,8 +14,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import { getKubernetesInstallationMarkdown } from "../Utils/DocumentationMarkdown";
+import KubernetesDocumentationCard from "../../../Components/Kubernetes/DocumentationCard";
 
 const KubernetesClusterDocumentation: FunctionComponent<
   PageComponentProps
@@ -66,19 +64,13 @@ const KubernetesClusterDocumentation: FunctionComponent<
   const clusterName: string =
     cluster.clusterIdentifier || cluster.name || "my-cluster";
 
-  const installationMarkdown: string =
-    getKubernetesInstallationMarkdown(clusterName);
-
   return (
     <Fragment>
-      <Card
+      <KubernetesDocumentationCard
+        clusterName={clusterName}
         title="Agent Installation Guide"
         description="Follow these steps to install the OneUptime Kubernetes Agent on your cluster."
-      >
-        <div className="px-4 pb-6">
-          <MarkdownViewer text={installationMarkdown} />
-        </div>
-      </Card>
+      />
     </Fragment>
   );
 };

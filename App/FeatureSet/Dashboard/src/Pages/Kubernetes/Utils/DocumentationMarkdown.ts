@@ -1,13 +1,20 @@
+export interface KubernetesInstallationMarkdownOptions {
+  clusterName: string;
+  oneuptimeUrl: string;
+  apiKey: string;
+}
+
 export function getKubernetesInstallationMarkdown(
-  clusterName: string,
+  options: KubernetesInstallationMarkdownOptions,
 ): string {
+  const { clusterName, oneuptimeUrl, apiKey } = options;
+
   return `
 ## Prerequisites
 
 - A running Kubernetes cluster (v1.23+)
 - \`kubectl\` configured to access your cluster
 - \`helm\` v3 installed
-- A OneUptime project API key (found in **Project Settings > API Keys**)
 
 ## Step 1: Add the OneUptime Helm Repository
 
@@ -22,15 +29,10 @@ helm repo update
 helm install kubernetes-agent oneuptime/kubernetes-agent \\
   --namespace oneuptime-agent \\
   --create-namespace \\
-  --set oneuptime.url="YOUR_ONEUPTIME_URL" \\
-  --set oneuptime.apiKey="YOUR_API_KEY" \\
+  --set oneuptime.url="${oneuptimeUrl}" \\
+  --set oneuptime.apiKey="${apiKey}" \\
   --set clusterName="${clusterName}"
 \`\`\`
-
-Replace the following values:
-- **YOUR_ONEUPTIME_URL**: The URL of your OneUptime instance (e.g., \`https://oneuptime.example.com\`)
-- **YOUR_API_KEY**: Your project API key from OneUptime
-- **clusterName**: A unique identifier for your cluster (e.g., \`production-us-east\`)
 
 ## Step 3: Verify the Installation
 
@@ -60,8 +62,8 @@ By default, \`kube-system\` is excluded. To monitor only specific namespaces:
 helm install kubernetes-agent oneuptime/kubernetes-agent \\
   --namespace oneuptime-agent \\
   --create-namespace \\
-  --set oneuptime.url="YOUR_ONEUPTIME_URL" \\
-  --set oneuptime.apiKey="YOUR_API_KEY" \\
+  --set oneuptime.url="${oneuptimeUrl}" \\
+  --set oneuptime.apiKey="${apiKey}" \\
   --set clusterName="${clusterName}" \\
   --set "namespaceFilters.include={default,production,staging}"
 \`\`\`
@@ -74,8 +76,8 @@ If you only need metrics and events (no pod logs):
 helm install kubernetes-agent oneuptime/kubernetes-agent \\
   --namespace oneuptime-agent \\
   --create-namespace \\
-  --set oneuptime.url="YOUR_ONEUPTIME_URL" \\
-  --set oneuptime.apiKey="YOUR_API_KEY" \\
+  --set oneuptime.url="${oneuptimeUrl}" \\
+  --set oneuptime.apiKey="${apiKey}" \\
   --set clusterName="${clusterName}" \\
   --set logs.enabled=false
 \`\`\`
@@ -88,8 +90,8 @@ For self-managed clusters (not EKS/GKE/AKS), you can enable control plane metric
 helm install kubernetes-agent oneuptime/kubernetes-agent \\
   --namespace oneuptime-agent \\
   --create-namespace \\
-  --set oneuptime.url="YOUR_ONEUPTIME_URL" \\
-  --set oneuptime.apiKey="YOUR_API_KEY" \\
+  --set oneuptime.url="${oneuptimeUrl}" \\
+  --set oneuptime.apiKey="${apiKey}" \\
   --set clusterName="${clusterName}" \\
   --set controlPlane.enabled=true
 \`\`\`

@@ -13,14 +13,12 @@ import React, {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import { getKubernetesInstallationMarkdown } from "./Utils/DocumentationMarkdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Card from "Common/UI/Components/Card/Card";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import KubernetesDocumentationCard from "../../Components/Kubernetes/DocumentationCard";
 
 const KubernetesClusters: FunctionComponent<
   PageComponentProps
@@ -60,16 +58,11 @@ const KubernetesClusters: FunctionComponent<
   if (clusterCount === 0) {
     return (
       <Fragment>
-        <Card
+        <KubernetesDocumentationCard
+          clusterName="my-cluster"
           title="Getting Started with Kubernetes Monitoring"
           description="No Kubernetes clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
-        >
-          <div className="px-4 pb-6">
-            <MarkdownViewer
-              text={getKubernetesInstallationMarkdown("my-cluster")}
-            />
-          </div>
-        </Card>
+        />
       </Fragment>
     );
   }
