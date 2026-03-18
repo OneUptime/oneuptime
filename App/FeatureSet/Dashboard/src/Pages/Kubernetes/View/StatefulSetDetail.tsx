@@ -99,7 +99,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.pod.cpu.utilization",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.statefulset.name": statefulSetName,
         },
         aggegationType: AggregationType.Avg,
@@ -124,7 +124,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.pod.memory.usage",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.statefulset.name": statefulSetName,
         },
         aggegationType: AggregationType.Avg,

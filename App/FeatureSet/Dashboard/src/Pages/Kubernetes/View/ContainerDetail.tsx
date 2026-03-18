@@ -83,7 +83,7 @@ const KubernetesClusterContainerDetail: FunctionComponent<
     const attributes: Record<string, unknown> =
       (data["attributes"] as Record<string, unknown>) || {};
     const name: string =
-      (attributes["k8s.container.name"] as string) || "Unknown Container";
+      (attributes["resource.k8s.container.name"] as string) || "Unknown Container";
     return { title: name };
   };
 
@@ -99,8 +99,8 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       filterData: {
         metricName: "container.cpu.utilization",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.container.name": containerName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.container.name": containerName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -124,8 +124,8 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       filterData: {
         metricName: "container.memory.usage",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.container.name": containerName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.container.name": containerName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},

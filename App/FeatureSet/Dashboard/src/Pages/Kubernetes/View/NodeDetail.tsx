@@ -86,8 +86,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.node.cpu.utilization",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.node.name": nodeName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.node.name": nodeName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -110,8 +110,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.node.memory.usage",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.node.name": nodeName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.node.name": nodeName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -134,8 +134,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.node.filesystem.usage",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.node.name": nodeName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.node.name": nodeName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -158,8 +158,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.node.network.io.receive",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.node.name": nodeName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.node.name": nodeName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -182,8 +182,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.node.network.io.transmit",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.node.name": nodeName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.node.name": nodeName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},

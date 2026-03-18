@@ -99,7 +99,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.pod.cpu.utilization",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.daemonset.name": daemonSetName,
         },
         aggegationType: AggregationType.Avg,
@@ -124,7 +124,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.pod.memory.usage",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.daemonset.name": daemonSetName,
         },
         aggegationType: AggregationType.Avg,

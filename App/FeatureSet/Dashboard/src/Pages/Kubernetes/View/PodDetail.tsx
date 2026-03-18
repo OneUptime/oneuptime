@@ -83,7 +83,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
     const attributes: Record<string, unknown> =
       (data["attributes"] as Record<string, unknown>) || {};
     const containerName: string =
-      (attributes["k8s.container.name"] as string) || "Unknown Container";
+      (attributes["resource.k8s.container.name"] as string) || "Unknown Container";
     return { title: containerName };
   };
 
@@ -99,8 +99,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
       filterData: {
         metricName: "container.cpu.utilization",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.pod.name": podName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.pod.name": podName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -124,8 +124,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
       filterData: {
         metricName: "container.memory.usage",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.pod.name": podName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.pod.name": podName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -149,8 +149,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.pod.cpu.utilization",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.pod.name": podName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.pod.name": podName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -173,8 +173,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
       filterData: {
         metricName: "k8s.pod.memory.usage",
         attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-          "k8s.pod.name": podName,
+          "resource.k8s.cluster.name": clusterIdentifier,
+          "resource.k8s.pod.name": podName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
