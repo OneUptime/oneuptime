@@ -37,7 +37,7 @@ export default class KubernetesResourceUtils {
       namespaceAttribute = "resource.k8s.namespace.name",
       additionalAttributes = [],
       filterAttributes = {},
-      hoursBack = 24,
+      hoursBack = 1,
     } = options;
 
     const endDate: Date = OneUptimeDate.getCurrentDate();
