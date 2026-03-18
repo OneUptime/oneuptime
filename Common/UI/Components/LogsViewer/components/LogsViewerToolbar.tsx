@@ -37,6 +37,7 @@ export interface LogsViewerToolbarProps {
   onExportJSON?: (() => void) | undefined;
   showKeyboardShortcuts?: boolean | undefined;
   onToggleKeyboardShortcuts?: (() => void) | undefined;
+  onShowDocumentation?: (() => void) | undefined;
 }
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
@@ -154,6 +155,30 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               onChange={props.onSelectedColumnsChange}
             />
           )}
+
+        {props.onShowDocumentation && (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+            onClick={props.onShowDocumentation}
+            title="Setup Documentation"
+          >
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
+              />
+            </svg>
+            Docs
+          </button>
+        )}
 
         {props.onToggleKeyboardShortcuts && (
           <div className="relative">

@@ -11,6 +11,7 @@ export * from "./SettingsBreadcrumbs";
 export * from "./MonitorGroupBreadcrumbs";
 export * from "./ServiceBreadcrumbs";
 export * from "./CodeRepositoryBreadcrumbs";
+export * from "./KubernetesBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
 export * from "./AIAgentTasksBreadcrumbs";
 export * from "./ExceptionsBreadcrumbs";

@@ -2733,6 +2733,57 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="m15 11.25 1.5 1.5.75-.75V8.758l2.276-.61a3 3 0 1 0-3.675-3.675l-.61 2.277H12l-.75.75 1.5 1.5M15 11.25l-8.47 8.47c-.34.34-.8.53-1.28.53s-.94-.19-1.28-.53a1.818 1.818 0 0 1 0-2.56l8.47-8.47M15 11.25 12 8.25"
       />,
     );
+  } else if (icon === IconProp.Kubernetes) {
+    // Kubernetes helm wheel — 7-sided shape with 7 spokes, matching the official logo
+    const cx: number = 12;
+    const cy: number = 12;
+    const outerR: number = 9.5;
+    const innerR: number = 2.2;
+    const spokeEnd: number = 8;
+    const sides: number = 7;
+    const offsetAngle: number = -Math.PI / 2; // start from top
+
+    const outerPoints: string[] = [];
+    const spokes: React.ReactElement[] = [];
+
+    for (let i: number = 0; i < sides; i++) {
+      const angle: number = offsetAngle + (2 * Math.PI * i) / sides;
+      const ox: number = cx + outerR * Math.cos(angle);
+      const oy: number = cy + outerR * Math.sin(angle);
+      outerPoints.push(`${ox.toFixed(2)},${oy.toFixed(2)}`);
+
+      const sx: number = cx + innerR * Math.cos(angle);
+      const sy: number = cy + innerR * Math.sin(angle);
+      const ex: number = cx + spokeEnd * Math.cos(angle);
+      const ey: number = cy + spokeEnd * Math.sin(angle);
+
+      spokes.push(
+        <line
+          key={`spoke-${i}`}
+          x1={sx.toFixed(2)}
+          y1={sy.toFixed(2)}
+          x2={ex.toFixed(2)}
+          y2={ey.toFixed(2)}
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />,
+      );
+    }
+
+    return getSvgWrapper(
+      <>
+        <polygon
+          points={outerPoints.join(" ")}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <circle cx={cx} cy={cy} r={innerR} />
+        {spokes}
+      </>,
+    );
   }
 
   return <></>;

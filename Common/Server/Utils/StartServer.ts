@@ -37,6 +37,7 @@ import Typeof from "../../Types/Typeof";
 import CookieParser from "cookie-parser";
 import cors from "cors";
 import zlib from "zlib";
+import path from "path";
 import "ejs";
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
@@ -240,12 +241,15 @@ const init: InitFunction = async (
       },
     );
 
-    app.use(`/${appName}`, ExpressStatic("/usr/src/app/public"));
+    app.use(
+      `/${appName}`,
+      ExpressStatic(path.resolve(process.cwd(), "public")),
+    );
 
     app.get(
       `/${appName}/dist/Index.js`,
       (_req: ExpressRequest, res: ExpressResponse) => {
-        res.sendFile("/usr/src/app/public/dist/Index.js");
+        res.sendFile(path.resolve(process.cwd(), "public/dist/Index.js"));
       },
     );
 
@@ -285,7 +289,7 @@ const init: InitFunction = async (
             return;
           }
 
-          return res.render("/usr/src/app/views/index.ejs", {
+          return res.render(path.resolve(process.cwd(), "views/index.ejs"), {
             enableGoogleTagManager: IsBillingEnabled || false,
             ...variables,
           });

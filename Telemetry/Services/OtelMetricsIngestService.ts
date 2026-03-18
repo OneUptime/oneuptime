@@ -118,12 +118,21 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             await Promise.resolve();
           }
           resourceMetricCounter++;
-          const serviceName: string = this.getServiceNameFromAttributes(
-            req,
+          const resourceAttributes_raw: JSONArray =
             ((resourceMetric["resource"] as JSONObject)?.[
               "attributes"
-            ] as JSONArray) || [],
+            ] as JSONArray) || [];
+
+          const serviceName: string = this.getServiceNameFromAttributes(
+            req,
+            resourceAttributes_raw,
           );
+
+          // Auto-discover Kubernetes cluster from resource attributes
+          await this.autoDiscoverKubernetesCluster({
+            projectId,
+            attributes: resourceAttributes_raw,
+          });
 
           if (!serviceDictionary[serviceName]) {
             const service: {
@@ -152,10 +161,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serviceName: serviceName,
             }),
             ...TelemetryUtil.getAttributes({
-              items:
-                ((resourceMetric["resource"] as JSONObject)?.[
-                  "attributes"
-                ] as JSONArray) || [],
+              items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
             }),
           };

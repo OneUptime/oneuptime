@@ -44,6 +44,9 @@ export interface ComponentProps {
   spanQuery?: Query<Span> | undefined;
   isMinimalTable?: boolean | undefined;
   noItemsMessage?: string | undefined;
+  onFetchSuccess?:
+    | ((data: Array<Span>, totalCount: number) => void)
+    | undefined;
 }
 
 const TraceTable: FunctionComponent<ComponentProps> = (
@@ -298,6 +301,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           noItemsMessage={
             props.noItemsMessage ? props.noItemsMessage : "No spans found."
           }
+          onFetchSuccess={props.onFetchSuccess}
           showRefreshButton={true}
           sortBy="startTime"
           sortOrder={SortOrder.Descending}
@@ -310,12 +314,9 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               );
             }
             return Promise.resolve(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.TRACE_VIEW]!,
-                {
-                  modelId: span.traceId!.toString(),
-                },
-              ),
+              RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
+                modelId: span.traceId!.toString(),
+              }),
             );
           }}
           filters={[

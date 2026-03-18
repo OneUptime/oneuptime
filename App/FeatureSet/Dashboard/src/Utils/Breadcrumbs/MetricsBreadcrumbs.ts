@@ -11,6 +11,11 @@ export function getMetricsBreadcrumbs(path: string): Array<Link> | undefined {
       "Metrics",
       "Metrics Explorer",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_DOCUMENTATION, [
+      "Project",
+      "Metrics",
+      "Documentation",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

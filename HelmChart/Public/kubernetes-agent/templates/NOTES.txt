@@ -1,0 +1,24 @@
+OneUptime Kubernetes Agent has been installed.
+
+Cluster Name: {{ .Values.clusterName }}
+OneUptime URL: {{ .Values.oneuptime.url }}
+
+The agent is now collecting:
+  - Node, pod, and container resource metrics (kubeletstats)
+  - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
+  - Kubernetes events (k8sobjects)
+{{- if .Values.controlPlane.enabled }}
+  - Control plane metrics: etcd, API server, scheduler, controller manager (prometheus)
+{{- end }}
+{{- if .Values.logs.enabled }}
+  - Pod logs from /var/log/pods (filelog DaemonSet)
+{{- end }}
+
+To verify the agent is running:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "kubernetes-agent.name" . }}
+
+To check collector logs:
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "kubernetes-agent.name" . }} -c otel-collector
+
+Your cluster should appear in OneUptime within a few minutes at:
+  {{ .Values.oneuptime.url }}/dashboard/<project-id>/kubernetes

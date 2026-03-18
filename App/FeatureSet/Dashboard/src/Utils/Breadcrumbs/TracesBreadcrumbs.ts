@@ -11,6 +11,11 @@ export function getTracesBreadcrumbs(path: string): Array<Link> | undefined {
       "Traces",
       "Trace Explorer",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TRACES_DOCUMENTATION, [
+      "Project",
+      "Traces",
+      "Documentation",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

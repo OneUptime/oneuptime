@@ -125,7 +125,8 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
     return maxEnd - minStart;
   }, [spans]);
 
-  const divisibilityFactor = SpanUtil.getDivisibilityFactor(traceDuration);
+  const divisibilityFactor: number =
+    SpanUtil.getDivisibilityFactor(traceDuration);
 
   if (nodes.length === 0) {
     return (
@@ -135,8 +136,10 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
     );
   }
 
-  // Layout: arrange nodes in a topological order based on edges
-  // Simple layout: find entry nodes and lay out left-to-right
+  /*
+   * Layout: arrange nodes in a topological order based on edges
+   * Simple layout: find entry nodes and lay out left-to-right
+   */
   const { nodePositions, layoutWidth, layoutHeight } = React.useMemo(() => {
     // Build adjacency list
     const adjList: Map<string, string[]> = new Map();
@@ -151,10 +154,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
       const neighbors: string[] = adjList.get(edge.fromServiceId) || [];
       neighbors.push(edge.toServiceId);
       adjList.set(edge.fromServiceId, neighbors);
-      inDegree.set(
-        edge.toServiceId,
-        (inDegree.get(edge.toServiceId) || 0) + 1,
-      );
+      inDegree.set(edge.toServiceId, (inDegree.get(edge.toServiceId) || 0) + 1);
     }
 
     // Topological sort using BFS (Kahn's algorithm)
@@ -333,18 +333,16 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
               refY="3"
               orient="auto"
             >
-              <polygon
-                points="0 0, 8 3, 0 6"
-                fill="#9ca3af"
-              />
+              <polygon points="0 0, 8 3, 0 6" fill="#9ca3af" />
             </marker>
           </defs>
         </svg>
 
         {/* Render nodes */}
         {nodes.map((node: ServiceNode) => {
-          const pos: { x: number; y: number } | undefined =
-            nodePositions.get(node.serviceId);
+          const pos: { x: number; y: number } | undefined = nodePositions.get(
+            node.serviceId,
+          );
           if (!pos) {
             return null;
           }
@@ -355,9 +353,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
             <div
               key={node.serviceId}
               className={`absolute rounded-lg border-2 bg-white shadow-sm p-3 ${
-                hasErrors
-                  ? "border-red-300"
-                  : "border-gray-200"
+                hasErrors ? "border-red-300" : "border-gray-200"
               }`}
               style={{
                 left: `${pos.x}px`,

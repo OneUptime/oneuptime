@@ -1,4 +1,4 @@
-{{- if $.Values.app.enabled }}
+{{- if and $.Values.app.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime app Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -137,7 +137,7 @@ spec:
 ---
 {{- end }}
 
-{{- if $.Values.app.enabled }}
+{{- if and $.Values.app.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime app Service
 {{- $appPorts := dict "port" $.Values.app.ports.http -}}
 {{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}

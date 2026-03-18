@@ -102,6 +102,7 @@ export interface ComponentProps {
   onEditSavedView?: ((viewId: string) => void) | undefined;
   onDeleteSavedView?: ((viewId: string) => void) | undefined;
   onUpdateCurrentSavedView?: (() => void) | undefined;
+  onShowDocumentation?: (() => void) | undefined;
   viewMode?: LogsViewMode | undefined;
   onViewModeChange?: ((mode: LogsViewMode) => void) | undefined;
   analyticsServiceIds?: Array<string> | undefined;
@@ -805,6 +806,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         return !prev;
       });
     },
+    onShowDocumentation: props.onShowDocumentation,
   };
 
   const showSidebar: boolean =

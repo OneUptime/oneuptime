@@ -70,6 +70,8 @@ export interface ComponentProps {
   noLogsMessage?: string | undefined;
   logQuery?: Query<Log> | undefined;
   limit?: number | undefined;
+  onCountChange?: ((count: number) => void) | undefined;
+  onShowDocumentation?: (() => void) | undefined;
 }
 
 const DEFAULT_PAGE_SIZE: number = 100;
@@ -426,6 +428,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
         setLogs(listResult.data);
         setTotalCount(listResult.count);
+
+        if (props.onCountChange) {
+          props.onCountChange(listResult.count);
+        }
 
         const maximumPage: number = Math.max(
           1,
@@ -1236,6 +1242,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           onFieldValueSelect={handleFieldValueSelect}
           timeRange={timeRange}
           onTimeRangeChange={handleTimeRangeChange}
+          onShowDocumentation={props.onShowDocumentation}
           selectedColumns={selectedColumns}
           onSelectedColumnsChange={(columns: Array<string>) => {
             setSelectedColumns(normalizeLogsTableColumns(columns));

@@ -622,8 +622,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
                   </code>
                 </div>
               </div>
-              {link.attributes &&
-              Object.keys(link.attributes).length > 0 ? (
+              {link.attributes && Object.keys(link.attributes).length > 0 ? (
                 <div>
                   <div className="text-xs text-gray-500 font-medium mb-1">
                     Attributes

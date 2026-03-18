@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import MetricsPage from "../Pages/Metrics/Index";
+import MetricsDocumentationPage from "../Pages/Metrics/Documentation";
 
 import MetricViewPage from "../Pages/Metrics/View/Index";
 
@@ -24,6 +25,15 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
             <MetricsPage
               {...props}
               pageRoute={RouteMap[PageMap.METRICS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={MetricsRoutePath[PageMap.METRICS_DOCUMENTATION] || ""}
+          element={
+            <MetricsDocumentationPage
+              {...props}
+              pageRoute={RouteMap[PageMap.METRICS_DOCUMENTATION] as Route}
             />
           }
         />

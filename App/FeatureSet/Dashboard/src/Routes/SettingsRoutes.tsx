@@ -64,6 +64,7 @@ import SettingsLogPipelineView from "../Pages/Settings/LogPipelineView";
 import SettingsLogDropFilters from "../Pages/Settings/LogDropFilters";
 import SettingsLogDropFilterView from "../Pages/Settings/LogDropFilterView";
 import SettingsLogScrubRules from "../Pages/Settings/LogScrubRules";
+import SettingsMobileApps from "../Pages/Settings/MobileApps";
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -89,6 +90,15 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsNotificationLogs
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_MOBILE_APPS)}
+          element={
+            <SettingsMobileApps
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route}
             />
           }
         />

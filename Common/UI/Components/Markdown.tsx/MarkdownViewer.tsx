@@ -208,9 +208,9 @@ const CodeBlock: FunctionComponent<{
     (language ? language.charAt(0).toUpperCase() + language.slice(1) : "");
 
   return (
-    <div className="relative rounded-lg mt-4 mb-4 overflow-hidden border border-gray-700">
+    <div className="relative rounded-lg mt-3 mb-3 overflow-hidden border border-gray-200 shadow-sm">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800/60 border-b border-gray-700/60">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700">
         <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400 select-none">
           {displayLang}
         </span>
@@ -261,7 +261,7 @@ const CodeBlock: FunctionComponent<{
         children={content}
         language={language}
         style={vscDarkPlus}
-        className="!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-6 !pb-4 !px-4 text-sm !border-0"
+        className="!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-3 !pb-3 !px-4 text-sm !border-0"
         codeTagProps={{ className: "font-mono" }}
       />
     </div>
@@ -279,7 +279,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           h1: ({ ...props }: any) => {
             return (
               <h1
-                className="text-4xl mt-8 mb-6 border-b-2 border-blue-500 pb-2 text-gray-900 font-bold"
+                className="text-lg mt-6 mb-3 text-gray-900 font-bold"
                 {...props}
               />
             );
@@ -287,7 +287,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           h2: ({ ...props }: any) => {
             return (
               <h2
-                className="text-3xl mt-6 mb-4 border-b border-gray-300 pb-1 text-gray-900 font-semibold"
+                className="text-base mt-6 mb-2 text-gray-900 font-semibold"
                 {...props}
               />
             );
@@ -295,7 +295,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           h3: ({ ...props }: any) => {
             return (
               <h3
-                className="text-2xl mt-6 mb-3 text-gray-900 font-semibold"
+                className="text-base mt-4 mb-2 text-gray-900 font-semibold"
                 {...props}
               />
             );
@@ -303,7 +303,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           h4: ({ ...props }: any) => {
             return (
               <h4
-                className="text-xl mt-5 mb-3 text-gray-900 font-medium"
+                className="text-sm mt-3 mb-2 text-gray-900 font-semibold"
                 {...props}
               />
             );
@@ -311,7 +311,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           h5: ({ ...props }: any) => {
             return (
               <h5
-                className="text-lg mt-4 mb-2 text-gray-900 font-medium"
+                className="text-sm mt-3 mb-1 text-gray-900 font-medium"
                 {...props}
               />
             );
@@ -319,7 +319,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           h6: ({ ...props }: any) => {
             return (
               <h6
-                className="text-base mt-3 mb-2 text-gray-900 font-medium"
+                className="text-sm mt-2 mb-1 text-gray-700 font-medium"
                 {...props}
               />
             );
@@ -327,7 +327,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           p: ({ ...props }: any) => {
             return (
               <p
-                className="text-base mt-3 mb-4 text-gray-700 leading-relaxed"
+                className="text-sm mt-2 mb-3 text-gray-700 leading-relaxed"
                 {...props}
               />
             );
@@ -352,24 +352,24 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               return <>{children}</>;
             }
 
-            // Avoid double borders when SyntaxHighlighter is already styling the block.
-            const isSyntaxHighlighter: boolean =
+            /*
+             * If the child is a custom component (CodeBlock, MermaidDiagram, etc.)
+             * rather than a plain HTML element like <code>, skip pre styling.
+             * Checking typeof type !== "string" is minification-safe unlike checking type.name.
+             */
+            const isCustomComponent: boolean =
               React.isValidElement(children) &&
-              // name can be 'SyntaxHighlighter' or wrapped/minified; fall back to presence of 'children' prop with 'react-syntax-highlighter' data attribute.
-              (((children as any).type &&
-                ((children as any).type.name === "SyntaxHighlighter" ||
-                  (children as any).type.displayName ===
-                    "SyntaxHighlighter")) ||
-                (children as any).props?.className?.includes(
-                  "syntax-highlighter",
-                ));
+              typeof (children as any).type !== "string";
 
-            const baseClass: string = isSyntaxHighlighter
-              ? "mt-4 mb-4 rounded-lg overflow-hidden"
-              : "bg-gray-900 text-gray-100 mt-4 mb-4 p-2 rounded-lg text-sm overflow-x-auto border border-gray-700";
+            if (isCustomComponent) {
+              return <>{children}</>;
+            }
 
             return (
-              <pre className={baseClass} {...rest}>
+              <pre
+                className="bg-gray-900 text-gray-100 mt-3 mb-3 p-3 rounded-md text-sm overflow-x-auto border border-gray-700"
+                {...rest}
+              >
                 {children}
               </pre>
             );
@@ -377,7 +377,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           strong: ({ ...props }: any) => {
             return (
               <strong
-                className="text-base font-semibold text-gray-900"
+                className="text-sm font-semibold text-gray-900"
                 {...props}
               />
             );
@@ -385,56 +385,76 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           li: ({ ...props }: any) => {
             return (
               <li
-                className="text-base mt-2 mb-1 text-gray-700 leading-relaxed"
+                className="text-sm mt-1 mb-1 text-gray-700 leading-relaxed"
                 {...props}
               />
             );
           },
           ul: ({ ...props }: any) => {
-            return <ul className="list-disc pl-8 mt-2 mb-4" {...props} />;
+            return <ul className="list-disc pl-6 mt-1 mb-3" {...props} />;
           },
           ol: ({ ...props }: any) => {
-            return <ol className="list-decimal pl-8 mt-2 mb-4" {...props} />;
+            return <ol className="list-decimal pl-6 mt-1 mb-3" {...props} />;
           },
-          blockquote: ({ ...props }: any) => {
+          blockquote: ({ children, ...props }: any) => {
             return (
               <blockquote
-                className="border-l-4 border-blue-500 pl-4 italic text-gray-600 bg-gray-50 py-2 my-4"
+                className="rounded-lg border border-amber-200 bg-amber-50/50 my-4 not-italic overflow-hidden"
                 {...props}
-              />
+              >
+                <div className="flex items-start gap-3 px-4 py-3">
+                  <svg
+                    className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                    />
+                  </svg>
+                  <div className="text-sm text-gray-700 leading-relaxed [&>p]:mt-0 [&>p]:mb-0 [&>p>strong:first-child]:text-amber-700 [&>p>strong:first-child]:mr-1">
+                    {children}
+                  </div>
+                </div>
+              </blockquote>
             );
           },
           table: ({ ...props }: any) => {
             return (
-              <table
-                className="min-w-full table-auto border-collapse border border-gray-300 mt-4 mb-4"
-                {...props}
-              />
+              <div className="overflow-hidden rounded-lg border border-gray-200 mt-4 mb-4 shadow-sm">
+                <table
+                  className="min-w-full table-auto border-collapse text-sm"
+                  {...props}
+                />
+              </div>
             );
           },
           thead: ({ ...props }: any) => {
-            return <thead className="bg-gray-100" {...props} />;
+            return <thead className="bg-gray-50" {...props} />;
           },
           tbody: ({ ...props }: any) => {
-            return <tbody {...props} />;
+            return <tbody className="divide-y divide-gray-100" {...props} />;
           },
           tr: ({ ...props }: any) => {
-            return <tr className="border-b border-gray-200" {...props} />;
+            return (
+              <tr className="hover:bg-gray-50 transition-colors" {...props} />
+            );
           },
           th: ({ ...props }: any) => {
             return (
               <th
-                className="px-4 py-2 text-left text-sm font-semibold text-gray-900 border border-gray-300"
+                className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200"
                 {...props}
               />
             );
           },
           td: ({ ...props }: any) => {
             return (
-              <td
-                className="px-4 py-2 text-sm text-gray-700 border border-gray-300"
-                {...props}
-              />
+              <td className="px-4 py-2.5 text-sm text-gray-700" {...props} />
             );
           },
           hr: ({ ...props }: any) => {
@@ -457,19 +477,31 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               return <MermaidDiagram chart={content} />;
             }
 
-            const codeClassName: string =
-              content.includes("\n") ||
-              (match &&
+            const isMultiline: boolean = content.includes("\n");
+            const hasLanguage: boolean = Boolean(
+              match &&
                 match?.filter((item: string) => {
                   return item.includes("language-");
-                }).length > 0)
-                ? ""
-                : "text-sm px-2 py-1 bg-gray-200 rounded text-gray-900 font-mono";
+                }).length > 0,
+            );
 
-            return match ? (
-              <CodeBlock language={match[1]!} content={content} rest={rest} />
-            ) : (
-              <code className={codeClassName} {...rest}>
+            // Multiline code blocks (with or without language) get the full CodeBlock treatment
+            if (hasLanguage || isMultiline) {
+              return (
+                <CodeBlock
+                  language={match ? match[1]! : "text"}
+                  content={content}
+                  rest={rest}
+                />
+              );
+            }
+
+            // Inline code
+            return (
+              <code
+                className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono"
+                {...rest}
+              >
                 {children}
               </code>
             );

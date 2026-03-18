@@ -1,4 +1,4 @@
-{{- if .Values.aiAgent.enabled }}
+{{- if and .Values.aiAgent.enabled (not .Values.deployment.disableDeployments) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

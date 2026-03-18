@@ -1,0 +1,80 @@
+# OneUptime Kubernetes Agent Configuration
+
+# Required: Your OneUptime instance connection details
+oneuptime:
+  # URL of your OneUptime instance (e.g., https://oneuptime.example.com)
+  url: ""
+  # Project API key from OneUptime (Settings > API Keys)
+  apiKey: ""
+
+# Required: Unique name for this cluster (used as k8s.cluster.name attribute)
+clusterName: ""
+
+# Namespace filters — limit which namespaces are monitored
+namespaceFilters:
+  # If set, only these namespaces are monitored (empty = all namespaces)
+  include: []
+  # Namespaces to exclude from monitoring
+  exclude:
+    - kube-system
+
+# OTel Collector image configuration
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: "0.96.0"
+  pullPolicy: IfNotPresent
+
+# Deployment (metrics + events collector) resource configuration
+deployment:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# Control plane monitoring (etcd, API server, scheduler, controller manager)
+# Disabled by default — enable for self-managed clusters.
+# Managed K8s (EKS, GKE, AKS) typically don't expose control plane metrics.
+controlPlane:
+  enabled: false
+  etcd:
+    # Endpoints to scrape etcd metrics from
+    endpoints:
+      - https://localhost:2379/metrics
+    # TLS configuration for etcd
+    insecureSkipVerify: true
+  apiServer:
+    endpoints:
+      - https://localhost:6443/metrics
+    insecureSkipVerify: true
+  scheduler:
+    endpoints:
+      - https://localhost:10259/metrics
+    insecureSkipVerify: true
+  controllerManager:
+    endpoints:
+      - https://localhost:10257/metrics
+    insecureSkipVerify: true
+
+# Pod log collection via DaemonSet with filelog receiver
+logs:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Collection intervals
+collectionInterval: 30s
+
+# Service account configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}

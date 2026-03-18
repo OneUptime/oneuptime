@@ -48,6 +48,8 @@ externalSecrets:
       passwordKey:
 
 deployment:
+  # When set to true, no OneUptime deployments are provisioned. Only databases (Redis, ClickHouse, Postgres) will be running.
+  disableDeployments: false
   # Default replica count for all deployments
   replicaCount: 1
   # Update strategy type for all deployments

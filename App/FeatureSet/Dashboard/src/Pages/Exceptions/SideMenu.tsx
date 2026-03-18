@@ -51,6 +51,20 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    {
+      title: "Documentation",
+      items: [
+        {
+          link: {
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.EXCEPTIONS_DOCUMENTATION] as Route,
+            ),
+          },
+          icon: IconProp.Book,
+        },
+      ],
+    },
   ];
 
   return <SideMenu sections={sections} />;

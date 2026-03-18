@@ -9,11 +9,9 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import ExceptionsUnresolved from "../Pages/Exceptions/Unresolved";
-
 import ExceptionsResolved from "../Pages/Exceptions/Resolved";
-
 import ExceptionsArchived from "../Pages/Exceptions/Archived";
-
+import ExceptionsDocumentationPage from "../Pages/Exceptions/Documentation";
 import ExceptionView from "../Pages/Exceptions/View/Index";
 
 const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
@@ -58,6 +56,15 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
             <ExceptionsArchived
               {...props}
               pageRoute={RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={ExceptionsRoutePath[PageMap.EXCEPTIONS_DOCUMENTATION] || ""}
+          element={
+            <ExceptionsDocumentationPage
+              {...props}
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_DOCUMENTATION] as Route}
             />
           }
         />

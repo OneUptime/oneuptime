@@ -254,8 +254,7 @@ export default function MonitorsScreen(): React.JSX.Element {
     for (const wrapped of allMonitors) {
       const statusName: string =
         wrapped.item.currentMonitorStatus?.name?.toLowerCase() ?? "";
-      const isDisabled: boolean =
-        wrapped.item.disableActiveMonitoring === true;
+      const isDisabled: boolean = wrapped.item.disableActiveMonitoring === true;
 
       if (isDisabled) {
         disabledCount++;

@@ -1,5 +1,7 @@
-// Critical Path Analysis for distributed traces
-// Computes self-time, critical path, and bottleneck identification
+/*
+ * Critical Path Analysis for distributed traces
+ * Computes self-time, critical path, and bottleneck identification
+ */
 
 export interface SpanData {
   spanId: string;
@@ -71,9 +73,10 @@ export default class CriticalPathUtil {
         selfTimeUnixNano,
         childTimeUnixNano,
         totalTimeUnixNano: span.durationUnixNano,
-        selfTimePercent: span.durationUnixNano > 0
-          ? (selfTimeUnixNano / span.durationUnixNano) * 100
-          : 0,
+        selfTimePercent:
+          span.durationUnixNano > 0
+            ? (selfTimeUnixNano / span.durationUnixNano) * 100
+            : 0,
       });
     }
 
@@ -110,9 +113,14 @@ export default class CriticalPathUtil {
     }
 
     // Sort by start time
-    intervals.sort((a: { start: number; end: number }, b: { start: number; end: number }) => {
-      return a.start - b.start;
-    });
+    intervals.sort(
+      (
+        a: { start: number; end: number },
+        b: { start: number; end: number },
+      ) => {
+        return a.start - b.start;
+      },
+    );
 
     // Merge overlapping intervals
     let mergedDuration: number = 0;
@@ -198,9 +206,10 @@ export default class CriticalPathUtil {
     const criticalPathCache: Map<string, { weight: number; path: string[] }> =
       new Map();
 
-    const computeWeight = (
-      spanId: string,
-    ): { weight: number; path: string[] } => {
+    const computeWeight: (spanId: string) => {
+      weight: number;
+      path: string[];
+    } = (spanId: string): { weight: number; path: string[] } => {
       const cached: { weight: number; path: string[] } | undefined =
         criticalPathCache.get(spanId);
       if (cached) {
@@ -275,9 +284,7 @@ export default class CriticalPathUtil {
   /**
    * Compute latency breakdown by service.
    */
-  public static computeServiceBreakdown(
-    spans: SpanData[],
-  ): ServiceBreakdown[] {
+  public static computeServiceBreakdown(spans: SpanData[]): ServiceBreakdown[] {
     const selfTimes: Map<string, SpanSelfTime> =
       CriticalPathUtil.computeSelfTimes(spans);
 
@@ -302,12 +309,15 @@ export default class CriticalPathUtil {
 
     for (const span of spans) {
       const serviceId: string = span.serviceId || "unknown";
-      const entry: { totalDuration: number; selfTime: number; spanCount: number } =
-        serviceMap.get(serviceId) || {
-          totalDuration: 0,
-          selfTime: 0,
-          spanCount: 0,
-        };
+      const entry: {
+        totalDuration: number;
+        selfTime: number;
+        spanCount: number;
+      } = serviceMap.get(serviceId) || {
+        totalDuration: 0,
+        selfTime: 0,
+        spanCount: 0,
+      };
 
       entry.totalDuration += span.durationUnixNano;
       const selfTime: SpanSelfTime | undefined = selfTimes.get(span.spanId);
@@ -329,11 +339,9 @@ export default class CriticalPathUtil {
     }
 
     // Sort by self-time descending (biggest contributors first)
-    result.sort(
-      (a: ServiceBreakdown, b: ServiceBreakdown) => {
-        return b.selfTimeUnixNano - a.selfTimeUnixNano;
-      },
-    );
+    result.sort((a: ServiceBreakdown, b: ServiceBreakdown) => {
+      return b.selfTimeUnixNano - a.selfTimeUnixNano;
+    });
 
     return result;
   }

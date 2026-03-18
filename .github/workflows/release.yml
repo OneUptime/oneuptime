@@ -134,11 +134,16 @@ jobs:
           helm lint oneuptime
           helm template oneuptime --values oneuptime/values.yaml
           helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg oneuptime --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}}
-          echo "Helm Chart Package created successfully"
+          echo "OneUptime Helm Chart Package created successfully"
+          helm lint kubernetes-agent
+          helm template kubernetes-agent --values kubernetes-agent/values.yaml
+          helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg kubernetes-agent --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}}
+          echo "Kubernetes Agent Helm Chart Package created successfully"
           cd ..
           ls
           echo "Copying the package to helm-chart repo"
-          rm -r ../../helm-chart/oneuptime
+          rm -rf ../../helm-chart/oneuptime
+          rm -rf ../../helm-chart/kubernetes-agent
           cp -r ./Public/* ../../helm-chart
           echo "Package copied successfully"
           cd .. && cd .. && cd helm-chart

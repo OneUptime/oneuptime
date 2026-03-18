@@ -17,6 +17,9 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 
 export interface ComponentProps {
   serviceIds?: Array<ObjectID> | undefined;
+  onFetchSuccess?:
+    | ((data: Array<MetricType>, totalCount: number) => void)
+    | undefined;
 }
 
 const MetricsTable: FunctionComponent<ComponentProps> = (
@@ -113,6 +116,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
         }}
         showViewIdButton={false}
         noItemsMessage={"No metrics found for this service."}
+        onFetchSuccess={props.onFetchSuccess}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[

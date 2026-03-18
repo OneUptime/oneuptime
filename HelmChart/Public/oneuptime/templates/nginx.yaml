@@ -1,4 +1,4 @@
-{{- if $.Values.nginx.enabled }}
+{{- if and $.Values.nginx.enabled (not $.Values.deployment.disableDeployments) }}
 
 # OneUptime nginx Deployment
 apiVersion: apps/v1

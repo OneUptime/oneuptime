@@ -1,3 +1,4 @@
+{{- if not $.Values.deployment.disableDeployments }}
 {{- range $key, $val := $.Values.probes }}
 {{- if or (not (hasKey $val "enabled")) $val.enabled }}
 apiVersion: apps/v1
@@ -165,4 +166,5 @@ spec:
 {{- include "oneuptime.service" $probeServiceArgs }}
 ---
 
+{{- end }}
 {{- end }}

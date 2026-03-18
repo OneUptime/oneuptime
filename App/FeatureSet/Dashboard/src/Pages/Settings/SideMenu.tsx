@@ -147,6 +147,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Bell,
         },
+        {
+          link: {
+            title: "Mobile Apps",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route,
+            ),
+          },
+          icon: IconProp.DevicePhoneMobile,
+        },
       ],
     },
     {

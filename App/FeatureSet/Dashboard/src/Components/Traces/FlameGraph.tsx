@@ -37,7 +37,8 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
 
   const [hoveredSpanId, setHoveredSpanId] = React.useState<string | null>(null);
   const [focusedSpanId, setFocusedSpanId] = React.useState<string | null>(null);
-  const containerRef: React.RefObject<HTMLDivElement | null> = React.useRef<HTMLDivElement>(null);
+  const containerRef: React.RefObject<HTMLDivElement | null> =
+    React.useRef<HTMLDivElement>(null);
 
   // Build span data for critical path utility
   const spanDataList: SpanData[] = React.useMemo(() => {
@@ -90,7 +91,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       }
     }
 
-    const getServiceInfo = (
+    const getServiceInfo: (span: Span) => { color: Color; name: string } = (
       span: Span,
     ): { color: Color; name: string } => {
       const service: Service | undefined = telemetryServices.find(
@@ -104,7 +105,10 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       };
     };
 
-    const buildNode = (span: Span, depth: number): FlameGraphNode => {
+    const buildNode: (span: Span, depth: number) => FlameGraphNode = (
+      span: Span,
+      depth: number,
+    ): FlameGraphNode => {
       const children: Span[] = childrenMap.get(span.spanId!) || [];
       const selfTime: SpanSelfTime | undefined = selfTimes.get(span.spanId!);
       const serviceInfo: { color: Color; name: string } = getServiceInfo(span);
@@ -123,7 +127,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
         startTimeUnixNano: span.startTimeUnixNano!,
         endTimeUnixNano: span.endTimeUnixNano!,
         durationUnixNano: span.durationUnixNano!,
-        selfTimeUnixNano: selfTime ? selfTime.selfTimeUnixNano : span.durationUnixNano!,
+        selfTimeUnixNano: selfTime
+          ? selfTime.selfTimeUnixNano
+          : span.durationUnixNano!,
         serviceColor: serviceInfo.color,
         serviceName: serviceInfo.name,
       };
@@ -155,7 +161,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
   // Find max depth for height calculation
   const maxDepth: number = React.useMemo(() => {
     let max: number = 0;
-    const traverse = (node: FlameGraphNode): void => {
+    const traverse: (node: FlameGraphNode) => void = (
+      node: FlameGraphNode,
+    ): void => {
       if (node.depth > max) {
         max = node.depth;
       }
@@ -175,7 +183,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       return { viewStart: traceStart, viewEnd: traceEnd };
     }
 
-    const findNode = (nodes: FlameGraphNode[]): FlameGraphNode | null => {
+    const findNode: (nodes: FlameGraphNode[]) => FlameGraphNode | null = (
+      nodes: FlameGraphNode[],
+    ): FlameGraphNode | null => {
       for (const node of nodes) {
         if (node.span.spanId === focusedSpanId) {
           return node;
@@ -210,7 +220,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
     );
   }
 
-  const renderNode = (node: FlameGraphNode): ReactElement | null => {
+  const renderNode: (node: FlameGraphNode) => ReactElement | null = (
+    node: FlameGraphNode,
+  ): ReactElement | null => {
     // Calculate position relative to view
     const nodeStart: number = Math.max(node.startTimeUnixNano, viewStart);
     const nodeEnd: number = Math.min(node.endTimeUnixNano, viewEnd);
@@ -220,13 +232,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
     }
 
     const leftPercent: number =
-      totalDuration > 0
-        ? ((nodeStart - viewStart) / totalDuration) * 100
-        : 0;
+      totalDuration > 0 ? ((nodeStart - viewStart) / totalDuration) * 100 : 0;
     const widthPercent: number =
-      totalDuration > 0
-        ? ((nodeEnd - nodeStart) / totalDuration) * 100
-        : 0;
+      totalDuration > 0 ? ((nodeEnd - nodeStart) / totalDuration) * 100 : 0;
 
     const isHovered: boolean = hoveredSpanId === node.span.spanId;
     const isSelected: boolean = selectedSpanId === node.span.spanId;
@@ -302,7 +310,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
     if (!hoveredSpanId) {
       return null;
     }
-    const findNode = (nodes: FlameGraphNode[]): FlameGraphNode | null => {
+    const findNode: (nodes: FlameGraphNode[]) => FlameGraphNode | null = (
+      nodes: FlameGraphNode[],
+    ): FlameGraphNode | null => {
       for (const node of nodes) {
         if (node.span.spanId === hoveredSpanId) {
           return node;

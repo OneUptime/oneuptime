@@ -142,13 +142,12 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     0,
   );
 
-  const inoperationalMonitorCount: number =
-    inoperationalMonitorQueries.reduce(
-      (sum: number, q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
-        return sum + (q.data?.count ?? 0);
-      },
-      0,
-    );
+  const inoperationalMonitorCount: number = inoperationalMonitorQueries.reduce(
+    (sum: number, q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+      return sum + (q.data?.count ?? 0);
+    },
+    0,
+  );
 
   const isLoading: boolean =
     incidentQuery.isPending ||

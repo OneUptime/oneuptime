@@ -29,6 +29,9 @@ export interface ComponentProps {
   query: Query<TelemetryException>;
   title: string;
   description: string;
+  onFetchSuccess?:
+    | ((data: Array<TelemetryException>, totalCount: number) => void)
+    | undefined;
 }
 
 const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
@@ -47,6 +50,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         userPreferencesKey="telemetry-exception-table"
         isEditable={false}
         isCreateable={false}
+        onFetchSuccess={props.onFetchSuccess}
         singularName="Exception"
         pluralName="Exceptions"
         name="TelemetryException"
