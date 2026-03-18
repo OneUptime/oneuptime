@@ -4,10 +4,8 @@ import {
   fetchMonitorFeed,
   fetchMonitorStatusTimeline,
   fetchMonitorProbes,
-} from "../api/monitors";
-import type {
-  MonitorStatusTimelineItem,
-  MonitorProbeItem,
+  type MonitorStatusTimelineItem,
+  type MonitorProbeItem,
 } from "../api/monitors";
 import type { MonitorItem, FeedItem } from "../api/types";
 

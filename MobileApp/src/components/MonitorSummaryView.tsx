@@ -17,7 +17,7 @@ function toDisplayString(val: unknown): string {
   }
   if (typeof val === "object") {
     // Handle OneUptime typed objects like URL { _type, value }
-    const obj = val as Record<string, unknown>;
+    const obj: Record<string, unknown> = val as Record<string, unknown>;
     if (typeof obj.value === "string") {
       return obj.value;
     }
@@ -674,7 +674,7 @@ export default function MonitorSummaryView({
     return getProbeResponse(probe);
   }, [probeItems, selectedProbeIndex]);
 
-  const renderContent = (): React.JSX.Element => {
+  const renderContent: () => React.JSX.Element = (): React.JSX.Element => {
     if (!latestResponse) {
       return (
         <View style={{ padding: 20, alignItems: "center" }}>

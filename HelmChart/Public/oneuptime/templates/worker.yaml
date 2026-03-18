@@ -1,4 +1,4 @@
-{{- if $.Values.worker.enabled }}
+{{- if and $.Values.worker.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime worker Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -128,7 +128,7 @@ spec:
 
 ---
 
-{{- if $.Values.worker.enabled }}
+{{- if and $.Values.worker.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime worker Service
 {{- $workerPorts := $.Values.worker.ports -}}
 {{- $workerServiceArgs := dict "ServiceName" "worker" "Ports" $workerPorts "Release" $.Release "Values" $.Values -}}

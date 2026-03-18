@@ -1,4 +1,4 @@
-{{- if $.Values.cronJobs.cleanup.enabled }}
+{{- if and $.Values.cronJobs.cleanup.enabled (not $.Values.deployment.disableDeployments) }}
 
 apiVersion: batch/v1
 kind: CronJob

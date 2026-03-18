@@ -86,22 +86,24 @@ const KubernetesClusterEvents: FunctionComponent<
       });
 
       // Helper to extract a string value from OTLP kvlistValue
-      const getKvValue = (
+      const getKvValue: (
         kvList: JSONObject | undefined,
         key: string,
-      ): string => {
+      ) => string = (kvList: JSONObject | undefined, key: string): string => {
         if (!kvList) {
           return "";
         }
-        const values = (kvList as JSONObject)["values"] as
-          | Array<JSONObject>
-          | undefined;
+        const values: Array<JSONObject> | undefined = (kvList as JSONObject)[
+          "values"
+        ] as Array<JSONObject> | undefined;
         if (!values) {
           return "";
         }
         for (const entry of values) {
           if (entry["key"] === key) {
-            const val = entry["value"] as JSONObject | undefined;
+            const val: JSONObject | undefined = entry["value"] as
+              | JSONObject
+              | undefined;
             if (!val) {
               return "";
             }
@@ -121,7 +123,11 @@ const KubernetesClusterEvents: FunctionComponent<
       };
 
       // Helper to get nested kvlist value
-      const getNestedKvValue = (
+      const getNestedKvValue: (
+        kvList: JSONObject | undefined,
+        parentKey: string,
+        childKey: string,
+      ) => string = (
         kvList: JSONObject | undefined,
         parentKey: string,
         childKey: string,
@@ -129,15 +135,17 @@ const KubernetesClusterEvents: FunctionComponent<
         if (!kvList) {
           return "";
         }
-        const values = (kvList as JSONObject)["values"] as
-          | Array<JSONObject>
-          | undefined;
+        const values: Array<JSONObject> | undefined = (kvList as JSONObject)[
+          "values"
+        ] as Array<JSONObject> | undefined;
         if (!values) {
           return "";
         }
         for (const entry of values) {
           if (entry["key"] === parentKey) {
-            const val = entry["value"] as JSONObject | undefined;
+            const val: JSONObject | undefined = entry["value"] as
+              | JSONObject
+              | undefined;
             if (val && val["kvlistValue"]) {
               return getKvValue(val["kvlistValue"] as JSONObject, childKey);
             }
@@ -179,17 +187,20 @@ const KubernetesClusterEvents: FunctionComponent<
         }
 
         // The body has a top-level kvlistValue with "type" (ADDED/MODIFIED) and "object" keys
-        const topKvList = bodyObj["kvlistValue"] as JSONObject | undefined;
+        const topKvList: JSONObject | undefined = bodyObj["kvlistValue"] as
+          | JSONObject
+          | undefined;
         if (!topKvList) {
           continue;
         }
 
         // Get the "object" which is the actual k8s Event
-        const objectKvListRaw = getKvValue(topKvList, "object");
+        const objectKvListRaw: string = getKvValue(topKvList, "object");
         if (!objectKvListRaw || typeof objectKvListRaw === "string") {
           continue;
         }
-        const objectKvList = objectKvListRaw as unknown as JSONObject;
+        const objectKvList: JSONObject =
+          objectKvListRaw as unknown as JSONObject;
 
         const eventType: string = getKvValue(objectKvList, "type") || "";
         const reason: string = getKvValue(objectKvList, "reason") || "";

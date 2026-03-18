@@ -125,7 +125,8 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
     return maxEnd - minStart;
   }, [spans]);
 
-  const divisibilityFactor = SpanUtil.getDivisibilityFactor(traceDuration);
+  const divisibilityFactor: number =
+    SpanUtil.getDivisibilityFactor(traceDuration);
 
   if (nodes.length === 0) {
     return (

@@ -3,7 +3,7 @@ KEDA ScaledObjects for various services
 */}}
 
 {{/* Telemetry KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.telemetry.enabled .Values.telemetry.keda.enabled (not .Values.telemetry.disableAutoscaler) }}
+{{- if and .Values.keda.enabled .Values.telemetry.enabled .Values.telemetry.keda.enabled (not .Values.telemetry.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
 {{- $metricsConfig := dict "enabled" .Values.telemetry.keda.enabled "minReplicas" .Values.telemetry.keda.minReplicas "maxReplicas" .Values.telemetry.keda.maxReplicas "pollingInterval" .Values.telemetry.keda.pollingInterval "cooldownPeriod" .Values.telemetry.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_telemetry_queue_size" "threshold" .Values.telemetry.keda.queueSizeThreshold "port" .Values.telemetry.ports.http)) }}
 {{- $telemetryKedaArgs := dict "ServiceName" "telemetry" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.telemetry.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $telemetryKedaArgs }}
@@ -12,7 +12,7 @@ KEDA ScaledObjects for various services
 {{/* Probe KEDA ScaledObjects - one for each probe configuration */}}
 {{- range $key, $val := $.Values.probes }}
 {{- $probeEnabled := or (not (hasKey $val "enabled")) $val.enabled }}
-{{- if and $.Values.keda.enabled $probeEnabled (and $val.keda $val.keda.enabled) (not $val.disableAutoscaler) }}
+{{- if and $.Values.keda.enabled $probeEnabled (and $val.keda $val.keda.enabled) (not $val.disableAutoscaler) (not $.Values.deployment.disableDeployments) }}
 {{- $serviceName := printf "probe-%s" $key }}
 {{- $probePort := 3874 }}
 {{- if and $val.ports $val.ports.http }}
@@ -25,14 +25,14 @@ KEDA ScaledObjects for various services
 {{- end }}
 
 {{/* Worker KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.worker.enabled .Values.worker.keda.enabled (not .Values.worker.disableAutoscaler) }}
+{{- if and .Values.keda.enabled .Values.worker.enabled .Values.worker.keda.enabled (not .Values.worker.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
 {{- $metricsConfig := dict "enabled" .Values.worker.keda.enabled "minReplicas" .Values.worker.keda.minReplicas "maxReplicas" .Values.worker.keda.maxReplicas "pollingInterval" .Values.worker.keda.pollingInterval "cooldownPeriod" .Values.worker.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_worker_queue_size" "threshold" .Values.worker.keda.queueSizeThreshold "port" .Values.worker.ports.http)) }}
 {{- $workerKedaArgs := dict "ServiceName" "worker" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.worker.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $workerKedaArgs }}
 {{- end }}
 
 {{/* AI Agent KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.aiAgent.enabled .Values.aiAgent.keda.enabled (not .Values.aiAgent.disableAutoscaler) }}
+{{- if and .Values.keda.enabled .Values.aiAgent.enabled .Values.aiAgent.keda.enabled (not .Values.aiAgent.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
 {{- $metricsConfig := dict "enabled" .Values.aiAgent.keda.enabled "minReplicas" .Values.aiAgent.keda.minReplicas "maxReplicas" .Values.aiAgent.keda.maxReplicas "pollingInterval" .Values.aiAgent.keda.pollingInterval "cooldownPeriod" .Values.aiAgent.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_ai_agent_queue_size" "threshold" .Values.aiAgent.keda.queueSizeThreshold "port" .Values.aiAgent.ports.http)) }}
 {{- $aiAgentKedaArgs := dict "ServiceName" "ai-agent" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.aiAgent.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $aiAgentKedaArgs }}

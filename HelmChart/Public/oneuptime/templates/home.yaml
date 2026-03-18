@@ -1,4 +1,4 @@
-{{- if $.Values.home.enabled }}
+{{- if and $.Values.home.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime Home Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -126,7 +126,7 @@ spec:
 
 {{- end }}
 
-{{- if $.Values.home.enabled }}
+{{- if and $.Values.home.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime home Service
 {{- $homePorts := $.Values.home.ports -}}
 {{- $homeServiceArgs := dict "ServiceName" "home" "Ports" $homePorts "Release" $.Release "Values" $.Values -}}

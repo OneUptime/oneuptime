@@ -206,9 +206,10 @@ export default class CriticalPathUtil {
     const criticalPathCache: Map<string, { weight: number; path: string[] }> =
       new Map();
 
-    const computeWeight = (
-      spanId: string,
-    ): { weight: number; path: string[] } => {
+    const computeWeight: (spanId: string) => {
+      weight: number;
+      path: string[];
+    } = (spanId: string): { weight: number; path: string[] } => {
       const cached: { weight: number; path: string[] } | undefined =
         criticalPathCache.get(spanId);
       if (cached) {

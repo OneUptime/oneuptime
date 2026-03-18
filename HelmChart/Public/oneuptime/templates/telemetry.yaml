@@ -1,4 +1,4 @@
-{{- if $.Values.telemetry.enabled }}
+{{- if and $.Values.telemetry.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime telemetry Deployment
 
 apiVersion: apps/v1
@@ -137,7 +137,7 @@ spec:
 
 ---
 
-{{- if $.Values.telemetry.enabled }}
+{{- if and $.Values.telemetry.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime telemetry Service
 {{- $telemetryPorts := dict "http" $.Values.telemetry.ports.http "grpc" $.Values.telemetry.ports.grpc -}}
 {{- $telemetryServiceArgs := dict "ServiceName" "telemetry" "Ports" $telemetryPorts "Release" $.Release "Values" $.Values -}}

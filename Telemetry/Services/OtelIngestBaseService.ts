@@ -1,8 +1,9 @@
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import logger from "Common/Server/Utils/Logger";
 
 export default abstract class OtelIngestBaseService {
@@ -46,7 +47,9 @@ export default abstract class OtelIngestBaseService {
         attribute["value"] &&
         (attribute["value"] as JSONObject)["stringValue"]
       ) {
-        const value = (attribute["value"] as JSONObject)["stringValue"];
+        const value: JSONValue = (attribute["value"] as JSONObject)[
+          "stringValue"
+        ];
         if (typeof value === "string" && value.trim()) {
           return value.trim();
         }
@@ -69,7 +72,7 @@ export default abstract class OtelIngestBaseService {
         return;
       }
 
-      const cluster =
+      const cluster: KubernetesCluster =
         await KubernetesClusterService.findOrCreateByClusterIdentifier({
           projectId: data.projectId,
           clusterIdentifier: clusterName,

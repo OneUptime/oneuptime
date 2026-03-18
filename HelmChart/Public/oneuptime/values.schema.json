@@ -86,6 +86,11 @@
     "deployment": {
       "type": "object",
       "properties": {
+        "disableDeployments": {
+          "type": "boolean",
+          "description": "When set to true, no OneUptime deployments are provisioned. Only databases (Redis, ClickHouse, Postgres) will be running.",
+          "default": false
+        },
         "includeTimestampLabel": {
           "type": "boolean"
         },

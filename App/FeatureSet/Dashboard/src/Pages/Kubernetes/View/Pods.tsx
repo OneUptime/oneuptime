@@ -4,7 +4,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricQueryConfigData, {
+  ChartSeries,
+} from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -21,7 +23,6 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
-import { ChartSeries } from "Common/Types/Metrics/MetricQueryConfigData";
 
 const KubernetesClusterPods: FunctionComponent<
   PageComponentProps
@@ -68,7 +69,9 @@ const KubernetesClusterPods: FunctionComponent<
     const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
     const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
-    const getPodSeries = (data: AggregateModel): ChartSeries => {
+    const getPodSeries: (data: AggregateModel) => ChartSeries = (
+      data: AggregateModel,
+    ): ChartSeries => {
       const attributes: Record<string, unknown> =
         (data["attributes"] as Record<string, unknown>) || {};
       const podName: string =

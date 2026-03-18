@@ -1,4 +1,4 @@
-{{- if $.Values.testServer.enabled }}
+{{- if and $.Values.testServer.enabled (not $.Values.deployment.disableDeployments) }}
 
 # OneUptime test-server Deployment
 {{- $testServerPorts := $.Values.testServer.ports -}}
