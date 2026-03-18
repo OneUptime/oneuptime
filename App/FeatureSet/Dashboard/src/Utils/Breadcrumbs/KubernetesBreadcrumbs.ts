@@ -63,6 +63,11 @@ export function getKubernetesBreadcrumbs(
       PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION,
       ["Project", "Kubernetes", "View Cluster", "Documentation"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_DOCUMENTATION, [
+      "Project",
+      "Kubernetes",
+      "Documentation",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

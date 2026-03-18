@@ -21,6 +21,15 @@ const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        {
+          link: {
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route,
+            ),
+          },
+          icon: IconProp.Book,
+        },
       ],
     },
   ];

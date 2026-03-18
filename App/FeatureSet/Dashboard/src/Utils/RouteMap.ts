@@ -70,6 +70,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.KUBERNETES_DOCUMENTATION]: `documentation`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -1546,6 +1547,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_DOCUMENTATION]
     }`,
   ),
 
