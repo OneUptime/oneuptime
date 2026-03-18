@@ -12,21 +12,6 @@ data:
         endpoint: "0.0.0.0:13133"
 
     receivers:
-      # Collect node, pod, and container resource metrics from kubelet
-      kubeletstats:
-        collection_interval: {{ .Values.collectionInterval }}
-        auth_type: serviceAccount
-        endpoint: "https://${env:NODE_NAME}:10250"
-        insecure_skip_verify: true
-        metric_groups:
-          - node
-          - pod
-          - container
-        extra_metadata_labels:
-          - container.id
-        k8s_api_config:
-          auth_type: serviceAccount
-
       # Collect cluster-level metrics from the Kubernetes API
       k8s_cluster:
         collection_interval: {{ .Values.collectionInterval }}
@@ -159,7 +144,6 @@ data:
       pipelines:
         metrics:
           receivers:
-            - kubeletstats
             - k8s_cluster
             {{- if .Values.controlPlane.enabled }}
             - prometheus

@@ -13,6 +13,21 @@ data:
         endpoint: "0.0.0.0:13133"
 
     receivers:
+      # Collect node, pod, and container resource metrics from kubelet
+      kubeletstats:
+        collection_interval: {{ .Values.collectionInterval }}
+        auth_type: serviceAccount
+        endpoint: "https://${env:NODE_NAME}:10250"
+        insecure_skip_verify: true
+        metric_groups:
+          - node
+          - pod
+          - container
+        extra_metadata_labels:
+          - container.id
+        k8s_api_config:
+          auth_type: serviceAccount
+
       # Collect pod logs from /var/log/pods
       filelog:
         include:
@@ -95,11 +110,25 @@ data:
             - k8s.replicaset.name
             - k8s.statefulset.name
             - k8s.daemonset.name
+            - k8s.job.name
+            - k8s.cronjob.name
             - k8s.container.name
+          labels:
+            - tag_name: k8s.pod.label.app
+              key: app
+              from: pod
+            - tag_name: k8s.pod.label.app.kubernetes.io/name
+              key: app.kubernetes.io/name
+              from: pod
         pod_association:
           - sources:
               - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
                 name: k8s.pod.uid
+          - sources:
+              - from: connection
 
       # Stamp with cluster name
       resource:
@@ -114,8 +143,8 @@ data:
 
       memory_limiter:
         check_interval: 5s
-        limit_mib: 200
-        spike_limit_mib: 50
+        limit_mib: 400
+        spike_limit_mib: 100
 
     exporters:
       otlphttp:
@@ -127,6 +156,16 @@ data:
       extensions:
         - health_check
       pipelines:
+        metrics:
+          receivers:
+            - kubeletstats
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - batch
+          exporters:
+            - otlphttp
         logs:
           receivers:
             - filelog
