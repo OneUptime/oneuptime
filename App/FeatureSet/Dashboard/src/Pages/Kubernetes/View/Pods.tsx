@@ -31,6 +31,9 @@ const KubernetesClusterPods: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [metricViewData, setMetricViewData] = useState<MetricViewData | null>(
+    null,
+  );
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -55,6 +58,134 @@ const KubernetesClusterPods: FunctionComponent<
     });
   }, []);
 
+  useEffect(() => {
+    if (!cluster) {
+      return;
+    }
+
+    const clusterIdentifier: string = cluster.clusterIdentifier || "";
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
+    const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
+
+    const getPodSeries = (data: AggregateModel): ChartSeries => {
+      const attributes: Record<string, unknown> =
+        (data["attributes"] as Record<string, unknown>) || {};
+      const podName: string =
+        (attributes["k8s.pod.name"] as string) || "Unknown Pod";
+      const namespace: string =
+        (attributes["k8s.namespace.name"] as string) || "";
+      return { title: namespace ? `${namespace}/${podName}` : podName };
+    };
+
+    const podCpuQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "pod_cpu",
+        title: "Pod CPU Utilization",
+        description: "CPU utilization by pod",
+        legend: "CPU",
+        legendUnit: "%",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "k8s.pod.cpu.utilization",
+          attributes: {
+            "k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+      getSeries: getPodSeries,
+    };
+
+    const podMemoryQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "pod_memory",
+        title: "Pod Memory Usage",
+        description: "Memory usage by pod",
+        legend: "Memory",
+        legendUnit: "bytes",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "k8s.pod.memory.usage",
+          attributes: {
+            "k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+      getSeries: getPodSeries,
+    };
+
+    const podNetworkRxQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "pod_network_rx",
+        title: "Pod Network Receive",
+        description: "Network bytes received by pod",
+        legend: "Network RX",
+        legendUnit: "bytes/s",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "k8s.pod.network.io.receive",
+          attributes: {
+            "k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+      getSeries: getPodSeries,
+    };
+
+    const podNetworkTxQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "pod_network_tx",
+        title: "Pod Network Transmit",
+        description: "Network bytes transmitted by pod",
+        legend: "Network TX",
+        legendUnit: "bytes/s",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "k8s.pod.network.io.transmit",
+          attributes: {
+            "k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+      getSeries: getPodSeries,
+    };
+
+    setMetricViewData({
+      startAndEndDate: startAndEndDate,
+      queryConfigs: [
+        podCpuQuery,
+        podMemoryQuery,
+        podNetworkRxQuery,
+        podNetworkTxQuery,
+      ],
+      formulaConfigs: [],
+    });
+  }, [cluster]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -63,132 +194,9 @@ const KubernetesClusterPods: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!cluster) {
+  if (!cluster || !metricViewData) {
     return <ErrorMessage message="Cluster not found." />;
   }
-
-  const clusterIdentifier: string = cluster.clusterIdentifier || "";
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  const getPodSeries = (data: AggregateModel): ChartSeries => {
-    const attributes: Record<string, unknown> =
-      (data["attributes"] as Record<string, unknown>) || {};
-    const podName: string =
-      (attributes["k8s.pod.name"] as string) || "Unknown Pod";
-    const namespace: string =
-      (attributes["k8s.namespace.name"] as string) || "";
-    return { title: namespace ? `${namespace}/${podName}` : podName };
-  };
-
-  const podCpuQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "pod_cpu",
-      title: "Pod CPU Utilization",
-      description: "CPU utilization by pod",
-      legend: "CPU",
-      legendUnit: "%",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.pod.cpu.utilization",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    getSeries: getPodSeries,
-  };
-
-  const podMemoryQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "pod_memory",
-      title: "Pod Memory Usage",
-      description: "Memory usage by pod",
-      legend: "Memory",
-      legendUnit: "bytes",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.pod.memory.usage",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    getSeries: getPodSeries,
-  };
-
-  const podNetworkRxQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "pod_network_rx",
-      title: "Pod Network Receive",
-      description: "Network bytes received by pod",
-      legend: "Network RX",
-      legendUnit: "bytes/s",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.pod.network.io.receive",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    getSeries: getPodSeries,
-  };
-
-  const podNetworkTxQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "pod_network_tx",
-      title: "Pod Network Transmit",
-      description: "Network bytes transmitted by pod",
-      legend: "Network TX",
-      legendUnit: "bytes/s",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.pod.network.io.transmit",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    getSeries: getPodSeries,
-  };
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [
-      podCpuQuery,
-      podMemoryQuery,
-      podNetworkRxQuery,
-      podNetworkTxQuery,
-    ],
-    formulaConfigs: [],
-  });
 
   return (
     <Fragment>
@@ -198,12 +206,7 @@ const KubernetesClusterPods: FunctionComponent<
         onChange={(data: MetricViewData) => {
           setMetricViewData({
             ...data,
-            queryConfigs: [
-              podCpuQuery,
-              podMemoryQuery,
-              podNetworkRxQuery,
-              podNetworkTxQuery,
-            ],
+            queryConfigs: metricViewData.queryConfigs,
             formulaConfigs: [],
           });
         }}

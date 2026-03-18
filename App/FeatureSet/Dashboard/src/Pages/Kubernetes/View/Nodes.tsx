@@ -31,6 +31,9 @@ const KubernetesClusterNodes: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [metricViewData, setMetricViewData] = useState<MetricViewData | null>(
+    null,
+  );
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -55,6 +58,132 @@ const KubernetesClusterNodes: FunctionComponent<
     });
   }, []);
 
+  useEffect(() => {
+    if (!cluster) {
+      return;
+    }
+
+    const clusterIdentifier: string = cluster.clusterIdentifier || "";
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
+    const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
+
+    const getNodeSeries = (data: AggregateModel): ChartSeries => {
+      const attributes: Record<string, unknown> =
+        (data["attributes"] as Record<string, unknown>) || {};
+      const nodeName: string =
+        (attributes["k8s.node.name"] as string) || "Unknown Node";
+      return { title: nodeName };
+    };
+
+    const nodeCpuQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "node_cpu",
+        title: "Node CPU Utilization",
+        description: "CPU utilization by node",
+        legend: "CPU",
+        legendUnit: "%",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "k8s.node.cpu.utilization",
+          attributes: {
+            "k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+      getSeries: getNodeSeries,
+    };
+
+    const nodeMemoryQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "node_memory",
+        title: "Node Memory Usage",
+        description: "Memory usage by node",
+        legend: "Memory",
+        legendUnit: "bytes",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "k8s.node.memory.usage",
+          attributes: {
+            "k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+      getSeries: getNodeSeries,
+    };
+
+    const nodeFilesystemQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "node_filesystem",
+        title: "Node Filesystem Usage",
+        description: "Filesystem usage by node",
+        legend: "Filesystem",
+        legendUnit: "bytes",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "k8s.node.filesystem.usage",
+          attributes: {
+            "k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+      getSeries: getNodeSeries,
+    };
+
+    const nodeNetworkRxQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "node_network_rx",
+        title: "Node Network Receive",
+        description: "Network bytes received by node",
+        legend: "Network RX",
+        legendUnit: "bytes/s",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "k8s.node.network.io.receive",
+          attributes: {
+            "k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+      getSeries: getNodeSeries,
+    };
+
+    setMetricViewData({
+      startAndEndDate: startAndEndDate,
+      queryConfigs: [
+        nodeCpuQuery,
+        nodeMemoryQuery,
+        nodeFilesystemQuery,
+        nodeNetworkRxQuery,
+      ],
+      formulaConfigs: [],
+    });
+  }, [cluster]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -63,130 +192,9 @@ const KubernetesClusterNodes: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!cluster) {
+  if (!cluster || !metricViewData) {
     return <ErrorMessage message="Cluster not found." />;
   }
-
-  const clusterIdentifier: string = cluster.clusterIdentifier || "";
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  const getNodeSeries = (data: AggregateModel): ChartSeries => {
-    const attributes: Record<string, unknown> =
-      (data["attributes"] as Record<string, unknown>) || {};
-    const nodeName: string =
-      (attributes["k8s.node.name"] as string) || "Unknown Node";
-    return { title: nodeName };
-  };
-
-  const nodeCpuQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_cpu",
-      title: "Node CPU Utilization",
-      description: "CPU utilization by node",
-      legend: "CPU",
-      legendUnit: "%",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.cpu.utilization",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    getSeries: getNodeSeries,
-  };
-
-  const nodeMemoryQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_memory",
-      title: "Node Memory Usage",
-      description: "Memory usage by node",
-      legend: "Memory",
-      legendUnit: "bytes",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.memory.usage",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    getSeries: getNodeSeries,
-  };
-
-  const nodeFilesystemQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_filesystem",
-      title: "Node Filesystem Usage",
-      description: "Filesystem usage by node",
-      legend: "Filesystem",
-      legendUnit: "bytes",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.filesystem.usage",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    getSeries: getNodeSeries,
-  };
-
-  const nodeNetworkRxQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "node_network_rx",
-      title: "Node Network Receive",
-      description: "Network bytes received by node",
-      legend: "Network RX",
-      legendUnit: "bytes/s",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "k8s.node.network.io.receive",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    getSeries: getNodeSeries,
-  };
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [
-      nodeCpuQuery,
-      nodeMemoryQuery,
-      nodeFilesystemQuery,
-      nodeNetworkRxQuery,
-    ],
-    formulaConfigs: [],
-  });
 
   return (
     <Fragment>
@@ -196,12 +204,7 @@ const KubernetesClusterNodes: FunctionComponent<
         onChange={(data: MetricViewData) => {
           setMetricViewData({
             ...data,
-            queryConfigs: [
-              nodeCpuQuery,
-              nodeMemoryQuery,
-              nodeFilesystemQuery,
-              nodeNetworkRxQuery,
-            ],
+            queryConfigs: metricViewData.queryConfigs,
             formulaConfigs: [],
           });
         }}

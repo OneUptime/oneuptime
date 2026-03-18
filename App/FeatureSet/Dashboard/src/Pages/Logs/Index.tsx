@@ -9,11 +9,6 @@ import React, {
 } from "react";
 import DashboardLogsViewer from "../../Components/Logs/LogsViewer";
 import TelemetryDocumentation from "../../Components/Telemetry/Documentation";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
 
 const LogsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -46,21 +41,11 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
         enableRealtime={true}
         id="logs"
         onCountChange={handleCountChange}
+        onShowDocumentation={() => {
+          setShowDocs(true);
+        }}
       />
       {!hasData && <TelemetryDocumentation telemetryType="logs" />}
-      {hasData && !showDocs && (
-        <div className="flex justify-center mt-4 mb-4">
-          <Button
-            title="View Setup Documentation"
-            icon={IconProp.Book}
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            onClick={() => {
-              setShowDocs(true);
-            }}
-          />
-        </div>
-      )}
       {hasData && showDocs && (
         <TelemetryDocumentation telemetryType="logs" />
       )}

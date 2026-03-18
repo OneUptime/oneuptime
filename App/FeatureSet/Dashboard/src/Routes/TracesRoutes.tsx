@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import TracesPage from "../Pages/Traces/Index";
+import TracesDocumentationPage from "../Pages/Traces/Documentation";
 
 import TraceViewPage from "../Pages/Traces/View/Index";
 
@@ -24,6 +25,15 @@ const TracesRoutes: FunctionComponent<ComponentProps> = (
             <TracesPage
               {...props}
               pageRoute={RouteMap[PageMap.TRACES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={TracesRoutePath[PageMap.TRACES_DOCUMENTATION] || ""}
+          element={
+            <TracesDocumentationPage
+              {...props}
+              pageRoute={RouteMap[PageMap.TRACES_DOCUMENTATION] as Route}
             />
           }
         />

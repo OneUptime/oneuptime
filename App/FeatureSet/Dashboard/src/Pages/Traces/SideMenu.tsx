@@ -21,6 +21,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.RectangleStack,
         },
+        {
+          link: {
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
+            ),
+          },
+          icon: IconProp.Book,
+        },
       ],
     },
   ];

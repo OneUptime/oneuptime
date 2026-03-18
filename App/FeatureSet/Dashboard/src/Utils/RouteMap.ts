@@ -100,12 +100,14 @@ export const LogsRoutePath: Dictionary<string> = {
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
   [PageMap.METRIC_VIEW]: "view",
+  [PageMap.METRICS_DOCUMENTATION]: "documentation",
 };
 
 // Traces product routes
 export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES]: "",
   [PageMap.TRACE_VIEW]: `view/${RouteParams.ModelID}`,
+  [PageMap.TRACES_DOCUMENTATION]: "documentation",
 };
 
 export const ExceptionsRoutePath: Dictionary<string> = {
@@ -2072,6 +2074,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.METRICS_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_DOCUMENTATION]
+    }`,
+  ),
+
   // Traces Product Routes
   [PageMap.TRACES_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/*`,
@@ -2082,6 +2090,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TRACE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/${
       TracesRoutePath[PageMap.TRACE_VIEW]
+    }`,
+  ),
+
+  [PageMap.TRACES_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_DOCUMENTATION]
     }`,
   ),
 
