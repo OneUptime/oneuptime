@@ -799,12 +799,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
   const showLogCollectors: boolean = telemetryType === "logs";
 
-  // Compute OTLP URL and host using otlp. subdomain
+  // Compute OTLP URL and host
   const httpProtocol: string =
     HTTP_PROTOCOL === Protocol.HTTPS ? "https" : "http";
-  const otlpHost: string = HOST ? `otlp.${HOST}` : "<YOUR_ONEUPTIME_OTLP_HOST>";
+  const otlpHost: string = HOST ? HOST : "<YOUR_ONEUPTIME_OTLP_HOST>";
   const otlpUrl: string = HOST
-    ? `${httpProtocol}://${otlpHost}`
+    ? `${httpProtocol}://${HOST}/otlp`
     : "<YOUR_ONEUPTIME_OTLP_URL>";
 
   // Fetch ingestion keys on mount
