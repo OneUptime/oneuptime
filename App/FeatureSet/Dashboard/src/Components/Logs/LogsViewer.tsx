@@ -413,10 +413,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
 
       try {
+        // When live polling, recompute the time range so the query window
+        // slides forward to "now" and new logs become visible.
+        let query: Query<Log> = filterOptions;
+
+        if (skipLoadingState && isLiveEnabled && timeRange.range !== TimeRange.CUSTOM) {
+          const freshRange: InBetween<Date> =
+            RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+          query = {
+            ...filterOptions,
+            time: new InBetween<Date>(
+              freshRange.startValue,
+              freshRange.endValue,
+            ),
+          };
+        }
+
         const listResult: ListResult<Log> =
           await AnalyticsModelAPI.getList<Log>({
             modelType: Log,
-            query: filterOptions,
+            query: query,
             limit: pageSize,
             skip: (page - 1) * pageSize,
             select: select,
@@ -452,7 +468,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
       }
     },
-    [filterOptions, page, pageSize, select, sortField, sortOrder],
+    [filterOptions, isLiveEnabled, page, pageSize, select, sortField, sortOrder, timeRange],
   );
 
   // --- Fetch histogram ---
