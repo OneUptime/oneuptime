@@ -121,6 +121,8 @@ Usage:
   value: {{ $.Values.home.ports.http | squote }}
 - name: WORKER_PORT
   value: {{ $.Values.worker.ports.http | squote }}
+- name: IP_WHITELIST
+  value: {{ default "" $.Values.ipWhitelist | quote }}
 {{- end }}
 
 

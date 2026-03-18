@@ -41,6 +41,10 @@
     "encryptionSecret": {
       "type": ["string", "null"]
     },
+    "ipWhitelist": {
+      "type": ["string", "null"],
+      "description": "Comma-separated list of probe egress IP addresses for firewall whitelisting. Returned via the /ip-whitelist API endpoint."
+    },
     "externalSecrets": {
       "type": "object",
       "properties": {

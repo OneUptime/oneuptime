@@ -35,6 +35,12 @@ oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:
 
+# Comma-separated list of egress IP addresses that probes use for monitoring checks.
+# Customers can use this to whitelist probe traffic in their firewalls.
+# This is returned as a JSON array via the /ip-whitelist API endpoint.
+# Example: "203.0.113.1,203.0.113.2,198.51.100.10"
+ipWhitelist:
+
 # External Secrets
 # You need to leave blank oneuptimeSecret and encryptionSecret to use this section
 externalSecrets:
