@@ -83,7 +83,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     const attributes: Record<string, unknown> =
       (data["attributes"] as Record<string, unknown>) || {};
     const podName: string =
-      (attributes["resource.k8s.pod.name"] as string) || "Unknown Pod";
+      (attributes["k8s.pod.name"] as string) || "Unknown Pod";
     return { title: podName };
   };
 
@@ -100,7 +100,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         metricName: "k8s.pod.cpu.utilization",
         attributes: {
           "k8s.cluster.name": clusterIdentifier,
-          "resource.k8s.deployment.name": deploymentName,
+          "k8s.deployment.name": deploymentName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -125,7 +125,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         metricName: "k8s.pod.memory.usage",
         attributes: {
           "k8s.cluster.name": clusterIdentifier,
-          "resource.k8s.deployment.name": deploymentName,
+          "k8s.deployment.name": deploymentName,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},

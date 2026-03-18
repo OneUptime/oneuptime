@@ -53,7 +53,7 @@ const KubernetesClusterStatefulSets: FunctionComponent<
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.statefulset.name",
+          resourceNameAttribute: "k8s.statefulset.name",
         });
 
       setResources(statefulsetList);

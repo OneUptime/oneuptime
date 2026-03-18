@@ -53,7 +53,7 @@ const KubernetesClusterDeployments: FunctionComponent<
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.deployment.name",
+          resourceNameAttribute: "k8s.deployment.name",
         });
 
       setResources(deploymentList);

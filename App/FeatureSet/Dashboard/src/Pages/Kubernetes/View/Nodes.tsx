@@ -53,8 +53,8 @@ const KubernetesClusterNodes: FunctionComponent<
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.node.cpu.utilization",
           memoryMetricName: "k8s.node.memory.usage",
-          resourceNameAttribute: "resource.k8s.node.name",
-          namespaceAttribute: "resource.k8s.node.name",
+          resourceNameAttribute: "k8s.node.name",
+          namespaceAttribute: "k8s.node.name",
         });
 
       setResources(nodeList);

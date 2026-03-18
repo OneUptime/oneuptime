@@ -34,7 +34,7 @@ export default class KubernetesResourceUtils {
       clusterIdentifier,
       metricName,
       resourceNameAttribute,
-      namespaceAttribute = "resource.k8s.namespace.name",
+      namespaceAttribute = "k8s.namespace.name",
       additionalAttributes = [],
       filterAttributes = {},
       hoursBack = 1,
@@ -52,7 +52,7 @@ export default class KubernetesResourceUtils {
             time: new InBetween(startDate, endDate),
             name: metricName,
             attributes: {
-              "resource.k8s.cluster.name": clusterIdentifier,
+              "k8s.cluster.name": clusterIdentifier,
               ...filterAttributes,
             } as Dictionary<string | number | boolean>,
           },
@@ -137,7 +137,7 @@ export default class KubernetesResourceUtils {
               time: new InBetween(startDate, endDate),
               name: options.memoryMetricName,
               attributes: {
-                "resource.k8s.cluster.name": options.clusterIdentifier,
+                "k8s.cluster.name": options.clusterIdentifier,
                 ...(options.filterAttributes || {}),
               } as Dictionary<string | number | boolean>,
             },
@@ -163,7 +163,7 @@ export default class KubernetesResourceUtils {
           (attributes[options.resourceNameAttribute] as string) || "";
         const namespace: string =
           (attributes[
-            options.namespaceAttribute || "resource.k8s.namespace.name"
+            options.namespaceAttribute || "k8s.namespace.name"
           ] as string) || "";
         const key: string = `${namespace}/${resourceName}`;
 
