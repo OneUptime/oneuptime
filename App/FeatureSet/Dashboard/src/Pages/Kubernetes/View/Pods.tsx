@@ -72,9 +72,9 @@ const KubernetesClusterPods: FunctionComponent<
       const attributes: Record<string, unknown> =
         (data["attributes"] as Record<string, unknown>) || {};
       const podName: string =
-        (attributes["k8s.pod.name"] as string) || "Unknown Pod";
+        (attributes["resource.k8s.pod.name"] as string) || "Unknown Pod";
       const namespace: string =
-        (attributes["k8s.namespace.name"] as string) || "";
+        (attributes["resource.k8s.namespace.name"] as string) || "";
       return { title: namespace ? `${namespace}/${podName}` : podName };
     };
 
@@ -90,7 +90,7 @@ const KubernetesClusterPods: FunctionComponent<
         filterData: {
           metricName: "k8s.pod.cpu.utilization",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -114,7 +114,7 @@ const KubernetesClusterPods: FunctionComponent<
         filterData: {
           metricName: "k8s.pod.memory.usage",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -136,9 +136,10 @@ const KubernetesClusterPods: FunctionComponent<
       },
       metricQueryData: {
         filterData: {
-          metricName: "k8s.pod.network.io.receive",
+          metricName: "k8s.pod.network.io",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
+            "metricAttributes.direction": "receive",
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -160,9 +161,10 @@ const KubernetesClusterPods: FunctionComponent<
       },
       metricQueryData: {
         filterData: {
-          metricName: "k8s.pod.network.io.transmit",
+          metricName: "k8s.pod.network.io",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
+            "metricAttributes.direction": "transmit",
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},

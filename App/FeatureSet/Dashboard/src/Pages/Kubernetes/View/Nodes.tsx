@@ -72,7 +72,7 @@ const KubernetesClusterNodes: FunctionComponent<
       const attributes: Record<string, unknown> =
         (data["attributes"] as Record<string, unknown>) || {};
       const nodeName: string =
-        (attributes["k8s.node.name"] as string) || "Unknown Node";
+        (attributes["resource.k8s.node.name"] as string) || "Unknown Node";
       return { title: nodeName };
     };
 
@@ -88,7 +88,7 @@ const KubernetesClusterNodes: FunctionComponent<
         filterData: {
           metricName: "k8s.node.cpu.utilization",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -112,7 +112,7 @@ const KubernetesClusterNodes: FunctionComponent<
         filterData: {
           metricName: "k8s.node.memory.usage",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -136,7 +136,7 @@ const KubernetesClusterNodes: FunctionComponent<
         filterData: {
           metricName: "k8s.node.filesystem.usage",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},
@@ -158,9 +158,10 @@ const KubernetesClusterNodes: FunctionComponent<
       },
       metricQueryData: {
         filterData: {
-          metricName: "k8s.node.network.io.receive",
+          metricName: "k8s.node.network.io",
           attributes: {
-            "k8s.cluster.name": clusterIdentifier,
+            "resource.k8s.cluster.name": clusterIdentifier,
+            "metricAttributes.direction": "receive",
           },
           aggegationType: AggregationType.Avg,
           aggregateBy: {},

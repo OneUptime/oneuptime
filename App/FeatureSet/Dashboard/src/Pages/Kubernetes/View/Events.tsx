@@ -23,6 +23,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 interface KubernetesEvent {
   timestamp: string;
@@ -69,10 +70,7 @@ const KubernetesClusterEvents: FunctionComponent<
           modelType: Log,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!.toString(),
-            time: {
-              startValue: startDate,
-              endValue: endDate,
-            } as any,
+            time: new InBetween<Date>(startDate, endDate),
           },
           limit: 200,
           skip: 0,
@@ -88,6 +86,63 @@ const KubernetesClusterEvents: FunctionComponent<
           requestOptions: {},
         });
 
+      // Helper to extract a string value from OTLP kvlistValue
+      const getKvValue = (
+        kvList: JSONObject | undefined,
+        key: string,
+      ): string => {
+        if (!kvList) {
+          return "";
+        }
+        const values = (kvList as JSONObject)["values"] as Array<JSONObject> | undefined;
+        if (!values) {
+          return "";
+        }
+        for (const entry of values) {
+          if (entry["key"] === key) {
+            const val = entry["value"] as JSONObject | undefined;
+            if (!val) {
+              return "";
+            }
+            if (val["stringValue"]) {
+              return val["stringValue"] as string;
+            }
+            if (val["intValue"]) {
+              return String(val["intValue"]);
+            }
+            // Nested kvlist (e.g., regarding, metadata)
+            if (val["kvlistValue"]) {
+              return val["kvlistValue"] as unknown as string;
+            }
+          }
+        }
+        return "";
+      };
+
+      // Helper to get nested kvlist value
+      const getNestedKvValue = (
+        kvList: JSONObject | undefined,
+        parentKey: string,
+        childKey: string,
+      ): string => {
+        if (!kvList) {
+          return "";
+        }
+        const values = (kvList as JSONObject)["values"] as Array<JSONObject> | undefined;
+        if (!values) {
+          return "";
+        }
+        for (const entry of values) {
+          if (entry["key"] === parentKey) {
+            const val = entry["value"] as JSONObject | undefined;
+            if (val && val["kvlistValue"]) {
+              return getKvValue(val["kvlistValue"] as JSONObject, childKey);
+            }
+          }
+        }
+        return "";
+      };
+
       const k8sEvents: Array<KubernetesEvent> = [];
 
       for (const log of listResult.data) {
@@ -95,35 +150,55 @@ const KubernetesClusterEvents: FunctionComponent<
 
         // Filter to only k8s events from this cluster
         if (
-          attrs["k8s.cluster.name"] !== item.clusterIdentifier &&
-          attrs["k8s_cluster_name"] !== item.clusterIdentifier
+          attrs["resource.k8s.cluster.name"] !== item.clusterIdentifier &&
+          attrs["k8s.cluster.name"] !== item.clusterIdentifier
         ) {
           continue;
         }
 
-        // k8sobjects receiver events have k8s event attributes
-        const eventType: string =
-          (attrs["k8s.event.type"] as string) ||
-          (attrs["type"] as string) ||
-          "";
-        const reason: string =
-          (attrs["k8s.event.reason"] as string) ||
-          (attrs["reason"] as string) ||
-          "";
-        const objectKind: string =
-          (attrs["k8s.object.kind"] as string) ||
-          (attrs["involvedObject.kind"] as string) ||
-          "";
-        const objectName: string =
-          (attrs["k8s.object.name"] as string) ||
-          (attrs["involvedObject.name"] as string) ||
-          "";
-        const namespace: string =
-          (attrs["k8s.namespace.name"] as string) ||
-          (attrs["namespace"] as string) ||
-          "";
+        // Only process k8s event logs (from k8sobjects receiver)
+        if (attrs["logAttributes.event.domain"] !== "k8s") {
+          continue;
+        }
 
-        if (eventType || reason || objectKind) {
+        // Parse the body which is OTLP kvlistValue JSON
+        let bodyObj: JSONObject | null = null;
+        try {
+          if (typeof log.body === "string") {
+            bodyObj = JSON.parse(log.body) as JSONObject;
+          }
+        } catch {
+          continue;
+        }
+
+        if (!bodyObj) {
+          continue;
+        }
+
+        // The body has a top-level kvlistValue with "type" (ADDED/MODIFIED) and "object" keys
+        const topKvList = bodyObj["kvlistValue"] as JSONObject | undefined;
+        if (!topKvList) {
+          continue;
+        }
+
+        // Get the "object" which is the actual k8s Event
+        const objectKvListRaw = getKvValue(topKvList, "object");
+        if (!objectKvListRaw || typeof objectKvListRaw === "string") {
+          continue;
+        }
+        const objectKvList = objectKvListRaw as unknown as JSONObject;
+
+        const eventType: string = getKvValue(objectKvList, "type") || "";
+        const reason: string = getKvValue(objectKvList, "reason") || "";
+        const note: string = getKvValue(objectKvList, "note") || "";
+
+        // Get object details from "regarding" sub-object
+        const objectKind: string = getNestedKvValue(objectKvList, "regarding", "kind") || "";
+        const objectName: string = getNestedKvValue(objectKvList, "regarding", "name") || "";
+        const namespace: string = getNestedKvValue(objectKvList, "regarding", "namespace") ||
+          getNestedKvValue(objectKvList, "metadata", "namespace") || "";
+
+        if (eventType || reason) {
           k8sEvents.push({
             timestamp: log.time
               ? OneUptimeDate.getDateAsLocalFormattedString(log.time)
@@ -133,7 +208,7 @@ const KubernetesClusterEvents: FunctionComponent<
             objectKind: objectKind || "Unknown",
             objectName: objectName || "Unknown",
             namespace: namespace || "default",
-            message: log.body || "",
+            message: note || "",
           });
         }
       }

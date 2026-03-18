@@ -31,6 +31,11 @@ export function getExceptionsBreadcrumbs(
       "Exceptions",
       "View Exception",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_DOCUMENTATION, [
+      "Project",
+      "Exceptions",
+      "Documentation",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }
