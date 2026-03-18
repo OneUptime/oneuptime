@@ -5,11 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import Card from "Common/UI/Components/Card/Card";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
-import { Tab } from "Common/UI/Components/Tabs/Tab";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
-import Accordion from "Common/UI/Components/Accordion/Accordion";
 
 export type TelemetryType = "logs" | "metrics" | "traces" | "exceptions";
 
@@ -28,16 +24,25 @@ type Language =
 interface LanguageOption {
   key: Language;
   label: string;
+  shortLabel: string;
 }
 
 const languages: Array<LanguageOption> = [
-  { key: "node", label: "Node.js / TypeScript" },
-  { key: "python", label: "Python" },
-  { key: "go", label: "Go" },
-  { key: "java", label: "Java" },
-  { key: "dotnet", label: ".NET / C#" },
-  { key: "rust", label: "Rust" },
+  { key: "node", label: "Node.js / TypeScript", shortLabel: "Node.js" },
+  { key: "python", label: "Python", shortLabel: "Python" },
+  { key: "go", label: "Go", shortLabel: "Go" },
+  { key: "java", label: "Java", shortLabel: "Java" },
+  { key: "dotnet", label: ".NET / C#", shortLabel: ".NET" },
+  { key: "rust", label: "Rust", shortLabel: "Rust" },
 ];
+
+type IntegrationMethod = "opentelemetry" | "fluentbit" | "fluentd";
+
+interface IntegrationOption {
+  key: IntegrationMethod;
+  label: string;
+  description: string;
+}
 
 // --- OpenTelemetry code snippets per language ---
 
@@ -414,14 +419,44 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("node");
+  const [selectedMethod, setSelectedMethod] =
+    useState<IntegrationMethod>("opentelemetry");
 
   const telemetryType: TelemetryType = props.telemetryType || "logs";
 
+  const showLogCollectors: boolean =
+    telemetryType === "logs" || telemetryType === "exceptions";
+
+  const integrationMethods: Array<IntegrationOption> = useMemo(() => {
+    const methods: Array<IntegrationOption> = [
+      {
+        key: "opentelemetry",
+        label: "OpenTelemetry",
+        description: "Recommended. Auto-instrumentation for most frameworks.",
+      },
+    ];
+
+    if (showLogCollectors) {
+      methods.push({
+        key: "fluentbit",
+        label: "FluentBit",
+        description: "Lightweight log processor with minimal resource usage.",
+      });
+      methods.push({
+        key: "fluentd",
+        label: "Fluentd",
+        description: "Mature data collector with rich plugin ecosystem.",
+      });
+    }
+
+    return methods;
+  }, [showLogCollectors]);
+
   const titleForType: Record<TelemetryType, string> = {
-    logs: "Getting Started with Log Ingestion",
-    metrics: "Getting Started with Metrics Ingestion",
-    traces: "Getting Started with Trace Ingestion",
-    exceptions: "Getting Started with Exception Tracking",
+    logs: "Log Ingestion Setup",
+    metrics: "Metrics Ingestion Setup",
+    traces: "Trace Ingestion Setup",
+    exceptions: "Exception Tracking Setup",
   };
 
   const descriptionForType: Record<TelemetryType, string> = {
@@ -449,248 +484,274 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     [],
   );
 
-  // Language selector pills
-  const renderLanguageSelector: () => ReactElement = (): ReactElement => {
-    return (
-      <div className="flex flex-wrap gap-2 mb-5">
-        {languages.map((lang: LanguageOption) => {
-          const isSelected: boolean = selectedLanguage === lang.key;
-          return (
-            <button
-              key={lang.key}
-              type="button"
-              onClick={() => {
-                handleLanguageSelect(lang.key);
-              }}
-              className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-all ${
-                isSelected
-                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
-              }`}
-            >
-              {lang.label}
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Step component
+  // Step component with vertical line connector
   const renderStep: (
     stepNumber: number,
     title: string,
     description: string,
     content: ReactElement,
+    isLast?: boolean,
   ) => ReactElement = (
     stepNumber: number,
     title: string,
     description: string,
     content: ReactElement,
+    isLast?: boolean,
   ): ReactElement => {
     return (
-      <div className="flex gap-4 mb-6">
-        <div className="flex-shrink-0">
-          <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold">
+      <div className="relative flex gap-5">
+        {/* Step indicator with connecting line */}
+        <div className="flex flex-col items-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-indigo-50 border-2 border-indigo-500 text-indigo-600 flex items-center justify-center text-sm font-bold z-10">
             {stepNumber}
           </div>
+          {!isLast && (
+            <div className="w-0.5 flex-1 bg-gray-200 mt-2 mb-0" />
+          )}
         </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-gray-900 mb-1">{title}</h4>
-          <p className="text-sm text-gray-500 mb-3">{description}</p>
+        {/* Step content */}
+        <div className={`flex-1 min-w-0 ${isLast ? "pb-0" : "pb-8"}`}>
+          <h4 className="text-sm font-semibold text-gray-900 leading-9">
+            {title}
+          </h4>
+          <p className="text-sm text-gray-500 mt-0.5 mb-3 leading-relaxed">
+            {description}
+          </p>
           {content}
         </div>
       </div>
     );
   };
 
-  // OpenTelemetry tab content
+  // Credentials info box
+  const renderCredentialsInfo: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+        <div className="px-5 py-4">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">
+            Where do I find my OTLP URL and Token?
+          </h4>
+          <ol className="text-sm text-gray-600 space-y-1.5 ml-4 list-decimal">
+            <li>
+              Navigate to <strong>Project Settings</strong> from the sidebar.
+            </li>
+            <li>
+              Click on <strong>Telemetry Ingestion Keys</strong>.
+            </li>
+            <li>
+              Copy the <strong>OTLP Endpoint</strong> and{" "}
+              <strong>Token</strong> values.
+            </li>
+            <li>
+              Replace{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded text-xs font-mono border border-gray-200">
+                &lt;YOUR_ONEUPTIME_OTLP_URL&gt;
+              </code>{" "}
+              and{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded text-xs font-mono border border-gray-200">
+                &lt;YOUR_ONEUPTIME_TOKEN&gt;
+              </code>{" "}
+              in the code snippets with these values.
+            </li>
+          </ol>
+        </div>
+      </div>
+    );
+  };
+
+  // Language selector
+  const renderLanguageSelector: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mb-6">
+        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          Select Language
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {languages.map((lang: LanguageOption) => {
+            const isSelected: boolean = selectedLanguage === lang.key;
+            return (
+              <button
+                key={lang.key}
+                type="button"
+                onClick={() => {
+                  handleLanguageSelect(lang.key);
+                }}
+                className={`px-3.5 py-1.5 text-sm font-medium rounded-lg border transition-all ${
+                  isSelected
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50"
+                }`}
+              >
+                {lang.shortLabel}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Integration method selector
+  const renderMethodSelector: () => ReactElement = (): ReactElement => {
+    if (integrationMethods.length <= 1) {
+      return <></>;
+    }
+
+    return (
+      <div className="mb-6">
+        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          Integration Method
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {integrationMethods.map((method: IntegrationOption) => {
+            const isSelected: boolean = selectedMethod === method.key;
+            return (
+              <button
+                key={method.key}
+                type="button"
+                onClick={() => {
+                  setSelectedMethod(method.key);
+                }}
+                className={`text-left px-4 py-3 rounded-lg border-2 transition-all ${
+                  isSelected
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <div
+                  className={`text-sm font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
+                >
+                  {method.label}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  {method.description}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // OpenTelemetry content
   const renderOpenTelemetryContent: () => ReactElement = (): ReactElement => {
     return (
       <div>
-        <div className="mb-5 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-          <p className="text-sm text-indigo-800">
-            <span className="font-semibold">OpenTelemetry</span> is the
-            recommended way to send telemetry data to OneUptime. It supports
-            logs, metrics, and traces with auto-instrumentation for most
-            frameworks.
-          </p>
-        </div>
-
         {renderLanguageSelector()}
 
-        {renderStep(
-          1,
-          "Install Dependencies",
-          `Install the OpenTelemetry SDK and exporters for ${languages.find((l: LanguageOption) => { return l.key === selectedLanguage; })?.label || selectedLanguage}.`,
-          <CodeBlock
-            code={installSnippet.code}
-            language={installSnippet.language}
-          />,
-        )}
+        <div className="mt-2">
+          {renderStep(
+            1,
+            "Install Dependencies",
+            `Install the OpenTelemetry SDK and exporters for ${languages.find((l: LanguageOption) => { return l.key === selectedLanguage; })?.label || selectedLanguage}.`,
+            <CodeBlock
+              code={installSnippet.code}
+              language={installSnippet.language}
+            />,
+          )}
 
-        {renderStep(
-          2,
-          "Configure the SDK",
-          "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Replace the placeholder values with your actual OneUptime OTLP URL and token.",
-          <CodeBlock
-            code={configSnippet.code}
-            language={configSnippet.language}
-          />,
-        )}
+          {renderStep(
+            2,
+            "Configure the SDK",
+            "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
+            <CodeBlock
+              code={configSnippet.code}
+              language={configSnippet.language}
+            />,
+          )}
 
-        {renderStep(
-          3,
-          "Set Environment Variables (Alternative)",
-          "You can also configure OpenTelemetry via environment variables instead of code. This works with any language.",
-          <CodeBlock code={getEnvVarSnippet()} language="bash" />,
-        )}
+          {renderStep(
+            3,
+            "Set Environment Variables (Alternative)",
+            "You can also configure OpenTelemetry via environment variables instead of code.",
+            <CodeBlock code={getEnvVarSnippet()} language="bash" />,
+            true,
+          )}
+        </div>
 
-        <Accordion
-          title="Where do I find my OTLP URL and Token?"
-          description="You can find your OTLP endpoint URL and ingestion token in **Project Settings > Telemetry Ingestion Keys**."
-          isLastElement={true}
-        >
-          <div className="text-sm text-gray-600">
-            <ol className="list-decimal list-inside space-y-2">
-              <li>
-                Navigate to <strong>Project Settings</strong> from the sidebar.
-              </li>
-              <li>
-                Click on <strong>Telemetry Ingestion Keys</strong>.
-              </li>
-              <li>
-                Copy the <strong>OTLP Endpoint</strong> and{" "}
-                <strong>Token</strong> values.
-              </li>
-              <li>
-                Replace <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">&lt;YOUR_ONEUPTIME_OTLP_URL&gt;</code>{" "}
-                and <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">&lt;YOUR_ONEUPTIME_TOKEN&gt;</code>{" "}
-                in the code above with these values.
-              </li>
-            </ol>
-          </div>
-        </Accordion>
+        {renderCredentialsInfo()}
       </div>
     );
   };
 
-  // FluentBit tab content
+  // FluentBit content
   const renderFluentBitContent: () => ReactElement = (): ReactElement => {
     return (
       <div>
-        <div className="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <span className="font-semibold">FluentBit</span> is a lightweight
-            log processor and forwarder. It is ideal for collecting logs from
-            files, containers, and system services with minimal resource usage.
-          </p>
+        <div className="mt-2">
+          {renderStep(
+            1,
+            "Create FluentBit Configuration",
+            "Create a fluent-bit.conf file that reads logs and forwards them to OneUptime via the OpenTelemetry output plugin.",
+            <CodeBlock code={getFluentBitSnippet()} language="yaml" />,
+          )}
+
+          {renderStep(
+            2,
+            "Run with Docker (Optional)",
+            "Run FluentBit as a Docker container alongside your application.",
+            <CodeBlock code={getFluentBitDockerSnippet()} language="yaml" />,
+          )}
+
+          {renderStep(
+            3,
+            "Run FluentBit",
+            "Start FluentBit with your configuration file.",
+            <CodeBlock
+              code="fluent-bit -c fluent-bit.conf"
+              language="bash"
+            />,
+            true,
+          )}
         </div>
 
-        {renderStep(
-          1,
-          "Create FluentBit Configuration",
-          "Create a fluent-bit.conf file that reads logs and forwards them to OneUptime via the OpenTelemetry output plugin.",
-          <CodeBlock code={getFluentBitSnippet()} language="yaml" />,
-        )}
-
-        {renderStep(
-          2,
-          "Run with Docker (Optional)",
-          "You can run FluentBit as a Docker container alongside your application.",
-          <CodeBlock code={getFluentBitDockerSnippet()} language="yaml" />,
-        )}
-
-        {renderStep(
-          3,
-          "Run FluentBit",
-          "Start FluentBit with your configuration file.",
-          <CodeBlock
-            code="fluent-bit -c fluent-bit.conf"
-            language="bash"
-          />,
-        )}
+        {renderCredentialsInfo()}
       </div>
     );
   };
 
-  // Fluentd tab content
+  // Fluentd content
   const renderFluentdContent: () => ReactElement = (): ReactElement => {
     return (
       <div>
-        <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-800">
-            <span className="font-semibold">Fluentd</span> is a mature
-            open-source data collector with a rich plugin ecosystem. It supports
-            1000+ input sources and is widely used in production for log
-            aggregation.
-          </p>
+        <div className="mt-2">
+          {renderStep(
+            1,
+            "Create Fluentd Configuration",
+            "Create a fluentd.conf file that collects logs and sends them to OneUptime over HTTP.",
+            <CodeBlock code={getFluentdSnippet()} language="yaml" />,
+          )}
+
+          {renderStep(
+            2,
+            "Run with Docker (Optional)",
+            "Run Fluentd as a Docker container.",
+            <CodeBlock code={getFluentdDockerSnippet()} language="yaml" />,
+          )}
+
+          {renderStep(
+            3,
+            "Run Fluentd",
+            "Start Fluentd with your configuration.",
+            <CodeBlock
+              code="fluentd -c fluentd.conf"
+              language="bash"
+            />,
+            true,
+          )}
         </div>
 
-        {renderStep(
-          1,
-          "Create Fluentd Configuration",
-          "Create a fluentd.conf file that collects logs and sends them to OneUptime over HTTP.",
-          <CodeBlock code={getFluentdSnippet()} language="yaml" />,
-        )}
-
-        {renderStep(
-          2,
-          "Run with Docker (Optional)",
-          "You can run Fluentd as a Docker container.",
-          <CodeBlock code={getFluentdDockerSnippet()} language="yaml" />,
-        )}
-
-        {renderStep(
-          3,
-          "Run Fluentd",
-          "Start Fluentd with your configuration.",
-          <CodeBlock
-            code="fluentd -c fluentd.conf"
-            language="bash"
-          />,
-        )}
+        {renderCredentialsInfo()}
       </div>
     );
   };
 
-  // Build tabs based on telemetry type
-  const showLogCollectors: boolean =
-    telemetryType === "logs" || telemetryType === "exceptions";
-
-  const tabs: Array<Tab> = useMemo(() => {
-    const result: Array<Tab> = [
-      {
-        name: "OpenTelemetry",
-        children: <div />,
-      },
-    ];
-
-    if (showLogCollectors) {
-      result.push({
-        name: "FluentBit",
-        children: <div />,
-      });
-      result.push({
-        name: "Fluentd",
-        children: <div />,
-      });
-    }
-
-    return result;
-  }, [showLogCollectors]);
-
-  const [activeTab, setActiveTab] = useState<string>("OpenTelemetry");
-
-  const handleTabChange: (tab: Tab) => void = useCallback((tab: Tab) => {
-    setActiveTab(tab.name);
-  }, []);
-
   const renderActiveContent: () => ReactElement = (): ReactElement => {
-    switch (activeTab) {
-      case "FluentBit":
+    switch (selectedMethod) {
+      case "fluentbit":
         return renderFluentBitContent();
-      case "Fluentd":
+      case "fluentd":
         return renderFluentdContent();
       default:
         return renderOpenTelemetryContent();
@@ -698,13 +759,44 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <Card
-      title={titleForType[telemetryType]}
-      description={descriptionForType[telemetryType]}
-    >
-      <Tabs tabs={tabs} onTabChange={handleTabChange} />
-      <div className="mt-2">{renderActiveContent()}</div>
-    </Card>
+    <div className="mb-5">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-gray-100">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
+              <svg
+                className="w-5 h-5 text-indigo-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {titleForType[telemetryType]}
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
+                {descriptionForType[telemetryType]}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-6">
+          {renderMethodSelector()}
+          {renderActiveContent()}
+        </div>
+      </div>
+    </div>
   );
 };
 

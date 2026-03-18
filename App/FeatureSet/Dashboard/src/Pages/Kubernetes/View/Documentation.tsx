@@ -206,7 +206,7 @@ The OneUptime Kubernetes Agent collects:
         title="Agent Installation Guide"
         description="Follow these steps to install the OneUptime Kubernetes Agent on your cluster."
       >
-        <div className="px-2 pb-4">
+        <div className="px-4 pb-6">
           <MarkdownViewer text={installationMarkdown} />
         </div>
       </Card>
