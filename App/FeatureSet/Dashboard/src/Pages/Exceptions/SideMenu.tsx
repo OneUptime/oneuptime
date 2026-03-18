@@ -49,6 +49,11 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Archive,
         },
+      ],
+    },
+    {
+      title: "Documentation",
+      items: [
         {
           link: {
             title: "Documentation",

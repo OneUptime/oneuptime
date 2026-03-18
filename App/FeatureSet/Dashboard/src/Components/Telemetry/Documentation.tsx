@@ -796,8 +796,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
   const telemetryType: TelemetryType = props.telemetryType || "logs";
 
-  const showLogCollectors: boolean =
-    telemetryType === "logs" || telemetryType === "exceptions";
+  const showLogCollectors: boolean = telemetryType === "logs";
 
   // Compute OTLP URL and host using otlp. subdomain
   const httpProtocol: string =

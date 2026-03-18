@@ -21,6 +21,11 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.ChartBar,
         },
+      ],
+    },
+    {
+      title: "Documentation",
+      items: [
         {
           link: {
             title: "Documentation",

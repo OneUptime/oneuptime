@@ -30,6 +30,14 @@ const KubernetesClusterControlPlane: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [etcdMetricViewData, setEtcdMetricViewData] =
+    useState<MetricViewData | null>(null);
+  const [apiServerMetricViewData, setApiServerMetricViewData] =
+    useState<MetricViewData | null>(null);
+  const [schedulerMetricViewData, setSchedulerMetricViewData] =
+    useState<MetricViewData | null>(null);
+  const [controllerMetricViewData, setControllerMetricViewData] =
+    useState<MetricViewData | null>(null);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -54,6 +62,179 @@ const KubernetesClusterControlPlane: FunctionComponent<
     });
   }, []);
 
+  useEffect(() => {
+    if (!cluster) {
+      return;
+    }
+
+    const clusterIdentifier: string = cluster.clusterIdentifier || "";
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
+    const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
+
+    const etcdDbSizeQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "etcd_db_size",
+        title: "etcd Database Size",
+        description: "Total size of the etcd database",
+        legend: "DB Size",
+        legendUnit: "bytes",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "etcd_mvcc_db_total_size_in_bytes",
+          attributes: {
+            "resource.k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+    };
+
+    const apiServerRequestRateQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "apiserver_requests",
+        title: "API Server Request Rate",
+        description: "Total API server requests by verb",
+        legend: "Requests",
+        legendUnit: "req/s",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "apiserver_request_total",
+          attributes: {
+            "resource.k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Sum,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+    };
+
+    const apiServerLatencyQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "apiserver_latency",
+        title: "API Server Request Latency",
+        description: "API server request duration",
+        legend: "Latency",
+        legendUnit: "seconds",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "apiserver_request_duration_seconds",
+          attributes: {
+            "resource.k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+    };
+
+    const schedulerPendingQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "scheduler_pending",
+        title: "Scheduler Pending Pods",
+        description: "Number of pods pending scheduling",
+        legend: "Pending Pods",
+        legendUnit: "",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "scheduler_pending_pods",
+          attributes: {
+            "resource.k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+    };
+
+    const schedulerLatencyQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "scheduler_latency",
+        title: "Scheduler Latency",
+        description: "End-to-end scheduling latency",
+        legend: "Latency",
+        legendUnit: "seconds",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "scheduler_e2e_scheduling_duration_seconds",
+          attributes: {
+            "resource.k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+    };
+
+    const controllerQueueDepthQuery: MetricQueryConfigData = {
+      metricAliasData: {
+        metricVariable: "controller_queue",
+        title: "Controller Manager Queue Depth",
+        description: "Work queue depth for controller manager",
+        legend: "Queue Depth",
+        legendUnit: "",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "workqueue_depth",
+          attributes: {
+            "resource.k8s.cluster.name": clusterIdentifier,
+          },
+          aggegationType: AggregationType.Avg,
+          aggregateBy: {},
+        },
+        groupBy: {
+          attributes: true,
+        },
+      },
+    };
+
+    setEtcdMetricViewData({
+      startAndEndDate: startAndEndDate,
+      queryConfigs: [etcdDbSizeQuery],
+      formulaConfigs: [],
+    });
+
+    setApiServerMetricViewData({
+      startAndEndDate: startAndEndDate,
+      queryConfigs: [apiServerRequestRateQuery, apiServerLatencyQuery],
+      formulaConfigs: [],
+    });
+
+    setSchedulerMetricViewData({
+      startAndEndDate: startAndEndDate,
+      queryConfigs: [schedulerPendingQuery, schedulerLatencyQuery],
+      formulaConfigs: [],
+    });
+
+    setControllerMetricViewData({
+      startAndEndDate: startAndEndDate,
+      queryConfigs: [controllerQueueDepthQuery],
+      formulaConfigs: [],
+    });
+  }, [cluster]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -62,183 +243,15 @@ const KubernetesClusterControlPlane: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!cluster) {
+  if (
+    !cluster ||
+    !etcdMetricViewData ||
+    !apiServerMetricViewData ||
+    !schedulerMetricViewData ||
+    !controllerMetricViewData
+  ) {
     return <ErrorMessage message="Cluster not found." />;
   }
-
-  const clusterIdentifier: string = cluster.clusterIdentifier || "";
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  // etcd metrics (scraped via prometheus receiver)
-  const etcdDbSizeQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "etcd_db_size",
-      title: "etcd Database Size",
-      description: "Total size of the etcd database",
-      legend: "DB Size",
-      legendUnit: "bytes",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "etcd_mvcc_db_total_size_in_bytes",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  // API Server request rate
-  const apiServerRequestRateQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "apiserver_requests",
-      title: "API Server Request Rate",
-      description: "Total API server requests by verb",
-      legend: "Requests",
-      legendUnit: "req/s",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "apiserver_request_total",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Sum,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  // API Server request latency
-  const apiServerLatencyQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "apiserver_latency",
-      title: "API Server Request Latency",
-      description: "API server request duration",
-      legend: "Latency",
-      legendUnit: "seconds",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "apiserver_request_duration_seconds",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  // Scheduler pending pods
-  const schedulerPendingQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "scheduler_pending",
-      title: "Scheduler Pending Pods",
-      description: "Number of pods pending scheduling",
-      legend: "Pending Pods",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "scheduler_pending_pods",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  // Scheduler latency
-  const schedulerLatencyQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "scheduler_latency",
-      title: "Scheduler Latency",
-      description: "End-to-end scheduling latency",
-      legend: "Latency",
-      legendUnit: "seconds",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "scheduler_e2e_scheduling_duration_seconds",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  // Controller Manager work queue depth
-  const controllerQueueDepthQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "controller_queue",
-      title: "Controller Manager Queue Depth",
-      description: "Work queue depth for controller manager",
-      legend: "Queue Depth",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "workqueue_depth",
-        attributes: {
-          "k8s.cluster.name": clusterIdentifier,
-        },
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  const [etcdMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [etcdDbSizeQuery],
-    formulaConfigs: [],
-  });
-
-  const [apiServerMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [apiServerRequestRateQuery, apiServerLatencyQuery],
-    formulaConfigs: [],
-  });
-
-  const [schedulerMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [schedulerPendingQuery, schedulerLatencyQuery],
-    formulaConfigs: [],
-  });
-
-  const [controllerMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [controllerQueueDepthQuery],
-    formulaConfigs: [],
-  });
 
   return (
     <Fragment>
