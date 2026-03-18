@@ -8,6 +8,10 @@ metadata:
     {{- include "kubernetes-agent.labels" . | nindent 4 }}
 data:
   otel-collector-config.yaml: |
+    extensions:
+      health_check:
+        endpoint: "0.0.0.0:13133"
+
     receivers:
       # Collect pod logs from /var/log/pods
       filelog:
@@ -115,11 +119,13 @@ data:
 
     exporters:
       otlphttp:
-        endpoint: "{{ .Values.oneuptime.url }}"
+        endpoint: "{{ .Values.oneuptime.url }}/otlp"
         headers:
           x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
 
     service:
+      extensions:
+        - health_check
       pipelines:
         logs:
           receivers:

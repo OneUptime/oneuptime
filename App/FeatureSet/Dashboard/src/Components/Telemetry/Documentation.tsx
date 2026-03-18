@@ -36,7 +36,9 @@ type Language =
   | "ruby"
   | "elixir"
   | "cpp"
-  | "swift";
+  | "swift"
+  | "react"
+  | "angular";
 
 interface LanguageOption {
   key: Language;
@@ -56,6 +58,8 @@ const languages: Array<LanguageOption> = [
   { key: "elixir", label: "Elixir", shortLabel: "Elixir" },
   { key: "cpp", label: "C++", shortLabel: "C++" },
   { key: "swift", label: "Swift", shortLabel: "Swift" },
+  { key: "react", label: "React (Browser)", shortLabel: "React" },
+  { key: "angular", label: "Angular (Browser)", shortLabel: "Angular" },
 ];
 
 type IntegrationMethod = "opentelemetry" | "fluentbit" | "fluentd";
@@ -99,7 +103,7 @@ function getOtelInstallSnippet(lang: Language): {
       return {
         code: `pip install opentelemetry-api \\
   opentelemetry-sdk \\
-  opentelemetry-exporter-otlp-proto-grpc \\
+  opentelemetry-exporter-otlp-proto-http \\
   opentelemetry-instrumentation`,
         language: "bash",
       };
@@ -107,9 +111,9 @@ function getOtelInstallSnippet(lang: Language): {
       return {
         code: `go get go.opentelemetry.io/otel \\
   go.opentelemetry.io/otel/sdk \\
-  go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc \\
-  go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc \\
-  go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc`,
+  go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp \\
+  go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp \\
+  go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp`,
         language: "bash",
       };
     case "java":
@@ -200,6 +204,30 @@ vcpkg install opentelemetry-cpp[otlp-grpc]
 .product(name: "OtlpGRPCSpanExporting", package: "opentelemetry-swift"),`,
         language: "bash",
       };
+    case "react":
+      return {
+        code: `npm install @opentelemetry/api \\
+  @opentelemetry/sdk-trace-web \\
+  @opentelemetry/sdk-trace-base \\
+  @opentelemetry/exporter-trace-otlp-http \\
+  @opentelemetry/instrumentation-document-load \\
+  @opentelemetry/instrumentation-fetch \\
+  @opentelemetry/instrumentation-xml-http-request \\
+  @opentelemetry/context-zone`,
+        language: "bash",
+      };
+    case "angular":
+      return {
+        code: `npm install @opentelemetry/api \\
+  @opentelemetry/sdk-trace-web \\
+  @opentelemetry/sdk-trace-base \\
+  @opentelemetry/exporter-trace-otlp-http \\
+  @opentelemetry/instrumentation-document-load \\
+  @opentelemetry/instrumentation-fetch \\
+  @opentelemetry/instrumentation-xml-http-request \\
+  @opentelemetry/context-zone`,
+        language: "bash",
+      };
   }
 }
 
@@ -253,8 +281,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk.resources import Resource
 
 resource = Resource.create({"service.name": "my-service"})
@@ -288,23 +316,20 @@ metrics.set_meter_provider(MeterProvider(resource=resource, metric_readers=[metr
 import (
     "context"
     "go.opentelemetry.io/otel"
-    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
     "go.opentelemetry.io/otel/sdk/resource"
     sdktrace "go.opentelemetry.io/otel/sdk/trace"
     semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
-    "google.golang.org/grpc/credentials/insecure"
-    "google.golang.org/grpc/metadata"
 )
 
 func initTracer() (*sdktrace.TracerProvider, error) {
-    ctx := metadata.AppendToOutgoingContext(
-        context.Background(),
-        "x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>",
-    )
+    ctx := context.Background()
 
-    exporter, err := otlptracegrpc.New(ctx,
-        otlptracegrpc.WithEndpoint("<YOUR_ONEUPTIME_OTLP_HOST>"),
-        otlptracegrpc.WithTLSCredentials(insecure.NewCredentials()),
+    exporter, err := otlptracehttp.New(ctx,
+        otlptracehttp.WithEndpoint("<YOUR_ONEUPTIME_OTLP_HOST>"),
+        otlptracehttp.WithHeaders(map[string]string{
+            "x-oneuptime-token": "<YOUR_ONEUPTIME_TOKEN>",
+        }),
     )
     if err != nil {
         return nil, err
@@ -550,6 +575,106 @@ func initTracer() {
     OpenTelemetry.registerTracerProvider(tracerProvider: tracerProvider)
 }`,
         language: "swift",
+      };
+    case "react":
+      return {
+        code: `// src/tracing.ts - Import this file in your index.tsx before ReactDOM.render()
+import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { ZoneContextManager } from '@opentelemetry/context-zone';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-document-load';
+import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
+import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
+import { Resource } from '@opentelemetry/resources';
+
+const provider = new WebTracerProvider({
+  resource: new Resource({
+    'service.name': 'my-react-app',
+  }),
+});
+
+provider.addSpanProcessor(
+  new BatchSpanProcessor(
+    new OTLPTraceExporter({
+      url: '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
+      headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
+    })
+  )
+);
+
+provider.register({
+  contextManager: new ZoneContextManager(),
+});
+
+registerInstrumentations({
+  instrumentations: [
+    new DocumentLoadInstrumentation(),
+    new FetchInstrumentation({
+      propagateTraceHeaderCorsUrls: [/.*/],
+    }),
+    new XMLHttpRequestInstrumentation({
+      propagateTraceHeaderCorsUrls: [/.*/],
+    }),
+  ],
+});
+
+// In index.tsx:
+// import './tracing';  // Must be first import
+// import React from 'react';
+// ...`,
+        language: "typescript",
+      };
+    case "angular":
+      return {
+        code: `// src/tracing.ts
+import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { ZoneContextManager } from '@opentelemetry/context-zone';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-document-load';
+import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
+import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
+import { Resource } from '@opentelemetry/resources';
+
+const provider = new WebTracerProvider({
+  resource: new Resource({
+    'service.name': 'my-angular-app',
+  }),
+});
+
+provider.addSpanProcessor(
+  new BatchSpanProcessor(
+    new OTLPTraceExporter({
+      url: '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
+      headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
+    })
+  )
+);
+
+provider.register({
+  contextManager: new ZoneContextManager(),
+});
+
+registerInstrumentations({
+  instrumentations: [
+    new DocumentLoadInstrumentation(),
+    new FetchInstrumentation({
+      propagateTraceHeaderCorsUrls: [/.*/],
+    }),
+    new XMLHttpRequestInstrumentation({
+      propagateTraceHeaderCorsUrls: [/.*/],
+    }),
+  ],
+});
+
+// In main.ts, import before bootstrapping:
+// import './tracing';  // Must be first import
+// import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+// ...`,
+        language: "typescript",
       };
   }
 }

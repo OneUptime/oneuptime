@@ -7,6 +7,10 @@ metadata:
     {{- include "kubernetes-agent.labels" . | nindent 4 }}
 data:
   otel-collector-config.yaml: |
+    extensions:
+      health_check:
+        endpoint: "0.0.0.0:13133"
+
     receivers:
       # Collect node, pod, and container resource metrics from kubelet
       kubeletstats:
@@ -133,22 +137,25 @@ data:
 
       # Batch telemetry for efficient export
       batch:
-        send_batch_size: 1024
+        send_batch_size: 200
+        send_batch_max_size: 500
         timeout: 10s
 
       # Limit memory usage
       memory_limiter:
         check_interval: 5s
-        limit_mib: 400
-        spike_limit_mib: 100
+        limit_mib: 1500
+        spike_limit_mib: 300
 
     exporters:
       otlphttp:
-        endpoint: "{{ .Values.oneuptime.url }}"
+        endpoint: "{{ .Values.oneuptime.url }}/otlp"
         headers:
           x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
 
     service:
+      extensions:
+        - health_check
       pipelines:
         metrics:
           receivers:

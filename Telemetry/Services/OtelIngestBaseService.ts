@@ -1,6 +1,9 @@
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
+import logger from "Common/Server/Utils/Logger";
 
 export default abstract class OtelIngestBaseService {
   @CaptureSpan()
@@ -31,6 +34,57 @@ export default abstract class OtelIngestBaseService {
     }
 
     return "Unknown Service";
+  }
+
+  @CaptureSpan()
+  protected static getClusterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    for (const attribute of attributes) {
+      if (
+        attribute["key"] === "k8s.cluster.name" &&
+        attribute["value"] &&
+        (attribute["value"] as JSONObject)["stringValue"]
+      ) {
+        const value = (attribute["value"] as JSONObject)["stringValue"];
+        if (typeof value === "string" && value.trim()) {
+          return value.trim();
+        }
+      }
+    }
+    return null;
+  }
+
+  @CaptureSpan()
+  protected static async autoDiscoverKubernetesCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const clusterName: string | null = this.getClusterNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!clusterName) {
+        return;
+      }
+
+      const cluster =
+        await KubernetesClusterService.findOrCreateByClusterIdentifier({
+          projectId: data.projectId,
+          clusterIdentifier: clusterName,
+        });
+
+      if (cluster._id) {
+        await KubernetesClusterService.updateLastSeen(
+          new ObjectID(cluster._id.toString()),
+        );
+      }
+    } catch (err) {
+      logger.error(
+        "Error auto-discovering Kubernetes cluster: " + (err as Error).message,
+      );
+    }
   }
 
   @CaptureSpan()
