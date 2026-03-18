@@ -1,6 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/UserSession";
 import ObjectID from "../../Types/ObjectID";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import { JSONObject } from "../../Types/JSON";
 import HashedString from "../../Types/HashedString";
 import { EncryptionSecret } from "../EnvironmentConfig";
@@ -273,6 +274,28 @@ export class Service extends DatabaseService<Model> {
     }
 
     await this.revokeSessionById(session.id, options);
+  }
+
+  public async revokeAllSessionsByUserId(
+    userId: ObjectID,
+    options?: RevokeSessionOptions,
+  ): Promise<void> {
+    await this.updateBy({
+      query: {
+        userId: userId,
+        isRevoked: false,
+      },
+      data: {
+        isRevoked: true,
+        revokedAt: OneUptimeDate.getCurrentDate(),
+        revokedReason: options?.reason ?? null,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   private buildSessionModel(
