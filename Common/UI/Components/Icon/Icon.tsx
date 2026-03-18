@@ -2734,17 +2734,54 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.Kubernetes) {
-    // Kubernetes ship wheel icon — outer ring, inner hub, 6 evenly spaced spokes
+    // Kubernetes helm wheel — 7-sided shape with 7 spokes, matching the official logo
+    const cx: number = 12;
+    const cy: number = 12;
+    const outerR: number = 9.5;
+    const innerR: number = 2.2;
+    const spokeEnd: number = 8;
+    const sides: number = 7;
+    const offsetAngle: number = -Math.PI / 2; // start from top
+
+    const outerPoints: string[] = [];
+    const spokes: React.ReactElement[] = [];
+
+    for (let i: number = 0; i < sides; i++) {
+      const angle: number = offsetAngle + (2 * Math.PI * i) / sides;
+      const ox: number = cx + outerR * Math.cos(angle);
+      const oy: number = cy + outerR * Math.sin(angle);
+      outerPoints.push(`${ox.toFixed(2)},${oy.toFixed(2)}`);
+
+      const sx: number = cx + innerR * Math.cos(angle);
+      const sy: number = cy + innerR * Math.sin(angle);
+      const ex: number = cx + spokeEnd * Math.cos(angle);
+      const ey: number = cy + spokeEnd * Math.sin(angle);
+
+      spokes.push(
+        <line
+          key={`spoke-${i}`}
+          x1={sx.toFixed(2)}
+          y1={sy.toFixed(2)}
+          x2={ex.toFixed(2)}
+          y2={ey.toFixed(2)}
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />,
+      );
+    }
+
     return getSvgWrapper(
       <>
-        <circle cx="12" cy="12" r="9.5" />
-        <circle cx="12" cy="12" r="2.5" />
-        <line x1="12" y1="9.5" x2="12" y2="2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="12" y1="14.5" x2="12" y2="21.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="14.17" y1="10.25" x2="20.22" y2="6.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="9.83" y1="13.75" x2="3.78" y2="17.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="9.83" y1="10.25" x2="3.78" y2="6.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="14.17" y1="13.75" x2="20.22" y2="17.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <polygon
+          points={outerPoints.join(" ")}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <circle cx={cx} cy={cy} r={innerR} />
+        {spokes}
       </>,
     );
   }
