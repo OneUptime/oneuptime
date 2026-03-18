@@ -10,13 +10,14 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { TELEMETRY_URL } from "Common/UI/Config";
+import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Protocol from "Common/Types/API/Protocol";
 
 export type TelemetryType = "logs" | "metrics" | "traces" | "exceptions";
 
@@ -30,7 +31,12 @@ type Language =
   | "go"
   | "java"
   | "dotnet"
-  | "rust";
+  | "rust"
+  | "php"
+  | "ruby"
+  | "elixir"
+  | "cpp"
+  | "swift";
 
 interface LanguageOption {
   key: Language;
@@ -45,6 +51,11 @@ const languages: Array<LanguageOption> = [
   { key: "java", label: "Java", shortLabel: "Java" },
   { key: "dotnet", label: ".NET / C#", shortLabel: ".NET" },
   { key: "rust", label: "Rust", shortLabel: "Rust" },
+  { key: "php", label: "PHP", shortLabel: "PHP" },
+  { key: "ruby", label: "Ruby", shortLabel: "Ruby" },
+  { key: "elixir", label: "Elixir", shortLabel: "Elixir" },
+  { key: "cpp", label: "C++", shortLabel: "C++" },
+  { key: "swift", label: "Swift", shortLabel: "Swift" },
 ];
 
 type IntegrationMethod = "opentelemetry" | "fluentbit" | "fluentd";
@@ -127,6 +138,66 @@ opentelemetry-otlp = { version = "0.15", features = ["tonic"] }
 tracing = "0.1"
 tracing-opentelemetry = "0.23"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }`,
+        language: "bash",
+      };
+    case "php":
+      return {
+        code: `composer require open-telemetry/sdk \\
+  open-telemetry/exporter-otlp \\
+  open-telemetry/transport-grpc`,
+        language: "bash",
+      };
+    case "ruby":
+      return {
+        code: `# Add to Gemfile
+gem 'opentelemetry-sdk'
+gem 'opentelemetry-exporter-otlp'
+gem 'opentelemetry-instrumentation-all'
+
+# Then run:
+bundle install`,
+        language: "bash",
+      };
+    case "elixir":
+      return {
+        code: `# Add to mix.exs deps
+defp deps do
+  [
+    {:opentelemetry, "~> 1.4"},
+    {:opentelemetry_sdk, "~> 1.4"},
+    {:opentelemetry_exporter, "~> 1.7"},
+    {:opentelemetry_phoenix, "~> 1.2"},
+    {:opentelemetry_ecto, "~> 1.2"}
+  ]
+end
+
+# Then run:
+mix deps.get`,
+        language: "bash",
+      };
+    case "cpp":
+      return {
+        code: `# Using vcpkg
+vcpkg install opentelemetry-cpp[otlp-grpc]
+
+# Or using CMake FetchContent:
+# include(FetchContent)
+# FetchContent_Declare(opentelemetry-cpp
+#   GIT_REPOSITORY https://github.com/open-telemetry/opentelemetry-cpp.git
+#   GIT_TAG v1.14.0)
+# set(WITH_OTLP_GRPC ON)
+# FetchContent_MakeAvailable(opentelemetry-cpp)`,
+        language: "bash",
+      };
+    case "swift":
+      return {
+        code: `// Add to Package.swift dependencies:
+.package(url: "https://github.com/open-telemetry/opentelemetry-swift.git", from: "1.9.0")
+
+// And add to target dependencies:
+.product(name: "OpenTelemetryApi", package: "opentelemetry-swift"),
+.product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),
+.product(name: "OtlpGRPCSpanExporting", package: "opentelemetry-swift"),`,
         language: "bash",
       };
   }
@@ -343,6 +414,143 @@ fn init_tracer() -> sdktrace::TracerProvider {
 }`,
         language: "rust",
       };
+    case "php":
+      return {
+        code: `<?php
+// bootstrap.php
+use OpenTelemetry\\API\\Globals;
+use OpenTelemetry\\SDK\\Trace\\TracerProviderBuilder;
+use OpenTelemetry\\SDK\\Trace\\SpanProcessor\\BatchSpanProcessor;
+use OpenTelemetry\\Contrib\\Otlp\\SpanExporter;
+use OpenTelemetry\\SDK\\Common\\Attribute\\Attributes;
+use OpenTelemetry\\SDK\\Resource\\ResourceInfo;
+use OpenTelemetry\\SemConv\\ResourceAttributes;
+use OpenTelemetry\\Contrib\\Grpc\\GrpcTransportFactory;
+
+$transport = (new GrpcTransportFactory())->create(
+    '<YOUR_ONEUPTIME_OTLP_URL>' . '/opentelemetry.proto.collector.trace.v1.TraceService/Export',
+    'application/x-protobuf',
+    ['x-oneuptime-token' => '<YOUR_ONEUPTIME_TOKEN>']
+);
+
+$exporter = new SpanExporter($transport);
+
+$resource = ResourceInfo::create(Attributes::create([
+    ResourceAttributes::SERVICE_NAME => 'my-service',
+]));
+
+$tracerProvider = (new TracerProviderBuilder())
+    ->addSpanProcessor(new BatchSpanProcessor($exporter))
+    ->setResource($resource)
+    ->build();
+
+Globals::registerTracerProvider($tracerProvider);`,
+        language: "php",
+      };
+    case "ruby":
+      return {
+        code: `# config/initializers/opentelemetry.rb
+require 'opentelemetry/sdk'
+require 'opentelemetry/exporter/otlp'
+require 'opentelemetry/instrumentation/all'
+
+OpenTelemetry::SDK.configure do |c|
+  c.service_name = 'my-service'
+
+  c.add_span_processor(
+    OpenTelemetry::SDK::Trace::Export::BatchSpanProcessor.new(
+      OpenTelemetry::Exporter::OTLP::Exporter.new(
+        endpoint: '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
+        headers: { 'x-oneuptime-token' => '<YOUR_ONEUPTIME_TOKEN>' }
+      )
+    )
+  )
+
+  c.use_all # Auto-instrument all available libraries
+end`,
+        language: "ruby",
+      };
+    case "elixir":
+      return {
+        code: `# config/runtime.exs
+config :opentelemetry,
+  resource: %{service: %{name: "my-service"}},
+  span_processor: :batch,
+  traces_exporter: :otlp
+
+config :opentelemetry_exporter,
+  otlp_protocol: :grpc,
+  otlp_endpoint: "<YOUR_ONEUPTIME_OTLP_URL>",
+  otlp_headers: [{"x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>"}]
+
+# In application.ex, add to children:
+# {OpentelemetryPhoenix, []},
+# {OpentelemetryEcto, repo: MyApp.Repo}`,
+        language: "elixir",
+      };
+    case "cpp":
+      return {
+        code: `#include <opentelemetry/sdk/trace/tracer_provider_factory.h>
+#include <opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h>
+#include <opentelemetry/sdk/trace/batch_span_processor_factory.h>
+#include <opentelemetry/sdk/resource/resource.h>
+#include <opentelemetry/trace/provider.h>
+
+namespace trace = opentelemetry::trace;
+namespace sdktrace = opentelemetry::sdk::trace;
+namespace otlp = opentelemetry::exporter::otlp;
+
+void initTracer() {
+    otlp::OtlpGrpcExporterOptions opts;
+    opts.endpoint = "<YOUR_ONEUPTIME_OTLP_URL>";
+    opts.metadata.insert({"x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>"});
+
+    auto exporter = otlp::OtlpGrpcExporterFactory::Create(opts);
+
+    sdktrace::BatchSpanProcessorOptions bspOpts;
+    auto processor = sdktrace::BatchSpanProcessorFactory::Create(
+        std::move(exporter), bspOpts);
+
+    auto resource = opentelemetry::sdk::resource::Resource::Create({
+        {"service.name", "my-service"}
+    });
+
+    auto provider = sdktrace::TracerProviderFactory::Create(
+        std::move(processor), resource);
+
+    trace::Provider::SetTracerProvider(std::move(provider));
+}`,
+        language: "cpp",
+      };
+    case "swift":
+      return {
+        code: `import OpenTelemetryApi
+import OpenTelemetrySdk
+import OtlpGRPCSpanExporting
+
+func initTracer() {
+    let exporter = OtlpGRPCSpanExporter(
+        channel: ClientConnection
+            .insecure(group: MultiThreadedEventLoopGroup(numberOfThreads: 1))
+            .connect(host: "<YOUR_ONEUPTIME_OTLP_HOST>", port: 443),
+        config: OtlpConfiguration(
+            headers: [("x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>")]
+        )
+    )
+
+    let spanProcessor = BatchSpanProcessor(spanExporter: exporter)
+
+    let tracerProvider = TracerProviderBuilder()
+        .add(spanProcessor: spanProcessor)
+        .with(resource: Resource(attributes: [
+            ResourceAttributes.serviceName.rawValue: AttributeValue.string("my-service")
+        ]))
+        .build()
+
+    OpenTelemetry.registerTracerProvider(tracerProvider: tracerProvider)
+}`,
+        language: "swift",
+      };
   }
 }
 
@@ -460,9 +668,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const showLogCollectors: boolean =
     telemetryType === "logs" || telemetryType === "exceptions";
 
-  // Compute OTLP URL and host from config
-  const otlpUrl: string = TELEMETRY_URL.toString();
-  const otlpHost: string = TELEMETRY_URL.hostname.toString();
+  // Compute OTLP URL and host using otlp. subdomain
+  const httpProtocol: string =
+    HTTP_PROTOCOL === Protocol.HTTPS ? "https" : "http";
+  const otlpHost: string = HOST ? `otlp.${HOST}` : "<YOUR_ONEUPTIME_OTLP_HOST>";
+  const otlpUrl: string = HOST
+    ? `${httpProtocol}://${otlpHost}`
+    : "<YOUR_ONEUPTIME_OTLP_URL>";
 
   // Fetch ingestion keys on mount
   useEffect(() => {
@@ -514,9 +726,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   }, [ingestionKeys, selectedKeyId]);
 
   // Get token string for code snippets
-  const tokenValue: string = selectedKey?.secretKey?.toString() || "<YOUR_ONEUPTIME_TOKEN>";
-  const otlpUrlValue: string = otlpUrl || "<YOUR_ONEUPTIME_OTLP_URL>";
-  const otlpHostValue: string = otlpHost || "<YOUR_ONEUPTIME_OTLP_HOST>";
+  const tokenValue: string =
+    selectedKey?.secretKey?.toString() || "<YOUR_ONEUPTIME_TOKEN>";
+  const otlpUrlValue: string = otlpUrl;
+  const otlpHostValue: string = otlpHost;
 
   const integrationMethods: Array<IntegrationOption> = useMemo(() => {
     const methods: Array<IntegrationOption> = [
@@ -614,11 +827,11 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // Token selector section
-  const renderTokenSelector: () => ReactElement = (): ReactElement => {
+  // Token step content (rendered inside Step 1)
+  const renderTokenStepContent: () => ReactElement = (): ReactElement => {
     if (isLoadingKeys) {
       return (
-        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
           <p className="text-sm text-gray-500">Loading ingestion keys...</p>
         </div>
       );
@@ -626,7 +839,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
     if (keyError) {
       return (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-600">
             Failed to load ingestion keys: {keyError}
           </p>
@@ -643,82 +856,102 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
       );
     }
 
-    return (
-      <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Ingestion Token
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreateModal(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
-            >
-              <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
-              Create New Key
-            </button>
+    if (ingestionKeys.length === 0) {
+      return (
+        <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3">
+            <Icon icon={IconProp.Key} className="w-5 h-5 text-indigo-600" />
           </div>
+          <p className="text-sm font-medium text-gray-900 mb-1">
+            No ingestion keys yet
+          </p>
+          <p className="text-xs text-gray-500 mb-4">
+            Create an ingestion key to authenticate your telemetry data.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreateModal(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <Icon icon={IconProp.Add} className="w-4 h-4" />
+            Create Ingestion Key
+          </button>
+        </div>
+      );
+    }
 
-          {ingestionKeys.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-500 mb-3">
-                No ingestion keys found. Create one to get started.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateModal(true);
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-              >
-                <Icon icon={IconProp.Add} className="w-4 h-4" />
-                Create Ingestion Key
-              </button>
-            </div>
-          ) : (
-            <div>
-              <select
-                value={selectedKeyId}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  setSelectedKeyId(e.target.value);
-                }}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-              >
-                {ingestionKeys.map((key: TelemetryIngestionKey) => {
-                  return (
-                    <option key={key.id?.toString()} value={key.id?.toString()}>
-                      {key.name || "Unnamed Key"}
-                    </option>
-                  );
-                })}
-              </select>
+    return (
+      <div>
+        {/* Key selector row */}
+        <div className="flex items-center gap-2 mb-3">
+          <select
+            value={selectedKeyId}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              setSelectedKeyId(e.target.value);
+            }}
+            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+          >
+            {ingestionKeys.map((key: TelemetryIngestionKey) => {
+              return (
+                <option key={key.id?.toString()} value={key.id?.toString()}>
+                  {key.name || "Unnamed Key"}
+                </option>
+              );
+            })}
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreateModal(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors flex-shrink-0"
+          >
+            <Icon icon={IconProp.Add} className="w-4 h-4" />
+            New Key
+          </button>
+        </div>
 
-              {selectedKey && (
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="rounded-md bg-white border border-gray-200 px-3 py-2">
-                    <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">
-                      OTLP Endpoint
-                    </div>
-                    <div className="text-sm text-gray-900 font-mono break-all">
-                      {otlpUrlValue}
-                    </div>
+        {/* Credentials display */}
+        {selectedKey && (
+          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            <div className="grid grid-cols-1 divide-y divide-gray-100">
+              <div className="px-4 py-3 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon
+                    icon={IconProp.Globe}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    OTLP Endpoint
                   </div>
-                  <div className="rounded-md bg-white border border-gray-200 px-3 py-2">
-                    <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">
-                      Token
-                    </div>
-                    <div className="text-sm text-gray-900 font-mono break-all">
-                      {selectedKey.secretKey?.toString() || "—"}
-                    </div>
+                  <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
+                    {otlpUrlValue}
                   </div>
                 </div>
-              )}
+              </div>
+              <div className="px-4 py-3 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-md bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon
+                    icon={IconProp.Key}
+                    className="w-4 h-4 text-amber-600"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ingestion Token
+                  </div>
+                  <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
+                    {selectedKey.secretKey?.toString() || "—"}
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -807,6 +1040,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="mt-2">
           {renderStep(
             1,
+            "Get Your Ingestion Credentials",
+            "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            renderTokenStepContent(),
+          )}
+
+          {renderStep(
+            2,
             "Install Dependencies",
             `Install the OpenTelemetry SDK and exporters for ${languages.find((l: LanguageOption) => { return l.key === selectedLanguage; })?.label || selectedLanguage}.`,
             <CodeBlock
@@ -816,7 +1056,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           )}
 
           {renderStep(
-            2,
+            3,
             "Configure the SDK",
             "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
             <CodeBlock
@@ -831,7 +1071,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           )}
 
           {renderStep(
-            3,
+            4,
             "Set Environment Variables (Alternative)",
             "You can also configure OpenTelemetry via environment variables instead of code.",
             <CodeBlock
@@ -857,6 +1097,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="mt-2">
           {renderStep(
             1,
+            "Get Your Ingestion Credentials",
+            "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            renderTokenStepContent(),
+          )}
+
+          {renderStep(
+            2,
             "Create FluentBit Configuration",
             "Create a fluent-bit.conf file that reads logs and forwards them to OneUptime via the OpenTelemetry output plugin.",
             <CodeBlock
@@ -871,7 +1118,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           )}
 
           {renderStep(
-            2,
+            3,
             "Run with Docker (Optional)",
             "Run FluentBit as a Docker container alongside your application.",
             <CodeBlock
@@ -886,7 +1133,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           )}
 
           {renderStep(
-            3,
+            4,
             "Run FluentBit",
             "Start FluentBit with your configuration file.",
             <CodeBlock
@@ -907,6 +1154,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="mt-2">
           {renderStep(
             1,
+            "Get Your Ingestion Credentials",
+            "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            renderTokenStepContent(),
+          )}
+
+          {renderStep(
+            2,
             "Create Fluentd Configuration",
             "Create a fluentd.conf file that collects logs and sends them to OneUptime over HTTP.",
             <CodeBlock
@@ -921,7 +1175,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           )}
 
           {renderStep(
-            2,
+            3,
             "Run with Docker (Optional)",
             "Run Fluentd as a Docker container.",
             <CodeBlock
@@ -936,7 +1190,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           )}
 
           {renderStep(
-            3,
+            4,
             "Run Fluentd",
             "Start Fluentd with your configuration.",
             <CodeBlock
@@ -995,7 +1249,6 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
         {/* Body */}
         <div className="px-6 py-6">
-          {renderTokenSelector()}
           {renderMethodSelector()}
           {renderActiveContent()}
         </div>
