@@ -16,7 +16,7 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
   const disableTelemetryForThisProject: boolean =
     props.currentProject?.reseller?.enableTelemetryFeatures === false;
 
-  const [hasData, setHasData] = useState<boolean>(false);
+  const [hasData, setHasData] = useState<boolean | undefined>(undefined);
   const [showDocs, setShowDocs] = useState<boolean>(false);
 
   const handleCountChange: (count: number) => void = useCallback(
@@ -56,7 +56,7 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
           setShowDocs(true);
         }}
       />
-      {!hasData && <TelemetryDocumentation telemetryType="logs" />}
+      {hasData === false && <TelemetryDocumentation telemetryType="logs" />}
     </Fragment>
   );
 };
