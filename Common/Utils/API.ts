@@ -518,20 +518,9 @@ export default class API {
 
   private static getErrorResponse(error: AxiosError): HTTPErrorResponse {
     if (error.response) {
-      let responseData: JSONObject | JSONArray =
-        error.response.data as JSONObject | JSONArray;
-
-      // If the response data is a string (e.g. HTML error page from a proxy like Cloudflare),
-      // convert it to a JSON object with a friendly error message instead of raw HTML.
-      if (typeof error.response.data === "string") {
-        responseData = {
-          error: `Server returned ${error.response.status} ${error.response.statusText || "Error"}`,
-        };
-      }
-
       return new HTTPErrorResponse(
         error.response.status,
-        responseData,
+        error.response.data as JSONObject | JSONArray,
         error.response.headers as Dictionary<string>,
       );
     }
