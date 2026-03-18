@@ -1,7 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -43,21 +42,22 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
+  if (hasData === false) {
+    return <TelemetryDocumentation telemetryType="logs" />;
+  }
+
   return (
-    <Fragment>
-      <DashboardLogsViewer
-        showFilters={true}
-        serviceIds={[]}
-        limit={100}
-        enableRealtime={true}
-        id="logs"
-        onCountChange={handleCountChange}
-        onShowDocumentation={() => {
-          setShowDocs(true);
-        }}
-      />
-      {hasData === false && <TelemetryDocumentation telemetryType="logs" />}
-    </Fragment>
+    <DashboardLogsViewer
+      showFilters={true}
+      serviceIds={[]}
+      limit={100}
+      enableRealtime={true}
+      id="logs"
+      onCountChange={handleCountChange}
+      onShowDocumentation={() => {
+        setShowDocs(true);
+      }}
+    />
   );
 };
 
