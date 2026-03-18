@@ -1208,6 +1208,20 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get(
+      "/product/kubernetes",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/kubernetes",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/kubernetes`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
     app.get("/product/traces", (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/product/traces",

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Kubernetes Observability - Monitor Clusters, Pods & Nodes</title>
+  <meta name="description"
+    content="Complete Kubernetes observability with real-time cluster monitoring, pod health tracking, node metrics, and automated alerting. OpenTelemetry native. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="kubernetes-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - cyan color -->
+      <div id="kubernetes-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(6, 182, 212, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(6, 182, 212, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-cyan-600 mb-4">OpenTelemetry Native Kubernetes Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Full visibility into your Kubernetes clusters
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Monitor clusters, nodes, pods, and containers in real-time. Detect issues before they impact your workloads with intelligent alerting and dashboards.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Cluster health</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Pod monitoring</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Node metrics</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Container insights</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Kubernetes cluster overview mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Kubernetes Dashboard Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <span class="text-sm text-gray-500 font-medium">Kubernetes Cluster Overview</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-400">production-cluster</span>
+                      <span class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 rounded text-xs text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Healthy
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-6">
+                    <!-- Top stats -->
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                      <div class="bg-cyan-50 rounded-xl p-4 border border-cyan-100">
+                        <div class="text-xs text-cyan-600 mb-1">Nodes</div>
+                        <div class="text-2xl font-bold text-cyan-700">12</div>
+                        <div class="text-xs text-emerald-600 mt-1">All healthy</div>
+                      </div>
+                      <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                        <div class="text-xs text-blue-600 mb-1">Pods</div>
+                        <div class="text-2xl font-bold text-blue-700">147</div>
+                        <div class="text-xs text-emerald-600 mt-1">143 running</div>
+                      </div>
+                      <div class="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                        <div class="text-xs text-purple-600 mb-1">Deployments</div>
+                        <div class="text-2xl font-bold text-purple-700">23</div>
+                        <div class="text-xs text-emerald-600 mt-1">All available</div>
+                      </div>
+                      <div class="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                        <div class="text-xs text-amber-600 mb-1">CPU Usage</div>
+                        <div class="text-2xl font-bold text-amber-700">62%</div>
+                        <div class="text-xs text-gray-500 mt-1">avg across nodes</div>
+                      </div>
+                    </div>
+
+                    <!-- Namespace pods grid -->
+                    <div class="grid grid-cols-3 gap-4">
+                      <!-- Namespace 1 -->
+                      <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-3">
+                          <span class="text-xs font-medium text-gray-700">production</span>
+                          <span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">48 pods</span>
+                        </div>
+                        <div class="grid grid-cols-8 gap-1">
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-amber-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                        </div>
+                      </div>
+                      <!-- Namespace 2 -->
+                      <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-3">
+                          <span class="text-xs font-medium text-gray-700">staging</span>
+                          <span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">32 pods</span>
+                        </div>
+                        <div class="grid grid-cols-8 gap-1">
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-red-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                        </div>
+                      </div>
+                      <!-- Namespace 3 -->
+                      <div class="border border-gray-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-3">
+                          <span class="text-xs font-medium text-gray-700">monitoring</span>
+                          <span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">18 pods</span>
+                        </div>
+                        <div class="grid grid-cols-8 gap-1">
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                          <div class="w-3 h-3 rounded-sm bg-emerald-400"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-cyan-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Start monitoring Kubernetes in minutes
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Deploy our lightweight collector and get full visibility into your clusters instantly.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-cyan-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-cyan-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-cyan-600 ring-2 ring-cyan-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Deploy Collector</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Install the OpenTelemetry Collector as a DaemonSet in your cluster with a single Helm command.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-cyan-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-cyan-600 ring-2 ring-cyan-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-discover</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Automatically discover all nodes, pods, containers, and services in your cluster.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-cyan-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-cyan-600 ring-2 ring-cyan-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">View Dashboards</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Get pre-built dashboards for cluster, node, pod, and container-level metrics.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-cyan-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-cyan-600 ring-2 ring-cyan-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Set Alerts</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Configure alerts for pod crashes, node pressure, resource limits, and more.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-1.5 text-sm font-medium text-cyan-700 ring-1 ring-inset ring-cyan-600/20 mb-6">
+            <svg class="h-4 w-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="text-sm font-medium text-cyan-700">Why OneUptime for Kubernetes</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Kubernetes observability built for production
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            From cluster health to individual container metrics, OneUptime provides deep visibility into every layer of your Kubernetes infrastructure.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Cluster Overview -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                  <svg class="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2 12C2 6.48 6.48 2 12 2s10 4.48 10 10-4.48 10-10 10S2 17.52 2 12zm10-6v6l4 2" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Cluster Health</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Complete cluster visibility at a glance</h3>
+              <p class="mt-4 text-lg text-gray-600">See the health of every cluster, namespace, and workload in a single pane of glass. Instantly know when nodes are under pressure or pods are failing.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Multi-cluster monitoring
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Namespace-level breakdowns
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Real-time resource utilization
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Cluster Health Mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">Cluster Health</span>
+                      </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                      <!-- Cluster 1 -->
+                      <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">prod-us-east</div>
+                            <div class="text-xs text-gray-500">12 nodes, 147 pods</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-emerald-600 font-medium">Healthy</span>
+                      </div>
+                      <!-- Cluster 2 -->
+                      <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">prod-eu-west</div>
+                            <div class="text-xs text-gray-500">8 nodes, 89 pods</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-amber-600 font-medium">Warning</span>
+                      </div>
+                      <!-- Cluster 3 -->
+                      <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900">staging-us</div>
+                            <div class="text-xs text-gray-500">4 nodes, 42 pods</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-emerald-600 font-medium">Healthy</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Pod & Container Monitoring -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Pod Details Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Pod Details</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <!-- Pod header -->
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">api-server-7d4f8b6c5-x2k9p</div>
+                        <div class="text-xs text-gray-500">namespace: production</div>
+                      </div>
+                      <span class="flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded text-xs text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Running
+                      </span>
+                    </div>
+
+                    <!-- Container metrics -->
+                    <div class="space-y-3">
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-xs text-gray-600 font-medium">CPU Usage</span>
+                          <span class="text-xs text-gray-900 font-semibold">245m / 500m</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                          <div class="bg-cyan-500 h-2 rounded-full" style="width: 49%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-xs text-gray-600 font-medium">Memory Usage</span>
+                          <span class="text-xs text-gray-900 font-semibold">312Mi / 512Mi</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                          <div class="bg-blue-500 h-2 rounded-full" style="width: 61%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-xs text-gray-600 font-medium">Network I/O</span>
+                          <span class="text-xs text-gray-900 font-semibold">2.4 MB/s</span>
+                        </div>
+                        <div class="flex items-center gap-4 text-[10px] text-gray-500 mt-1">
+                          <span>RX: 1.8 MB/s</span>
+                          <span>TX: 0.6 MB/s</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Restart count -->
+                    <div class="mt-3 flex items-center justify-between p-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                      <span class="text-xs text-gray-600">Restarts</span>
+                      <span class="text-xs text-emerald-600 font-medium">0</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                  <svg class="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Pod & Container Monitoring</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Deep visibility into every pod and container</h3>
+              <p class="mt-4 text-lg text-gray-600">Track CPU, memory, network, and disk usage for every container. See resource requests vs limits, restart counts, and OOMKill events in real-time.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Container-level CPU & memory metrics
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  OOMKill and CrashLoopBackOff detection
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Resource requests vs limits tracking
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Node Monitoring -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                  <svg class="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Node Monitoring</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Monitor every node in your cluster</h3>
+              <p class="mt-4 text-lg text-gray-600">Track node-level CPU, memory, disk, and network metrics. Get alerted on node pressure conditions, disk space issues, and scheduling problems.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  CPU, memory, disk & network metrics
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Node condition alerts (MemoryPressure, DiskPressure)
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Kubelet and system component health
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Node Metrics Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Node Metrics</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <!-- Node list -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="text-xs font-mono text-gray-700">node-01</span>
+                      </div>
+                      <div class="flex items-center gap-3 text-[10px] text-gray-500">
+                        <span>CPU 45%</span>
+                        <span>MEM 62%</span>
+                        <span>DISK 38%</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="text-xs font-mono text-gray-700">node-02</span>
+                      </div>
+                      <div class="flex items-center gap-3 text-[10px] text-gray-500">
+                        <span>CPU 67%</span>
+                        <span>MEM 71%</span>
+                        <span>DISK 42%</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <span class="text-xs font-mono text-gray-700">node-03</span>
+                      </div>
+                      <div class="flex items-center gap-3 text-[10px] text-gray-500">
+                        <span class="text-amber-600 font-medium">CPU 89%</span>
+                        <span>MEM 78%</span>
+                        <span>DISK 55%</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="text-xs font-mono text-gray-700">node-04</span>
+                      </div>
+                      <div class="flex items-center gap-3 text-[10px] text-gray-500">
+                        <span>CPU 32%</span>
+                        <span>MEM 48%</span>
+                        <span>DISK 29%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Intelligent Alerting -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Alert Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Active Alerts</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-red-100 rounded text-[10px] font-bold text-red-600">CRITICAL</span>
+                        <span class="text-xs text-gray-500">2 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Pod CrashLoopBackOff</div>
+                      <div class="text-xs text-gray-500 mt-1">payment-service-6d8f9 in production</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">WARNING</span>
+                        <span class="text-xs text-gray-500">15 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Node Memory Pressure</div>
+                      <div class="text-xs text-gray-500 mt-1">node-03 memory at 89%</div>
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-blue-100 rounded text-[10px] font-bold text-blue-600">INFO</span>
+                        <span class="text-xs text-gray-500">1 hr ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Deployment Scaled Up</div>
+                      <div class="text-xs text-gray-500 mt-1">api-server scaled from 3 to 5 replicas</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                  <svg class="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Smart Alerting</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Kubernetes-aware alerting</h3>
+              <p class="mt-4 text-lg text-gray-600">Get alerts that understand Kubernetes semantics. Detect CrashLoopBackOff, OOMKill, pending pods, failed deployments, and node pressure conditions automatically.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Pod crash and restart alerts
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Resource quota and limit alerts
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Multi-channel notifications (Slack, PagerDuty, Email)
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-1.5 text-sm font-medium text-cyan-700 ring-1 ring-inset ring-cyan-600/20 mb-6">
+            <svg class="h-4 w-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-cyan-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need for Kubernetes observability
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Built for production Kubernetes environments with enterprise-grade features.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: OpenTelemetry Native -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-cyan-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
+                  <svg class="h-6 w-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">OpenTelemetry Native</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Built on OpenTelemetry from the ground up. Use the standard K8s receivers and the kubeletstats receiver for comprehensive metrics.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: Multi-Cluster Support -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-blue-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
+                  <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Multi-Cluster Support</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Monitor all your clusters from a single dashboard. Compare resource usage across environments and regions.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Logs & Traces Correlation -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Logs & Traces Correlation</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Jump from a pod metric spike to its container logs and distributed traces. Full correlation across all telemetry signals.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: DaemonSet Deployment -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">DaemonSet Deployment</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Deploy as a DaemonSet with tolerations for all nodes including control plane. One Helm command to get started.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: Resource Right-sizing -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Resource Right-sizing</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">See actual resource usage vs requests and limits. Identify over-provisioned and under-provisioned workloads to optimize costs.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Enterprise Compliance -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Enterprise Compliance</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">SOC 2/3, ISO, GDPR, HIPAA compliant. Data residency options. Self-hosted or cloud deployment.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('kubernetes-hero-section');
+      const gridGlow = document.getElementById('kubernetes-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

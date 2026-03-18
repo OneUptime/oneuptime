@@ -403,6 +403,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/kubernetes": {
+    title:
+      "Kubernetes Observability | Monitor Clusters, Pods & Nodes | OneUptime",
+    description:
+      "Complete Kubernetes observability with real-time cluster monitoring, pod health tracking, node metrics, and automated alerting. OpenTelemetry native. Open source.",
+    canonicalPath: "/product/kubernetes",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Kubernetes", url: "/product/kubernetes" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Kubernetes Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor Kubernetes clusters, nodes, pods, and containers with real-time metrics, intelligent alerting, and pre-built dashboards.",
+      features: [
+        "Multi-cluster monitoring",
+        "Node health and metrics",
+        "Pod and container monitoring",
+        "CrashLoopBackOff detection",
+        "OOMKill alerting",
+        "Resource utilization tracking",
+        "Namespace-level breakdowns",
+        "OpenTelemetry native",
+        "DaemonSet deployment",
+        "Kubelet stats receiver",
+        "Logs and traces correlation",
+      ],
+    },
+  },
+
   "/product/traces": {
     title: "Distributed Tracing | End-to-End Request Tracing | OneUptime",
     description:
