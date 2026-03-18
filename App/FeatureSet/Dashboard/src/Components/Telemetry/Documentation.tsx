@@ -138,17 +138,18 @@ dotnet add package OpenTelemetry.Instrumentation.Http`,
 [dependencies]
 opentelemetry = "0.22"
 opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.15", features = ["tonic"] }
+opentelemetry-otlp = { version = "0.15", features = ["http-proto", "reqwest-client"] }
 tracing = "0.1"
 tracing-opentelemetry = "0.23"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }`,
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+reqwest = { version = "0.11", features = ["blocking"] }`,
         language: "bash",
       };
     case "php":
       return {
         code: `composer require open-telemetry/sdk \\
   open-telemetry/exporter-otlp \\
-  open-telemetry/transport-grpc`,
+  open-telemetry/transport-http`,
         language: "bash",
       };
     case "ruby":
@@ -182,14 +183,14 @@ mix deps.get`,
     case "cpp":
       return {
         code: `# Using vcpkg
-vcpkg install opentelemetry-cpp[otlp-grpc]
+vcpkg install opentelemetry-cpp[otlp-http]
 
 # Or using CMake FetchContent:
 # include(FetchContent)
 # FetchContent_Declare(opentelemetry-cpp
 #   GIT_REPOSITORY https://github.com/open-telemetry/opentelemetry-cpp.git
 #   GIT_TAG v1.14.0)
-# set(WITH_OTLP_GRPC ON)
+# set(WITH_OTLP_HTTP ON)
 # FetchContent_MakeAvailable(opentelemetry-cpp)`,
         language: "bash",
       };
@@ -201,7 +202,7 @@ vcpkg install opentelemetry-cpp[otlp-grpc]
 // And add to target dependencies:
 .product(name: "OpenTelemetryApi", package: "opentelemetry-swift"),
 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),
-.product(name: "OtlpGRPCSpanExporting", package: "opentelemetry-swift"),`,
+.product(name: "OtlpHttpSpanExporting", package: "opentelemetry-swift"),`,
         language: "bash",
       };
     case "react":
@@ -354,6 +355,7 @@ java -javaagent:opentelemetry-javaagent.jar \\
   -Dotel.service.name=my-service \\
   -Dotel.exporter.otlp.endpoint=<YOUR_ONEUPTIME_OTLP_URL> \\
   -Dotel.exporter.otlp.headers="x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>" \\
+  -Dotel.exporter.otlp.protocol=http/protobuf \\
   -Dotel.metrics.exporter=otlp \\
   -Dotel.logs.exporter=otlp \\
   -jar my-app.jar`,
@@ -367,6 +369,7 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Exporter;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -382,6 +385,7 @@ builder.Services.AddOpenTelemetry()
         .AddOtlpExporter(options => {
             options.Endpoint = new Uri("<YOUR_ONEUPTIME_OTLP_URL>");
             options.Headers = "x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>";
+            options.Protocol = OtlpExportProtocol.HttpProtobuf;
         })
     )
     .WithMetrics(metrics => metrics
@@ -390,6 +394,7 @@ builder.Services.AddOpenTelemetry()
         .AddOtlpExporter(options => {
             options.Endpoint = new Uri("<YOUR_ONEUPTIME_OTLP_URL>");
             options.Headers = "x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>";
+            options.Protocol = OtlpExportProtocol.HttpProtobuf;
         })
     );
 
@@ -399,6 +404,7 @@ builder.Logging.AddOpenTelemetry(logging => {
     logging.AddOtlpExporter(options => {
         options.Endpoint = new Uri("<YOUR_ONEUPTIME_OTLP_URL>");
         options.Headers = "x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>";
+        options.Protocol = OtlpExportProtocol.HttpProtobuf;
     });
 });
 
@@ -413,17 +419,19 @@ use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{trace as sdktrace, Resource};
 use opentelemetry::KeyValue;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use std::collections::HashMap;
 
 fn init_tracer() -> sdktrace::TracerProvider {
+    let mut headers = HashMap::new();
+    headers.insert(
+        "x-oneuptime-token".to_string(),
+        "<YOUR_ONEUPTIME_TOKEN>".to_string(),
+    );
+
     let exporter = opentelemetry_otlp::new_exporter()
-        .tonic()
+        .http()
         .with_endpoint("<YOUR_ONEUPTIME_OTLP_URL>")
-        .with_metadata({
-            let mut map = tonic::metadata::MetadataMap::new();
-            map.insert("x-oneuptime-token",
-                "<YOUR_ONEUPTIME_TOKEN>".parse().unwrap());
-            map
-        });
+        .with_headers(headers);
 
     opentelemetry_otlp::new_pipeline()
         .tracing()
@@ -450,10 +458,10 @@ use OpenTelemetry\\Contrib\\Otlp\\SpanExporter;
 use OpenTelemetry\\SDK\\Common\\Attribute\\Attributes;
 use OpenTelemetry\\SDK\\Resource\\ResourceInfo;
 use OpenTelemetry\\SemConv\\ResourceAttributes;
-use OpenTelemetry\\Contrib\\Grpc\\GrpcTransportFactory;
+use OpenTelemetry\\Contrib\\Otlp\\HttpTransportFactory;
 
-$transport = (new GrpcTransportFactory())->create(
-    '<YOUR_ONEUPTIME_OTLP_URL>' . '/opentelemetry.proto.collector.trace.v1.TraceService/Export',
+$transport = (new HttpTransportFactory())->create(
+    '<YOUR_ONEUPTIME_OTLP_URL>/v1/traces',
     'application/x-protobuf',
     ['x-oneuptime-token' => '<YOUR_ONEUPTIME_TOKEN>']
 );
@@ -504,7 +512,7 @@ config :opentelemetry,
   traces_exporter: :otlp
 
 config :opentelemetry_exporter,
-  otlp_protocol: :grpc,
+  otlp_protocol: :http_protobuf,
   otlp_endpoint: "<YOUR_ONEUPTIME_OTLP_URL>",
   otlp_headers: [{"x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>"}]
 
@@ -516,7 +524,7 @@ config :opentelemetry_exporter,
     case "cpp":
       return {
         code: `#include <opentelemetry/sdk/trace/tracer_provider_factory.h>
-#include <opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h>
+#include <opentelemetry/exporters/otlp/otlp_http_exporter_factory.h>
 #include <opentelemetry/sdk/trace/batch_span_processor_factory.h>
 #include <opentelemetry/sdk/resource/resource.h>
 #include <opentelemetry/trace/provider.h>
@@ -526,11 +534,11 @@ namespace sdktrace = opentelemetry::sdk::trace;
 namespace otlp = opentelemetry::exporter::otlp;
 
 void initTracer() {
-    otlp::OtlpGrpcExporterOptions opts;
-    opts.endpoint = "<YOUR_ONEUPTIME_OTLP_URL>";
-    opts.metadata.insert({"x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>"});
+    otlp::OtlpHttpExporterOptions opts;
+    opts.url = "<YOUR_ONEUPTIME_OTLP_URL>/v1/traces";
+    opts.http_headers = {{"x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>"}};
 
-    auto exporter = otlp::OtlpGrpcExporterFactory::Create(opts);
+    auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
 
     sdktrace::BatchSpanProcessorOptions bspOpts;
     auto processor = sdktrace::BatchSpanProcessorFactory::Create(
@@ -551,13 +559,11 @@ void initTracer() {
       return {
         code: `import OpenTelemetryApi
 import OpenTelemetrySdk
-import OtlpGRPCSpanExporting
+import OtlpHttpSpanExporting
 
 func initTracer() {
-    let exporter = OtlpGRPCSpanExporter(
-        channel: ClientConnection
-            .insecure(group: MultiThreadedEventLoopGroup(numberOfThreads: 1))
-            .connect(host: "<YOUR_ONEUPTIME_OTLP_HOST>", port: 443),
+    let exporter = OtlpHttpSpanExporter(
+        endpoint: URL(string: "<YOUR_ONEUPTIME_OTLP_URL>/v1/traces")!,
         config: OtlpConfiguration(
             headers: [("x-oneuptime-token", "<YOUR_ONEUPTIME_TOKEN>")]
         )
@@ -684,7 +690,7 @@ function getEnvVarSnippet(): string {
 export OTEL_SERVICE_NAME="my-service"
 export OTEL_EXPORTER_OTLP_ENDPOINT="<YOUR_ONEUPTIME_OTLP_URL>"
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=<YOUR_ONEUPTIME_TOKEN>"
-export OTEL_EXPORTER_OTLP_PROTOCOL="grpc"`;
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"`;
 }
 
 // --- FluentBit snippets ---
