@@ -167,6 +167,7 @@ data:
     exporters:
       otlphttp:
         endpoint: "{{ .Values.oneuptime.url }}/otlp"
+        encoding: json
         headers:
           x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
         sending_queue:
