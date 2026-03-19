@@ -28,9 +28,12 @@ const BLOCKED_SANDBOX_PROPERTIES: ReadonlySet<string> = new Set([
    * and traversal via page.context().browser().browserType().launch(...)
    */
   "browserType", // Browser → BrowserType (which has launch/connect)
+  "_browserType", // Internal alias for browserType — same escape vector
   "launch", // BrowserType.launch() spawns a child process
+  "launchServer", // BrowserType.launchServer() spawns a browser server process
   "launchPersistentContext", // BrowserType.launchPersistentContext() spawns a child process
   "connectOverCDP", // BrowserType.connectOverCDP() connects via Chrome DevTools Protocol
+  "connect", // BrowserType.connect() connects to a remote browser
   "newCDPSession", // BrowserContext/Page.newCDPSession() opens raw CDP sessions
 ]);
 
