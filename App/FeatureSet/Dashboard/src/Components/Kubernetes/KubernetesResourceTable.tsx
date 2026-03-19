@@ -14,7 +14,10 @@ import Link from "Common/UI/Components/Link/Link";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Route from "Common/Types/API/Route";
 import Column from "Common/UI/Components/Table/Types/Column";
-import Input from "Common/UI/Components/Input/Input";
+import Filter from "Common/UI/Components/Filters/Types/Filter";
+import FilterData from "Common/UI/Components/Filters/Types/FilterData";
+import Search from "Common/Types/BaseDatabase/Search";
+import Includes from "Common/Types/BaseDatabase/Includes";
 
 export interface ResourceColumn {
   title: string;
@@ -101,22 +104,91 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
-  const [filterText, setFilterText] = useState<string>("");
+  const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+  const [filterData, setFilterData] = useState<
+    FilterData<KubernetesResource>
+  >({});
+
+  // Build filter definitions from data
+  const filters: Array<Filter<KubernetesResource>> = useMemo(() => {
+    const result: Array<Filter<KubernetesResource>> = [
+      {
+        title: "Name",
+        key: "name",
+        type: FieldType.Text,
+      },
+    ];
+
+    if (showNamespace) {
+      const namespaces: Array<string> = Array.from(
+        new Set(
+          props.resources
+            .map((r: KubernetesResource) => {
+              return r.namespace;
+            })
+            .filter(Boolean),
+        ),
+      ).sort();
+      result.push({
+        title: "Namespace",
+        key: "namespace",
+        type: FieldType.Dropdown,
+        filterDropdownOptions: namespaces.map((ns: string) => {
+          return { label: ns, value: ns };
+        }),
+      });
+    }
+
+    if (showStatus) {
+      const statuses: Array<string> = Array.from(
+        new Set(
+          props.resources
+            .map((r: KubernetesResource) => {
+              return r.status;
+            })
+            .filter(Boolean),
+        ),
+      ).sort();
+      result.push({
+        title: "Status",
+        key: "status",
+        type: FieldType.Dropdown,
+        filterDropdownOptions: statuses.map((s: string) => {
+          return { label: s, value: s };
+        }),
+      });
+    }
+
+    return result;
+  }, [props.resources, showNamespace, showStatus]);
 
   // Filter and sort data client-side
   const processedData: Array<KubernetesResource> = useMemo(() => {
     let data: Array<KubernetesResource> = [...props.resources];
 
-    // Filter by search text
-    if (filterText.trim()) {
-      const search: string = filterText.toLowerCase().trim();
-      data = data.filter((r: KubernetesResource) => {
-        return (
-          r.name.toLowerCase().includes(search) ||
-          r.namespace.toLowerCase().includes(search) ||
-          r.status.toLowerCase().includes(search)
-        );
-      });
+    // Apply filters from filterData
+    for (const key of Object.keys(filterData) as Array<
+      keyof KubernetesResource
+    >) {
+      const value: unknown = filterData[key];
+      if (!value) {
+        continue;
+      }
+
+      if (value instanceof Search) {
+        const searchText: string = value.toString().toLowerCase();
+        data = data.filter((r: KubernetesResource) => {
+          const fieldValue: string = (r[key] as string) || "";
+          return fieldValue.toLowerCase().includes(searchText);
+        });
+      } else if (value instanceof Includes) {
+        const includeValues: Array<string> =
+          value.values as Array<string>;
+        data = data.filter((r: KubernetesResource) => {
+          const fieldValue: string = (r[key] as string) || "";
+          return includeValues.includes(fieldValue);
+        });
+      }
     }
 
     // Sort
@@ -141,7 +213,7 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
     }
 
     return data;
-  }, [props.resources, filterText, sortBy, sortOrder]);
+  }, [props.resources, filterData, sortBy, sortOrder]);
 
   // Paginate
   const paginatedData: Array<KubernetesResource> = useMemo(() => {
@@ -337,18 +409,10 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
     });
   }
 
+  const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
+
   return (
     <Card title={props.title} description={props.description}>
-      <div className="px-4 pt-3 pb-2">
-        <Input
-          placeholder="Search by name, namespace, or status..."
-          onChange={(value: string) => {
-            setFilterText(value);
-            setCurrentPage(1);
-          }}
-          value={filterText}
-        />
-      </div>
       <Table<KubernetesResource>
         id={`kubernetes-${props.title.toLowerCase().replace(/\s+/g, "-")}-table`}
         columns={tableColumns}
@@ -372,9 +436,22 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
           setSortBy(newSortBy as string | null);
           setSortOrder(newSortOrder);
         }}
+        filters={filters}
+        showFilterModal={showFilterModal}
+        filterData={filterData}
+        onFilterChanged={(newFilterData: FilterData<KubernetesResource>) => {
+          setFilterData(newFilterData);
+          setCurrentPage(1);
+        }}
+        onFilterModalOpen={() => {
+          setShowFilterModal(true);
+        }}
+        onFilterModalClose={() => {
+          setShowFilterModal(false);
+        }}
         noItemsMessage={
-          filterText
-            ? `No resources match "${filterText}".`
+          hasActiveFilters
+            ? "No resources match the current filters."
             : props.emptyMessage ||
               "No resources found. Resources will appear here once the kubernetes-agent is sending data."
         }
