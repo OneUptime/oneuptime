@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Scheduled Maintenance - Plan & Communicate Downtime</title>
+  <meta name="description"
+    content="Plan, schedule, and communicate maintenance windows to your users. Notify subscribers automatically, update status pages in real-time, and keep stakeholders informed. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="maintenance-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - teal color -->
+      <div id="maintenance-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(20, 184, 166, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(20, 184, 166, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-teal-600 mb-4">Keep users informed during planned downtime</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Scheduled maintenance, done right
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Plan maintenance windows, notify subscribers automatically, and update your status page in real-time. Keep your users informed every step of the way.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Advance scheduling</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Subscriber notifications</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Status page integration</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Custom states</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Scheduled Maintenance dashboard mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Maintenance Dashboard Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <svg class="h-4 w-4 text-teal-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700 font-semibold">Scheduled Maintenance</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <button class="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 rounded-md text-xs font-medium text-white hover:bg-teal-700 transition-colors">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Schedule Maintenance
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-4 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Scheduled</div>
+                          <div class="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">3</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="text-[10px] text-blue-600 font-medium">Upcoming this week</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Ongoing</div>
+                          <div class="w-6 h-6 rounded-md bg-teal-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17l-5.384-3.08A1.59 1.59 0 015 10.68V5.83c0-1.16 1.057-2 2.163-1.78l7.603 1.52A1.59 1.59 0 0116 7.16v5.06c0 .63-.37 1.2-.95 1.46l-3.63 1.5z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">1</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+                          <span class="text-[10px] text-teal-600 font-medium">In progress</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Completed</div>
+                          <div class="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">12</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="text-[10px] text-emerald-600 font-medium">This month</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Subscribers</div>
+                          <div class="w-6 h-6 rounded-md bg-violet-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">847</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="text-[10px] text-violet-600 font-medium">Auto-notified</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Maintenance events list -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-700">Upcoming & Ongoing Events</span>
+                        <span class="text-[10px] text-gray-400">4 events</span>
+                      </div>
+                      <div class="divide-y divide-gray-100">
+                        <!-- Ongoing event -->
+                        <div class="px-4 py-3 flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-2 h-8 rounded-full bg-teal-500"></div>
+                            <div>
+                              <div class="text-xs font-medium text-gray-900">Database Migration - Production</div>
+                              <div class="text-[10px] text-gray-500 mt-0.5">Started 45 min ago &middot; Est. 2 hours remaining</div>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <span class="flex items-center gap-1 px-2 py-1 bg-teal-50 rounded text-[10px] text-teal-700 border border-teal-200 font-medium">
+                              <span class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+                              Ongoing
+                            </span>
+                          </div>
+                        </div>
+                        <!-- Scheduled event 1 -->
+                        <div class="px-4 py-3 flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-2 h-8 rounded-full bg-blue-400"></div>
+                            <div>
+                              <div class="text-xs font-medium text-gray-900">SSL Certificate Renewal</div>
+                              <div class="text-[10px] text-gray-500 mt-0.5">Tomorrow, 2:00 AM &ndash; 2:30 AM UTC</div>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 bg-blue-50 rounded text-[10px] text-blue-700 border border-blue-200 font-medium">Scheduled</span>
+                          </div>
+                        </div>
+                        <!-- Scheduled event 2 -->
+                        <div class="px-4 py-3 flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-2 h-8 rounded-full bg-blue-400"></div>
+                            <div>
+                              <div class="text-xs font-medium text-gray-900">Infrastructure Upgrade - Load Balancers</div>
+                              <div class="text-[10px] text-gray-500 mt-0.5">Sat, Mar 22 &middot; 1:00 AM &ndash; 5:00 AM UTC</div>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 bg-blue-50 rounded text-[10px] text-blue-700 border border-blue-200 font-medium">Scheduled</span>
+                          </div>
+                        </div>
+                        <!-- Scheduled event 3 -->
+                        <div class="px-4 py-3 flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-2 h-8 rounded-full bg-blue-400"></div>
+                            <div>
+                              <div class="text-xs font-medium text-gray-900">API Gateway Version Upgrade</div>
+                              <div class="text-[10px] text-gray-500 mt-0.5">Mon, Mar 24 &middot; 3:00 AM &ndash; 4:00 AM UTC</div>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 bg-blue-50 rounded text-[10px] text-blue-700 border border-blue-200 font-medium">Scheduled</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-teal-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            From planning to completion in four steps
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Schedule maintenance windows, keep users informed, and complete your work without surprises.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-teal-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-teal-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Schedule Event</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Create a maintenance event with start time, duration, and affected services.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-teal-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Notify Subscribers</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Automatically notify subscribers via email, SMS, and webhooks before maintenance begins.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-teal-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.42 15.17l-5.384-3.08A1.59 1.59 0 015 10.68V5.83c0-1.16 1.057-2 2.163-1.78l7.603 1.52A1.59 1.59 0 0116 7.16v5.06c0 .63-.37 1.2-.95 1.46l-3.63 1.5z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Post Updates</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Share real-time progress updates on your status page as work proceeds.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-teal-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Complete & Resolve</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Mark maintenance complete and automatically notify subscribers that services are restored.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-teal-50 px-4 py-1.5 text-sm font-medium text-teal-700 ring-1 ring-inset ring-teal-600/20 mb-6">
+            <svg class="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+            </svg>
+            <span class="text-sm font-medium text-teal-700">Why OneUptime for Scheduled Maintenance</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Maintenance communication your users will appreciate
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Proactive communication builds trust. Keep your users informed about planned downtime so they can plan accordingly.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Schedule & Plan -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 ring-1 ring-teal-200">
+                  <svg class="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-teal-600 uppercase tracking-wide">Planning</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Schedule maintenance with precision</h3>
+              <p class="mt-4 text-lg text-gray-600">Define start and end times, select affected monitors and status pages, and set custom maintenance states to communicate exactly what is happening.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Set precise start and end times
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Assign affected monitors and services
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Custom maintenance states and labels
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Schedule Event Mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">Create Maintenance Event</span>
+                      </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                      <div>
+                        <label class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Event Title</label>
+                        <div class="mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white">Database Migration - Production</div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Start Time</label>
+                          <div class="mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white">Mar 20, 2:00 AM</div>
+                        </div>
+                        <div>
+                          <label class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">End Time</label>
+                          <div class="mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white">Mar 20, 6:00 AM</div>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Affected Monitors</label>
+                        <div class="mt-1 flex flex-wrap gap-1.5">
+                          <span class="px-2 py-1 bg-teal-50 rounded text-[10px] text-teal-700 border border-teal-200">API Server</span>
+                          <span class="px-2 py-1 bg-teal-50 rounded text-[10px] text-teal-700 border border-teal-200">Database</span>
+                          <span class="px-2 py-1 bg-teal-50 rounded text-[10px] text-teal-700 border border-teal-200">Web App</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Status Pages</label>
+                        <div class="mt-1 flex flex-wrap gap-1.5">
+                          <span class="px-2 py-1 bg-blue-50 rounded text-[10px] text-blue-700 border border-blue-200">Public Status Page</span>
+                          <span class="px-2 py-1 bg-blue-50 rounded text-[10px] text-blue-700 border border-blue-200">Internal Status</span>
+                        </div>
+                      </div>
+                      <button class="w-full mt-2 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors">Create Event</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Automatic Notifications -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Notification Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Subscriber Notifications</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <!-- Email notification -->
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 rounded bg-blue-100 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                          </svg>
+                        </div>
+                        <div class="text-xs font-medium text-gray-700">Email</div>
+                        <span class="ml-auto text-[10px] text-emerald-600 font-medium">847 sent</span>
+                      </div>
+                      <div class="text-[10px] text-gray-500">Scheduled maintenance notification sent to all subscribers</div>
+                    </div>
+                    <!-- SMS notification -->
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 rounded bg-emerald-100 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                          </svg>
+                        </div>
+                        <div class="text-xs font-medium text-gray-700">SMS</div>
+                        <span class="ml-auto text-[10px] text-emerald-600 font-medium">123 sent</span>
+                      </div>
+                      <div class="text-[10px] text-gray-500">SMS alerts sent to phone subscribers</div>
+                    </div>
+                    <!-- Webhook notification -->
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 rounded bg-violet-100 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                          </svg>
+                        </div>
+                        <div class="text-xs font-medium text-gray-700">Webhooks</div>
+                        <span class="ml-auto text-[10px] text-emerald-600 font-medium">5 triggered</span>
+                      </div>
+                      <div class="text-[10px] text-gray-500">Webhook payloads sent to integrations</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 ring-1 ring-teal-200">
+                  <svg class="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-teal-600 uppercase tracking-wide">Notifications</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Automatic subscriber notifications</h3>
+              <p class="mt-4 text-lg text-gray-600">Notify your users before maintenance begins via email, SMS, and webhooks. Send updates during maintenance and a final notification when services are restored.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Email, SMS, and webhook notifications
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Pre-maintenance advance notices
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Completion notifications when resolved
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Status Page Integration -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 ring-1 ring-teal-200">
+                  <svg class="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-teal-600 uppercase tracking-wide">Status Page</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Seamless status page integration</h3>
+              <p class="mt-4 text-lg text-gray-600">Scheduled maintenance events automatically appear on your status page, keeping your users informed with a timeline of upcoming and ongoing maintenance.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Automatic status page updates
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Public maintenance timeline
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Real-time progress notes
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Status Page Mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">Status Page - Maintenance</span>
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="flex items-center gap-2 mb-4">
+                        <svg class="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17l-5.384-3.08A1.59 1.59 0 015 10.68V5.83c0-1.16 1.057-2 2.163-1.78l7.603 1.52A1.59 1.59 0 0116 7.16v5.06c0 .63-.37 1.2-.95 1.46l-3.63 1.5z" />
+                        </svg>
+                        <span class="text-sm font-semibold text-gray-900">Scheduled Maintenance</span>
+                      </div>
+                      <!-- Timeline -->
+                      <div class="space-y-4">
+                        <div class="relative pl-6 border-l-2 border-teal-200">
+                          <div class="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-teal-500"></div>
+                          <div class="text-[10px] text-teal-600 font-medium">In Progress</div>
+                          <div class="text-xs font-medium text-gray-900 mt-1">Database Migration - Production</div>
+                          <div class="text-[10px] text-gray-500 mt-0.5">Migration is 75% complete. No user impact detected.</div>
+                          <div class="text-[10px] text-gray-400 mt-1">Updated 15 minutes ago</div>
+                        </div>
+                        <div class="relative pl-6 border-l-2 border-teal-200">
+                          <div class="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-teal-400"></div>
+                          <div class="text-[10px] text-teal-600 font-medium">Started</div>
+                          <div class="text-xs font-medium text-gray-900 mt-1">Maintenance window opened</div>
+                          <div class="text-[10px] text-gray-500 mt-0.5">Beginning database migration. Expected duration: 4 hours.</div>
+                          <div class="text-[10px] text-gray-400 mt-1">2:00 AM UTC</div>
+                        </div>
+                        <div class="relative pl-6 border-l-2 border-gray-200">
+                          <div class="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-gray-300"></div>
+                          <div class="text-[10px] text-gray-500 font-medium">Scheduled</div>
+                          <div class="text-xs font-medium text-gray-900 mt-1">Maintenance announced</div>
+                          <div class="text-[10px] text-gray-500 mt-0.5">Subscribers notified about upcoming maintenance.</div>
+                          <div class="text-[10px] text-gray-400 mt-1">Mar 18, 10:00 AM UTC</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workspace Integration Section -->
+    <div class="bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-teal-600 uppercase tracking-wide mb-3">Integrations</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Works with your existing tools
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Connect scheduled maintenance events to Slack, Microsoft Teams, and more. Keep your entire team in the loop.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-4xl grid grid-cols-1 gap-8 sm:grid-cols-3">
+          <!-- Slack -->
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-50 rounded-xl mb-4 ring-1 ring-gray-200">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Slack</h3>
+            <p class="text-xs text-gray-500">Post maintenance updates directly to Slack channels</p>
+          </div>
+
+          <!-- Microsoft Teams -->
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-50 rounded-xl mb-4 ring-1 ring-gray-200">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                <path d="M20.625 7.5h-3.75v-1.875A1.875 1.875 0 0015 3.75h-1.875A1.875 1.875 0 0011.25 5.625V7.5H7.5a1.875 1.875 0 00-1.875 1.875v9.375A1.875 1.875 0 007.5 20.625h13.125A1.875 1.875 0 0022.5 18.75V9.375A1.875 1.875 0 0020.625 7.5z" fill="#5059C9"/>
+                <circle cx="16.875" cy="5.625" r="2.625" fill="#5059C9"/>
+                <path d="M13.125 9.375H1.875A1.875 1.875 0 000 11.25v6.375a1.875 1.875 0 001.875 1.875h11.25A1.875 1.875 0 0015 17.625V11.25a1.875 1.875 0 00-1.875-1.875z" fill="#7B83EB"/>
+                <circle cx="7.5" cy="6.375" r="3.375" fill="#7B83EB"/>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Microsoft Teams</h3>
+            <p class="text-xs text-gray-500">Send maintenance alerts to Teams channels</p>
+          </div>
+
+          <!-- Webhooks -->
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-50 rounded-xl mb-4 ring-1 ring-gray-200">
+              <svg class="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Webhooks</h3>
+            <p class="text-xs text-gray-500">Trigger custom workflows with webhook events</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+
+  <!-- Grid glow effect script -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('maintenance-hero-section');
+      const gridGlow = document.getElementById('maintenance-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', function(e) {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', function() {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

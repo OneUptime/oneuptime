@@ -438,6 +438,43 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/scheduled-maintenance": {
+    title:
+      "Scheduled Maintenance | Plan & Communicate Downtime | OneUptime",
+    description:
+      "Plan, schedule, and communicate maintenance windows to your users. Notify subscribers automatically, update status pages in real-time. Open source maintenance management.",
+    canonicalPath: "/product/scheduled-maintenance",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      {
+        name: "Scheduled Maintenance",
+        url: "/product/scheduled-maintenance",
+      },
+    ],
+    softwareApplication: {
+      name: "OneUptime Scheduled Maintenance",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Schedule maintenance windows, notify subscribers via email, SMS, and webhooks, and keep your status page updated in real-time.",
+      features: [
+        "Maintenance scheduling",
+        "Subscriber notifications",
+        "Status page integration",
+        "Custom maintenance states",
+        "Email and SMS alerts",
+        "Webhook integrations",
+        "Slack and Teams notifications",
+        "Maintenance timeline",
+        "Affected monitors tracking",
+        "Automatic state transitions",
+      ],
+    },
+  },
+
   "/product/traces": {
     title: "Distributed Tracing | End-to-End Request Tracing | OneUptime",
     description:

@@ -4,14 +4,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,6 +21,13 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import { KubernetesStatefulSetObject } from "../Utils/KubernetesObjectParser";
+import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterStatefulSetDetail: FunctionComponent<
   PageComponentProps
@@ -35,16 +38,9 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [],
-    formulaConfigs: [],
-  });
+  const [objectData, setObjectData] =
+    useState<KubernetesStatefulSetObject | null>(null);
+  const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -68,6 +64,31 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  // Fetch the K8s statefulset object for overview tab
+  useEffect(() => {
+    if (!cluster?.clusterIdentifier) {
+      return;
+    }
+
+    const fetchObject: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingObject(true);
+      try {
+        const obj: KubernetesStatefulSetObject | null =
+          await fetchLatestK8sObject<KubernetesStatefulSetObject>({
+            clusterIdentifier: cluster.clusterIdentifier || "",
+            resourceType: "statefulsets",
+            resourceName: statefulSetName,
+          });
+        setObjectData(obj);
+      } catch {
+        // Graceful degradation — overview tab shows empty state
+      }
+      setIsLoadingObject(false);
+    };
+
+    fetchObject().catch(() => {});
+  }, [cluster?.clusterIdentifier, statefulSetName]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -143,32 +164,102 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     getSeries: getSeries,
   };
 
+  // Build overview summary fields from statefulset object
+  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
+    [
+      { title: "Name", value: statefulSetName },
+      { title: "Cluster", value: clusterIdentifier },
+    ];
+
+  if (objectData) {
+    summaryFields.push(
+      {
+        title: "Namespace",
+        value: objectData.metadata.namespace || "default",
+      },
+      {
+        title: "Replicas",
+        value: String(objectData.spec.replicas ?? "N/A"),
+      },
+      {
+        title: "Ready Replicas",
+        value: String(objectData.status.readyReplicas ?? "N/A"),
+      },
+      {
+        title: "Service Name",
+        value: objectData.spec.serviceName || "N/A",
+      },
+      {
+        title: "Pod Management Policy",
+        value: objectData.spec.podManagementPolicy || "N/A",
+      },
+      {
+        title: "Update Strategy",
+        value: objectData.spec.updateStrategy || "N/A",
+      },
+      {
+        title: "Created",
+        value: objectData.metadata.creationTimestamp || "N/A",
+      },
+    );
+  }
+
+  const tabs: Array<Tab> = [
+    {
+      name: "Overview",
+      children: (
+        <KubernetesOverviewTab
+          summaryFields={summaryFields}
+          labels={objectData?.metadata.labels || {}}
+          annotations={objectData?.metadata.annotations || {}}
+          isLoading={isLoadingObject}
+        />
+      ),
+    },
+    {
+      name: "Events",
+      children: (
+        <Card
+          title="StatefulSet Events"
+          description="Kubernetes events for this statefulset in the last 24 hours."
+        >
+          <KubernetesEventsTab
+            clusterIdentifier={clusterIdentifier}
+            resourceKind="StatefulSet"
+            resourceName={statefulSetName}
+            namespace={objectData?.metadata.namespace}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title={`StatefulSet Metrics: ${statefulSetName}`}
+          description="CPU and memory usage for pods in this statefulset over the last 6 hours."
+        >
+          <KubernetesMetricsTab
+            queryConfigs={[cpuQuery, memoryQuery]}
+          />
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <Fragment>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-        <InfoCard title="StatefulSet" value={statefulSetName || "Unknown"} />
-        <InfoCard title="Cluster" value={clusterIdentifier} />
+      <div className="mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <InfoCard
+            title="StatefulSet"
+            value={statefulSetName || "Unknown"}
+          />
+          <InfoCard title="Cluster" value={clusterIdentifier} />
+        </div>
       </div>
 
-      <Card
-        title={`StatefulSet Metrics: ${statefulSetName}`}
-        description="CPU and memory usage for pods in this statefulset over the last 6 hours."
-      >
-        <MetricView
-          data={{
-            ...metricViewData,
-            queryConfigs: [cpuQuery, memoryQuery],
-          }}
-          hideQueryElements={true}
-          onChange={(data: MetricViewData) => {
-            setMetricViewData({
-              ...data,
-              queryConfigs: [cpuQuery, memoryQuery],
-              formulaConfigs: [],
-            });
-          }}
-        />
-      </Card>
+      <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

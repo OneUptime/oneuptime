@@ -32,6 +32,38 @@ data:
           - name: events
             mode: watch
             group: events.k8s.io
+          {{- if .Values.resourceSpecs.enabled }}
+          # Pull full resource specs for dashboard detail views
+          - name: pods
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: nodes
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: namespaces
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: deployments
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps
+          - name: statefulsets
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps
+          - name: daemonsets
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps
+          - name: jobs
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: batch
+          - name: cronjobs
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: batch
+          {{- end }}
 
       {{- if .Values.controlPlane.enabled }}
       # Scrape control plane metrics via Prometheus endpoints

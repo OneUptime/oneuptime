@@ -37,6 +37,7 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/product/workflows": { priority: 0.9, changefreq: "weekly" },
   "/product/dashboards": { priority: 0.9, changefreq: "weekly" },
   "/product/ai-agent": { priority: 0.9, changefreq: "weekly" },
+  "/product/scheduled-maintenance": { priority: 0.9, changefreq: "weekly" },
 
   // Teams (Solutions) pages
   "/solutions/devops": { priority: 0.8, changefreq: "weekly" },

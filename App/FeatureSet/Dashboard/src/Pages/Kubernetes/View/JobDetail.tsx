@@ -4,14 +4,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,6 +21,13 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import { KubernetesJobObject } from "../Utils/KubernetesObjectParser";
+import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterJobDetail: FunctionComponent<
   PageComponentProps
@@ -35,16 +38,8 @@ const KubernetesClusterJobDetail: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [],
-    formulaConfigs: [],
-  });
+  const [jobObject, setJobObject] = useState<KubernetesJobObject | null>(null);
+  const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -68,6 +63,31 @@ const KubernetesClusterJobDetail: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  // Fetch the K8s job object for overview tab
+  useEffect(() => {
+    if (!cluster?.clusterIdentifier) {
+      return;
+    }
+
+    const fetchJobObject: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingObject(true);
+      try {
+        const obj: KubernetesJobObject | null =
+          await fetchLatestK8sObject<KubernetesJobObject>({
+            clusterIdentifier: cluster.clusterIdentifier || "",
+            resourceType: "jobs",
+            resourceName: jobName,
+          });
+        setJobObject(obj);
+      } catch {
+        // Graceful degradation — overview tab shows empty state
+      }
+      setIsLoadingObject(false);
+    };
+
+    fetchJobObject().catch(() => {});
+  }, [cluster?.clusterIdentifier, jobName]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -143,32 +163,109 @@ const KubernetesClusterJobDetail: FunctionComponent<
     getSeries: getSeries,
   };
 
+  // Build overview summary fields from job object
+  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
+    [
+      { title: "Job Name", value: jobName },
+      { title: "Cluster", value: clusterIdentifier },
+    ];
+
+  if (jobObject) {
+    summaryFields.push(
+      {
+        title: "Namespace",
+        value: jobObject.metadata.namespace || "default",
+      },
+      {
+        title: "Completions",
+        value: String(jobObject.spec.completions ?? "N/A"),
+      },
+      {
+        title: "Parallelism",
+        value: String(jobObject.spec.parallelism ?? "N/A"),
+      },
+      {
+        title: "Backoff Limit",
+        value: String(jobObject.spec.backoffLimit ?? "N/A"),
+      },
+      {
+        title: "Active",
+        value: String(jobObject.status.active ?? 0),
+      },
+      {
+        title: "Succeeded",
+        value: String(jobObject.status.succeeded ?? 0),
+      },
+      {
+        title: "Failed",
+        value: String(jobObject.status.failed ?? 0),
+      },
+      {
+        title: "Start Time",
+        value: jobObject.status.startTime || "N/A",
+      },
+      {
+        title: "Completion Time",
+        value: jobObject.status.completionTime || "N/A",
+      },
+      {
+        title: "Created",
+        value: jobObject.metadata.creationTimestamp || "N/A",
+      },
+    );
+  }
+
+  const tabs: Array<Tab> = [
+    {
+      name: "Overview",
+      children: (
+        <KubernetesOverviewTab
+          summaryFields={summaryFields}
+          labels={jobObject?.metadata.labels || {}}
+          annotations={jobObject?.metadata.annotations || {}}
+          conditions={jobObject?.status.conditions}
+          isLoading={isLoadingObject}
+        />
+      ),
+    },
+    {
+      name: "Events",
+      children: (
+        <Card title="Job Events" description="Kubernetes events for this job in the last 24 hours.">
+          <KubernetesEventsTab
+            clusterIdentifier={clusterIdentifier}
+            resourceKind="Job"
+            resourceName={jobName}
+            namespace={jobObject?.metadata.namespace}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title={`Job Metrics: ${jobName}`}
+          description="CPU and memory usage for pods in this job over the last 6 hours."
+        >
+          <KubernetesMetricsTab
+            queryConfigs={[cpuQuery, memoryQuery]}
+          />
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <Fragment>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-        <InfoCard title="Job" value={jobName || "Unknown"} />
-        <InfoCard title="Cluster" value={clusterIdentifier} />
+      <div className="mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <InfoCard title="Job Name" value={jobName || "Unknown"} />
+          <InfoCard title="Cluster" value={clusterIdentifier} />
+        </div>
       </div>
 
-      <Card
-        title={`Job Metrics: ${jobName}`}
-        description="CPU and memory usage for pods in this job over the last 6 hours."
-      >
-        <MetricView
-          data={{
-            ...metricViewData,
-            queryConfigs: [cpuQuery, memoryQuery],
-          }}
-          hideQueryElements={true}
-          onChange={(data: MetricViewData) => {
-            setMetricViewData({
-              ...data,
-              queryConfigs: [cpuQuery, memoryQuery],
-              formulaConfigs: [],
-            });
-          }}
-        />
-      </Card>
+      <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

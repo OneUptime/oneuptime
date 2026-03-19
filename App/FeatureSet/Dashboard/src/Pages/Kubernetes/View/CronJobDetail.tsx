@@ -4,14 +4,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,6 +21,13 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
+import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterCronJobDetail: FunctionComponent<
   PageComponentProps
@@ -35,16 +38,9 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [],
-    formulaConfigs: [],
-  });
+  const [cronJobObject, setCronJobObject] =
+    useState<KubernetesCronJobObject | null>(null);
+  const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -68,6 +64,32 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  // Fetch the K8s cronjob object for overview tab
+  useEffect(() => {
+    if (!cluster?.clusterIdentifier) {
+      return;
+    }
+
+    const fetchCronJobObject: () => Promise<void> =
+      async (): Promise<void> => {
+        setIsLoadingObject(true);
+        try {
+          const obj: KubernetesCronJobObject | null =
+            await fetchLatestK8sObject<KubernetesCronJobObject>({
+              clusterIdentifier: cluster.clusterIdentifier || "",
+              resourceType: "cronjobs",
+              resourceName: cronJobName,
+            });
+          setCronJobObject(obj);
+        } catch {
+          // Graceful degradation — overview tab shows empty state
+        }
+        setIsLoadingObject(false);
+      };
+
+    fetchCronJobObject().catch(() => {});
+  }, [cluster?.clusterIdentifier, cronJobName]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -143,32 +165,104 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
     getSeries: getSeries,
   };
 
+  // Build overview summary fields from cronjob object
+  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
+    [
+      { title: "CronJob Name", value: cronJobName },
+      { title: "Cluster", value: clusterIdentifier },
+    ];
+
+  if (cronJobObject) {
+    summaryFields.push(
+      {
+        title: "Namespace",
+        value: cronJobObject.metadata.namespace || "default",
+      },
+      {
+        title: "Schedule",
+        value: cronJobObject.spec.schedule || "N/A",
+      },
+      {
+        title: "Suspend",
+        value: cronJobObject.spec.suspend ? "Yes" : "No",
+      },
+      {
+        title: "Concurrency Policy",
+        value: cronJobObject.spec.concurrencyPolicy || "N/A",
+      },
+      {
+        title: "Successful Jobs History Limit",
+        value: String(cronJobObject.spec.successfulJobsHistoryLimit ?? "N/A"),
+      },
+      {
+        title: "Failed Jobs History Limit",
+        value: String(cronJobObject.spec.failedJobsHistoryLimit ?? "N/A"),
+      },
+      {
+        title: "Last Schedule Time",
+        value: cronJobObject.status.lastScheduleTime || "N/A",
+      },
+      {
+        title: "Active Jobs",
+        value: String(cronJobObject.status.activeCount ?? 0),
+      },
+      {
+        title: "Created",
+        value: cronJobObject.metadata.creationTimestamp || "N/A",
+      },
+    );
+  }
+
+  const tabs: Array<Tab> = [
+    {
+      name: "Overview",
+      children: (
+        <KubernetesOverviewTab
+          summaryFields={summaryFields}
+          labels={cronJobObject?.metadata.labels || {}}
+          annotations={cronJobObject?.metadata.annotations || {}}
+          isLoading={isLoadingObject}
+        />
+      ),
+    },
+    {
+      name: "Events",
+      children: (
+        <Card title="CronJob Events" description="Kubernetes events for this cronjob in the last 24 hours.">
+          <KubernetesEventsTab
+            clusterIdentifier={clusterIdentifier}
+            resourceKind="CronJob"
+            resourceName={cronJobName}
+            namespace={cronJobObject?.metadata.namespace}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title={`CronJob Metrics: ${cronJobName}`}
+          description="CPU and memory usage for pods in this cronjob over the last 6 hours."
+        >
+          <KubernetesMetricsTab
+            queryConfigs={[cpuQuery, memoryQuery]}
+          />
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <Fragment>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-        <InfoCard title="CronJob" value={cronJobName || "Unknown"} />
-        <InfoCard title="Cluster" value={clusterIdentifier} />
+      <div className="mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <InfoCard title="CronJob Name" value={cronJobName || "Unknown"} />
+          <InfoCard title="Cluster" value={clusterIdentifier} />
+        </div>
       </div>
 
-      <Card
-        title={`CronJob Metrics: ${cronJobName}`}
-        description="CPU and memory usage for pods in this cronjob over the last 6 hours."
-      >
-        <MetricView
-          data={{
-            ...metricViewData,
-            queryConfigs: [cpuQuery, memoryQuery],
-          }}
-          hideQueryElements={true}
-          onChange={(data: MetricViewData) => {
-            setMetricViewData({
-              ...data,
-              queryConfigs: [cpuQuery, memoryQuery],
-              formulaConfigs: [],
-            });
-          }}
-        />
-      </Card>
+      <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

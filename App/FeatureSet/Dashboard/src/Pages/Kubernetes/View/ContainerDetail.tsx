@@ -4,14 +4,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,6 +21,10 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
 
 const KubernetesClusterContainerDetail: FunctionComponent<
   PageComponentProps
@@ -35,16 +35,6 @@ const KubernetesClusterContainerDetail: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [],
-    formulaConfigs: [],
-  });
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -89,7 +79,8 @@ const KubernetesClusterContainerDetail: FunctionComponent<
     const attributes: Record<string, unknown> =
       (data["attributes"] as Record<string, unknown>) || {};
     const name: string =
-      (attributes["resource.k8s.container.name"] as string) || "Unknown Container";
+      (attributes["resource.k8s.container.name"] as string) ||
+      "Unknown Container";
     return { title: name };
   };
 
@@ -143,32 +134,55 @@ const KubernetesClusterContainerDetail: FunctionComponent<
     getSeries: getSeries,
   };
 
+  const tabs: Array<Tab> = [
+    {
+      name: "Overview",
+      children: (
+        <div className="p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <InfoCard title="Container Name" value={containerName || "Unknown"} />
+            <InfoCard title="Cluster" value={clusterIdentifier} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      name: "Logs",
+      children: (
+        <Card title="Container Logs" description="Logs for this container from the last 6 hours.">
+          <KubernetesLogsTab
+            clusterIdentifier={clusterIdentifier}
+            podName=""
+            containerName={containerName}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title={`Container Metrics: ${containerName}`}
+          description="CPU and memory usage for this container over the last 6 hours."
+        >
+          <KubernetesMetricsTab
+            queryConfigs={[cpuQuery, memoryQuery]}
+          />
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <Fragment>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-        <InfoCard title="Container" value={containerName || "Unknown"} />
-        <InfoCard title="Cluster" value={clusterIdentifier} />
+      <div className="mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <InfoCard title="Container" value={containerName || "Unknown"} />
+          <InfoCard title="Cluster" value={clusterIdentifier} />
+        </div>
       </div>
 
-      <Card
-        title={`Container Metrics: ${containerName}`}
-        description="CPU and memory usage for this container over the last 6 hours."
-      >
-        <MetricView
-          data={{
-            ...metricViewData,
-            queryConfigs: [cpuQuery, memoryQuery],
-          }}
-          hideQueryElements={true}
-          onChange={(data: MetricViewData) => {
-            setMetricViewData({
-              ...data,
-              queryConfigs: [cpuQuery, memoryQuery],
-              formulaConfigs: [],
-            });
-          }}
-        />
-      </Card>
+      <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

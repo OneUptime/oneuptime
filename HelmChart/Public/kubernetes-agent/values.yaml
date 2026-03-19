@@ -70,6 +70,13 @@ logs:
       cpu: 200m
       memory: 256Mi
 
+# Resource spec collection — pulls full K8s resource objects (pods, nodes,
+# deployments, etc.) for displaying labels, annotations, env vars, status,
+# and other details in the dashboard.
+resourceSpecs:
+  enabled: true
+  interval: 300s  # How often to pull full resource specs (default: 5 minutes)
+
 # Collection intervals
 collectionInterval: 30s
 

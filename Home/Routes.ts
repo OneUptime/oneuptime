@@ -1222,6 +1222,27 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get(
+      "/product/scheduled-maintenance",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/scheduled-maintenance",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/scheduled-maintenance`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/scheduled-maintenance",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect("/product/scheduled-maintenance");
+      },
+    );
+
     app.get("/product/traces", (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/product/traces",

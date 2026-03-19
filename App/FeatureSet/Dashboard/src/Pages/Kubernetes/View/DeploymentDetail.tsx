@@ -4,14 +4,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,6 +21,13 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
+import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
@@ -35,16 +38,9 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [],
-    formulaConfigs: [],
-  });
+  const [objectData, setObjectData] =
+    useState<KubernetesDeploymentObject | null>(null);
+  const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -68,6 +64,31 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  // Fetch the K8s deployment object for overview tab
+  useEffect(() => {
+    if (!cluster?.clusterIdentifier) {
+      return;
+    }
+
+    const fetchObject: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingObject(true);
+      try {
+        const obj: KubernetesDeploymentObject | null =
+          await fetchLatestK8sObject<KubernetesDeploymentObject>({
+            clusterIdentifier: cluster.clusterIdentifier || "",
+            resourceType: "deployments",
+            resourceName: deploymentName,
+          });
+        setObjectData(obj);
+      } catch {
+        // Graceful degradation — overview tab shows empty state
+      }
+      setIsLoadingObject(false);
+    };
+
+    fetchObject().catch(() => {});
+  }, [cluster?.clusterIdentifier, deploymentName]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -143,32 +164,96 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     getSeries: getSeries,
   };
 
+  // Build overview summary fields from deployment object
+  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
+    [
+      { title: "Name", value: deploymentName },
+      { title: "Cluster", value: clusterIdentifier },
+    ];
+
+  if (objectData) {
+    summaryFields.push(
+      {
+        title: "Namespace",
+        value: objectData.metadata.namespace || "default",
+      },
+      {
+        title: "Replicas",
+        value: String(objectData.spec.replicas ?? "N/A"),
+      },
+      {
+        title: "Ready Replicas",
+        value: String(objectData.status.readyReplicas ?? "N/A"),
+      },
+      {
+        title: "Available Replicas",
+        value: String(objectData.status.availableReplicas ?? "N/A"),
+      },
+      {
+        title: "Strategy",
+        value: objectData.spec.strategy || "N/A",
+      },
+      {
+        title: "Created",
+        value: objectData.metadata.creationTimestamp || "N/A",
+      },
+    );
+  }
+
+  const tabs: Array<Tab> = [
+    {
+      name: "Overview",
+      children: (
+        <KubernetesOverviewTab
+          summaryFields={summaryFields}
+          labels={objectData?.metadata.labels || {}}
+          annotations={objectData?.metadata.annotations || {}}
+          conditions={objectData?.status.conditions}
+          isLoading={isLoadingObject}
+        />
+      ),
+    },
+    {
+      name: "Events",
+      children: (
+        <Card
+          title="Deployment Events"
+          description="Kubernetes events for this deployment in the last 24 hours."
+        >
+          <KubernetesEventsTab
+            clusterIdentifier={clusterIdentifier}
+            resourceKind="Deployment"
+            resourceName={deploymentName}
+            namespace={objectData?.metadata.namespace}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title={`Deployment Metrics: ${deploymentName}`}
+          description="CPU and memory usage for pods in this deployment over the last 6 hours."
+        >
+          <KubernetesMetricsTab
+            queryConfigs={[cpuQuery, memoryQuery]}
+          />
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <Fragment>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-        <InfoCard title="Deployment" value={deploymentName || "Unknown"} />
-        <InfoCard title="Cluster" value={clusterIdentifier} />
+      <div className="mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <InfoCard title="Deployment" value={deploymentName || "Unknown"} />
+          <InfoCard title="Cluster" value={clusterIdentifier} />
+        </div>
       </div>
 
-      <Card
-        title={`Deployment Metrics: ${deploymentName}`}
-        description="CPU and memory usage for pods in this deployment over the last 6 hours."
-      >
-        <MetricView
-          data={{
-            ...metricViewData,
-            queryConfigs: [cpuQuery, memoryQuery],
-          }}
-          hideQueryElements={true}
-          onChange={(data: MetricViewData) => {
-            setMetricViewData({
-              ...data,
-              queryConfigs: [cpuQuery, memoryQuery],
-              formulaConfigs: [],
-            });
-          }}
-        />
-      </Card>
+      <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

@@ -4,14 +4,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import React, {
   Fragment,
   FunctionComponent,
@@ -25,6 +21,15 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesContainersTab from "../../../Components/Kubernetes/KubernetesContainersTab";
+import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
+import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
+import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -35,16 +40,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
-    queryConfigs: [],
-    formulaConfigs: [],
-  });
+  const [podObject, setPodObject] = useState<KubernetesPodObject | null>(null);
+  const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -69,6 +66,31 @@ const KubernetesClusterPodDetail: FunctionComponent<
     });
   }, []);
 
+  // Fetch the K8s pod object for overview/containers tabs
+  useEffect(() => {
+    if (!cluster?.clusterIdentifier) {
+      return;
+    }
+
+    const fetchPodObject: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingObject(true);
+      try {
+        const obj: KubernetesPodObject | null =
+          await fetchLatestK8sObject<KubernetesPodObject>({
+            clusterIdentifier: cluster.clusterIdentifier || "",
+            resourceType: "pods",
+            resourceName: podName,
+          });
+        setPodObject(obj);
+      } catch {
+        // Graceful degradation — overview tab shows empty state
+      }
+      setIsLoadingObject(false);
+    };
+
+    fetchPodObject().catch(() => {});
+  }, [cluster?.clusterIdentifier, podName]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -89,7 +111,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
     const attributes: Record<string, unknown> =
       (data["attributes"] as Record<string, unknown>) || {};
     const containerName: string =
-      (attributes["resource.k8s.container.name"] as string) || "Unknown Container";
+      (attributes["resource.k8s.container.name"] as string) ||
+      "Unknown Container";
     return { title: containerName };
   };
 
@@ -191,42 +214,133 @@ const KubernetesClusterPodDetail: FunctionComponent<
     },
   };
 
+  // Build overview summary fields from pod object
+  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
+    [
+      { title: "Pod Name", value: podName },
+      { title: "Cluster", value: clusterIdentifier },
+    ];
+
+  if (podObject) {
+    summaryFields.push(
+      {
+        title: "Namespace",
+        value: podObject.metadata.namespace || "default",
+      },
+      {
+        title: "Status",
+        value: (
+          <span
+            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+              podObject.status.phase === "Running"
+                ? "bg-green-50 text-green-700"
+                : podObject.status.phase === "Succeeded"
+                  ? "bg-blue-50 text-blue-700"
+                  : podObject.status.phase === "Failed"
+                    ? "bg-red-50 text-red-700"
+                    : "bg-yellow-50 text-yellow-700"
+            }`}
+          >
+            {podObject.status.phase || "Unknown"}
+          </span>
+        ),
+      },
+      { title: "Node", value: podObject.spec.nodeName || "N/A" },
+      { title: "Pod IP", value: podObject.status.podIP || "N/A" },
+      { title: "Host IP", value: podObject.status.hostIP || "N/A" },
+      {
+        title: "Service Account",
+        value: podObject.spec.serviceAccountName || "default",
+      },
+      {
+        title: "Created",
+        value: podObject.metadata.creationTimestamp || "N/A",
+      },
+    );
+  }
+
+  const tabs: Array<Tab> = [
+    {
+      name: "Overview",
+      children: (
+        <KubernetesOverviewTab
+          summaryFields={summaryFields}
+          labels={podObject?.metadata.labels || {}}
+          annotations={podObject?.metadata.annotations || {}}
+          conditions={podObject?.status.conditions}
+          ownerReferences={podObject?.metadata.ownerReferences}
+          isLoading={isLoadingObject}
+        />
+      ),
+    },
+    {
+      name: "Containers",
+      children: podObject ? (
+        <KubernetesContainersTab
+          containers={podObject.spec.containers}
+          initContainers={podObject.spec.initContainers}
+          containerStatuses={podObject.status.containerStatuses}
+          initContainerStatuses={podObject.status.initContainerStatuses}
+        />
+      ) : isLoadingObject ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <div className="text-gray-500 text-sm p-4">
+          Container details not yet available. Ensure the kubernetes-agent Helm
+          chart has resourceSpecs.enabled set to true.
+        </div>
+      ),
+    },
+    {
+      name: "Events",
+      children: (
+        <Card title="Pod Events" description="Kubernetes events for this pod in the last 24 hours.">
+          <KubernetesEventsTab
+            clusterIdentifier={clusterIdentifier}
+            resourceKind="Pod"
+            resourceName={podName}
+            namespace={podObject?.metadata.namespace}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Logs",
+      children: (
+        <Card title="Application Logs" description="Container logs for this pod from the last 6 hours.">
+          <KubernetesLogsTab
+            clusterIdentifier={clusterIdentifier}
+            podName={podName}
+            namespace={podObject?.metadata.namespace}
+          />
+        </Card>
+      ),
+    },
+    {
+      name: "Metrics",
+      children: (
+        <Card
+          title={`Pod Metrics: ${podName}`}
+          description="CPU, memory, and container-level resource usage for this pod over the last 6 hours."
+        >
+          <KubernetesMetricsTab
+            queryConfigs={[podCpuQuery, podMemoryQuery, cpuQuery, memoryQuery]}
+          />
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <Fragment>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-        <InfoCard title="Pod Name" value={podName || "Unknown"} />
-        <InfoCard title="Cluster" value={clusterIdentifier} />
+      <div className="mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <InfoCard title="Pod Name" value={podName || "Unknown"} />
+          <InfoCard title="Cluster" value={clusterIdentifier} />
+        </div>
       </div>
 
-      <Card
-        title={`Pod Metrics: ${podName}`}
-        description="CPU, memory, and container-level resource usage for this pod over the last 6 hours."
-      >
-        <MetricView
-          data={{
-            ...metricViewData,
-            queryConfigs: [
-              podCpuQuery,
-              podMemoryQuery,
-              cpuQuery,
-              memoryQuery,
-            ],
-          }}
-          hideQueryElements={true}
-          onChange={(data: MetricViewData) => {
-            setMetricViewData({
-              ...data,
-              queryConfigs: [
-                podCpuQuery,
-                podMemoryQuery,
-                cpuQuery,
-                memoryQuery,
-              ],
-              formulaConfigs: [],
-            });
-          }}
-        />
-      </Card>
+      <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };
