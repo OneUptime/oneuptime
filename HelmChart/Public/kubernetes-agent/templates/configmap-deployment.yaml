@@ -151,11 +151,14 @@ data:
           - sources:
               - from: connection
 
-      # Stamp all telemetry with the cluster name
+      # Stamp all telemetry with the cluster name and service name
       resource:
         attributes:
           - key: k8s.cluster.name
             value: {{ .Values.clusterName | quote }}
+            action: upsert
+          - key: service.name
+            value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: upsert
 
       # Batch telemetry for efficient export

@@ -28,6 +28,10 @@ import KubernetesClusterViewNodes from "../Pages/Kubernetes/View/Nodes";
 import KubernetesClusterViewNodeDetail from "../Pages/Kubernetes/View/NodeDetail";
 import KubernetesClusterViewContainers from "../Pages/Kubernetes/View/Containers";
 import KubernetesClusterViewContainerDetail from "../Pages/Kubernetes/View/ContainerDetail";
+import KubernetesClusterViewPVCs from "../Pages/Kubernetes/View/PersistentVolumeClaims";
+import KubernetesClusterViewPVCDetail from "../Pages/Kubernetes/View/PVCDetail";
+import KubernetesClusterViewPVs from "../Pages/Kubernetes/View/PersistentVolumes";
+import KubernetesClusterViewPVDetail from "../Pages/Kubernetes/View/PVDetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
@@ -351,6 +355,70 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        {/* PVCs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_PVCS,
+          )}
+          element={
+            <KubernetesClusterViewPVCs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVCS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewPVCDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        {/* PVs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_PVS,
+          )}
+          element={
+            <KubernetesClusterViewPVs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewPVDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL
                 ] as Route
               }
             />
