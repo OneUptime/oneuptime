@@ -22,6 +22,9 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import KubernetesResourceUtils, {
+  KubernetesResource,
+} from "../Utils/KubernetesResourceUtils";
 
 interface ResourceLink {
   title: string;
@@ -37,6 +40,9 @@ const KubernetesClusterOverview: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [nodeCount, setNodeCount] = useState<number>(0);
+  const [podCount, setPodCount] = useState<number>(0);
+  const [namespaceCount, setNamespaceCount] = useState<number>(0);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -50,12 +56,40 @@ const KubernetesClusterOverview: FunctionComponent<
           provider: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
-          nodeCount: true,
-          podCount: true,
-          namespaceCount: true,
         },
       });
       setCluster(item);
+
+      if (item?.clusterIdentifier) {
+        // Fetch counts dynamically from metrics data
+        const [nodes, pods, namespaces]: [
+          Array<KubernetesResource>,
+          Array<KubernetesResource>,
+          Array<KubernetesResource>,
+        ] = await Promise.all([
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "k8s.node.cpu.utilization",
+            resourceNameAttribute: "resource.k8s.node.name",
+            namespaceAttribute: "resource.k8s.node.name",
+          }),
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "k8s.pod.cpu.utilization",
+            resourceNameAttribute: "resource.k8s.pod.name",
+          }),
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "k8s.pod.cpu.utilization",
+            resourceNameAttribute: "resource.k8s.namespace.name",
+            namespaceAttribute: "resource.k8s.namespace.name",
+          }),
+        ]);
+
+        setNodeCount(nodes.length);
+        setPodCount(pods.length);
+        setNamespaceCount(namespaces.length);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -144,7 +178,7 @@ const KubernetesClusterOverview: FunctionComponent<
           title="Nodes"
           value={
             <span className="text-2xl font-semibold">
-              {cluster.nodeCount?.toString() || "0"}
+              {nodeCount.toString()}
             </span>
           }
         />
@@ -152,7 +186,7 @@ const KubernetesClusterOverview: FunctionComponent<
           title="Pods"
           value={
             <span className="text-2xl font-semibold">
-              {cluster.podCount?.toString() || "0"}
+              {podCount.toString()}
             </span>
           }
         />
@@ -160,7 +194,7 @@ const KubernetesClusterOverview: FunctionComponent<
           title="Namespaces"
           value={
             <span className="text-2xl font-semibold">
-              {cluster.namespaceCount?.toString() || "0"}
+              {namespaceCount.toString()}
             </span>
           }
         />
