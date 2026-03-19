@@ -1,4 +1,4 @@
-import SpanUtil from "../../Utils/SpanUtil";
+import SpanUtil, { DivisibilityFactor } from "../../Utils/SpanUtil";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -125,7 +125,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
     return maxEnd - minStart;
   }, [spans]);
 
-  const divisibilityFactor: number =
+  const divisibilityFactor: DivisibilityFactor =
     SpanUtil.getDivisibilityFactor(traceDuration);
 
   if (nodes.length === 0) {
