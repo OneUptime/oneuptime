@@ -28,6 +28,7 @@ import {
 } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -257,6 +258,39 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   if (nodeObject) {
     const nodeStatus: { label: string; isReady: boolean } = getNodeStatus();
 
+    // Extract node roles from labels
+    const roles: Array<string> = Object.keys(
+      nodeObject.metadata.labels,
+    )
+      .filter((key: string) => {
+        return key.startsWith("node-role.kubernetes.io/");
+      })
+      .map((key: string) => {
+        return key.replace("node-role.kubernetes.io/", "");
+      });
+
+    // Extract internal IP
+    const internalIP: string =
+      nodeObject.status.addresses.find(
+        (a: { type: string; address: string }) => {
+          return a.type === "InternalIP";
+        },
+      )?.address || "N/A";
+
+    // Check pressure conditions
+    const pressureConditions: Array<string> = nodeObject.status.conditions
+      .filter((c: KubernetesCondition) => {
+        return (
+          c.status === "True" &&
+          (c.type === "MemoryPressure" ||
+            c.type === "DiskPressure" ||
+            c.type === "PIDPressure")
+        );
+      })
+      .map((c: KubernetesCondition) => {
+        return c.type;
+      });
+
     summaryFields.push(
       {
         title: "Status",
@@ -272,13 +306,68 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           </span>
         ),
       },
+    );
+
+    if (roles.length > 0) {
+      summaryFields.push({
+        title: "Roles",
+        value: (
+          <div className="flex gap-1 flex-wrap">
+            {roles.map((role: string) => {
+              return (
+                <span
+                  key={role}
+                  className="inline-flex px-2 py-0.5 text-xs rounded bg-indigo-50 text-indigo-700"
+                >
+                  {role}
+                </span>
+              );
+            })}
+          </div>
+        ),
+      });
+    }
+
+    summaryFields.push(
+      { title: "Internal IP", value: internalIP },
+    );
+
+    if (pressureConditions.length > 0) {
+      summaryFields.push({
+        title: "Pressure",
+        value: (
+          <div className="flex gap-1 flex-wrap">
+            {pressureConditions.map((p: string) => {
+              return (
+                <span
+                  key={p}
+                  className="inline-flex px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-800 font-medium"
+                >
+                  {p}
+                </span>
+              );
+            })}
+          </div>
+        ),
+      });
+    }
+
+    summaryFields.push(
+      {
+        title: "CPU (Capacity / Allocatable)",
+        value: `${nodeObject.status.capacity["cpu"] || "N/A"} / ${nodeObject.status.allocatable["cpu"] || "N/A"}`,
+      },
+      {
+        title: "Memory (Capacity / Allocatable)",
+        value: `${nodeObject.status.capacity["memory"] || "N/A"} / ${nodeObject.status.allocatable["memory"] || "N/A"}`,
+      },
+      {
+        title: "Pods (Capacity)",
+        value: nodeObject.status.capacity["pods"] || "N/A",
+      },
       {
         title: "OS Image",
         value: nodeObject.status.nodeInfo.osImage || "N/A",
-      },
-      {
-        title: "Kernel",
-        value: nodeObject.status.nodeInfo.kernelVersion || "N/A",
       },
       {
         title: "Container Runtime",
@@ -290,19 +379,19 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       },
       {
         title: "Architecture",
-        value: nodeObject.status.nodeInfo.architecture || "N/A",
+        value: `${nodeObject.status.nodeInfo.operatingSystem || "N/A"}/${nodeObject.status.nodeInfo.architecture || "N/A"}`,
       },
       {
-        title: "CPU Allocatable",
-        value: nodeObject.status.allocatable["cpu"] || "N/A",
-      },
-      {
-        title: "Memory Allocatable",
-        value: nodeObject.status.allocatable["memory"] || "N/A",
+        title: "Kernel",
+        value: nodeObject.status.nodeInfo.kernelVersion || "N/A",
       },
       {
         title: "Created",
-        value: nodeObject.metadata.creationTimestamp || "N/A",
+        value: nodeObject.metadata.creationTimestamp
+          ? KubernetesResourceUtils.formatAge(
+              nodeObject.metadata.creationTimestamp,
+            )
+          : "N/A",
       },
     );
   }
@@ -352,6 +441,16 @@ const KubernetesClusterNodeDetail: FunctionComponent<
             ]}
           />
         </Card>
+      ),
+    },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="nodes"
+          resourceName={nodeName}
+        />
       ),
     },
   ];

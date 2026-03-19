@@ -8,13 +8,30 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
+export interface ResourceCounts {
+  namespaces?: number | undefined;
+  pods?: number | undefined;
+  deployments?: number | undefined;
+  statefulSets?: number | undefined;
+  daemonSets?: number | undefined;
+  jobs?: number | undefined;
+  cronJobs?: number | undefined;
+  nodes?: number | undefined;
+  containers?: number | undefined;
+  pvcs?: number | undefined;
+  pvs?: number | undefined;
+}
+
 export interface ComponentProps {
   modelId: ObjectID;
+  resourceCounts?: ResourceCounts | undefined;
 }
 
 const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const counts: ResourceCounts = props.resourceCounts || {};
+
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
@@ -50,6 +67,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Folder}
+          badge={counts.namespaces}
         />
         <SideMenuItem
           link={{
@@ -60,6 +78,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Circle}
+          badge={counts.pods}
         />
         <SideMenuItem
           link={{
@@ -70,6 +89,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Layers}
+          badge={counts.deployments}
         />
         <SideMenuItem
           link={{
@@ -80,6 +100,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Database}
+          badge={counts.statefulSets}
         />
         <SideMenuItem
           link={{
@@ -90,6 +111,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Settings}
+          badge={counts.daemonSets}
         />
         <SideMenuItem
           link={{
@@ -100,6 +122,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Play}
+          badge={counts.jobs}
         />
         <SideMenuItem
           link={{
@@ -110,6 +133,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Clock}
+          badge={counts.cronJobs}
         />
       </SideMenuSection>
 
@@ -123,6 +147,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Server}
+          badge={counts.nodes}
         />
         <SideMenuItem
           link={{
@@ -133,6 +158,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Cube}
+          badge={counts.containers}
         />
         <SideMenuItem
           link={{
@@ -145,6 +171,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Disc}
+          badge={counts.pvcs}
         />
         <SideMenuItem
           link={{
@@ -157,6 +184,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Disc}
+          badge={counts.pvs}
         />
       </SideMenuSection>
 

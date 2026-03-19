@@ -28,6 +28,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 
 const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
@@ -173,30 +174,84 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     ];
 
   if (objectData) {
+    const desired: number = objectData.spec.replicas;
+    const ready: number = objectData.status.readyReplicas ?? 0;
+    const available: number = objectData.status.availableReplicas ?? 0;
+    const unavailable: number = objectData.status.unavailableReplicas ?? 0;
+    const isFullyRolledOut: boolean =
+      ready === desired && unavailable === 0;
+
     summaryFields.push(
       {
         title: "Namespace",
         value: objectData.metadata.namespace || "default",
       },
       {
-        title: "Replicas",
-        value: String(objectData.spec.replicas ?? "N/A"),
+        title: "Rollout Status",
+        value: (
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                  isFullyRolledOut
+                    ? "bg-green-100 text-green-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }`}
+              >
+                {isFullyRolledOut ? "Complete" : "In Progress"}
+              </span>
+              <span className="text-sm text-gray-600">
+                {ready}/{desired} ready
+              </span>
+            </div>
+            <div className="w-32 bg-gray-200 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full ${isFullyRolledOut ? "bg-green-500" : "bg-yellow-500"}`}
+                style={{
+                  width: `${desired > 0 ? (ready / desired) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Desired Replicas",
+        value: String(desired),
       },
       {
         title: "Ready Replicas",
-        value: String(objectData.status.readyReplicas ?? "N/A"),
+        value: String(ready),
       },
       {
-        title: "Available Replicas",
-        value: String(objectData.status.availableReplicas ?? "N/A"),
+        title: "Available",
+        value: String(available),
       },
+    );
+
+    if (unavailable > 0) {
+      summaryFields.push({
+        title: "Unavailable",
+        value: (
+          <span className="text-red-700 font-medium">
+            {String(unavailable)}
+          </span>
+        ),
+      });
+    }
+
+    summaryFields.push(
       {
         title: "Strategy",
         value: objectData.spec.strategy || "N/A",
       },
       {
         title: "Created",
-        value: objectData.metadata.creationTimestamp || "N/A",
+        value: objectData.metadata.creationTimestamp
+          ? KubernetesResourceUtils.formatAge(
+              objectData.metadata.creationTimestamp,
+            )
+          : "N/A",
       },
     );
   }
@@ -239,6 +294,17 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
+      ),
+    },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="deployments"
+          resourceName={deploymentName}
+          namespace={objectData?.metadata.namespace}
+        />
       ),
     },
   ];

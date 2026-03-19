@@ -27,12 +27,15 @@ import KubernetesResourceUtils, {
 } from "../Utils/KubernetesResourceUtils";
 import {
   fetchK8sObjectsBatch,
+  fetchClusterWarningEvents,
   KubernetesObjectType,
+  KubernetesEvent,
 } from "../Utils/KubernetesObjectFetcher";
 import {
   KubernetesPodObject,
   KubernetesNodeObject,
 } from "../Utils/KubernetesObjectParser";
+import OneUptimeDate from "Common/Types/Date";
 
 interface ResourceLink {
   title: string;
@@ -64,6 +67,18 @@ const KubernetesClusterOverview: FunctionComponent<
   const [clusterHealth, setClusterHealth] = useState<
     "Healthy" | "Degraded" | "Unhealthy"
   >("Healthy");
+  const [topCpuPods, setTopCpuPods] = useState<Array<KubernetesResource>>([]);
+  const [topMemoryPods, setTopMemoryPods] = useState<
+    Array<KubernetesResource>
+  >([]);
+  const [recentWarnings, setRecentWarnings] = useState<
+    Array<KubernetesEvent>
+  >([]);
+  const [nodePressure, setNodePressure] = useState<{
+    memoryPressure: number;
+    diskPressure: number;
+    pidPressure: number;
+  }>({ memoryPressure: 0, diskPressure: 0, pidPressure: 0 });
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -94,10 +109,11 @@ const KubernetesClusterOverview: FunctionComponent<
             resourceNameAttribute: "resource.k8s.node.name",
             namespaceAttribute: "resource.k8s.node.name",
           }),
-          KubernetesResourceUtils.fetchResourceList({
+          KubernetesResourceUtils.fetchResourceListWithMemory({
             clusterIdentifier: item.clusterIdentifier,
             metricName: "k8s.pod.cpu.utilization",
             resourceNameAttribute: "resource.k8s.pod.name",
+            memoryMetricName: "k8s.pod.memory.usage",
           }),
           KubernetesResourceUtils.fetchResourceList({
             clusterIdentifier: item.clusterIdentifier,
@@ -110,6 +126,32 @@ const KubernetesClusterOverview: FunctionComponent<
         setNodeCount(nodes.length);
         setPodCount(pods.length);
         setNamespaceCount(namespaces.length);
+
+        // Top resource consumers
+        const sortedByCpu: Array<KubernetesResource> = [...pods]
+          .filter(
+            (p: KubernetesResource) =>
+              p.cpuUtilization !== null && p.cpuUtilization !== undefined,
+          )
+          .sort(
+            (a: KubernetesResource, b: KubernetesResource) =>
+              (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0),
+          )
+          .slice(0, 5);
+        setTopCpuPods(sortedByCpu);
+
+        const sortedByMemory: Array<KubernetesResource> = [...pods]
+          .filter(
+            (p: KubernetesResource) =>
+              p.memoryUsageBytes !== null &&
+              p.memoryUsageBytes !== undefined,
+          )
+          .sort(
+            (a: KubernetesResource, b: KubernetesResource) =>
+              (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0),
+          )
+          .slice(0, 5);
+        setTopMemoryPods(sortedByMemory);
 
         // Fetch pod and node objects for health status
         try {
@@ -149,9 +191,12 @@ const KubernetesClusterOverview: FunctionComponent<
           }
           setPodHealthSummary({ running, pending, failed, succeeded });
 
-          // Calculate node health
+          // Calculate node health and pressure
           let ready: number = 0;
           let notReady: number = 0;
+          let memPressure: number = 0;
+          let diskPressure: number = 0;
+          let pidPressure: number = 0;
 
           for (const nodeObj of nodeObjects.values()) {
             const node: KubernetesNodeObject =
@@ -165,8 +210,34 @@ const KubernetesClusterOverview: FunctionComponent<
             } else {
               notReady++;
             }
+            // Check pressure conditions
+            for (const cond of node.status.conditions) {
+              if (
+                cond.type === "MemoryPressure" &&
+                cond.status === "True"
+              ) {
+                memPressure++;
+              }
+              if (
+                cond.type === "DiskPressure" &&
+                cond.status === "True"
+              ) {
+                diskPressure++;
+              }
+              if (
+                cond.type === "PIDPressure" &&
+                cond.status === "True"
+              ) {
+                pidPressure++;
+              }
+            }
           }
           setNodeHealthSummary({ ready, notReady });
+          setNodePressure({
+            memoryPressure: memPressure,
+            diskPressure: diskPressure,
+            pidPressure: pidPressure,
+          });
 
           // Determine overall health
           if (failed > 0 || notReady > 0) {
@@ -178,6 +249,18 @@ const KubernetesClusterOverview: FunctionComponent<
           }
         } catch {
           // Health data is supplementary, don't fail
+        }
+
+        // Fetch recent warning events
+        try {
+          const warnings: Array<KubernetesEvent> =
+            await fetchClusterWarningEvents({
+              clusterIdentifier: item.clusterIdentifier,
+              limit: 5,
+            });
+          setRecentWarnings(warnings);
+        } catch {
+          // Warnings are supplementary
         }
       }
     } catch (err) {
@@ -466,6 +549,249 @@ const KubernetesClusterOverview: FunctionComponent<
           })}
         </div>
       </Card>
+
+      {/* Node Pressure Indicators */}
+      {(nodePressure.memoryPressure > 0 ||
+        nodePressure.diskPressure > 0 ||
+        nodePressure.pidPressure > 0) && (
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-semibold text-red-800">
+              Node Pressure Detected
+            </span>
+          </div>
+          <div className="flex gap-4 text-sm">
+            {nodePressure.memoryPressure > 0 && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                {nodePressure.memoryPressure} node
+                {nodePressure.memoryPressure > 1 ? "s" : ""}: Memory
+                Pressure
+              </span>
+            )}
+            {nodePressure.diskPressure > 0 && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                {nodePressure.diskPressure} node
+                {nodePressure.diskPressure > 1 ? "s" : ""}: Disk Pressure
+              </span>
+            )}
+            {nodePressure.pidPressure > 0 && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                {nodePressure.pidPressure} node
+                {nodePressure.pidPressure > 1 ? "s" : ""}: PID Pressure
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pod Health Visual Breakdown */}
+      {podCount > 0 && (
+        <Card
+          title="Pod Health"
+          description="Distribution of pod statuses across the cluster."
+        >
+          <div className="p-4">
+            <div className="flex h-4 rounded-full overflow-hidden bg-gray-200 mb-3">
+              {podHealthSummary.running > 0 && (
+                <div
+                  className="bg-green-500 h-full"
+                  style={{
+                    width: `${(podHealthSummary.running / podCount) * 100}%`,
+                  }}
+                  title={`${podHealthSummary.running} Running`}
+                />
+              )}
+              {podHealthSummary.succeeded > 0 && (
+                <div
+                  className="bg-blue-500 h-full"
+                  style={{
+                    width: `${(podHealthSummary.succeeded / podCount) * 100}%`,
+                  }}
+                  title={`${podHealthSummary.succeeded} Succeeded`}
+                />
+              )}
+              {podHealthSummary.pending > 0 && (
+                <div
+                  className="bg-yellow-500 h-full"
+                  style={{
+                    width: `${(podHealthSummary.pending / podCount) * 100}%`,
+                  }}
+                  title={`${podHealthSummary.pending} Pending`}
+                />
+              )}
+              {podHealthSummary.failed > 0 && (
+                <div
+                  className="bg-red-500 h-full"
+                  style={{
+                    width: `${(podHealthSummary.failed / podCount) * 100}%`,
+                  }}
+                  title={`${podHealthSummary.failed} Failed`}
+                />
+              )}
+            </div>
+            <div className="flex gap-6 text-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-gray-700">
+                  Running ({podHealthSummary.running})
+                </span>
+              </div>
+              {podHealthSummary.succeeded > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-gray-700">
+                    Succeeded ({podHealthSummary.succeeded})
+                  </span>
+                </div>
+              )}
+              {podHealthSummary.pending > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-3 rounded-full bg-yellow-500" />
+                  <span className="text-gray-700">
+                    Pending ({podHealthSummary.pending})
+                  </span>
+                </div>
+              )}
+              {podHealthSummary.failed > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
+                  <span className="text-gray-700">
+                    Failed ({podHealthSummary.failed})
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Top Resource Consumers */}
+      {(topCpuPods.length > 0 || topMemoryPods.length > 0) && (
+        <Card
+          title="Top Resource Consumers"
+          description="Pods with the highest resource utilization."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4">
+            {/* Top CPU */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                Top CPU Usage
+              </h4>
+              <div className="space-y-2">
+                {topCpuPods.map(
+                  (pod: KubernetesResource, index: number) => {
+                    const pct: number = Math.min(
+                      pod.cpuUtilization ?? 0,
+                      100,
+                    );
+                    return (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="w-40 truncate text-sm text-gray-800 font-medium">
+                          {pod.name}
+                        </div>
+                        <span className="inline-flex px-1.5 py-0.5 text-xs rounded bg-blue-50 text-blue-700">
+                          {pod.namespace}
+                        </span>
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${pct > 80 ? "bg-red-500" : pct > 60 ? "bg-yellow-500" : "bg-green-500"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-600 w-12 text-right">
+                          {KubernetesResourceUtils.formatCpuValue(
+                            pod.cpuUtilization,
+                          )}
+                        </span>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            </div>
+            {/* Top Memory */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                Top Memory Usage
+              </h4>
+              <div className="space-y-2">
+                {topMemoryPods.map(
+                  (pod: KubernetesResource, index: number) => {
+                    return (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="w-40 truncate text-sm text-gray-800 font-medium">
+                          {pod.name}
+                        </div>
+                        <span className="inline-flex px-1.5 py-0.5 text-xs rounded bg-blue-50 text-blue-700">
+                          {pod.namespace}
+                        </span>
+                        <div className="flex-1">
+                          <span className="text-xs text-gray-600">
+                            {KubernetesResourceUtils.formatMemoryValue(
+                              pod.memoryUsageBytes,
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Recent Warning Events */}
+      {recentWarnings.length > 0 && (
+        <Card
+          title="Recent Warnings"
+          description="Latest warning events from the cluster."
+        >
+          <div className="p-4">
+            <div className="space-y-3">
+              {recentWarnings.map(
+                (event: KubernetesEvent, index: number) => {
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-yellow-50 border border-yellow-100"
+                    >
+                      <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 mt-0.5">
+                        {event.reason}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-gray-800">
+                          {event.message}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {event.objectKind}/{event.objectName} in{" "}
+                          {event.namespace} &middot; {event.timestamp}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                },
+              )}
+            </div>
+            <div className="mt-3">
+              <span
+                onClick={() => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route,
+                      { modelId: modelId },
+                    ),
+                  );
+                }}
+                className="text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
+              >
+                View All Events →
+              </span>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Cluster Details */}
       <CardModelDetail<KubernetesCluster>

@@ -29,6 +29,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -223,6 +224,21 @@ const KubernetesClusterPodDetail: FunctionComponent<
     ];
 
   if (podObject) {
+    // Compute restart count
+    const restartCount: number = podObject.status.containerStatuses.reduce(
+      (sum: number, cs: { restartCount: number }) => {
+        return sum + cs.restartCount;
+      },
+      0,
+    );
+
+    // Compute container images
+    const containerImages: Array<string> = podObject.spec.containers.map(
+      (c: { image: string }) => {
+        return c.image;
+      },
+    );
+
     summaryFields.push(
       {
         title: "Namespace",
@@ -246,6 +262,24 @@ const KubernetesClusterPodDetail: FunctionComponent<
           </span>
         ),
       },
+      {
+        title: "QoS Class",
+        value: podObject.status.qosClass || "N/A",
+      },
+      {
+        title: "Restarts",
+        value: (
+          <span
+            className={
+              restartCount > 0
+                ? "text-yellow-700 font-medium"
+                : "text-gray-700"
+            }
+          >
+            {restartCount.toString()}
+          </span>
+        ),
+      },
       { title: "Node", value: podObject.spec.nodeName || "N/A" },
       { title: "Pod IP", value: podObject.status.podIP || "N/A" },
       { title: "Host IP", value: podObject.status.hostIP || "N/A" },
@@ -254,8 +288,29 @@ const KubernetesClusterPodDetail: FunctionComponent<
         value: podObject.spec.serviceAccountName || "default",
       },
       {
+        title: "Images",
+        value: (
+          <div className="space-y-1">
+            {containerImages.map((img: string, idx: number) => {
+              return (
+                <div
+                  key={idx}
+                  className="text-xs font-mono bg-gray-50 px-2 py-1 rounded"
+                >
+                  {img}
+                </div>
+              );
+            })}
+          </div>
+        ),
+      },
+      {
         title: "Created",
-        value: podObject.metadata.creationTimestamp || "N/A",
+        value: podObject.metadata.creationTimestamp
+          ? KubernetesResourceUtils.formatAge(
+              podObject.metadata.creationTimestamp,
+            )
+          : "N/A",
       },
     );
   }
@@ -329,6 +384,17 @@ const KubernetesClusterPodDetail: FunctionComponent<
             queryConfigs={[podCpuQuery, podMemoryQuery, cpuQuery, memoryQuery]}
           />
         </Card>
+      ),
+    },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="pods"
+          resourceName={podName}
+          namespace={podObject?.metadata.namespace}
+        />
       ),
     },
   ];

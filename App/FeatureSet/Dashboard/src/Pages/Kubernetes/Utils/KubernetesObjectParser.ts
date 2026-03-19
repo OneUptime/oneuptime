@@ -232,6 +232,7 @@ export interface KubernetesPodObject {
     phase: string;
     podIP: string;
     hostIP: string;
+    qosClass: string;
     conditions: Array<KubernetesCondition>;
     containerStatuses: Array<KubernetesContainerStatus>;
     initContainerStatuses: Array<KubernetesContainerStatus>;
@@ -779,6 +780,7 @@ export function parsePodObject(
     let phase: string = "";
     let podIP: string = "";
     let hostIP: string = "";
+    let qosClass: string = "";
     let conditions: Array<KubernetesCondition> = [];
     let containerStatuses: Array<KubernetesContainerStatus> = [];
     let initContainerStatuses: Array<KubernetesContainerStatus> = [];
@@ -787,6 +789,7 @@ export function parsePodObject(
       phase = getKvStringValue(statusKv, "phase");
       podIP = getKvStringValue(statusKv, "podIP");
       hostIP = getKvStringValue(statusKv, "hostIP");
+      qosClass = getKvStringValue(statusKv, "qosClass");
 
       const condArray: string | JSONObject | null = getKvValue(
         statusKv,
@@ -828,6 +831,7 @@ export function parsePodObject(
         phase,
         podIP,
         hostIP,
+        qosClass,
         conditions,
         containerStatuses,
         initContainerStatuses,

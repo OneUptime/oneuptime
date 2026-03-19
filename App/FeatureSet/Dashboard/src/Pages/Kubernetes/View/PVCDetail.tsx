@@ -20,6 +20,7 @@ import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOver
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import { KubernetesPVCObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 
 const KubernetesClusterPVCDetail: FunctionComponent<
   PageComponentProps
@@ -177,6 +178,17 @@ const KubernetesClusterPVCDetail: FunctionComponent<
             namespace={pvcObject?.metadata.namespace}
           />
         </Card>
+      ),
+    },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="persistentvolumeclaims"
+          resourceName={pvcName}
+          namespace={pvcObject?.metadata.namespace}
+        />
       ),
     },
   ];

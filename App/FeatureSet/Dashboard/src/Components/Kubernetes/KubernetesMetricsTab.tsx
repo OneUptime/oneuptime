@@ -13,7 +13,7 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -6);
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -1);
   const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
 
   const [metricViewData, setMetricViewData] = useState<MetricViewData>({

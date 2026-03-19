@@ -28,6 +28,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesStatefulSetObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 
 const KubernetesClusterStatefulSetDetail: FunctionComponent<
   PageComponentProps
@@ -242,6 +243,17 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
+      ),
+    },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="statefulsets"
+          resourceName={statefulSetName}
+          namespace={objectData?.metadata.namespace}
+        />
       ),
     },
   ];

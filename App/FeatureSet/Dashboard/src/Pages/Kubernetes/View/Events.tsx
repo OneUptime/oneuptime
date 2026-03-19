@@ -36,6 +36,11 @@ const KubernetesClusterEvents: FunctionComponent<
   const [events, setEvents] = useState<Array<KubernetesEvent>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "warning" | "normal">(
+    "all",
+  );
+  const [namespaceFilter, setNamespaceFilter] = useState<string>("all");
+  const [searchText, setSearchText] = useState<string>("");
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -201,16 +206,143 @@ const KubernetesClusterEvents: FunctionComponent<
     return <ErrorMessage message="Cluster not found." />;
   }
 
+  // Compute filter options
+  const namespaces: Array<string> = Array.from(
+    new Set(events.map((e: KubernetesEvent) => e.namespace)),
+  ).sort();
+
+  const warningCount: number = events.filter(
+    (e: KubernetesEvent) => e.type.toLowerCase() === "warning",
+  ).length;
+  const normalCount: number = events.length - warningCount;
+
+  // Apply filters
+  const filteredEvents: Array<KubernetesEvent> = events.filter(
+    (e: KubernetesEvent) => {
+      if (
+        typeFilter === "warning" &&
+        e.type.toLowerCase() !== "warning"
+      ) {
+        return false;
+      }
+      if (
+        typeFilter === "normal" &&
+        e.type.toLowerCase() === "warning"
+      ) {
+        return false;
+      }
+      if (namespaceFilter !== "all" && e.namespace !== namespaceFilter) {
+        return false;
+      }
+      if (searchText.trim()) {
+        const search: string = searchText.toLowerCase();
+        return (
+          e.message.toLowerCase().includes(search) ||
+          e.reason.toLowerCase().includes(search) ||
+          e.objectName.toLowerCase().includes(search) ||
+          e.objectKind.toLowerCase().includes(search)
+        );
+      }
+      return true;
+    },
+  );
+
   return (
     <Fragment>
       <Card
         title="Kubernetes Events"
-        description="Events from the last 24 hours collected by the k8sobjects receiver. Warning events may indicate issues that need attention."
+        description="Events from the last 24 hours collected by the k8sobjects receiver."
       >
+        {/* Event Summary Banner */}
+        <div className="flex items-center gap-4 px-4 pt-4 pb-2">
+          <div className="text-sm text-gray-600">
+            <span className="font-semibold text-gray-900">
+              {events.length}
+            </span>{" "}
+            total events
+          </div>
+          {warningCount > 0 && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+              {warningCount} Warning{warningCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            {normalCount} Normal
+          </span>
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-200">
+          {/* Type Filter Buttons */}
+          <div className="flex gap-1">
+            {(["all", "warning", "normal"] as const).map(
+              (filter: "all" | "warning" | "normal") => {
+                return (
+                  <button
+                    key={filter}
+                    onClick={() => {
+                      setTypeFilter(filter);
+                    }}
+                    className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                      typeFilter === filter
+                        ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    {filter === "all"
+                      ? "All Types"
+                      : filter === "warning"
+                        ? "Warnings"
+                        : "Normal"}
+                  </button>
+                );
+              },
+            )}
+          </div>
+
+          {/* Namespace Filter */}
+          <select
+            value={namespaceFilter}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              setNamespaceFilter(e.target.value);
+            }}
+            className="px-3 py-1.5 text-xs rounded-md border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="all">All Namespaces</option>
+            {namespaces.map((ns: string) => {
+              return (
+                <option key={ns} value={ns}>
+                  {ns}
+                </option>
+              );
+            })}
+          </select>
+
+          {/* Text Search */}
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchText}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setSearchText(e.target.value);
+            }}
+            className="px-3 py-1.5 text-xs rounded-md border border-gray-200 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-64"
+          />
+
+          {/* Results Count */}
+          <span className="text-xs text-gray-500 ml-auto">
+            Showing {filteredEvents.length} of {events.length}
+          </span>
+        </div>
+
         {events.length === 0 ? (
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 text-sm p-4">
             No Kubernetes events found in the last 24 hours. Events will appear
             here once the kubernetes-agent is sending data.
+          </p>
+        ) : filteredEvents.length === 0 ? (
+          <p className="text-gray-500 text-sm p-4 text-center">
+            No events match the current filters.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -238,40 +370,47 @@ const KubernetesClusterEvents: FunctionComponent<
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {events.map((event: KubernetesEvent, index: number) => {
-                  const isWarning: boolean =
-                    event.type.toLowerCase() === "warning";
-                  return (
-                    <tr key={index} className={isWarning ? "bg-yellow-50" : ""}>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {event.timestamp}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            isWarning
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {event.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {event.reason}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {event.objectKind}/{event.objectName}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {event.namespace}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 max-w-md truncate">
-                        {event.message}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filteredEvents.map(
+                  (event: KubernetesEvent, index: number) => {
+                    const isWarning: boolean =
+                      event.type.toLowerCase() === "warning";
+                    return (
+                      <tr
+                        key={index}
+                        className={isWarning ? "bg-yellow-50" : ""}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {event.timestamp}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              isWarning
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {event.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {event.reason}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {event.objectKind}/{event.objectName}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <span className="inline-flex px-2 py-0.5 text-xs rounded bg-blue-50 text-blue-700">
+                            {event.namespace}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-500 max-w-md">
+                          {event.message}
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
               </tbody>
             </table>
           </div>
