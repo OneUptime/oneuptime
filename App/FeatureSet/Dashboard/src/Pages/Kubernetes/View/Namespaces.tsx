@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesNamespaceObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterNamespaces: FunctionComponent<
   PageComponentProps
@@ -48,14 +47,38 @@ const KubernetesClusterNamespaces: FunctionComponent<
         return;
       }
 
-      const namespaceList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [namespaceList, namespaceObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
           resourceNameAttribute: "resource.k8s.namespace.name",
           namespaceAttribute: "resource.k8s.namespace.name",
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "namespaces",
+        }),
+      ]);
+
+      for (const resource of namespaceList) {
+        const key: string = resource.name;
+        const nsObj: KubernetesObjectType | undefined =
+          namespaceObjects.get(key);
+        if (nsObj) {
+          const ns: KubernetesNamespaceObject =
+            nsObj as KubernetesNamespaceObject;
+
+          resource.status = ns.status.phase || "Unknown";
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            ns.metadata.creationTimestamp,
+          );
+        }
+      }
 
       setResources(namespaceList);
     } catch (err) {
@@ -79,23 +102,21 @@ const KubernetesClusterNamespaces: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="Namespaces"
-        description="All namespaces in this cluster."
-        resources={resources}
-        showNamespace={false}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+    <KubernetesResourceTable
+      title="Namespaces"
+      description="All namespaces in this cluster."
+      resources={resources}
+      showNamespace={false}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL] as Route,
+          {
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
+          },
+        );
+      }}
+    />
   );
 };
 

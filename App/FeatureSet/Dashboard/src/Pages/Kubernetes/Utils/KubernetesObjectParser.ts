@@ -340,6 +340,45 @@ export interface KubernetesNamespaceObject {
   };
 }
 
+export interface KubernetesPVCObject {
+  metadata: KubernetesObjectMetadata;
+  spec: {
+    accessModes: Array<string>;
+    storageClassName: string;
+    volumeName: string;
+    resources: {
+      requests: {
+        storage: string;
+      };
+    };
+  };
+  status: {
+    phase: string; // Bound, Pending, Lost
+    capacity: {
+      storage: string;
+    };
+  };
+}
+
+export interface KubernetesPVObject {
+  metadata: KubernetesObjectMetadata;
+  spec: {
+    capacity: {
+      storage: string;
+    };
+    accessModes: Array<string>;
+    storageClassName: string;
+    persistentVolumeReclaimPolicy: string;
+    claimRef: {
+      name: string;
+      namespace: string;
+    };
+  };
+  status: {
+    phase: string; // Available, Bound, Released, Failed
+  };
+}
+
 /*
  * ============================================================
  * Parsers
@@ -1254,6 +1293,187 @@ export function parseNamespaceObject(
         phase: statusKv
           ? getKvStringValue(statusKv as JSONObject, "phase")
           : "",
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function parsePVCObject(
+  objectKvList: JSONObject,
+): KubernetesPVCObject | null {
+  try {
+    const metadataKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "metadata",
+    );
+    if (!metadataKv || typeof metadataKv === "string") {
+      return null;
+    }
+
+    const metadata: KubernetesObjectMetadata = parseMetadata(metadataKv);
+    if (!metadata.name) {
+      return null;
+    }
+
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
+    const statusKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "status",
+    );
+
+    // Parse spec
+    let accessModes: Array<string> = [];
+    let storageClassName: string = "";
+    let volumeName: string = "";
+    let requestsStorage: string = "";
+
+    if (specKv && typeof specKv !== "string") {
+      storageClassName = getKvStringValue(specKv, "storageClassName");
+      volumeName = getKvStringValue(specKv, "volumeName");
+
+      const accessModesArray: string | JSONObject | null = getKvValue(
+        specKv,
+        "accessModes",
+      );
+      if (accessModesArray && typeof accessModesArray !== "string") {
+        const modeValues: Array<JSONObject> =
+          (accessModesArray["values"] as Array<JSONObject>) || [];
+        for (const v of modeValues) {
+          if (v["stringValue"]) {
+            accessModes.push(v["stringValue"] as string);
+          }
+        }
+      }
+
+      const resourcesKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "resources",
+      );
+      if (resourcesKv && typeof resourcesKv !== "string") {
+        requestsStorage = getNestedKvValue(resourcesKv, "requests", "storage");
+      }
+    }
+
+    // Parse status
+    let phase: string = "";
+    let capacityStorage: string = "";
+
+    if (statusKv && typeof statusKv !== "string") {
+      phase = getKvStringValue(statusKv, "phase");
+      capacityStorage = getNestedKvValue(statusKv, "capacity", "storage");
+    }
+
+    return {
+      metadata,
+      spec: {
+        accessModes,
+        storageClassName,
+        volumeName,
+        resources: {
+          requests: {
+            storage: requestsStorage,
+          },
+        },
+      },
+      status: {
+        phase,
+        capacity: {
+          storage: capacityStorage,
+        },
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function parsePVObject(
+  objectKvList: JSONObject,
+): KubernetesPVObject | null {
+  try {
+    const metadataKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "metadata",
+    );
+    if (!metadataKv || typeof metadataKv === "string") {
+      return null;
+    }
+
+    const metadata: KubernetesObjectMetadata = parseMetadata(metadataKv);
+    if (!metadata.name) {
+      return null;
+    }
+
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
+    const statusKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "status",
+    );
+
+    // Parse spec
+    let capacityStorage: string = "";
+    let accessModes: Array<string> = [];
+    let storageClassName: string = "";
+    let persistentVolumeReclaimPolicy: string = "";
+    let claimRefName: string = "";
+    let claimRefNamespace: string = "";
+
+    if (specKv && typeof specKv !== "string") {
+      capacityStorage = getNestedKvValue(specKv, "capacity", "storage");
+      storageClassName = getKvStringValue(specKv, "storageClassName");
+      persistentVolumeReclaimPolicy = getKvStringValue(
+        specKv,
+        "persistentVolumeReclaimPolicy",
+      );
+
+      const accessModesArray: string | JSONObject | null = getKvValue(
+        specKv,
+        "accessModes",
+      );
+      if (accessModesArray && typeof accessModesArray !== "string") {
+        const modeValues: Array<JSONObject> =
+          (accessModesArray["values"] as Array<JSONObject>) || [];
+        for (const v of modeValues) {
+          if (v["stringValue"]) {
+            accessModes.push(v["stringValue"] as string);
+          }
+        }
+      }
+
+      const claimRefKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "claimRef",
+      );
+      if (claimRefKv && typeof claimRefKv !== "string") {
+        claimRefName = getKvStringValue(claimRefKv, "name");
+        claimRefNamespace = getKvStringValue(claimRefKv, "namespace");
+      }
+    }
+
+    // Parse status
+    let phase: string = "";
+    if (statusKv && typeof statusKv !== "string") {
+      phase = getKvStringValue(statusKv, "phase");
+    }
+
+    return {
+      metadata,
+      spec: {
+        capacity: {
+          storage: capacityStorage,
+        },
+        accessModes,
+        storageClassName,
+        persistentVolumeReclaimPolicy,
+        claimRef: {
+          name: claimRefName,
+          namespace: claimRefNamespace,
+        },
+      },
+      status: {
+        phase,
       },
     };
   } catch {

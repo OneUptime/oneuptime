@@ -9,7 +9,6 @@ import MetricQueryConfigData, {
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -25,6 +24,7 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 
 const KubernetesClusterContainerDetail: FunctionComponent<
   PageComponentProps
@@ -115,7 +115,7 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       title: "Container Memory Usage",
       description: `Memory usage for container ${containerName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -132,6 +132,7 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   const tabs: Array<Tab> = [
@@ -177,18 +178,7 @@ const KubernetesClusterContainerDetail: FunctionComponent<
     },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="Container" value={containerName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterContainerDetail;

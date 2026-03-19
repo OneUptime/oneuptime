@@ -21,6 +21,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 
 const KubernetesClusterControlPlane: FunctionComponent<
   PageComponentProps
@@ -78,7 +79,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
         title: "etcd Database Size",
         description: "Total size of the etcd database",
         legend: "DB Size",
-        legendUnit: "bytes",
+        legendUnit: "",
       },
       metricQueryData: {
         filterData: {
@@ -93,6 +94,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
           attributes: true,
         },
       },
+      yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
     };
 
     const apiServerRequestRateQuery: MetricQueryConfigData = {

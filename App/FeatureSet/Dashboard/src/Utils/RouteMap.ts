@@ -79,6 +79,10 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PVCS]: `${RouteParams.ModelID}/pvcs`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL]: `${RouteParams.ModelID}/pvcs/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PVS]: `${RouteParams.ModelID}/pvs`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL]: `${RouteParams.ModelID}/pvs/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -1618,6 +1622,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PVCS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_PVCS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PVS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_PVS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL]
     }`,
   ),
 

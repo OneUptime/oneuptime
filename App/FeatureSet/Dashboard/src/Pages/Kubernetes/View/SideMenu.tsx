@@ -134,6 +134,30 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Cube}
         />
+        <SideMenuItem
+          link={{
+            title: "PVCs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.KUBERNETES_CLUSTER_VIEW_PVCS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Disc}
+        />
+        <SideMenuItem
+          link={{
+            title: "PVs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.KUBERNETES_CLUSTER_VIEW_PVS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Disc}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Observability">

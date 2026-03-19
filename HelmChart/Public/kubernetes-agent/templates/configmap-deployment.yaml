@@ -63,6 +63,12 @@ data:
             mode: pull
             interval: {{ .Values.resourceSpecs.interval }}
             group: batch
+          - name: persistentvolumeclaims
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: persistentvolumes
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
           {{- end }}
 
       {{- if .Values.controlPlane.enabled }}

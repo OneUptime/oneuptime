@@ -13,6 +13,9 @@ export interface KubernetesResource {
   namespace: string;
   cpuUtilization: number | null;
   memoryUsageBytes: number | null;
+  memoryLimitBytes: number | null;
+  status: string;
+  age: string;
   additionalAttributes: Record<string, string>;
 }
 
@@ -98,6 +101,9 @@ export default class KubernetesResourceUtils {
           namespace: namespace,
           cpuUtilization: dataPoint.value ?? null,
           memoryUsageBytes: null,
+          memoryLimitBytes: null,
+          status: "",
+          age: "",
           additionalAttributes: additionalAttrs,
         });
       }
@@ -184,6 +190,34 @@ export default class KubernetesResourceUtils {
     return resources;
   }
 
+  public static formatAge(creationTimestamp: string | undefined): string {
+    if (!creationTimestamp) {
+      return "N/A";
+    }
+    const created: Date = new Date(creationTimestamp);
+    const now: Date = new Date();
+    const diffMs: number = now.getTime() - created.getTime();
+    const diffSec: number = Math.floor(diffMs / 1000);
+
+    if (diffSec < 60) {
+      return `${diffSec}s`;
+    }
+    const diffMin: number = Math.floor(diffSec / 60);
+    if (diffMin < 60) {
+      return `${diffMin}m`;
+    }
+    const diffHours: number = Math.floor(diffMin / 60);
+    if (diffHours < 24) {
+      return `${diffHours}h`;
+    }
+    const diffDays: number = Math.floor(diffHours / 24);
+    if (diffDays < 30) {
+      return `${diffDays}d`;
+    }
+    const diffMonths: number = Math.floor(diffDays / 30);
+    return `${diffMonths}mo`;
+  }
+
   public static formatCpuValue(value: number | null): string {
     if (value === null || value === undefined) {
       return "N/A";
@@ -209,5 +243,49 @@ export default class KubernetesResourceUtils {
     }
 
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+
+  public static formatBytesForChart(value: number): string {
+    if (value === null || value === undefined) {
+      return "N/A";
+    }
+
+    const absValue: number = Math.abs(value);
+
+    if (absValue < 1024) {
+      return `${value.toFixed(0)} B`;
+    }
+
+    if (absValue < 1024 * 1024) {
+      return `${(value / 1024).toFixed(1)} KB`;
+    }
+
+    if (absValue < 1024 * 1024 * 1024) {
+      return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+
+  public static formatBytesPerSecForChart(value: number): string {
+    if (value === null || value === undefined) {
+      return "N/A";
+    }
+
+    const absValue: number = Math.abs(value);
+
+    if (absValue < 1024) {
+      return `${value.toFixed(0)} B/s`;
+    }
+
+    if (absValue < 1024 * 1024) {
+      return `${(value / 1024).toFixed(1)} KB/s`;
+    }
+
+    if (absValue < 1024 * 1024 * 1024) {
+      return `${(value / (1024 * 1024)).toFixed(1)} MB/s`;
+    }
+
+    return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB/s`;
   }
 }

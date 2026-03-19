@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesNodeObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterNodes: FunctionComponent<
   PageComponentProps
@@ -48,14 +47,43 @@ const KubernetesClusterNodes: FunctionComponent<
         return;
       }
 
-      const nodeList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [nodeList, nodeObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.node.cpu.utilization",
           memoryMetricName: "k8s.node.memory.usage",
           resourceNameAttribute: "resource.k8s.node.name",
           namespaceAttribute: "resource.k8s.node.name",
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "nodes",
+        }),
+      ]);
+
+      for (const resource of nodeList) {
+        const key: string = resource.name;
+        const nodeObj: KubernetesObjectType | undefined = nodeObjects.get(key);
+        if (nodeObj) {
+          const node: KubernetesNodeObject = nodeObj as KubernetesNodeObject;
+
+          // Check conditions for Ready status
+          const readyCondition = node.status.conditions.find(
+            (c) => c.type === "Ready",
+          );
+          resource.status =
+            readyCondition && readyCondition.status === "True"
+              ? "Ready"
+              : "NotReady";
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            node.metadata.creationTimestamp,
+          );
+        }
+      }
 
       setResources(nodeList);
     } catch (err) {
@@ -79,23 +107,21 @@ const KubernetesClusterNodes: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="Nodes"
-        description="All nodes in this cluster with their current resource usage."
-        resources={resources}
-        showNamespace={false}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+    <KubernetesResourceTable
+      title="Nodes"
+      description="All nodes in this cluster with their current resource usage."
+      resources={resources}
+      showNamespace={false}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL] as Route,
+          {
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
+          },
+        );
+      }}
+    />
   );
 };
 

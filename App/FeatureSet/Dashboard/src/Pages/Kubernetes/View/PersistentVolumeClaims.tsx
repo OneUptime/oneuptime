@@ -6,7 +6,12 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -19,9 +24,9 @@ import {
   fetchK8sObjectsBatch,
   KubernetesObjectType,
 } from "../Utils/KubernetesObjectFetcher";
-import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
+import { KubernetesPVCObject } from "../Utils/KubernetesObjectParser";
 
-const KubernetesClusterCronJobs: FunctionComponent<
+const KubernetesClusterPVCs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -47,41 +52,36 @@ const KubernetesClusterCronJobs: FunctionComponent<
         return;
       }
 
-      const [cronjobList, cronjobObjects]: [
-        Array<KubernetesResource>,
-        Map<string, KubernetesObjectType>,
-      ] = await Promise.all([
-        KubernetesResourceUtils.fetchResourceListWithMemory({
+      const pvcObjects: Map<string, KubernetesObjectType> =
+        await fetchK8sObjectsBatch({
           clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.pod.cpu.utilization",
-          memoryMetricName: "k8s.pod.memory.usage",
-          resourceNameAttribute: "resource.k8s.cronjob.name",
-        }),
-        fetchK8sObjectsBatch({
-          clusterIdentifier: cluster.clusterIdentifier,
-          resourceType: "cronjobs",
-        }),
-      ]);
+          resourceType: "persistentvolumeclaims",
+        });
 
-      for (const resource of cronjobList) {
-        const key: string = `${resource.namespace}/${resource.name}`;
-        const cjObj: KubernetesObjectType | undefined =
-          cronjobObjects.get(key);
-        if (cjObj) {
-          const cronJob: KubernetesCronJobObject =
-            cjObj as KubernetesCronJobObject;
+      const pvcResources: Array<KubernetesResource> = [];
 
-          resource.status = cronJob.spec.suspend ? "Suspended" : "Active";
-
-          resource.additionalAttributes["schedule"] = cronJob.spec.schedule;
-
-          resource.age = KubernetesResourceUtils.formatAge(
-            cronJob.metadata.creationTimestamp,
-          );
-        }
+      for (const pvcObj of pvcObjects.values()) {
+        const pvc: KubernetesPVCObject = pvcObj as KubernetesPVCObject;
+        pvcResources.push({
+          name: pvc.metadata.name,
+          namespace: pvc.metadata.namespace || "default",
+          cpuUtilization: null,
+          memoryUsageBytes: null,
+          memoryLimitBytes: null,
+          status: pvc.status.phase || "Unknown",
+          age: KubernetesResourceUtils.formatAge(
+            pvc.metadata.creationTimestamp,
+          ),
+          additionalAttributes: {
+            storageClass: pvc.spec.storageClassName || "N/A",
+            capacity: pvc.status.capacity.storage || "N/A",
+            volumeName: pvc.spec.volumeName || "N/A",
+            accessModes: pvc.spec.accessModes.join(", ") || "N/A",
+          },
+        });
       }
 
-      setResources(cronjobList);
+      setResources(pvcResources);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -104,26 +104,40 @@ const KubernetesClusterCronJobs: FunctionComponent<
 
   return (
     <KubernetesResourceTable
-      title="CronJobs"
-      description="All cron jobs in this cluster."
+      title="Persistent Volume Claims"
+      description="All PVCs in this cluster with their current status."
       resources={resources}
+      showResourceMetrics={false}
       columns={[
         {
-          title: "Schedule",
-          key: "schedule",
+          title: "Storage Class",
+          key: "storageClass",
+        },
+        {
+          title: "Capacity",
+          key: "capacity",
+        },
+        {
+          title: "Volume",
+          key: "volumeName",
+        },
+        {
+          title: "Access Modes",
+          key: "accessModes",
         },
       ]}
       getViewRoute={(resource: KubernetesResource) => {
         return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL] as Route,
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL] as Route,
           {
             modelId: modelId,
             subModelId: new ObjectID(resource.name),
           },
         );
       }}
+      emptyMessage="No PVCs found. PVC data will appear here once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes persistentvolumeclaims."
     />
   );
 };
 
-export default KubernetesClusterCronJobs;
+export default KubernetesClusterPVCs;

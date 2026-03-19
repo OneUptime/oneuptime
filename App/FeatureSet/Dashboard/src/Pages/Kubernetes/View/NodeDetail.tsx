@@ -3,11 +3,10 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -28,6 +27,7 @@ import {
   KubernetesNodeObject,
 } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -135,7 +135,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       title: "Memory Usage",
       description: `Memory usage for node ${nodeName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -151,6 +151,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   const filesystemQuery: MetricQueryConfigData = {
@@ -159,7 +160,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       title: "Filesystem Usage",
       description: `Filesystem usage for node ${nodeName}`,
       legend: "Filesystem",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -175,6 +176,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   const networkRxQuery: MetricQueryConfigData = {
@@ -183,7 +185,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       title: "Network Receive",
       description: `Network bytes received for node ${nodeName}`,
       legend: "Network RX",
-      legendUnit: "bytes/s",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -199,6 +201,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesPerSecForChart,
   };
 
   const networkTxQuery: MetricQueryConfigData = {
@@ -207,7 +210,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       title: "Network Transmit",
       description: `Network bytes transmitted for node ${nodeName}`,
       legend: "Network TX",
-      legendUnit: "bytes/s",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -223,6 +226,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesPerSecForChart,
   };
 
   // Determine node status from conditions
@@ -352,18 +356,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="Node Name" value={nodeName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterNodeDetail;

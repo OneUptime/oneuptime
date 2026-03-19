@@ -3,13 +3,11 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -30,6 +28,7 @@ import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab"
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -147,7 +146,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       title: "Container Memory Usage",
       description: `Memory usage for containers in pod ${podName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -164,6 +163,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       },
     },
     getSeries: getContainerSeries,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   const podCpuQuery: MetricQueryConfigData = {
@@ -196,7 +196,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       title: "Pod Memory Usage",
       description: `Memory usage for pod ${podName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -212,6 +212,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   // Build overview summary fields from pod object
@@ -310,16 +311,11 @@ const KubernetesClusterPodDetail: FunctionComponent<
     {
       name: "Logs",
       children: (
-        <Card
-          title="Application Logs"
-          description="Container logs for this pod from the last 6 hours."
-        >
-          <KubernetesLogsTab
-            clusterIdentifier={clusterIdentifier}
-            podName={podName}
-            namespace={podObject?.metadata.namespace}
-          />
-        </Card>
+        <KubernetesLogsTab
+          clusterIdentifier={clusterIdentifier}
+          podName={podName}
+          namespace={podObject?.metadata.namespace}
+        />
       ),
     },
     {
@@ -337,18 +333,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
     },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="Pod Name" value={podName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterPodDetail;

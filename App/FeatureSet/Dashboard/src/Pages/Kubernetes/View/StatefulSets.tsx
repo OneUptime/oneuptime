@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesStatefulSetObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterStatefulSets: FunctionComponent<
   PageComponentProps
@@ -48,13 +47,46 @@ const KubernetesClusterStatefulSets: FunctionComponent<
         return;
       }
 
-      const statefulsetList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [statefulsetList, statefulsetObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
           resourceNameAttribute: "resource.k8s.statefulset.name",
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "statefulsets",
+        }),
+      ]);
+
+      for (const resource of statefulsetList) {
+        const key: string = `${resource.namespace}/${resource.name}`;
+        const stsObj: KubernetesObjectType | undefined =
+          statefulsetObjects.get(key);
+        if (stsObj) {
+          const sts: KubernetesStatefulSetObject =
+            stsObj as KubernetesStatefulSetObject;
+
+          const readyReplicas: number = sts.status.readyReplicas;
+          const replicas: number = sts.spec.replicas;
+
+          resource.status =
+            readyReplicas === replicas && replicas > 0
+              ? "Ready"
+              : "Progressing";
+
+          resource.additionalAttributes["ready"] =
+            `${readyReplicas}/${replicas}`;
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            sts.metadata.creationTimestamp,
+          );
+        }
+      }
 
       setResources(statefulsetList);
     } catch (err) {
@@ -78,24 +110,28 @@ const KubernetesClusterStatefulSets: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="StatefulSets"
-        description="All statefulsets running in this cluster."
-        resources={resources}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[
-              PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL
-            ] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+    <KubernetesResourceTable
+      title="StatefulSets"
+      description="All statefulsets running in this cluster."
+      resources={resources}
+      columns={[
+        {
+          title: "Ready",
+          key: "ready",
+        },
+      ]}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[
+            PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL
+          ] as Route,
+          {
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
+          },
+        );
+      }}
+    />
   );
 };
 

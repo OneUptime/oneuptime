@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesDaemonSetObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterDaemonSets: FunctionComponent<
   PageComponentProps
@@ -48,13 +47,44 @@ const KubernetesClusterDaemonSets: FunctionComponent<
         return;
       }
 
-      const daemonsetList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [daemonsetList, daemonsetObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
           resourceNameAttribute: "resource.k8s.daemonset.name",
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "daemonsets",
+        }),
+      ]);
+
+      for (const resource of daemonsetList) {
+        const key: string = `${resource.namespace}/${resource.name}`;
+        const dsObj: KubernetesObjectType | undefined =
+          daemonsetObjects.get(key);
+        if (dsObj) {
+          const ds: KubernetesDaemonSetObject =
+            dsObj as KubernetesDaemonSetObject;
+
+          const numberReady: number = ds.status.numberReady;
+          const desired: number = ds.status.desiredNumberScheduled;
+
+          resource.status =
+            numberReady === desired && desired > 0 ? "Ready" : "Progressing";
+
+          resource.additionalAttributes["ready"] =
+            `${numberReady}/${desired}`;
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            ds.metadata.creationTimestamp,
+          );
+        }
+      }
 
       setResources(daemonsetList);
     } catch (err) {
@@ -78,22 +108,26 @@ const KubernetesClusterDaemonSets: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="DaemonSets"
-        description="All daemonsets running in this cluster."
-        resources={resources}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+    <KubernetesResourceTable
+      title="DaemonSets"
+      description="All daemonsets running in this cluster."
+      resources={resources}
+      columns={[
+        {
+          title: "Ready",
+          key: "ready",
+        },
+      ]}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL] as Route,
+          {
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
+          },
+        );
+      }}
+    />
   );
 };
 
