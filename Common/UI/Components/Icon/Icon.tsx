@@ -2764,9 +2764,8 @@ const Icon: FunctionComponent<ComponentProps> = ({
           y1={sy.toFixed(2)}
           x2={ex.toFixed(2)}
           y2={ey.toFixed(2)}
-          stroke="currentColor"
-          strokeWidth="1.5"
           strokeLinecap="round"
+          strokeLinejoin="round"
         />,
       );
     }
@@ -2775,12 +2774,16 @@ const Icon: FunctionComponent<ComponentProps> = ({
       <>
         <polygon
           points={outerPoints.join(" ")}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
+          strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <circle cx={cx} cy={cy} r={innerR} />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={innerR}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         {spokes}
       </>,
     );
