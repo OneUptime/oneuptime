@@ -47,6 +47,9 @@ if [[ -z "$IMAGE" || -z "$TAGS" ]]; then
 	exit 1
 fi
 
+GHCR="ghcr.io/oneuptime"
+DOCKER_HUB="oneuptime"
+
 IFS=',' read -ra TAG_LIST <<< "$TAGS"
 
 for tag in "${TAG_LIST[@]}"; do
@@ -55,13 +58,13 @@ for tag in "${TAG_LIST[@]}"; do
 
 	echo "🔗 Creating multi-arch manifest for ${IMAGE}:${tag}"
 
-	# Create manifest from arch-specific tags and push to both registries
-	for registry in "oneuptime" "ghcr.io/oneuptime"; do
-		docker buildx imagetools create \
-			--tag "${registry}/${IMAGE}:${tag}" \
-			"${registry}/${IMAGE}:${tag}-amd64" \
-			"${registry}/${IMAGE}:${tag}-arm64"
-	done
+	# Use GHCR as the source for arch-specific images (no rate limits in GHA)
+	# and push the merged manifest to both registries
+	docker buildx imagetools create \
+		--tag "${GHCR}/${IMAGE}:${tag}" \
+		--tag "${DOCKER_HUB}/${IMAGE}:${tag}" \
+		"${GHCR}/${IMAGE}:${tag}-amd64" \
+		"${GHCR}/${IMAGE}:${tag}-arm64"
 
 	echo "✅ Pushed multi-arch manifest for ${IMAGE}:${tag}"
 done
