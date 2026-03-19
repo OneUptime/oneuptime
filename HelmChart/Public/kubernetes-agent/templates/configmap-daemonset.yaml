@@ -17,7 +17,7 @@ data:
       kubeletstats:
         collection_interval: {{ .Values.collectionInterval }}
         auth_type: serviceAccount
-        endpoint: "https://${env:NODE_NAME}:10250"
+        endpoint: "https://${env:NODE_IP}:10250"
         insecure_skip_verify: true
         metric_groups:
           - node

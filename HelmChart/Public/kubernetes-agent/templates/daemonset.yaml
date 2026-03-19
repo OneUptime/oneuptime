@@ -34,6 +34,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
             - name: ONEUPTIME_API_KEY
               valueFrom:
                 secretKeyRef:
