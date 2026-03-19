@@ -35,7 +35,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
-  const podName: string = Navigation.getLastParam()?.toString() || "";
+  const podName: string = Navigation.getLastParamAsString();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);

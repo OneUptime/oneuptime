@@ -33,7 +33,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
-  const statefulSetName: string = Navigation.getLastParam()?.toString() || "";
+  const statefulSetName: string = Navigation.getLastParamAsString();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);

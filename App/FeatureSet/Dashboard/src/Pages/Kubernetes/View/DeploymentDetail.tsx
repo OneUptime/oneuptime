@@ -33,7 +33,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
-  const deploymentName: string = Navigation.getLastParam()?.toString() || "";
+  const deploymentName: string = Navigation.getLastParamAsString();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);

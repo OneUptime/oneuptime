@@ -33,7 +33,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
-  const cronJobName: string = Navigation.getLastParam()?.toString() || "";
+  const cronJobName: string = Navigation.getLastParamAsString();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);

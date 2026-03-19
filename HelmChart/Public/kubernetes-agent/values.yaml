@@ -30,10 +30,10 @@ deployment:
   resources:
     requests:
       cpu: 200m
-      memory: 512Mi
+      memory: 1Gi
     limits:
       cpu: 1000m
-      memory: 2Gi
+      memory: 4Gi
 
 # Control plane monitoring (etcd, API server, scheduler, controller manager)
 # Disabled by default — enable for self-managed clusters.

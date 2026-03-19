@@ -161,8 +161,8 @@ data:
       # Limit memory usage
       memory_limiter:
         check_interval: 5s
-        limit_mib: 1500
-        spike_limit_mib: 300
+        limit_mib: 3000
+        spike_limit_mib: 600
 
     exporters:
       otlphttp:

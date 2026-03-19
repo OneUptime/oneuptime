@@ -33,7 +33,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
-  const daemonSetName: string = Navigation.getLastParam()?.toString() || "";
+  const daemonSetName: string = Navigation.getLastParamAsString();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
