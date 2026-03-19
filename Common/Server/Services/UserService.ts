@@ -13,6 +13,7 @@ import MailService from "./MailService";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
+import UserSessionService from "./UserSessionService";
 import { AccountsRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
@@ -252,6 +253,11 @@ export class Service extends DatabaseService<Model> {
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
       for (const user of onUpdate.carryForward) {
+        // Revoke all active sessions for this user on password change
+        await UserSessionService.revokeAllSessionsByUserId(user.id!, {
+          reason: "Password changed",
+        });
+
         // password changed, send password changed mail
         MailService.sendMail({
           toEmail: user.email!,

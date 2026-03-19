@@ -12,21 +12,6 @@ data:
         endpoint: "0.0.0.0:13133"
 
     receivers:
-      # Collect node, pod, and container resource metrics from kubelet
-      kubeletstats:
-        collection_interval: {{ .Values.collectionInterval }}
-        auth_type: serviceAccount
-        endpoint: "https://${env:NODE_NAME}:10250"
-        insecure_skip_verify: true
-        metric_groups:
-          - node
-          - pod
-          - container
-        extra_metadata_labels:
-          - container.id
-        k8s_api_config:
-          auth_type: serviceAccount
-
       # Collect cluster-level metrics from the Kubernetes API
       k8s_cluster:
         collection_interval: {{ .Values.collectionInterval }}
@@ -47,6 +32,38 @@ data:
           - name: events
             mode: watch
             group: events.k8s.io
+          {{- if .Values.resourceSpecs.enabled }}
+          # Pull full resource specs for dashboard detail views
+          - name: pods
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: nodes
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: namespaces
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: deployments
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps
+          - name: statefulsets
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps
+          - name: daemonsets
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps
+          - name: jobs
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: batch
+          - name: cronjobs
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: batch
+          {{- end }}
 
       {{- if .Values.controlPlane.enabled }}
       # Scrape control plane metrics via Prometheus endpoints
@@ -137,21 +154,31 @@ data:
 
       # Batch telemetry for efficient export
       batch:
-        send_batch_size: 200
-        send_batch_max_size: 500
+        send_batch_size: 100
+        send_batch_max_size: 200
         timeout: 10s
 
       # Limit memory usage
       memory_limiter:
         check_interval: 5s
-        limit_mib: 1500
-        spike_limit_mib: 300
+        limit_mib: 3000
+        spike_limit_mib: 600
 
     exporters:
       otlphttp:
         endpoint: "{{ .Values.oneuptime.url }}/otlp"
+        encoding: json
         headers:
           x-oneuptime-token: "${env:ONEUPTIME_API_KEY}"
+        sending_queue:
+          enabled: true
+          num_consumers: 10
+          queue_size: 5000
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 60s
+          max_elapsed_time: 300s
 
     service:
       extensions:
@@ -159,7 +186,6 @@ data:
       pipelines:
         metrics:
           receivers:
-            - kubeletstats
             - k8s_cluster
             {{- if .Values.controlPlane.enabled }}
             - prometheus

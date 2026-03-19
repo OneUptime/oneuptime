@@ -61,10 +61,24 @@ export const CodeRepositoryRoutePath: Dictionary<string> = {
 
 export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES]: `${RouteParams.ModelID}/namespaces`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL]: `${RouteParams.ModelID}/namespaces/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_PODS]: `${RouteParams.ModelID}/pods`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL]: `${RouteParams.ModelID}/pods/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTS]: `${RouteParams.ModelID}/deployments`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL]: `${RouteParams.ModelID}/deployments/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS]: `${RouteParams.ModelID}/statefulsets`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL]: `${RouteParams.ModelID}/statefulsets/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSETS]: `${RouteParams.ModelID}/daemonsets`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL]: `${RouteParams.ModelID}/daemonsets/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_JOBS]: `${RouteParams.ModelID}/jobs`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL]: `${RouteParams.ModelID}/jobs/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOBS]: `${RouteParams.ModelID}/cronjobs`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL]: `${RouteParams.ModelID}/cronjobs/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -1499,6 +1513,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW_PODS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_PODS]
@@ -1511,6 +1537,66 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSETS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_JOBS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_JOBS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOBS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOBS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW_NODES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_NODES]
@@ -1520,6 +1606,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL]
     }`,
   ),
 

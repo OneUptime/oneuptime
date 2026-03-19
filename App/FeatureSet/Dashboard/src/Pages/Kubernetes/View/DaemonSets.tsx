@@ -22,7 +22,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 
-const KubernetesClusterNodes: FunctionComponent<
+const KubernetesClusterDaemonSets: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -48,16 +48,15 @@ const KubernetesClusterNodes: FunctionComponent<
         return;
       }
 
-      const nodeList: Array<KubernetesResource> =
+      const daemonsetList: Array<KubernetesResource> =
         await KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
-          metricName: "k8s.node.cpu.utilization",
-          memoryMetricName: "k8s.node.memory.usage",
-          resourceNameAttribute: "resource.k8s.node.name",
-          namespaceAttribute: "resource.k8s.node.name",
+          metricName: "k8s.pod.cpu.utilization",
+          memoryMetricName: "k8s.pod.memory.usage",
+          resourceNameAttribute: "resource.k8s.daemonset.name",
         });
 
-      setResources(nodeList);
+      setResources(daemonsetList);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -81,13 +80,12 @@ const KubernetesClusterNodes: FunctionComponent<
   return (
     <Fragment>
       <KubernetesResourceTable
-        title="Nodes"
-        description="All nodes in this cluster with their current resource usage."
+        title="DaemonSets"
+        description="All daemonsets running in this cluster."
         resources={resources}
-        showNamespace={false}
         getViewRoute={(resource: KubernetesResource) => {
           return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL] as Route,
+            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSET_DETAIL] as Route,
             {
               modelId: modelId,
               subModelId: new ObjectID(resource.name),
@@ -99,4 +97,4 @@ const KubernetesClusterNodes: FunctionComponent<
   );
 };
 
-export default KubernetesClusterNodes;
+export default KubernetesClusterDaemonSets;

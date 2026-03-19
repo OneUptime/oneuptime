@@ -40,7 +40,17 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Resources">
+      <SideMenuSection title="Workloads">
+        <SideMenuItem
+          link={{
+            title: "Namespaces",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Folder}
+        />
         <SideMenuItem
           link={{
             title: "Pods",
@@ -53,6 +63,59 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Deployments",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Layers}
+        />
+        <SideMenuItem
+          link={{
+            title: "StatefulSets",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Database}
+        />
+        <SideMenuItem
+          link={{
+            title: "DaemonSets",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSETS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
+        <SideMenuItem
+          link={{
+            title: "Jobs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_JOBS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Play}
+        />
+        <SideMenuItem
+          link={{
+            title: "CronJobs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOBS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Clock}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Infrastructure">
+        <SideMenuItem
+          link={{
             title: "Nodes",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODES] as Route,
@@ -60,6 +123,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Server}
+        />
+        <SideMenuItem
+          link={{
+            title: "Containers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Cube}
         />
       </SideMenuSection>
 
@@ -87,6 +160,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
         <SideMenuItem
           link={{
             title: "Delete Cluster",

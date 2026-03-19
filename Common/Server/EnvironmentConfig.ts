@@ -397,6 +397,8 @@ export const DocsClientUrl: URL = new URL(
   new Route(DocsRoute.toString()),
 );
 
+export const IpWhitelist: string = process.env["IP_WHITELIST"] || "";
+
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 

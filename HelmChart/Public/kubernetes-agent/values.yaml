@@ -30,10 +30,10 @@ deployment:
   resources:
     requests:
       cpu: 200m
-      memory: 512Mi
+      memory: 1Gi
     limits:
       cpu: 1000m
-      memory: 2Gi
+      memory: 4Gi
 
 # Control plane monitoring (etcd, API server, scheduler, controller manager)
 # Disabled by default — enable for self-managed clusters.
@@ -69,6 +69,13 @@ logs:
     limits:
       cpu: 200m
       memory: 256Mi
+
+# Resource spec collection — pulls full K8s resource objects (pods, nodes,
+# deployments, etc.) for displaying labels, annotations, env vars, status,
+# and other details in the dashboard.
+resourceSpecs:
+  enabled: true
+  interval: 300s  # How often to pull full resource specs (default: 5 minutes)
 
 # Collection intervals
 collectionInterval: 30s

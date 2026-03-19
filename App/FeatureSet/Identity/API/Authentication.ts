@@ -575,6 +575,11 @@ router.post(
         },
       });
 
+      // Revoke all active sessions for this user on password reset
+      await UserSessionService.revokeAllSessionsByUserId(alreadySavedUser.id!, {
+        reason: "Password reset",
+      });
+
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 

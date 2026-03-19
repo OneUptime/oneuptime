@@ -6,6 +6,10 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import Card from "Common/UI/Components/Card/Card";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import React, {
   Fragment,
   FunctionComponent,
@@ -18,6 +22,12 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+
+interface ResourceLink {
+  title: string;
+  description: string;
+  pageMap: PageMap;
+}
 
 const KubernetesClusterOverview: FunctionComponent<
   PageComponentProps
@@ -75,6 +85,57 @@ const KubernetesClusterOverview: FunctionComponent<
       ? "text-green-600"
       : "text-red-600";
 
+  const workloadLinks: Array<ResourceLink> = [
+    {
+      title: "Namespaces",
+      description: "View all namespaces",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES,
+    },
+    {
+      title: "Pods",
+      description: "View all pods",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_PODS,
+    },
+    {
+      title: "Deployments",
+      description: "View all deployments",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTS,
+    },
+    {
+      title: "StatefulSets",
+      description: "View all statefulsets",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS,
+    },
+    {
+      title: "DaemonSets",
+      description: "View all daemonsets",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSETS,
+    },
+    {
+      title: "Jobs",
+      description: "View all jobs",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_JOBS,
+    },
+    {
+      title: "CronJobs",
+      description: "View all cron jobs",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOBS,
+    },
+  ];
+
+  const infraLinks: Array<ResourceLink> = [
+    {
+      title: "Nodes",
+      description: "View all nodes",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_NODES,
+    },
+    {
+      title: "Containers",
+      description: "View all containers",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS,
+    },
+  ];
+
   return (
     <Fragment>
       {/* Summary Cards */}
@@ -114,6 +175,66 @@ const KubernetesClusterOverview: FunctionComponent<
           }
         />
       </div>
+
+      {/* Quick Navigation - Workloads */}
+      <Card
+        title="Workloads"
+        description="Explore workload resources in this cluster."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4">
+          {workloadLinks.map((link: ResourceLink) => {
+            return (
+              <a
+                key={link.title}
+                href={RouteUtil.populateRouteParams(
+                  RouteMap[link.pageMap] as Route,
+                  { modelId: modelId },
+                ).toString()}
+                className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
+              >
+                <div>
+                  <div className="font-medium text-gray-900 group-hover:text-indigo-700">
+                    {link.title}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {link.description}
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Quick Navigation - Infrastructure */}
+      <Card
+        title="Infrastructure"
+        description="Explore infrastructure resources in this cluster."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4">
+          {infraLinks.map((link: ResourceLink) => {
+            return (
+              <a
+                key={link.title}
+                href={RouteUtil.populateRouteParams(
+                  RouteMap[link.pageMap] as Route,
+                  { modelId: modelId },
+                ).toString()}
+                className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
+              >
+                <div>
+                  <div className="font-medium text-gray-900 group-hover:text-indigo-700">
+                    {link.title}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {link.description}
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </Card>
 
       {/* Cluster Details */}
       <CardModelDetail<KubernetesCluster>

@@ -184,6 +184,21 @@
       },
       "additionalProperties": false
     },
+    "resourceSpecs": {
+      "type": "object",
+      "description": "Pull full K8s resource specs for dashboard detail views (labels, annotations, env vars, status, etc.)",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable pulling full resource specs via k8sobjects receiver"
+        },
+        "interval": {
+          "type": "string",
+          "description": "How often to pull resource specs (e.g., 300s, 5m)"
+        }
+      },
+      "additionalProperties": false
+    },
     "collectionInterval": {
       "type": "string",
       "description": "Collection interval for metrics (e.g., 30s, 1m)"

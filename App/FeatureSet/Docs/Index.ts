@@ -13,7 +13,7 @@ import Response from "Common/Server/Utils/Response";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import "ejs";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { IsBillingEnabled, IpWhitelist } from "Common/Server/EnvironmentConfig";
 
 const DocsFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -77,6 +77,24 @@ const DocsFeatureSet: FeatureSet = {
 
           // Remove first line (title) from content as it is already present in the navigation
           contentInMarkdown = contentInMarkdown.split("\n").slice(1).join("\n");
+
+          // Replace dynamic placeholders in markdown content
+          if (contentInMarkdown.includes("{{IP_WHITELIST}}")) {
+            const ipList: string = IpWhitelist
+              ? IpWhitelist.split(",")
+                  .map((ip: string) => {
+                    return `- ${ip.trim()}`;
+                  })
+                  .filter((line: string) => {
+                    return line.length > 2;
+                  })
+                  .join("\n")
+              : "- No IP addresses configured.";
+            contentInMarkdown = contentInMarkdown.replace(
+              "{{IP_WHITELIST}}",
+              ipList,
+            );
+          }
 
           // Render Markdown content to HTML
           const renderedContent: string =

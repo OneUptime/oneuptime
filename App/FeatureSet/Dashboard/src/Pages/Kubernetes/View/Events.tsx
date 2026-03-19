@@ -24,16 +24,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-
-interface KubernetesEvent {
-  timestamp: string;
-  type: string;
-  reason: string;
-  objectKind: string;
-  objectName: string;
-  namespace: string;
-  message: string;
-}
+import { getKvValue, getKvStringValue } from "../Utils/KubernetesObjectParser";
+import { KubernetesEvent } from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterEvents: FunctionComponent<
   PageComponentProps
@@ -65,13 +57,18 @@ const KubernetesClusterEvents: FunctionComponent<
       const endDate: Date = OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
 
-      const listResult: ListResult<Log> = await AnalyticsModelAPI.getList<Log>({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const eventsQueryOptions: any = {
         modelType: Log,
         query: {
           projectId: ProjectUtil.getCurrentProjectId()!.toString(),
           time: new InBetween<Date>(startDate, endDate),
+          attributes: {
+            "logAttributes.event.domain": "k8s",
+            "logAttributes.k8s.resource.name": "events",
+          },
         },
-        limit: 200,
+        limit: 500,
         skip: 0,
         select: {
           time: true,
@@ -83,76 +80,9 @@ const KubernetesClusterEvents: FunctionComponent<
           time: SortOrder.Descending,
         },
         requestOptions: {},
-      });
-
-      // Helper to extract a string value from OTLP kvlistValue
-      const getKvValue: (
-        kvList: JSONObject | undefined,
-        key: string,
-      ) => string = (kvList: JSONObject | undefined, key: string): string => {
-        if (!kvList) {
-          return "";
-        }
-        const values: Array<JSONObject> | undefined = (kvList as JSONObject)[
-          "values"
-        ] as Array<JSONObject> | undefined;
-        if (!values) {
-          return "";
-        }
-        for (const entry of values) {
-          if (entry["key"] === key) {
-            const val: JSONObject | undefined = entry["value"] as
-              | JSONObject
-              | undefined;
-            if (!val) {
-              return "";
-            }
-            if (val["stringValue"]) {
-              return val["stringValue"] as string;
-            }
-            if (val["intValue"]) {
-              return String(val["intValue"]);
-            }
-            // Nested kvlist (e.g., regarding, metadata)
-            if (val["kvlistValue"]) {
-              return val["kvlistValue"] as unknown as string;
-            }
-          }
-        }
-        return "";
       };
-
-      // Helper to get nested kvlist value
-      const getNestedKvValue: (
-        kvList: JSONObject | undefined,
-        parentKey: string,
-        childKey: string,
-      ) => string = (
-        kvList: JSONObject | undefined,
-        parentKey: string,
-        childKey: string,
-      ): string => {
-        if (!kvList) {
-          return "";
-        }
-        const values: Array<JSONObject> | undefined = (kvList as JSONObject)[
-          "values"
-        ] as Array<JSONObject> | undefined;
-        if (!values) {
-          return "";
-        }
-        for (const entry of values) {
-          if (entry["key"] === parentKey) {
-            const val: JSONObject | undefined = entry["value"] as
-              | JSONObject
-              | undefined;
-            if (val && val["kvlistValue"]) {
-              return getKvValue(val["kvlistValue"] as JSONObject, childKey);
-            }
-          }
-        }
-        return "";
-      };
+      const listResult: ListResult<Log> =
+        await AnalyticsModelAPI.getList<Log>(eventsQueryOptions);
 
       const k8sEvents: Array<KubernetesEvent> = [];
 
@@ -164,11 +94,6 @@ const KubernetesClusterEvents: FunctionComponent<
           attrs["resource.k8s.cluster.name"] !== item.clusterIdentifier &&
           attrs["k8s.cluster.name"] !== item.clusterIdentifier
         ) {
-          continue;
-        }
-
-        // Only process k8s event logs (from k8sobjects receiver)
-        if (attrs["logAttributes.event.domain"] !== "k8s") {
           continue;
         }
 
@@ -186,7 +111,6 @@ const KubernetesClusterEvents: FunctionComponent<
           continue;
         }
 
-        // The body has a top-level kvlistValue with "type" (ADDED/MODIFIED) and "object" keys
         const topKvList: JSONObject | undefined = bodyObj["kvlistValue"] as
           | JSONObject
           | undefined;
@@ -195,25 +119,46 @@ const KubernetesClusterEvents: FunctionComponent<
         }
 
         // Get the "object" which is the actual k8s Event
-        const objectKvListRaw: string = getKvValue(topKvList, "object");
-        if (!objectKvListRaw || typeof objectKvListRaw === "string") {
+        const objectVal: string | JSONObject | null = getKvValue(
+          topKvList,
+          "object",
+        );
+        if (!objectVal || typeof objectVal === "string") {
           continue;
         }
-        const objectKvList: JSONObject =
-          objectKvListRaw as unknown as JSONObject;
+        const objectKvList: JSONObject = objectVal;
 
-        const eventType: string = getKvValue(objectKvList, "type") || "";
-        const reason: string = getKvValue(objectKvList, "reason") || "";
-        const note: string = getKvValue(objectKvList, "note") || "";
+        const eventType: string = getKvStringValue(objectKvList, "type") || "";
+        const reason: string = getKvStringValue(objectKvList, "reason") || "";
+        const note: string = getKvStringValue(objectKvList, "note") || "";
 
-        // Get object details from "regarding" sub-object
-        const objectKind: string =
-          getNestedKvValue(objectKvList, "regarding", "kind") || "";
-        const objectName: string =
-          getNestedKvValue(objectKvList, "regarding", "name") || "";
+        // Get regarding object details using shared parser
+        const regardingKv: string | JSONObject | null = getKvValue(
+          objectKvList,
+          "regarding",
+        );
+        const regardingObj: JSONObject | undefined =
+          regardingKv && typeof regardingKv !== "string"
+            ? regardingKv
+            : undefined;
+
+        const objectKind: string = regardingObj
+          ? getKvStringValue(regardingObj, "kind")
+          : "";
+        const objectName: string = regardingObj
+          ? getKvStringValue(regardingObj, "name")
+          : "";
+
+        const metadataKv: string | JSONObject | null = getKvValue(
+          objectKvList,
+          "metadata",
+        );
+        const metadataObj: JSONObject | undefined =
+          metadataKv && typeof metadataKv !== "string" ? metadataKv : undefined;
+
         const namespace: string =
-          getNestedKvValue(objectKvList, "regarding", "namespace") ||
-          getNestedKvValue(objectKvList, "metadata", "namespace") ||
+          (regardingObj ? getKvStringValue(regardingObj, "namespace") : "") ||
+          (metadataObj ? getKvStringValue(metadataObj, "namespace") : "") ||
           "";
 
         if (eventType || reason) {

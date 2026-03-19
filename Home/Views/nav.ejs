@@ -109,6 +109,17 @@
                               <p class="text-xs text-gray-500">Smart routing & escalations</p>
                             </div>
                           </a>
+
+                          <!-- Scheduled Maintenance - Teal -->
+                          <a href="/product/scheduled-maintenance" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-teal-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200 group-hover:bg-teal-100 group-hover:ring-teal-300">
+                              <%- include('./Partials/icons/scheduled-maintenance', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Scheduled Maintenance</p>
+                              <p class="text-xs text-gray-500">Plan & communicate downtime</p>
+                            </div>
+                          </a>
                         </div>
                       </div>
 
@@ -159,6 +170,17 @@
                             <div>
                               <p class="text-sm font-medium text-gray-900">Exceptions</p>
                               <p class="text-xs text-gray-500">Error tracking & debugging</p>
+                            </div>
+                          </a>
+
+                          <!-- Kubernetes - Cyan -->
+                          <a href="/product/kubernetes" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-cyan-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200 group-hover:bg-cyan-100 group-hover:ring-cyan-300">
+                              <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Kubernetes</p>
+                              <p class="text-xs text-gray-500">Cluster & pod observability</p>
                             </div>
                           </a>
                         </div>
@@ -764,6 +786,14 @@
               <span class="text-sm font-medium text-gray-900">On-Call</span>
             </a>
 
+            <!-- Scheduled Maintenance - Teal -->
+            <a href="/product/scheduled-maintenance" class="flex items-center gap-3 rounded-xl p-3 hover:bg-teal-50 ring-1 ring-transparent hover:ring-teal-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-50 ring-1 ring-teal-200">
+                <%- include('./Partials/icons/scheduled-maintenance', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Maintenance</span>
+            </a>
+
             <!-- Logs - Amber -->
             <a href="/product/logs-management" class="flex items-center gap-3 rounded-xl p-3 hover:bg-amber-50 ring-1 ring-transparent hover:ring-amber-200">
               <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
@@ -794,6 +824,14 @@
                 <%- include('./Partials/icons/exceptions', {iconClass: 'h-4 w-4'}) %>
               </div>
               <span class="text-sm font-medium text-gray-900">Exceptions</span>
+            </a>
+
+            <!-- Kubernetes - Cyan -->
+            <a href="/product/kubernetes" class="flex items-center gap-3 rounded-xl p-3 hover:bg-cyan-50 ring-1 ring-transparent hover:ring-cyan-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 ring-1 ring-cyan-200">
+                <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Kubernetes</span>
             </a>
 
             <!-- Workflows - Sky -->
