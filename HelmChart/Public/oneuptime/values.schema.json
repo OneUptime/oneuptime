@@ -1526,21 +1526,26 @@
       },
       "additionalProperties": false
     },
-    "slackApp": {
-      "type": "object",
-      "properties": {
-        "clientId": {
-          "type": ["string", "null"]
-        },
-        "clientSecret": {
-          "type": ["string", "null"]
-        },
-        "signingSecret": {
-          "type": ["string", "null"]
-        }
-      },
-      "additionalProperties": false
-    },
+	"slackApp": {
+	  "type": "object",
+	  "properties": {
+		"clientId": { "type": ["string", "null"] },
+		"clientSecret": { "type": ["string", "null"] },
+		"signingSecret": { "type": ["string", "null"] },
+		"existingSecret": {
+		  "type": "object",
+		  "properties": {
+		    "name": { "type": "string" },
+		    "clientIdKey": { "type": "string" },
+		    "clientSecretKey": { "type": "string" },
+		    "signingSecretKey": { "type": "string" }
+		  },
+		  "required": ["name", "clientIdKey", "clientSecretKey", "signingSecretKey"],
+		  "additionalProperties": false
+		}
+	  },
+	  "additionalProperties": false
+	},
     "microsoftTeamsApp": {
       "type": "object",
       "properties": {
