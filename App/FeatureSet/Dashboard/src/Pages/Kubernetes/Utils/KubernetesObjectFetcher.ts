@@ -91,7 +91,6 @@ export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
         projectId: projectId,
         time: new InBetween<Date>(startDate, endDate),
         attributes: {
-          "logAttributes.event.domain": "k8s",
           "logAttributes.k8s.resource.name": options.resourceType,
         },
       },
