@@ -7,7 +7,9 @@ import React, {
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../../Pages/Kubernetes/Utils/KubernetesResourceUtils";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import Table from "Common/UI/Components/Table/Table";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Link from "Common/UI/Components/Link/Link";
@@ -184,6 +186,23 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
       } else if (value instanceof Includes) {
         const includeValues: Array<string> =
           value.values as Array<string>;
+        data = data.filter((r: KubernetesResource) => {
+          const fieldValue: string = (r[key] as string) || "";
+          return includeValues.includes(fieldValue);
+        });
+      } else if (typeof value === "string") {
+        // Dropdown single selection stores as plain string
+        data = data.filter((r: KubernetesResource) => {
+          const fieldValue: string = (r[key] as string) || "";
+          return fieldValue === value;
+        });
+      } else if (Array.isArray(value)) {
+        // Dropdown multi-selection stores as plain array
+        const includeValues: Array<string> = value.map(
+          (v: unknown) => {
+            return String(v);
+          },
+        );
         data = data.filter((r: KubernetesResource) => {
           const fieldValue: string = (r[key] as string) || "";
           return includeValues.includes(fieldValue);
@@ -411,8 +430,24 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
 
   const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
 
+  const cardButtons: Array<CardButtonSchema> = [
+    {
+      title: "",
+      buttonStyle: ButtonStyleType.ICON,
+      className: "py-0 pr-0 pl-1 mt-1",
+      onClick: () => {
+        setShowFilterModal(true);
+      },
+      icon: IconProp.Filter,
+    },
+  ];
+
   return (
-    <Card title={props.title} description={props.description}>
+    <Card
+      title={props.title}
+      description={props.description}
+      buttons={cardButtons}
+    >
       <Table<KubernetesResource>
         id={`kubernetes-${props.title.toLowerCase().replace(/\s+/g, "-")}-table`}
         columns={tableColumns}
