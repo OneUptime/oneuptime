@@ -1,0 +1,1 @@
+This is a local development server hosted at HOST env variable (please read config.env file). When you make any changes to the codebase the server hot-reloads. Please make sure you wait for it to restart to test. This project is hosted on docker compose for local development. If you need access to the database during development, credentials are in config.env file. 
