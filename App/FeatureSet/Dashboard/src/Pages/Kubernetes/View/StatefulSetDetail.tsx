@@ -239,9 +239,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
           title={`StatefulSet Metrics: ${statefulSetName}`}
           description="CPU and memory usage for pods in this statefulset over the last 6 hours."
         >
-          <KubernetesMetricsTab
-            queryConfigs={[cpuQuery, memoryQuery]}
-          />
+          <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
       ),
     },
@@ -251,10 +249,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     <Fragment>
       <div className="mb-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard
-            title="StatefulSet"
-            value={statefulSetName || "Unknown"}
-          />
+          <InfoCard title="StatefulSet" value={statefulSetName || "Unknown"} />
           <InfoCard title="Cluster" value={clusterIdentifier} />
         </div>
       </div>

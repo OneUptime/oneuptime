@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import DictionaryOfStringsViewer from "Common/UI/Components/Dictionary/DictionaryOfStingsViewer";
 import {
+  KubernetesContainerPort,
   KubernetesContainerSpec,
   KubernetesContainerStatus,
 } from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
@@ -104,15 +105,19 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
         {props.container.ports.length > 0 && (
           <div className="text-sm">
             <span className="text-gray-500 font-medium">Ports:</span>{" "}
-            {props.container.ports.map((port, idx) => (
-              <span
-                key={idx}
-                className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700 mr-1"
-              >
-                {port.name ? `${port.name}: ` : ""}
-                {port.containerPort}/{port.protocol}
-              </span>
-            ))}
+            {props.container.ports.map(
+              (port: KubernetesContainerPort, idx: number) => {
+                return (
+                  <span
+                    key={idx}
+                    className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700 mr-1"
+                  >
+                    {port.name ? `${port.name}: ` : ""}
+                    {port.containerPort}/{port.protocol}
+                  </span>
+                );
+              },
+            )}
           </div>
         )}
 
@@ -176,20 +181,33 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             </button>
             {showMounts && (
               <div className="mt-2 space-y-1">
-                {props.container.volumeMounts.map((mount, idx) => (
-                  <div key={idx} className="text-sm flex gap-2">
-                    <span className="font-medium text-gray-700">
-                      {mount.name}
-                    </span>
-                    <span className="text-gray-500">→</span>
-                    <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
-                      {mount.mountPath}
-                    </code>
-                    {mount.readOnly && (
-                      <span className="text-xs text-gray-400">(read-only)</span>
-                    )}
-                  </div>
-                ))}
+                {props.container.volumeMounts.map(
+                  (
+                    mount: {
+                      name: string;
+                      mountPath: string;
+                      readOnly: boolean;
+                    },
+                    idx: number,
+                  ) => {
+                    return (
+                      <div key={idx} className="text-sm flex gap-2">
+                        <span className="font-medium text-gray-700">
+                          {mount.name}
+                        </span>
+                        <span className="text-gray-500">→</span>
+                        <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
+                          {mount.mountPath}
+                        </code>
+                        {mount.readOnly && (
+                          <span className="text-xs text-gray-400">
+                            (read-only)
+                          </span>
+                        )}
+                      </div>
+                    );
+                  },
+                )}
               </div>
             )}
           </div>
@@ -202,10 +220,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
 const KubernetesContainersTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (
-    props.containers.length === 0 &&
-    props.initContainers.length === 0
-  ) {
+  if (props.containers.length === 0 && props.initContainers.length === 0) {
     return (
       <div className="text-gray-500 text-sm p-4">
         No container information available.
@@ -223,32 +238,36 @@ const KubernetesContainersTab: FunctionComponent<ComponentProps> = (
     const statuses: Array<KubernetesContainerStatus> | undefined = isInit
       ? props.initContainerStatuses
       : props.containerStatuses;
-    return statuses?.find(
-      (s: KubernetesContainerStatus) => s.name === name,
-    );
+    return statuses?.find((s: KubernetesContainerStatus) => {
+      return s.name === name;
+    });
   };
 
   return (
     <div className="space-y-4">
       {props.initContainers.map(
-        (container: KubernetesContainerSpec, index: number) => (
-          <ContainerCard
-            key={`init-${index}`}
-            container={container}
-            status={getStatus(container.name, true)}
-            isInit={true}
-          />
-        ),
+        (container: KubernetesContainerSpec, index: number) => {
+          return (
+            <ContainerCard
+              key={`init-${index}`}
+              container={container}
+              status={getStatus(container.name, true)}
+              isInit={true}
+            />
+          );
+        },
       )}
       {props.containers.map(
-        (container: KubernetesContainerSpec, index: number) => (
-          <ContainerCard
-            key={`container-${index}`}
-            container={container}
-            status={getStatus(container.name, false)}
-            isInit={false}
-          />
-        ),
+        (container: KubernetesContainerSpec, index: number) => {
+          return (
+            <ContainerCard
+              key={`container-${index}`}
+              container={container}
+              status={getStatus(container.name, false)}
+              isInit={false}
+            />
+          );
+        },
       )}
     </div>
   );

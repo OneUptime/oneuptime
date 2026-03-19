@@ -23,7 +23,10 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
 import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
-import { KubernetesNodeObject } from "../Utils/KubernetesObjectParser";
+import {
+  KubernetesCondition,
+  KubernetesNodeObject,
+} from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
@@ -230,11 +233,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     if (!nodeObject) {
       return { label: "Unknown", isReady: false };
     }
-    const readyCondition = nodeObject.status.conditions.find(
-      (c) => {
+    const readyCondition: KubernetesCondition | undefined =
+      nodeObject.status.conditions.find((c: KubernetesCondition) => {
         return c.type === "Ready";
-      },
-    );
+      });
     if (readyCondition && readyCondition.status === "True") {
       return { label: "Ready", isReady: true };
     }
@@ -249,7 +251,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     ];
 
   if (nodeObject) {
-    const nodeStatus = getNodeStatus();
+    const nodeStatus: { label: string; isReady: boolean } = getNodeStatus();
 
     summaryFields.push(
       {

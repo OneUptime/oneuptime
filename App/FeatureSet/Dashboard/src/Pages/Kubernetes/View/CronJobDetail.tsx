@@ -71,22 +71,21 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       return;
     }
 
-    const fetchCronJobObject: () => Promise<void> =
-      async (): Promise<void> => {
-        setIsLoadingObject(true);
-        try {
-          const obj: KubernetesCronJobObject | null =
-            await fetchLatestK8sObject<KubernetesCronJobObject>({
-              clusterIdentifier: cluster.clusterIdentifier || "",
-              resourceType: "cronjobs",
-              resourceName: cronJobName,
-            });
-          setCronJobObject(obj);
-        } catch {
-          // Graceful degradation — overview tab shows empty state
-        }
-        setIsLoadingObject(false);
-      };
+    const fetchCronJobObject: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingObject(true);
+      try {
+        const obj: KubernetesCronJobObject | null =
+          await fetchLatestK8sObject<KubernetesCronJobObject>({
+            clusterIdentifier: cluster.clusterIdentifier || "",
+            resourceType: "cronjobs",
+            resourceName: cronJobName,
+          });
+        setCronJobObject(obj);
+      } catch {
+        // Graceful degradation — overview tab shows empty state
+      }
+      setIsLoadingObject(false);
+    };
 
     fetchCronJobObject().catch(() => {});
   }, [cluster?.clusterIdentifier, cronJobName]);
@@ -228,7 +227,10 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
     {
       name: "Events",
       children: (
-        <Card title="CronJob Events" description="Kubernetes events for this cronjob in the last 24 hours.">
+        <Card
+          title="CronJob Events"
+          description="Kubernetes events for this cronjob in the last 24 hours."
+        >
           <KubernetesEventsTab
             clusterIdentifier={clusterIdentifier}
             resourceKind="CronJob"
@@ -245,9 +247,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
           title={`CronJob Metrics: ${cronJobName}`}
           description="CPU and memory usage for pods in this cronjob over the last 6 hours."
         >
-          <KubernetesMetricsTab
-            queryConfigs={[cpuQuery, memoryQuery]}
-          />
+          <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
       ),
     },

@@ -24,10 +24,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import {
-  getKvValue,
-  getKvStringValue,
-} from "../Utils/KubernetesObjectParser";
+import { getKvValue, getKvStringValue } from "../Utils/KubernetesObjectParser";
 import { KubernetesEvent } from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterEvents: FunctionComponent<
@@ -131,12 +128,9 @@ const KubernetesClusterEvents: FunctionComponent<
         }
         const objectKvList: JSONObject = objectVal;
 
-        const eventType: string =
-          getKvStringValue(objectKvList, "type") || "";
-        const reason: string =
-          getKvStringValue(objectKvList, "reason") || "";
-        const note: string =
-          getKvStringValue(objectKvList, "note") || "";
+        const eventType: string = getKvStringValue(objectKvList, "type") || "";
+        const reason: string = getKvStringValue(objectKvList, "reason") || "";
+        const note: string = getKvStringValue(objectKvList, "note") || "";
 
         // Get regarding object details using shared parser
         const regardingKv: string | JSONObject | null = getKvValue(
@@ -160,17 +154,11 @@ const KubernetesClusterEvents: FunctionComponent<
           "metadata",
         );
         const metadataObj: JSONObject | undefined =
-          metadataKv && typeof metadataKv !== "string"
-            ? metadataKv
-            : undefined;
+          metadataKv && typeof metadataKv !== "string" ? metadataKv : undefined;
 
         const namespace: string =
-          (regardingObj
-            ? getKvStringValue(regardingObj, "namespace")
-            : "") ||
-          (metadataObj
-            ? getKvStringValue(metadataObj, "namespace")
-            : "") ||
+          (regardingObj ? getKvStringValue(regardingObj, "namespace") : "") ||
+          (metadataObj ? getKvStringValue(metadataObj, "namespace") : "") ||
           "";
 
         if (eventType || reason) {
@@ -254,10 +242,7 @@ const KubernetesClusterEvents: FunctionComponent<
                   const isWarning: boolean =
                     event.type.toLowerCase() === "warning";
                   return (
-                    <tr
-                      key={index}
-                      className={isWarning ? "bg-yellow-50" : ""}
-                    >
+                    <tr key={index} className={isWarning ? "bg-yellow-50" : ""}>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         {event.timestamp}
                       </td>

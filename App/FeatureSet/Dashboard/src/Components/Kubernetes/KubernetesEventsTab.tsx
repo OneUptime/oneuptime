@@ -29,18 +29,15 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
     const fetchEvents: () => Promise<void> = async (): Promise<void> => {
       setIsLoading(true);
       try {
-        const result: Array<KubernetesEvent> =
-          await fetchK8sEventsForResource({
-            clusterIdentifier: props.clusterIdentifier,
-            resourceKind: props.resourceKind,
-            resourceName: props.resourceName,
-            namespace: props.namespace,
-          });
+        const result: Array<KubernetesEvent> = await fetchK8sEventsForResource({
+          clusterIdentifier: props.clusterIdentifier,
+          resourceKind: props.resourceKind,
+          resourceName: props.resourceName,
+          namespace: props.namespace,
+        });
         setEvents(result);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch events",
-        );
+        setError(err instanceof Error ? err.message : "Failed to fetch events");
       }
       setIsLoading(false);
     };
@@ -91,8 +88,7 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {events.map((event: KubernetesEvent, index: number) => {
-            const isWarning: boolean =
-              event.type.toLowerCase() === "warning";
+            const isWarning: boolean = event.type.toLowerCase() === "warning";
             return (
               <tr key={index} className={isWarning ? "bg-yellow-50" : ""}>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">

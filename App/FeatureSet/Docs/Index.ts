@@ -90,7 +90,10 @@ const DocsFeatureSet: FeatureSet = {
                   })
                   .join("\n")
               : "- No IP addresses configured.";
-            contentInMarkdown = contentInMarkdown.replace("{{IP_WHITELIST}}", ipList);
+            contentInMarkdown = contentInMarkdown.replace(
+              "{{IP_WHITELIST}}",
+              ipList,
+            );
           }
 
           // Render Markdown content to HTML

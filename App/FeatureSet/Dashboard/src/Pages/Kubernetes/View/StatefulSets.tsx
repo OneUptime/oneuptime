@@ -85,7 +85,9 @@ const KubernetesClusterStatefulSets: FunctionComponent<
         resources={resources}
         getViewRoute={(resource: KubernetesResource) => {
           return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL] as Route,
+            RouteMap[
+              PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL
+            ] as Route,
             {
               modelId: modelId,
               subModelId: new ObjectID(resource.name),

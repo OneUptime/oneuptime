@@ -140,7 +140,10 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       children: (
         <div className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <InfoCard title="Container Name" value={containerName || "Unknown"} />
+            <InfoCard
+              title="Container Name"
+              value={containerName || "Unknown"}
+            />
             <InfoCard title="Cluster" value={clusterIdentifier} />
           </div>
         </div>
@@ -149,7 +152,10 @@ const KubernetesClusterContainerDetail: FunctionComponent<
     {
       name: "Logs",
       children: (
-        <Card title="Container Logs" description="Logs for this container from the last 6 hours.">
+        <Card
+          title="Container Logs"
+          description="Logs for this container from the last 6 hours."
+        >
           <KubernetesLogsTab
             clusterIdentifier={clusterIdentifier}
             podName=""
@@ -165,9 +171,7 @@ const KubernetesClusterContainerDetail: FunctionComponent<
           title={`Container Metrics: ${containerName}`}
           description="CPU and memory usage for this container over the last 6 hours."
         >
-          <KubernetesMetricsTab
-            queryConfigs={[cpuQuery, memoryQuery]}
-          />
+          <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
       ),
     },

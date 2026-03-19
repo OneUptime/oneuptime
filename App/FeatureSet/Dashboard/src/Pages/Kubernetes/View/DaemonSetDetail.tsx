@@ -239,9 +239,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
           title={`DaemonSet Metrics: ${daemonSetName}`}
           description="CPU and memory usage for pods in this daemonset over the last 6 hours."
         >
-          <KubernetesMetricsTab
-            queryConfigs={[cpuQuery, memoryQuery]}
-          />
+          <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
       ),
     },

@@ -44,23 +44,20 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
       {/* Summary Info Cards */}
       {props.summaryFields.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {props.summaryFields.map(
-            (field: SummaryField, index: number) => {
-              return (
-                <InfoCard
-                  key={index}
-                  title={field.title}
-                  value={field.value}
-                />
-              );
-            },
-          )}
+          {props.summaryFields.map((field: SummaryField, index: number) => {
+            return (
+              <InfoCard key={index} title={field.title} value={field.value} />
+            );
+          })}
         </div>
       )}
 
       {/* Owner References */}
       {props.ownerReferences && props.ownerReferences.length > 0 && (
-        <Card title="Owner References" description="Resources that own this object.">
+        <Card
+          title="Owner References"
+          description="Resources that own this object."
+        >
           <div className="space-y-1">
             {props.ownerReferences.map(
               (ref: { kind: string; name: string }, index: number) => {
@@ -147,7 +144,10 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
 
       {/* Labels */}
       {Object.keys(props.labels).length > 0 && (
-        <Card title="Labels" description="Key-value labels attached to this resource.">
+        <Card
+          title="Labels"
+          description="Key-value labels attached to this resource."
+        >
           <DictionaryOfStringsViewer value={props.labels} />
         </Card>
       )}

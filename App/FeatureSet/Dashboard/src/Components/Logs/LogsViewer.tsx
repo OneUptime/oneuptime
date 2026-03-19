@@ -413,11 +413,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
 
       try {
-        // When live polling, recompute the time range so the query window
-        // slides forward to "now" and new logs become visible.
+        /*
+         * When live polling, recompute the time range so the query window
+         * slides forward to "now" and new logs become visible.
+         */
         let query: Query<Log> = filterOptions;
 
-        if (skipLoadingState && isLiveEnabled && timeRange.range !== TimeRange.CUSTOM) {
+        if (
+          skipLoadingState &&
+          isLiveEnabled &&
+          timeRange.range !== TimeRange.CUSTOM
+        ) {
           const freshRange: InBetween<Date> =
             RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
           query = {
@@ -468,7 +474,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
       }
     },
-    [filterOptions, isLiveEnabled, page, pageSize, select, sortField, sortOrder, timeRange],
+    [
+      filterOptions,
+      isLiveEnabled,
+      page,
+      pageSize,
+      select,
+      sortField,
+      sortOrder,
+      timeRange,
+    ],
   );
 
   // --- Fetch histogram ---

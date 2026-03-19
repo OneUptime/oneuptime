@@ -231,7 +231,10 @@ const KubernetesClusterJobDetail: FunctionComponent<
     {
       name: "Events",
       children: (
-        <Card title="Job Events" description="Kubernetes events for this job in the last 24 hours.">
+        <Card
+          title="Job Events"
+          description="Kubernetes events for this job in the last 24 hours."
+        >
           <KubernetesEventsTab
             clusterIdentifier={clusterIdentifier}
             resourceKind="Job"
@@ -248,9 +251,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
           title={`Job Metrics: ${jobName}`}
           description="CPU and memory usage for pods in this job over the last 6 hours."
         >
-          <KubernetesMetricsTab
-            queryConfigs={[cpuQuery, memoryQuery]}
-          />
+          <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
       ),
     },

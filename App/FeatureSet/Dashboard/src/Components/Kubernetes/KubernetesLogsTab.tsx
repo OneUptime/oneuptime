@@ -38,9 +38,7 @@ const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
         });
         setLogs(result);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch logs",
-        );
+        setError(err instanceof Error ? err.message : "Failed to fetch logs");
       }
       setIsLoading(false);
     };
@@ -65,8 +63,8 @@ const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
     return (
       <div className="text-gray-500 text-sm p-4">
         No application logs found for this pod in the last 6 hours. Logs will
-        appear here once the kubernetes-agent&apos;s filelog receiver is collecting
-        data.
+        appear here once the kubernetes-agent&apos;s filelog receiver is
+        collecting data.
       </div>
     );
   }

@@ -263,8 +263,7 @@ export async function fetchK8sEventsForResource(options: {
       const objectKvList: JSONObject = objectVal;
 
       // Get event details
-      const eventType: string =
-        getKvStringValue(objectKvList, "type") || "";
+      const eventType: string = getKvStringValue(objectKvList, "type") || "";
       const reason: string = getKvStringValue(objectKvList, "reason") || "";
       const note: string = getKvStringValue(objectKvList, "note") || "";
 
@@ -400,8 +399,7 @@ export async function fetchPodLogs(options: {
             : "",
           body: typeof log.body === "string" ? log.body : "",
           severity: log.severityText || "INFO",
-          containerName:
-            (attrs["resource.k8s.container.name"] as string) || "",
+          containerName: (attrs["resource.k8s.container.name"] as string) || "",
         };
       });
   } catch {

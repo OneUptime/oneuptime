@@ -439,8 +439,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/scheduled-maintenance": {
-    title:
-      "Scheduled Maintenance | Plan & Communicate Downtime | OneUptime",
+    title: "Scheduled Maintenance | Plan & Communicate Downtime | OneUptime",
     description:
       "Plan, schedule, and communicate maintenance windows to your users. Notify subscribers automatically, update status pages in real-time. Open source maintenance management.",
     canonicalPath: "/product/scheduled-maintenance",

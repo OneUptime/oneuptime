@@ -294,7 +294,10 @@ const KubernetesClusterPodDetail: FunctionComponent<
     {
       name: "Events",
       children: (
-        <Card title="Pod Events" description="Kubernetes events for this pod in the last 24 hours.">
+        <Card
+          title="Pod Events"
+          description="Kubernetes events for this pod in the last 24 hours."
+        >
           <KubernetesEventsTab
             clusterIdentifier={clusterIdentifier}
             resourceKind="Pod"
@@ -307,7 +310,10 @@ const KubernetesClusterPodDetail: FunctionComponent<
     {
       name: "Logs",
       children: (
-        <Card title="Application Logs" description="Container logs for this pod from the last 6 hours.">
+        <Card
+          title="Application Logs"
+          description="Container logs for this pod from the last 6 hours."
+        >
           <KubernetesLogsTab
             clusterIdentifier={clusterIdentifier}
             podName={podName}

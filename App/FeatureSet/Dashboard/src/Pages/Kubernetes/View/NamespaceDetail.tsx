@@ -200,7 +200,10 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
     {
       name: "Events",
       children: (
-        <Card title="Namespace Events" description="Kubernetes events for this namespace in the last 24 hours.">
+        <Card
+          title="Namespace Events"
+          description="Kubernetes events for this namespace in the last 24 hours."
+        >
           <KubernetesEventsTab
             clusterIdentifier={clusterIdentifier}
             resourceKind="Namespace"
@@ -216,9 +219,7 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
           title={`Namespace Metrics: ${namespaceName}`}
           description="CPU and memory usage for pods in this namespace over the last 6 hours."
         >
-          <KubernetesMetricsTab
-            queryConfigs={[cpuQuery, memoryQuery]}
-          />
+          <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
       ),
     },

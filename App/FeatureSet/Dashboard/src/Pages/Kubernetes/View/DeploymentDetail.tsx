@@ -236,9 +236,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
           title={`Deployment Metrics: ${deploymentName}`}
           description="CPU and memory usage for pods in this deployment over the last 6 hours."
         >
-          <KubernetesMetricsTab
-            queryConfigs={[cpuQuery, memoryQuery]}
-          />
+          <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
       ),
     },

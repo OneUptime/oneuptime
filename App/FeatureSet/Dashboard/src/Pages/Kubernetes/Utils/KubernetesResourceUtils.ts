@@ -43,31 +43,30 @@ export default class KubernetesResourceUtils {
     const endDate: Date = OneUptimeDate.getCurrentDate();
     const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -hoursBack);
 
-    const cpuResult: AggregatedResult =
-      await AnalyticsModelAPI.aggregate({
-        modelType: Metric,
-        aggregateBy: {
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            time: new InBetween(startDate, endDate),
-            name: metricName,
-            attributes: {
-              "resource.k8s.cluster.name": clusterIdentifier,
-              ...filterAttributes,
-            } as Dictionary<string | number | boolean>,
-          },
-          aggregationType: MetricsAggregationType.Avg,
-          aggregateColumnName: "value",
-          aggregationTimestampColumnName: "time",
-          startTimestamp: startDate,
-          endTimestamp: endDate,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          groupBy: {
-            attributes: true,
-          },
+    const cpuResult: AggregatedResult = await AnalyticsModelAPI.aggregate({
+      modelType: Metric,
+      aggregateBy: {
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          time: new InBetween(startDate, endDate),
+          name: metricName,
+          attributes: {
+            "resource.k8s.cluster.name": clusterIdentifier,
+            ...filterAttributes,
+          } as Dictionary<string | number | boolean>,
         },
-      });
+        aggregationType: MetricsAggregationType.Avg,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp: startDate,
+        endTimestamp: endDate,
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: {
+          attributes: true,
+        },
+      },
+    });
 
     const resourceMap: Map<string, KubernetesResource> = new Map();
 
@@ -128,31 +127,30 @@ export default class KubernetesResourceUtils {
     );
 
     try {
-      const memoryResult: AggregatedResult =
-        await AnalyticsModelAPI.aggregate({
-          modelType: Metric,
-          aggregateBy: {
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              time: new InBetween(startDate, endDate),
-              name: options.memoryMetricName,
-              attributes: {
-                "resource.k8s.cluster.name": options.clusterIdentifier,
-                ...(options.filterAttributes || {}),
-              } as Dictionary<string | number | boolean>,
-            },
-            aggregationType: MetricsAggregationType.Avg,
-            aggregateColumnName: "value",
-            aggregationTimestampColumnName: "time",
-            startTimestamp: startDate,
-            endTimestamp: endDate,
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            groupBy: {
-              attributes: true,
-            },
+      const memoryResult: AggregatedResult = await AnalyticsModelAPI.aggregate({
+        modelType: Metric,
+        aggregateBy: {
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            time: new InBetween(startDate, endDate),
+            name: options.memoryMetricName,
+            attributes: {
+              "resource.k8s.cluster.name": options.clusterIdentifier,
+              ...(options.filterAttributes || {}),
+            } as Dictionary<string | number | boolean>,
           },
-        });
+          aggregationType: MetricsAggregationType.Avg,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "time",
+          startTimestamp: startDate,
+          endTimestamp: endDate,
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          groupBy: {
+            attributes: true,
+          },
+        },
+      });
 
       const memoryMap: Map<string, number> = new Map();
 
@@ -179,7 +177,7 @@ export default class KubernetesResourceUtils {
           resource.memoryUsageBytes = memValue;
         }
       }
-    } catch (_err) {
+    } catch {
       // Memory data is optional, don't fail if not available
     }
 

@@ -1,8 +1,10 @@
 import { JSONObject } from "Common/Types/JSON";
 
-// ============================================================
-// OTLP kvlistValue parsing helpers
-// ============================================================
+/*
+ * ============================================================
+ * OTLP kvlistValue parsing helpers
+ * ============================================================
+ */
 
 /**
  * Extract a value from an OTLP kvlistValue by key.
@@ -141,9 +143,11 @@ export function getArrayValues(
     .filter(Boolean) as Array<JSONObject>;
 }
 
-// ============================================================
-// TypeScript interfaces for parsed K8s objects
-// ============================================================
+/*
+ * ============================================================
+ * TypeScript interfaces for parsed K8s objects
+ * ============================================================
+ */
 
 export interface KubernetesObjectMetadata {
   name: string;
@@ -336,15 +340,14 @@ export interface KubernetesNamespaceObject {
   };
 }
 
-// ============================================================
-// Parsers
-// ============================================================
+/*
+ * ============================================================
+ * Parsers
+ * ============================================================
+ */
 
 function parseMetadata(kvList: JSONObject): KubernetesObjectMetadata {
-  const labelsKvList: string | JSONObject | null = getKvValue(
-    kvList,
-    "labels",
-  );
+  const labelsKvList: string | JSONObject | null = getKvValue(kvList, "labels");
   const annotationsKvList: string | JSONObject | null = getKvValue(
     kvList,
     "annotations",
@@ -503,10 +506,7 @@ function parseContainerSpec(kvList: JSONObject): KubernetesContainerSpec {
       resourcesKv,
       "requests",
     );
-    const limKv: string | JSONObject | null = getKvValue(
-      resourcesKv,
-      "limits",
-    );
+    const limKv: string | JSONObject | null = getKvValue(resourcesKv, "limits");
     if (reqKv && typeof reqKv !== "string") {
       requests = getKvListAsRecord(reqKv);
     }
@@ -521,7 +521,8 @@ function parseContainerSpec(kvList: JSONObject): KubernetesContainerSpec {
   );
   const command: Array<string> = [];
   if (commandArray && typeof commandArray !== "string") {
-    const cmdValues: Array<JSONObject> = (commandArray["values"] as Array<JSONObject>) || [];
+    const cmdValues: Array<JSONObject> =
+      (commandArray["values"] as Array<JSONObject>) || [];
     for (const v of cmdValues) {
       if (v["stringValue"]) {
         command.push(v["stringValue"] as string);
@@ -532,7 +533,8 @@ function parseContainerSpec(kvList: JSONObject): KubernetesContainerSpec {
   const argsArray: string | JSONObject | null = getKvValue(kvList, "args");
   const args: Array<string> = [];
   if (argsArray && typeof argsArray !== "string") {
-    const argValues: Array<JSONObject> = (argsArray["values"] as Array<JSONObject>) || [];
+    const argValues: Array<JSONObject> =
+      (argsArray["values"] as Array<JSONObject>) || [];
     for (const v of argValues) {
       if (v["stringValue"]) {
         args.push(v["stringValue"] as string);
@@ -593,8 +595,7 @@ function parseContainerStatuses(
     return {
       name: getKvStringValue(kvList, "name"),
       ready: getKvStringValue(kvList, "ready") === "true",
-      restartCount:
-        parseInt(getKvStringValue(kvList, "restartCount")) || 0,
+      restartCount: parseInt(getKvStringValue(kvList, "restartCount")) || 0,
       state,
       image: getKvStringValue(kvList, "image"),
     };
@@ -618,10 +619,7 @@ export function parsePodObject(
     }
     const metadata: KubernetesObjectMetadata = parseMetadata(metadataKv);
 
-    const specKv: string | JSONObject | null = getKvValue(
-      objectKvList,
-      "spec",
-    );
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
     const statusKv: string | JSONObject | null = getKvValue(
       objectKvList,
       "status",
@@ -683,8 +681,9 @@ export function parsePodObject(
                   | JSONObject
                   | undefined;
                 if (innerVal && innerVal["kvlistValue"]) {
-                  const innerKv: JSONObject =
-                    innerVal["kvlistValue"] as JSONObject;
+                  const innerKv: JSONObject = innerVal[
+                    "kvlistValue"
+                  ] as JSONObject;
                   volSource =
                     getKvStringValue(innerKv, "name") ||
                     getKvStringValue(innerKv, "path") ||
@@ -877,10 +876,12 @@ export function parseNodeObject(
       );
       if (addrArray && typeof addrArray !== "string") {
         const addrItems: Array<JSONObject> = getArrayValues(addrArray);
-        addresses = addrItems.map((a: JSONObject) => ({
-          type: getKvStringValue(a, "type"),
-          address: getKvStringValue(a, "address"),
-        }));
+        addresses = addrItems.map((a: JSONObject) => {
+          return {
+            type: getKvStringValue(a, "type"),
+            address: getKvStringValue(a, "address"),
+          };
+        });
       }
     }
 
@@ -911,10 +912,7 @@ export function parseDeploymentObject(
       return null;
     }
 
-    const specKv: string | JSONObject | null = getKvValue(
-      objectKvList,
-      "spec",
-    );
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
     const statusKv: string | JSONObject | null = getKvValue(
       objectKvList,
       "status",
@@ -953,8 +951,7 @@ export function parseDeploymentObject(
     let unavailableReplicas: number = 0;
     let conditions: Array<KubernetesCondition> = [];
     if (statusKv && typeof statusKv !== "string") {
-      statusReplicas =
-        parseInt(getKvStringValue(statusKv, "replicas")) || 0;
+      statusReplicas = parseInt(getKvStringValue(statusKv, "replicas")) || 0;
       readyReplicas =
         parseInt(getKvStringValue(statusKv, "readyReplicas")) || 0;
       availableReplicas =
@@ -996,10 +993,7 @@ export function parseStatefulSetObject(
       return null;
     }
 
-    const specKv: string | JSONObject | null = getKvValue(
-      objectKvList,
-      "spec",
-    );
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
     const statusKv: string | JSONObject | null = getKvValue(
       objectKvList,
       "status",
@@ -1058,10 +1052,7 @@ export function parseDaemonSetObject(
       return null;
     }
 
-    const specKv: string | JSONObject | null = getKvValue(
-      objectKvList,
-      "spec",
-    );
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
     const statusKv: string | JSONObject | null = getKvValue(
       objectKvList,
       "status",
@@ -1099,9 +1090,8 @@ export function parseDaemonSetObject(
             ) || 0
           : 0,
         numberReady: statusKv
-          ? parseInt(
-              getKvStringValue(statusKv as JSONObject, "numberReady"),
-            ) || 0
+          ? parseInt(getKvStringValue(statusKv as JSONObject, "numberReady")) ||
+            0
           : 0,
         numberMisscheduled: statusKv
           ? parseInt(
@@ -1132,10 +1122,7 @@ export function parseJobObject(
       return null;
     }
 
-    const specKv: string | JSONObject | null = getKvValue(
-      objectKvList,
-      "spec",
-    );
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
     const statusKv: string | JSONObject | null = getKvValue(
       objectKvList,
       "status",
@@ -1145,19 +1132,14 @@ export function parseJobObject(
       metadata: parseMetadata(metadataKv),
       spec: {
         completions: specKv
-          ? parseInt(
-              getKvStringValue(specKv as JSONObject, "completions"),
-            ) || 0
+          ? parseInt(getKvStringValue(specKv as JSONObject, "completions")) || 0
           : 0,
         parallelism: specKv
-          ? parseInt(
-              getKvStringValue(specKv as JSONObject, "parallelism"),
-            ) || 0
+          ? parseInt(getKvStringValue(specKv as JSONObject, "parallelism")) || 0
           : 0,
         backoffLimit: specKv
-          ? parseInt(
-              getKvStringValue(specKv as JSONObject, "backoffLimit"),
-            ) || 0
+          ? parseInt(getKvStringValue(specKv as JSONObject, "backoffLimit")) ||
+            0
           : 0,
       },
       status: {
@@ -1165,9 +1147,7 @@ export function parseJobObject(
           ? parseInt(getKvStringValue(statusKv as JSONObject, "active")) || 0
           : 0,
         succeeded: statusKv
-          ? parseInt(
-              getKvStringValue(statusKv as JSONObject, "succeeded"),
-            ) || 0
+          ? parseInt(getKvStringValue(statusKv as JSONObject, "succeeded")) || 0
           : 0,
         failed: statusKv
           ? parseInt(getKvStringValue(statusKv as JSONObject, "failed")) || 0
@@ -1205,10 +1185,7 @@ export function parseCronJobObject(
       return null;
     }
 
-    const specKv: string | JSONObject | null = getKvValue(
-      objectKvList,
-      "spec",
-    );
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
     const statusKv: string | JSONObject | null = getKvValue(
       objectKvList,
       "status",
@@ -1220,10 +1197,9 @@ export function parseCronJobObject(
         schedule: specKv
           ? getKvStringValue(specKv as JSONObject, "schedule")
           : "",
-        suspend:
-          specKv
-            ? getKvStringValue(specKv as JSONObject, "suspend") === "true"
-            : false,
+        suspend: specKv
+          ? getKvStringValue(specKv as JSONObject, "suspend") === "true"
+          : false,
         concurrencyPolicy: specKv
           ? getKvStringValue(specKv as JSONObject, "concurrencyPolicy")
           : "",
@@ -1237,10 +1213,7 @@ export function parseCronJobObject(
           : 0,
         failedJobsHistoryLimit: specKv
           ? parseInt(
-              getKvStringValue(
-                specKv as JSONObject,
-                "failedJobsHistoryLimit",
-              ),
+              getKvStringValue(specKv as JSONObject, "failedJobsHistoryLimit"),
             ) || 0
           : 0,
       },
@@ -1315,8 +1288,10 @@ export function extractObjectFromLogBody(
       return objectVal;
     }
 
-    // If no "object" key, the kvlist might BE the object (pull mode)
-    // Check if it has typical K8s fields
+    /*
+     * If no "object" key, the kvlist might BE the object (pull mode)
+     * Check if it has typical K8s fields
+     */
     const kind: string | JSONObject | null = getKvValue(topKvList, "kind");
     if (kind) {
       return topKvList;

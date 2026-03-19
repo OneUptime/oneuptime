@@ -1,8 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import MetricView from "../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
