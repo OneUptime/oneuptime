@@ -32,6 +32,7 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterJobDetail: FunctionComponent<
   PageComponentProps
@@ -179,7 +180,15 @@ const KubernetesClusterJobDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Namespace",
-        value: jobObject.metadata.namespace || "default",
+        value: jobObject.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={jobObject.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Completions",

@@ -24,6 +24,7 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterPVCDetail: FunctionComponent<
   PageComponentProps
@@ -110,7 +111,15 @@ const KubernetesClusterPVCDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Namespace",
-        value: pvcObject.metadata.namespace || "default",
+        value: pvcObject.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={pvcObject.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Status",
@@ -141,7 +150,15 @@ const KubernetesClusterPVCDetail: FunctionComponent<
       },
       {
         title: "Volume Name",
-        value: pvcObject.spec.volumeName || "N/A",
+        value: pvcObject.spec.volumeName ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="PersistentVolume"
+            resourceName={pvcObject.spec.volumeName}
+          />
+        ) : (
+          "N/A"
+        ),
       },
       {
         title: "Access Modes",

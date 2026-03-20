@@ -24,6 +24,7 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterPVDetail: FunctionComponent<
   PageComponentProps
@@ -142,9 +143,18 @@ const KubernetesClusterPVDetail: FunctionComponent<
       },
       {
         title: "Claim",
-        value: pvObject.spec.claimRef.name
-          ? `${pvObject.spec.claimRef.namespace}/${pvObject.spec.claimRef.name}`
-          : "N/A",
+        value: pvObject.spec.claimRef.name ? (
+          <span>
+            {pvObject.spec.claimRef.namespace}/
+            <KubernetesResourceLink
+              modelId={modelId}
+              resourceKind="PersistentVolumeClaim"
+              resourceName={pvObject.spec.claimRef.name}
+            />
+          </span>
+        ) : (
+          "N/A"
+        ),
       },
       {
         title: "Created",

@@ -32,6 +32,7 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
@@ -187,7 +188,15 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Namespace",
-        value: objectData.metadata.namespace || "default",
+        value: objectData.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={objectData.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Rollout Status",

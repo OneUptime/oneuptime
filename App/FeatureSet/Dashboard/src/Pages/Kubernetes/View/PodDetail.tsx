@@ -35,6 +35,7 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -247,7 +248,15 @@ const KubernetesClusterPodDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Namespace",
-        value: podObject.metadata.namespace || "default",
+        value: podObject.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={podObject.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Status",
@@ -283,7 +292,18 @@ const KubernetesClusterPodDetail: FunctionComponent<
           />
         ),
       },
-      { title: "Node", value: podObject.spec.nodeName || "N/A" },
+      {
+        title: "Node",
+        value: podObject.spec.nodeName ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Node"
+            resourceName={podObject.spec.nodeName}
+          />
+        ) : (
+          "N/A"
+        ),
+      },
       { title: "Pod IP", value: podObject.status.podIP || "N/A" },
       { title: "Host IP", value: podObject.status.hostIP || "N/A" },
       {
@@ -328,6 +348,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
           annotations={podObject?.metadata.annotations || {}}
           conditions={podObject?.status.conditions}
           ownerReferences={podObject?.metadata.ownerReferences}
+          modelId={modelId}
           isLoading={isLoadingObject}
         />
       ),

@@ -32,6 +32,7 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterCronJobDetail: FunctionComponent<
   PageComponentProps
@@ -180,7 +181,15 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Namespace",
-        value: cronJobObject.metadata.namespace || "default",
+        value: cronJobObject.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={cronJobObject.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Schedule",

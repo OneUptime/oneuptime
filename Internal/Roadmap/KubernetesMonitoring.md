@@ -57,7 +57,7 @@ Observability
 Monitoring
 ├── Monitors
 │   └── Create Monitor → Type: Kubernetes
-│       └── Select Cluster → Select Resource Scope → Configure Conditions
+│       └── Select Clusters → Select Resource Scope → Configure Conditions
 ├── Monitor Groups
 ```
 

@@ -6,6 +6,8 @@ import { KubernetesCondition } from "../../Pages/Kubernetes/Utils/KubernetesObje
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConditionsTable from "Common/UI/Components/ConditionsTable/ConditionsTable";
 import type { Condition } from "Common/UI/Components/ConditionsTable/ConditionsTable";
+import ObjectID from "Common/Types/ObjectID";
+import KubernetesResourceLink from "./KubernetesResourceLink";
 
 export interface SummaryField {
   title: string;
@@ -18,6 +20,7 @@ export interface ComponentProps {
   annotations: Record<string, string>;
   conditions?: Array<KubernetesCondition> | undefined;
   ownerReferences?: Array<{ kind: string; name: string }> | undefined;
+  modelId?: ObjectID | undefined;
   isLoading: boolean;
   emptyMessage?: string | undefined;
 }
@@ -79,7 +82,15 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
                     <span className="font-medium text-gray-700">
                       {ref.kind}:
                     </span>{" "}
-                    <span className="text-gray-600">{ref.name}</span>
+                    {props.modelId ? (
+                      <KubernetesResourceLink
+                        modelId={props.modelId}
+                        resourceKind={ref.kind}
+                        resourceName={ref.name}
+                      />
+                    ) : (
+                      <span className="text-gray-600">{ref.name}</span>
+                    )}
                   </div>
                 );
               },
