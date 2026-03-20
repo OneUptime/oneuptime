@@ -22,6 +22,8 @@ import {
   KubernetesNamespaceObject,
   KubernetesPVCObject,
   KubernetesPVObject,
+  KubernetesHPAObject,
+  KubernetesVPAObject,
   parsePodObject,
   parseNodeObject,
   parseDeploymentObject,
@@ -32,6 +34,8 @@ import {
   parseNamespaceObject,
   parsePVCObject,
   parsePVObject,
+  parseHPAObject,
+  parseVPAObject,
 } from "./KubernetesObjectParser";
 
 export type KubernetesObjectType =
@@ -44,7 +48,9 @@ export type KubernetesObjectType =
   | KubernetesCronJobObject
   | KubernetesNamespaceObject
   | KubernetesPVCObject
-  | KubernetesPVObject;
+  | KubernetesPVObject
+  | KubernetesHPAObject
+  | KubernetesVPAObject;
 
 export interface FetchK8sObjectOptions {
   clusterIdentifier: string;
@@ -67,6 +73,8 @@ function getParser(resourceType: string): ParserFunction | null {
     namespaces: parseNamespaceObject,
     persistentvolumeclaims: parsePVCObject,
     persistentvolumes: parsePVObject,
+    horizontalpodautoscalers: parseHPAObject,
+    verticalpodautoscalers: parseVPAObject,
   };
   return parsers[resourceType] || null;
 }

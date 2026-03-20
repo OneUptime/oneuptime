@@ -447,7 +447,10 @@ ${contextBlock}
       }
     }
 
-    if (input.monitor.monitorType === MonitorType.Metrics) {
+    if (
+      input.monitor.monitorType === MonitorType.Metrics ||
+      input.monitor.monitorType === MonitorType.Kubernetes
+    ) {
       const metricMonitorResult: string | null =
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,

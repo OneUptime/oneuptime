@@ -42,6 +42,7 @@ import MonitorStepExceptionMonitor, {
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import MonitorStepKubernetesMonitor from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 
 RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
@@ -60,6 +61,7 @@ RunCron(
           MonitorType.Traces,
           MonitorType.Metrics,
           MonitorType.Exceptions,
+          MonitorType.Kubernetes,
         ]),
         telemetryMonitorNextMonitorAt:
           DatabaseQueryHelper.lessThanEqualToOrNull(
@@ -218,6 +220,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Exceptions) {
     return monitorException({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Kubernetes) {
+    return monitorKubernetes({
       monitorStep,
       monitorId,
       projectId,
@@ -388,6 +398,125 @@ const monitorException: MonitorExceptionFunction = async (data: {
     exceptionQuery: JSONFunctions.anyObjectToJSONObject(
       analyticsQuery,
     ) as Query<ExceptionInstance>,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorKubernetesFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+const monitorKubernetes: MonitorKubernetesFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const kubernetesMonitorConfig: MonitorStepKubernetesMonitor | undefined =
+    data.monitorStep.data?.kubernetesMonitor;
+
+  if (!kubernetesMonitorConfig) {
+    throw new BadDataException("Kubernetes monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  for (const queryConfig of kubernetesMonitorConfig.metricViewConfig
+    .queryConfigs) {
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: queryConfig.metricQueryData.filterData.metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    // Add Kubernetes-specific attribute filters
+    if (kubernetesMonitorConfig.clusterIdentifier) {
+      attributes["k8s.cluster.name"] =
+        kubernetesMonitorConfig.clusterIdentifier;
+    }
+
+    if (kubernetesMonitorConfig.resourceFilters) {
+      const resourceFilters = kubernetesMonitorConfig.resourceFilters;
+
+      if (resourceFilters.namespace) {
+        attributes["k8s.namespace.name"] = resourceFilters.namespace;
+      }
+
+      if (resourceFilters.nodeName) {
+        attributes["k8s.node.name"] = resourceFilters.nodeName;
+      }
+
+      if (resourceFilters.podName) {
+        attributes["k8s.pod.name"] = resourceFilters.podName;
+      }
+
+      if (resourceFilters.workloadName && resourceFilters.workloadType) {
+        const workloadType: string =
+          resourceFilters.workloadType.toLowerCase();
+        attributes[`k8s.${workloadType}.name`] =
+          resourceFilters.workloadName;
+      }
+    }
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregatedResults: AggregatedResult =
+      await MetricService.aggregateBy({
+        query: query,
+        aggregationType:
+          (queryConfig.metricQueryData.filterData
+            .aggegationType as MetricsAggregationType) ||
+          MetricsAggregationType.Avg,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    logger.debug("Kubernetes monitor aggregated results");
+    logger.debug(aggregatedResults);
+
+    finalResult.push(aggregatedResults);
+  }
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: kubernetesMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: finalResult,
     monitorId: data.monitorId,
   };
 };

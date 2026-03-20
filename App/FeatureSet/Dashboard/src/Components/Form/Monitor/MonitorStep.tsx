@@ -67,6 +67,10 @@ import MetricMonitorStepForm from "./MetricMonitor/MetricMonitorStepForm";
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import KubernetesMonitorStepForm from "./KubernetesMonitor/KubernetesMonitorStepForm";
+import MonitorStepKubernetesMonitor, {
+  MonitorStepKubernetesMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import Link from "Common/UI/Components/Link/Link";
 import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
@@ -736,6 +740,24 @@ return {
             }
             onChange={(value: MonitorStepMetricMonitor) => {
               monitorStep.setMetricMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Kubernetes && (
+        <Card
+          title="Kubernetes Monitor Configuration"
+          description="Configure the Kubernetes cluster and resource monitoring settings"
+        >
+          <KubernetesMonitorStepForm
+            monitorStepKubernetesMonitor={
+              monitorStep.data?.kubernetesMonitor ||
+              MonitorStepKubernetesMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepKubernetesMonitor) => {
+              monitorStep.setKubernetesMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

@@ -20,6 +20,8 @@ export interface ResourceCounts {
   containers?: number | undefined;
   pvcs?: number | undefined;
   pvs?: number | undefined;
+  hpas?: number | undefined;
+  vpas?: number | undefined;
 }
 
 export interface ComponentProps {
@@ -188,6 +190,31 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Scaling">
+        <SideMenuItem
+          link={{
+            title: "HPAs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_HPAS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ArrowUpDown}
+          badge={counts.hpas}
+        />
+        <SideMenuItem
+          link={{
+            title: "VPAs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_VPAS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Scale}
+          badge={counts.vpas}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Observability">
         <SideMenuItem
           link={{
@@ -208,6 +235,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Activity}
+        />
+        <SideMenuItem
+          link={{
+            title: "Service Mesh",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Globe}
         />
       </SideMenuSection>
 

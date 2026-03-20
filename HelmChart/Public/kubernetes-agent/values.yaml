@@ -80,6 +80,16 @@ resourceSpecs:
 # Collection intervals
 collectionInterval: 30s
 
+# Service mesh observability (Istio / Linkerd sidecar metrics)
+serviceMesh:
+  enabled: false
+  # Supported providers: "istio", "linkerd"
+  provider: "istio"
+  istio:
+    scrapeInterval: 15s
+  linkerd:
+    scrapeInterval: 15s
+
 # Service account configuration
 serviceAccount:
   create: true

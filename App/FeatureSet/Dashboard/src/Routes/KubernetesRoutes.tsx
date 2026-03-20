@@ -32,8 +32,13 @@ import KubernetesClusterViewPVCs from "../Pages/Kubernetes/View/PersistentVolume
 import KubernetesClusterViewPVCDetail from "../Pages/Kubernetes/View/PVCDetail";
 import KubernetesClusterViewPVs from "../Pages/Kubernetes/View/PersistentVolumes";
 import KubernetesClusterViewPVDetail from "../Pages/Kubernetes/View/PVDetail";
+import KubernetesClusterViewHPAs from "../Pages/Kubernetes/View/HPAs";
+import KubernetesClusterViewHPADetail from "../Pages/Kubernetes/View/HPADetail";
+import KubernetesClusterViewVPAs from "../Pages/Kubernetes/View/VPAs";
+import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
+import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
 import KubernetesClusterViewDelete from "../Pages/Kubernetes/View/Delete";
 import KubernetesClusterViewSettings from "../Pages/Kubernetes/View/Settings";
 import KubernetesClusterViewDocumentation from "../Pages/Kubernetes/View/Documentation";
@@ -425,6 +430,70 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/* HPAs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_HPAS,
+          )}
+          element={
+            <KubernetesClusterViewHPAs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_HPAS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewHPADetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        {/* VPAs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_VPAS,
+          )}
+          element={
+            <KubernetesClusterViewVPAs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_VPAS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewVPADetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
         {/* Events */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -450,6 +519,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE] as Route
+              }
+            />
+          }
+        />
+
+        {/* Service Mesh */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH,
+          )}
+          element={
+            <KubernetesClusterViewServiceMesh
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH] as Route
               }
             />
           }

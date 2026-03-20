@@ -66,6 +66,24 @@ rules:
     resources:
       - events
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling.k8s.io"]
+    resources:
+      - verticalpodautoscalers
+    verbs: ["get", "list", "watch"]
+{{- if and .Values.serviceMesh.enabled (eq .Values.serviceMesh.provider "istio") }}
+  - apiGroups: ["networking.istio.io"]
+    resources:
+      - virtualservices
+      - destinationrules
+      - gateways
+      - serviceentries
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["security.istio.io"]
+    resources:
+      - peerauthentications
+      - authorizationpolicies
+    verbs: ["get", "list", "watch"]
+{{- end }}
   # For kubeletstats receiver
   - nonResourceURLs:
       - /metrics
