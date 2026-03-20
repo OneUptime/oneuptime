@@ -68,7 +68,6 @@ import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import KubernetesMonitorStepForm from "./KubernetesMonitor/KubernetesMonitorStepForm";
-import { KubernetesFormMode } from "./KubernetesMonitor/KubernetesMonitorStepForm";
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
@@ -134,8 +133,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [kubernetesFormMode, setKubernetesFormMode] =
-    useState<KubernetesFormMode>("quick");
 
   const fetchLogAttributes: PromiseVoidFunction = async (): Promise<void> => {
     const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -763,9 +760,6 @@ return {
             onChange={(value: MonitorStepKubernetesMonitor) => {
               monitorStep.setKubernetesMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
-            }}
-            onModeChange={(mode: KubernetesFormMode) => {
-              setKubernetesFormMode(mode);
             }}
           />
         </Card>
