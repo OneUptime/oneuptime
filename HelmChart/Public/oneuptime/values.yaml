@@ -175,6 +175,9 @@ clickhouse:
   # Custom ClickHouse configuration
   configuration: |-
     <clickhouse>
+        <merge_tree>
+            <max_suspicious_broken_parts>1000</max_suspicious_broken_parts>
+        </merge_tree>
         <logger>
             <level>warning</level>
             <console>true</console>
