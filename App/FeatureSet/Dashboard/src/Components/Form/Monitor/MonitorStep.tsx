@@ -1054,6 +1054,7 @@ return {
               props.incidentSeverityDropdownOptions
             }
             alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
+            onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
             value={monitorStep?.data?.monitorCriteria}
             onChange={(value: MonitorCriteria) => {
               monitorStep.setMonitorCriteria(value);

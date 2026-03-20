@@ -30,6 +30,7 @@ export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   alertSeverityDropdownOptions: Array<DropdownOption>;
+  onCallPolicyDropdownOptions: Array<DropdownOption>;
   value?: MonitorCriteria | undefined;
   onChange: (value: MonitorCriteria) => void;
 }
@@ -48,6 +49,8 @@ function extractStateFromCriteria(criteria: MonitorCriteria | undefined): {
   alertSeverityId: string;
   incidentSeverityId: string;
   autoResolve: boolean;
+  alertOnCallPolicyIds: Array<string>;
+  incidentOnCallPolicyIds: Array<string>;
 } {
   const defaults = {
     filterType: FilterType.GreaterThan,
@@ -55,6 +58,8 @@ function extractStateFromCriteria(criteria: MonitorCriteria | undefined): {
     alertSeverityId: "",
     incidentSeverityId: "",
     autoResolve: true,
+    alertOnCallPolicyIds: [] as Array<string>,
+    incidentOnCallPolicyIds: [] as Array<string>,
   };
 
   if (!criteria?.data?.monitorCriteriaInstanceArray?.length) {
@@ -83,6 +88,8 @@ function extractStateFromCriteria(criteria: MonitorCriteria | undefined): {
     if (alert) {
       defaults.alertSeverityId = alert.alertSeverityId?.toString() || "";
       defaults.autoResolve = alert.autoResolveAlert !== false;
+      defaults.alertOnCallPolicyIds =
+        alert.onCallPolicyIds?.map((id: ObjectID) => id.toString()) || [];
     }
   }
 
@@ -91,6 +98,8 @@ function extractStateFromCriteria(criteria: MonitorCriteria | undefined): {
     if (incident) {
       defaults.incidentSeverityId =
         incident.incidentSeverityId?.toString() || "";
+      defaults.incidentOnCallPolicyIds =
+        incident.onCallPolicyIds?.map((id: ObjectID) => id.toString()) || [];
     }
   }
 
@@ -119,6 +128,12 @@ const KubernetesSimplifiedCriteriaForm: FunctionComponent<ComponentProps> = (
   const [autoResolve, setAutoResolve] = useState<boolean>(
     initialState.autoResolve,
   );
+  const [alertOnCallPolicyIds, setAlertOnCallPolicyIds] = useState<
+    Array<string>
+  >(initialState.alertOnCallPolicyIds);
+  const [incidentOnCallPolicyIds, setIncidentOnCallPolicyIds] = useState<
+    Array<string>
+  >(initialState.incidentOnCallPolicyIds);
 
   // Find online/offline status IDs from monitor status options
   const offlineMonitorStatusId: ObjectID = new ObjectID(
@@ -150,15 +165,21 @@ const KubernetesSimplifiedCriteriaForm: FunctionComponent<ComponentProps> = (
         value: thresholdValue,
       });
 
-    // Set auto-resolve on alerts and incidents
+    // Set auto-resolve and on-call policies on alerts and incidents
     if (offlineInstance.data?.alerts) {
       for (const alert of offlineInstance.data.alerts) {
         alert.autoResolveAlert = autoResolve;
+        alert.onCallPolicyIds = alertOnCallPolicyIds.map(
+          (id: string) => new ObjectID(id),
+        );
       }
     }
     if (offlineInstance.data?.incidents) {
       for (const incident of offlineInstance.data.incidents) {
         incident.autoResolveIncident = autoResolve;
+        incident.onCallPolicyIds = incidentOnCallPolicyIds.map(
+          (id: string) => new ObjectID(id),
+        );
       }
     }
 
@@ -185,6 +206,8 @@ const KubernetesSimplifiedCriteriaForm: FunctionComponent<ComponentProps> = (
     alertSeverityId,
     incidentSeverityId,
     autoResolve,
+    alertOnCallPolicyIds,
+    incidentOnCallPolicyIds,
     props.metricAlias,
     props.monitorName,
   ]);
@@ -270,6 +293,72 @@ const KubernetesSimplifiedCriteriaForm: FunctionComponent<ComponentProps> = (
           placeholder="Select incident severity..."
         />
       </div>
+
+      {/* Alert On-Call Policy */}
+      {props.onCallPolicyDropdownOptions.length > 0 && (
+        <div>
+          <FieldLabelElement
+            title="Alert On-Call Policy"
+            description="On-call policies to notify when an alert is created."
+            required={false}
+          />
+          <Dropdown
+            options={props.onCallPolicyDropdownOptions}
+            value={props.onCallPolicyDropdownOptions.filter(
+              (o: DropdownOption) =>
+                alertOnCallPolicyIds.includes(o.value?.toString() || ""),
+            )}
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ) => {
+              if (Array.isArray(value)) {
+                setAlertOnCallPolicyIds(
+                  value.map((v: DropdownValue) => v.toString()),
+                );
+              } else if (value) {
+                setAlertOnCallPolicyIds([value.toString()]);
+              } else {
+                setAlertOnCallPolicyIds([]);
+              }
+            }}
+            isMultiSelect={true}
+            placeholder="Select on-call policies..."
+          />
+        </div>
+      )}
+
+      {/* Incident On-Call Policy */}
+      {props.onCallPolicyDropdownOptions.length > 0 && (
+        <div>
+          <FieldLabelElement
+            title="Incident On-Call Policy"
+            description="On-call policies to notify when an incident is created."
+            required={false}
+          />
+          <Dropdown
+            options={props.onCallPolicyDropdownOptions}
+            value={props.onCallPolicyDropdownOptions.filter(
+              (o: DropdownOption) =>
+                incidentOnCallPolicyIds.includes(o.value?.toString() || ""),
+            )}
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ) => {
+              if (Array.isArray(value)) {
+                setIncidentOnCallPolicyIds(
+                  value.map((v: DropdownValue) => v.toString()),
+                );
+              } else if (value) {
+                setIncidentOnCallPolicyIds([value.toString()]);
+              } else {
+                setIncidentOnCallPolicyIds([]);
+              }
+            }}
+            isMultiSelect={true}
+            placeholder="Select on-call policies..."
+          />
+        </div>
+      )}
 
       {/* Auto-Resolve */}
       <div>
