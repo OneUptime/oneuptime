@@ -29,6 +29,9 @@ import {
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -291,22 +294,19 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         return c.type;
       });
 
-    summaryFields.push(
-      {
-        title: "Status",
-        value: (
-          <span
-            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
-              nodeStatus.isReady
-                ? "bg-green-50 text-green-700"
-                : "bg-red-50 text-red-700"
-            }`}
-          >
-            {nodeStatus.label}
-          </span>
-        ),
-      },
-    );
+    summaryFields.push({
+      title: "Status",
+      value: (
+        <StatusBadge
+          text={nodeStatus.label}
+          type={
+            nodeStatus.isReady
+              ? StatusBadgeType.Success
+              : StatusBadgeType.Danger
+          }
+        />
+      ),
+    });
 
     if (roles.length > 0) {
       summaryFields.push({
@@ -315,12 +315,11 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           <div className="flex gap-1 flex-wrap">
             {roles.map((role: string) => {
               return (
-                <span
+                <StatusBadge
                   key={role}
-                  className="inline-flex px-2 py-0.5 text-xs rounded bg-indigo-50 text-indigo-700"
-                >
-                  {role}
-                </span>
+                  text={role}
+                  type={StatusBadgeType.Info}
+                />
               );
             })}
           </div>
@@ -328,9 +327,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       });
     }
 
-    summaryFields.push(
-      { title: "Internal IP", value: internalIP },
-    );
+    summaryFields.push({ title: "Internal IP", value: internalIP });
 
     if (pressureConditions.length > 0) {
       summaryFields.push({
@@ -339,12 +336,11 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           <div className="flex gap-1 flex-wrap">
             {pressureConditions.map((p: string) => {
               return (
-                <span
+                <StatusBadge
                   key={p}
-                  className="inline-flex px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-800 font-medium"
-                >
-                  {p}
-                </span>
+                  text={p}
+                  type={StatusBadgeType.Danger}
+                />
               );
             })}
           </div>

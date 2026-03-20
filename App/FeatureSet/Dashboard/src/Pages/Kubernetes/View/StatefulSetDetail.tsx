@@ -29,6 +29,9 @@ import { KubernetesStatefulSetObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterStatefulSetDetail: FunctionComponent<
   PageComponentProps
@@ -185,7 +188,19 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
       },
       {
         title: "Ready Replicas",
-        value: String(objectData.status.readyReplicas ?? "N/A"),
+        value: (
+          <StatusBadge
+            text={`${objectData.status.readyReplicas ?? 0}/${objectData.spec.replicas ?? 0}`}
+            type={
+              (objectData.status.readyReplicas ?? 0) >=
+              (objectData.spec.replicas ?? 0)
+                ? StatusBadgeType.Success
+                : (objectData.status.readyReplicas ?? 0) > 0
+                  ? StatusBadgeType.Warning
+                  : StatusBadgeType.Danger
+            }
+          />
+        ),
       },
       {
         title: "Service Name",

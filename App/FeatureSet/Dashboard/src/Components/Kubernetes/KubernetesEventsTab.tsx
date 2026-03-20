@@ -15,12 +15,39 @@ import type { FilterButtonOption } from "Common/UI/Components/FilterButtons/Filt
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import ExpandableText from "Common/UI/Components/ExpandableText/ExpandableText";
 
 export interface ComponentProps {
   clusterIdentifier: string;
   resourceKind: string; // "Pod", "Node", "Deployment", etc.
   resourceName: string;
   namespace?: string | undefined;
+}
+
+function formatRelativeTime(timestamp: string): string {
+  if (!timestamp) {
+    return "-";
+  }
+  const date: Date = new Date(timestamp);
+  const now: Date = new Date();
+  const diffMs: number = now.getTime() - date.getTime();
+  if (diffMs < 0) {
+    return timestamp;
+  }
+  const diffSec: number = Math.floor(diffMs / 1000);
+  if (diffSec < 60) {
+    return `${diffSec}s ago`;
+  }
+  const diffMin: number = Math.floor(diffSec / 60);
+  if (diffMin < 60) {
+    return `${diffMin}m ago`;
+  }
+  const diffHrs: number = Math.floor(diffMin / 60);
+  if (diffHrs < 24) {
+    return `${diffHrs}h ago`;
+  }
+  const diffDays: number = Math.floor(diffHrs / 24);
+  return `${diffDays}d ago`;
 }
 
 const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
@@ -155,7 +182,9 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
                     className={isWarning ? "bg-amber-50/50" : ""}
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {event.timestamp}
+                      <span title={event.timestamp}>
+                        {formatRelativeTime(event.timestamp)}
+                      </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <StatusBadge
@@ -170,8 +199,11 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                       {event.reason}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 max-w-lg">
-                      {event.message}
+                    <td className="px-4 py-3 text-sm max-w-lg">
+                      <ExpandableText
+                        text={event.message}
+                        maxLength={120}
+                      />
                     </td>
                   </tr>
                 );

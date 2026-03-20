@@ -5,15 +5,10 @@ import React, {
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
-import CodeType from "Common/Types/Code/CodeType";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import {
-  fetchLatestK8sObject,
-  KubernetesObjectType,
-} from "../../Pages/Kubernetes/Utils/KubernetesObjectFetcher";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { fetchRawK8sObject } from "../../Pages/Kubernetes/Utils/KubernetesObjectFetcher";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 
 export interface ComponentProps {
@@ -130,15 +125,15 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
       setIsLoading(true);
       setError("");
       try {
-        const result: KubernetesObjectType | null =
-          await fetchLatestK8sObject({
+        const result: Record<string, unknown> | null =
+          await fetchRawK8sObject({
             clusterIdentifier: props.clusterIdentifier,
             resourceType: props.resourceType,
             resourceName: props.resourceName,
             namespace: props.namespace,
           });
 
-        if (result) {
+        if (result && Object.keys(result).length > 0) {
           const yaml: string = toYaml(result);
           setYamlContent(yaml);
         } else {
@@ -172,6 +167,89 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const lines: Array<string> = yamlContent.split("\n");
+
+  /**
+   * Simple YAML syntax highlighter.
+   * Returns an array of React elements with colored spans for keys, values, etc.
+   */
+  const highlightYamlLine = (line: string): ReactElement => {
+    // Empty or whitespace-only line
+    if (line.trim() === "") {
+      return <span>{line}</span>;
+    }
+
+    // Comment lines
+    if (line.trimStart().startsWith("#")) {
+      return <span className="text-gray-400 italic">{line}</span>;
+    }
+
+    // Array item prefix "  - "
+    const arrayMatch: RegExpMatchArray | null = line.match(
+      /^(\s*)(- )(.*)$/,
+    );
+    if (arrayMatch) {
+      const [, indent, dash, rest] = arrayMatch;
+      // Check if rest has a key: value pattern
+      const kvMatch: RegExpMatchArray | null = (rest || "").match(
+        /^([^:]+):\s*(.*)$/,
+      );
+      if (kvMatch) {
+        const [, key, val] = kvMatch;
+        return (
+          <span>
+            {indent}
+            <span className="text-gray-500">{dash}</span>
+            <span className="text-indigo-700 font-medium">{key}</span>
+            <span className="text-gray-500">: </span>
+            <span className="text-emerald-700">{val}</span>
+          </span>
+        );
+      }
+      return (
+        <span>
+          {indent}
+          <span className="text-gray-500">{dash}</span>
+          <span className="text-emerald-700">{rest}</span>
+        </span>
+      );
+    }
+
+    // Key: value lines
+    const kvLineMatch: RegExpMatchArray | null = line.match(
+      /^(\s*)([^:]+):\s*(.+)$/,
+    );
+    if (kvLineMatch) {
+      const [, indent, key, val] = kvLineMatch;
+      return (
+        <span>
+          {indent}
+          <span className="text-indigo-700 font-medium">{key}</span>
+          <span className="text-gray-500">: </span>
+          <span className="text-emerald-700">{val}</span>
+        </span>
+      );
+    }
+
+    // Key-only lines (e.g., "metadata:")
+    const keyOnlyMatch: RegExpMatchArray | null = line.match(
+      /^(\s*)([^:]+):(\s*)$/,
+    );
+    if (keyOnlyMatch) {
+      const [, indent, key] = keyOnlyMatch;
+      return (
+        <span>
+          {indent}
+          <span className="text-indigo-700 font-medium">{key}</span>
+          <span className="text-gray-500">:</span>
+        </span>
+      );
+    }
+
+    // Fallback
+    return <span className="text-gray-800">{line}</span>;
+  };
+
   return (
     <Card
       title="Resource Specification"
@@ -191,13 +269,23 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
         },
       ]}
     >
-      <div className="-mt-2">
-        <CodeEditor
-          type={CodeType.YAML}
-          value={yamlContent}
-          readOnly={true}
-          showLineNumbers={true}
-        />
+      <div className="overflow-auto max-h-[600px] bg-gray-50 rounded-lg border border-gray-200">
+        <table className="w-full">
+          <tbody>
+            {lines.map((line: string, index: number) => {
+              return (
+                <tr key={index} className="hover:bg-gray-100/50">
+                  <td className="px-4 py-0 text-right text-xs text-gray-400 select-none w-12 align-top font-mono border-r border-gray-200">
+                    {index + 1}
+                  </td>
+                  <td className="px-4 py-0 text-sm font-mono whitespace-pre">
+                    {highlightYamlLine(line)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </Card>
   );

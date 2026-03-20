@@ -115,9 +115,9 @@ const KubernetesClusterPods: FunctionComponent<
 
           let totalMemoryLimit: number = 0;
           for (const container of pod.spec.containers) {
-            if (container.resources.limits.memory) {
+            if (container.resources.limits["memory"]) {
               totalMemoryLimit += parseMemoryString(
-                container.resources.limits.memory,
+                container.resources.limits["memory"],
               );
             }
           }

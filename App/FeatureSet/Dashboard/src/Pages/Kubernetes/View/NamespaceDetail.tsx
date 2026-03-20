@@ -29,6 +29,9 @@ import { KubernetesNamespaceObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterNamespaceDetail: FunctionComponent<
   PageComponentProps
@@ -177,8 +180,19 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
   if (namespaceObject) {
     summaryFields.push(
       {
-        title: "Status Phase",
-        value: namespaceObject.status.phase || "N/A",
+        title: "Status",
+        value: (
+          <StatusBadge
+            text={namespaceObject.status.phase || "Unknown"}
+            type={
+              namespaceObject.status.phase === "Active"
+                ? StatusBadgeType.Success
+                : namespaceObject.status.phase === "Terminating"
+                  ? StatusBadgeType.Danger
+                  : StatusBadgeType.Warning
+            }
+          />
+        ),
       },
       {
         title: "Created",

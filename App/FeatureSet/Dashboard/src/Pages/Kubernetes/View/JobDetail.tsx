@@ -29,6 +29,9 @@ import { KubernetesJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterJobDetail: FunctionComponent<
   PageComponentProps
@@ -192,15 +195,42 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
       {
         title: "Active",
-        value: String(jobObject.status.active ?? 0),
+        value: (
+          <StatusBadge
+            text={String(jobObject.status.active ?? 0)}
+            type={
+              (jobObject.status.active ?? 0) > 0
+                ? StatusBadgeType.Info
+                : StatusBadgeType.Neutral
+            }
+          />
+        ),
       },
       {
         title: "Succeeded",
-        value: String(jobObject.status.succeeded ?? 0),
+        value: (
+          <StatusBadge
+            text={String(jobObject.status.succeeded ?? 0)}
+            type={
+              (jobObject.status.succeeded ?? 0) > 0
+                ? StatusBadgeType.Success
+                : StatusBadgeType.Neutral
+            }
+          />
+        ),
       },
       {
         title: "Failed",
-        value: String(jobObject.status.failed ?? 0),
+        value: (
+          <StatusBadge
+            text={String(jobObject.status.failed ?? 0)}
+            type={
+              (jobObject.status.failed ?? 0) > 0
+                ? StatusBadgeType.Danger
+                : StatusBadgeType.Neutral
+            }
+          />
+        ),
       },
       {
         title: "Start Time",

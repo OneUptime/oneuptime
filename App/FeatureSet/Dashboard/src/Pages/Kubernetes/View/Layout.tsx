@@ -106,15 +106,15 @@ const KubernetesClusterViewLayout: FunctionComponent<
         ]);
 
         setResourceCounts({
-          nodes: nodes.length,
-          pods: pods.length,
-          namespaces: namespaces.length,
-          deployments: deployments.length,
-          statefulSets: statefulSets.length,
-          daemonSets: daemonSets.length,
-          jobs: jobs.length,
-          cronJobs: cronJobs.length,
-          containers: containers.length,
+          nodes: nodes?.length ?? 0,
+          pods: pods?.length ?? 0,
+          namespaces: namespaces?.length ?? 0,
+          deployments: deployments?.length ?? 0,
+          statefulSets: statefulSets?.length ?? 0,
+          daemonSets: daemonSets?.length ?? 0,
+          jobs: jobs?.length ?? 0,
+          cronJobs: cronJobs?.length ?? 0,
+          containers: containers?.length ?? 0,
         });
       } catch {
         // Counts are supplementary, don't fail the layout

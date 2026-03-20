@@ -21,6 +21,9 @@ import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEvents
 import { KubernetesPVCObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterPVCDetail: FunctionComponent<
   PageComponentProps
@@ -112,17 +115,16 @@ const KubernetesClusterPVCDetail: FunctionComponent<
       {
         title: "Status",
         value: (
-          <span
-            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+          <StatusBadge
+            text={pvcObject.status.phase || "Unknown"}
+            type={
               pvcObject.status.phase === "Bound"
-                ? "bg-green-50 text-green-700"
+                ? StatusBadgeType.Success
                 : pvcObject.status.phase === "Pending"
-                  ? "bg-yellow-50 text-yellow-700"
-                  : "bg-red-50 text-red-700"
-            }`}
-          >
-            {pvcObject.status.phase || "Unknown"}
-          </span>
+                  ? StatusBadgeType.Warning
+                  : StatusBadgeType.Danger
+            }
+          />
         ),
       },
       {

@@ -11,6 +11,7 @@ import {
   extractObjectFromLogBody,
   getKvStringValue,
   getKvValue,
+  kvListToPlainObject,
   KubernetesPodObject,
   KubernetesNodeObject,
   KubernetesDeploymentObject,
@@ -165,6 +166,98 @@ export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
       if (parsed) {
         return parsed as T;
       }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch the raw K8s resource object (as a plain JS object, not parsed into typed interfaces).
+ * This preserves the complete original K8s manifest for YAML display.
+ */
+export async function fetchRawK8sObject(
+  options: FetchK8sObjectOptions,
+): Promise<Record<string, unknown> | null> {
+  const projectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
+  if (!projectId) {
+    return null;
+  }
+
+  const endDate: Date = OneUptimeDate.getCurrentDate();
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const queryOptions: any = {
+      modelType: Log,
+      query: {
+        projectId: projectId,
+        time: new InBetween<Date>(startDate, endDate),
+        attributes: {
+          "logAttributes.k8s.resource.name": options.resourceType,
+        },
+      },
+      limit: 500,
+      skip: 0,
+      select: {
+        time: true,
+        body: true,
+        attributes: true,
+      },
+      sort: {
+        time: SortOrder.Descending,
+      },
+      requestOptions: {},
+    };
+    const listResult: ListResult<Log> =
+      await AnalyticsModelAPI.getList<Log>(queryOptions);
+
+    for (const log of listResult.data) {
+      const attrs: JSONObject = log.attributes || {};
+
+      if (
+        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
+        attrs["k8s.cluster.name"] !== options.clusterIdentifier
+      ) {
+        continue;
+      }
+
+      if (typeof log.body !== "string") {
+        continue;
+      }
+
+      const objectKvList: JSONObject | null = extractObjectFromLogBody(
+        log.body,
+      );
+      if (!objectKvList) {
+        continue;
+      }
+
+      const metadataKv: string | JSONObject | null = getKvValue(
+        objectKvList,
+        "metadata",
+      );
+      if (!metadataKv || typeof metadataKv === "string") {
+        continue;
+      }
+
+      const name: string = getKvStringValue(metadataKv, "name");
+      const namespace: string = getKvStringValue(metadataKv, "namespace");
+
+      if (name !== options.resourceName) {
+        continue;
+      }
+
+      if (options.namespace && namespace && namespace !== options.namespace) {
+        continue;
+      }
+
+      // Convert the raw OTLP kvList to a plain JS object
+      return kvListToPlainObject(objectKvList);
     }
 
     return null;

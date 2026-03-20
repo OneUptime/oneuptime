@@ -29,6 +29,9 @@ import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterCronJobDetail: FunctionComponent<
   PageComponentProps
@@ -185,7 +188,16 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       },
       {
         title: "Suspend",
-        value: cronJobObject.spec.suspend ? "Yes" : "No",
+        value: (
+          <StatusBadge
+            text={cronJobObject.spec.suspend ? "Suspended" : "Active"}
+            type={
+              cronJobObject.spec.suspend
+                ? StatusBadgeType.Warning
+                : StatusBadgeType.Success
+            }
+          />
+        ),
       },
       {
         title: "Concurrency Policy",

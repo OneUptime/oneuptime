@@ -235,9 +235,10 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       summaryFields.push({
         title: "Unavailable",
         value: (
-          <span className="text-red-700 font-medium">
-            {String(unavailable)}
-          </span>
+          <StatusBadge
+            text={String(unavailable)}
+            type={StatusBadgeType.Danger}
+          />
         ),
       });
     }

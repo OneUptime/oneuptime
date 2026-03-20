@@ -143,6 +143,81 @@ export function getArrayValues(
     .filter(Boolean) as Array<JSONObject>;
 }
 
+/**
+ * Recursively convert an OTLP value wrapper to a plain JavaScript value.
+ * Handles stringValue, intValue, boolValue, kvlistValue, and arrayValue.
+ */
+function convertOtlpValue(
+  valueWrapper: JSONObject,
+): unknown {
+  if (valueWrapper["stringValue"] !== undefined) {
+    return valueWrapper["stringValue"];
+  }
+  if (valueWrapper["intValue"] !== undefined) {
+    return Number(valueWrapper["intValue"]);
+  }
+  if (valueWrapper["boolValue"] !== undefined) {
+    return valueWrapper["boolValue"];
+  }
+  if (valueWrapper["doubleValue"] !== undefined) {
+    return Number(valueWrapper["doubleValue"]);
+  }
+  if (valueWrapper["kvlistValue"]) {
+    return kvListToPlainObject(valueWrapper["kvlistValue"] as JSONObject);
+  }
+  if (valueWrapper["arrayValue"]) {
+    return convertOtlpArray(valueWrapper["arrayValue"] as JSONObject);
+  }
+  return null;
+}
+
+/**
+ * Convert an OTLP arrayValue to a plain JavaScript array.
+ */
+function convertOtlpArray(
+  arrayValue: JSONObject,
+): Array<unknown> {
+  const values: Array<JSONObject> | undefined = arrayValue["values"] as
+    | Array<JSONObject>
+    | undefined;
+  if (!values) {
+    return [];
+  }
+  return values.map((item: JSONObject) => {
+    // Each item in arrayValue.values is a value wrapper
+    return convertOtlpValue(item);
+  });
+}
+
+/**
+ * Convert an OTLP kvlistValue (nested key-value structure) to a plain
+ * JavaScript object. This preserves the full original K8s manifest structure.
+ */
+export function kvListToPlainObject(
+  kvList: JSONObject | undefined,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  if (!kvList) {
+    return result;
+  }
+  const values: Array<JSONObject> | undefined = kvList["values"] as
+    | Array<JSONObject>
+    | undefined;
+  if (!values) {
+    return result;
+  }
+  for (const entry of values) {
+    const key: string = (entry["key"] as string) || "";
+    const val: JSONObject | undefined = entry["value"] as
+      | JSONObject
+      | undefined;
+    if (key && val) {
+      result[key] = convertOtlpValue(val);
+    }
+  }
+  return result;
+}
+
 /*
  * ============================================================
  * TypeScript interfaces for parsed K8s objects
@@ -205,6 +280,7 @@ export interface KubernetesContainerStatus {
   ready: boolean;
   restartCount: number;
   state: string;
+  reason: string;
   image: string;
 }
 
@@ -623,12 +699,23 @@ function parseContainerStatuses(
     // state is a kvlist with one key (running/waiting/terminated)
     const stateKv: string | JSONObject | null = getKvValue(kvList, "state");
     let state: string = "Unknown";
+    let reason: string = "";
     if (stateKv && typeof stateKv !== "string") {
       const stateValues: Array<JSONObject> | undefined = stateKv["values"] as
         | Array<JSONObject>
         | undefined;
       if (stateValues && stateValues.length > 0 && stateValues[0]) {
         state = (stateValues[0]["key"] as string) || "Unknown";
+        // Extract reason from the state's nested kvlist value (e.g., waiting -> { reason: "CrashLoopBackOff" })
+        const stateDetail: JSONObject | undefined = stateValues[0]["value"] as
+          | JSONObject
+          | undefined;
+        if (stateDetail && stateDetail["kvlistValue"]) {
+          reason = getKvStringValue(
+            stateDetail["kvlistValue"] as JSONObject,
+            "reason",
+          );
+        }
       }
     }
 
@@ -637,6 +724,7 @@ function parseContainerStatuses(
       ready: getKvStringValue(kvList, "ready") === "true",
       restartCount: parseInt(getKvStringValue(kvList, "restartCount")) || 0,
       state,
+      reason,
       image: getKvStringValue(kvList, "image"),
     };
   });

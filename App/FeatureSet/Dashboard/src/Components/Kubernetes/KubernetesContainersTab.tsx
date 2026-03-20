@@ -6,6 +6,9 @@ import {
   KubernetesContainerSpec,
   KubernetesContainerStatus,
 } from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 export interface ComponentProps {
   containers: Array<KubernetesContainerSpec>;
@@ -43,42 +46,41 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
       <div className="space-y-4">
         {/* Status */}
         {props.status && (
-          <div className="flex gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">State:</span>{" "}
-              <span
-                className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+          <div className="flex gap-4 items-center text-sm">
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500">State:</span>
+              <StatusBadge
+                text={props.status.state}
+                type={
                   props.status.state === "running"
-                    ? "bg-green-50 text-green-700"
+                    ? StatusBadgeType.Success
                     : props.status.state === "waiting"
-                      ? "bg-yellow-50 text-yellow-700"
-                      : "bg-red-50 text-red-700"
-                }`}
-              >
-                {props.status.state}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-500">Ready:</span>{" "}
-              <span
-                className={
-                  props.status.ready ? "text-green-700" : "text-red-700"
+                      ? StatusBadgeType.Warning
+                      : StatusBadgeType.Danger
                 }
-              >
-                {props.status.ready ? "Yes" : "No"}
-              </span>
+              />
             </div>
-            <div>
-              <span className="text-gray-500">Restarts:</span>{" "}
-              <span
-                className={
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500">Ready:</span>
+              <StatusBadge
+                text={props.status.ready ? "Yes" : "No"}
+                type={
+                  props.status.ready
+                    ? StatusBadgeType.Success
+                    : StatusBadgeType.Danger
+                }
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500">Restarts:</span>
+              <StatusBadge
+                text={String(props.status.restartCount)}
+                type={
                   props.status.restartCount > 0
-                    ? "text-yellow-700"
-                    : "text-gray-700"
+                    ? StatusBadgeType.Warning
+                    : StatusBadgeType.Neutral
                 }
-              >
-                {props.status.restartCount}
-              </span>
+              />
             </div>
           </div>
         )}
@@ -108,13 +110,12 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             {props.container.ports.map(
               (port: KubernetesContainerPort, idx: number) => {
                 return (
-                  <span
+                  <StatusBadge
                     key={idx}
-                    className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700 mr-1"
-                  >
-                    {port.name ? `${port.name}: ` : ""}
-                    {port.containerPort}/{port.protocol}
-                  </span>
+                    text={`${port.name ? `${port.name}: ` : ""}${port.containerPort}/${port.protocol}`}
+                    type={StatusBadgeType.Info}
+                    className="mr-1"
+                  />
                 );
               },
             )}

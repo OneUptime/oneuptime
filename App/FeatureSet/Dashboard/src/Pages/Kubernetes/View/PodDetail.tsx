@@ -26,6 +26,7 @@ import KubernetesContainersTab from "../../../Components/Kubernetes/KubernetesCo
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import KubernetesEnvVarsTab from "../../../Components/Kubernetes/KubernetesEnvVarsTab";
 import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
@@ -271,15 +272,14 @@ const KubernetesClusterPodDetail: FunctionComponent<
       {
         title: "Restarts",
         value: (
-          <span
-            className={
+          <StatusBadge
+            text={restartCount.toString()}
+            type={
               restartCount > 0
-                ? "text-yellow-700 font-medium"
-                : "text-gray-700"
+                ? StatusBadgeType.Warning
+                : StatusBadgeType.Neutral
             }
-          >
-            {restartCount.toString()}
-          </span>
+          />
         ),
       },
       { title: "Node", value: podObject.spec.nodeName || "N/A" },
@@ -346,6 +346,22 @@ const KubernetesClusterPodDetail: FunctionComponent<
         <div className="text-gray-500 text-sm p-4">
           Container details not yet available. Ensure the kubernetes-agent Helm
           chart has resourceSpecs.enabled set to true.
+        </div>
+      ),
+    },
+    {
+      name: "Env Vars",
+      children: podObject ? (
+        <KubernetesEnvVarsTab
+          containers={podObject.spec.containers}
+          initContainers={podObject.spec.initContainers}
+        />
+      ) : isLoadingObject ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <div className="text-gray-500 text-sm p-4">
+          Environment variable details not yet available. Ensure the
+          kubernetes-agent Helm chart has resourceSpecs.enabled set to true.
         </div>
       ),
     },

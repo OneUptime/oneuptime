@@ -29,6 +29,9 @@ import { KubernetesDaemonSetObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterDaemonSetDetail: FunctionComponent<
   PageComponentProps
@@ -189,11 +192,35 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       },
       {
         title: "Number Ready",
-        value: String(objectData.status.numberReady ?? "N/A"),
+        value: (
+          <StatusBadge
+            text={`${objectData.status.numberReady ?? 0}/${objectData.status.desiredNumberScheduled ?? 0}`}
+            type={
+              (objectData.status.numberReady ?? 0) >=
+              (objectData.status.desiredNumberScheduled ?? 0)
+                ? StatusBadgeType.Success
+                : (objectData.status.numberReady ?? 0) > 0
+                  ? StatusBadgeType.Warning
+                  : StatusBadgeType.Danger
+            }
+          />
+        ),
       },
       {
         title: "Number Available",
-        value: String(objectData.status.numberAvailable ?? "N/A"),
+        value: (
+          <StatusBadge
+            text={`${objectData.status.numberAvailable ?? 0}/${objectData.status.desiredNumberScheduled ?? 0}`}
+            type={
+              (objectData.status.numberAvailable ?? 0) >=
+              (objectData.status.desiredNumberScheduled ?? 0)
+                ? StatusBadgeType.Success
+                : (objectData.status.numberAvailable ?? 0) > 0
+                  ? StatusBadgeType.Warning
+                  : StatusBadgeType.Danger
+            }
+          />
+        ),
       },
       {
         title: "Update Strategy",
