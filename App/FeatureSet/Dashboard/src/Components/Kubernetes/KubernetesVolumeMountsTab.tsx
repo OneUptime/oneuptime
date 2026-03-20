@@ -1,9 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import {
-  KubernetesContainerEnvVar,
-  KubernetesContainerSpec,
-} from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
+import { KubernetesContainerSpec } from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
@@ -18,12 +15,13 @@ export interface ComponentProps {
   initContainers: Array<KubernetesContainerSpec>;
 }
 
-interface EnvVarRow {
+interface VolumeMountRow {
   name: string;
-  value: string;
+  mountPath: string;
+  readOnly: string;
 }
 
-const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
+const KubernetesVolumeMountsTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [search, setSearch] = useState<string>("");
@@ -41,17 +39,17 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const totalEnvCount: number = allContainers.reduce(
+  const totalMountCount: number = allContainers.reduce(
     (sum: number, c: KubernetesContainerSpec) => {
-      return sum + c.env.length;
+      return sum + c.volumeMounts.length;
     },
     0,
   );
 
-  if (totalEnvCount === 0) {
+  if (totalMountCount === 0) {
     return (
       <div className="text-gray-500 text-sm p-4">
-        No environment variables defined for any container.
+        No volume mounts defined for any container.
       </div>
     );
   }
@@ -62,22 +60,24 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
     ? allContainers.reduce((sum: number, c: KubernetesContainerSpec) => {
         return (
           sum +
-          c.env.filter((env: KubernetesContainerEnvVar) => {
-            return (
-              env.name.toLowerCase().includes(searchLower) ||
-              env.value.toLowerCase().includes(searchLower)
-            );
-          }).length
+          c.volumeMounts.filter(
+            (m: { name: string; mountPath: string; readOnly: boolean }) => {
+              return (
+                m.name.toLowerCase().includes(searchLower) ||
+                m.mountPath.toLowerCase().includes(searchLower)
+              );
+            },
+          ).length
         );
       }, 0)
-    : totalEnvCount;
+    : totalMountCount;
 
-  const columns: Columns<EnvVarRow> = [
+  const columns: Columns<VolumeMountRow> = [
     {
-      title: "Name",
+      title: "Volume Name",
       type: FieldType.Element,
       key: "name",
-      getElement: (item: EnvVarRow): ReactElement => {
+      getElement: (item: VolumeMountRow): ReactElement => {
         return (
           <span className="font-mono font-medium text-gray-900">
             {item.name}
@@ -86,35 +86,31 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
       },
     },
     {
-      title: "Value",
+      title: "Mount Path",
       type: FieldType.Element,
-      key: "value",
-      getElement: (item: EnvVarRow): ReactElement => {
-        const isSecret: boolean =
-          item.value.startsWith("<Secret:") ||
-          item.value.startsWith("<ConfigMap:") ||
-          item.value.startsWith("<FieldRef:") ||
-          item.value.startsWith("<ResourceFieldRef:");
-
-        if (isSecret) {
-          return (
-            <StatusBadge
-              text={item.value}
-              type={
-                item.value.startsWith("<Secret:")
-                  ? StatusBadgeType.Warning
-                  : StatusBadgeType.Info
-              }
-            />
-          );
-        }
-
+      key: "mountPath",
+      getElement: (item: VolumeMountRow): ReactElement => {
         return (
-          <span className="font-mono text-gray-600">
-            {item.value || (
-              <span className="text-gray-400 italic">empty</span>
-            )}
-          </span>
+          <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded font-mono">
+            {item.mountPath}
+          </code>
+        );
+      },
+    },
+    {
+      title: "Access",
+      type: FieldType.Element,
+      key: "readOnly",
+      getElement: (item: VolumeMountRow): ReactElement => {
+        return (
+          <StatusBadge
+            text={item.readOnly === "true" ? "Read-Only" : "Read-Write"}
+            type={
+              item.readOnly === "true"
+                ? StatusBadgeType.Warning
+                : StatusBadgeType.Neutral
+            }
+          />
         );
       },
     },
@@ -133,7 +129,7 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
           </div>
           <input
             type="text"
-            placeholder="Search by name or value..."
+            placeholder="Search by volume name or mount path..."
             value={search}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setSearch(e.target.value);
@@ -143,7 +139,7 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
           <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
             {search && (
               <span className="text-xs text-gray-400 tabular-nums">
-                {totalMatchCount}/{totalEnvCount}
+                {totalMatchCount}/{totalMountCount}
               </span>
             )}
             {search && (
@@ -162,30 +158,41 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
 
       {allContainers.map(
         (container: KubernetesContainerSpec, containerIdx: number) => {
-          if (container.env.length === 0) {
+          if (container.volumeMounts.length === 0) {
             return null;
           }
 
-          const filteredEnv: Array<KubernetesContainerEnvVar> = search
-            ? container.env.filter((env: KubernetesContainerEnvVar) => {
-                return (
-                  env.name.toLowerCase().includes(searchLower) ||
-                  env.value.toLowerCase().includes(searchLower)
-                );
-              })
-            : container.env;
+          const filteredMounts: Array<{
+            name: string;
+            mountPath: string;
+            readOnly: boolean;
+          }> = search
+            ? container.volumeMounts.filter(
+                (m: { name: string; mountPath: string; readOnly: boolean }) => {
+                  return (
+                    m.name.toLowerCase().includes(searchLower) ||
+                    m.mountPath.toLowerCase().includes(searchLower)
+                  );
+                },
+              )
+            : container.volumeMounts;
 
-          if (filteredEnv.length === 0) {
+          if (filteredMounts.length === 0) {
             return null;
           }
 
           const isInit: boolean = containerIdx < props.initContainers.length;
 
-          const tableData: Array<EnvVarRow> = filteredEnv.map(
-            (env: KubernetesContainerEnvVar): EnvVarRow => {
+          const tableData: Array<VolumeMountRow> = filteredMounts.map(
+            (mount: {
+              name: string;
+              mountPath: string;
+              readOnly: boolean;
+            }): VolumeMountRow => {
               return {
-                name: env.name,
-                value: env.value,
+                name: mount.name,
+                mountPath: mount.mountPath,
+                readOnly: String(mount.readOnly),
               };
             },
           );
@@ -194,14 +201,14 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
             <Card
               key={containerIdx}
               title={`${isInit ? "Init Container: " : ""}${container.name}`}
-              description={`${filteredEnv.length} environment variable${filteredEnv.length !== 1 ? "s" : ""}`}
+              description={`${filteredMounts.length} volume mount${filteredMounts.length !== 1 ? "s" : ""}`}
             >
               <LocalTable
-                id={`env-vars-${containerIdx}`}
+                id={`volume-mounts-${containerIdx}`}
                 data={tableData}
                 columns={columns}
-                singularLabel="Variable"
-                pluralLabel="Variables"
+                singularLabel="Mount"
+                pluralLabel="Mounts"
               />
             </Card>
           );
@@ -211,4 +218,4 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default KubernetesEnvVarsTab;
+export default KubernetesVolumeMountsTab;

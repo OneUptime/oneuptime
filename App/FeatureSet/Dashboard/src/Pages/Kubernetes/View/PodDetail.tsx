@@ -27,6 +27,7 @@ import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEvents
 import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import KubernetesEnvVarsTab from "../../../Components/Kubernetes/KubernetesEnvVarsTab";
+import KubernetesVolumeMountsTab from "../../../Components/Kubernetes/KubernetesVolumeMountsTab";
 import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
@@ -362,6 +363,22 @@ const KubernetesClusterPodDetail: FunctionComponent<
         <div className="text-gray-500 text-sm p-4">
           Environment variable details not yet available. Ensure the
           kubernetes-agent Helm chart has resourceSpecs.enabled set to true.
+        </div>
+      ),
+    },
+    {
+      name: "Volume Mounts",
+      children: podObject ? (
+        <KubernetesVolumeMountsTab
+          containers={podObject.spec.containers}
+          initContainers={podObject.spec.initContainers}
+        />
+      ) : isLoadingObject ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <div className="text-gray-500 text-sm p-4">
+          Volume mount details not yet available. Ensure the kubernetes-agent
+          Helm chart has resourceSpecs.enabled set to true.
         </div>
       ),
     },
