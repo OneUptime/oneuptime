@@ -35,7 +35,7 @@ import {
 import { KubernetesMetricDefinition } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import Navigation from "Common/UI/Utils/Navigation";
 
-type KubernetesFormMode = "quick" | "custom" | "advanced";
+export type KubernetesFormMode = "quick" | "custom" | "advanced";
 
 export interface ComponentProps {
   monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor;
@@ -43,6 +43,7 @@ export interface ComponentProps {
     monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor,
   ) => void;
   onMonitorStepOverride?: ((step: MonitorStep) => void) | undefined;
+  onModeChange?: ((mode: KubernetesFormMode) => void) | undefined;
   initialTemplateId?: string | undefined;
   initialClusterId?: string | undefined;
 }
@@ -711,13 +712,16 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       <Tabs
         tabs={tabs}
         onTabChange={(tab: Tab) => {
+          let newMode: KubernetesFormMode = "quick";
           if (tab.name === "Quick Setup") {
-            setMode("quick");
+            newMode = "quick";
           } else if (tab.name === "Custom Metric") {
-            setMode("custom");
+            newMode = "custom";
           } else if (tab.name === "Advanced") {
-            setMode("advanced");
+            newMode = "advanced";
           }
+          setMode(newMode);
+          props.onModeChange?.(newMode);
         }}
       />
     </div>

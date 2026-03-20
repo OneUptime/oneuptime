@@ -68,6 +68,8 @@ import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import KubernetesMonitorStepForm from "./KubernetesMonitor/KubernetesMonitorStepForm";
+import { KubernetesFormMode } from "./KubernetesMonitor/KubernetesMonitorStepForm";
+import KubernetesSimplifiedCriteriaForm from "./KubernetesMonitor/KubernetesSimplifiedCriteriaForm";
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
@@ -132,6 +134,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [kubernetesFormMode, setKubernetesFormMode] =
+    useState<KubernetesFormMode>("quick");
 
   const fetchLogAttributes: PromiseVoidFunction = async (): Promise<void> => {
     const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -760,6 +765,9 @@ return {
               monitorStep.setKubernetesMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
+            onModeChange={(mode: KubernetesFormMode) => {
+              setKubernetesFormMode(mode);
+            }}
           />
         </Card>
       )}
@@ -1029,30 +1037,56 @@ return {
       )}
 
       {/* Monitor Criteria Section */}
-      <Card
-        title="Monitor Criteria"
-        description="Add Monitoring Criteria for this monitor. Monitor different properties."
-      >
-        <MonitorCriteriaElement
-          monitorType={props.monitorType}
-          monitorStep={monitorStep}
-          monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
-          incidentSeverityDropdownOptions={
-            props.incidentSeverityDropdownOptions
-          }
-          alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
-          onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-          labelDropdownOptions={props.labelDropdownOptions}
-          teamDropdownOptions={props.teamDropdownOptions}
-          userDropdownOptions={props.userDropdownOptions}
-          incidentRoleOptions={props.incidentRoleOptions}
-          value={monitorStep?.data?.monitorCriteria}
-          onChange={(value: MonitorCriteria) => {
-            monitorStep.setMonitorCriteria(value);
-            props.onChange?.(MonitorStep.clone(monitorStep));
-          }}
-        />
-      </Card>
+      {props.monitorType === MonitorType.Kubernetes &&
+      kubernetesFormMode !== "advanced" ? (
+        <Card
+          title="Alert & Incident Criteria"
+          description="Configure when this monitor should trigger alerts and incidents."
+        >
+          <KubernetesSimplifiedCriteriaForm
+            metricAlias={
+              monitorStep.data?.kubernetesMonitor?.metricViewConfig
+                ?.queryConfigs?.[0]?.metricAliasData?.metricVariable || ""
+            }
+            monitorName={props.monitorType + " Monitor"}
+            monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
+            incidentSeverityDropdownOptions={
+              props.incidentSeverityDropdownOptions
+            }
+            alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
+            value={monitorStep?.data?.monitorCriteria}
+            onChange={(value: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      ) : (
+        <Card
+          title="Monitor Criteria"
+          description="Add Monitoring Criteria for this monitor. Monitor different properties."
+        >
+          <MonitorCriteriaElement
+            monitorType={props.monitorType}
+            monitorStep={monitorStep}
+            monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
+            incidentSeverityDropdownOptions={
+              props.incidentSeverityDropdownOptions
+            }
+            alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
+            onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+            labelDropdownOptions={props.labelDropdownOptions}
+            teamDropdownOptions={props.teamDropdownOptions}
+            userDropdownOptions={props.userDropdownOptions}
+            incidentRoleOptions={props.incidentRoleOptions}
+            value={monitorStep?.data?.monitorCriteria}
+            onChange={(value: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
     </div>
   );
 };

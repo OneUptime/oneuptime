@@ -226,6 +226,25 @@ export class CriteriaFilterUtil {
     ];
   }
 
+  public static getInverseFilterType(filterType: FilterType): FilterType {
+    switch (filterType) {
+      case FilterType.GreaterThan:
+        return FilterType.LessThanOrEqualTo;
+      case FilterType.LessThan:
+        return FilterType.GreaterThanOrEqualTo;
+      case FilterType.GreaterThanOrEqualTo:
+        return FilterType.LessThan;
+      case FilterType.LessThanOrEqualTo:
+        return FilterType.GreaterThan;
+      case FilterType.EqualTo:
+        return FilterType.NotEqualTo;
+      case FilterType.NotEqualTo:
+        return FilterType.EqualTo;
+      default:
+        return filterType;
+    }
+  }
+
   public static isEvaluateOverTimeFilter(checkOn: CheckOn): boolean {
     return (
       checkOn === CheckOn.ResponseStatusCode ||
