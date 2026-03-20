@@ -212,6 +212,43 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.Kubernetes) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.GreaterThan,
+
+            metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.AnyValue,
+              metricAlias:
+                arg.metricOptions &&
+                arg.metricOptions.metricAliases &&
+                arg.metricOptions.metricAliases.length > 0
+                  ? arg.metricOptions.metricAliases[0]
+                  : undefined,
+            },
+            value: 0,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: false,
+        name: `Check if ${arg.monitorName} is online`,
+        description: `This criteria checks if the ${arg.monitorName} is online`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.Traces) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -843,6 +880,55 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                   : undefined,
             },
             value: 0, // if there are no logs then the monitor is offline
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is currently offline.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: true,
+        name: `Check if ${arg.monitorName} is offline`,
+        description: `This criteria checks if the ${arg.monitorName} is offline`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.Kubernetes) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.EqualTo,
+            metricMonitorOptions: {
+              metricAggregationType: EvaluateOverTimeType.AnyValue,
+              metricAlias:
+                arg.metricOptions &&
+                arg.metricOptions.metricAliases &&
+                arg.metricOptions.metricAliases.length > 0
+                  ? arg.metricOptions.metricAliases[0]
+                  : undefined,
+            },
+            value: 0,
           },
         ],
         incidents: [

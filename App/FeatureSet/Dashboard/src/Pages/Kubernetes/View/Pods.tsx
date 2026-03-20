@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,37 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
+
+function parseMemoryString(memory: string): number {
+  if (!memory) {
+    return 0;
+  }
+  const value: number = parseFloat(memory);
+  if (memory.endsWith("Gi")) {
+    return value * 1024 * 1024 * 1024;
+  }
+  if (memory.endsWith("Mi")) {
+    return value * 1024 * 1024;
+  }
+  if (memory.endsWith("Ki")) {
+    return value * 1024;
+  }
+  if (memory.endsWith("G")) {
+    return value * 1000 * 1000 * 1000;
+  }
+  if (memory.endsWith("M")) {
+    return value * 1000 * 1000;
+  }
+  if (memory.endsWith("K")) {
+    return value * 1000;
+  }
+  return value;
+}
 
 const KubernetesClusterPods: FunctionComponent<
   PageComponentProps
@@ -48,8 +73,11 @@ const KubernetesClusterPods: FunctionComponent<
         return;
       }
 
-      const podList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [podList, podObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
@@ -58,7 +86,46 @@ const KubernetesClusterPods: FunctionComponent<
             "resource.k8s.node.name",
             "resource.k8s.deployment.name",
           ],
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "pods",
+        }),
+      ]);
+
+      for (const resource of podList) {
+        const key: string = `${resource.namespace}/${resource.name}`;
+        const podObj: KubernetesObjectType | undefined = podObjects.get(key);
+        if (podObj) {
+          const pod: KubernetesPodObject = podObj as KubernetesPodObject;
+          resource.status = pod.status.phase || "Unknown";
+
+          for (const cs of pod.status.containerStatuses) {
+            if (cs.state === "waiting" && cs.reason) {
+              resource.status = cs.reason;
+              break;
+            }
+          }
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            pod.metadata.creationTimestamp,
+          );
+          resource.additionalAttributes["containers"] =
+            `${pod.spec.containers.length}`;
+
+          let totalMemoryLimit: number = 0;
+          for (const container of pod.spec.containers) {
+            if (container.resources.limits["memory"]) {
+              totalMemoryLimit += parseMemoryString(
+                container.resources.limits["memory"],
+              );
+            }
+          }
+          if (totalMemoryLimit > 0) {
+            resource.memoryLimitBytes = totalMemoryLimit;
+          }
+        }
+      }
 
       setResources(podList);
     } catch (err) {
@@ -82,28 +149,30 @@ const KubernetesClusterPods: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="Pods"
-        description="All pods running in this cluster with their current resource usage."
-        resources={resources}
-        columns={[
+    <KubernetesResourceTable
+      title="Pods"
+      description="All pods running in this cluster with their current resource usage."
+      resources={resources}
+      columns={[
+        {
+          title: "Node",
+          key: "resource.k8s.node.name",
+        },
+        {
+          title: "Containers",
+          key: "containers",
+        },
+      ]}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route,
           {
-            title: "Node",
-            key: "resource.k8s.node.name",
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
           },
-        ]}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+        );
+      }}
+    />
   );
 };
 

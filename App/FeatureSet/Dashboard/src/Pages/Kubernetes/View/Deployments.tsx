@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterDeployments: FunctionComponent<
   PageComponentProps
@@ -48,13 +47,53 @@ const KubernetesClusterDeployments: FunctionComponent<
         return;
       }
 
-      const deploymentList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [deploymentList, deploymentObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
           resourceNameAttribute: "resource.k8s.deployment.name",
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "deployments",
+        }),
+      ]);
+
+      for (const resource of deploymentList) {
+        const key: string = `${resource.namespace}/${resource.name}`;
+        const depObj: KubernetesObjectType | undefined =
+          deploymentObjects.get(key);
+        if (depObj) {
+          const deployment: KubernetesDeploymentObject =
+            depObj as KubernetesDeploymentObject;
+
+          const readyReplicas: number = deployment.status.readyReplicas;
+          const replicas: number = deployment.spec.replicas;
+
+          if (readyReplicas === replicas && replicas > 0) {
+            resource.status = "Ready";
+          } else if (readyReplicas < replicas) {
+            // Check conditions for failure
+            const failedCondition = deployment.status.conditions.find(
+              (c) => c.type === "Available" && c.status === "False",
+            );
+            resource.status = failedCondition ? "Failed" : "Progressing";
+          } else {
+            resource.status = "Progressing";
+          }
+
+          resource.additionalAttributes["ready"] =
+            `${readyReplicas}/${replicas}`;
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            deployment.metadata.creationTimestamp,
+          );
+        }
+      }
 
       setResources(deploymentList);
     } catch (err) {
@@ -78,24 +117,28 @@ const KubernetesClusterDeployments: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="Deployments"
-        description="All deployments running in this cluster."
-        resources={resources}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[
-              PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL
-            ] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+    <KubernetesResourceTable
+      title="Deployments"
+      description="All deployments running in this cluster."
+      resources={resources}
+      columns={[
+        {
+          title: "Ready",
+          key: "ready",
+        },
+      ]}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[
+            PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL
+          ] as Route,
+          {
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
+          },
+        );
+      }}
+    />
   );
 };
 

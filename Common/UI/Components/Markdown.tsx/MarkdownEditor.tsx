@@ -1,6 +1,7 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentation";
+import DOMPurify from "dompurify";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -416,9 +417,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       htmlContent = `<p class="mb-4">${htmlContent}</p>`;
     }
 
+    const sanitizedContent: string = DOMPurify.sanitize(htmlContent);
+
     return (
       <div className="p-4 min-h-32 bg-white prose prose-sm max-w-none">
-        <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+        <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
       </div>
     );
   };

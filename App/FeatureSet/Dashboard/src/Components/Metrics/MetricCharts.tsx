@@ -197,6 +197,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
+                if (queryConfig.yAxisValueFormatter) {
+                  return queryConfig.yAxisValueFormatter(value);
+                }
+
                 const metricType: MetricType | undefined =
                   props.metricTypes.find((m: MetricType) => {
                     return (

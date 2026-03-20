@@ -38,6 +38,9 @@ import MonitorStepDomainMonitor, {
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "./MonitorStepExternalStatusPageMonitor";
+import MonitorStepKubernetesMonitor, {
+  MonitorStepKubernetesMonitorUtil,
+} from "./MonitorStepKubernetesMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorStepType {
@@ -90,6 +93,9 @@ export interface MonitorStepType {
 
   // External Status Page monitor
   externalStatusPageMonitor?: MonitorStepExternalStatusPageMonitor | undefined;
+
+  // Kubernetes monitor
+  kubernetesMonitor?: MonitorStepKubernetesMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -119,6 +125,7 @@ export default class MonitorStep extends DatabaseProperty {
       dnsMonitor: undefined,
       domainMonitor: undefined,
       externalStatusPageMonitor: undefined,
+      kubernetesMonitor: undefined,
     };
   }
 
@@ -153,6 +160,7 @@ export default class MonitorStep extends DatabaseProperty {
       dnsMonitor: undefined,
       domainMonitor: undefined,
       externalStatusPageMonitor: undefined,
+      kubernetesMonitor: undefined,
     };
 
     return monitorStep;
@@ -267,6 +275,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setKubernetesMonitor(
+    kubernetesMonitor: MonitorStepKubernetesMonitor,
+  ): MonitorStep {
+    this.data!.kubernetesMonitor = kubernetesMonitor;
+    return this;
+  }
+
   public setCustomCode(customCode: string): MonitorStep {
     this.data!.customCode = customCode;
     return this;
@@ -293,8 +308,9 @@ export default class MonitorStep extends DatabaseProperty {
         screenSizeTypes: undefined,
         browserTypes: undefined,
         retryCountOnError: undefined,
-        lgoMonitor: undefined,
+        logMonitor: undefined,
         exceptionMonitor: undefined,
+        kubernetesMonitor: undefined,
       },
     };
   }
@@ -405,6 +421,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.Kubernetes) {
+      if (!value.data.kubernetesMonitor) {
+        return "Kubernetes monitor configuration is required";
+      }
+
+      if (!value.data.kubernetesMonitor.clusterIdentifier) {
+        return "Kubernetes cluster is required";
+      }
+    }
+
     return null;
   }
 
@@ -459,6 +485,11 @@ export default class MonitorStep extends DatabaseProperty {
           externalStatusPageMonitor: this.data.externalStatusPageMonitor
             ? MonitorStepExternalStatusPageMonitorUtil.toJSON(
                 this.data.externalStatusPageMonitor,
+              )
+            : undefined,
+          kubernetesMonitor: this.data.kubernetesMonitor
+            ? MonitorStepKubernetesMonitorUtil.toJSON(
+                this.data.kubernetesMonitor,
               )
             : undefined,
         },
@@ -575,6 +606,9 @@ export default class MonitorStep extends DatabaseProperty {
       externalStatusPageMonitor: json["externalStatusPageMonitor"]
         ? (json["externalStatusPageMonitor"] as JSONObject)
         : undefined,
+      kubernetesMonitor: json["kubernetesMonitor"]
+        ? (json["kubernetesMonitor"] as JSONObject)
+        : undefined,
     }) as any;
 
     return monitorStep;
@@ -603,6 +637,7 @@ export default class MonitorStep extends DatabaseProperty {
         dnsMonitor: Zod.any().optional(),
         domainMonitor: Zod.any().optional(),
         externalStatusPageMonitor: Zod.any().optional(),
+        kubernetesMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",
         example: {

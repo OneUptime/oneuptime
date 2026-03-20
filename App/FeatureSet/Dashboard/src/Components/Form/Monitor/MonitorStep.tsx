@@ -67,6 +67,11 @@ import MetricMonitorStepForm from "./MetricMonitor/MetricMonitorStepForm";
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import KubernetesMonitorStepForm from "./KubernetesMonitor/KubernetesMonitorStepForm";
+import { KubernetesFormMode } from "./KubernetesMonitor/KubernetesMonitorStepForm";
+import MonitorStepKubernetesMonitor, {
+  MonitorStepKubernetesMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import Link from "Common/UI/Components/Link/Link";
 import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
@@ -128,6 +133,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [kubernetesFormMode, setKubernetesFormMode] =
+    useState<KubernetesFormMode>("quick");
 
   const fetchLogAttributes: PromiseVoidFunction = async (): Promise<void> => {
     const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -737,6 +745,27 @@ return {
             onChange={(value: MonitorStepMetricMonitor) => {
               monitorStep.setMetricMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Kubernetes && (
+        <Card
+          title="Kubernetes Monitor Configuration"
+          description="Configure your Kubernetes cluster monitoring using templates, curated metrics, or the advanced query builder."
+        >
+          <KubernetesMonitorStepForm
+            monitorStepKubernetesMonitor={
+              monitorStep.data?.kubernetesMonitor ||
+              MonitorStepKubernetesMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepKubernetesMonitor) => {
+              monitorStep.setKubernetesMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onModeChange={(mode: KubernetesFormMode) => {
+              setKubernetesFormMode(mode);
             }}
           />
         </Card>

@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesJobObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterJobs: FunctionComponent<
   PageComponentProps
@@ -48,13 +47,43 @@ const KubernetesClusterJobs: FunctionComponent<
         return;
       }
 
-      const jobList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [jobList, jobObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
           resourceNameAttribute: "resource.k8s.job.name",
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "jobs",
+        }),
+      ]);
+
+      for (const resource of jobList) {
+        const key: string = `${resource.namespace}/${resource.name}`;
+        const jobObj: KubernetesObjectType | undefined = jobObjects.get(key);
+        if (jobObj) {
+          const job: KubernetesJobObject = jobObj as KubernetesJobObject;
+
+          if (job.status.completionTime) {
+            resource.status = "Complete";
+          } else if (job.status.failed > 0) {
+            resource.status = "Failed";
+          } else if (job.status.active > 0) {
+            resource.status = "Running";
+          } else {
+            resource.status = "Pending";
+          }
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            job.metadata.creationTimestamp,
+          );
+        }
+      }
 
       setResources(jobList);
     } catch (err) {
@@ -78,22 +107,20 @@ const KubernetesClusterJobs: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="Jobs"
-        description="All jobs in this cluster."
-        resources={resources}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+    <KubernetesResourceTable
+      title="Jobs"
+      description="All jobs in this cluster."
+      resources={resources}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL] as Route,
+          {
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
+          },
+        );
+      }}
+    />
   );
 };
 

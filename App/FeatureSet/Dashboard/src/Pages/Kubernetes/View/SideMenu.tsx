@@ -8,13 +8,32 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
+export interface ResourceCounts {
+  namespaces?: number | undefined;
+  pods?: number | undefined;
+  deployments?: number | undefined;
+  statefulSets?: number | undefined;
+  daemonSets?: number | undefined;
+  jobs?: number | undefined;
+  cronJobs?: number | undefined;
+  nodes?: number | undefined;
+  containers?: number | undefined;
+  pvcs?: number | undefined;
+  pvs?: number | undefined;
+  hpas?: number | undefined;
+  vpas?: number | undefined;
+}
+
 export interface ComponentProps {
   modelId: ObjectID;
+  resourceCounts?: ResourceCounts | undefined;
 }
 
 const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const counts: ResourceCounts = props.resourceCounts || {};
+
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
@@ -50,6 +69,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Folder}
+          badge={counts.namespaces}
         />
         <SideMenuItem
           link={{
@@ -60,6 +80,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Circle}
+          badge={counts.pods}
         />
         <SideMenuItem
           link={{
@@ -70,6 +91,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Layers}
+          badge={counts.deployments}
         />
         <SideMenuItem
           link={{
@@ -80,6 +102,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Database}
+          badge={counts.statefulSets}
         />
         <SideMenuItem
           link={{
@@ -90,6 +113,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Settings}
+          badge={counts.daemonSets}
         />
         <SideMenuItem
           link={{
@@ -100,6 +124,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Play}
+          badge={counts.jobs}
         />
         <SideMenuItem
           link={{
@@ -110,6 +135,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Clock}
+          badge={counts.cronJobs}
         />
       </SideMenuSection>
 
@@ -123,6 +149,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Server}
+          badge={counts.nodes}
         />
         <SideMenuItem
           link={{
@@ -133,6 +160,58 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Cube}
+          badge={counts.containers}
+        />
+        <SideMenuItem
+          link={{
+            title: "PVCs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.KUBERNETES_CLUSTER_VIEW_PVCS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Disc}
+          badge={counts.pvcs}
+        />
+        <SideMenuItem
+          link={{
+            title: "PVs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.KUBERNETES_CLUSTER_VIEW_PVS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Disc}
+          badge={counts.pvs}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Scaling">
+        <SideMenuItem
+          link={{
+            title: "HPAs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_HPAS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ArrowUpDown}
+          badge={counts.hpas}
+        />
+        <SideMenuItem
+          link={{
+            title: "VPAs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_VPAS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Scale}
+          badge={counts.vpas}
         />
       </SideMenuSection>
 
@@ -156,6 +235,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Activity}
+        />
+        <SideMenuItem
+          link={{
+            title: "Service Mesh",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Globe}
         />
       </SideMenuSection>
 

@@ -3,13 +3,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -28,6 +27,12 @@ import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEvents
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesDaemonSetObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterDaemonSetDetail: FunctionComponent<
   PageComponentProps
@@ -145,7 +150,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       title: "Pod Memory Usage",
       description: `Memory usage for pods in daemonset ${daemonSetName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -162,6 +167,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   // Build overview summary fields from daemonset object
@@ -175,7 +181,15 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Namespace",
-        value: objectData.metadata.namespace || "default",
+        value: objectData.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={objectData.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Desired Scheduled",
@@ -187,11 +201,35 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       },
       {
         title: "Number Ready",
-        value: String(objectData.status.numberReady ?? "N/A"),
+        value: (
+          <StatusBadge
+            text={`${objectData.status.numberReady ?? 0}/${objectData.status.desiredNumberScheduled ?? 0}`}
+            type={
+              (objectData.status.numberReady ?? 0) >=
+              (objectData.status.desiredNumberScheduled ?? 0)
+                ? StatusBadgeType.Success
+                : (objectData.status.numberReady ?? 0) > 0
+                  ? StatusBadgeType.Warning
+                  : StatusBadgeType.Danger
+            }
+          />
+        ),
       },
       {
         title: "Number Available",
-        value: String(objectData.status.numberAvailable ?? "N/A"),
+        value: (
+          <StatusBadge
+            text={`${objectData.status.numberAvailable ?? 0}/${objectData.status.desiredNumberScheduled ?? 0}`}
+            type={
+              (objectData.status.numberAvailable ?? 0) >=
+              (objectData.status.desiredNumberScheduled ?? 0)
+                ? StatusBadgeType.Success
+                : (objectData.status.numberAvailable ?? 0) > 0
+                  ? StatusBadgeType.Warning
+                  : StatusBadgeType.Danger
+            }
+          />
+        ),
       },
       {
         title: "Update Strategy",
@@ -243,20 +281,20 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
         </Card>
       ),
     },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="daemonsets"
+          resourceName={daemonSetName}
+          namespace={objectData?.metadata.namespace}
+        />
+      ),
+    },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="DaemonSet" value={daemonSetName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterDaemonSetDetail;

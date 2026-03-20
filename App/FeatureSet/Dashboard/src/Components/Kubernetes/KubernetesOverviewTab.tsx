@@ -4,6 +4,10 @@ import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import DictionaryOfStringsViewer from "Common/UI/Components/Dictionary/DictionaryOfStingsViewer";
 import { KubernetesCondition } from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ConditionsTable from "Common/UI/Components/ConditionsTable/ConditionsTable";
+import type { Condition } from "Common/UI/Components/ConditionsTable/ConditionsTable";
+import ObjectID from "Common/Types/ObjectID";
+import KubernetesResourceLink from "./KubernetesResourceLink";
 
 export interface SummaryField {
   title: string;
@@ -16,6 +20,7 @@ export interface ComponentProps {
   annotations: Record<string, string>;
   conditions?: Array<KubernetesCondition> | undefined;
   ownerReferences?: Array<{ kind: string; name: string }> | undefined;
+  modelId?: ObjectID | undefined;
   isLoading: boolean;
   emptyMessage?: string | undefined;
 }
@@ -38,6 +43,17 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
       </div>
     );
   }
+
+  // Convert KubernetesCondition[] to generic Condition[] for ConditionsTable
+  const conditions: Array<Condition> | undefined = props.conditions?.map(
+    (c: KubernetesCondition): Condition => ({
+      type: c.type,
+      status: c.status,
+      reason: c.reason,
+      message: c.message,
+      lastTransitionTime: c.lastTransitionTime,
+    }),
+  );
 
   return (
     <div className="space-y-6">
@@ -66,7 +82,15 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
                     <span className="font-medium text-gray-700">
                       {ref.kind}:
                     </span>{" "}
-                    <span className="text-gray-600">{ref.name}</span>
+                    {props.modelId ? (
+                      <KubernetesResourceLink
+                        modelId={props.modelId}
+                        resourceKind={ref.kind}
+                        resourceName={ref.name}
+                      />
+                    ) : (
+                      <span className="text-gray-600">{ref.name}</span>
+                    )}
                   </div>
                 );
               },
@@ -76,69 +100,12 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Conditions */}
-      {props.conditions && props.conditions.length > 0 && (
+      {conditions && conditions.length > 0 && (
         <Card
           title="Conditions"
           description="Current status conditions of this resource."
         >
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Reason
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Message
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Last Transition
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {props.conditions.map(
-                  (condition: KubernetesCondition, index: number) => {
-                    return (
-                      <tr key={index}>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {condition.type}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <span
-                            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
-                              condition.status === "True"
-                                ? "bg-green-50 text-green-700"
-                                : condition.status === "False"
-                                  ? "bg-red-50 text-red-700"
-                                  : "bg-gray-50 text-gray-700"
-                            }`}
-                          >
-                            {condition.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                          {condition.reason || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 max-w-md truncate">
-                          {condition.message || "-"}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {condition.lastTransitionTime || "-"}
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
-              </tbody>
-            </table>
-          </div>
+          <ConditionsTable conditions={conditions} />
         </Card>
       )}
 

@@ -63,13 +63,28 @@ data:
             mode: pull
             interval: {{ .Values.resourceSpecs.interval }}
             group: batch
+          - name: persistentvolumeclaims
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: persistentvolumes
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: horizontalpodautoscalers
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: autoscaling
+          - name: verticalpodautoscalers
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: autoscaling.k8s.io
           {{- end }}
 
-      {{- if .Values.controlPlane.enabled }}
-      # Scrape control plane metrics via Prometheus endpoints
+      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled }}
+      # Scrape metrics via Prometheus endpoints (control plane and/or service mesh)
       prometheus:
         config:
           scrape_configs:
+            {{- if .Values.controlPlane.enabled }}
             - job_name: etcd
               scheme: https
               tls_config:
@@ -109,6 +124,53 @@ data:
                 - targets:
                     - {{ . | quote }}
                 {{- end }}
+            {{- end }}
+            {{- if and .Values.serviceMesh.enabled (eq .Values.serviceMesh.provider "istio") }}
+            - job_name: envoy-stats
+              metrics_path: /stats/prometheus
+              scrape_interval: {{ .Values.serviceMesh.istio.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  action: keep
+                  regex: istio-proxy
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port, __meta_kubernetes_pod_ip]
+                  action: replace
+                  regex: (\d+);((([0-9]+?)(\.|$)){4})
+                  replacement: $2:15090
+                  target_label: __address__
+                - action: labelmap
+                  regex: __meta_kubernetes_pod_label_(.+)
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: pod_name
+            {{- end }}
+            {{- if and .Values.serviceMesh.enabled (eq .Values.serviceMesh.provider "linkerd") }}
+            - job_name: linkerd-proxy
+              metrics_path: /metrics
+              scrape_interval: {{ .Values.serviceMesh.linkerd.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  action: keep
+                  regex: linkerd-proxy
+                - source_labels: [__meta_kubernetes_pod_container_port_name]
+                  action: keep
+                  regex: linkerd-admin
+                - action: labelmap
+                  regex: __meta_kubernetes_pod_label_(.+)
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: pod_name
+            {{- end }}
       {{- end }}
 
     processors:
@@ -145,11 +207,14 @@ data:
           - sources:
               - from: connection
 
-      # Stamp all telemetry with the cluster name
+      # Stamp all telemetry with the cluster name and service name
       resource:
         attributes:
           - key: k8s.cluster.name
             value: {{ .Values.clusterName | quote }}
+            action: upsert
+          - key: service.name
+            value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: upsert
 
       # Batch telemetry for efficient export
@@ -187,7 +252,7 @@ data:
         metrics:
           receivers:
             - k8s_cluster
-            {{- if .Values.controlPlane.enabled }}
+            {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled }}
             - prometheus
             {{- end }}
           processors:

@@ -3,11 +3,10 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -28,6 +27,11 @@ import {
   KubernetesNodeObject,
 } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -135,7 +139,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       title: "Memory Usage",
       description: `Memory usage for node ${nodeName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -151,6 +155,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   const filesystemQuery: MetricQueryConfigData = {
@@ -159,7 +164,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       title: "Filesystem Usage",
       description: `Filesystem usage for node ${nodeName}`,
       legend: "Filesystem",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -175,6 +180,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   const networkRxQuery: MetricQueryConfigData = {
@@ -183,7 +189,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       title: "Network Receive",
       description: `Network bytes received for node ${nodeName}`,
       legend: "Network RX",
-      legendUnit: "bytes/s",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -199,6 +205,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesPerSecForChart,
   };
 
   const networkTxQuery: MetricQueryConfigData = {
@@ -207,7 +214,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       title: "Network Transmit",
       description: `Network bytes transmitted for node ${nodeName}`,
       legend: "Network TX",
-      legendUnit: "bytes/s",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -223,6 +230,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesPerSecForChart,
   };
 
   // Determine node status from conditions
@@ -253,28 +261,109 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   if (nodeObject) {
     const nodeStatus: { label: string; isReady: boolean } = getNodeStatus();
 
+    // Extract node roles from labels
+    const roles: Array<string> = Object.keys(
+      nodeObject.metadata.labels,
+    )
+      .filter((key: string) => {
+        return key.startsWith("node-role.kubernetes.io/");
+      })
+      .map((key: string) => {
+        return key.replace("node-role.kubernetes.io/", "");
+      });
+
+    // Extract internal IP
+    const internalIP: string =
+      nodeObject.status.addresses.find(
+        (a: { type: string; address: string }) => {
+          return a.type === "InternalIP";
+        },
+      )?.address || "N/A";
+
+    // Check pressure conditions
+    const pressureConditions: Array<string> = nodeObject.status.conditions
+      .filter((c: KubernetesCondition) => {
+        return (
+          c.status === "True" &&
+          (c.type === "MemoryPressure" ||
+            c.type === "DiskPressure" ||
+            c.type === "PIDPressure")
+        );
+      })
+      .map((c: KubernetesCondition) => {
+        return c.type;
+      });
+
+    summaryFields.push({
+      title: "Status",
+      value: (
+        <StatusBadge
+          text={nodeStatus.label}
+          type={
+            nodeStatus.isReady
+              ? StatusBadgeType.Success
+              : StatusBadgeType.Danger
+          }
+        />
+      ),
+    });
+
+    if (roles.length > 0) {
+      summaryFields.push({
+        title: "Roles",
+        value: (
+          <div className="flex gap-1 flex-wrap">
+            {roles.map((role: string) => {
+              return (
+                <StatusBadge
+                  key={role}
+                  text={role}
+                  type={StatusBadgeType.Info}
+                />
+              );
+            })}
+          </div>
+        ),
+      });
+    }
+
+    summaryFields.push({ title: "Internal IP", value: internalIP });
+
+    if (pressureConditions.length > 0) {
+      summaryFields.push({
+        title: "Pressure",
+        value: (
+          <div className="flex gap-1 flex-wrap">
+            {pressureConditions.map((p: string) => {
+              return (
+                <StatusBadge
+                  key={p}
+                  text={p}
+                  type={StatusBadgeType.Danger}
+                />
+              );
+            })}
+          </div>
+        ),
+      });
+    }
+
     summaryFields.push(
       {
-        title: "Status",
-        value: (
-          <span
-            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
-              nodeStatus.isReady
-                ? "bg-green-50 text-green-700"
-                : "bg-red-50 text-red-700"
-            }`}
-          >
-            {nodeStatus.label}
-          </span>
-        ),
+        title: "CPU (Capacity / Allocatable)",
+        value: `${nodeObject.status.capacity["cpu"] || "N/A"} / ${nodeObject.status.allocatable["cpu"] || "N/A"}`,
+      },
+      {
+        title: "Memory (Capacity / Allocatable)",
+        value: `${nodeObject.status.capacity["memory"] || "N/A"} / ${nodeObject.status.allocatable["memory"] || "N/A"}`,
+      },
+      {
+        title: "Pods (Capacity)",
+        value: nodeObject.status.capacity["pods"] || "N/A",
       },
       {
         title: "OS Image",
         value: nodeObject.status.nodeInfo.osImage || "N/A",
-      },
-      {
-        title: "Kernel",
-        value: nodeObject.status.nodeInfo.kernelVersion || "N/A",
       },
       {
         title: "Container Runtime",
@@ -286,19 +375,19 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       },
       {
         title: "Architecture",
-        value: nodeObject.status.nodeInfo.architecture || "N/A",
+        value: `${nodeObject.status.nodeInfo.operatingSystem || "N/A"}/${nodeObject.status.nodeInfo.architecture || "N/A"}`,
       },
       {
-        title: "CPU Allocatable",
-        value: nodeObject.status.allocatable["cpu"] || "N/A",
-      },
-      {
-        title: "Memory Allocatable",
-        value: nodeObject.status.allocatable["memory"] || "N/A",
+        title: "Kernel",
+        value: nodeObject.status.nodeInfo.kernelVersion || "N/A",
       },
       {
         title: "Created",
-        value: nodeObject.metadata.creationTimestamp || "N/A",
+        value: nodeObject.metadata.creationTimestamp
+          ? KubernetesResourceUtils.formatAge(
+              nodeObject.metadata.creationTimestamp,
+            )
+          : "N/A",
       },
     );
   }
@@ -350,20 +439,19 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         </Card>
       ),
     },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="nodes"
+          resourceName={nodeName}
+        />
+      ),
+    },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="Node Name" value={nodeName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterNodeDetail;

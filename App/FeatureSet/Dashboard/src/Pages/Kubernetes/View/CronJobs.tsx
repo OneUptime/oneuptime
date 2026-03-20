@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterCronJobs: FunctionComponent<
   PageComponentProps
@@ -48,13 +47,39 @@ const KubernetesClusterCronJobs: FunctionComponent<
         return;
       }
 
-      const cronjobList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [cronjobList, cronjobObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "k8s.pod.cpu.utilization",
           memoryMetricName: "k8s.pod.memory.usage",
           resourceNameAttribute: "resource.k8s.cronjob.name",
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "cronjobs",
+        }),
+      ]);
+
+      for (const resource of cronjobList) {
+        const key: string = `${resource.namespace}/${resource.name}`;
+        const cjObj: KubernetesObjectType | undefined =
+          cronjobObjects.get(key);
+        if (cjObj) {
+          const cronJob: KubernetesCronJobObject =
+            cjObj as KubernetesCronJobObject;
+
+          resource.status = cronJob.spec.suspend ? "Suspended" : "Active";
+
+          resource.additionalAttributes["schedule"] = cronJob.spec.schedule;
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            cronJob.metadata.creationTimestamp,
+          );
+        }
+      }
 
       setResources(cronjobList);
     } catch (err) {
@@ -78,22 +103,26 @@ const KubernetesClusterCronJobs: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="CronJobs"
-        description="All cron jobs in this cluster."
-        resources={resources}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+    <KubernetesResourceTable
+      title="CronJobs"
+      description="All cron jobs in this cluster."
+      resources={resources}
+      columns={[
+        {
+          title: "Schedule",
+          key: "schedule",
+        },
+      ]}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOB_DETAIL] as Route,
+          {
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
+          },
+        );
+      }}
+    />
   );
 };
 

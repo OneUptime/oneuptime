@@ -6,13 +6,7 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -21,6 +15,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
+import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterContainers: FunctionComponent<
   PageComponentProps
@@ -48,14 +47,58 @@ const KubernetesClusterContainers: FunctionComponent<
         return;
       }
 
-      const containerList: Array<KubernetesResource> =
-        await KubernetesResourceUtils.fetchResourceListWithMemory({
+      const [containerList, podObjects]: [
+        Array<KubernetesResource>,
+        Map<string, KubernetesObjectType>,
+      ] = await Promise.all([
+        KubernetesResourceUtils.fetchResourceListWithMemory({
           clusterIdentifier: cluster.clusterIdentifier,
           metricName: "container.cpu.utilization",
           memoryMetricName: "container.memory.usage",
           resourceNameAttribute: "resource.k8s.container.name",
           additionalAttributes: ["resource.k8s.pod.name"],
-        });
+        }),
+        fetchK8sObjectsBatch({
+          clusterIdentifier: cluster.clusterIdentifier,
+          resourceType: "pods",
+        }),
+      ]);
+
+      for (const resource of containerList) {
+        const podName: string =
+          resource.additionalAttributes["resource.k8s.pod.name"] || "";
+        const podKey: string = resource.namespace
+          ? `${resource.namespace}/${podName}`
+          : podName;
+        const podObj: KubernetesObjectType | undefined = podObjects.get(podKey);
+        if (podObj) {
+          const pod: KubernetesPodObject = podObj as KubernetesPodObject;
+
+          // Find the container status matching this container name
+          const containerStatus = pod.status.containerStatuses.find(
+            (cs) => cs.name === resource.name,
+          );
+
+          if (containerStatus) {
+            if (containerStatus.state === "running") {
+              resource.status = containerStatus.ready ? "Running" : "NotReady";
+            } else if (containerStatus.state === "waiting") {
+              resource.status = "Waiting";
+            } else if (containerStatus.state === "terminated") {
+              resource.status = "Terminated";
+            } else {
+              resource.status = containerStatus.state || "Unknown";
+            }
+
+            resource.additionalAttributes["restarts"] =
+              `${containerStatus.restartCount}`;
+          }
+
+          resource.age = KubernetesResourceUtils.formatAge(
+            pod.metadata.creationTimestamp,
+          );
+        }
+      }
 
       setResources(containerList);
     } catch (err) {
@@ -79,28 +122,30 @@ const KubernetesClusterContainers: FunctionComponent<
   }
 
   return (
-    <Fragment>
-      <KubernetesResourceTable
-        title="Containers"
-        description="All containers running in this cluster."
-        resources={resources}
-        columns={[
+    <KubernetesResourceTable
+      title="Containers"
+      description="All containers running in this cluster."
+      resources={resources}
+      columns={[
+        {
+          title: "Pod",
+          key: "resource.k8s.pod.name",
+        },
+        {
+          title: "Restarts",
+          key: "restarts",
+        },
+      ]}
+      getViewRoute={(resource: KubernetesResource) => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL] as Route,
           {
-            title: "Pod",
-            key: "resource.k8s.pod.name",
+            modelId: modelId,
+            subModelId: new ObjectID(resource.name),
           },
-        ]}
-        getViewRoute={(resource: KubernetesResource) => {
-          return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL] as Route,
-            {
-              modelId: modelId,
-              subModelId: new ObjectID(resource.name),
-            },
-          );
-        }}
-      />
-    </Fragment>
+        );
+      }}
+    />
   );
 };
 

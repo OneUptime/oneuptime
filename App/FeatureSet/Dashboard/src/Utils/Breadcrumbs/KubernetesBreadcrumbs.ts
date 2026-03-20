@@ -146,6 +146,28 @@ export function getKubernetesBreadcrumbs(
       ],
     ),
 
+    // Scaling
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_HPAS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "HPAs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL,
+      ["Project", "Kubernetes", "View Cluster", "HPAs", "HPA Detail"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_VPAS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "VPAs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL,
+      ["Project", "Kubernetes", "View Cluster", "VPAs", "VPA Detail"],
+    ),
+
     // Observability
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS, [
       "Project",
@@ -156,6 +178,10 @@ export function getKubernetesBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(
       PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE,
       ["Project", "Kubernetes", "View Cluster", "Control Plane"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH,
+      ["Project", "Kubernetes", "View Cluster", "Service Mesh"],
     ),
 
     // Advanced

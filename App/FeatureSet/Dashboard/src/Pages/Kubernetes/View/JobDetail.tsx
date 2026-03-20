@@ -3,13 +3,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -28,6 +27,12 @@ import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEvents
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterJobDetail: FunctionComponent<
   PageComponentProps
@@ -144,7 +149,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
       title: "Pod Memory Usage",
       description: `Memory usage for pods in job ${jobName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -161,6 +166,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   // Build overview summary fields from job object
@@ -174,7 +180,15 @@ const KubernetesClusterJobDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Namespace",
-        value: jobObject.metadata.namespace || "default",
+        value: jobObject.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={jobObject.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Completions",
@@ -190,15 +204,42 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
       {
         title: "Active",
-        value: String(jobObject.status.active ?? 0),
+        value: (
+          <StatusBadge
+            text={String(jobObject.status.active ?? 0)}
+            type={
+              (jobObject.status.active ?? 0) > 0
+                ? StatusBadgeType.Info
+                : StatusBadgeType.Neutral
+            }
+          />
+        ),
       },
       {
         title: "Succeeded",
-        value: String(jobObject.status.succeeded ?? 0),
+        value: (
+          <StatusBadge
+            text={String(jobObject.status.succeeded ?? 0)}
+            type={
+              (jobObject.status.succeeded ?? 0) > 0
+                ? StatusBadgeType.Success
+                : StatusBadgeType.Neutral
+            }
+          />
+        ),
       },
       {
         title: "Failed",
-        value: String(jobObject.status.failed ?? 0),
+        value: (
+          <StatusBadge
+            text={String(jobObject.status.failed ?? 0)}
+            type={
+              (jobObject.status.failed ?? 0) > 0
+                ? StatusBadgeType.Danger
+                : StatusBadgeType.Neutral
+            }
+          />
+        ),
       },
       {
         title: "Start Time",
@@ -255,20 +296,20 @@ const KubernetesClusterJobDetail: FunctionComponent<
         </Card>
       ),
     },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="jobs"
+          resourceName={jobName}
+          namespace={jobObject?.metadata.namespace}
+        />
+      ),
+    },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="Job Name" value={jobName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterJobDetail;

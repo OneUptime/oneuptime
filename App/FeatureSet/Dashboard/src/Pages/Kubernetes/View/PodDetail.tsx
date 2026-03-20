@@ -3,13 +3,11 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -28,8 +26,16 @@ import KubernetesContainersTab from "../../../Components/Kubernetes/KubernetesCo
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
+import KubernetesEnvVarsTab from "../../../Components/Kubernetes/KubernetesEnvVarsTab";
+import KubernetesVolumeMountsTab from "../../../Components/Kubernetes/KubernetesVolumeMountsTab";
 import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -147,7 +153,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       title: "Container Memory Usage",
       description: `Memory usage for containers in pod ${podName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -164,6 +170,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       },
     },
     getSeries: getContainerSeries,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   const podCpuQuery: MetricQueryConfigData = {
@@ -196,7 +203,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       title: "Pod Memory Usage",
       description: `Memory usage for pod ${podName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -212,6 +219,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: true,
       },
     },
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   // Build overview summary fields from pod object
@@ -222,30 +230,80 @@ const KubernetesClusterPodDetail: FunctionComponent<
     ];
 
   if (podObject) {
+    // Compute restart count
+    const restartCount: number = podObject.status.containerStatuses.reduce(
+      (sum: number, cs: { restartCount: number }) => {
+        return sum + cs.restartCount;
+      },
+      0,
+    );
+
+    // Compute container images
+    const containerImages: Array<string> = podObject.spec.containers.map(
+      (c: { image: string }) => {
+        return c.image;
+      },
+    );
+
     summaryFields.push(
       {
         title: "Namespace",
-        value: podObject.metadata.namespace || "default",
+        value: podObject.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={podObject.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Status",
         value: (
-          <span
-            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+          <StatusBadge
+            text={podObject.status.phase || "Unknown"}
+            type={
               podObject.status.phase === "Running"
-                ? "bg-green-50 text-green-700"
+                ? StatusBadgeType.Success
                 : podObject.status.phase === "Succeeded"
-                  ? "bg-blue-50 text-blue-700"
+                  ? StatusBadgeType.Info
                   : podObject.status.phase === "Failed"
-                    ? "bg-red-50 text-red-700"
-                    : "bg-yellow-50 text-yellow-700"
-            }`}
-          >
-            {podObject.status.phase || "Unknown"}
-          </span>
+                    ? StatusBadgeType.Danger
+                    : StatusBadgeType.Warning
+            }
+          />
         ),
       },
-      { title: "Node", value: podObject.spec.nodeName || "N/A" },
+      {
+        title: "QoS Class",
+        value: podObject.status.qosClass || "N/A",
+      },
+      {
+        title: "Restarts",
+        value: (
+          <StatusBadge
+            text={restartCount.toString()}
+            type={
+              restartCount > 0
+                ? StatusBadgeType.Warning
+                : StatusBadgeType.Neutral
+            }
+          />
+        ),
+      },
+      {
+        title: "Node",
+        value: podObject.spec.nodeName ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Node"
+            resourceName={podObject.spec.nodeName}
+          />
+        ) : (
+          "N/A"
+        ),
+      },
       { title: "Pod IP", value: podObject.status.podIP || "N/A" },
       { title: "Host IP", value: podObject.status.hostIP || "N/A" },
       {
@@ -253,8 +311,29 @@ const KubernetesClusterPodDetail: FunctionComponent<
         value: podObject.spec.serviceAccountName || "default",
       },
       {
+        title: "Images",
+        value: (
+          <div className="space-y-1">
+            {containerImages.map((img: string, idx: number) => {
+              return (
+                <div
+                  key={idx}
+                  className="text-xs font-mono bg-gray-50 px-2 py-1 rounded"
+                >
+                  {img}
+                </div>
+              );
+            })}
+          </div>
+        ),
+      },
+      {
         title: "Created",
-        value: podObject.metadata.creationTimestamp || "N/A",
+        value: podObject.metadata.creationTimestamp
+          ? KubernetesResourceUtils.formatAge(
+              podObject.metadata.creationTimestamp,
+            )
+          : "N/A",
       },
     );
   }
@@ -269,6 +348,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
           annotations={podObject?.metadata.annotations || {}}
           conditions={podObject?.status.conditions}
           ownerReferences={podObject?.metadata.ownerReferences}
+          modelId={modelId}
           isLoading={isLoadingObject}
         />
       ),
@@ -292,6 +372,38 @@ const KubernetesClusterPodDetail: FunctionComponent<
       ),
     },
     {
+      name: "Env Vars",
+      children: podObject ? (
+        <KubernetesEnvVarsTab
+          containers={podObject.spec.containers}
+          initContainers={podObject.spec.initContainers}
+        />
+      ) : isLoadingObject ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <div className="text-gray-500 text-sm p-4">
+          Environment variable details not yet available. Ensure the
+          kubernetes-agent Helm chart has resourceSpecs.enabled set to true.
+        </div>
+      ),
+    },
+    {
+      name: "Volume Mounts",
+      children: podObject ? (
+        <KubernetesVolumeMountsTab
+          containers={podObject.spec.containers}
+          initContainers={podObject.spec.initContainers}
+        />
+      ) : isLoadingObject ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <div className="text-gray-500 text-sm p-4">
+          Volume mount details not yet available. Ensure the kubernetes-agent
+          Helm chart has resourceSpecs.enabled set to true.
+        </div>
+      ),
+    },
+    {
       name: "Events",
       children: (
         <Card
@@ -310,16 +422,11 @@ const KubernetesClusterPodDetail: FunctionComponent<
     {
       name: "Logs",
       children: (
-        <Card
-          title="Application Logs"
-          description="Container logs for this pod from the last 6 hours."
-        >
-          <KubernetesLogsTab
-            clusterIdentifier={clusterIdentifier}
-            podName={podName}
-            namespace={podObject?.metadata.namespace}
-          />
-        </Card>
+        <KubernetesLogsTab
+          clusterIdentifier={clusterIdentifier}
+          podName={podName}
+          namespace={podObject?.metadata.namespace}
+        />
       ),
     },
     {
@@ -335,20 +442,20 @@ const KubernetesClusterPodDetail: FunctionComponent<
         </Card>
       ),
     },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="pods"
+          resourceName={podName}
+          namespace={podObject?.metadata.namespace}
+        />
+      ),
+    },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="Pod Name" value={podName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterPodDetail;

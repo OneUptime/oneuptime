@@ -1630,13 +1630,20 @@ jobs:
           PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
           echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
 
+          # Extract the UUID from the profile and install with UUID as filename
+          # This is required for Xcode to find the profile during manual code signing
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i "$PROFILE_PATH"))
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_UUID".mobileprovision
 
       - name: Build archive
         env:
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
+          if [ -z "$IOS_TEAM_ID" ]; then
+            echo "::error::IOS_TEAM_ID secret is not set"
+            exit 1
+          fi
           cd MobileApp
           xcodebuild -workspace ios/OneUptimeOnCall.xcworkspace \
             -scheme OneUptimeOnCall \
@@ -1644,6 +1651,8 @@ jobs:
             -sdk iphoneos \
             -archivePath $RUNNER_TEMP/OneUptimeOnCall.xcarchive \
             archive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
             DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
             MARKETING_VERSION=${{ needs.read-version.outputs.major_minor }} \
             CURRENT_PROJECT_VERSION=${{ needs.generate-build-number.outputs.build_number }}

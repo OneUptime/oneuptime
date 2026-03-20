@@ -84,6 +84,10 @@ export class MonitorTypeHelper {
         monitorTypes: [MonitorType.Server, MonitorType.SNMP],
       },
       {
+        label: "Kubernetes",
+        monitorTypes: [MonitorType.Kubernetes],
+      },
+      {
         label: "Telemetry",
         monitorTypes: [
           MonitorType.Logs,
@@ -104,7 +108,8 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Logs ||
       monitorType === MonitorType.Metrics ||
       monitorType === MonitorType.Traces ||
-      monitorType === MonitorType.Exceptions
+      monitorType === MonitorType.Exceptions ||
+      monitorType === MonitorType.Kubernetes
     );
   }
 
@@ -142,15 +147,13 @@ export class MonitorTypeHelper {
           "This monitor type does the basic ping test of an endpoint.",
         icon: IconProp.Signal,
       },
-      /*
-       * {
-       *     monitorType: MonitorType.Kubernetes,
-       *     title: 'Kubernetes',
-       *     description:
-       *         'This monitor types lets you monitor Kubernetes clusters.',
-       *     icon: IconProp.Cube,
-       * },
-       */
+      {
+        monitorType: MonitorType.Kubernetes,
+        title: "Kubernetes",
+        description:
+          "This monitor type lets you monitor Kubernetes clusters, workloads, nodes, and pods.",
+        icon: IconProp.Cube,
+      },
       {
         monitorType: MonitorType.IP,
         title: "IP",
@@ -334,6 +337,7 @@ export class MonitorTypeHelper {
       MonitorType.DNS,
       MonitorType.Domain,
       MonitorType.ExternalStatusPage,
+      MonitorType.Kubernetes,
     ];
   }
 

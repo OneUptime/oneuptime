@@ -3,13 +3,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -28,6 +27,12 @@ import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEvents
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
@@ -145,7 +150,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       title: "Pod Memory Usage",
       description: `Memory usage for pods in deployment ${deploymentName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -162,6 +167,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   // Build overview summary fields from deployment object
@@ -172,30 +178,92 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     ];
 
   if (objectData) {
+    const desired: number = objectData.spec.replicas;
+    const ready: number = objectData.status.readyReplicas ?? 0;
+    const available: number = objectData.status.availableReplicas ?? 0;
+    const unavailable: number = objectData.status.unavailableReplicas ?? 0;
+    const isFullyRolledOut: boolean =
+      ready === desired && unavailable === 0;
+
     summaryFields.push(
       {
         title: "Namespace",
-        value: objectData.metadata.namespace || "default",
+        value: objectData.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={objectData.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
-        title: "Replicas",
-        value: String(objectData.spec.replicas ?? "N/A"),
+        title: "Rollout Status",
+        value: (
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <StatusBadge
+                text={isFullyRolledOut ? "Complete" : "In Progress"}
+                type={
+                  isFullyRolledOut
+                    ? StatusBadgeType.Success
+                    : StatusBadgeType.Warning
+                }
+              />
+              <span className="text-sm text-gray-600">
+                {ready}/{desired} ready
+              </span>
+            </div>
+            <div className="w-32 bg-gray-100 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ${isFullyRolledOut ? "bg-emerald-500" : "bg-amber-500"}`}
+                style={{
+                  width: `${desired > 0 ? (ready / desired) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Desired Replicas",
+        value: String(desired),
       },
       {
         title: "Ready Replicas",
-        value: String(objectData.status.readyReplicas ?? "N/A"),
+        value: String(ready),
       },
       {
-        title: "Available Replicas",
-        value: String(objectData.status.availableReplicas ?? "N/A"),
+        title: "Available",
+        value: String(available),
       },
+    );
+
+    if (unavailable > 0) {
+      summaryFields.push({
+        title: "Unavailable",
+        value: (
+          <StatusBadge
+            text={String(unavailable)}
+            type={StatusBadgeType.Danger}
+          />
+        ),
+      });
+    }
+
+    summaryFields.push(
       {
         title: "Strategy",
         value: objectData.spec.strategy || "N/A",
       },
       {
         title: "Created",
-        value: objectData.metadata.creationTimestamp || "N/A",
+        value: objectData.metadata.creationTimestamp
+          ? KubernetesResourceUtils.formatAge(
+              objectData.metadata.creationTimestamp,
+            )
+          : "N/A",
       },
     );
   }
@@ -240,20 +308,20 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         </Card>
       ),
     },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="deployments"
+          resourceName={deploymentName}
+          namespace={objectData?.metadata.namespace}
+        />
+      ),
+    },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="Deployment" value={deploymentName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterDeploymentDetail;

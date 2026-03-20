@@ -16,4 +16,5 @@ export default interface MetricQueryConfigData {
   metricQueryData: MetricQueryData;
   getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
   chartType?: MetricChartType | undefined;
+  yAxisValueFormatter?: ((value: number) => string) | undefined;
 }

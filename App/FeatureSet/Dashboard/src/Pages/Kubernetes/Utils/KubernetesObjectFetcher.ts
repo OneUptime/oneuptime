@@ -11,6 +11,7 @@ import {
   extractObjectFromLogBody,
   getKvStringValue,
   getKvValue,
+  kvListToPlainObject,
   KubernetesPodObject,
   KubernetesNodeObject,
   KubernetesDeploymentObject,
@@ -19,6 +20,10 @@ import {
   KubernetesJobObject,
   KubernetesCronJobObject,
   KubernetesNamespaceObject,
+  KubernetesPVCObject,
+  KubernetesPVObject,
+  KubernetesHPAObject,
+  KubernetesVPAObject,
   parsePodObject,
   parseNodeObject,
   parseDeploymentObject,
@@ -27,6 +32,10 @@ import {
   parseJobObject,
   parseCronJobObject,
   parseNamespaceObject,
+  parsePVCObject,
+  parsePVObject,
+  parseHPAObject,
+  parseVPAObject,
 } from "./KubernetesObjectParser";
 
 export type KubernetesObjectType =
@@ -37,7 +46,11 @@ export type KubernetesObjectType =
   | KubernetesDaemonSetObject
   | KubernetesJobObject
   | KubernetesCronJobObject
-  | KubernetesNamespaceObject;
+  | KubernetesNamespaceObject
+  | KubernetesPVCObject
+  | KubernetesPVObject
+  | KubernetesHPAObject
+  | KubernetesVPAObject;
 
 export interface FetchK8sObjectOptions {
   clusterIdentifier: string;
@@ -58,6 +71,10 @@ function getParser(resourceType: string): ParserFunction | null {
     jobs: parseJobObject,
     cronjobs: parseCronJobObject,
     namespaces: parseNamespaceObject,
+    persistentvolumeclaims: parsePVCObject,
+    persistentvolumes: parsePVObject,
+    horizontalpodautoscalers: parseHPAObject,
+    verticalpodautoscalers: parseVPAObject,
   };
   return parsers[resourceType] || null;
 }
@@ -91,7 +108,6 @@ export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
         projectId: projectId,
         time: new InBetween<Date>(startDate, endDate),
         attributes: {
-          "logAttributes.event.domain": "k8s",
           "logAttributes.k8s.resource.name": options.resourceType,
         },
       },
@@ -163,6 +179,198 @@ export async function fetchLatestK8sObject<T extends KubernetesObjectType>(
     return null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Fetch the raw K8s resource object (as a plain JS object, not parsed into typed interfaces).
+ * This preserves the complete original K8s manifest for YAML display.
+ */
+export async function fetchRawK8sObject(
+  options: FetchK8sObjectOptions,
+): Promise<Record<string, unknown> | null> {
+  const projectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
+  if (!projectId) {
+    return null;
+  }
+
+  const endDate: Date = OneUptimeDate.getCurrentDate();
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const queryOptions: any = {
+      modelType: Log,
+      query: {
+        projectId: projectId,
+        time: new InBetween<Date>(startDate, endDate),
+        attributes: {
+          "logAttributes.k8s.resource.name": options.resourceType,
+        },
+      },
+      limit: 500,
+      skip: 0,
+      select: {
+        time: true,
+        body: true,
+        attributes: true,
+      },
+      sort: {
+        time: SortOrder.Descending,
+      },
+      requestOptions: {},
+    };
+    const listResult: ListResult<Log> =
+      await AnalyticsModelAPI.getList<Log>(queryOptions);
+
+    for (const log of listResult.data) {
+      const attrs: JSONObject = log.attributes || {};
+
+      if (
+        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
+        attrs["k8s.cluster.name"] !== options.clusterIdentifier
+      ) {
+        continue;
+      }
+
+      if (typeof log.body !== "string") {
+        continue;
+      }
+
+      const objectKvList: JSONObject | null = extractObjectFromLogBody(
+        log.body,
+      );
+      if (!objectKvList) {
+        continue;
+      }
+
+      const metadataKv: string | JSONObject | null = getKvValue(
+        objectKvList,
+        "metadata",
+      );
+      if (!metadataKv || typeof metadataKv === "string") {
+        continue;
+      }
+
+      const name: string = getKvStringValue(metadataKv, "name");
+      const namespace: string = getKvStringValue(metadataKv, "namespace");
+
+      if (name !== options.resourceName) {
+        continue;
+      }
+
+      if (options.namespace && namespace && namespace !== options.namespace) {
+        continue;
+      }
+
+      // Convert the raw OTLP kvList to a plain JS object
+      return kvListToPlainObject(objectKvList);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Batch fetch all K8s objects of a given type for a cluster.
+ * Returns a Map keyed by "namespace/name" (or just "name" for cluster-scoped resources).
+ */
+export async function fetchK8sObjectsBatch(options: {
+  clusterIdentifier: string;
+  resourceType: string;
+}): Promise<Map<string, KubernetesObjectType>> {
+  const parser: ParserFunction | null = getParser(options.resourceType);
+  if (!parser) {
+    return new Map();
+  }
+
+  const projectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
+  if (!projectId) {
+    return new Map();
+  }
+
+  const endDate: Date = OneUptimeDate.getCurrentDate();
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const queryOptions: any = {
+      modelType: Log,
+      query: {
+        projectId: projectId,
+        time: new InBetween<Date>(startDate, endDate),
+        attributes: {
+          "logAttributes.k8s.resource.name": options.resourceType,
+        },
+      },
+      limit: 2000,
+      skip: 0,
+      select: {
+        time: true,
+        body: true,
+        attributes: true,
+      },
+      sort: {
+        time: SortOrder.Descending,
+      },
+      requestOptions: {},
+    };
+    const listResult: ListResult<Log> =
+      await AnalyticsModelAPI.getList<Log>(queryOptions);
+
+    const resultMap: Map<string, KubernetesObjectType> = new Map();
+
+    for (const log of listResult.data) {
+      const attrs: JSONObject = log.attributes || {};
+
+      if (
+        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
+        attrs["k8s.cluster.name"] !== options.clusterIdentifier
+      ) {
+        continue;
+      }
+
+      if (typeof log.body !== "string") {
+        continue;
+      }
+
+      const objectKvList: JSONObject | null = extractObjectFromLogBody(
+        log.body,
+      );
+      if (!objectKvList) {
+        continue;
+      }
+
+      const metadataKv: string | JSONObject | null = getKvValue(
+        objectKvList,
+        "metadata",
+      );
+      if (!metadataKv || typeof metadataKv === "string") {
+        continue;
+      }
+
+      const name: string = getKvStringValue(metadataKv, "name");
+      const namespace: string = getKvStringValue(metadataKv, "namespace");
+      const key: string = namespace ? `${namespace}/${name}` : name;
+
+      // Only keep the latest (first encountered since sorted desc)
+      if (resultMap.has(key)) {
+        continue;
+      }
+
+      const parsed: KubernetesObjectType | null = parser(objectKvList);
+      if (parsed) {
+        resultMap.set(key, parsed);
+      }
+    }
+
+    return resultMap;
+  } catch {
+    return new Map();
   }
 }
 
@@ -305,6 +513,147 @@ export async function fetchK8sEventsForResource(options: {
           ? OneUptimeDate.getDateAsLocalFormattedString(log.time)
           : "",
         type: eventType || "Unknown",
+        reason: reason || "Unknown",
+        objectKind: regardingKind || "Unknown",
+        objectName: regardingName || "Unknown",
+        namespace: regardingNamespace || "default",
+        message: note || "",
+      });
+    }
+
+    return events;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch recent warning events for an entire cluster.
+ */
+export async function fetchClusterWarningEvents(options: {
+  clusterIdentifier: string;
+  limit?: number | undefined;
+}): Promise<Array<KubernetesEvent>> {
+  const projectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
+  if (!projectId) {
+    return [];
+  }
+
+  const endDate: Date = OneUptimeDate.getCurrentDate();
+  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const eventsQueryOptions: any = {
+      modelType: Log,
+      query: {
+        projectId: projectId,
+        time: new InBetween<Date>(startDate, endDate),
+        attributes: {
+          "logAttributes.event.domain": "k8s",
+          "logAttributes.k8s.resource.name": "events",
+        },
+      },
+      limit: 500,
+      skip: 0,
+      select: {
+        time: true,
+        body: true,
+        attributes: true,
+      },
+      sort: {
+        time: SortOrder.Descending,
+      },
+      requestOptions: {},
+    };
+    const listResult: ListResult<Log> =
+      await AnalyticsModelAPI.getList<Log>(eventsQueryOptions);
+
+    const events: Array<KubernetesEvent> = [];
+    const maxEvents: number = options.limit || 10;
+
+    for (const log of listResult.data) {
+      if (events.length >= maxEvents) {
+        break;
+      }
+
+      const attrs: JSONObject = log.attributes || {};
+
+      if (
+        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
+        attrs["k8s.cluster.name"] !== options.clusterIdentifier
+      ) {
+        continue;
+      }
+
+      if (typeof log.body !== "string") {
+        continue;
+      }
+
+      let bodyObj: JSONObject | null = null;
+      try {
+        bodyObj = JSON.parse(log.body) as JSONObject;
+      } catch {
+        continue;
+      }
+
+      const topKvList: JSONObject | undefined = bodyObj["kvlistValue"] as
+        | JSONObject
+        | undefined;
+      if (!topKvList) {
+        continue;
+      }
+
+      const objectVal: string | JSONObject | null = getKvValue(
+        topKvList,
+        "object",
+      );
+      if (!objectVal || typeof objectVal === "string") {
+        continue;
+      }
+      const objectKvList: JSONObject = objectVal;
+
+      const eventType: string =
+        getKvStringValue(objectKvList, "type") || "";
+
+      // Only include Warning events
+      if (eventType !== "Warning") {
+        continue;
+      }
+
+      const reason: string =
+        getKvStringValue(objectKvList, "reason") || "";
+      const note: string =
+        getKvStringValue(objectKvList, "note") || "";
+
+      const regardingKind: string =
+        getKvStringValue(
+          getKvValue(objectKvList, "regarding") as
+            | JSONObject
+            | undefined,
+          "kind",
+        ) || "";
+      const regardingName: string =
+        getKvStringValue(
+          getKvValue(objectKvList, "regarding") as
+            | JSONObject
+            | undefined,
+          "name",
+        ) || "";
+      const regardingNamespace: string =
+        getKvStringValue(
+          getKvValue(objectKvList, "regarding") as
+            | JSONObject
+            | undefined,
+          "namespace",
+        ) || "";
+
+      events.push({
+        timestamp: log.time
+          ? OneUptimeDate.getDateAsLocalFormattedString(log.time)
+          : "",
+        type: eventType,
         reason: reason || "Unknown",
         objectKind: regardingKind || "Unknown",
         objectName: regardingName || "Unknown",

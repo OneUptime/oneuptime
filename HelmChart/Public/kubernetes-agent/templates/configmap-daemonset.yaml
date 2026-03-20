@@ -17,7 +17,7 @@ data:
       kubeletstats:
         collection_interval: {{ .Values.collectionInterval }}
         auth_type: serviceAccount
-        endpoint: "https://${env:NODE_NAME}:10250"
+        endpoint: "https://${env:NODE_IP}:10250"
         insecure_skip_verify: true
         metric_groups:
           - node
@@ -130,12 +130,30 @@ data:
           - sources:
               - from: connection
 
-      # Stamp with cluster name
+      # Stamp with cluster name and default service name
       resource:
         attributes:
           - key: k8s.cluster.name
             value: {{ .Values.clusterName | quote }}
             action: upsert
+          - key: service.name
+            value: "kubernetes-agent-{{ .Values.clusterName }}"
+            action: upsert
+
+      # Set service.name from deployment/statefulset/daemonset name when available
+      transform:
+        log_statements:
+          - context: resource
+            statements:
+              - set(attributes["service.name"], attributes["k8s.deployment.name"]) where attributes["k8s.deployment.name"] != nil and attributes["k8s.deployment.name"] != ""
+              - set(attributes["service.name"], attributes["k8s.statefulset.name"]) where attributes["k8s.statefulset.name"] != nil and attributes["k8s.statefulset.name"] != "" and attributes["k8s.deployment.name"] == nil
+              - set(attributes["service.name"], attributes["k8s.daemonset.name"]) where attributes["k8s.daemonset.name"] != nil and attributes["k8s.daemonset.name"] != "" and attributes["k8s.deployment.name"] == nil and attributes["k8s.statefulset.name"] == nil
+        metric_statements:
+          - context: resource
+            statements:
+              - set(attributes["service.name"], attributes["k8s.deployment.name"]) where attributes["k8s.deployment.name"] != nil and attributes["k8s.deployment.name"] != ""
+              - set(attributes["service.name"], attributes["k8s.statefulset.name"]) where attributes["k8s.statefulset.name"] != nil and attributes["k8s.statefulset.name"] != "" and attributes["k8s.deployment.name"] == nil
+              - set(attributes["service.name"], attributes["k8s.daemonset.name"]) where attributes["k8s.daemonset.name"] != nil and attributes["k8s.daemonset.name"] != "" and attributes["k8s.deployment.name"] == nil and attributes["k8s.statefulset.name"] == nil
 
       batch:
         send_batch_size: 1024
@@ -163,6 +181,7 @@ data:
             - memory_limiter
             - k8sattributes
             - resource
+            - transform
             - batch
           exporters:
             - otlphttp
@@ -173,6 +192,7 @@ data:
             - memory_limiter
             - k8sattributes
             - resource
+            - transform
             - batch
           exporters:
             - otlphttp

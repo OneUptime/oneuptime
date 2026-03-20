@@ -143,6 +143,81 @@ export function getArrayValues(
     .filter(Boolean) as Array<JSONObject>;
 }
 
+/**
+ * Recursively convert an OTLP value wrapper to a plain JavaScript value.
+ * Handles stringValue, intValue, boolValue, kvlistValue, and arrayValue.
+ */
+function convertOtlpValue(
+  valueWrapper: JSONObject,
+): unknown {
+  if (valueWrapper["stringValue"] !== undefined) {
+    return valueWrapper["stringValue"];
+  }
+  if (valueWrapper["intValue"] !== undefined) {
+    return Number(valueWrapper["intValue"]);
+  }
+  if (valueWrapper["boolValue"] !== undefined) {
+    return valueWrapper["boolValue"];
+  }
+  if (valueWrapper["doubleValue"] !== undefined) {
+    return Number(valueWrapper["doubleValue"]);
+  }
+  if (valueWrapper["kvlistValue"]) {
+    return kvListToPlainObject(valueWrapper["kvlistValue"] as JSONObject);
+  }
+  if (valueWrapper["arrayValue"]) {
+    return convertOtlpArray(valueWrapper["arrayValue"] as JSONObject);
+  }
+  return null;
+}
+
+/**
+ * Convert an OTLP arrayValue to a plain JavaScript array.
+ */
+function convertOtlpArray(
+  arrayValue: JSONObject,
+): Array<unknown> {
+  const values: Array<JSONObject> | undefined = arrayValue["values"] as
+    | Array<JSONObject>
+    | undefined;
+  if (!values) {
+    return [];
+  }
+  return values.map((item: JSONObject) => {
+    // Each item in arrayValue.values is a value wrapper
+    return convertOtlpValue(item);
+  });
+}
+
+/**
+ * Convert an OTLP kvlistValue (nested key-value structure) to a plain
+ * JavaScript object. This preserves the full original K8s manifest structure.
+ */
+export function kvListToPlainObject(
+  kvList: JSONObject | undefined,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  if (!kvList) {
+    return result;
+  }
+  const values: Array<JSONObject> | undefined = kvList["values"] as
+    | Array<JSONObject>
+    | undefined;
+  if (!values) {
+    return result;
+  }
+  for (const entry of values) {
+    const key: string = (entry["key"] as string) || "";
+    const val: JSONObject | undefined = entry["value"] as
+      | JSONObject
+      | undefined;
+    if (key && val) {
+      result[key] = convertOtlpValue(val);
+    }
+  }
+  return result;
+}
+
 /*
  * ============================================================
  * TypeScript interfaces for parsed K8s objects
@@ -205,6 +280,7 @@ export interface KubernetesContainerStatus {
   ready: boolean;
   restartCount: number;
   state: string;
+  reason: string;
   image: string;
 }
 
@@ -232,6 +308,7 @@ export interface KubernetesPodObject {
     phase: string;
     podIP: string;
     hostIP: string;
+    qosClass: string;
     conditions: Array<KubernetesCondition>;
     containerStatuses: Array<KubernetesContainerStatus>;
     initContainerStatuses: Array<KubernetesContainerStatus>;
@@ -337,6 +414,104 @@ export interface KubernetesNamespaceObject {
   metadata: KubernetesObjectMetadata;
   status: {
     phase: string;
+  };
+}
+
+export interface KubernetesPVCObject {
+  metadata: KubernetesObjectMetadata;
+  spec: {
+    accessModes: Array<string>;
+    storageClassName: string;
+    volumeName: string;
+    resources: {
+      requests: {
+        storage: string;
+      };
+    };
+  };
+  status: {
+    phase: string; // Bound, Pending, Lost
+    capacity: {
+      storage: string;
+    };
+  };
+}
+
+export interface KubernetesPVObject {
+  metadata: KubernetesObjectMetadata;
+  spec: {
+    capacity: {
+      storage: string;
+    };
+    accessModes: Array<string>;
+    storageClassName: string;
+    persistentVolumeReclaimPolicy: string;
+    claimRef: {
+      name: string;
+      namespace: string;
+    };
+  };
+  status: {
+    phase: string; // Available, Bound, Released, Failed
+  };
+}
+
+export interface KubernetesHPAMetricSpec {
+  type: string;
+  resourceName: string;
+  targetType: string;
+  targetValue: string;
+}
+
+export interface KubernetesHPACondition {
+  type: string;
+  status: string;
+  reason: string;
+  message: string;
+  lastTransitionTime: string;
+}
+
+export interface KubernetesHPAObject {
+  metadata: KubernetesObjectMetadata;
+  spec: {
+    minReplicas: number;
+    maxReplicas: number;
+    scaleTargetRef: {
+      kind: string;
+      name: string;
+    };
+    metrics: Array<KubernetesHPAMetricSpec>;
+  };
+  status: {
+    currentReplicas: number;
+    desiredReplicas: number;
+    conditions: Array<KubernetesHPACondition>;
+  };
+}
+
+export interface KubernetesVPAContainerRecommendation {
+  containerName: string;
+  target: Record<string, string>;
+  lowerBound: Record<string, string>;
+  upperBound: Record<string, string>;
+}
+
+export interface KubernetesVPAObject {
+  metadata: KubernetesObjectMetadata;
+  spec: {
+    targetRef: {
+      kind: string;
+      name: string;
+    };
+    updatePolicy: {
+      updateMode: string;
+    };
+    resourcePolicy: string;
+  };
+  status: {
+    recommendation: {
+      containerRecommendations: Array<KubernetesVPAContainerRecommendation>;
+    };
   };
 }
 
@@ -583,12 +758,23 @@ function parseContainerStatuses(
     // state is a kvlist with one key (running/waiting/terminated)
     const stateKv: string | JSONObject | null = getKvValue(kvList, "state");
     let state: string = "Unknown";
+    let reason: string = "";
     if (stateKv && typeof stateKv !== "string") {
       const stateValues: Array<JSONObject> | undefined = stateKv["values"] as
         | Array<JSONObject>
         | undefined;
       if (stateValues && stateValues.length > 0 && stateValues[0]) {
         state = (stateValues[0]["key"] as string) || "Unknown";
+        // Extract reason from the state's nested kvlist value (e.g., waiting -> { reason: "CrashLoopBackOff" })
+        const stateDetail: JSONObject | undefined = stateValues[0]["value"] as
+          | JSONObject
+          | undefined;
+        if (stateDetail && stateDetail["kvlistValue"]) {
+          reason = getKvStringValue(
+            stateDetail["kvlistValue"] as JSONObject,
+            "reason",
+          );
+        }
       }
     }
 
@@ -597,6 +783,7 @@ function parseContainerStatuses(
       ready: getKvStringValue(kvList, "ready") === "true",
       restartCount: parseInt(getKvStringValue(kvList, "restartCount")) || 0,
       state,
+      reason,
       image: getKvStringValue(kvList, "image"),
     };
   });
@@ -740,6 +927,7 @@ export function parsePodObject(
     let phase: string = "";
     let podIP: string = "";
     let hostIP: string = "";
+    let qosClass: string = "";
     let conditions: Array<KubernetesCondition> = [];
     let containerStatuses: Array<KubernetesContainerStatus> = [];
     let initContainerStatuses: Array<KubernetesContainerStatus> = [];
@@ -748,6 +936,7 @@ export function parsePodObject(
       phase = getKvStringValue(statusKv, "phase");
       podIP = getKvStringValue(statusKv, "podIP");
       hostIP = getKvStringValue(statusKv, "hostIP");
+      qosClass = getKvStringValue(statusKv, "qosClass");
 
       const condArray: string | JSONObject | null = getKvValue(
         statusKv,
@@ -789,6 +978,7 @@ export function parsePodObject(
         phase,
         podIP,
         hostIP,
+        qosClass,
         conditions,
         containerStatuses,
         initContainerStatuses,
@@ -1254,6 +1444,412 @@ export function parseNamespaceObject(
         phase: statusKv
           ? getKvStringValue(statusKv as JSONObject, "phase")
           : "",
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function parsePVCObject(
+  objectKvList: JSONObject,
+): KubernetesPVCObject | null {
+  try {
+    const metadataKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "metadata",
+    );
+    if (!metadataKv || typeof metadataKv === "string") {
+      return null;
+    }
+
+    const metadata: KubernetesObjectMetadata = parseMetadata(metadataKv);
+    if (!metadata.name) {
+      return null;
+    }
+
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
+    const statusKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "status",
+    );
+
+    // Parse spec
+    let accessModes: Array<string> = [];
+    let storageClassName: string = "";
+    let volumeName: string = "";
+    let requestsStorage: string = "";
+
+    if (specKv && typeof specKv !== "string") {
+      storageClassName = getKvStringValue(specKv, "storageClassName");
+      volumeName = getKvStringValue(specKv, "volumeName");
+
+      const accessModesArray: string | JSONObject | null = getKvValue(
+        specKv,
+        "accessModes",
+      );
+      if (accessModesArray && typeof accessModesArray !== "string") {
+        const modeValues: Array<JSONObject> =
+          (accessModesArray["values"] as Array<JSONObject>) || [];
+        for (const v of modeValues) {
+          if (v["stringValue"]) {
+            accessModes.push(v["stringValue"] as string);
+          }
+        }
+      }
+
+      const resourcesKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "resources",
+      );
+      if (resourcesKv && typeof resourcesKv !== "string") {
+        requestsStorage = getNestedKvValue(resourcesKv, "requests", "storage");
+      }
+    }
+
+    // Parse status
+    let phase: string = "";
+    let capacityStorage: string = "";
+
+    if (statusKv && typeof statusKv !== "string") {
+      phase = getKvStringValue(statusKv, "phase");
+      capacityStorage = getNestedKvValue(statusKv, "capacity", "storage");
+    }
+
+    return {
+      metadata,
+      spec: {
+        accessModes,
+        storageClassName,
+        volumeName,
+        resources: {
+          requests: {
+            storage: requestsStorage,
+          },
+        },
+      },
+      status: {
+        phase,
+        capacity: {
+          storage: capacityStorage,
+        },
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function parsePVObject(
+  objectKvList: JSONObject,
+): KubernetesPVObject | null {
+  try {
+    const metadataKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "metadata",
+    );
+    if (!metadataKv || typeof metadataKv === "string") {
+      return null;
+    }
+
+    const metadata: KubernetesObjectMetadata = parseMetadata(metadataKv);
+    if (!metadata.name) {
+      return null;
+    }
+
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
+    const statusKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "status",
+    );
+
+    // Parse spec
+    let capacityStorage: string = "";
+    let accessModes: Array<string> = [];
+    let storageClassName: string = "";
+    let persistentVolumeReclaimPolicy: string = "";
+    let claimRefName: string = "";
+    let claimRefNamespace: string = "";
+
+    if (specKv && typeof specKv !== "string") {
+      capacityStorage = getNestedKvValue(specKv, "capacity", "storage");
+      storageClassName = getKvStringValue(specKv, "storageClassName");
+      persistentVolumeReclaimPolicy = getKvStringValue(
+        specKv,
+        "persistentVolumeReclaimPolicy",
+      );
+
+      const accessModesArray: string | JSONObject | null = getKvValue(
+        specKv,
+        "accessModes",
+      );
+      if (accessModesArray && typeof accessModesArray !== "string") {
+        const modeValues: Array<JSONObject> =
+          (accessModesArray["values"] as Array<JSONObject>) || [];
+        for (const v of modeValues) {
+          if (v["stringValue"]) {
+            accessModes.push(v["stringValue"] as string);
+          }
+        }
+      }
+
+      const claimRefKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "claimRef",
+      );
+      if (claimRefKv && typeof claimRefKv !== "string") {
+        claimRefName = getKvStringValue(claimRefKv, "name");
+        claimRefNamespace = getKvStringValue(claimRefKv, "namespace");
+      }
+    }
+
+    // Parse status
+    let phase: string = "";
+    if (statusKv && typeof statusKv !== "string") {
+      phase = getKvStringValue(statusKv, "phase");
+    }
+
+    return {
+      metadata,
+      spec: {
+        capacity: {
+          storage: capacityStorage,
+        },
+        accessModes,
+        storageClassName,
+        persistentVolumeReclaimPolicy,
+        claimRef: {
+          name: claimRefName,
+          namespace: claimRefNamespace,
+        },
+      },
+      status: {
+        phase,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function parseHPAObject(
+  objectKvList: JSONObject,
+): KubernetesHPAObject | null {
+  try {
+    const metadataKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "metadata",
+    );
+    if (!metadataKv || typeof metadataKv === "string") {
+      return null;
+    }
+
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
+    const statusKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "status",
+    );
+
+    let minReplicas: number = 0;
+    let maxReplicas: number = 0;
+    let scaleTargetRef: { kind: string; name: string } = {
+      kind: "",
+      name: "",
+    };
+    const metrics: Array<KubernetesHPAMetricSpec> = [];
+    if (specKv && typeof specKv !== "string") {
+      minReplicas = parseInt(getKvStringValue(specKv, "minReplicas")) || 0;
+      maxReplicas = parseInt(getKvStringValue(specKv, "maxReplicas")) || 0;
+      const targetRefKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "scaleTargetRef",
+      );
+      if (targetRefKv && typeof targetRefKv !== "string") {
+        scaleTargetRef = {
+          kind: getKvStringValue(targetRefKv, "kind"),
+          name: getKvStringValue(targetRefKv, "name"),
+        };
+      }
+      const metricsArrayKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "metrics",
+      );
+      if (metricsArrayKv && typeof metricsArrayKv !== "string") {
+        const metricsItems: Array<JSONObject> = getArrayValues(metricsArrayKv);
+        for (const metricKv of metricsItems) {
+          const metricType: string = getKvStringValue(metricKv, "type");
+          let resourceName: string = "";
+          let targetType: string = "";
+          let targetValue: string = "";
+          const resourceKv: string | JSONObject | null = getKvValue(
+            metricKv,
+            "resource",
+          );
+          if (resourceKv && typeof resourceKv !== "string") {
+            resourceName = getKvStringValue(resourceKv, "name");
+            const targetKv: string | JSONObject | null = getKvValue(
+              resourceKv,
+              "target",
+            );
+            if (targetKv && typeof targetKv !== "string") {
+              targetType = getKvStringValue(targetKv, "type");
+              targetValue =
+                getKvStringValue(targetKv, "averageUtilization") ||
+                getKvStringValue(targetKv, "averageValue") ||
+                getKvStringValue(targetKv, "value");
+            }
+          }
+          metrics.push({
+            type: metricType,
+            resourceName,
+            targetType,
+            targetValue,
+          });
+        }
+      }
+    }
+
+    let currentReplicas: number = 0;
+    let desiredReplicas: number = 0;
+    let conditions: Array<KubernetesHPACondition> = [];
+    if (statusKv && typeof statusKv !== "string") {
+      currentReplicas =
+        parseInt(getKvStringValue(statusKv, "currentReplicas")) || 0;
+      desiredReplicas =
+        parseInt(getKvStringValue(statusKv, "desiredReplicas")) || 0;
+      const condArray: string | JSONObject | null = getKvValue(
+        statusKv,
+        "conditions",
+      );
+      if (condArray && typeof condArray !== "string") {
+        const condItems: Array<JSONObject> = getArrayValues(condArray);
+        conditions = condItems.map(
+          (condKv: JSONObject): KubernetesHPACondition => {
+            return {
+              type: getKvStringValue(condKv, "type"),
+              status: getKvStringValue(condKv, "status"),
+              reason: getKvStringValue(condKv, "reason"),
+              message: getKvStringValue(condKv, "message"),
+              lastTransitionTime: getKvStringValue(
+                condKv,
+                "lastTransitionTime",
+              ),
+            };
+          },
+        );
+      }
+    }
+
+    return {
+      metadata: parseMetadata(metadataKv),
+      spec: { minReplicas, maxReplicas, scaleTargetRef, metrics },
+      status: { currentReplicas, desiredReplicas, conditions },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function parseVPAObject(
+  objectKvList: JSONObject,
+): KubernetesVPAObject | null {
+  try {
+    const metadataKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "metadata",
+    );
+    if (!metadataKv || typeof metadataKv === "string") {
+      return null;
+    }
+
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
+    const statusKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "status",
+    );
+
+    let targetRef: { kind: string; name: string } = { kind: "", name: "" };
+    let updatePolicy: { updateMode: string } = { updateMode: "" };
+    let resourcePolicy: string = "";
+    if (specKv && typeof specKv !== "string") {
+      const targetRefKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "targetRef",
+      );
+      if (targetRefKv && typeof targetRefKv !== "string") {
+        targetRef = {
+          kind: getKvStringValue(targetRefKv, "kind"),
+          name: getKvStringValue(targetRefKv, "name"),
+        };
+      }
+      const updatePolicyKv: string | JSONObject | null = getKvValue(
+        specKv,
+        "updatePolicy",
+      );
+      if (updatePolicyKv && typeof updatePolicyKv !== "string") {
+        updatePolicy = {
+          updateMode: getKvStringValue(updatePolicyKv, "updateMode"),
+        };
+      }
+      resourcePolicy = getKvStringValue(specKv, "resourcePolicy");
+    }
+
+    const containerRecommendations: Array<KubernetesVPAContainerRecommendation> =
+      [];
+    if (statusKv && typeof statusKv !== "string") {
+      const recommendationKv: string | JSONObject | null = getKvValue(
+        statusKv,
+        "recommendation",
+      );
+      if (recommendationKv && typeof recommendationKv !== "string") {
+        const containerRecsArrayKv: string | JSONObject | null = getKvValue(
+          recommendationKv,
+          "containerRecommendations",
+        );
+        if (
+          containerRecsArrayKv &&
+          typeof containerRecsArrayKv !== "string"
+        ) {
+          const recItems: Array<JSONObject> =
+            getArrayValues(containerRecsArrayKv);
+          for (const recKv of recItems) {
+            const targetKv: string | JSONObject | null = getKvValue(
+              recKv,
+              "target",
+            );
+            const lowerBoundKv: string | JSONObject | null = getKvValue(
+              recKv,
+              "lowerBound",
+            );
+            const upperBoundKv: string | JSONObject | null = getKvValue(
+              recKv,
+              "upperBound",
+            );
+            containerRecommendations.push({
+              containerName: getKvStringValue(recKv, "containerName"),
+              target:
+                targetKv && typeof targetKv !== "string"
+                  ? getKvListAsRecord(targetKv)
+                  : {},
+              lowerBound:
+                lowerBoundKv && typeof lowerBoundKv !== "string"
+                  ? getKvListAsRecord(lowerBoundKv)
+                  : {},
+              upperBound:
+                upperBoundKv && typeof upperBoundKv !== "string"
+                  ? getKvListAsRecord(upperBoundKv)
+                  : {},
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      metadata: parseMetadata(metadataKv),
+      spec: { targetRef, updatePolicy, resourcePolicy },
+      status: {
+        recommendation: { containerRecommendations },
       },
     };
   } catch {

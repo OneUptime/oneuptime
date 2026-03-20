@@ -3,6 +3,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -14,19 +15,39 @@ export interface ComponentProps {
 const Tabs: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [currentTab, setCurrentTab] = useState<Tab | null>(null);
+  const [currentTabName, setCurrentTabName] = useState<string | null>(null);
+  const hasInitialized = useRef<boolean>(false);
 
+  // Initialize current tab only once, or when the tab list names change
   useEffect(() => {
-    setCurrentTab(props.tabs.length > 0 ? (props.tabs[0] as Tab) : null);
-  }, [props.tabs]);
+    const tabNames: Array<string> = props.tabs.map((t: Tab) => t.name);
+
+    if (!hasInitialized.current && props.tabs.length > 0) {
+      hasInitialized.current = true;
+      setCurrentTabName(props.tabs[0]!.name);
+      return;
+    }
+
+    // If current tab no longer exists in the list, reset to first
+    if (currentTabName && !tabNames.includes(currentTabName)) {
+      setCurrentTabName(
+        props.tabs.length > 0 ? props.tabs[0]!.name : null,
+      );
+    }
+  }, [props.tabs.map((t: Tab) => t.name).join(",")]);
+
+  // Find the current tab object by name
+  const currentTab: Tab | undefined = props.tabs.find(
+    (t: Tab) => t.name === currentTabName,
+  );
 
   useEffect(() => {
     if (currentTab && props.onTabChange) {
       props.onTabChange(currentTab);
     }
-  }, [currentTab]);
+  }, [currentTabName]);
 
-  const tabPanelId: string = `tabpanel-${currentTab?.name || "default"}`;
+  const tabPanelId: string = `tabpanel-${currentTabName || "default"}`;
 
   return (
     <div>
@@ -41,9 +62,9 @@ const Tabs: FunctionComponent<ComponentProps> = (
               key={tab.name}
               tab={tab}
               onClick={() => {
-                setCurrentTab(tab);
+                setCurrentTabName(tab.name);
               }}
-              isSelected={tab === currentTab}
+              isSelected={tab.name === currentTabName}
               tabPanelId={tabPanelId}
             />
           );
@@ -52,7 +73,7 @@ const Tabs: FunctionComponent<ComponentProps> = (
       <div
         id={tabPanelId}
         role="tabpanel"
-        aria-labelledby={`tab-${currentTab?.name || "default"}`}
+        aria-labelledby={`tab-${currentTabName || "default"}`}
         className="mt-3 ml-1"
       >
         {currentTab && currentTab.children}

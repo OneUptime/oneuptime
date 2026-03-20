@@ -3,13 +3,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Card from "Common/UI/Components/Card/Card";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -28,6 +27,12 @@ import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEvents
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
+import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 
 const KubernetesClusterCronJobDetail: FunctionComponent<
   PageComponentProps
@@ -145,7 +150,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       title: "Pod Memory Usage",
       description: `Memory usage for pods in cronjob ${cronJobName}`,
       legend: "Memory",
-      legendUnit: "bytes",
+      legendUnit: "",
     },
     metricQueryData: {
       filterData: {
@@ -162,6 +167,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
+    yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
   // Build overview summary fields from cronjob object
@@ -175,7 +181,15 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Namespace",
-        value: cronJobObject.metadata.namespace || "default",
+        value: cronJobObject.metadata.namespace ? (
+          <KubernetesResourceLink
+            modelId={modelId}
+            resourceKind="Namespace"
+            resourceName={cronJobObject.metadata.namespace}
+          />
+        ) : (
+          "default"
+        ),
       },
       {
         title: "Schedule",
@@ -183,7 +197,16 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       },
       {
         title: "Suspend",
-        value: cronJobObject.spec.suspend ? "Yes" : "No",
+        value: (
+          <StatusBadge
+            text={cronJobObject.spec.suspend ? "Suspended" : "Active"}
+            type={
+              cronJobObject.spec.suspend
+                ? StatusBadgeType.Warning
+                : StatusBadgeType.Success
+            }
+          />
+        ),
       },
       {
         title: "Concurrency Policy",
@@ -251,20 +274,20 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
         </Card>
       ),
     },
+    {
+      name: "YAML",
+      children: (
+        <KubernetesYamlTab
+          clusterIdentifier={clusterIdentifier}
+          resourceType="cronjobs"
+          resourceName={cronJobName}
+          namespace={cronJobObject?.metadata.namespace}
+        />
+      ),
+    },
   ];
 
-  return (
-    <Fragment>
-      <div className="mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <InfoCard title="CronJob Name" value={cronJobName || "Unknown"} />
-          <InfoCard title="Cluster" value={clusterIdentifier} />
-        </div>
-      </div>
-
-      <Tabs tabs={tabs} onTabChange={() => {}} />
-    </Fragment>
-  );
+  return <Tabs tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterCronJobDetail;
