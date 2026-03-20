@@ -55,6 +55,35 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- end }}
+      initContainers:
+      - name: clickhouse-config-init
+        image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
+        imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
+        command:
+        - /bin/sh
+        - -c
+        - |
+          sed -e "s/\${CLICKHOUSE_USER}/$CLICKHOUSE_USER/g" \
+              -e "s/\${CLICKHOUSE_PASSWORD}/$CLICKHOUSE_PASSWORD/g" \
+              /etc/clickhouse-server/config-template/config.xml > /etc/clickhouse-server/config-output/config.xml
+        env:
+        - name: CLICKHOUSE_USER
+          value: {{ .Values.clickhouse.auth.username | quote }}
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              {{- if .Values.clickhouse.auth.existingSecret.name }}
+              name: {{ .Values.clickhouse.auth.existingSecret.name }}
+              key: {{ .Values.clickhouse.auth.existingSecret.passwordKey }}
+              {{- else }}
+              name: {{ .Release.Name }}-clickhouse
+              key: admin-password
+              {{- end }}
+        volumeMounts:
+        - name: clickhouse-config-template
+          mountPath: /etc/clickhouse-server/config-template
+        - name: clickhouse-config
+          mountPath: /etc/clickhouse-server/config-output
       containers:
       - name: clickhouse
         image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
