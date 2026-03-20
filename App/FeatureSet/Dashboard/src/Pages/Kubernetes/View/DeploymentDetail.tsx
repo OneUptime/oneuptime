@@ -29,6 +29,9 @@ import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
@@ -191,22 +194,21 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         value: (
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span
-                className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+              <StatusBadge
+                text={isFullyRolledOut ? "Complete" : "In Progress"}
+                type={
                   isFullyRolledOut
-                    ? "bg-green-100 text-green-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                {isFullyRolledOut ? "Complete" : "In Progress"}
-              </span>
+                    ? StatusBadgeType.Success
+                    : StatusBadgeType.Warning
+                }
+              />
               <span className="text-sm text-gray-600">
                 {ready}/{desired} ready
               </span>
             </div>
-            <div className="w-32 bg-gray-200 rounded-full h-2">
+            <div className="w-32 bg-gray-100 rounded-full h-2">
               <div
-                className={`h-2 rounded-full ${isFullyRolledOut ? "bg-green-500" : "bg-yellow-500"}`}
+                className={`h-2 rounded-full transition-all duration-300 ${isFullyRolledOut ? "bg-emerald-500" : "bg-amber-500"}`}
                 style={{
                   width: `${desired > 0 ? (ready / desired) * 100 : 0}%`,
                 }}

@@ -26,6 +26,11 @@ import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { getKvValue, getKvStringValue } from "../Utils/KubernetesObjectParser";
 import { KubernetesEvent } from "../Utils/KubernetesObjectFetcher";
+import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
+import type { FilterButtonOption } from "Common/UI/Components/FilterButtons/FilterButtons";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterEvents: FunctionComponent<
   PageComponentProps
@@ -36,9 +41,7 @@ const KubernetesClusterEvents: FunctionComponent<
   const [events, setEvents] = useState<Array<KubernetesEvent>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "warning" | "normal">(
-    "all",
-  );
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [namespaceFilter, setNamespaceFilter] = useState<string>("all");
   const [searchText, setSearchText] = useState<string>("");
 
@@ -247,6 +250,12 @@ const KubernetesClusterEvents: FunctionComponent<
     },
   );
 
+  const filterOptions: Array<FilterButtonOption> = [
+    { label: "All Types", value: "all" },
+    { label: "Warnings", value: "warning", badge: warningCount },
+    { label: "Normal", value: "normal", badge: normalCount },
+  ];
+
   return (
     <Fragment>
       <Card
@@ -262,43 +271,24 @@ const KubernetesClusterEvents: FunctionComponent<
             total events
           </div>
           {warningCount > 0 && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-              {warningCount} Warning{warningCount !== 1 ? "s" : ""}
-            </span>
+            <StatusBadge
+              text={`${warningCount} Warning${warningCount !== 1 ? "s" : ""}`}
+              type={StatusBadgeType.Warning}
+            />
           )}
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            {normalCount} Normal
-          </span>
+          <StatusBadge
+            text={`${normalCount} Normal`}
+            type={StatusBadgeType.Success}
+          />
         </div>
 
         {/* Filters Row */}
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-200">
-          {/* Type Filter Buttons */}
-          <div className="flex gap-1">
-            {(["all", "warning", "normal"] as const).map(
-              (filter: "all" | "warning" | "normal") => {
-                return (
-                  <button
-                    key={filter}
-                    onClick={() => {
-                      setTypeFilter(filter);
-                    }}
-                    className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
-                      typeFilter === filter
-                        ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
-                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    {filter === "all"
-                      ? "All Types"
-                      : filter === "warning"
-                        ? "Warnings"
-                        : "Normal"}
-                  </button>
-                );
-              },
-            )}
-          </div>
+          <FilterButtons
+            options={filterOptions}
+            selectedValue={typeFilter}
+            onSelect={setTypeFilter}
+          />
 
           {/* Namespace Filter */}
           <select
@@ -377,21 +367,20 @@ const KubernetesClusterEvents: FunctionComponent<
                     return (
                       <tr
                         key={index}
-                        className={isWarning ? "bg-yellow-50" : ""}
+                        className={isWarning ? "bg-amber-50/50" : ""}
                       >
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                           {event.timestamp}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          <StatusBadge
+                            text={event.type}
+                            type={
                               isWarning
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {event.type}
-                          </span>
+                                ? StatusBadgeType.Warning
+                                : StatusBadgeType.Success
+                            }
+                          />
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {event.reason}
@@ -400,9 +389,10 @@ const KubernetesClusterEvents: FunctionComponent<
                           {event.objectKind}/{event.objectName}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <span className="inline-flex px-2 py-0.5 text-xs rounded bg-blue-50 text-blue-700">
-                            {event.namespace}
-                          </span>
+                          <StatusBadge
+                            text={event.namespace}
+                            type={StatusBadgeType.Info}
+                          />
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500 max-w-md">
                           {event.message}

@@ -30,6 +30,9 @@ import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -247,19 +250,18 @@ const KubernetesClusterPodDetail: FunctionComponent<
       {
         title: "Status",
         value: (
-          <span
-            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+          <StatusBadge
+            text={podObject.status.phase || "Unknown"}
+            type={
               podObject.status.phase === "Running"
-                ? "bg-green-50 text-green-700"
+                ? StatusBadgeType.Success
                 : podObject.status.phase === "Succeeded"
-                  ? "bg-blue-50 text-blue-700"
+                  ? StatusBadgeType.Info
                   : podObject.status.phase === "Failed"
-                    ? "bg-red-50 text-red-700"
-                    : "bg-yellow-50 text-yellow-700"
-            }`}
-          >
-            {podObject.status.phase || "Unknown"}
-          </span>
+                    ? StatusBadgeType.Danger
+                    : StatusBadgeType.Warning
+            }
+          />
         ),
       },
       {

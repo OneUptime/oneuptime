@@ -35,7 +35,15 @@ import {
   KubernetesPodObject,
   KubernetesNodeObject,
 } from "../Utils/KubernetesObjectParser";
-import OneUptimeDate from "Common/Types/Date";
+import AlertBanner, {
+  AlertBannerType,
+} from "Common/UI/Components/AlertBanner/AlertBanner";
+import StackedProgressBar from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
+import type { StackedProgressBarSegment } from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsageBar";
 
 interface ResourceLink {
   title: string;
@@ -287,10 +295,12 @@ const KubernetesClusterOverview: FunctionComponent<
     return <ErrorMessage message="Cluster not found." />;
   }
 
-  const statusColor: string =
-    cluster.otelCollectorStatus === "connected"
-      ? "text-green-600"
-      : "text-red-600";
+  const healthBannerType: AlertBannerType =
+    clusterHealth === "Healthy"
+      ? AlertBannerType.Success
+      : clusterHealth === "Degraded"
+        ? AlertBannerType.Warning
+        : AlertBannerType.Danger;
 
   const workloadLinks: Array<ResourceLink> = [
     {
@@ -353,51 +363,103 @@ const KubernetesClusterOverview: FunctionComponent<
     },
   ];
 
+  // Build pod health segments for StackedProgressBar
+  const podHealthSegments: Array<StackedProgressBarSegment> = [
+    {
+      value: podHealthSummary.running,
+      color: "bg-emerald-500",
+      label: "Running",
+    },
+    {
+      value: podHealthSummary.succeeded,
+      color: "bg-blue-500",
+      label: "Succeeded",
+    },
+    {
+      value: podHealthSummary.pending,
+      color: "bg-amber-500",
+      label: "Pending",
+    },
+    {
+      value: podHealthSummary.failed,
+      color: "bg-red-500",
+      label: "Failed",
+    },
+  ];
+
+  // Build pressure badges
+  const pressureBadges: Array<{ count: number; label: string }> = [];
+  if (nodePressure.memoryPressure > 0) {
+    pressureBadges.push({
+      count: nodePressure.memoryPressure,
+      label: "Memory Pressure",
+    });
+  }
+  if (nodePressure.diskPressure > 0) {
+    pressureBadges.push({
+      count: nodePressure.diskPressure,
+      label: "Disk Pressure",
+    });
+  }
+  if (nodePressure.pidPressure > 0) {
+    pressureBadges.push({
+      count: nodePressure.pidPressure,
+      label: "PID Pressure",
+    });
+  }
+
+  const renderResourceLinks: (links: Array<ResourceLink>) => ReactElement = (
+    links: Array<ResourceLink>,
+  ): ReactElement => {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4">
+        {links.map((link: ResourceLink) => {
+          return (
+            <div
+              key={link.title}
+              onClick={() => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[link.pageMap] as Route,
+                    { modelId: modelId },
+                  ),
+                );
+              }}
+              className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all duration-150 group cursor-pointer"
+            >
+              <div>
+                <div className="font-medium text-gray-900 group-hover:text-indigo-700">
+                  {link.title}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {link.description}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <Fragment>
       {/* Cluster Health Banner */}
-      <div
-        className={`mb-5 rounded-lg border p-4 ${
-          clusterHealth === "Healthy"
-            ? "bg-green-50 border-green-200"
-            : clusterHealth === "Degraded"
-              ? "bg-yellow-50 border-yellow-200"
-              : "bg-red-50 border-red-200"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex h-3 w-3 rounded-full ${
-                clusterHealth === "Healthy"
-                  ? "bg-green-500"
-                  : clusterHealth === "Degraded"
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
-              }`}
-            />
-            <span
-              className={`text-lg font-semibold ${
-                clusterHealth === "Healthy"
-                  ? "text-green-800"
-                  : clusterHealth === "Degraded"
-                    ? "text-yellow-800"
-                    : "text-red-800"
-              }`}
-            >
-              Cluster {clusterHealth}
-            </span>
-          </div>
+      <AlertBanner
+        title={`Cluster ${clusterHealth}`}
+        type={healthBannerType}
+        className="mb-5"
+        rightElement={
           <div className="flex gap-4 text-sm">
             <span className="text-gray-600">
-              <span className="font-medium text-green-700">
+              <span className="font-medium text-emerald-700">
                 {podHealthSummary.running}
               </span>{" "}
               Running
             </span>
             {podHealthSummary.pending > 0 && (
               <span className="text-gray-600">
-                <span className="font-medium text-yellow-700">
+                <span className="font-medium text-amber-700">
                   {podHealthSummary.pending}
                 </span>{" "}
                 Pending
@@ -420,8 +482,8 @@ const KubernetesClusterOverview: FunctionComponent<
               </span>
             )}
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
@@ -431,9 +493,9 @@ const KubernetesClusterOverview: FunctionComponent<
             <span
               className={`text-2xl font-semibold ${
                 clusterHealth === "Healthy"
-                  ? "text-green-600"
+                  ? "text-emerald-600"
                   : clusterHealth === "Degraded"
-                    ? "text-yellow-600"
+                    ? "text-amber-600"
                     : "text-red-600"
               }`}
             >
@@ -473,11 +535,18 @@ const KubernetesClusterOverview: FunctionComponent<
         <InfoCard
           title="Agent Status"
           value={
-            <span className={`text-2xl font-semibold ${statusColor}`}>
-              {cluster.otelCollectorStatus === "connected"
-                ? "Connected"
-                : "Disconnected"}
-            </span>
+            <StatusBadge
+              text={
+                cluster.otelCollectorStatus === "connected"
+                  ? "Connected"
+                  : "Disconnected"
+              }
+              type={
+                cluster.otelCollectorStatus === "connected"
+                  ? StatusBadgeType.Success
+                  : StatusBadgeType.Danger
+              }
+            />
           }
         />
       </div>
@@ -487,33 +556,7 @@ const KubernetesClusterOverview: FunctionComponent<
         title="Workloads"
         description="Explore workload resources in this cluster."
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4">
-          {workloadLinks.map((link: ResourceLink) => {
-            return (
-              <div
-                key={link.title}
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[link.pageMap] as Route,
-                      { modelId: modelId },
-                    ),
-                  );
-                }}
-                className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group cursor-pointer"
-              >
-                <div>
-                  <div className="font-medium text-gray-900 group-hover:text-indigo-700">
-                    {link.title}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {link.description}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {renderResourceLinks(workloadLinks)}
       </Card>
 
       {/* Quick Navigation - Infrastructure */}
@@ -521,67 +564,30 @@ const KubernetesClusterOverview: FunctionComponent<
         title="Infrastructure"
         description="Explore infrastructure resources in this cluster."
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4">
-          {infraLinks.map((link: ResourceLink) => {
-            return (
-              <div
-                key={link.title}
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[link.pageMap] as Route,
-                      { modelId: modelId },
-                    ),
-                  );
-                }}
-                className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group cursor-pointer"
-              >
-                <div>
-                  <div className="font-medium text-gray-900 group-hover:text-indigo-700">
-                    {link.title}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {link.description}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {renderResourceLinks(infraLinks)}
       </Card>
 
       {/* Node Pressure Indicators */}
-      {(nodePressure.memoryPressure > 0 ||
-        nodePressure.diskPressure > 0 ||
-        nodePressure.pidPressure > 0) && (
-        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-semibold text-red-800">
-              Node Pressure Detected
-            </span>
-          </div>
-          <div className="flex gap-4 text-sm">
-            {nodePressure.memoryPressure > 0 && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                {nodePressure.memoryPressure} node
-                {nodePressure.memoryPressure > 1 ? "s" : ""}: Memory
-                Pressure
-              </span>
-            )}
-            {nodePressure.diskPressure > 0 && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                {nodePressure.diskPressure} node
-                {nodePressure.diskPressure > 1 ? "s" : ""}: Disk Pressure
-              </span>
-            )}
-            {nodePressure.pidPressure > 0 && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                {nodePressure.pidPressure} node
-                {nodePressure.pidPressure > 1 ? "s" : ""}: PID Pressure
-              </span>
+      {pressureBadges.length > 0 && (
+        <AlertBanner
+          title="Node Pressure Detected"
+          type={AlertBannerType.Danger}
+          className="mb-5"
+        >
+          <div className="flex gap-3 mt-1">
+            {pressureBadges.map(
+              (badge: { count: number; label: string }) => {
+                return (
+                  <StatusBadge
+                    key={badge.label}
+                    text={`${badge.count} node${badge.count > 1 ? "s" : ""}: ${badge.label}`}
+                    type={StatusBadgeType.Danger}
+                  />
+                );
+              },
             )}
           </div>
-        </div>
+        </AlertBanner>
       )}
 
       {/* Pod Health Visual Breakdown */}
@@ -591,76 +597,10 @@ const KubernetesClusterOverview: FunctionComponent<
           description="Distribution of pod statuses across the cluster."
         >
           <div className="p-4">
-            <div className="flex h-4 rounded-full overflow-hidden bg-gray-200 mb-3">
-              {podHealthSummary.running > 0 && (
-                <div
-                  className="bg-green-500 h-full"
-                  style={{
-                    width: `${(podHealthSummary.running / podCount) * 100}%`,
-                  }}
-                  title={`${podHealthSummary.running} Running`}
-                />
-              )}
-              {podHealthSummary.succeeded > 0 && (
-                <div
-                  className="bg-blue-500 h-full"
-                  style={{
-                    width: `${(podHealthSummary.succeeded / podCount) * 100}%`,
-                  }}
-                  title={`${podHealthSummary.succeeded} Succeeded`}
-                />
-              )}
-              {podHealthSummary.pending > 0 && (
-                <div
-                  className="bg-yellow-500 h-full"
-                  style={{
-                    width: `${(podHealthSummary.pending / podCount) * 100}%`,
-                  }}
-                  title={`${podHealthSummary.pending} Pending`}
-                />
-              )}
-              {podHealthSummary.failed > 0 && (
-                <div
-                  className="bg-red-500 h-full"
-                  style={{
-                    width: `${(podHealthSummary.failed / podCount) * 100}%`,
-                  }}
-                  title={`${podHealthSummary.failed} Failed`}
-                />
-              )}
-            </div>
-            <div className="flex gap-6 text-sm">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-gray-700">
-                  Running ({podHealthSummary.running})
-                </span>
-              </div>
-              {podHealthSummary.succeeded > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-3 rounded-full bg-blue-500" />
-                  <span className="text-gray-700">
-                    Succeeded ({podHealthSummary.succeeded})
-                  </span>
-                </div>
-              )}
-              {podHealthSummary.pending > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-3 rounded-full bg-yellow-500" />
-                  <span className="text-gray-700">
-                    Pending ({podHealthSummary.pending})
-                  </span>
-                </div>
-              )}
-              {podHealthSummary.failed > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
-                  <span className="text-gray-700">
-                    Failed ({podHealthSummary.failed})
-                  </span>
-                </div>
-              )}
-            </div>
+            <StackedProgressBar
+              segments={podHealthSegments}
+              totalValue={podCount}
+            />
           </div>
         </Card>
       )}
@@ -680,30 +620,16 @@ const KubernetesClusterOverview: FunctionComponent<
               <div className="space-y-2">
                 {topCpuPods.map(
                   (pod: KubernetesResource, index: number) => {
-                    const pct: number = Math.min(
-                      pod.cpuUtilization ?? 0,
-                      100,
-                    );
                     return (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className="w-40 truncate text-sm text-gray-800 font-medium">
-                          {pod.name}
-                        </div>
-                        <span className="inline-flex px-1.5 py-0.5 text-xs rounded bg-blue-50 text-blue-700">
-                          {pod.namespace}
-                        </span>
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${pct > 80 ? "bg-red-500" : pct > 60 ? "bg-yellow-500" : "bg-green-500"}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-600 w-12 text-right">
-                          {KubernetesResourceUtils.formatCpuValue(
-                            pod.cpuUtilization,
-                          )}
-                        </span>
-                      </div>
+                      <ResourceUsageBar
+                        key={index}
+                        label={pod.name}
+                        value={Math.min(pod.cpuUtilization ?? 0, 100)}
+                        valueLabel={KubernetesResourceUtils.formatCpuValue(
+                          pod.cpuUtilization,
+                        )}
+                        secondaryLabel={pod.namespace}
+                      />
                     );
                   },
                 )}
@@ -722,11 +648,12 @@ const KubernetesClusterOverview: FunctionComponent<
                         <div className="w-40 truncate text-sm text-gray-800 font-medium">
                           {pod.name}
                         </div>
-                        <span className="inline-flex px-1.5 py-0.5 text-xs rounded bg-blue-50 text-blue-700">
-                          {pod.namespace}
-                        </span>
+                        <StatusBadge
+                          text={pod.namespace}
+                          type={StatusBadgeType.Info}
+                        />
                         <div className="flex-1">
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-600 font-medium">
                             {KubernetesResourceUtils.formatMemoryValue(
                               pod.memoryUsageBytes,
                             )}
@@ -755,11 +682,13 @@ const KubernetesClusterOverview: FunctionComponent<
                   return (
                     <div
                       key={index}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-yellow-50 border border-yellow-100"
+                      className="flex items-start gap-3 p-3 rounded-lg bg-amber-50/50 border border-amber-100"
                     >
-                      <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 mt-0.5">
-                        {event.reason}
-                      </span>
+                      <StatusBadge
+                        text={event.reason}
+                        type={StatusBadgeType.Warning}
+                        className="mt-0.5"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm text-gray-800">
                           {event.message}

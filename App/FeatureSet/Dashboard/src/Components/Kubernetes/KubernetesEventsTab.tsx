@@ -10,6 +10,11 @@ import {
 } from "../../Pages/Kubernetes/Utils/KubernetesObjectFetcher";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
+import type { FilterButtonOption } from "Common/UI/Components/FilterButtons/FilterButtons";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
 
 export interface ComponentProps {
   clusterIdentifier: string;
@@ -24,9 +29,7 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
   const [events, setEvents] = useState<Array<KubernetesEvent>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "warning" | "normal">(
-    "all",
-  );
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   useEffect(() => {
     const fetchEvents: () => Promise<void> = async (): Promise<void> => {
@@ -90,6 +93,12 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const filterOptions: Array<FilterButtonOption> = [
+    { label: "All", value: "all" },
+    { label: "Warnings", value: "warning", badge: warningCount },
+    { label: "Normal", value: "normal", badge: normalCount },
+  ];
+
   return (
     <div>
       {/* Summary and Filters */}
@@ -99,40 +108,22 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
           {warningCount > 0 && (
             <span>
               {" "}
-              (<span className="text-yellow-700 font-medium">
+              (<span className="text-amber-700 font-medium">
                 {warningCount}
               </span>{" "}
               warning{warningCount !== 1 ? "s" : ""},{" "}
-              <span className="text-green-700 font-medium">{normalCount}</span>{" "}
+              <span className="text-emerald-700 font-medium">
+                {normalCount}
+              </span>{" "}
               normal)
             </span>
           )}
         </div>
-        <div className="flex gap-1">
-          {(["all", "warning", "normal"] as const).map(
-            (filter: "all" | "warning" | "normal") => {
-              return (
-                <button
-                  key={filter}
-                  onClick={() => {
-                    setTypeFilter(filter);
-                  }}
-                  className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
-                    typeFilter === filter
-                      ? "bg-indigo-100 text-indigo-800"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {filter === "all"
-                    ? "All"
-                    : filter === "warning"
-                      ? `Warnings (${warningCount})`
-                      : `Normal (${normalCount})`}
-                </button>
-              );
-            },
-          )}
-        </div>
+        <FilterButtons
+          options={filterOptions}
+          selectedValue={typeFilter}
+          onSelect={setTypeFilter}
+        />
       </div>
 
       <div className="overflow-x-auto">
@@ -161,21 +152,20 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
                 return (
                   <tr
                     key={index}
-                    className={isWarning ? "bg-yellow-50" : ""}
+                    className={isWarning ? "bg-amber-50/50" : ""}
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                       {event.timestamp}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      <StatusBadge
+                        text={event.type}
+                        type={
                           isWarning
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {event.type}
-                      </span>
+                            ? StatusBadgeType.Warning
+                            : StatusBadgeType.Success
+                        }
+                      />
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                       {event.reason}
