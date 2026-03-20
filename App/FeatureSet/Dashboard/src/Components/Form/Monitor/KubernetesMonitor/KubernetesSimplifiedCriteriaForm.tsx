@@ -295,70 +295,66 @@ const KubernetesSimplifiedCriteriaForm: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Alert On-Call Policy */}
-      {props.onCallPolicyDropdownOptions.length > 0 && (
-        <div>
-          <FieldLabelElement
-            title="Alert On-Call Policy"
-            description="On-call policies to notify when an alert is created."
-            required={false}
-          />
-          <Dropdown
-            options={props.onCallPolicyDropdownOptions}
-            value={props.onCallPolicyDropdownOptions.filter(
-              (o: DropdownOption) =>
-                alertOnCallPolicyIds.includes(o.value?.toString() || ""),
-            )}
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ) => {
-              if (Array.isArray(value)) {
-                setAlertOnCallPolicyIds(
-                  value.map((v: DropdownValue) => v.toString()),
-                );
-              } else if (value) {
-                setAlertOnCallPolicyIds([value.toString()]);
-              } else {
-                setAlertOnCallPolicyIds([]);
-              }
-            }}
-            isMultiSelect={true}
-            placeholder="Select on-call policies..."
-          />
-        </div>
-      )}
+      <div>
+        <FieldLabelElement
+          title="Alert On-Call Policy"
+          description="On-call policies to notify when an alert is created."
+          required={false}
+        />
+        <Dropdown
+          options={props.onCallPolicyDropdownOptions}
+          value={props.onCallPolicyDropdownOptions.filter(
+            (o: DropdownOption) =>
+              alertOnCallPolicyIds.includes(o.value?.toString() || ""),
+          )}
+          onChange={(
+            value: DropdownValue | Array<DropdownValue> | null,
+          ) => {
+            if (Array.isArray(value)) {
+              setAlertOnCallPolicyIds(
+                value.map((v: DropdownValue) => v.toString()),
+              );
+            } else if (value) {
+              setAlertOnCallPolicyIds([value.toString()]);
+            } else {
+              setAlertOnCallPolicyIds([]);
+            }
+          }}
+          isMultiSelect={true}
+          placeholder="Select on-call policies..."
+        />
+      </div>
 
       {/* Incident On-Call Policy */}
-      {props.onCallPolicyDropdownOptions.length > 0 && (
-        <div>
-          <FieldLabelElement
-            title="Incident On-Call Policy"
-            description="On-call policies to notify when an incident is created."
-            required={false}
-          />
-          <Dropdown
-            options={props.onCallPolicyDropdownOptions}
-            value={props.onCallPolicyDropdownOptions.filter(
-              (o: DropdownOption) =>
-                incidentOnCallPolicyIds.includes(o.value?.toString() || ""),
-            )}
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ) => {
-              if (Array.isArray(value)) {
-                setIncidentOnCallPolicyIds(
-                  value.map((v: DropdownValue) => v.toString()),
-                );
-              } else if (value) {
-                setIncidentOnCallPolicyIds([value.toString()]);
-              } else {
-                setIncidentOnCallPolicyIds([]);
-              }
-            }}
-            isMultiSelect={true}
-            placeholder="Select on-call policies..."
-          />
-        </div>
-      )}
+      <div>
+        <FieldLabelElement
+          title="Incident On-Call Policy"
+          description="On-call policies to notify when an incident is created."
+          required={false}
+        />
+        <Dropdown
+          options={props.onCallPolicyDropdownOptions}
+          value={props.onCallPolicyDropdownOptions.filter(
+            (o: DropdownOption) =>
+              incidentOnCallPolicyIds.includes(o.value?.toString() || ""),
+          )}
+          onChange={(
+            value: DropdownValue | Array<DropdownValue> | null,
+          ) => {
+            if (Array.isArray(value)) {
+              setIncidentOnCallPolicyIds(
+                value.map((v: DropdownValue) => v.toString()),
+              );
+            } else if (value) {
+              setIncidentOnCallPolicyIds([value.toString()]);
+            } else {
+              setIncidentOnCallPolicyIds([]);
+            }
+          }}
+          isMultiSelect={true}
+          placeholder="Select on-call policies..."
+        />
+      </div>
 
       {/* Auto-Resolve */}
       <div>
