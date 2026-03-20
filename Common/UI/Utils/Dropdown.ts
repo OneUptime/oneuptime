@@ -80,7 +80,8 @@ export default class DropdownUtil {
   public static getDropdownOptionsFromArray(
     arr: Array<string>,
   ): Array<DropdownOption> {
-    return arr.map((item: string) => {
+    const uniqueArr: Array<string> = [...new Set(arr)];
+    return uniqueArr.map((item: string) => {
       return {
         label: item,
         value: item,
