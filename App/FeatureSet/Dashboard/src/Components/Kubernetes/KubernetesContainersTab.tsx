@@ -14,6 +14,78 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import type Columns from "Common/UI/Components/Table/Types/Columns";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 
+function formatK8sResourceValue(key: string, value: string): string {
+  if (!value) {
+    return value;
+  }
+
+  // CPU values: millicores (e.g. "250m" = 0.25 cores)
+  const cpuMilliMatch: RegExpMatchArray | null = value.match(/^(\d+)m$/);
+  if (cpuMilliMatch && key.toLowerCase() === "cpu") {
+    const millis: number = parseInt(cpuMilliMatch[1] || "0");
+    if (millis >= 1000) {
+      return `${value} (${millis / 1000} CPU cores)`;
+    }
+    return `${value} (${(millis / 1000).toFixed(2)} CPU cores)`;
+  }
+
+  // CPU whole cores (e.g. "2" = 2 cores)
+  if (key.toLowerCase() === "cpu" && /^\d+$/.test(value)) {
+    const cores: number = parseInt(value);
+    return `${value} (${cores} CPU core${cores !== 1 ? "s" : ""})`;
+  }
+
+  // Memory values: Ki, Mi, Gi, Ti
+  const memMatch: RegExpMatchArray | null = value.match(
+    /^(\d+)(Ki|Mi|Gi|Ti)$/,
+  );
+  if (memMatch) {
+    const num: number = parseInt(memMatch[1] || "0");
+    const unit: string = memMatch[2] || "";
+    const explanations: Record<string, string> = {
+      Ki: `${(num / 1024).toFixed(num >= 1024 ? 1 : 2)} MB`,
+      Mi: num >= 1024 ? `${(num / 1024).toFixed(1)} GB` : `${num} MB`,
+      Gi: `${num} GB`,
+      Ti: `${num} TB`,
+    };
+    const readable: string | undefined = explanations[unit];
+    if (readable) {
+      return `${value} (${readable})`;
+    }
+  }
+
+  // Ephemeral storage: same units
+  const storageMatch: RegExpMatchArray | null = value.match(
+    /^(\d+)(K|M|G|T)$/,
+  );
+  if (storageMatch) {
+    const num: number = parseInt(storageMatch[1] || "0");
+    const unit: string = storageMatch[2] || "";
+    const explanations: Record<string, string> = {
+      K: `${(num / 1000).toFixed(num >= 1000 ? 1 : 2)} MB`,
+      M: num >= 1000 ? `${(num / 1000).toFixed(1)} GB` : `${num} MB`,
+      G: `${num} GB`,
+      T: `${num} TB`,
+    };
+    const readable: string | undefined = explanations[unit];
+    if (readable) {
+      return `${value} (${readable})`;
+    }
+  }
+
+  return value;
+}
+
+function annotateResourceValues(
+  resources: Record<string, string>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const key of Object.keys(resources)) {
+    result[key] = formatK8sResourceValue(key, resources[key] || "");
+  }
+  return result;
+}
+
 export interface ComponentProps {
   containers: Array<KubernetesContainerSpec>;
   initContainers: Array<KubernetesContainerSpec>;
@@ -191,7 +263,9 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
                   Requests
                 </div>
                 <DictionaryOfStringsViewer
-                  value={props.container.resources.requests}
+                  value={annotateResourceValues(
+                    props.container.resources.requests,
+                  )}
                 />
               </div>
             )}
@@ -201,7 +275,9 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
                   Limits
                 </div>
                 <DictionaryOfStringsViewer
-                  value={props.container.resources.limits}
+                  value={annotateResourceValues(
+                    props.container.resources.limits,
+                  )}
                 />
               </div>
             )}
