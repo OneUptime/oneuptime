@@ -749,7 +749,7 @@ return {
       {props.monitorType === MonitorType.Kubernetes && (
         <Card
           title="Kubernetes Monitor Configuration"
-          description="Configure the Kubernetes cluster and resource monitoring settings"
+          description="Configure your Kubernetes cluster monitoring using templates, curated metrics, or the advanced query builder."
         >
           <KubernetesMonitorStepForm
             monitorStepKubernetesMonitor={

@@ -41,7 +41,7 @@ export interface KubernetesAlertTemplate {
   getMonitorStep: (args: KubernetesAlertTemplateArgs) => MonitorStep;
 }
 
-function buildKubernetesMonitorStep(args: {
+export function buildKubernetesMonitorStep(args: {
   kubernetesMonitor: MonitorStepKubernetesMonitor;
   offlineCriteriaInstance: MonitorCriteriaInstance;
   onlineCriteriaInstance: MonitorCriteriaInstance;
@@ -84,7 +84,7 @@ function buildKubernetesMonitorStep(args: {
   return monitorStep;
 }
 
-function buildOfflineCriteriaInstance(args: {
+export function buildOfflineCriteriaInstance(args: {
   offlineMonitorStatusId: ObjectID;
   incidentSeverityId: ObjectID;
   alertSeverityId: ObjectID;
@@ -140,7 +140,7 @@ function buildOfflineCriteriaInstance(args: {
   return instance;
 }
 
-function buildOnlineCriteriaInstance(args: {
+export function buildOnlineCriteriaInstance(args: {
   onlineMonitorStatusId: ObjectID;
   metricAlias: string;
   filterType: FilterType;
@@ -175,7 +175,7 @@ function buildOnlineCriteriaInstance(args: {
   return instance;
 }
 
-function buildKubernetesMonitorConfig(args: {
+export function buildKubernetesMonitorConfig(args: {
   clusterIdentifier: string;
   metricName: string;
   metricAlias: string;

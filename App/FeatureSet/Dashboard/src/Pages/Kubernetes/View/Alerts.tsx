@@ -185,10 +185,11 @@ const KubernetesClusterAlerts: FunctionComponent<
                           buttonStyle={ButtonStyleType.OUTLINE}
                           icon={IconProp.Add}
                           onClick={() => {
+                            const baseRoute: string =
+                              RouteMap[PageMap.MONITOR_CREATE]?.toString() || "";
+                            const queryParams: string = `?monitorType=Kubernetes&templateId=${template.id}&clusterId=${cluster.clusterIdentifier || ""}`;
                             Navigation.navigate(
-                              new Route(
-                                RouteMap[PageMap.MONITOR_CREATE]?.toString() || "",
-                              ),
+                              new Route(baseRoute + queryParams),
                             );
                           }}
                         />
