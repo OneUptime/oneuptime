@@ -7,10 +7,18 @@ import {
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import LocalTable from "Common/UI/Components/Table/LocalTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import type Columns from "Common/UI/Components/Table/Types/Columns";
 
 export interface ComponentProps {
   containers: Array<KubernetesContainerSpec>;
   initContainers: Array<KubernetesContainerSpec>;
+}
+
+interface EnvVarRow {
+  name: string;
+  value: string;
 }
 
 const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
@@ -48,6 +56,54 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
 
   const searchLower: string = search.toLowerCase();
 
+  const columns: Columns<EnvVarRow> = [
+    {
+      title: "Name",
+      type: FieldType.Element,
+      key: "name",
+      getElement: (item: EnvVarRow): ReactElement => {
+        return (
+          <span className="font-mono font-medium text-gray-900">
+            {item.name}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Value",
+      type: FieldType.Element,
+      key: "value",
+      getElement: (item: EnvVarRow): ReactElement => {
+        const isSecret: boolean =
+          item.value.startsWith("<Secret:") ||
+          item.value.startsWith("<ConfigMap:") ||
+          item.value.startsWith("<FieldRef:") ||
+          item.value.startsWith("<ResourceFieldRef:");
+
+        if (isSecret) {
+          return (
+            <StatusBadge
+              text={item.value}
+              type={
+                item.value.startsWith("<Secret:")
+                  ? StatusBadgeType.Warning
+                  : StatusBadgeType.Info
+              }
+            />
+          );
+        }
+
+        return (
+          <span className="font-mono text-gray-600">
+            {item.value || (
+              <span className="text-gray-400 italic">empty</span>
+            )}
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="space-y-4">
       {/* Search bar */}
@@ -84,65 +140,28 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
 
           const isInit: boolean = containerIdx < props.initContainers.length;
 
+          const tableData: Array<EnvVarRow> = filteredEnv.map(
+            (env: KubernetesContainerEnvVar): EnvVarRow => {
+              return {
+                name: env.name,
+                value: env.value,
+              };
+            },
+          );
+
           return (
             <Card
               key={containerIdx}
               title={`${isInit ? "Init Container: " : ""}${container.name}`}
               description={`${filteredEnv.length} environment variable${filteredEnv.length !== 1 ? "s" : ""}`}
             >
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Value
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEnv.map(
-                      (env: KubernetesContainerEnvVar, envIdx: number) => {
-                        const isSecret: boolean =
-                          env.value.startsWith("<Secret:") ||
-                          env.value.startsWith("<ConfigMap:") ||
-                          env.value.startsWith("<FieldRef:") ||
-                          env.value.startsWith("<ResourceFieldRef:");
-
-                        return (
-                          <tr key={envIdx} className="hover:bg-gray-50/50">
-                            <td className="px-4 py-2 whitespace-nowrap text-sm font-mono font-medium text-gray-900">
-                              {env.name}
-                            </td>
-                            <td className="px-4 py-2 text-sm font-mono break-all">
-                              {isSecret ? (
-                                <StatusBadge
-                                  text={env.value}
-                                  type={
-                                    env.value.startsWith("<Secret:")
-                                      ? StatusBadgeType.Warning
-                                      : StatusBadgeType.Info
-                                  }
-                                />
-                              ) : (
-                                <span className="text-gray-600">
-                                  {env.value || (
-                                    <span className="text-gray-400 italic">
-                                      empty
-                                    </span>
-                                  )}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      },
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <LocalTable
+                id={`env-vars-${containerIdx}`}
+                data={tableData}
+                columns={columns}
+                singularLabel="Variable"
+                pluralLabel="Variables"
+              />
             </Card>
           );
         },

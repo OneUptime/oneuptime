@@ -49,6 +49,31 @@ interface ResourceLink {
   title: string;
   description: string;
   pageMap: PageMap;
+  count?: number | undefined;
+}
+
+function formatRelativeTime(timestamp: string): string {
+  try {
+    const eventDate: Date = new Date(timestamp);
+    const now: Date = new Date();
+    const diffMs: number = now.getTime() - eventDate.getTime();
+    const diffMins: number = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) {
+      return "just now";
+    }
+    if (diffMins < 60) {
+      return `${diffMins}m ago`;
+    }
+    const diffHours: number = Math.floor(diffMins / 60);
+    if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    }
+    const diffDays: number = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+  } catch {
+    return timestamp;
+  }
 }
 
 const KubernetesClusterOverview: FunctionComponent<
@@ -307,11 +332,13 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "Namespaces",
       description: "View all namespaces",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES,
+      count: namespaceCount > 0 ? namespaceCount : undefined,
     },
     {
       title: "Pods",
       description: "View all pods",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_PODS,
+      count: podCount > 0 ? podCount : undefined,
     },
     {
       title: "Deployments",
@@ -345,6 +372,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "Nodes",
       description: "View all nodes",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_NODES,
+      count: nodeCount > 0 ? nodeCount : undefined,
     },
     {
       title: "Containers",
@@ -425,7 +453,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   ),
                 );
               }}
-              className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all duration-150 group cursor-pointer"
+              className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all duration-150 group cursor-pointer"
             >
               <div>
                 <div className="font-medium text-gray-900 group-hover:text-indigo-700">
@@ -435,6 +463,11 @@ const KubernetesClusterOverview: FunctionComponent<
                   {link.description}
                 </div>
               </div>
+              {link.count !== undefined && (
+                <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
+                  {link.count}
+                </span>
+              )}
             </div>
           );
         })}
@@ -643,23 +676,22 @@ const KubernetesClusterOverview: FunctionComponent<
               <div className="space-y-2">
                 {topMemoryPods.map(
                   (pod: KubernetesResource, index: number) => {
+                    const maxMemory: number =
+                      topMemoryPods[0]?.memoryUsageBytes ?? 1;
+                    const memPercent: number =
+                      maxMemory > 0
+                        ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
+                        : 0;
                     return (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className="w-40 truncate text-sm text-gray-800 font-medium">
-                          {pod.name}
-                        </div>
-                        <StatusBadge
-                          text={pod.namespace}
-                          type={StatusBadgeType.Info}
-                        />
-                        <div className="flex-1">
-                          <span className="text-xs text-gray-600 font-medium">
-                            {KubernetesResourceUtils.formatMemoryValue(
-                              pod.memoryUsageBytes,
-                            )}
-                          </span>
-                        </div>
-                      </div>
+                      <ResourceUsageBar
+                        key={index}
+                        label={pod.name}
+                        value={memPercent}
+                        valueLabel={KubernetesResourceUtils.formatMemoryValue(
+                          pod.memoryUsageBytes,
+                        )}
+                        secondaryLabel={pod.namespace}
+                      />
                     );
                   },
                 )}
@@ -694,8 +726,9 @@ const KubernetesClusterOverview: FunctionComponent<
                           {event.message}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {event.objectKind}/{event.objectName} in{" "}
-                          {event.namespace} &middot; {event.timestamp}
+                          <span className="font-medium">{event.objectKind}/{event.objectName}</span>{" "}
+                          in {event.namespace} &middot;{" "}
+                          {formatRelativeTime(event.timestamp)}
                         </div>
                       </div>
                     </div>

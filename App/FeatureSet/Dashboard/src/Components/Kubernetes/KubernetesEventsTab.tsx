@@ -16,12 +16,23 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import ExpandableText from "Common/UI/Components/ExpandableText/ExpandableText";
+import LocalTable from "Common/UI/Components/Table/LocalTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import type Columns from "Common/UI/Components/Table/Types/Columns";
 
 export interface ComponentProps {
   clusterIdentifier: string;
   resourceKind: string; // "Pod", "Node", "Deployment", etc.
   resourceName: string;
   namespace?: string | undefined;
+}
+
+interface EventRow {
+  timestamp: string;
+  relativeTime: string;
+  type: string;
+  reason: string;
+  message: string;
 }
 
 function formatRelativeTime(timestamp: string): string {
@@ -126,6 +137,58 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
     { label: "Normal", value: "normal", badge: normalCount },
   ];
 
+  const tableData: Array<EventRow> = filteredEvents.map(
+    (event: KubernetesEvent): EventRow => {
+      return {
+        timestamp: event.timestamp,
+        relativeTime: formatRelativeTime(event.timestamp),
+        type: event.type,
+        reason: event.reason,
+        message: event.message,
+      };
+    },
+  );
+
+  const columns: Columns<EventRow> = [
+    {
+      title: "Time",
+      type: FieldType.Text,
+      key: "relativeTime",
+      tooltipText: (item: EventRow): string => {
+        return item.timestamp;
+      },
+    },
+    {
+      title: "Type",
+      type: FieldType.Element,
+      key: "type",
+      getElement: (item: EventRow): ReactElement => {
+        const isWarning: boolean = item.type.toLowerCase() === "warning";
+        return (
+          <StatusBadge
+            text={item.type}
+            type={
+              isWarning ? StatusBadgeType.Warning : StatusBadgeType.Success
+            }
+          />
+        );
+      },
+    },
+    {
+      title: "Reason",
+      type: FieldType.Text,
+      key: "reason",
+    },
+    {
+      title: "Message",
+      type: FieldType.Element,
+      key: "message",
+      getElement: (item: EventRow): ReactElement => {
+        return <ExpandableText text={item.message} maxLength={120} />;
+      },
+    },
+  ];
+
   return (
     <div>
       {/* Summary and Filters */}
@@ -135,7 +198,8 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
           {warningCount > 0 && (
             <span>
               {" "}
-              (<span className="text-amber-700 font-medium">
+              (
+              <span className="text-amber-700 font-medium">
                 {warningCount}
               </span>{" "}
               warning{warningCount !== 1 ? "s" : ""},{" "}
@@ -153,70 +217,13 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Time
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Type
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Reason
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Message
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredEvents.map(
-              (event: KubernetesEvent, index: number) => {
-                const isWarning: boolean =
-                  event.type.toLowerCase() === "warning";
-                return (
-                  <tr
-                    key={index}
-                    className={isWarning ? "bg-amber-50/50" : ""}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      <span title={event.timestamp}>
-                        {formatRelativeTime(event.timestamp)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <StatusBadge
-                        text={event.type}
-                        type={
-                          isWarning
-                            ? StatusBadgeType.Warning
-                            : StatusBadgeType.Success
-                        }
-                      />
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {event.reason}
-                    </td>
-                    <td className="px-4 py-3 text-sm max-w-lg">
-                      <ExpandableText
-                        text={event.message}
-                        maxLength={120}
-                      />
-                    </td>
-                  </tr>
-                );
-              },
-            )}
-          </tbody>
-        </table>
-      </div>
-      {filteredEvents.length === 0 && (
-        <div className="text-gray-500 text-sm p-4 text-center">
-          No {typeFilter} events found.
-        </div>
-      )}
+      <LocalTable
+        id="kubernetes-events-table"
+        data={tableData}
+        columns={columns}
+        singularLabel="Event"
+        pluralLabel="Events"
+      />
     </div>
   );
 };

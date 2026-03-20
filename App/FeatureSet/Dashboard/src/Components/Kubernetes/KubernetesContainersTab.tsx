@@ -9,6 +9,10 @@ import {
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import LocalTable from "Common/UI/Components/Table/LocalTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import type Columns from "Common/UI/Components/Table/Types/Columns";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 
 export interface ComponentProps {
   containers: Array<KubernetesContainerSpec>;
@@ -22,6 +26,49 @@ interface ContainerCardProps {
   status?: KubernetesContainerStatus | undefined;
   isInit: boolean;
 }
+
+interface VolumeMountRow {
+  name: string;
+  mountPath: string;
+  readOnly: string;
+}
+
+const volumeMountColumns: Columns<VolumeMountRow> = [
+  {
+    title: "Volume Name",
+    type: FieldType.Text,
+    key: "name",
+  },
+  {
+    title: "Mount Path",
+    type: FieldType.Element,
+    key: "mountPath",
+    getElement: (item: VolumeMountRow): ReactElement => {
+      return (
+        <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded font-mono">
+          {item.mountPath}
+        </code>
+      );
+    },
+  },
+  {
+    title: "Access",
+    type: FieldType.Element,
+    key: "readOnly",
+    getElement: (item: VolumeMountRow): ReactElement => {
+      return (
+        <StatusBadge
+          text={item.readOnly === "true" ? "Read-Only" : "Read-Write"}
+          type={
+            item.readOnly === "true"
+              ? StatusBadgeType.Warning
+              : StatusBadgeType.Neutral
+          }
+        />
+      );
+    },
+  },
+];
 
 const ContainerCard: FunctionComponent<ContainerCardProps> = (
   props: ContainerCardProps,
@@ -43,61 +90,71 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
       title={`${props.isInit ? "Init Container: " : "Container: "}${props.container.name}`}
       description={props.container.image}
     >
-      <div className="space-y-4">
-        {/* Status */}
+      <div className="space-y-5">
+        {/* Status Info Cards */}
         {props.status && (
-          <div className="flex gap-4 items-center text-sm">
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500">State:</span>
-              <StatusBadge
-                text={props.status.state}
-                type={
-                  props.status.state === "running"
-                    ? StatusBadgeType.Success
-                    : props.status.state === "waiting"
-                      ? StatusBadgeType.Warning
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <InfoCard
+              title="State"
+              value={
+                <StatusBadge
+                  text={props.status.state}
+                  type={
+                    props.status.state === "running"
+                      ? StatusBadgeType.Success
+                      : props.status.state === "waiting"
+                        ? StatusBadgeType.Warning
+                        : StatusBadgeType.Danger
+                  }
+                />
+              }
+            />
+            <InfoCard
+              title="Ready"
+              value={
+                <StatusBadge
+                  text={props.status.ready ? "Yes" : "No"}
+                  type={
+                    props.status.ready
+                      ? StatusBadgeType.Success
                       : StatusBadgeType.Danger
-                }
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500">Ready:</span>
-              <StatusBadge
-                text={props.status.ready ? "Yes" : "No"}
-                type={
-                  props.status.ready
-                    ? StatusBadgeType.Success
-                    : StatusBadgeType.Danger
-                }
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500">Restarts:</span>
-              <StatusBadge
-                text={String(props.status.restartCount)}
-                type={
-                  props.status.restartCount > 0
-                    ? StatusBadgeType.Warning
-                    : StatusBadgeType.Neutral
-                }
-              />
-            </div>
+                  }
+                />
+              }
+            />
+            <InfoCard
+              title="Restarts"
+              value={
+                <StatusBadge
+                  text={String(props.status.restartCount)}
+                  type={
+                    props.status.restartCount > 0
+                      ? StatusBadgeType.Warning
+                      : StatusBadgeType.Neutral
+                  }
+                />
+              }
+            />
           </div>
         )}
 
         {/* Command & Args */}
         {props.container.command.length > 0 && (
-          <div className="text-sm">
-            <span className="text-gray-500 font-medium">Command:</span>{" "}
-            <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
+          <div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+              Command
+            </div>
+            <code className="text-sm bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg block font-mono text-gray-800">
               {props.container.command.join(" ")}
             </code>
           </div>
         )}
         {props.container.args.length > 0 && (
-          <div className="text-sm">
-            <span className="text-gray-500 font-medium">Args:</span>{" "}
-            <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
+          <div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+              Args
+            </div>
+            <code className="text-sm bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg block font-mono text-gray-800">
               {props.container.args.join(" ")}
             </code>
           </div>
@@ -105,31 +162,34 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
 
         {/* Ports */}
         {props.container.ports.length > 0 && (
-          <div className="text-sm">
-            <span className="text-gray-500 font-medium">Ports:</span>{" "}
-            {props.container.ports.map(
-              (port: KubernetesContainerPort, idx: number) => {
-                return (
-                  <StatusBadge
-                    key={idx}
-                    text={`${port.name ? `${port.name}: ` : ""}${port.containerPort}/${port.protocol}`}
-                    type={StatusBadgeType.Info}
-                    className="mr-1"
-                  />
-                );
-              },
-            )}
+          <div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              Ports
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {props.container.ports.map(
+                (port: KubernetesContainerPort, idx: number) => {
+                  return (
+                    <StatusBadge
+                      key={idx}
+                      text={`${port.name ? `${port.name}: ` : ""}${port.containerPort}/${port.protocol}`}
+                      type={StatusBadgeType.Info}
+                    />
+                  );
+                },
+              )}
+            </div>
           </div>
         )}
 
         {/* Resources */}
         {hasResources && (
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {Object.keys(props.container.resources.requests).length > 0 && (
               <div>
-                <span className="text-gray-500 font-medium block mb-1">
-                  Requests:
-                </span>
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  Requests
+                </div>
                 <DictionaryOfStringsViewer
                   value={props.container.resources.requests}
                 />
@@ -137,9 +197,9 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             )}
             {Object.keys(props.container.resources.limits).length > 0 && (
               <div>
-                <span className="text-gray-500 font-medium block mb-1">
-                  Limits:
-                </span>
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  Limits
+                </div>
                 <DictionaryOfStringsViewer
                   value={props.container.resources.limits}
                 />
@@ -155,60 +215,56 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               onClick={() => {
                 setShowEnv(!showEnv);
               }}
-              className="text-sm text-indigo-600 hover:text-indigo-900 font-medium"
+              className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
             >
-              {showEnv ? "Hide" : "Show"} Environment Variables (
-              {props.container.env.length})
+              <span className="text-xs">
+                {showEnv ? "▼" : "▶"}
+              </span>
+              Environment Variables ({props.container.env.length})
             </button>
             {showEnv && (
-              <div className="mt-2">
+              <div className="mt-3">
                 <DictionaryOfStringsViewer value={envRecord} />
               </div>
             )}
           </div>
         )}
 
-        {/* Volume Mounts (expandable) */}
+        {/* Volume Mounts (expandable with table) */}
         {props.container.volumeMounts.length > 0 && (
           <div>
             <button
               onClick={() => {
                 setShowMounts(!showMounts);
               }}
-              className="text-sm text-indigo-600 hover:text-indigo-900 font-medium"
+              className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
             >
-              {showMounts ? "Hide" : "Show"} Volume Mounts (
-              {props.container.volumeMounts.length})
+              <span className="text-xs">
+                {showMounts ? "▼" : "▶"}
+              </span>
+              Volume Mounts ({props.container.volumeMounts.length})
             </button>
             {showMounts && (
-              <div className="mt-2 space-y-1">
-                {props.container.volumeMounts.map(
-                  (
-                    mount: {
+              <div className="mt-3">
+                <LocalTable
+                  id={`volume-mounts-${props.container.name}`}
+                  data={props.container.volumeMounts.map(
+                    (mount: {
                       name: string;
                       mountPath: string;
                       readOnly: boolean;
+                    }): VolumeMountRow => {
+                      return {
+                        name: mount.name,
+                        mountPath: mount.mountPath,
+                        readOnly: String(mount.readOnly),
+                      };
                     },
-                    idx: number,
-                  ) => {
-                    return (
-                      <div key={idx} className="text-sm flex gap-2">
-                        <span className="font-medium text-gray-700">
-                          {mount.name}
-                        </span>
-                        <span className="text-gray-500">→</span>
-                        <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
-                          {mount.mountPath}
-                        </code>
-                        {mount.readOnly && (
-                          <span className="text-xs text-gray-400">
-                            (read-only)
-                          </span>
-                        )}
-                      </div>
-                    );
-                  },
-                )}
+                  )}
+                  columns={volumeMountColumns}
+                  singularLabel="Mount"
+                  pluralLabel="Mounts"
+                />
               </div>
             )}
           </div>
