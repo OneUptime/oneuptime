@@ -12,8 +12,6 @@ metadata:
     appname: oneuptime
     helm.sh/release-name: {{ .Release.Name }}
     helm.sh/release-namespace: {{ .Release.Namespace }}
-  annotations:
-    helm.sh/resource-policy: keep
 spec:
   serviceName: {{ .Release.Name }}-postgresql-headless
   replicas: 1
