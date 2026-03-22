@@ -164,7 +164,7 @@ then
     exit 0
 fi
 
-# Install cluster with Helm.
+# Install cluster with helm-chart.
 sudo helm repo add oneuptime https://oneuptime.com/chart || echo "OneUptime already added"
 sudo helm repo update
 
