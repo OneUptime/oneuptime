@@ -1,5 +1,5 @@
 
-{{- if $.Values.cronJobs.e2e.enabled }}
+{{- if and $.Values.cronJobs.e2e.enabled (not $.Values.deployment.disableDeployments) }}
 
 apiVersion: batch/v1
 kind: CronJob
