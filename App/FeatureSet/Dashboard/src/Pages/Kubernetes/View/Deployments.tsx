@@ -24,7 +24,10 @@ import {
   fetchK8sObjectsBatch,
   KubernetesObjectType,
 } from "../Utils/KubernetesObjectFetcher";
-import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
+import {
+  KubernetesCondition,
+  KubernetesDeploymentObject,
+} from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterDeployments: FunctionComponent<
   PageComponentProps
@@ -83,9 +86,12 @@ const KubernetesClusterDeployments: FunctionComponent<
             resource.status = "Ready";
           } else if (readyReplicas < replicas) {
             // Check conditions for failure
-            const failedCondition = deployment.status.conditions.find((c) => {
-              return c.type === "Available" && c.status === "False";
-            });
+            const failedCondition: KubernetesCondition | undefined =
+              deployment.status.conditions.find(
+                (c: KubernetesCondition) => {
+                  return c.type === "Available" && c.status === "False";
+                },
+              );
             resource.status = failedCondition ? "Failed" : "Progressing";
           } else {
             resource.status = "Progressing";

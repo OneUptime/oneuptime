@@ -10,8 +10,9 @@ import {
 } from "../../Pages/Kubernetes/Utils/KubernetesObjectFetcher";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
-import type { FilterButtonOption } from "Common/UI/Components/FilterButtons/FilterButtons";
+import FilterButtons, {
+  type FilterButtonOption,
+} from "Common/UI/Components/FilterButtons/FilterButtons";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";

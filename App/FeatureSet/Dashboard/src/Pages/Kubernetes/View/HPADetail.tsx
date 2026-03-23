@@ -18,7 +18,10 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
-import { KubernetesHPAObject } from "../Utils/KubernetesObjectParser";
+import {
+  KubernetesHPAMetricSpec,
+  KubernetesHPAObject,
+} from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
@@ -171,7 +174,7 @@ const KubernetesClusterHPADetail: FunctionComponent<
 
     if (objectData.spec.metrics.length > 0) {
       const metricsDisplay: string = objectData.spec.metrics
-        .map((m) => {
+        .map((m: KubernetesHPAMetricSpec) => {
           if (m.resourceName) {
             return `${m.resourceName} (${m.targetType}: ${m.targetValue})`;
           }

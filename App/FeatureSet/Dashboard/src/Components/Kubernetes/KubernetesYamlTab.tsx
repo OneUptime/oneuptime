@@ -40,7 +40,7 @@ function toYaml(obj: unknown, indent: number = 0): string {
       obj === "true" ||
       obj === "false" ||
       obj === "null" ||
-      (/^\d/).test(obj)
+      /^\d/.test(obj)
     ) {
       return `"${obj.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
     }
@@ -168,7 +168,9 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
    * Simple YAML syntax highlighter.
    * Returns an array of React elements with colored spans for keys, values, etc.
    */
-  const highlightYamlLine = (line: string): ReactElement => {
+  const highlightYamlLine: (line: string) => ReactElement = (
+    line: string,
+  ): ReactElement => {
     // Empty or whitespace-only line
     if (line.trim() === "") {
       return <span>{line}</span>;

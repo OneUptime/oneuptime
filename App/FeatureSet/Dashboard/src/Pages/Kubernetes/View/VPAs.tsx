@@ -3,8 +3,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
-import { KubernetesResource } from "../Utils/KubernetesResourceUtils";
-import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesResourceUtils, {
+  KubernetesResource,
+} from "../Utils/KubernetesResourceUtils";
 import React, {
   FunctionComponent,
   ReactElement,

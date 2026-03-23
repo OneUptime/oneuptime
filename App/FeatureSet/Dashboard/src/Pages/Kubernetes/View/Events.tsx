@@ -26,8 +26,9 @@ import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { getKvValue, getKvStringValue } from "../Utils/KubernetesObjectParser";
 import { KubernetesEvent } from "../Utils/KubernetesObjectFetcher";
-import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
-import type { FilterButtonOption } from "Common/UI/Components/FilterButtons/FilterButtons";
+import FilterButtons, {
+  type FilterButtonOption,
+} from "Common/UI/Components/FilterButtons/FilterButtons";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";

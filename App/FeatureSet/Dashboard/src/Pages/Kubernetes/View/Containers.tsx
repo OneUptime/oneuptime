@@ -24,7 +24,10 @@ import {
   fetchK8sObjectsBatch,
   KubernetesObjectType,
 } from "../Utils/KubernetesObjectFetcher";
-import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
+import {
+  KubernetesContainerStatus,
+  KubernetesPodObject,
+} from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterContainers: FunctionComponent<
   PageComponentProps
@@ -80,9 +83,12 @@ const KubernetesClusterContainers: FunctionComponent<
           const pod: KubernetesPodObject = podObj as KubernetesPodObject;
 
           // Find the container status matching this container name
-          const containerStatus = pod.status.containerStatuses.find((cs) => {
-            return cs.name === resource.name;
-          });
+          const containerStatus: KubernetesContainerStatus | undefined =
+            pod.status.containerStatuses.find(
+              (cs: KubernetesContainerStatus) => {
+                return cs.name === resource.name;
+              },
+            );
 
           if (containerStatus) {
             if (containerStatus.state === "running") {

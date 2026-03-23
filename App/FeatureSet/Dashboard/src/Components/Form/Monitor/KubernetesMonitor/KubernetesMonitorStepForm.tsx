@@ -12,6 +12,7 @@ import RollingTimePicker from "Common/UI/Components/RollingTimePicker/RollingTim
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -42,7 +43,6 @@ export interface ComponentProps {
   onChange: (
     monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor,
   ) => void;
-  onMonitorStepOverride?: ((step: MonitorStep) => void) | undefined;
   onModeChange?: ((mode: KubernetesFormMode) => void) | undefined;
   initialTemplateId?: string | undefined;
   initialClusterId?: string | undefined;
@@ -92,7 +92,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     Navigation.getQueryStringByName("clusterId") ||
     undefined;
 
-  const [_mode, setMode] = React.useState<KubernetesFormMode>("quick");
+  const [, setMode] = React.useState<KubernetesFormMode>("quick");
 
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
@@ -109,8 +109,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     Array<DropdownOption>
   >([]);
 
-  const [_isLoadingClusters, setIsLoadingClusters] =
-    React.useState<boolean>(true);
+  const [, setIsLoadingClusters] = React.useState<boolean>(true);
 
   // Quick Setup state
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<
@@ -210,7 +209,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const handleTemplateSelection = (template: KubernetesAlertTemplate): void => {
+  const handleTemplateSelection: (template: KubernetesAlertTemplate) => void = (
+    template: KubernetesAlertTemplate,
+  ): void => {
     setSelectedTemplateId(template.id);
 
     /*
@@ -244,9 +245,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleCustomMetricSelection = (
+  const handleCustomMetricSelection: (
     metric: KubernetesMetricDefinition,
-  ): void => {
+  ) => void = (metric: KubernetesMetricDefinition): void => {
     setSelectedMetricId(metric.id);
     setCustomAggregation(metric.defaultAggregation);
     setCustomResourceScope(metric.defaultResourceScope);
@@ -284,7 +285,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   const showPodFilter: boolean =
     monitorStepKubernetesMonitor.resourceScope === KubernetesResourceScope.Pod;
 
-  const renderClusterDropdown = (): ReactElement => {
+  const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
         <FieldLabelElement
@@ -311,7 +312,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderResourceFilters = (): ReactElement => {
+  const renderResourceFilters: () => ReactElement = (): ReactElement => {
     return (
       <>
         {showNamespaceFilter && (
@@ -415,7 +416,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderQuickSetup = (): ReactElement => {
+  const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
         <KubernetesTemplatePicker
@@ -459,7 +460,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderCustomMetric = (): ReactElement => {
+  const renderCustomMetric: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4 space-y-4">
         <div>
@@ -536,9 +537,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                     monitorStepKubernetesMonitor.metricViewConfig.queryConfigs
                       .length > 0
                   ) {
-                    const currentQueryConfig =
+                    const currentQueryConfig: MetricQueryConfigData =
                       monitorStepKubernetesMonitor.metricViewConfig
-                        .queryConfigs[0];
+                        .queryConfigs[0]!;
                     if (currentQueryConfig) {
                       props.onChange({
                         ...monitorStepKubernetesMonitor,
@@ -594,7 +595,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderAdvanced = (): ReactElement => {
+  const renderAdvanced: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
         <div>

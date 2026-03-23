@@ -38,8 +38,9 @@ import {
 import AlertBanner, {
   AlertBannerType,
 } from "Common/UI/Components/AlertBanner/AlertBanner";
-import StackedProgressBar from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
-import type { StackedProgressBarSegment } from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
+import StackedProgressBar, {
+  type StackedProgressBarSegment,
+} from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";

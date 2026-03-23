@@ -24,7 +24,10 @@ import {
   fetchK8sObjectsBatch,
   KubernetesObjectType,
 } from "../Utils/KubernetesObjectFetcher";
-import { KubernetesNodeObject } from "../Utils/KubernetesObjectParser";
+import {
+  KubernetesCondition,
+  KubernetesNodeObject,
+} from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterNodes: FunctionComponent<
   PageComponentProps
@@ -76,9 +79,10 @@ const KubernetesClusterNodes: FunctionComponent<
           const node: KubernetesNodeObject = nodeObj as KubernetesNodeObject;
 
           // Check conditions for Ready status
-          const readyCondition = node.status.conditions.find((c) => {
-            return c.type === "Ready";
-          });
+          const readyCondition: KubernetesCondition | undefined =
+            node.status.conditions.find((c: KubernetesCondition) => {
+              return c.type === "Ready";
+            });
           resource.status =
             readyCondition && readyCondition.status === "True"
               ? "Ready"

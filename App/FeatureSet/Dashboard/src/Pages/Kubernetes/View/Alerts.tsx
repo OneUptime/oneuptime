@@ -83,9 +83,9 @@ const KubernetesClusterAlerts: FunctionComponent<
     "Scheduling",
   ];
 
-  const getCategoryIcon = (
+  const getCategoryIcon: (
     category: KubernetesAlertTemplateCategory,
-  ): IconProp => {
+  ) => IconProp = (category: KubernetesAlertTemplateCategory): IconProp => {
     switch (category) {
       case "Workload":
         return IconProp.Cube;
@@ -102,9 +102,9 @@ const KubernetesClusterAlerts: FunctionComponent<
     }
   };
 
-  const getCategoryDescription = (
+  const getCategoryDescription: (
     category: KubernetesAlertTemplateCategory,
-  ): string => {
+  ) => string = (category: KubernetesAlertTemplateCategory): string => {
     switch (category) {
       case "Workload":
         return "Monitor workload health including pod restarts, replica mismatches, and job failures.";
