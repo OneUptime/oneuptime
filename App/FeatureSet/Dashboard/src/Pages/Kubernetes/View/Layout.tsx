@@ -131,9 +131,7 @@ const KubernetesClusterViewLayout: FunctionComponent<
       modelId={modelId}
       modelNameField="name"
       breadcrumbLinks={getKubernetesBreadcrumbs(path)}
-      sideMenu={
-        <SideMenu modelId={modelId} resourceCounts={resourceCounts} />
-      }
+      sideMenu={<SideMenu modelId={modelId} resourceCounts={resourceCounts} />}
     >
       <Outlet />
     </ModelPage>

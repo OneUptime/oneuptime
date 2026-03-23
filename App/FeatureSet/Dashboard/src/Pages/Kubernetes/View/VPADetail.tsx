@@ -36,8 +36,9 @@ const KubernetesClusterVPADetail: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [objectData, setObjectData] =
-    useState<KubernetesVPAObject | null>(null);
+  const [objectData, setObjectData] = useState<KubernetesVPAObject | null>(
+    null,
+  );
   const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {

@@ -125,17 +125,17 @@ const KubernetesClusterAlerts: FunctionComponent<
     <Fragment>
       <div className="mb-6">
         <p className="text-sm text-gray-500">
-          Pre-built alert templates for common Kubernetes failure patterns. Click
-          &quot;Create Monitor&quot; to set up monitoring for your cluster{" "}
+          Pre-built alert templates for common Kubernetes failure patterns.
+          Click &quot;Create Monitor&quot; to set up monitoring for your cluster{" "}
           <strong>{cluster.name || cluster.clusterIdentifier}</strong>.
         </p>
       </div>
 
       {categories.map((category: KubernetesAlertTemplateCategory) => {
         const categoryTemplates: Array<KubernetesAlertTemplate> =
-          allTemplates.filter(
-            (t: KubernetesAlertTemplate) => t.category === category,
-          );
+          allTemplates.filter((t: KubernetesAlertTemplate) => {
+            return t.category === category;
+          });
 
         if (categoryTemplates.length === 0) {
           return null;
@@ -146,58 +146,59 @@ const KubernetesClusterAlerts: FunctionComponent<
             key={category}
             title={
               <span className="flex items-center">
-                <Icon icon={getCategoryIcon(category)} className="mr-2 h-4 w-4" />
+                <Icon
+                  icon={getCategoryIcon(category)}
+                  className="mr-2 h-4 w-4"
+                />
                 {category === "ControlPlane" ? "Control Plane" : category}
               </span>
             }
             description={getCategoryDescription(category)}
           >
             <div className="divide-y divide-gray-200">
-              {categoryTemplates.map(
-                (template: KubernetesAlertTemplate) => {
-                  return (
-                    <div
-                      key={template.id}
-                      className="flex items-center justify-between py-3 px-1"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center">
-                          <span className="text-sm font-medium text-gray-900">
-                            {template.name}
-                          </span>
-                          <span
-                            className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                              template.severity === "Critical"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {template.severity}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">
-                          {template.description}
-                        </p>
+              {categoryTemplates.map((template: KubernetesAlertTemplate) => {
+                return (
+                  <div
+                    key={template.id}
+                    className="flex items-center justify-between py-3 px-1"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <span className="text-sm font-medium text-gray-900">
+                          {template.name}
+                        </span>
+                        <span
+                          className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            template.severity === "Critical"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {template.severity}
+                        </span>
                       </div>
-                      <div className="ml-4">
-                        <Button
-                          title="Create Monitor"
-                          buttonStyle={ButtonStyleType.OUTLINE}
-                          icon={IconProp.Add}
-                          onClick={() => {
-                            const baseRoute: string =
-                              RouteMap[PageMap.MONITOR_CREATE]?.toString() || "";
-                            const queryParams: string = `?monitorType=Kubernetes&templateId=${template.id}&clusterId=${cluster.clusterIdentifier || ""}`;
-                            Navigation.navigate(
-                              new Route(baseRoute + queryParams),
-                            );
-                          }}
-                        />
-                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {template.description}
+                      </p>
                     </div>
-                  );
-                },
-              )}
+                    <div className="ml-4">
+                      <Button
+                        title="Create Monitor"
+                        buttonStyle={ButtonStyleType.OUTLINE}
+                        icon={IconProp.Add}
+                        onClick={() => {
+                          const baseRoute: string =
+                            RouteMap[PageMap.MONITOR_CREATE]?.toString() || "";
+                          const queryParams: string = `?monitorType=Kubernetes&templateId=${template.id}&clusterId=${cluster.clusterIdentifier || ""}`;
+                          Navigation.navigate(
+                            new Route(baseRoute + queryParams),
+                          );
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </Card>
         );

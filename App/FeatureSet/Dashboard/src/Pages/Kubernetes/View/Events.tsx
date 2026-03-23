@@ -211,27 +211,25 @@ const KubernetesClusterEvents: FunctionComponent<
 
   // Compute filter options
   const namespaces: Array<string> = Array.from(
-    new Set(events.map((e: KubernetesEvent) => e.namespace)),
+    new Set(
+      events.map((e: KubernetesEvent) => {
+        return e.namespace;
+      }),
+    ),
   ).sort();
 
-  const warningCount: number = events.filter(
-    (e: KubernetesEvent) => e.type.toLowerCase() === "warning",
-  ).length;
+  const warningCount: number = events.filter((e: KubernetesEvent) => {
+    return e.type.toLowerCase() === "warning";
+  }).length;
   const normalCount: number = events.length - warningCount;
 
   // Apply filters
   const filteredEvents: Array<KubernetesEvent> = events.filter(
     (e: KubernetesEvent) => {
-      if (
-        typeFilter === "warning" &&
-        e.type.toLowerCase() !== "warning"
-      ) {
+      if (typeFilter === "warning" && e.type.toLowerCase() !== "warning") {
         return false;
       }
-      if (
-        typeFilter === "normal" &&
-        e.type.toLowerCase() === "warning"
-      ) {
+      if (typeFilter === "normal" && e.type.toLowerCase() === "warning") {
         return false;
       }
       if (namespaceFilter !== "all" && e.namespace !== namespaceFilter) {
@@ -265,9 +263,7 @@ const KubernetesClusterEvents: FunctionComponent<
         {/* Event Summary Banner */}
         <div className="flex items-center gap-4 px-4 pt-4 pb-2">
           <div className="text-sm text-gray-600">
-            <span className="font-semibold text-gray-900">
-              {events.length}
-            </span>{" "}
+            <span className="font-semibold text-gray-900">{events.length}</span>{" "}
             total events
           </div>
           {warningCount > 0 && (
@@ -360,47 +356,45 @@ const KubernetesClusterEvents: FunctionComponent<
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEvents.map(
-                  (event: KubernetesEvent, index: number) => {
-                    const isWarning: boolean =
-                      event.type.toLowerCase() === "warning";
-                    return (
-                      <tr
-                        key={index}
-                        className={isWarning ? "bg-amber-50/50" : ""}
-                      >
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {event.timestamp}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <StatusBadge
-                            text={event.type}
-                            type={
-                              isWarning
-                                ? StatusBadgeType.Warning
-                                : StatusBadgeType.Success
-                            }
-                          />
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {event.reason}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {event.objectKind}/{event.objectName}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <StatusBadge
-                            text={event.namespace}
-                            type={StatusBadgeType.Info}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500 max-w-md">
-                          {event.message}
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
+                {filteredEvents.map((event: KubernetesEvent, index: number) => {
+                  const isWarning: boolean =
+                    event.type.toLowerCase() === "warning";
+                  return (
+                    <tr
+                      key={index}
+                      className={isWarning ? "bg-amber-50/50" : ""}
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {event.timestamp}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        <StatusBadge
+                          text={event.type}
+                          type={
+                            isWarning
+                              ? StatusBadgeType.Warning
+                              : StatusBadgeType.Success
+                          }
+                        />
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        {event.reason}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        {event.objectKind}/{event.objectName}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        <StatusBadge
+                          text={event.namespace}
+                          type={StatusBadgeType.Info}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500 max-w-md">
+                        {event.message}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

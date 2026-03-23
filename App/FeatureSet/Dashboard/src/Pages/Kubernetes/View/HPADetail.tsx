@@ -36,8 +36,9 @@ const KubernetesClusterHPADetail: FunctionComponent<
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [objectData, setObjectData] =
-    useState<KubernetesHPAObject | null>(null);
+  const [objectData, setObjectData] = useState<KubernetesHPAObject | null>(
+    null,
+  );
   const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
@@ -154,9 +155,7 @@ const KubernetesClusterHPADetail: FunctionComponent<
         value: (
           <StatusBadge
             text={isStable ? "Stable" : "Scaling"}
-            type={
-              isStable ? StatusBadgeType.Success : StatusBadgeType.Warning
-            }
+            type={isStable ? StatusBadgeType.Success : StatusBadgeType.Warning}
           />
         ),
       },

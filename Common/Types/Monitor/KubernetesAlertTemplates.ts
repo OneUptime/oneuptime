@@ -3,11 +3,7 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import FilterCondition from "../Filter/FilterCondition";
-import {
-  CheckOn,
-  FilterType,
-  EvaluateOverTimeType,
-} from "./CriteriaFilter";
+import { CheckOn, FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepKubernetesMonitor, {
   KubernetesResourceScope,
 } from "./MonitorStepKubernetesMonitor";
@@ -334,8 +330,7 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
 const highCpuTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-cpu",
   name: "High Node CPU Utilization",
-  description:
-    "Alert when node CPU utilization exceeds 90% sustained.",
+  description: "Alert when node CPU utilization exceeds 90% sustained.",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -372,8 +367,7 @@ const highCpuTemplate: KubernetesAlertTemplate = {
 const highMemoryTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-memory",
   name: "High Node Memory Utilization",
-  description:
-    "Alert when node memory utilization exceeds 85% sustained.",
+  description: "Alert when node memory utilization exceeds 85% sustained.",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -599,8 +593,7 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
 const highDiskUsageTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-disk-usage",
   name: "High Node Disk Usage",
-  description:
-    "Alert when node filesystem usage exceeds 90% capacity.",
+  description: "Alert when node filesystem usage exceeds 90% capacity.",
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -693,7 +686,9 @@ export function getKubernetesAlertTemplatesByCategory(
   category: KubernetesAlertTemplateCategory,
 ): Array<KubernetesAlertTemplate> {
   return getAllKubernetesAlertTemplates().filter(
-    (template: KubernetesAlertTemplate) => template.category === category,
+    (template: KubernetesAlertTemplate) => {
+      return template.category === category;
+    },
   );
 }
 
@@ -701,6 +696,8 @@ export function getKubernetesAlertTemplateById(
   id: string,
 ): KubernetesAlertTemplate | undefined {
   return getAllKubernetesAlertTemplates().find(
-    (template: KubernetesAlertTemplate) => template.id === id,
+    (template: KubernetesAlertTemplate) => {
+      return template.id === id;
+    },
   );
 }

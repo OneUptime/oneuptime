@@ -216,9 +216,10 @@ const KubernetesClusterServiceMesh: FunctionComponent<
       <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-700">
           Service mesh metrics require the <code>serviceMesh.enabled</code> flag
-          to be set to <code>true</code> and the <code>serviceMesh.provider</code>{" "}
-          to be configured in the kubernetes-agent Helm chart values. Supported
-          providers are Istio and Linkerd.
+          to be set to <code>true</code> and the{" "}
+          <code>serviceMesh.provider</code> to be configured in the
+          kubernetes-agent Helm chart values. Supported providers are Istio and
+          Linkerd.
         </p>
       </div>
 

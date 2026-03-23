@@ -147,9 +147,7 @@ export function getArrayValues(
  * Recursively convert an OTLP value wrapper to a plain JavaScript value.
  * Handles stringValue, intValue, boolValue, kvlistValue, and arrayValue.
  */
-function convertOtlpValue(
-  valueWrapper: JSONObject,
-): unknown {
+function convertOtlpValue(valueWrapper: JSONObject): unknown {
   if (valueWrapper["stringValue"] !== undefined) {
     return valueWrapper["stringValue"];
   }
@@ -174,9 +172,7 @@ function convertOtlpValue(
 /**
  * Convert an OTLP arrayValue to a plain JavaScript array.
  */
-function convertOtlpArray(
-  arrayValue: JSONObject,
-): Array<unknown> {
+function convertOtlpArray(arrayValue: JSONObject): Array<unknown> {
   const values: Array<JSONObject> | undefined = arrayValue["values"] as
     | Array<JSONObject>
     | undefined;
@@ -1475,7 +1471,7 @@ export function parsePVCObject(
     );
 
     // Parse spec
-    let accessModes: Array<string> = [];
+    const accessModes: Array<string> = [];
     let storageClassName: string = "";
     let volumeName: string = "";
     let requestsStorage: string = "";
@@ -1565,7 +1561,7 @@ export function parsePVObject(
 
     // Parse spec
     let capacityStorage: string = "";
-    let accessModes: Array<string> = [];
+    const accessModes: Array<string> = [];
     let storageClassName: string = "";
     let persistentVolumeReclaimPolicy: string = "";
     let claimRefName: string = "";
@@ -1806,10 +1802,7 @@ export function parseVPAObject(
           recommendationKv,
           "containerRecommendations",
         );
-        if (
-          containerRecsArrayKv &&
-          typeof containerRecsArrayKv !== "string"
-        ) {
+        if (containerRecsArrayKv && typeof containerRecsArrayKv !== "string") {
           const recItems: Array<JSONObject> =
             getArrayValues(containerRecsArrayKv);
           for (const recKv of recItems) {

@@ -85,9 +85,7 @@ const ConditionsTable: FunctionComponent<ComponentProps> = (
 
   if (props.conditions.length === 0) {
     return (
-      <div className="text-gray-500 text-sm p-4">
-        No conditions available.
-      </div>
+      <div className="text-gray-500 text-sm p-4">No conditions available.</div>
     );
   }
 

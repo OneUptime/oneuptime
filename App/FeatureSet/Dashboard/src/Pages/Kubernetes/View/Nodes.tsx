@@ -6,7 +6,12 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -71,9 +76,9 @@ const KubernetesClusterNodes: FunctionComponent<
           const node: KubernetesNodeObject = nodeObj as KubernetesNodeObject;
 
           // Check conditions for Ready status
-          const readyCondition = node.status.conditions.find(
-            (c) => c.type === "Ready",
-          );
+          const readyCondition = node.status.conditions.find((c) => {
+            return c.type === "Ready";
+          });
           resource.status =
             readyCondition && readyCondition.status === "True"
               ? "Ready"

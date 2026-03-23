@@ -44,7 +44,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   {
     id: "pod-phase",
     friendlyName: "Pod Phase",
-    description: "Current phase of the pod (Pending, Running, Succeeded, Failed, Unknown)",
+    description:
+      "Current phase of the pod (Pending, Running, Succeeded, Failed, Unknown)",
     metricName: "k8s.pod.phase",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -106,7 +107,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   {
     id: "node-condition-ready",
     friendlyName: "Node Ready Condition",
-    description: "Whether the node is in Ready condition (1 = ready, 0 = not ready)",
+    description:
+      "Whether the node is in Ready condition (1 = ready, 0 = not ready)",
     metricName: "k8s.node.condition_ready",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Min,
@@ -220,7 +222,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   {
     id: "daemonset-misscheduled-nodes",
     friendlyName: "DaemonSet Misscheduled Nodes",
-    description: "Number of nodes running a daemon pod that should not be running one",
+    description:
+      "Number of nodes running a daemon pod that should not be running one",
     metricName: "k8s.daemonset.misscheduled_nodes",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
@@ -318,25 +321,25 @@ export function getAllKubernetesMetrics(): Array<KubernetesMetricDefinition> {
 export function getKubernetesMetricsByCategory(
   category: KubernetesMetricCategory,
 ): Array<KubernetesMetricDefinition> {
-  return kubernetesMetricCatalog.filter(
-    (m: KubernetesMetricDefinition) => m.category === category,
-  );
+  return kubernetesMetricCatalog.filter((m: KubernetesMetricDefinition) => {
+    return m.category === category;
+  });
 }
 
 export function getKubernetesMetricById(
   id: string,
 ): KubernetesMetricDefinition | undefined {
-  return kubernetesMetricCatalog.find(
-    (m: KubernetesMetricDefinition) => m.id === id,
-  );
+  return kubernetesMetricCatalog.find((m: KubernetesMetricDefinition) => {
+    return m.id === id;
+  });
 }
 
 export function getKubernetesMetricByMetricName(
   metricName: string,
 ): KubernetesMetricDefinition | undefined {
-  return kubernetesMetricCatalog.find(
-    (m: KubernetesMetricDefinition) => m.metricName === metricName,
-  );
+  return kubernetesMetricCatalog.find((m: KubernetesMetricDefinition) => {
+    return m.metricName === metricName;
+  });
 }
 
 export function getAllKubernetesMetricCategories(): Array<KubernetesMetricCategory> {

@@ -20,7 +20,9 @@ const Tabs: FunctionComponent<ComponentProps> = (
 
   // Initialize current tab only once, or when the tab list names change
   useEffect(() => {
-    const tabNames: Array<string> = props.tabs.map((t: Tab) => t.name);
+    const tabNames: Array<string> = props.tabs.map((t: Tab) => {
+      return t.name;
+    });
 
     if (!hasInitialized.current && props.tabs.length > 0) {
       hasInitialized.current = true;
@@ -30,16 +32,20 @@ const Tabs: FunctionComponent<ComponentProps> = (
 
     // If current tab no longer exists in the list, reset to first
     if (currentTabName && !tabNames.includes(currentTabName)) {
-      setCurrentTabName(
-        props.tabs.length > 0 ? props.tabs[0]!.name : null,
-      );
+      setCurrentTabName(props.tabs.length > 0 ? props.tabs[0]!.name : null);
     }
-  }, [props.tabs.map((t: Tab) => t.name).join(",")]);
+  }, [
+    props.tabs
+      .map((t: Tab) => {
+        return t.name;
+      })
+      .join(","),
+  ]);
 
   // Find the current tab object by name
-  const currentTab: Tab | undefined = props.tabs.find(
-    (t: Tab) => t.name === currentTabName,
-  );
+  const currentTab: Tab | undefined = props.tabs.find((t: Tab) => {
+    return t.name === currentTabName;
+  });
 
   useEffect(() => {
     if (currentTab && props.onTabChange) {

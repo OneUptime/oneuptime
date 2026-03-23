@@ -46,13 +46,15 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
 
   // Convert KubernetesCondition[] to generic Condition[] for ConditionsTable
   const conditions: Array<Condition> | undefined = props.conditions?.map(
-    (c: KubernetesCondition): Condition => ({
-      type: c.type,
-      status: c.status,
-      reason: c.reason,
-      message: c.message,
-      lastTransitionTime: c.lastTransitionTime,
-    }),
+    (c: KubernetesCondition): Condition => {
+      return {
+        type: c.type,
+        status: c.status,
+        reason: c.reason,
+        message: c.message,
+        lastTransitionTime: c.lastTransitionTime,
+      };
+    },
   );
 
   return (

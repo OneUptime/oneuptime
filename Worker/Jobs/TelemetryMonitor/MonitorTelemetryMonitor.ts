@@ -472,10 +472,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       }
 
       if (resourceFilters.workloadName && resourceFilters.workloadType) {
-        const workloadType: string =
-          resourceFilters.workloadType.toLowerCase();
-        attributes[`k8s.${workloadType}.name`] =
-          resourceFilters.workloadName;
+        const workloadType: string = resourceFilters.workloadType.toLowerCase();
+        attributes[`k8s.${workloadType}.name`] = resourceFilters.workloadName;
       }
     }
 
@@ -483,8 +481,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       query.attributes = attributes;
     }
 
-    const aggregatedResults: AggregatedResult =
-      await MetricService.aggregateBy({
+    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
+      {
         query: query,
         aggregationType:
           (queryConfig.metricQueryData.filterData
@@ -496,15 +494,15 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
           (startAndEndDate?.startValue as Date) ||
           OneUptimeDate.getCurrentDate(),
         endTimestamp:
-          (startAndEndDate?.endValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
         props: {
           isRoot: true,
         },
-      });
+      },
+    );
 
     logger.debug("Kubernetes monitor aggregated results");
     logger.debug(aggregatedResults);

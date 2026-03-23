@@ -3,9 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
-import {
-  KubernetesResource,
-} from "../Utils/KubernetesResourceUtils";
+import { KubernetesResource } from "../Utils/KubernetesResourceUtils";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import React, {
   FunctionComponent,
@@ -123,9 +121,7 @@ const KubernetesClusterVPAs: FunctionComponent<
       ]}
       getViewRoute={(resource: KubernetesResource) => {
         return RouteUtil.populateRouteParams(
-          RouteMap[
-            PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL
-          ] as Route,
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL] as Route,
           {
             modelId: modelId,
             subModelId: new ObjectID(resource.name),

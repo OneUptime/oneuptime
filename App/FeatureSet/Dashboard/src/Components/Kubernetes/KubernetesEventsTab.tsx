@@ -73,18 +73,15 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
     const fetchEvents: () => Promise<void> = async (): Promise<void> => {
       setIsLoading(true);
       try {
-        const result: Array<KubernetesEvent> =
-          await fetchK8sEventsForResource({
-            clusterIdentifier: props.clusterIdentifier,
-            resourceKind: props.resourceKind,
-            resourceName: props.resourceName,
-            namespace: props.namespace,
-          });
+        const result: Array<KubernetesEvent> = await fetchK8sEventsForResource({
+          clusterIdentifier: props.clusterIdentifier,
+          resourceKind: props.resourceKind,
+          resourceName: props.resourceName,
+          namespace: props.namespace,
+        });
         setEvents(result);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch events",
-        );
+        setError(err instanceof Error ? err.message : "Failed to fetch events");
       }
       setIsLoading(false);
     };
@@ -114,9 +111,9 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const warningCount: number = events.filter(
-    (e: KubernetesEvent) => e.type.toLowerCase() === "warning",
-  ).length;
+  const warningCount: number = events.filter((e: KubernetesEvent) => {
+    return e.type.toLowerCase() === "warning";
+  }).length;
   const normalCount: number = events.length - warningCount;
 
   const filteredEvents: Array<KubernetesEvent> = events.filter(
@@ -167,9 +164,7 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
         return (
           <StatusBadge
             text={item.type}
-            type={
-              isWarning ? StatusBadgeType.Warning : StatusBadgeType.Success
-            }
+            type={isWarning ? StatusBadgeType.Warning : StatusBadgeType.Success}
           />
         );
       },

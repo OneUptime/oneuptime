@@ -30,15 +30,13 @@ function formatK8sResourceValue(key: string, value: string): string {
   }
 
   // CPU whole cores (e.g. "2" = 2 cores)
-  if (key.toLowerCase() === "cpu" && /^\d+$/.test(value)) {
+  if (key.toLowerCase() === "cpu" && (/^\d+$/).test(value)) {
     const cores: number = parseInt(value);
     return `${value} (${cores} CPU core${cores !== 1 ? "s" : ""})`;
   }
 
   // Memory values: Ki, Mi, Gi, Ti
-  const memMatch: RegExpMatchArray | null = value.match(
-    /^(\d+)(Ki|Mi|Gi|Ti)$/,
-  );
+  const memMatch: RegExpMatchArray | null = value.match(/^(\d+)(Ki|Mi|Gi|Ti)$/);
   if (memMatch) {
     const num: number = parseInt(memMatch[1] || "0");
     const unit: string = memMatch[2] || "";
@@ -55,9 +53,7 @@ function formatK8sResourceValue(key: string, value: string): string {
   }
 
   // Ephemeral storage: same units
-  const storageMatch: RegExpMatchArray | null = value.match(
-    /^(\d+)(K|M|G|T)$/,
-  );
+  const storageMatch: RegExpMatchArray | null = value.match(/^(\d+)(K|M|G|T)$/);
   if (storageMatch) {
     const num: number = parseInt(storageMatch[1] || "0");
     const unit: string = storageMatch[2] || "";
@@ -293,9 +289,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               }}
               className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
             >
-              <span className="text-xs">
-                {showEnv ? "▼" : "▶"}
-              </span>
+              <span className="text-xs">{showEnv ? "▼" : "▶"}</span>
               Environment Variables ({props.container.env.length})
             </button>
             {showEnv && (
@@ -315,9 +309,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               }}
               className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
             >
-              <span className="text-xs">
-                {showMounts ? "▼" : "▶"}
-              </span>
+              <span className="text-xs">{showMounts ? "▼" : "▶"}</span>
               Volume Mounts ({props.container.volumeMounts.length})
             </button>
             {showMounts && (
