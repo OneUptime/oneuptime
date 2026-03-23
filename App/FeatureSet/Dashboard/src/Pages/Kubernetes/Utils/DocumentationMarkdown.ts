@@ -19,7 +19,7 @@ export function getKubernetesInstallationMarkdown(
 ## Step 1: Add the OneUptime Helm Repository
 
 \`\`\`bash
-helm repo add oneuptime https://helm.oneuptime.com
+helm repo add oneuptime https://helm-chart.oneuptime.com
 helm repo update
 \`\`\`
 
