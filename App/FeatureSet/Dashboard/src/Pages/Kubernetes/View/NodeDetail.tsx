@@ -262,9 +262,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     const nodeStatus: { label: string; isReady: boolean } = getNodeStatus();
 
     // Extract node roles from labels
-    const roles: Array<string> = Object.keys(
-      nodeObject.metadata.labels,
-    )
+    const roles: Array<string> = Object.keys(nodeObject.metadata.labels)
       .filter((key: string) => {
         return key.startsWith("node-role.kubernetes.io/");
       })
@@ -336,11 +334,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
           <div className="flex gap-1 flex-wrap">
             {pressureConditions.map((p: string) => {
               return (
-                <StatusBadge
-                  key={p}
-                  text={p}
-                  type={StatusBadgeType.Danger}
-                />
+                <StatusBadge key={p} text={p} type={StatusBadgeType.Danger} />
               );
             })}
           </div>

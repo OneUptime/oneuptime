@@ -107,9 +107,9 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
-  const [filterData, setFilterData] = useState<
-    FilterData<KubernetesResource>
-  >({});
+  const [filterData, setFilterData] = useState<FilterData<KubernetesResource>>(
+    {},
+  );
 
   // Build filter definitions from data
   const filters: Array<Filter<KubernetesResource>> = useMemo(() => {
@@ -184,8 +184,7 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
           return fieldValue.toLowerCase().includes(searchText);
         });
       } else if (value instanceof Includes) {
-        const includeValues: Array<string> =
-          value.values as Array<string>;
+        const includeValues: Array<string> = value.values as Array<string>;
         data = data.filter((r: KubernetesResource) => {
           const fieldValue: string = (r[key] as string) || "";
           return includeValues.includes(fieldValue);
@@ -198,11 +197,9 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
         });
       } else if (Array.isArray(value)) {
         // Dropdown multi-selection stores as plain array
-        const includeValues: Array<string> = value.map(
-          (v: unknown) => {
-            return String(v);
-          },
-        );
+        const includeValues: Array<string> = value.map((v: unknown) => {
+          return String(v);
+        });
         data = data.filter((r: KubernetesResource) => {
           const fieldValue: string = (r[key] as string) || "";
           return includeValues.includes(fieldValue);

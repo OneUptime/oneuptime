@@ -614,38 +614,29 @@ export async function fetchClusterWarningEvents(options: {
       }
       const objectKvList: JSONObject = objectVal;
 
-      const eventType: string =
-        getKvStringValue(objectKvList, "type") || "";
+      const eventType: string = getKvStringValue(objectKvList, "type") || "";
 
       // Only include Warning events
       if (eventType !== "Warning") {
         continue;
       }
 
-      const reason: string =
-        getKvStringValue(objectKvList, "reason") || "";
-      const note: string =
-        getKvStringValue(objectKvList, "note") || "";
+      const reason: string = getKvStringValue(objectKvList, "reason") || "";
+      const note: string = getKvStringValue(objectKvList, "note") || "";
 
       const regardingKind: string =
         getKvStringValue(
-          getKvValue(objectKvList, "regarding") as
-            | JSONObject
-            | undefined,
+          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
           "kind",
         ) || "";
       const regardingName: string =
         getKvStringValue(
-          getKvValue(objectKvList, "regarding") as
-            | JSONObject
-            | undefined,
+          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
           "name",
         ) || "";
       const regardingNamespace: string =
         getKvStringValue(
-          getKvValue(objectKvList, "regarding") as
-            | JSONObject
-            | undefined,
+          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
           "namespace",
         ) || "";
 

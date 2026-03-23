@@ -166,9 +166,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "PVCs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.KUBERNETES_CLUSTER_VIEW_PVCS
-              ] as Route,
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVCS] as Route,
               { modelId: props.modelId },
             ),
           }}
@@ -179,9 +177,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "PVs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.KUBERNETES_CLUSTER_VIEW_PVS
-              ] as Route,
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVS] as Route,
               { modelId: props.modelId },
             ),
           }}

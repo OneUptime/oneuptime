@@ -111,9 +111,7 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
 
         return (
           <span className="font-mono text-gray-600">
-            {item.value || (
-              <span className="text-gray-400 italic">empty</span>
-            )}
+            {item.value || <span className="text-gray-400 italic">empty</span>}
           </span>
         );
       },
@@ -126,10 +124,7 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
       <div className="px-4 pt-4">
         <div className="relative">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Icon
-              icon={IconProp.Search}
-              className="h-4 w-4 text-gray-400"
-            />
+            <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
           </div>
           <input
             type="text"

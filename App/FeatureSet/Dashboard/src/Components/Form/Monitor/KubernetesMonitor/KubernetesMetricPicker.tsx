@@ -27,9 +27,9 @@ const KubernetesMetricPicker: FunctionComponent<ComponentProps> = (
   const groupedOptions: Array<DropdownOptionGroup> = allCategories.map(
     (category: KubernetesMetricCategory) => {
       const categoryMetrics: Array<KubernetesMetricDefinition> =
-        allMetrics.filter(
-          (m: KubernetesMetricDefinition) => m.category === category,
-        );
+        allMetrics.filter((m: KubernetesMetricDefinition) => {
+          return m.category === category;
+        });
 
       return {
         label: category,
@@ -45,9 +45,9 @@ const KubernetesMetricPicker: FunctionComponent<ComponentProps> = (
 
   const selectedMetric: KubernetesMetricDefinition | undefined =
     props.selectedMetricId
-      ? allMetrics.find(
-          (m: KubernetesMetricDefinition) => m.id === props.selectedMetricId,
-        )
+      ? allMetrics.find((m: KubernetesMetricDefinition) => {
+          return m.id === props.selectedMetricId;
+        })
       : undefined;
 
   const selectedOption: DropdownOption | undefined = selectedMetric
@@ -69,9 +69,9 @@ const KubernetesMetricPicker: FunctionComponent<ComponentProps> = (
 
           const metricId: string = value as string;
           const metric: KubernetesMetricDefinition | undefined =
-            allMetrics.find(
-              (m: KubernetesMetricDefinition) => m.id === metricId,
-            );
+            allMetrics.find((m: KubernetesMetricDefinition) => {
+              return m.id === metricId;
+            });
 
           if (metric) {
             props.onMetricSelected(metric);

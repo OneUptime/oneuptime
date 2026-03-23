@@ -390,9 +390,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesClusterViewPVCDetail
               {...props}
               pageRoute={
-                RouteMap[
-                  PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL
-                ] as Route
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL] as Route
               }
             />
           }
@@ -406,9 +404,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
           element={
             <KubernetesClusterViewPVs
               {...props}
-              pageRoute={
-                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVS] as Route
-              }
+              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PVS] as Route}
             />
           }
         />
@@ -422,9 +418,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesClusterViewPVDetail
               {...props}
               pageRoute={
-                RouteMap[
-                  PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL
-                ] as Route
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL] as Route
               }
             />
           }
@@ -454,9 +448,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesClusterViewHPADetail
               {...props}
               pageRoute={
-                RouteMap[
-                  PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL
-                ] as Route
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL] as Route
               }
             />
           }
@@ -486,9 +478,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesClusterViewVPADetail
               {...props}
               pageRoute={
-                RouteMap[
-                  PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL
-                ] as Route
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL] as Route
               }
             />
           }

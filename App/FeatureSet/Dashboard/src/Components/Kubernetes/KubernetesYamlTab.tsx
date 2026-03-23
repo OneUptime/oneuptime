@@ -40,7 +40,7 @@ function toYaml(obj: unknown, indent: number = 0): string {
       obj === "true" ||
       obj === "false" ||
       obj === "null" ||
-      /^\d/.test(obj)
+      new RegExp("^\\d").test(obj)
     ) {
       return `"${obj.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
     }
@@ -63,14 +63,10 @@ function toYaml(obj: unknown, indent: number = 0): string {
         );
         if (entries.length > 0) {
           const [firstKey, firstVal] = entries[0]!;
-          lines.push(
-            `${prefix}- ${firstKey}: ${toYaml(firstVal, indent + 2)}`,
-          );
+          lines.push(`${prefix}- ${firstKey}: ${toYaml(firstVal, indent + 2)}`);
           for (let i: number = 1; i < entries.length; i++) {
             const [key, val] = entries[i]!;
-            lines.push(
-              `${prefix}  ${key}: ${toYaml(val, indent + 2)}`,
-            );
+            lines.push(`${prefix}  ${key}: ${toYaml(val, indent + 2)}`);
           }
         } else {
           lines.push(`${prefix}- {}`);
@@ -125,13 +121,12 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
       setIsLoading(true);
       setError("");
       try {
-        const result: Record<string, unknown> | null =
-          await fetchRawK8sObject({
-            clusterIdentifier: props.clusterIdentifier,
-            resourceType: props.resourceType,
-            resourceName: props.resourceName,
-            namespace: props.namespace,
-          });
+        const result: Record<string, unknown> | null = await fetchRawK8sObject({
+          clusterIdentifier: props.clusterIdentifier,
+          resourceType: props.resourceType,
+          resourceName: props.resourceName,
+          namespace: props.namespace,
+        });
 
         if (result && Object.keys(result).length > 0) {
           const yaml: string = toYaml(result);
@@ -173,7 +168,9 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
    * Simple YAML syntax highlighter.
    * Returns an array of React elements with colored spans for keys, values, etc.
    */
-  const highlightYamlLine = (line: string): ReactElement => {
+  const highlightYamlLine: (line: string) => ReactElement = (
+    line: string,
+  ): ReactElement => {
     // Empty or whitespace-only line
     if (line.trim() === "") {
       return <span>{line}</span>;
@@ -185,9 +182,7 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
     }
 
     // Array item prefix "  - "
-    const arrayMatch: RegExpMatchArray | null = line.match(
-      /^(\s*)(- )(.*)$/,
-    );
+    const arrayMatch: RegExpMatchArray | null = line.match(/^(\s*)(- )(.*)$/);
     if (arrayMatch) {
       const [, indent, dash, rest] = arrayMatch;
       // Check if rest has a key: value pattern
@@ -232,9 +227,8 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
     }
 
     // Key-only lines (e.g., "metadata:")
-    const keyOnlyMatch: RegExpMatchArray | null = line.match(
-      /^(\s*)([^:]+):(\s*)$/,
-    );
+    const keyOnlyMatch: RegExpMatchArray | null =
+      line.match(/^(\s*)([^:]+):(\s*)$/);
     if (keyOnlyMatch) {
       const [, indent, key] = keyOnlyMatch;
       return (

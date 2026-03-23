@@ -12,6 +12,7 @@ import RollingTimePicker from "Common/UI/Components/RollingTimePicker/RollingTim
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -42,7 +43,6 @@ export interface ComponentProps {
   onChange: (
     monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor,
   ) => void;
-  onMonitorStepOverride?: ((step: MonitorStep) => void) | undefined;
   onModeChange?: ((mode: KubernetesFormMode) => void) | undefined;
   initialTemplateId?: string | undefined;
   initialClusterId?: string | undefined;
@@ -92,7 +92,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     Navigation.getQueryStringByName("clusterId") ||
     undefined;
 
-  const [_mode, setMode] = React.useState<KubernetesFormMode>("quick");
+  const [, setMode] = React.useState<KubernetesFormMode>("quick");
 
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
@@ -109,8 +109,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     Array<DropdownOption>
   >([]);
 
-  const [_isLoadingClusters, setIsLoadingClusters] =
-    React.useState<boolean>(true);
+  const [, setIsLoadingClusters] = React.useState<boolean>(true);
 
   // Quick Setup state
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<
@@ -155,12 +154,11 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         setClusterOptions(options);
 
         // Auto-select cluster if initialClusterId or URL param is provided
-        if (
-          urlClusterId &&
-          !monitorStepKubernetesMonitor.clusterIdentifier
-        ) {
+        if (urlClusterId && !monitorStepKubernetesMonitor.clusterIdentifier) {
           const matchedCluster: DropdownOption | undefined = options.find(
-            (o: DropdownOption) => o.value === urlClusterId,
+            (o: DropdownOption) => {
+              return o.value === urlClusterId;
+            },
           );
           if (matchedCluster) {
             props.onChange({
@@ -211,13 +209,15 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const handleTemplateSelection = (
+  const handleTemplateSelection: (template: KubernetesAlertTemplate) => void = (
     template: KubernetesAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
 
-    // Build the kubernetes monitor config from the template's getMonitorStep
-    // We need the cluster identifier to build the config
+    /*
+     * Build the kubernetes monitor config from the template's getMonitorStep
+     * We need the cluster identifier to build the config
+     */
     const clusterIdentifier: string =
       monitorStepKubernetesMonitor.clusterIdentifier;
 
@@ -245,9 +245,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleCustomMetricSelection = (
+  const handleCustomMetricSelection: (
     metric: KubernetesMetricDefinition,
-  ): void => {
+  ) => void = (metric: KubernetesMetricDefinition): void => {
     setSelectedMetricId(metric.id);
     setCustomAggregation(metric.defaultAggregation);
     setCustomResourceScope(metric.defaultResourceScope);
@@ -273,22 +273,19 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       KubernetesResourceScope.Namespace ||
     monitorStepKubernetesMonitor.resourceScope ===
       KubernetesResourceScope.Workload ||
-    monitorStepKubernetesMonitor.resourceScope ===
-      KubernetesResourceScope.Pod;
+    monitorStepKubernetesMonitor.resourceScope === KubernetesResourceScope.Pod;
 
   const showWorkloadFilter: boolean =
     monitorStepKubernetesMonitor.resourceScope ===
     KubernetesResourceScope.Workload;
 
   const showNodeFilter: boolean =
-    monitorStepKubernetesMonitor.resourceScope ===
-    KubernetesResourceScope.Node;
+    monitorStepKubernetesMonitor.resourceScope === KubernetesResourceScope.Node;
 
   const showPodFilter: boolean =
-    monitorStepKubernetesMonitor.resourceScope ===
-    KubernetesResourceScope.Pod;
+    monitorStepKubernetesMonitor.resourceScope === KubernetesResourceScope.Pod;
 
-  const renderClusterDropdown = (): ReactElement => {
+  const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
         <FieldLabelElement
@@ -298,10 +295,11 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
         <Dropdown
           options={clusterOptions}
-          value={clusterOptions.find(
-            (option: DropdownOption) =>
-              option.value === monitorStepKubernetesMonitor.clusterIdentifier,
-          )}
+          value={clusterOptions.find((option: DropdownOption) => {
+            return (
+              option.value === monitorStepKubernetesMonitor.clusterIdentifier
+            );
+          })}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             props.onChange({
               ...monitorStepKubernetesMonitor,
@@ -314,7 +312,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderResourceFilters = (): ReactElement => {
+  const renderResourceFilters: () => ReactElement = (): ReactElement => {
     return (
       <>
         {showNamespaceFilter && (
@@ -400,9 +398,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               required={false}
             />
             <Input
-              value={
-                monitorStepKubernetesMonitor.resourceFilters.podName || ""
-              }
+              value={monitorStepKubernetesMonitor.resourceFilters.podName || ""}
               onChange={(value: string) => {
                 props.onChange({
                   ...monitorStepKubernetesMonitor,
@@ -420,7 +416,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderQuickSetup = (): ReactElement => {
+  const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
         <KubernetesTemplatePicker
@@ -464,7 +460,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderCustomMetric = (): ReactElement => {
+  const renderCustomMetric: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4 space-y-4">
         <div>
@@ -493,10 +489,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               />
               <Dropdown
                 options={resourceScopeOptions}
-                value={resourceScopeOptions.find(
-                  (option: DropdownOption) =>
-                    option.value === customResourceScope,
-                )}
+                value={resourceScopeOptions.find((option: DropdownOption) => {
+                  return option.value === customResourceScope;
+                })}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
@@ -526,10 +521,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               />
               <Dropdown
                 options={aggregationOptions}
-                value={aggregationOptions.find(
-                  (option: DropdownOption) =>
-                    option.value === customAggregation,
-                )}
+                value={aggregationOptions.find((option: DropdownOption) => {
+                  return option.value === customAggregation;
+                })}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
@@ -543,9 +537,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
                     monitorStepKubernetesMonitor.metricViewConfig.queryConfigs
                       .length > 0
                   ) {
-                    const currentQueryConfig =
+                    const currentQueryConfig: MetricQueryConfigData =
                       monitorStepKubernetesMonitor.metricViewConfig
-                        .queryConfigs[0];
+                        .queryConfigs[0]!;
                     if (currentQueryConfig) {
                       props.onChange({
                         ...monitorStepKubernetesMonitor,
@@ -601,7 +595,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderAdvanced = (): ReactElement => {
+  const renderAdvanced: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
         <div>
@@ -612,10 +606,11 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
           />
           <Dropdown
             options={resourceScopeOptions}
-            value={resourceScopeOptions.find(
-              (option: DropdownOption) =>
-                option.value === monitorStepKubernetesMonitor.resourceScope,
-            )}
+            value={resourceScopeOptions.find((option: DropdownOption) => {
+              return (
+                option.value === monitorStepKubernetesMonitor.resourceScope
+              );
+            })}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               props.onChange({
                 ...monitorStepKubernetesMonitor,

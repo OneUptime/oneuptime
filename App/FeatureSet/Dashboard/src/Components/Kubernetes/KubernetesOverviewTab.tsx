@@ -4,8 +4,9 @@ import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import DictionaryOfStringsViewer from "Common/UI/Components/Dictionary/DictionaryOfStingsViewer";
 import { KubernetesCondition } from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ConditionsTable from "Common/UI/Components/ConditionsTable/ConditionsTable";
-import type { Condition } from "Common/UI/Components/ConditionsTable/ConditionsTable";
+import ConditionsTable, {
+  type Condition,
+} from "Common/UI/Components/ConditionsTable/ConditionsTable";
 import ObjectID from "Common/Types/ObjectID";
 import KubernetesResourceLink from "./KubernetesResourceLink";
 
@@ -46,13 +47,15 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
 
   // Convert KubernetesCondition[] to generic Condition[] for ConditionsTable
   const conditions: Array<Condition> | undefined = props.conditions?.map(
-    (c: KubernetesCondition): Condition => ({
-      type: c.type,
-      status: c.status,
-      reason: c.reason,
-      message: c.message,
-      lastTransitionTime: c.lastTransitionTime,
-    }),
+    (c: KubernetesCondition): Condition => {
+      return {
+        type: c.type,
+        status: c.status,
+        reason: c.reason,
+        message: c.message,
+        lastTransitionTime: c.lastTransitionTime,
+      };
+    },
   );
 
   return (

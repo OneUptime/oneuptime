@@ -66,9 +66,7 @@ const KubernetesClusterPVs: FunctionComponent<
           memoryUsageBytes: null,
           memoryLimitBytes: null,
           status: pv.status.phase || "Unknown",
-          age: KubernetesResourceUtils.formatAge(
-            pv.metadata.creationTimestamp,
-          ),
+          age: KubernetesResourceUtils.formatAge(pv.metadata.creationTimestamp),
           additionalAttributes: {
             capacity: pv.spec.capacity.storage || "N/A",
             storageClass: pv.spec.storageClassName || "N/A",

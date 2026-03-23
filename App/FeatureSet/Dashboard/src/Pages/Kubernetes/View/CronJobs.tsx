@@ -6,7 +6,12 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -65,8 +70,7 @@ const KubernetesClusterCronJobs: FunctionComponent<
 
       for (const resource of cronjobList) {
         const key: string = `${resource.namespace}/${resource.name}`;
-        const cjObj: KubernetesObjectType | undefined =
-          cronjobObjects.get(key);
+        const cjObj: KubernetesObjectType | undefined = cronjobObjects.get(key);
         if (cjObj) {
           const cronJob: KubernetesCronJobObject =
             cjObj as KubernetesCronJobObject;

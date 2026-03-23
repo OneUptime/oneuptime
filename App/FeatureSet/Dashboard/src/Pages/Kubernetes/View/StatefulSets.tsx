@@ -6,7 +6,12 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -122,9 +127,7 @@ const KubernetesClusterStatefulSets: FunctionComponent<
       ]}
       getViewRoute={(resource: KubernetesResource) => {
         return RouteUtil.populateRouteParams(
-          RouteMap[
-            PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL
-          ] as Route,
+          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL] as Route,
           {
             modelId: modelId,
             subModelId: new ObjectID(resource.name),

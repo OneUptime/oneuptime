@@ -182,8 +182,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     const ready: number = objectData.status.readyReplicas ?? 0;
     const available: number = objectData.status.availableReplicas ?? 0;
     const unavailable: number = objectData.status.unavailableReplicas ?? 0;
-    const isFullyRolledOut: boolean =
-      ready === desired && unavailable === 0;
+    const isFullyRolledOut: boolean = ready === desired && unavailable === 0;
 
     summaryFields.push(
       {

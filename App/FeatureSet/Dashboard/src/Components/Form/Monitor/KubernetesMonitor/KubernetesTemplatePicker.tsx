@@ -76,9 +76,9 @@ const KubernetesTemplatePicker: FunctionComponent<ComponentProps> = (
           description: string;
         }) => {
           const categoryTemplates: Array<KubernetesAlertTemplate> =
-            allTemplates.filter(
-              (t: KubernetesAlertTemplate) => t.category === cat.category,
-            );
+            allTemplates.filter((t: KubernetesAlertTemplate) => {
+              return t.category === cat.category;
+            });
 
           if (categoryTemplates.length === 0) {
             return null;

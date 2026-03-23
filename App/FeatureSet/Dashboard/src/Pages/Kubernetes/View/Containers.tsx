@@ -6,7 +6,12 @@ import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesRe
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -19,7 +24,10 @@ import {
   fetchK8sObjectsBatch,
   KubernetesObjectType,
 } from "../Utils/KubernetesObjectFetcher";
-import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
+import {
+  KubernetesContainerStatus,
+  KubernetesPodObject,
+} from "../Utils/KubernetesObjectParser";
 
 const KubernetesClusterContainers: FunctionComponent<
   PageComponentProps
@@ -75,9 +83,12 @@ const KubernetesClusterContainers: FunctionComponent<
           const pod: KubernetesPodObject = podObj as KubernetesPodObject;
 
           // Find the container status matching this container name
-          const containerStatus = pod.status.containerStatuses.find(
-            (cs) => cs.name === resource.name,
-          );
+          const containerStatus: KubernetesContainerStatus | undefined =
+            pod.status.containerStatuses.find(
+              (cs: KubernetesContainerStatus) => {
+                return cs.name === resource.name;
+              },
+            );
 
           if (containerStatus) {
             if (containerStatus.state === "running") {

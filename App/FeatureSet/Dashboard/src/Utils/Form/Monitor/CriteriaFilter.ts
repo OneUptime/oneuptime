@@ -260,7 +260,10 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (monitorType === MonitorType.Metrics || monitorType === MonitorType.Kubernetes) {
+    if (
+      monitorType === MonitorType.Metrics ||
+      monitorType === MonitorType.Kubernetes
+    ) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.MetricValue;
       });

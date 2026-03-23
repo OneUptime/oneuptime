@@ -54,9 +54,7 @@ const AlertBanner: FunctionComponent<ComponentProps> = (
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span
-            className={`inline-flex h-3 w-3 rounded-full ${styles.dot}`}
-          />
+          <span className={`inline-flex h-3 w-3 rounded-full ${styles.dot}`} />
           <span className={`text-lg font-semibold ${styles.title}`}>
             {props.title}
           </span>

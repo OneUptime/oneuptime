@@ -1,8 +1,7 @@
 import { getKubernetesBreadcrumbs } from "../../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
-import SideMenu from "./SideMenu";
-import { ResourceCounts } from "./SideMenu";
+import SideMenu, { ResourceCounts } from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -131,9 +130,7 @@ const KubernetesClusterViewLayout: FunctionComponent<
       modelId={modelId}
       modelNameField="name"
       breadcrumbLinks={getKubernetesBreadcrumbs(path)}
-      sideMenu={
-        <SideMenu modelId={modelId} resourceCounts={resourceCounts} />
-      }
+      sideMenu={<SideMenu modelId={modelId} resourceCounts={resourceCounts} />}
     >
       <Outlet />
     </ModelPage>

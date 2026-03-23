@@ -38,8 +38,9 @@ import {
 import AlertBanner, {
   AlertBannerType,
 } from "Common/UI/Components/AlertBanner/AlertBanner";
-import StackedProgressBar from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
-import type { StackedProgressBarSegment } from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
+import StackedProgressBar, {
+  type StackedProgressBarSegment,
+} from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
@@ -101,12 +102,12 @@ const KubernetesClusterOverview: FunctionComponent<
     "Healthy" | "Degraded" | "Unhealthy"
   >("Healthy");
   const [topCpuPods, setTopCpuPods] = useState<Array<KubernetesResource>>([]);
-  const [topMemoryPods, setTopMemoryPods] = useState<
-    Array<KubernetesResource>
-  >([]);
-  const [recentWarnings, setRecentWarnings] = useState<
-    Array<KubernetesEvent>
-  >([]);
+  const [topMemoryPods, setTopMemoryPods] = useState<Array<KubernetesResource>>(
+    [],
+  );
+  const [recentWarnings, setRecentWarnings] = useState<Array<KubernetesEvent>>(
+    [],
+  );
   const [nodePressure, setNodePressure] = useState<{
     memoryPressure: number;
     diskPressure: number;
@@ -162,27 +163,24 @@ const KubernetesClusterOverview: FunctionComponent<
 
         // Top resource consumers
         const sortedByCpu: Array<KubernetesResource> = [...pods]
-          .filter(
-            (p: KubernetesResource) =>
-              p.cpuUtilization !== null && p.cpuUtilization !== undefined,
-          )
-          .sort(
-            (a: KubernetesResource, b: KubernetesResource) =>
-              (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0),
-          )
+          .filter((p: KubernetesResource) => {
+            return p.cpuUtilization !== null && p.cpuUtilization !== undefined;
+          })
+          .sort((a: KubernetesResource, b: KubernetesResource) => {
+            return (b.cpuUtilization ?? 0) - (a.cpuUtilization ?? 0);
+          })
           .slice(0, 5);
         setTopCpuPods(sortedByCpu);
 
         const sortedByMemory: Array<KubernetesResource> = [...pods]
-          .filter(
-            (p: KubernetesResource) =>
-              p.memoryUsageBytes !== null &&
-              p.memoryUsageBytes !== undefined,
-          )
-          .sort(
-            (a: KubernetesResource, b: KubernetesResource) =>
-              (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0),
-          )
+          .filter((p: KubernetesResource) => {
+            return (
+              p.memoryUsageBytes !== null && p.memoryUsageBytes !== undefined
+            );
+          })
+          .sort((a: KubernetesResource, b: KubernetesResource) => {
+            return (b.memoryUsageBytes ?? 0) - (a.memoryUsageBytes ?? 0);
+          })
           .slice(0, 5);
         setTopMemoryPods(sortedByMemory);
 
@@ -209,8 +207,7 @@ const KubernetesClusterOverview: FunctionComponent<
           let succeeded: number = 0;
 
           for (const podObj of podObjects.values()) {
-            const pod: KubernetesPodObject =
-              podObj as KubernetesPodObject;
+            const pod: KubernetesPodObject = podObj as KubernetesPodObject;
             const phase: string = pod.status.phase || "Unknown";
             if (phase === "Running") {
               running++;
@@ -232,11 +229,11 @@ const KubernetesClusterOverview: FunctionComponent<
           let pidPressure: number = 0;
 
           for (const nodeObj of nodeObjects.values()) {
-            const node: KubernetesNodeObject =
-              nodeObj as KubernetesNodeObject;
+            const node: KubernetesNodeObject = nodeObj as KubernetesNodeObject;
             const readyCondition: boolean = node.status.conditions.some(
-              (c: { type: string; status: string }) =>
-                c.type === "Ready" && c.status === "True",
+              (c: { type: string; status: string }) => {
+                return c.type === "Ready" && c.status === "True";
+              },
             );
             if (readyCondition) {
               ready++;
@@ -245,22 +242,13 @@ const KubernetesClusterOverview: FunctionComponent<
             }
             // Check pressure conditions
             for (const cond of node.status.conditions) {
-              if (
-                cond.type === "MemoryPressure" &&
-                cond.status === "True"
-              ) {
+              if (cond.type === "MemoryPressure" && cond.status === "True") {
                 memPressure++;
               }
-              if (
-                cond.type === "DiskPressure" &&
-                cond.status === "True"
-              ) {
+              if (cond.type === "DiskPressure" && cond.status === "True") {
                 diskPressure++;
               }
-              if (
-                cond.type === "PIDPressure" &&
-                cond.status === "True"
-              ) {
+              if (cond.type === "PIDPressure" && cond.status === "True") {
                 pidPressure++;
               }
             }
@@ -459,9 +447,7 @@ const KubernetesClusterOverview: FunctionComponent<
                 <div className="font-medium text-gray-900 group-hover:text-indigo-700">
                   {link.title}
                 </div>
-                <div className="text-xs text-gray-500">
-                  {link.description}
-                </div>
+                <div className="text-xs text-gray-500">{link.description}</div>
               </div>
               {link.count !== undefined && (
                 <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
@@ -608,17 +594,15 @@ const KubernetesClusterOverview: FunctionComponent<
           className="mb-5"
         >
           <div className="flex gap-3 mt-1">
-            {pressureBadges.map(
-              (badge: { count: number; label: string }) => {
-                return (
-                  <StatusBadge
-                    key={badge.label}
-                    text={`${badge.count} node${badge.count > 1 ? "s" : ""}: ${badge.label}`}
-                    type={StatusBadgeType.Danger}
-                  />
-                );
-              },
-            )}
+            {pressureBadges.map((badge: { count: number; label: string }) => {
+              return (
+                <StatusBadge
+                  key={badge.label}
+                  text={`${badge.count} node${badge.count > 1 ? "s" : ""}: ${badge.label}`}
+                  type={StatusBadgeType.Danger}
+                />
+              );
+            })}
           </div>
         </AlertBanner>
       )}
@@ -651,38 +635,36 @@ const KubernetesClusterOverview: FunctionComponent<
                 Top CPU Usage
               </h4>
               <div className="space-y-2">
-                {topCpuPods.map(
-                  (pod: KubernetesResource, index: number) => {
-                    return (
-                      <div
-                        key={index}
-                        onClick={() => {
-                          Navigation.navigate(
-                            RouteUtil.populateRouteParams(
-                              RouteMap[
-                                PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
-                              ] as Route,
-                              {
-                                modelId: modelId,
-                                subModelId: new ObjectID(pod.name),
-                              },
-                            ),
-                          );
-                        }}
-                        className="cursor-pointer hover:bg-gray-50 rounded -mx-1 px-1 transition-colors"
-                      >
-                        <ResourceUsageBar
-                          label={pod.name}
-                          value={Math.min(pod.cpuUtilization ?? 0, 100)}
-                          valueLabel={KubernetesResourceUtils.formatCpuValue(
-                            pod.cpuUtilization,
-                          )}
-                          secondaryLabel={pod.namespace}
-                        />
-                      </div>
-                    );
-                  },
-                )}
+                {topCpuPods.map((pod: KubernetesResource, index: number) => {
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => {
+                        Navigation.navigate(
+                          RouteUtil.populateRouteParams(
+                            RouteMap[
+                              PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
+                            ] as Route,
+                            {
+                              modelId: modelId,
+                              subModelId: new ObjectID(pod.name),
+                            },
+                          ),
+                        );
+                      }}
+                      className="cursor-pointer hover:bg-gray-50 rounded -mx-1 px-1 transition-colors"
+                    >
+                      <ResourceUsageBar
+                        label={pod.name}
+                        value={Math.min(pod.cpuUtilization ?? 0, 100)}
+                        valueLabel={KubernetesResourceUtils.formatCpuValue(
+                          pod.cpuUtilization,
+                        )}
+                        secondaryLabel={pod.namespace}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
             {/* Top Memory */}
@@ -691,44 +673,42 @@ const KubernetesClusterOverview: FunctionComponent<
                 Top Memory Usage
               </h4>
               <div className="space-y-2">
-                {topMemoryPods.map(
-                  (pod: KubernetesResource, index: number) => {
-                    const maxMemory: number =
-                      topMemoryPods[0]?.memoryUsageBytes ?? 1;
-                    const memPercent: number =
-                      maxMemory > 0
-                        ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
-                        : 0;
-                    return (
-                      <div
-                        key={index}
-                        onClick={() => {
-                          Navigation.navigate(
-                            RouteUtil.populateRouteParams(
-                              RouteMap[
-                                PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
-                              ] as Route,
-                              {
-                                modelId: modelId,
-                                subModelId: new ObjectID(pod.name),
-                              },
-                            ),
-                          );
-                        }}
-                        className="cursor-pointer hover:bg-gray-50 rounded -mx-1 px-1 transition-colors"
-                      >
-                        <ResourceUsageBar
-                          label={pod.name}
-                          value={memPercent}
-                          valueLabel={KubernetesResourceUtils.formatMemoryValue(
-                            pod.memoryUsageBytes,
-                          )}
-                          secondaryLabel={pod.namespace}
-                        />
-                      </div>
-                    );
-                  },
-                )}
+                {topMemoryPods.map((pod: KubernetesResource, index: number) => {
+                  const maxMemory: number =
+                    topMemoryPods[0]?.memoryUsageBytes ?? 1;
+                  const memPercent: number =
+                    maxMemory > 0
+                      ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
+                      : 0;
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => {
+                        Navigation.navigate(
+                          RouteUtil.populateRouteParams(
+                            RouteMap[
+                              PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
+                            ] as Route,
+                            {
+                              modelId: modelId,
+                              subModelId: new ObjectID(pod.name),
+                            },
+                          ),
+                        );
+                      }}
+                      className="cursor-pointer hover:bg-gray-50 rounded -mx-1 px-1 transition-colors"
+                    >
+                      <ResourceUsageBar
+                        label={pod.name}
+                        value={memPercent}
+                        valueLabel={KubernetesResourceUtils.formatMemoryValue(
+                          pod.memoryUsageBytes,
+                        )}
+                        secondaryLabel={pod.namespace}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -743,32 +723,32 @@ const KubernetesClusterOverview: FunctionComponent<
         >
           <div className="p-4">
             <div className="space-y-3">
-              {recentWarnings.map(
-                (event: KubernetesEvent, index: number) => {
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-amber-50/50 border border-amber-100"
-                    >
-                      <StatusBadge
-                        text={event.reason}
-                        type={StatusBadgeType.Warning}
-                        className="mt-0.5"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-gray-800">
-                          {event.message}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          <span className="font-medium">{event.objectKind}/{event.objectName}</span>{" "}
-                          in {event.namespace} &middot;{" "}
-                          {formatRelativeTime(event.timestamp)}
-                        </div>
+              {recentWarnings.map((event: KubernetesEvent, index: number) => {
+                return (
+                  <div
+                    key={index}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-amber-50/50 border border-amber-100"
+                  >
+                    <StatusBadge
+                      text={event.reason}
+                      type={StatusBadgeType.Warning}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-gray-800">
+                        {event.message}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        <span className="font-medium">
+                          {event.objectKind}/{event.objectName}
+                        </span>{" "}
+                        in {event.namespace} &middot;{" "}
+                        {formatRelativeTime(event.timestamp)}
                       </div>
                     </div>
-                  );
-                },
-              )}
+                  </div>
+                );
+              })}
             </div>
             <div className="mt-3">
               <span
