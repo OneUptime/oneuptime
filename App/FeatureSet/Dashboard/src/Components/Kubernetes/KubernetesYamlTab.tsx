@@ -40,7 +40,7 @@ function toYaml(obj: unknown, indent: number = 0): string {
       obj === "true" ||
       obj === "false" ||
       obj === "null" ||
-      /^\d/.test(obj)
+      new RegExp("^\\d").test(obj)
     ) {
       return `"${obj.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
     }

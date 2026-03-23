@@ -87,11 +87,9 @@ const KubernetesClusterDeployments: FunctionComponent<
           } else if (readyReplicas < replicas) {
             // Check conditions for failure
             const failedCondition: KubernetesCondition | undefined =
-              deployment.status.conditions.find(
-                (c: KubernetesCondition) => {
-                  return c.type === "Available" && c.status === "False";
-                },
-              );
+              deployment.status.conditions.find((c: KubernetesCondition) => {
+                return c.type === "Available" && c.status === "False";
+              });
             resource.status = failedCondition ? "Failed" : "Progressing";
           } else {
             resource.status = "Progressing";

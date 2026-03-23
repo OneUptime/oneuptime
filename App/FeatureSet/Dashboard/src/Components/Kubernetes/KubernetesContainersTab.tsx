@@ -30,7 +30,8 @@ function formatK8sResourceValue(key: string, value: string): string {
   }
 
   // CPU whole cores (e.g. "2" = 2 cores)
-  if (key.toLowerCase() === "cpu" && /^\d+$/.test(value)) {
+  const wholeNumberRegex: RegExp = /^\d+$/;
+  if (key.toLowerCase() === "cpu" && wholeNumberRegex.test(value)) {
     const cores: number = parseInt(value);
     return `${value} (${cores} CPU core${cores !== 1 ? "s" : ""})`;
   }
