@@ -16,7 +16,8 @@ const Tabs: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [currentTabName, setCurrentTabName] = useState<string | null>(null);
-  const hasInitialized: React.RefObject<boolean> = useRef<boolean>(false);
+  const hasInitialized: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   // Initialize current tab only once, or when the tab list names change
   useEffect(() => {

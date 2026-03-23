@@ -42,7 +42,9 @@ import MonitorStepExceptionMonitor, {
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import MonitorStepKubernetesMonitor from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
+import MonitorStepKubernetesMonitor, {
+  KubernetesResourceFilters,
+} from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 
 RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
@@ -457,7 +459,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     }
 
     if (kubernetesMonitorConfig.resourceFilters) {
-      const resourceFilters = kubernetesMonitorConfig.resourceFilters;
+      const resourceFilters: KubernetesResourceFilters =
+        kubernetesMonitorConfig.resourceFilters;
 
       if (resourceFilters.namespace) {
         attributes["k8s.namespace.name"] = resourceFilters.namespace;
