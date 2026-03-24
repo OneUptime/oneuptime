@@ -23,9 +23,7 @@ export default class MasterAdminAuthorization {
         Response.sendErrorResponse(
           req,
           res,
-          new NotAuthorizedException(
-            "Unauthorized: Access token is required.",
-          ),
+          new NotAuthorizedException("Unauthorized: Access token is required."),
         );
         return;
       }

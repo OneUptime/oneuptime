@@ -133,11 +133,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
         description="Compose an announcement email to send to all registered users. You can send a test email first to preview how it looks."
       >
         {success ? (
-          <Alert
-            type={AlertType.SUCCESS}
-            title={success}
-            className="mb-4"
-          />
+          <Alert type={AlertType.SUCCESS} title={success} className="mb-4" />
         ) : (
           <></>
         )}

@@ -37,12 +37,14 @@ import FilterCondition from "../../Types/Filter/FilterCondition";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
 import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 
-// NOTE ON FORMATTING:
-// WorkspacePayloadMarkdown text goes through SlackifyMarkdown which converts
-// standard markdown to Slack mrkdwn. So we must use:
-//   **bold**  (NOT *bold*)
-//   _italic_  (same in both)
-//   [text](url)  (NOT <url|text>)
+/*
+ * NOTE ON FORMATTING:
+ * WorkspacePayloadMarkdown text goes through SlackifyMarkdown which converts
+ * standard markdown to Slack mrkdwn. So we must use:
+ *   **bold**  (NOT *bold*)
+ *   _italic_  (same in both)
+ *   [text](url)  (NOT <url|text>)
+ */
 
 interface TimelineData {
   ackBy?: string | undefined;
@@ -72,8 +74,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     summaryId: ObjectID;
     isTest?: boolean;
   }): Promise<void> {
-    const summary: WorkspaceNotificationSummary | null =
-      await this.findOneById({
+    const summary: WorkspaceNotificationSummary | null = await this.findOneById(
+      {
         id: data.summaryId,
         select: {
           projectId: true,
@@ -91,7 +93,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         props: {
           isRoot: true,
         },
-      });
+      },
+    );
 
     if (!summary) {
       throw new BadDataException("Summary not found");
@@ -227,8 +230,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       | undefined;
   } {
     return {
-      [NotificationRuleConditionCheckOn.IncidentTitle]:
-        incident.title || "",
+      [NotificationRuleConditionCheckOn.IncidentTitle]: incident.title || "",
       [NotificationRuleConditionCheckOn.IncidentDescription]:
         incident.description || "",
       [NotificationRuleConditionCheckOn.IncidentSeverity]:
@@ -259,8 +261,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
       [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
       [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
-        undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
       [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
       [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
@@ -313,8 +314,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
       [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
       [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
-        undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
       [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
       [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
@@ -354,9 +354,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     // Title
     blocks.push(
-      Service.header(
-        `${type} Summary — ${fromDateStr} to ${toDateStr}`,
-      ),
+      Service.header(`${type} Summary — ${fromDateStr} to ${toDateStr}`),
     );
 
     blocks.push(
@@ -396,9 +394,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     // Footer
     blocks.push(Service.divider());
     blocks.push(
-      Service.md(
-        `_Sent by OneUptime  •  ${summary.name || "Untitled"}_`,
-      ),
+      Service.md(`_Sent by OneUptime  •  ${summary.name || "Untitled"}_`),
     );
 
     return blocks;
@@ -635,9 +631,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(Service.divider());
 
       if (incidents.length === 0) {
-        blocks.push(
-          Service.md(`_No incidents reported in this period._`),
-        );
+        blocks.push(Service.md(`_No incidents reported in this period._`));
         return;
       }
 
@@ -681,9 +675,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
             ackResolve.push(`_Not yet acknowledged_`);
           }
         }
-        if (
-          Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)
-        ) {
+        if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
               `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
@@ -725,7 +717,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           title: true,
           description: true,
           incidentSeverity: { name: true, _id: true },
-          currentIncidentState: { name: true, _id: true, isResolvedState: true },
+          currentIncidentState: {
+            name: true,
+            _id: true,
+            isResolvedState: true,
+          },
           createdAt: true,
           resolvedAt: true,
         },
@@ -807,9 +803,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(Service.divider());
 
       if (episodes.length === 0) {
-        blocks.push(
-          Service.md(`_No incident episodes in this period._`),
-        );
+        blocks.push(Service.md(`_No incident episodes in this period._`));
         return;
       }
 
@@ -1098,9 +1092,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
             ackResolve.push(`_Not yet acknowledged_`);
           }
         }
-        if (
-          Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)
-        ) {
+        if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
               `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
@@ -1131,23 +1123,22 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   }): Promise<void> {
     const { blocks, items, fromDate, projectId } = data;
 
-    const episodes: Array<AlertEpisode> =
-      await AlertEpisodeService.findAllBy({
-        query: {
-          projectId,
-          createdAt: QueryHelper.greaterThanEqualTo(fromDate),
-        },
-        select: {
-          _id: true,
-          title: true,
-          description: true,
-          alertSeverity: { name: true, _id: true },
-          currentAlertState: { name: true, _id: true, isResolvedState: true },
-          createdAt: true,
-          resolvedAt: true,
-        },
-        props: { isRoot: true },
-      });
+    const episodes: Array<AlertEpisode> = await AlertEpisodeService.findAllBy({
+      query: {
+        projectId,
+        createdAt: QueryHelper.greaterThanEqualTo(fromDate),
+      },
+      select: {
+        _id: true,
+        title: true,
+        description: true,
+        alertSeverity: { name: true, _id: true },
+        currentAlertState: { name: true, _id: true, isResolvedState: true },
+        createdAt: true,
+        resolvedAt: true,
+      },
+      props: { isRoot: true },
+    });
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
@@ -1224,9 +1215,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(Service.divider());
 
       if (episodes.length === 0) {
-        blocks.push(
-          Service.md(`_No alert episodes in this period._`),
-        );
+        blocks.push(Service.md(`_No alert episodes in this period._`));
         return;
       }
 

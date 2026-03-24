@@ -298,10 +298,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           }
 
           // Parse channel names from comma-separated string
-          if (
-            values.channelNames &&
-            typeof values.channelNames === "string"
-          ) {
+          if (values.channelNames && typeof values.channelNames === "string") {
             values.channelNames = (values.channelNames as unknown as string)
               .split(",")
               .map((name: string) => {
@@ -329,11 +326,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           if (values.filters && Array.isArray(values.filters)) {
             values.filters = values.filters.filter(
               (f: NotificationRuleCondition) => {
-                return (
-                  f.value &&
-                  Array.isArray(f.value) &&
-                  f.value.length > 0
-                );
+                return f.value && Array.isArray(f.value) && f.value.length > 0;
               },
             );
           }
@@ -346,10 +339,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         }}
         onBeforeEdit={(values: WorkspaceNotificationSummary) => {
           // Parse channel names from comma-separated string
-          if (
-            values.channelNames &&
-            typeof values.channelNames === "string"
-          ) {
+          if (values.channelNames && typeof values.channelNames === "string") {
             values.channelNames = (values.channelNames as unknown as string)
               .split(",")
               .map((name: string) => {
@@ -360,8 +350,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               });
           }
 
-          // If sendFirstReportAt was changed and is in the future, use it as nextSendAt.
-          // Otherwise leave nextSendAt alone — the worker manages it after the first send.
+          /*
+           * If sendFirstReportAt was changed and is in the future, use it as nextSendAt.
+           * Otherwise leave nextSendAt alone — the worker manages it after the first send.
+           */
           if (values.sendFirstReportAt) {
             const firstReportDate: Date = new Date(
               values.sendFirstReportAt as unknown as string,
@@ -378,11 +370,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           if (values.filters && Array.isArray(values.filters)) {
             values.filters = values.filters.filter(
               (f: NotificationRuleCondition) => {
-                return (
-                  f.value &&
-                  Array.isArray(f.value) &&
-                  f.value.length > 0
-                );
+                return f.value && Array.isArray(f.value) && f.value.length > 0;
               },
             );
           }
@@ -460,9 +448,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                   initialValue={
                     value.recurringInterval &&
                     value.recurringInterval instanceof Recurring
-                      ? Recurring.fromJSON(
-                          value.recurringInterval as Recurring,
-                        )
+                      ? Recurring.fromJSON(value.recurringInterval as Recurring)
                       : undefined
                   }
                 />
@@ -555,9 +541,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                   incidentStates={incidentStates}
                   scheduledMaintenanceStates={[]}
                   monitorStatus={[]}
-                  onChange={(
-                    conditions: Array<NotificationRuleCondition>,
-                  ) => {
+                  onChange={(conditions: Array<NotificationRuleCondition>) => {
                     if (elementProps.onChange) {
                       elementProps.onChange(conditions);
                     }
@@ -628,9 +612,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Frequency",
             type: FieldType.Element,
-            getElement: (
-              value: WorkspaceNotificationSummary,
-            ): ReactElement => {
+            getElement: (value: WorkspaceNotificationSummary): ReactElement => {
               return (
                 <RecurringViewElement
                   value={value.recurringInterval as Recurring}
@@ -652,9 +634,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Lookback",
             type: FieldType.Element,
-            getElement: (
-              value: WorkspaceNotificationSummary,
-            ): ReactElement => {
+            getElement: (value: WorkspaceNotificationSummary): ReactElement => {
               return <span>{value.numberOfDaysOfData} days</span>;
             },
           },

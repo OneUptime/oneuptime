@@ -19,19 +19,12 @@ export default class WorkspaceNotificationSummaryAPI extends BaseAPI<
   WorkspaceNotificationSummaryServiceType
 > {
   public constructor() {
-    super(
-      WorkspaceNotificationSummary,
-      WorkspaceNotificationSummaryService,
-    );
+    super(WorkspaceNotificationSummary, WorkspaceNotificationSummaryService);
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/test/:workspaceNotificationSummaryId`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
