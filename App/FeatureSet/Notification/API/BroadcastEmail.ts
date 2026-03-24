@@ -4,8 +4,7 @@ import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import UserService from "Common/Server/Services/UserService";
 import Express, {
   ExpressRequest,
@@ -21,7 +20,7 @@ const router: ExpressRouter = Express.getRouter();
 
 router.post(
   "/send-test",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body;
@@ -64,7 +63,7 @@ router.post(
 
 router.post(
   "/send-to-all-users",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body;

@@ -35,7 +35,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post({
           url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/notification/broadcast-email/send-to-all-users",
+            "/admin/email/send-to-all-users",
           ),
           data: {
             subject: pendingSubject,
@@ -161,7 +161,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
               const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
                 await API.post({
                   url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    "/notification/broadcast-email/send-test",
+                    "/admin/email/send-test",
                   ),
                   data: {
                     subject,

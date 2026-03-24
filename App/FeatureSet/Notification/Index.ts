@@ -32,6 +32,7 @@ const NotificationFeatureSet: FeatureSet = {
       [`/${APP_NAME}/broadcast-email`, "/broadcast-email"],
       BroadcastEmailAPI,
     );
+    app.use(["/api/admin/email"], BroadcastEmailAPI);
   },
 };
 
