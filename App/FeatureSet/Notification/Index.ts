@@ -1,3 +1,4 @@
+import BroadcastEmailAPI from "./API/BroadcastEmail";
 import CallAPI from "./API/Call";
 // API
 import MailAPI from "./API/Mail";
@@ -27,6 +28,10 @@ const NotificationFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);
     app.use([`/${APP_NAME}/phone-number`, "/phone-number"], PhoneNumberAPI);
     app.use([`/${APP_NAME}/incoming-call`, "/incoming-call"], IncomingCallAPI);
+    app.use(
+      [`/${APP_NAME}/broadcast-email`, "/broadcast-email"],
+      BroadcastEmailAPI,
+    );
   },
 };
 

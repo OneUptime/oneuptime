@@ -2,7 +2,10 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import NavBar, { NavItem } from "Common/UI/Components/Navbar/NavBar";
+import NavBar, {
+  MoreMenuItem,
+  NavItem,
+} from "Common/UI/Components/Navbar/NavBar";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const DashboardNavbar: FunctionComponent = (): ReactElement => {
@@ -28,7 +31,21 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
     },
   ];
 
-  return <NavBar items={navItems} />;
+  const moreMenuItems: MoreMenuItem[] = [
+    {
+      title: "Send Email",
+      description: "Send announcement emails to all registered users.",
+      icon: IconProp.Email,
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SEND_EMAIL] as Route,
+      ),
+      activeRoute: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SEND_EMAIL] as Route,
+      ),
+    },
+  ];
+
+  return <NavBar items={navItems} moreMenuItems={moreMenuItems} />;
 };
 
 export default DashboardNavbar;
