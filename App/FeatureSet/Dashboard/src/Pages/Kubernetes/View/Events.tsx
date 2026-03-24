@@ -443,6 +443,15 @@ const KubernetesClusterEvents: FunctionComponent<
       buttonStyle: ButtonStyleType.ICON,
       className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
+        fetchData().catch(() => {});
+      },
+      icon: IconProp.Refresh,
+    },
+    {
+      title: "",
+      buttonStyle: ButtonStyleType.ICON,
+      className: "py-0 pr-0 pl-1 mt-1",
+      onClick: () => {
         setShowFilterModal(true);
       },
       icon: IconProp.Filter,
@@ -452,7 +461,7 @@ const KubernetesClusterEvents: FunctionComponent<
   return (
     <Card
       title="Kubernetes Events"
-      description="Events from the last 24 hours collected by the k8sobjects receiver."
+      description="Events from the last 24 hours in this cluster."
       buttons={cardButtons}
     >
       <Table<KubernetesEventRow>

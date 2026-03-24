@@ -68,8 +68,12 @@ const KubernetesClusterStatefulSets: FunctionComponent<
         }),
       ]);
 
+      // Build a set of resource keys we already have from metrics
+      const existingKeys: Set<string> = new Set<string>();
+
       for (const resource of statefulsetList) {
         const key: string = `${resource.namespace}/${resource.name}`;
+        existingKeys.add(key);
         const stsObj: KubernetesObjectType | undefined =
           statefulsetObjects.get(key);
         if (stsObj) {
@@ -91,6 +95,35 @@ const KubernetesClusterStatefulSets: FunctionComponent<
             sts.metadata.creationTimestamp,
           );
         }
+      }
+
+      // Add statefulsets from k8s objects that were not found via metrics
+      for (const [key, stsObj] of statefulsetObjects.entries()) {
+        if (existingKeys.has(key)) {
+          continue;
+        }
+        const sts: KubernetesStatefulSetObject =
+          stsObj as KubernetesStatefulSetObject;
+        const readyReplicas: number = sts.status.readyReplicas ?? 0;
+        const replicas: number = sts.spec.replicas ?? 0;
+
+        statefulsetList.push({
+          name: sts.metadata.name,
+          namespace: sts.metadata.namespace,
+          cpuUtilization: null,
+          memoryUsageBytes: null,
+          memoryLimitBytes: null,
+          status:
+            readyReplicas === replicas && replicas > 0
+              ? "Ready"
+              : "Progressing",
+          age: KubernetesResourceUtils.formatAge(
+            sts.metadata.creationTimestamp,
+          ),
+          additionalAttributes: {
+            ready: `${readyReplicas}/${replicas}`,
+          },
+        });
       }
 
       setResources(statefulsetList);

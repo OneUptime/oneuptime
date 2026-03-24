@@ -195,7 +195,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.ArrowUpDown}
+          icon={IconProp.ChartBar}
           badge={counts.hpas}
         />
         <SideMenuItem
@@ -206,7 +206,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Scale}
+          icon={IconProp.AdjustmentVertical}
           badge={counts.vpas}
         />
       </SideMenuSection>
@@ -230,7 +230,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Activity}
+          icon={IconProp.CPUChip}
         />
         <SideMenuItem
           link={{
@@ -240,7 +240,7 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Globe}
+          icon={IconProp.FlowDiagram}
         />
       </SideMenuSection>
 

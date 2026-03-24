@@ -129,21 +129,124 @@ const KubernetesClusterViewLayout: FunctionComponent<
             }),
           ]);
 
+        // Use k8s objects as fallback for counts when metrics return 0
+        const deploymentObjectCount: number =
+          deployments?.length ?? 0;
+        const statefulSetObjectCount: number =
+          statefulSets?.length ?? 0;
+        const daemonSetObjectCount: number =
+          daemonSets?.length ?? 0;
+        const jobObjectCount: number = jobs?.length ?? 0;
+        const cronJobObjectCount: number = cronJobs?.length ?? 0;
+
+        // Fetch k8s object-based fallback counts for resources whose metrics may be empty
+        let deploymentFallback: number = deploymentObjectCount;
+        let statefulSetFallback: number = statefulSetObjectCount;
+        let daemonSetFallback: number = daemonSetObjectCount;
+        let jobFallback: number = jobObjectCount;
+        let cronJobFallback: number = cronJobObjectCount;
+
+        if (
+          deploymentObjectCount === 0 ||
+          statefulSetObjectCount === 0 ||
+          daemonSetObjectCount === 0 ||
+          jobObjectCount === 0 ||
+          cronJobObjectCount === 0
+        ) {
+          try {
+            const fallbackResults = await Promise.all([
+              deploymentObjectCount === 0
+                ? fetchK8sObjectsBatch({
+                    clusterIdentifier: ci,
+                    resourceType: "deployments",
+                  })
+                : Promise.resolve(new Map<string, KubernetesObjectType>()),
+              statefulSetObjectCount === 0
+                ? fetchK8sObjectsBatch({
+                    clusterIdentifier: ci,
+                    resourceType: "statefulsets",
+                  })
+                : Promise.resolve(new Map<string, KubernetesObjectType>()),
+              daemonSetObjectCount === 0
+                ? fetchK8sObjectsBatch({
+                    clusterIdentifier: ci,
+                    resourceType: "daemonsets",
+                  })
+                : Promise.resolve(new Map<string, KubernetesObjectType>()),
+              jobObjectCount === 0
+                ? fetchK8sObjectsBatch({
+                    clusterIdentifier: ci,
+                    resourceType: "jobs",
+                  })
+                : Promise.resolve(new Map<string, KubernetesObjectType>()),
+              cronJobObjectCount === 0
+                ? fetchK8sObjectsBatch({
+                    clusterIdentifier: ci,
+                    resourceType: "cronjobs",
+                  })
+                : Promise.resolve(new Map<string, KubernetesObjectType>()),
+            ]);
+
+            const deploymentObjs = fallbackResults[0]!;
+            const statefulSetObjs = fallbackResults[1]!;
+            const daemonSetObjs = fallbackResults[2]!;
+            const jobObjs = fallbackResults[3]!;
+            const cronJobObjs = fallbackResults[4]!;
+
+            if (deploymentObjectCount === 0 && deploymentObjs.size > 0) {
+              deploymentFallback = deploymentObjs.size;
+            }
+            if (statefulSetObjectCount === 0 && statefulSetObjs.size > 0) {
+              statefulSetFallback = statefulSetObjs.size;
+            }
+            if (daemonSetObjectCount === 0 && daemonSetObjs.size > 0) {
+              daemonSetFallback = daemonSetObjs.size;
+            }
+            if (jobObjectCount === 0 && jobObjs.size > 0) {
+              jobFallback = jobObjs.size;
+            }
+            if (cronJobObjectCount === 0 && cronJobObjs.size > 0) {
+              cronJobFallback = cronJobObjs.size;
+            }
+          } catch {
+            // Fallback counts are supplementary
+          }
+        }
+
+        const computedNodeCount: number = nodes?.length ?? 0;
+        const computedPodCount: number = pods?.length ?? 0;
+        const computedNamespaceCount: number = namespaces?.length ?? 0;
+
         setResourceCounts({
-          nodes: nodes?.length ?? 0,
-          pods: pods?.length ?? 0,
-          namespaces: namespaces?.length ?? 0,
-          deployments: deployments?.length ?? 0,
-          statefulSets: statefulSets?.length ?? 0,
-          daemonSets: daemonSets?.length ?? 0,
-          jobs: jobs?.length ?? 0,
-          cronJobs: cronJobs?.length ?? 0,
+          nodes: computedNodeCount,
+          pods: computedPodCount,
+          namespaces: computedNamespaceCount,
+          deployments: deploymentFallback,
+          statefulSets: statefulSetFallback,
+          daemonSets: daemonSetFallback,
+          jobs: jobFallback,
+          cronJobs: cronJobFallback,
           containers: containers?.length ?? 0,
           pvcs: pvcs?.size ?? 0,
           pvs: pvs?.size ?? 0,
           hpas: hpas?.size ?? 0,
           vpas: vpas?.size ?? 0,
         });
+
+        // Update cached counts on the cluster model for the clusters list table
+        try {
+          await ModelAPI.updateById({
+            modelType: KubernetesCluster,
+            id: modelId,
+            data: {
+              nodeCount: computedNodeCount,
+              podCount: computedPodCount,
+              namespaceCount: computedNamespaceCount,
+            },
+          });
+        } catch {
+          // Updating cached counts is best-effort
+        }
       } catch {
         // Counts are supplementary, don't fail the layout
       }
