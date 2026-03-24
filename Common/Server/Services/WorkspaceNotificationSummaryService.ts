@@ -1257,7 +1257,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   ): { avg: number; count: number } {
     let total: number = 0;
     let count: number = 0;
-    for (const [_id, td] of tlMap) {
+    for (const [, td] of tlMap) {
       const eventTime: Date | undefined =
         kind === "ack" ? td.ackAt : td.resolvedAt;
       if (eventTime && td.declaredAt) {

@@ -42,7 +42,7 @@ export default class MasterAdminAuthorization {
       }
 
       next();
-    } catch (_err) {
+    } catch {
       Response.sendErrorResponse(
         req,
         res,

@@ -89,7 +89,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
 
   // Map summary type to notification rule event type for filters
-  const getEventType = (): NotificationRuleEventType => {
+  type GetEventTypeFunction = () => NotificationRuleEventType;
+
+  const getEventType: GetEventTypeFunction = (): NotificationRuleEventType => {
     switch (props.summaryType) {
       case WorkspaceNotificationSummaryType.Incident:
         return NotificationRuleEventType.Incident;
