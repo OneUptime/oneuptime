@@ -825,7 +825,7 @@ const KubernetesClusterOverview: FunctionComponent<
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                 <Icon
-                  icon={IconProp.Activity}
+                  icon={IconProp.CPUChip}
                   className="h-4 w-4 text-blue-600"
                 />
               </div>
