@@ -45,11 +45,11 @@ import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/No
 //   [text](url)  (NOT <url|text>)
 
 interface TimelineData {
-  ackBy?: string;
-  resolvedBy?: string;
-  ackAt?: Date;
-  resolvedAt?: Date;
-  declaredAt?: Date;
+  ackBy?: string | undefined;
+  resolvedBy?: string | undefined;
+  ackAt?: Date | undefined;
+  resolvedAt?: Date | undefined;
+  declaredAt?: Date | undefined;
 }
 
 export class Service extends DatabaseService<WorkspaceNotificationSummary> {
@@ -294,10 +294,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         alert.labels?.map((l: Label) => {
           return l._id?.toString() || "";
         }) || [],
-      [NotificationRuleConditionCheckOn.Monitors]:
-        alert.monitors?.map((m: Alert) => {
-          return m._id?.toString() || "";
-        }) || [],
+      [NotificationRuleConditionCheckOn.Monitors]: alert.monitor?._id
+        ? [alert.monitor._id.toString()]
+        : [],
       // unused for alerts
       [NotificationRuleConditionCheckOn.MonitorName]: undefined,
       [NotificationRuleConditionCheckOn.MonitorType]: undefined,
@@ -531,7 +530,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           return i._id;
         })
         .map((i: Incident) => {
-          return i._id!;
+          return new ObjectID(i._id!.toString());
         });
 
       const timelines: Array<IncidentStateTimeline> =
@@ -726,7 +725,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           title: true,
           description: true,
           incidentSeverity: { name: true, _id: true },
-          incidentState: { name: true, _id: true, isResolvedState: true },
+          currentIncidentState: { name: true, _id: true, isResolvedState: true },
           createdAt: true,
           resolvedAt: true,
         },
@@ -737,7 +736,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
       const resolved: number = episodes.filter((e: IncidentEpisode) => {
-        return e.incidentState?.isResolvedState;
+        return e.currentIncidentState?.isResolvedState;
       }).length;
       blocks.push(
         Service.md(
@@ -769,7 +768,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     if (Service.has(items, WorkspaceNotificationSummaryItem.StateBreakdown)) {
       const map: Map<string, number> = new Map();
       for (const e of episodes) {
-        const s: string = e.incidentState?.name || "Unknown";
+        const s: string = e.currentIncidentState?.name || "Unknown";
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
@@ -825,8 +824,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         if (ep.incidentSeverity?.name) {
           meta.push(`Severity: ${Service.bold(ep.incidentSeverity.name)}`);
         }
-        if (ep.incidentState?.name) {
-          meta.push(`State: ${Service.bold(ep.incidentState.name)}`);
+        if (ep.currentIncidentState?.name) {
+          meta.push(`State: ${Service.bold(ep.currentIncidentState.name)}`);
         }
         if (ep.createdAt) {
           meta.push(`Created: ${Service.formatDate(ep.createdAt)}`);
@@ -882,7 +881,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           isAcknowledgedState: true,
         },
         labels: { _id: true, name: true },
-        monitors: { name: true, _id: true },
+        monitor: { name: true, _id: true },
         createdAt: true,
       },
       props: { isRoot: true },
@@ -964,7 +963,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           return a._id;
         })
         .map((a: Alert) => {
-          return a._id!;
+          return new ObjectID(a._id!.toString());
         });
 
       const timelines: Array<AlertStateTimeline> =
@@ -1041,12 +1040,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     ) {
       const names: Set<string> = new Set();
       for (const a of alerts) {
-        if (a.monitors) {
-          for (const m of a.monitors) {
-            if (m.name) {
-              names.add(m.name);
-            }
-          }
+        if (a.monitor?.name) {
+          names.add(a.monitor.name);
         }
       }
       if (names.size > 0) {
@@ -1147,7 +1142,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           title: true,
           description: true,
           alertSeverity: { name: true, _id: true },
-          alertState: { name: true, _id: true, isResolvedState: true },
+          currentAlertState: { name: true, _id: true, isResolvedState: true },
           createdAt: true,
           resolvedAt: true,
         },
@@ -1158,7 +1153,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
       const resolved: number = episodes.filter((e: AlertEpisode) => {
-        return e.alertState?.isResolvedState;
+        return e.currentAlertState?.isResolvedState;
       }).length;
       blocks.push(
         Service.md(
@@ -1190,7 +1185,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     if (Service.has(items, WorkspaceNotificationSummaryItem.StateBreakdown)) {
       const map: Map<string, number> = new Map();
       for (const e of episodes) {
-        const s: string = e.alertState?.name || "Unknown";
+        const s: string = e.currentAlertState?.name || "Unknown";
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
@@ -1246,8 +1241,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         if (ep.alertSeverity?.name) {
           meta.push(`Severity: ${Service.bold(ep.alertSeverity.name)}`);
         }
-        if (ep.alertState?.name) {
-          meta.push(`State: ${Service.bold(ep.alertState.name)}`);
+        if (ep.currentAlertState?.name) {
+          meta.push(`State: ${Service.bold(ep.currentAlertState.name)}`);
         }
         if (ep.createdAt) {
           meta.push(`Created: ${Service.formatDate(ep.createdAt)}`);

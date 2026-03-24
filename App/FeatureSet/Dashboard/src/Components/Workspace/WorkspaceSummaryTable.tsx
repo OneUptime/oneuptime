@@ -453,11 +453,16 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                 <RecurringFieldElement
                   error={elementProps.error}
                   onChange={(recurring: Recurring) => {
-                    elementProps.onChange(recurring);
+                    if (elementProps.onChange) {
+                      elementProps.onChange(recurring);
+                    }
                   }}
                   initialValue={
-                    value.recurringInterval
-                      ? Recurring.fromJSON(value.recurringInterval)
+                    value.recurringInterval &&
+                    value.recurringInterval instanceof Recurring
+                      ? Recurring.fromJSON(
+                          value.recurringInterval as Recurring,
+                        )
                       : undefined
                   }
                 />
@@ -553,7 +558,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                   onChange={(
                     conditions: Array<NotificationRuleCondition>,
                   ) => {
-                    elementProps.onChange(conditions);
+                    if (elementProps.onChange) {
+                      elementProps.onChange(conditions);
+                    }
                   }}
                   value={
                     (value.filters as
