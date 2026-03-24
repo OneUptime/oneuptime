@@ -1559,53 +1559,51 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {selectedSpans.length > 0 && spans.length > 0 ? (() => {
-          const selectedSpan: Span | undefined = spans.find(
-            (span: Span) => {
+        {selectedSpans.length > 0 && spans.length > 0 ? (
+          (() => {
+            const selectedSpan: Span | undefined = spans.find((span: Span) => {
               return span.spanId?.toString() === selectedSpans[0]!;
-            },
-          );
+            });
 
-          if (!selectedSpan) {
-            return <></>;
-          }
+            if (!selectedSpan) {
+              return <></>;
+            }
 
-          const telemetryService: Service | undefined = telemetryServices.find(
-            (service: Service) => {
-              return (
-                service._id?.toString() ===
-                selectedSpan.serviceId?.toString()
-              );
-            },
-          );
+            const telemetryService: Service | undefined =
+              telemetryServices.find((service: Service) => {
+                return (
+                  service._id?.toString() === selectedSpan.serviceId?.toString()
+                );
+              });
 
-          if (!telemetryService) {
-            return <></>;
-          }
+            if (!telemetryService) {
+              return <></>;
+            }
 
-          return (
-            <SideOver
-              title="View Span"
-              description="View the span details."
-              onClose={() => {
-                setSelectedSpans([]);
-              }}
-              size={SideOverSize.Large}
-            >
-              <SpanViewer
-                id={"span-viewer"}
-                openTelemetrySpanId={selectedSpans[0] as string}
-                traceStartTimeInUnixNano={spans[0]!.startTimeUnixNano!}
+            return (
+              <SideOver
+                title="View Span"
+                description="View the span details."
                 onClose={() => {
                   setSelectedSpans([]);
                 }}
-                telemetryService={telemetryService}
-                divisibilityFactor={divisibilityFactor}
-                allTraceSpans={spans}
-              />
-            </SideOver>
-          );
-        })() : (
+                size={SideOverSize.Large}
+              >
+                <SpanViewer
+                  id={"span-viewer"}
+                  openTelemetrySpanId={selectedSpans[0] as string}
+                  traceStartTimeInUnixNano={spans[0]!.startTimeUnixNano!}
+                  onClose={() => {
+                    setSelectedSpans([]);
+                  }}
+                  telemetryService={telemetryService}
+                  divisibilityFactor={divisibilityFactor}
+                  allTraceSpans={spans}
+                />
+              </SideOver>
+            );
+          })()
+        ) : (
           <></>
         )}
       </div>

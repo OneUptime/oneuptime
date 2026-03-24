@@ -110,7 +110,9 @@ const Bar: FunctionComponent<ComponentProps> = (
           }
         }}
       />
-      {isHovered && props.bar.tooltip && barRef.current &&
+      {isHovered &&
+        props.bar.tooltip &&
+        barRef.current &&
         ReactDOM.createPortal(
           <div
             className="bar-tooltip cursor-pointer bg-white shadow-lg rounded p-2 w-fit"
@@ -125,8 +127,7 @@ const Bar: FunctionComponent<ComponentProps> = (
             {props.bar.tooltip}
           </div>,
           document.body,
-        )
-      }
+        )}
 
       <div
         className="h-8 pt-1 pb-1 mt-2.5 mb-2.5"
