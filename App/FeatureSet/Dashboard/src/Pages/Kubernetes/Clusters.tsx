@@ -136,21 +136,27 @@ const KubernetesClusters: FunctionComponent<
               otelCollectorStatus: true,
             },
             title: "Status",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              nodeCount: true,
+            type: FieldType.Element,
+            getElement: (item: KubernetesCluster): ReactElement => {
+              const isConnected: boolean =
+                item.otelCollectorStatus === "connected";
+              return (
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      isConnected ? "bg-emerald-500" : "bg-red-500"
+                    }`}
+                  />
+                  <span
+                    className={`text-sm font-medium ${
+                      isConnected ? "text-emerald-700" : "text-red-700"
+                    }`}
+                  >
+                    {isConnected ? "Connected" : "Disconnected"}
+                  </span>
+                </div>
+              );
             },
-            title: "Nodes",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              podCount: true,
-            },
-            title: "Pods",
-            type: FieldType.Number,
           },
         ]}
         onViewPage={(item: KubernetesCluster): Promise<Route> => {
