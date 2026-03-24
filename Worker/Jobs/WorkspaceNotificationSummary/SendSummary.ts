@@ -32,12 +32,13 @@ RunCron(
 
     for (const summary of summariesToSend) {
       try {
-        // Update nextSendAt first to prevent double-sends
+        // Calculate next send time based on recurring interval
         const nextSendAt: Date = Recurring.getNextDate(
           summary.nextSendAt!,
           summary.recurringInterval!,
         );
 
+        // Update nextSendAt first to prevent double-sends
         await WorkspaceNotificationSummaryService.updateOneById({
           id: summary.id!,
           data: {

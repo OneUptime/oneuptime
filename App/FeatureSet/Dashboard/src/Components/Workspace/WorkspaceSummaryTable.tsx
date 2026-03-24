@@ -90,6 +90,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const allSummaryItems: Array<WorkspaceNotificationSummaryItem> =
     Object.values(WorkspaceNotificationSummaryItem);
 
+  const typeLabel: string = props.summaryType;
+
   return (
     <Fragment>
       <ModelTable<WorkspaceNotificationSummary>
@@ -102,7 +104,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         userPreferencesKey={`workspace-summary-table-${props.summaryType}-${props.workspaceType}`}
         actionButtons={[
           {
-            title: "Test Summary",
+            title: "Send Test Now",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Play,
             onClick: async (
@@ -121,27 +123,29 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
-        singularName={`${props.summaryType} Summary`}
-        pluralName={`${props.summaryType} Summaries`}
+        singularName={`${typeLabel} Summary`}
+        pluralName={`${typeLabel} Summaries`}
         id={`workspace-summary-table-${props.summaryType}`}
-        name={`Settings > ${props.summaryType} Workspace Summaries`}
+        name={`${typeLabel} Workspace Summaries`}
         isDeleteable={true}
         isEditable={true}
         createEditModalWidth={ModalWidth.Large}
         isCreateable={true}
         cardProps={{
-          title: `${props.summaryType} - ${getWorkspaceTypeDisplayName(props.workspaceType)} Summary`,
-          description: `Configure recurring ${props.summaryType.toLowerCase()} summary reports to be sent to ${getWorkspaceTypeDisplayName(props.workspaceType)} channels.`,
+          title: `${typeLabel} Summary - ${getWorkspaceTypeDisplayName(props.workspaceType)}`,
+          description: `Set up recurring ${typeLabel.toLowerCase()} summary reports posted to ${getWorkspaceTypeDisplayName(props.workspaceType)}. Each summary includes stats like total count, MTTA/MTTR, severity breakdown, and a list of ${typeLabel.toLowerCase()}s with links.`,
         }}
         showAs={ShowAs.List}
-        noItemsMessage={"No summary rules found."}
+        noItemsMessage={`No ${typeLabel.toLowerCase()} summary rules configured yet. Create one to start receiving periodic reports.`}
         onBeforeCreate={(values: WorkspaceNotificationSummary) => {
           values.summaryType = props.summaryType;
           values.projectId = ProjectUtil.getCurrentProjectId()!;
           values.workspaceType = props.workspaceType;
 
-          // Set initial nextSendAt based on recurring interval
-          if (values.recurringInterval) {
+          // Set nextSendAt: use sendFirstReportAt if provided, otherwise compute from interval
+          if (values.sendFirstReportAt) {
+            values.nextSendAt = values.sendFirstReportAt;
+          } else if (values.recurringInterval) {
             const recurring: Recurring = Recurring.fromJSON(
               values.recurringInterval,
             );
@@ -166,12 +170,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               });
           }
 
-          // Ensure summaryItems is an array
-          if (!values.summaryItems) {
+          // Default to all summary items if none selected
+          if (!values.summaryItems || (Array.isArray(values.summaryItems) && values.summaryItems.length === 0)) {
             values.summaryItems = allSummaryItems;
           }
 
-          if (!values.isEnabled) {
+          if (values.isEnabled === undefined || values.isEnabled === null) {
             values.isEnabled = true;
           }
 
@@ -193,15 +197,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               });
           }
 
-          // Recalculate nextSendAt if interval changed
-          if (values.recurringInterval) {
-            const recurring: Recurring = Recurring.fromJSON(
-              values.recurringInterval,
-            );
-            values.nextSendAt = Recurring.getNextDateInterval(
-              OneUptimeDate.getCurrentDate(),
-              recurring,
-            );
+          // If sendFirstReportAt was changed and is in the future, use it as nextSendAt.
+          // Otherwise leave nextSendAt alone — the worker manages it after the first send.
+          if (values.sendFirstReportAt) {
+            const firstReportDate: Date = new Date(values.sendFirstReportAt as unknown as string);
+            if (firstReportDate.getTime() > OneUptimeDate.getCurrentDate().getTime()) {
+              values.nextSendAt = firstReportDate;
+            }
           }
 
           return Promise.resolve(values);
@@ -215,7 +217,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             required: true,
             stepId: "basic",
-            placeholder: "Weekly Incident Summary",
+            placeholder: `Weekly ${typeLabel} Summary`,
             validation: {
               minLength: 2,
             },
@@ -228,8 +230,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder:
-              "Weekly summary of incidents sent to the #ops channel.",
+            placeholder: `e.g., Weekly ${typeLabel.toLowerCase()} summary for the engineering team.`,
           },
           {
             field: {
@@ -237,11 +238,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             stepId: "basic",
             title: "Channel Names",
-            description:
-              "Comma-separated list of channel names to post the summary to (e.g., #incidents, #ops-summary).",
+            description: `Enter one or more ${getWorkspaceTypeDisplayName(props.workspaceType)} channel names (comma-separated) where the summary will be posted.`,
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "#incidents-summary",
+            placeholder: "#incidents-summary, #engineering",
           },
           {
             field: {
@@ -249,7 +249,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             stepId: "basic",
             title: "Enabled",
-            description: "Enable or disable this recurring summary.",
+            description:
+              "When enabled, the summary will be sent automatically on the configured schedule.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -257,20 +258,21 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               recurringInterval: true,
             },
-            title: "Recurring Interval",
-            description: "How often should this summary be sent?",
+            title: "How Often",
+            description:
+              "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
             stepId: "schedule",
             getCustomElement: (
               value: FormValues<WorkspaceNotificationSummary>,
-              props: CustomElementProps,
+              elementProps: CustomElementProps,
             ): ReactElement => {
               return (
                 <RecurringFieldElement
-                  error={props.error}
+                  error={elementProps.error}
                   onChange={(recurring: Recurring) => {
-                    props.onChange(recurring);
+                    elementProps.onChange(recurring);
                   }}
                   initialValue={
                     value.recurringInterval
@@ -283,11 +285,22 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              sendFirstReportAt: true,
+            },
+            title: "Send First Report At",
+            description:
+              "When should the first summary report be sent? Subsequent reports will follow the recurring interval from this date. If left empty, the first report will be sent after the recurring interval from now.",
+            fieldType: FormFieldSchemaType.DateTime,
+            required: false,
+            stepId: "schedule",
+          },
+          {
+            field: {
               numberOfDaysOfData: true,
             },
-            title: "Number of Days of Data",
+            title: "Lookback Period (Days)",
             description:
-              "How many days of historical data should be included in each summary?",
+              "How many days of data to include in each summary. For example, 7 means the summary will cover the last 7 days.",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             stepId: "schedule",
@@ -297,9 +310,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               summaryItems: true,
             },
-            title: "Items to Include",
+            title: "What to Include",
             description:
-              "Select which items to include in the summary report.",
+              "Choose which sections appear in the summary. The report will be formatted with headers, statistics, and a detailed list.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             required: true,
             stepId: "content",
@@ -315,7 +328,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         ]}
         formSteps={[
           {
-            title: "Basic",
+            title: "Basic Info",
             id: "basic",
           },
           {
@@ -349,15 +362,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               name: true,
             },
-            title: "Summary Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
+            title: "Name",
             type: FieldType.Text,
           },
           {
@@ -371,7 +376,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               recurringInterval: true,
             },
-            title: "Recurring Interval",
+            title: "Frequency",
             type: FieldType.Element,
             getElement: (
               value: WorkspaceNotificationSummary,
@@ -385,10 +390,23 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              sendFirstReportAt: true,
+            },
+            noValueMessage: "-",
+            title: "First Report",
+            type: FieldType.DateTime,
+          },
+          {
+            field: {
               numberOfDaysOfData: true,
             },
-            title: "Days of Data",
-            type: FieldType.Number,
+            title: "Lookback",
+            type: FieldType.Element,
+            getElement: (
+              value: WorkspaceNotificationSummary,
+            ): ReactElement => {
+              return <span>{value.numberOfDaysOfData} days</span>;
+            },
           },
           {
             field: {
@@ -398,15 +416,23 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             title: "Last Sent",
             type: FieldType.DateTime,
           },
+          {
+            field: {
+              nextSendAt: true,
+            },
+            noValueMessage: "-",
+            title: "Next Send",
+            type: FieldType.DateTime,
+          },
         ]}
       />
 
       {showTestModal && testSummary ? (
         <ConfirmModal
-          title={`Test Summary`}
+          title={`Send Test Summary Now`}
           error={testError}
-          description={`Test the summary "${testSummary.name}" by sending it to ${getWorkspaceTypeDisplayName(props.workspaceType)} now.`}
-          submitButtonText={"Send Test Summary"}
+          description={`This will send the "${testSummary.name}" summary to ${getWorkspaceTypeDisplayName(props.workspaceType)} right now. The summary will include data from the last ${testSummary.numberOfDaysOfData || 7} days. This will not affect the regular schedule.`}
+          submitButtonText={"Send Now"}
           onClose={() => {
             setShowTestModal(false);
             setTestSummary(undefined);
@@ -427,10 +453,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       {showTestSuccessModal ? (
         <ConfirmModal
           title={
-            testError ? `Test Failed` : `Test Summary Sent Successfully`
+            testError ? `Test Failed` : `Summary Sent`
           }
           error={testError}
-          description={`Test summary sent successfully. You should now see the summary in ${getWorkspaceTypeDisplayName(props.workspaceType)}.`}
+          description={`The test summary was sent successfully. Check your ${getWorkspaceTypeDisplayName(props.workspaceType)} channel to see how it looks.`}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {

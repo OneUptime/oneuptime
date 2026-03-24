@@ -379,6 +379,41 @@ class WorkspaceNotificationSummary extends BaseModel {
     ],
   })
   @TableColumn({
+    title: "Send First Report At",
+    description:
+      "When should the first summary report be sent? Subsequent reports will follow the recurring interval from this date.",
+    required: false,
+    unique: false,
+    type: TableColumnType.Date,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public sendFirstReportAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.CreateWorkspaceNotificationSummary,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.ReadWorkspaceNotificationSummary,
+      Permission.ReadAllProjectResources,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.EditWorkspaceNotificationSummary,
+    ],
+  })
+  @TableColumn({
     type: TableColumnType.JSON,
     title: "Channel Names",
     description: "List of channel names to post the summary to",
