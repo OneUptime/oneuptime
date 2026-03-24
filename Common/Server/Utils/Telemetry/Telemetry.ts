@@ -244,7 +244,8 @@ export default class TelemetryUtil {
         Object.prototype.hasOwnProperty.call(jsonValue, "boolValue") ||
         Object.prototype.hasOwnProperty.call(jsonValue, "bool_value")
       ) {
-        finalObj = (jsonValue["boolValue"] ?? jsonValue["bool_value"]) as boolean;
+        finalObj = (jsonValue["boolValue"] ??
+          jsonValue["bool_value"]) as boolean;
       } else if (
         (jsonValue["arrayValue"] &&
           (jsonValue["arrayValue"] as JSONObject)["values"]) ||

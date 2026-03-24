@@ -111,9 +111,7 @@ const KubernetesClusterDaemonSets: FunctionComponent<
           memoryLimitBytes: null,
           status:
             numberReady === desired && desired > 0 ? "Ready" : "Progressing",
-          age: KubernetesResourceUtils.formatAge(
-            ds.metadata.creationTimestamp,
-          ),
+          age: KubernetesResourceUtils.formatAge(ds.metadata.creationTimestamp),
           additionalAttributes: {
             ready: `${numberReady}/${desired}`,
           },

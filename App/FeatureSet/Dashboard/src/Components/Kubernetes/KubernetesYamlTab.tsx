@@ -116,9 +116,7 @@ function toYaml(obj: unknown, indent: number = 0): string {
  * - generation: internal object version counter
  * - selfLink: deprecated API field
  */
-function cleanK8sObject(
-  obj: Record<string, unknown>,
-): Record<string, unknown> {
+function cleanK8sObject(obj: Record<string, unknown>): Record<string, unknown> {
   const cleaned: Record<string, unknown> = { ...obj };
 
   // Clean metadata sub-fields

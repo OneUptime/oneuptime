@@ -335,8 +335,10 @@ const KubernetesClusterEvents: FunctionComponent<
 
     if (sortBy) {
       data.sort((a: KubernetesEventRow, b: KubernetesEventRow) => {
-        const aVal: string = (a[sortBy as keyof KubernetesEventRow] as string) || "";
-        const bVal: string = (b[sortBy as keyof KubernetesEventRow] as string) || "";
+        const aVal: string =
+          (a[sortBy as keyof KubernetesEventRow] as string) || "";
+        const bVal: string =
+          (b[sortBy as keyof KubernetesEventRow] as string) || "";
         const cmp: number = aVal.localeCompare(bVal);
         return sortOrder === SortOrder.Descending ? -cmp : cmp;
       });
@@ -428,9 +430,7 @@ const KubernetesClusterEvents: FunctionComponent<
       key: "message",
       disableSort: true,
       getElement: (event: KubernetesEventRow): ReactElement => {
-        return (
-          <span className="text-sm text-gray-500">{event.message}</span>
-        );
+        return <span className="text-sm text-gray-500">{event.message}</span>;
       },
     },
   ];

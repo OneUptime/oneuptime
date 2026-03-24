@@ -245,54 +245,64 @@ const KubernetesClusterOverview: FunctionComponent<
 
         // Fetch k8s objects for health status and fallback counts
         try {
-          const objectResults = await Promise.all([
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "pods",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "nodes",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "persistentvolumeclaims",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "persistentvolumes",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "deployments",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "statefulsets",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "daemonsets",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "jobs",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: item.clusterIdentifier,
-              resourceType: "cronjobs",
-            }),
-          ]);
+          const objectResults: Array<Map<string, KubernetesObjectType>> =
+            await Promise.all([
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "pods",
+              }),
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "nodes",
+              }),
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "persistentvolumeclaims",
+              }),
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "persistentvolumes",
+              }),
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "deployments",
+              }),
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "statefulsets",
+              }),
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "daemonsets",
+              }),
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "jobs",
+              }),
+              fetchK8sObjectsBatch({
+                clusterIdentifier: item.clusterIdentifier,
+                resourceType: "cronjobs",
+              }),
+            ]);
 
-          const podObjects: Map<string, KubernetesObjectType> = objectResults[0]!;
-          const nodeObjects: Map<string, KubernetesObjectType> = objectResults[1]!;
-          const pvcObjects: Map<string, KubernetesObjectType> = objectResults[2]!;
-          const pvObjects: Map<string, KubernetesObjectType> = objectResults[3]!;
-          const deploymentObjects: Map<string, KubernetesObjectType> = objectResults[4]!;
-          const statefulSetObjects: Map<string, KubernetesObjectType> = objectResults[5]!;
-          const daemonSetObjects: Map<string, KubernetesObjectType> = objectResults[6]!;
-          const jobObjects: Map<string, KubernetesObjectType> = objectResults[7]!;
-          const cronJobObjects: Map<string, KubernetesObjectType> = objectResults[8]!;
+          const podObjects: Map<string, KubernetesObjectType> =
+            objectResults[0]!;
+          const nodeObjects: Map<string, KubernetesObjectType> =
+            objectResults[1]!;
+          const pvcObjects: Map<string, KubernetesObjectType> =
+            objectResults[2]!;
+          const pvObjects: Map<string, KubernetesObjectType> =
+            objectResults[3]!;
+          const deploymentObjects: Map<string, KubernetesObjectType> =
+            objectResults[4]!;
+          const statefulSetObjects: Map<string, KubernetesObjectType> =
+            objectResults[5]!;
+          const daemonSetObjects: Map<string, KubernetesObjectType> =
+            objectResults[6]!;
+          const jobObjects: Map<string, KubernetesObjectType> =
+            objectResults[7]!;
+          const cronJobObjects: Map<string, KubernetesObjectType> =
+            objectResults[8]!;
 
           setPvcCount(pvcObjects.size);
           setPvCount(pvObjects.size);
@@ -927,72 +937,70 @@ const KubernetesClusterOverview: FunctionComponent<
               </p>
             ) : (
               <div className="space-y-3">
-                {topMemoryPods.map(
-                  (pod: KubernetesResource, index: number) => {
-                    const maxMemory: number =
-                      topMemoryPods[0]?.memoryUsageBytes ?? 1;
-                    const memPercent: number =
-                      maxMemory > 0
-                        ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
-                        : 0;
-                    return (
-                      <div
-                        key={index}
-                        onClick={() => {
-                          Navigation.navigate(
-                            RouteUtil.populateRouteParams(
-                              RouteMap[
-                                PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
-                              ] as Route,
-                              {
-                                modelId: modelId,
-                                subModelId: new ObjectID(pod.name),
-                              },
-                            ),
-                          );
-                        }}
-                        className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
-                              {index + 1}.
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
-                              {pod.name}
-                            </span>
-                          </div>
-                          <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
-                            {KubernetesResourceUtils.formatMemoryValue(
-                              pod.memoryUsageBytes,
-                            )}
+                {topMemoryPods.map((pod: KubernetesResource, index: number) => {
+                  const maxMemory: number =
+                    topMemoryPods[0]?.memoryUsageBytes ?? 1;
+                  const memPercent: number =
+                    maxMemory > 0
+                      ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
+                      : 0;
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => {
+                        Navigation.navigate(
+                          RouteUtil.populateRouteParams(
+                            RouteMap[
+                              PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
+                            ] as Route,
+                            {
+                              modelId: modelId,
+                              subModelId: new ObjectID(pod.name),
+                            },
+                          ),
+                        );
+                      }}
+                      className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                            {index + 1}.
+                          </span>
+                          <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
+                            {pod.name}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 pl-6">
-                          {pod.namespace && (
-                            <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
-                              {pod.namespace}
-                            </span>
+                        <span className="flex-shrink-0 text-sm font-semibold text-gray-700 tabular-nums ml-2">
+                          {KubernetesResourceUtils.formatMemoryValue(
+                            pod.memoryUsageBytes,
                           )}
-                          <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                            <div
-                              className={`h-1.5 rounded-full transition-all duration-300 ${
-                                memPercent > 85
-                                  ? "bg-red-500"
-                                  : memPercent > 70
-                                    ? "bg-amber-500"
-                                    : "bg-purple-500"
-                              }`}
-                              style={{
-                                width: `${Math.max(memPercent, 2)}%`,
-                              }}
-                            />
-                          </div>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 pl-6">
+                        {pod.namespace && (
+                          <span className="flex-shrink-0 inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
+                            {pod.namespace}
+                          </span>
+                        )}
+                        <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                          <div
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              memPercent > 85
+                                ? "bg-red-500"
+                                : memPercent > 70
+                                  ? "bg-amber-500"
+                                  : "bg-purple-500"
+                            }`}
+                            style={{
+                              width: `${Math.max(memPercent, 2)}%`,
+                            }}
+                          />
                         </div>
                       </div>
-                    );
-                  },
-                )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

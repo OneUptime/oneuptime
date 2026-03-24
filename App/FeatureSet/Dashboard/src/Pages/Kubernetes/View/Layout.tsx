@@ -109,33 +109,31 @@ const KubernetesClusterViewLayout: FunctionComponent<
         ]);
 
         // Fetch PV/PVC/HPA/VPA counts from k8sobjects logs (they don't have k8s_cluster metrics)
-        const [pvcs, pvs, hpas, vpas]: Array<Map<string, KubernetesObjectType>> =
-          await Promise.all([
-            fetchK8sObjectsBatch({
-              clusterIdentifier: ci,
-              resourceType: "persistentvolumeclaims",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: ci,
-              resourceType: "persistentvolumes",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: ci,
-              resourceType: "horizontalpodautoscalers",
-            }),
-            fetchK8sObjectsBatch({
-              clusterIdentifier: ci,
-              resourceType: "verticalpodautoscalers",
-            }),
-          ]);
+        const [pvcs, pvs, hpas, vpas]: Array<
+          Map<string, KubernetesObjectType>
+        > = await Promise.all([
+          fetchK8sObjectsBatch({
+            clusterIdentifier: ci,
+            resourceType: "persistentvolumeclaims",
+          }),
+          fetchK8sObjectsBatch({
+            clusterIdentifier: ci,
+            resourceType: "persistentvolumes",
+          }),
+          fetchK8sObjectsBatch({
+            clusterIdentifier: ci,
+            resourceType: "horizontalpodautoscalers",
+          }),
+          fetchK8sObjectsBatch({
+            clusterIdentifier: ci,
+            resourceType: "verticalpodautoscalers",
+          }),
+        ]);
 
         // Use k8s objects as fallback for counts when metrics return 0
-        const deploymentObjectCount: number =
-          deployments?.length ?? 0;
-        const statefulSetObjectCount: number =
-          statefulSets?.length ?? 0;
-        const daemonSetObjectCount: number =
-          daemonSets?.length ?? 0;
+        const deploymentObjectCount: number = deployments?.length ?? 0;
+        const statefulSetObjectCount: number = statefulSets?.length ?? 0;
+        const daemonSetObjectCount: number = daemonSets?.length ?? 0;
         const jobObjectCount: number = jobs?.length ?? 0;
         const cronJobObjectCount: number = cronJobs?.length ?? 0;
 
@@ -154,44 +152,50 @@ const KubernetesClusterViewLayout: FunctionComponent<
           cronJobObjectCount === 0
         ) {
           try {
-            const fallbackResults = await Promise.all([
-              deploymentObjectCount === 0
-                ? fetchK8sObjectsBatch({
-                    clusterIdentifier: ci,
-                    resourceType: "deployments",
-                  })
-                : Promise.resolve(new Map<string, KubernetesObjectType>()),
-              statefulSetObjectCount === 0
-                ? fetchK8sObjectsBatch({
-                    clusterIdentifier: ci,
-                    resourceType: "statefulsets",
-                  })
-                : Promise.resolve(new Map<string, KubernetesObjectType>()),
-              daemonSetObjectCount === 0
-                ? fetchK8sObjectsBatch({
-                    clusterIdentifier: ci,
-                    resourceType: "daemonsets",
-                  })
-                : Promise.resolve(new Map<string, KubernetesObjectType>()),
-              jobObjectCount === 0
-                ? fetchK8sObjectsBatch({
-                    clusterIdentifier: ci,
-                    resourceType: "jobs",
-                  })
-                : Promise.resolve(new Map<string, KubernetesObjectType>()),
-              cronJobObjectCount === 0
-                ? fetchK8sObjectsBatch({
-                    clusterIdentifier: ci,
-                    resourceType: "cronjobs",
-                  })
-                : Promise.resolve(new Map<string, KubernetesObjectType>()),
-            ]);
+            const fallbackResults: Array<Map<string, KubernetesObjectType>> =
+              await Promise.all([
+                deploymentObjectCount === 0
+                  ? fetchK8sObjectsBatch({
+                      clusterIdentifier: ci,
+                      resourceType: "deployments",
+                    })
+                  : Promise.resolve(new Map<string, KubernetesObjectType>()),
+                statefulSetObjectCount === 0
+                  ? fetchK8sObjectsBatch({
+                      clusterIdentifier: ci,
+                      resourceType: "statefulsets",
+                    })
+                  : Promise.resolve(new Map<string, KubernetesObjectType>()),
+                daemonSetObjectCount === 0
+                  ? fetchK8sObjectsBatch({
+                      clusterIdentifier: ci,
+                      resourceType: "daemonsets",
+                    })
+                  : Promise.resolve(new Map<string, KubernetesObjectType>()),
+                jobObjectCount === 0
+                  ? fetchK8sObjectsBatch({
+                      clusterIdentifier: ci,
+                      resourceType: "jobs",
+                    })
+                  : Promise.resolve(new Map<string, KubernetesObjectType>()),
+                cronJobObjectCount === 0
+                  ? fetchK8sObjectsBatch({
+                      clusterIdentifier: ci,
+                      resourceType: "cronjobs",
+                    })
+                  : Promise.resolve(new Map<string, KubernetesObjectType>()),
+              ]);
 
-            const deploymentObjs = fallbackResults[0]!;
-            const statefulSetObjs = fallbackResults[1]!;
-            const daemonSetObjs = fallbackResults[2]!;
-            const jobObjs = fallbackResults[3]!;
-            const cronJobObjs = fallbackResults[4]!;
+            const deploymentObjs: Map<string, KubernetesObjectType> =
+              fallbackResults[0]!;
+            const statefulSetObjs: Map<string, KubernetesObjectType> =
+              fallbackResults[1]!;
+            const daemonSetObjs: Map<string, KubernetesObjectType> =
+              fallbackResults[2]!;
+            const jobObjs: Map<string, KubernetesObjectType> =
+              fallbackResults[3]!;
+            const cronJobObjs: Map<string, KubernetesObjectType> =
+              fallbackResults[4]!;
 
             if (deploymentObjectCount === 0 && deploymentObjs.size > 0) {
               deploymentFallback = deploymentObjs.size;
