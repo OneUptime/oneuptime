@@ -4,8 +4,10 @@ import React, {
   FunctionComponent,
   MouseEventHandler,
   ReactElement,
+  useRef,
   useState,
 } from "react";
+import ReactDOM from "react-dom";
 
 export interface GanttChartBar {
   id: string;
@@ -33,6 +35,7 @@ const Bar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isHovered, setIsHovered] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
 
   // calculate bar width.
   let barWidth: number =
@@ -88,6 +91,7 @@ const Bar: FunctionComponent<ComponentProps> = (
       }}
     >
       <div
+        ref={barRef}
         className="chart-bar h-8 pt-1 pb-1 mt-2.5 mb-2.5 rounded absolute cursor-pointer ml-1 mr-1"
         style={{
           width: `${barWidth}px`,
@@ -105,13 +109,24 @@ const Bar: FunctionComponent<ComponentProps> = (
             props.onSelect(props.bar.id);
           }
         }}
-      >
-        {isHovered && props.bar.tooltip && (
-          <div className="bar-tooltip cursor-pointer bg-white shadow rounded p-2 w-fit z-40 absolute">
+      />
+      {isHovered && props.bar.tooltip && barRef.current &&
+        ReactDOM.createPortal(
+          <div
+            className="bar-tooltip cursor-pointer bg-white shadow-lg rounded p-2 w-fit"
+            style={{
+              position: "fixed",
+              zIndex: 9999,
+              top: barRef.current.getBoundingClientRect().bottom + 4,
+              left: barRef.current.getBoundingClientRect().left,
+              pointerEvents: "none",
+            }}
+          >
             {props.bar.tooltip}
-          </div>
-        )}
-      </div>
+          </div>,
+          document.body,
+        )
+      }
 
       <div
         className="h-8 pt-1 pb-1 mt-2.5 mb-2.5"
