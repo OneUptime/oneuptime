@@ -45,12 +45,17 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsageBar";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 interface ResourceLink {
   title: string;
   description: string;
   pageMap: PageMap;
   count?: number | undefined;
+  icon: IconProp;
+  iconBgClass: string;
+  iconTextClass: string;
 }
 
 function formatRelativeTime(timestamp: string): string {
@@ -318,64 +323,97 @@ const KubernetesClusterOverview: FunctionComponent<
   const workloadLinks: Array<ResourceLink> = [
     {
       title: "Namespaces",
-      description: "View all namespaces",
+      description: "Logical partitions for resources",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES,
       count: namespaceCount > 0 ? namespaceCount : undefined,
+      icon: IconProp.Folder,
+      iconBgClass: "bg-indigo-100",
+      iconTextClass: "text-indigo-600",
     },
     {
       title: "Pods",
-      description: "View all pods",
+      description: "Smallest deployable units",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_PODS,
       count: podCount > 0 ? podCount : undefined,
+      icon: IconProp.Circle,
+      iconBgClass: "bg-emerald-100",
+      iconTextClass: "text-emerald-600",
     },
     {
       title: "Deployments",
-      description: "View all deployments",
+      description: "Manage replica sets and rollouts",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTS,
+      icon: IconProp.Layers,
+      iconBgClass: "bg-blue-100",
+      iconTextClass: "text-blue-600",
     },
     {
       title: "StatefulSets",
-      description: "View all statefulsets",
+      description: "Ordered, stateful pod management",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS,
+      icon: IconProp.Database,
+      iconBgClass: "bg-purple-100",
+      iconTextClass: "text-purple-600",
     },
     {
       title: "DaemonSets",
-      description: "View all daemonsets",
+      description: "Run pods on every node",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSETS,
+      icon: IconProp.Settings,
+      iconBgClass: "bg-orange-100",
+      iconTextClass: "text-orange-600",
     },
     {
       title: "Jobs",
-      description: "View all jobs",
+      description: "Run-to-completion workloads",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_JOBS,
+      icon: IconProp.Play,
+      iconBgClass: "bg-amber-100",
+      iconTextClass: "text-amber-600",
     },
     {
       title: "CronJobs",
-      description: "View all cron jobs",
+      description: "Scheduled recurring tasks",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOBS,
+      icon: IconProp.Clock,
+      iconBgClass: "bg-teal-100",
+      iconTextClass: "text-teal-600",
     },
   ];
 
   const infraLinks: Array<ResourceLink> = [
     {
       title: "Nodes",
-      description: "View all nodes",
+      description: "Worker machines in the cluster",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_NODES,
       count: nodeCount > 0 ? nodeCount : undefined,
+      icon: IconProp.Server,
+      iconBgClass: "bg-slate-100",
+      iconTextClass: "text-slate-600",
     },
     {
       title: "Containers",
-      description: "View all containers",
+      description: "Running container instances",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS,
+      icon: IconProp.Cube,
+      iconBgClass: "bg-cyan-100",
+      iconTextClass: "text-cyan-600",
     },
     {
       title: "PVCs",
-      description: "View persistent volume claims",
+      description: "Persistent volume claims",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_PVCS,
+      icon: IconProp.Disc,
+      iconBgClass: "bg-rose-100",
+      iconTextClass: "text-rose-600",
     },
     {
       title: "PVs",
-      description: "View persistent volumes",
+      description: "Persistent volumes",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_PVS,
+      icon: IconProp.Disc,
+      iconBgClass: "bg-fuchsia-100",
+      iconTextClass: "text-fuchsia-600",
     },
   ];
 
@@ -428,7 +466,7 @@ const KubernetesClusterOverview: FunctionComponent<
     links: Array<ResourceLink>,
   ): ReactElement => {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 py-4 pr-4 pl-1">
         {links.map((link: ResourceLink) => {
           return (
             <div
@@ -441,19 +479,29 @@ const KubernetesClusterOverview: FunctionComponent<
                   ),
                 );
               }}
-              className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all duration-150 group cursor-pointer"
+              className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 group cursor-pointer"
             >
-              <div>
-                <div className="font-medium text-gray-900 group-hover:text-indigo-700">
-                  {link.title}
-                </div>
-                <div className="text-xs text-gray-500">{link.description}</div>
+              <div
+                className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${link.iconBgClass}`}
+              >
+                <Icon
+                  icon={link.icon}
+                  className={`h-5 w-5 ${link.iconTextClass}`}
+                />
               </div>
-              {link.count !== undefined && (
-                <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
-                  {link.count}
-                </span>
-              )}
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-900 group-hover:text-indigo-700 flex items-center justify-between">
+                  <span>{link.title}</span>
+                  {link.count !== undefined && (
+                    <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
+                      {link.count}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {link.description}
+                </div>
+              </div>
             </div>
           );
         })}
@@ -524,6 +572,14 @@ const KubernetesClusterOverview: FunctionComponent<
         />
         <InfoCard
           title="Nodes"
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NODES] as Route,
+                { modelId: modelId },
+              ),
+            );
+          }}
           value={
             <span className="text-2xl font-semibold">
               {nodeCount.toString()}
@@ -537,6 +593,14 @@ const KubernetesClusterOverview: FunctionComponent<
         />
         <InfoCard
           title="Pods"
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_PODS] as Route,
+                { modelId: modelId },
+              ),
+            );
+          }}
           value={
             <span className="text-2xl font-semibold">
               {podCount.toString()}
@@ -545,6 +609,14 @@ const KubernetesClusterOverview: FunctionComponent<
         />
         <InfoCard
           title="Namespaces"
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES] as Route,
+                { modelId: modelId },
+              ),
+            );
+          }}
           value={
             <span className="text-2xl font-semibold">
               {namespaceCount.toString()}

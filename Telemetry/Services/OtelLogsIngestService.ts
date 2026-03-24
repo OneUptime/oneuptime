@@ -278,9 +278,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     if (
                       logBody &&
                       typeof logBody === "object" &&
-                      logBody["stringValue"]
+                      (logBody["stringValue"] || logBody["string_value"])
                     ) {
-                      body = logBody["stringValue"] as string;
+                      body = (logBody["stringValue"] ||
+                        logBody["string_value"]) as string;
                     } else if (typeof log["body"] === "string") {
                       body = log["body"] as string;
                     } else {

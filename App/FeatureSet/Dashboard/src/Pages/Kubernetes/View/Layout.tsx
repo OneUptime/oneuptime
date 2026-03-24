@@ -17,6 +17,10 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
+import {
+  fetchK8sObjectsBatch,
+  KubernetesObjectType,
+} from "../Utils/KubernetesObjectFetcher";
 
 const KubernetesClusterViewLayout: FunctionComponent<
   PageComponentProps
@@ -104,6 +108,27 @@ const KubernetesClusterViewLayout: FunctionComponent<
           }),
         ]);
 
+        // Fetch PV/PVC/HPA/VPA counts from k8sobjects logs (they don't have k8s_cluster metrics)
+        const [pvcs, pvs, hpas, vpas]: Array<Map<string, KubernetesObjectType>> =
+          await Promise.all([
+            fetchK8sObjectsBatch({
+              clusterIdentifier: ci,
+              resourceType: "persistentvolumeclaims",
+            }),
+            fetchK8sObjectsBatch({
+              clusterIdentifier: ci,
+              resourceType: "persistentvolumes",
+            }),
+            fetchK8sObjectsBatch({
+              clusterIdentifier: ci,
+              resourceType: "horizontalpodautoscalers",
+            }),
+            fetchK8sObjectsBatch({
+              clusterIdentifier: ci,
+              resourceType: "verticalpodautoscalers",
+            }),
+          ]);
+
         setResourceCounts({
           nodes: nodes?.length ?? 0,
           pods: pods?.length ?? 0,
@@ -114,6 +139,10 @@ const KubernetesClusterViewLayout: FunctionComponent<
           jobs: jobs?.length ?? 0,
           cronJobs: cronJobs?.length ?? 0,
           containers: containers?.length ?? 0,
+          pvcs: pvcs?.size ?? 0,
+          pvs: pvs?.size ?? 0,
+          hpas: hpas?.size ?? 0,
+          vpas: vpas?.size ?? 0,
         });
       } catch {
         // Counts are supplementary, don't fail the layout

@@ -76,6 +76,7 @@ logs:
 resourceSpecs:
   enabled: true
   interval: 300s  # How often to pull full resource specs (default: 5 minutes)
+  vpa: false  # Enable VPA collection (requires VPA CRDs installed in the cluster)
 
 # Collection intervals
 collectionInterval: 30s

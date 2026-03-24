@@ -195,6 +195,10 @@
         "interval": {
           "type": "string",
           "description": "How often to pull resource specs (e.g., 300s, 5m)"
+        },
+        "vpa": {
+          "type": "boolean",
+          "description": "Enable VPA collection (requires VPA CRDs installed in the cluster)"
         }
       },
       "additionalProperties": false

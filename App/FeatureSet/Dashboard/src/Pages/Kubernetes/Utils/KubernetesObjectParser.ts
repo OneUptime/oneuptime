@@ -31,20 +31,36 @@ export function getKvValue(
       if (!val) {
         return null;
       }
+      // Handle both camelCase (JSON encoding) and snake_case (protobuf via protobufjs)
       if (val["stringValue"] !== undefined) {
         return val["stringValue"] as string;
+      }
+      if (val["string_value"] !== undefined) {
+        return val["string_value"] as string;
       }
       if (val["intValue"] !== undefined) {
         return String(val["intValue"]);
       }
+      if (val["int_value"] !== undefined) {
+        return String(val["int_value"]);
+      }
       if (val["boolValue"] !== undefined) {
         return String(val["boolValue"]);
+      }
+      if (val["bool_value"] !== undefined) {
+        return String(val["bool_value"]);
       }
       if (val["kvlistValue"]) {
         return val["kvlistValue"] as JSONObject;
       }
+      if (val["kvlist_value"]) {
+        return val["kvlist_value"] as JSONObject;
+      }
       if (val["arrayValue"]) {
         return val["arrayValue"] as JSONObject;
+      }
+      if (val["array_value"]) {
+        return val["array_value"] as JSONObject;
       }
       return null;
     }
@@ -105,10 +121,16 @@ export function getKvListAsRecord(
     if (key && val) {
       if (val["stringValue"] !== undefined) {
         result[key] = val["stringValue"] as string;
+      } else if (val["string_value"] !== undefined) {
+        result[key] = val["string_value"] as string;
       } else if (val["intValue"] !== undefined) {
         result[key] = String(val["intValue"]);
+      } else if (val["int_value"] !== undefined) {
+        result[key] = String(val["int_value"]);
       } else if (val["boolValue"] !== undefined) {
         result[key] = String(val["boolValue"]);
+      } else if (val["bool_value"] !== undefined) {
+        result[key] = String(val["bool_value"]);
       }
     }
   }
@@ -135,7 +157,13 @@ export function getArrayValues(
       if (item["kvlistValue"]) {
         return item["kvlistValue"] as JSONObject;
       }
+      if (item["kvlist_value"]) {
+        return item["kvlist_value"] as JSONObject;
+      }
       if (item["stringValue"]) {
+        return item as JSONObject;
+      }
+      if (item["string_value"]) {
         return item as JSONObject;
       }
       return null;
@@ -148,23 +176,42 @@ export function getArrayValues(
  * Handles stringValue, intValue, boolValue, kvlistValue, and arrayValue.
  */
 function convertOtlpValue(valueWrapper: JSONObject): unknown {
+  // Handle both camelCase (JSON encoding) and snake_case (protobuf via protobufjs)
   if (valueWrapper["stringValue"] !== undefined) {
     return valueWrapper["stringValue"];
+  }
+  if (valueWrapper["string_value"] !== undefined) {
+    return valueWrapper["string_value"];
   }
   if (valueWrapper["intValue"] !== undefined) {
     return Number(valueWrapper["intValue"]);
   }
+  if (valueWrapper["int_value"] !== undefined) {
+    return Number(valueWrapper["int_value"]);
+  }
   if (valueWrapper["boolValue"] !== undefined) {
     return valueWrapper["boolValue"];
+  }
+  if (valueWrapper["bool_value"] !== undefined) {
+    return valueWrapper["bool_value"];
   }
   if (valueWrapper["doubleValue"] !== undefined) {
     return Number(valueWrapper["doubleValue"]);
   }
+  if (valueWrapper["double_value"] !== undefined) {
+    return Number(valueWrapper["double_value"]);
+  }
   if (valueWrapper["kvlistValue"]) {
     return kvListToPlainObject(valueWrapper["kvlistValue"] as JSONObject);
   }
+  if (valueWrapper["kvlist_value"]) {
+    return kvListToPlainObject(valueWrapper["kvlist_value"] as JSONObject);
+  }
   if (valueWrapper["arrayValue"]) {
     return convertOtlpArray(valueWrapper["arrayValue"] as JSONObject);
+  }
+  if (valueWrapper["array_value"]) {
+    return convertOtlpArray(valueWrapper["array_value"] as JSONObject);
   }
   return null;
 }
@@ -1861,9 +1908,9 @@ export function extractObjectFromLogBody(
 ): JSONObject | null {
   try {
     const bodyObj: JSONObject = JSON.parse(bodyString) as JSONObject;
-    const topKvList: JSONObject | undefined = bodyObj["kvlistValue"] as
-      | JSONObject
-      | undefined;
+    // Handle both camelCase (JSON encoding) and snake_case (protobuf via protobufjs)
+    const topKvList: JSONObject | undefined = (bodyObj["kvlistValue"] ||
+      bodyObj["kvlist_value"]) as JSONObject | undefined;
     if (!topKvList) {
       return null;
     }
@@ -1883,6 +1930,15 @@ export function extractObjectFromLogBody(
      */
     const kind: string | JSONObject | null = getKvValue(topKvList, "kind");
     if (kind) {
+      return topKvList;
+    }
+
+    // Also check "metadata" as a fallback for objects without "kind"
+    const metadata: string | JSONObject | null = getKvValue(
+      topKvList,
+      "metadata",
+    );
+    if (metadata && typeof metadata !== "string") {
       return topKvList;
     }
 

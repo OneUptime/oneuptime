@@ -6,6 +6,7 @@ export interface ComponentProps {
   value: string | ReactElement;
   className?: string;
   textClassName?: string;
+  onClick?: (() => void) | undefined;
 }
 
 const InfoCard: FunctionComponent<ComponentProps> = (
@@ -13,7 +14,8 @@ const InfoCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <div
-      className={`rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${props.className || ""}`}
+      onClick={props.onClick}
+      className={`rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${props.onClick ? "cursor-pointer" : ""} ${props.className || ""}`}
     >
       <div className="mb-2">
         <FieldLabelElement title={props.title} />

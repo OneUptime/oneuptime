@@ -211,33 +211,49 @@ export default class TelemetryUtil {
     const jsonValue: JSONObject = value as JSONObject;
 
     if (jsonValue && typeof jsonValue === "object") {
-      if (Object.prototype.hasOwnProperty.call(jsonValue, "stringValue")) {
-        const stringValue: JSONValue = jsonValue["stringValue"];
+      // Handle both camelCase (JSON encoding) and snake_case (protobuf via protobufjs)
+      if (
+        Object.prototype.hasOwnProperty.call(jsonValue, "stringValue") ||
+        Object.prototype.hasOwnProperty.call(jsonValue, "string_value")
+      ) {
+        const stringValue: JSONValue =
+          jsonValue["stringValue"] ?? jsonValue["string_value"];
         finalObj =
           stringValue !== undefined && stringValue !== null
             ? (stringValue as string)
             : "";
-      } else if (Object.prototype.hasOwnProperty.call(jsonValue, "intValue")) {
-        const intValue: JSONValue = jsonValue["intValue"];
+      } else if (
+        Object.prototype.hasOwnProperty.call(jsonValue, "intValue") ||
+        Object.prototype.hasOwnProperty.call(jsonValue, "int_value")
+      ) {
+        const intValue: JSONValue =
+          jsonValue["intValue"] ?? jsonValue["int_value"];
         if (intValue !== undefined && intValue !== null) {
           finalObj = intValue as number;
         }
       } else if (
-        Object.prototype.hasOwnProperty.call(jsonValue, "doubleValue")
+        Object.prototype.hasOwnProperty.call(jsonValue, "doubleValue") ||
+        Object.prototype.hasOwnProperty.call(jsonValue, "double_value")
       ) {
-        const doubleValue: JSONValue = jsonValue["doubleValue"];
+        const doubleValue: JSONValue =
+          jsonValue["doubleValue"] ?? jsonValue["double_value"];
         if (doubleValue !== undefined && doubleValue !== null) {
           finalObj = doubleValue as number;
         }
-      } else if (Object.prototype.hasOwnProperty.call(jsonValue, "boolValue")) {
-        finalObj = jsonValue["boolValue"] as boolean;
       } else if (
-        jsonValue["arrayValue"] &&
-        (jsonValue["arrayValue"] as JSONObject)["values"]
+        Object.prototype.hasOwnProperty.call(jsonValue, "boolValue") ||
+        Object.prototype.hasOwnProperty.call(jsonValue, "bool_value")
       ) {
-        const values: JSONArray = (jsonValue["arrayValue"] as JSONObject)[
-          "values"
-        ] as JSONArray;
+        finalObj = (jsonValue["boolValue"] ?? jsonValue["bool_value"]) as boolean;
+      } else if (
+        (jsonValue["arrayValue"] &&
+          (jsonValue["arrayValue"] as JSONObject)["values"]) ||
+        (jsonValue["array_value"] &&
+          (jsonValue["array_value"] as JSONObject)["values"])
+      ) {
+        const arrayVal: JSONObject = (jsonValue["arrayValue"] ||
+          jsonValue["array_value"]) as JSONObject;
+        const values: JSONArray = arrayVal["values"] as JSONArray;
         finalObj = values.map((v: JSONObject) => {
           return this.getAttributeValues(
             prefixKeysWithString,
@@ -290,17 +306,19 @@ export default class TelemetryUtil {
 
         finalObj = flattenedFields;
       } else if (
-        jsonValue["kvlistValue"] &&
-        (jsonValue["kvlistValue"] as JSONObject)["values"]
+        (jsonValue["kvlistValue"] &&
+          (jsonValue["kvlistValue"] as JSONObject)["values"]) ||
+        (jsonValue["kvlist_value"] &&
+          (jsonValue["kvlist_value"] as JSONObject)["values"])
       ) {
-        const values: JSONArray = (jsonValue["kvlistValue"] as JSONObject)[
-          "values"
-        ] as JSONArray;
+        const kvlistVal: JSONObject = (jsonValue["kvlistValue"] ||
+          jsonValue["kvlist_value"]) as JSONObject;
+        const values: JSONArray = kvlistVal["values"] as JSONArray;
         finalObj = this.getAttributes({
           prefixKeysWithString,
           items: values,
         });
-      } else if ("nullValue" in jsonValue) {
+      } else if ("nullValue" in jsonValue || "null_value" in jsonValue) {
         finalObj = null;
       }
     }

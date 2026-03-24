@@ -73,10 +73,12 @@ data:
             mode: pull
             interval: {{ .Values.resourceSpecs.interval }}
             group: autoscaling
+          {{- if .Values.resourceSpecs.vpa }}
           - name: verticalpodautoscalers
             mode: pull
             interval: {{ .Values.resourceSpecs.interval }}
             group: autoscaling.k8s.io
+          {{- end }}
           {{- end }}
 
       {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled }}
