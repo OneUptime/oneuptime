@@ -71,8 +71,11 @@ const KubernetesClusterDeployments: FunctionComponent<
         }),
       ]);
 
+      const existingKeys: Set<string> = new Set<string>();
+
       for (const resource of deploymentList) {
         const key: string = `${resource.namespace}/${resource.name}`;
+        existingKeys.add(key);
         const depObj: KubernetesObjectType | undefined =
           deploymentObjects.get(key);
         if (depObj) {
@@ -85,7 +88,6 @@ const KubernetesClusterDeployments: FunctionComponent<
           if (readyReplicas === replicas && replicas > 0) {
             resource.status = "Ready";
           } else if (readyReplicas < replicas) {
-            // Check conditions for failure
             const failedCondition: KubernetesCondition | undefined =
               deployment.status.conditions.find((c: KubernetesCondition) => {
                 return c.type === "Available" && c.status === "False";
@@ -102,6 +104,37 @@ const KubernetesClusterDeployments: FunctionComponent<
             deployment.metadata.creationTimestamp,
           );
         }
+      }
+
+      // Add deployments from k8s objects that were not found via metrics
+      for (const [key, depObj] of deploymentObjects.entries()) {
+        if (existingKeys.has(key)) {
+          continue;
+        }
+        const deployment: KubernetesDeploymentObject =
+          depObj as KubernetesDeploymentObject;
+        const readyReplicas: number = deployment.status.readyReplicas ?? 0;
+        const replicas: number = deployment.spec.replicas ?? 0;
+
+        let status: string = "Progressing";
+        if (readyReplicas === replicas && replicas > 0) {
+          status = "Ready";
+        }
+
+        deploymentList.push({
+          name: deployment.metadata.name,
+          namespace: deployment.metadata.namespace,
+          cpuUtilization: null,
+          memoryUsageBytes: null,
+          memoryLimitBytes: null,
+          status: status,
+          age: KubernetesResourceUtils.formatAge(
+            deployment.metadata.creationTimestamp,
+          ),
+          additionalAttributes: {
+            ready: `${readyReplicas}/${replicas}`,
+          },
+        });
       }
 
       setResources(deploymentList);

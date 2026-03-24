@@ -68,8 +68,12 @@ const KubernetesClusterJobs: FunctionComponent<
         }),
       ]);
 
+      // Build a set of resource keys we already have from metrics
+      const existingKeys: Set<string> = new Set<string>();
+
       for (const resource of jobList) {
         const key: string = `${resource.namespace}/${resource.name}`;
+        existingKeys.add(key);
         const jobObj: KubernetesObjectType | undefined = jobObjects.get(key);
         if (jobObj) {
           const job: KubernetesJobObject = jobObj as KubernetesJobObject;
@@ -88,6 +92,36 @@ const KubernetesClusterJobs: FunctionComponent<
             job.metadata.creationTimestamp,
           );
         }
+      }
+
+      // Add jobs from k8s objects that were not found via metrics
+      for (const [key, jobObj] of jobObjects.entries()) {
+        if (existingKeys.has(key)) {
+          continue;
+        }
+        const job: KubernetesJobObject = jobObj as KubernetesJobObject;
+
+        let status: string = "Pending";
+        if (job.status.completionTime) {
+          status = "Complete";
+        } else if (job.status.failed > 0) {
+          status = "Failed";
+        } else if (job.status.active > 0) {
+          status = "Running";
+        }
+
+        jobList.push({
+          name: job.metadata.name,
+          namespace: job.metadata.namespace,
+          cpuUtilization: null,
+          memoryUsageBytes: null,
+          memoryLimitBytes: null,
+          status: status,
+          age: KubernetesResourceUtils.formatAge(
+            job.metadata.creationTimestamp,
+          ),
+          additionalAttributes: {},
+        });
       }
 
       setResources(jobList);

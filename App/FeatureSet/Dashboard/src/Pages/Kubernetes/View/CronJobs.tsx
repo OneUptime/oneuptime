@@ -68,8 +68,12 @@ const KubernetesClusterCronJobs: FunctionComponent<
         }),
       ]);
 
+      // Build a set of resource keys we already have from metrics
+      const existingKeys: Set<string> = new Set<string>();
+
       for (const resource of cronjobList) {
         const key: string = `${resource.namespace}/${resource.name}`;
+        existingKeys.add(key);
         const cjObj: KubernetesObjectType | undefined = cronjobObjects.get(key);
         if (cjObj) {
           const cronJob: KubernetesCronJobObject =
@@ -83,6 +87,30 @@ const KubernetesClusterCronJobs: FunctionComponent<
             cronJob.metadata.creationTimestamp,
           );
         }
+      }
+
+      // Add cronjobs from k8s objects that were not found via metrics
+      for (const [key, cjObj] of cronjobObjects.entries()) {
+        if (existingKeys.has(key)) {
+          continue;
+        }
+        const cronJob: KubernetesCronJobObject =
+          cjObj as KubernetesCronJobObject;
+
+        cronjobList.push({
+          name: cronJob.metadata.name,
+          namespace: cronJob.metadata.namespace,
+          cpuUtilization: null,
+          memoryUsageBytes: null,
+          memoryLimitBytes: null,
+          status: cronJob.spec.suspend ? "Suspended" : "Active",
+          age: KubernetesResourceUtils.formatAge(
+            cronJob.metadata.creationTimestamp,
+          ),
+          additionalAttributes: {
+            schedule: cronJob.spec.schedule || "",
+          },
+        });
       }
 
       setResources(cronjobList);

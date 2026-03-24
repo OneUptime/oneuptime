@@ -68,8 +68,11 @@ const KubernetesClusterDaemonSets: FunctionComponent<
         }),
       ]);
 
+      const existingKeys: Set<string> = new Set<string>();
+
       for (const resource of daemonsetList) {
         const key: string = `${resource.namespace}/${resource.name}`;
+        existingKeys.add(key);
         const dsObj: KubernetesObjectType | undefined =
           daemonsetObjects.get(key);
         if (dsObj) {
@@ -88,6 +91,33 @@ const KubernetesClusterDaemonSets: FunctionComponent<
             ds.metadata.creationTimestamp,
           );
         }
+      }
+
+      // Add daemonsets from k8s objects that were not found via metrics
+      for (const [key, dsObj] of daemonsetObjects.entries()) {
+        if (existingKeys.has(key)) {
+          continue;
+        }
+        const ds: KubernetesDaemonSetObject =
+          dsObj as KubernetesDaemonSetObject;
+        const numberReady: number = ds.status.numberReady ?? 0;
+        const desired: number = ds.status.desiredNumberScheduled ?? 0;
+
+        daemonsetList.push({
+          name: ds.metadata.name,
+          namespace: ds.metadata.namespace,
+          cpuUtilization: null,
+          memoryUsageBytes: null,
+          memoryLimitBytes: null,
+          status:
+            numberReady === desired && desired > 0 ? "Ready" : "Progressing",
+          age: KubernetesResourceUtils.formatAge(
+            ds.metadata.creationTimestamp,
+          ),
+          additionalAttributes: {
+            ready: `${numberReady}/${desired}`,
+          },
+        });
       }
 
       setResources(daemonsetList);
