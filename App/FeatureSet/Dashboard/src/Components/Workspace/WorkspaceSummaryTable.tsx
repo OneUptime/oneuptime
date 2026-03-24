@@ -2,10 +2,17 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
 } from "react";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
@@ -13,9 +20,17 @@ import WorkspaceType, {
 import WorkspaceNotificationSummary from "Common/Models/DatabaseModels/WorkspaceNotificationSummary";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import WorkspaceNotificationSummaryItem from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 import API from "Common/Utils/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Exception from "Common/Types/Exception/Exception";
-import { ErrorFunction } from "Common/Types/FunctionTypes";
+import { ErrorFunction, PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -33,6 +48,8 @@ import Recurring from "Common/Types/Events/Recurring";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OneUptimeDate from "Common/Types/Date";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -42,6 +59,24 @@ export interface ComponentProps {
 const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [error, setError] = React.useState<string | undefined>(undefined);
+
+  // Dropdown data for filters
+  const [monitors, setMonitors] = React.useState<Array<Monitor>>([]);
+  const [labels, setLabels] = React.useState<Array<Label>>([]);
+  const [alertStates, setAlertStates] = React.useState<Array<AlertState>>([]);
+  const [alertSeverities, setAlertSeverities] = React.useState<
+    Array<AlertSeverity>
+  >([]);
+  const [incidentSeverities, setIncidentSeverities] = React.useState<
+    Array<IncidentSeverity>
+  >([]);
+  const [incidentStates, setIncidentStates] = React.useState<
+    Array<IncidentState>
+  >([]);
+
+  // Test modal state
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
   const [isTestLoading, setIsTestLoading] = React.useState<boolean>(false);
   const [testError, setTestError] = React.useState<string | undefined>(
@@ -52,6 +87,113 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   >(undefined);
   const [showTestSuccessModal, setShowTestSuccessModal] =
     React.useState<boolean>(false);
+
+  // Map summary type to notification rule event type for filters
+  const getEventType = (): NotificationRuleEventType => {
+    switch (props.summaryType) {
+      case WorkspaceNotificationSummaryType.Incident:
+        return NotificationRuleEventType.Incident;
+      case WorkspaceNotificationSummaryType.Alert:
+        return NotificationRuleEventType.Alert;
+      case WorkspaceNotificationSummaryType.IncidentEpisode:
+        return NotificationRuleEventType.IncidentEpisode;
+      case WorkspaceNotificationSummaryType.AlertEpisode:
+        return NotificationRuleEventType.AlertEpisode;
+      default:
+        return NotificationRuleEventType.Incident;
+    }
+  };
+
+  const eventType: NotificationRuleEventType = getEventType();
+
+  // Load dropdown data for filter conditions
+  const loadPage: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      setError(undefined);
+
+      const monitorsResult: ListResult<Monitor> = await ModelAPI.getList({
+        modelType: Monitor,
+        query: { projectId: ProjectUtil.getCurrentProjectId()! },
+        select: { name: true, _id: true },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        sort: { name: SortOrder.Ascending },
+      });
+      setMonitors(monitorsResult.data);
+
+      const labelsResult: ListResult<Label> = await ModelAPI.getList({
+        modelType: Label,
+        query: { projectId: ProjectUtil.getCurrentProjectId()! },
+        select: { name: true, _id: true, color: true },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        sort: { name: SortOrder.Ascending },
+      });
+      setLabels(labelsResult.data);
+
+      const alertStatesResult: ListResult<AlertState> = await ModelAPI.getList({
+        modelType: AlertState,
+        query: { projectId: ProjectUtil.getCurrentProjectId()! },
+        select: { name: true, _id: true, color: true },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        sort: { name: SortOrder.Ascending },
+      });
+      setAlertStates(alertStatesResult.data);
+
+      const alertSevResult: ListResult<AlertSeverity> = await ModelAPI.getList({
+        modelType: AlertSeverity,
+        query: { projectId: ProjectUtil.getCurrentProjectId()! },
+        select: { name: true, _id: true, color: true },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        sort: { name: SortOrder.Ascending },
+      });
+      setAlertSeverities(alertSevResult.data);
+
+      const incSevResult: ListResult<IncidentSeverity> = await ModelAPI.getList(
+        {
+          modelType: IncidentSeverity,
+          query: { projectId: ProjectUtil.getCurrentProjectId()! },
+          select: { name: true, _id: true, color: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          sort: { name: SortOrder.Ascending },
+        },
+      );
+      setIncidentSeverities(incSevResult.data);
+
+      const incStatesResult: ListResult<IncidentState> = await ModelAPI.getList(
+        {
+          modelType: IncidentState,
+          query: { projectId: ProjectUtil.getCurrentProjectId()! },
+          select: { name: true, _id: true, color: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          sort: { name: SortOrder.Ascending },
+        },
+      );
+      setIncidentStates(incStatesResult.data);
+    } catch (err) {
+      setError(API.getFriendlyErrorMessage(err as Exception));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    loadPage().catch((err: Exception) => {
+      setError(API.getFriendlyErrorMessage(err as Exception));
+    });
+  }, []);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
 
   type TestSummaryFunction = (summaryId: ObjectID) => Promise<void>;
 
@@ -171,12 +313,33 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           }
 
           // Default to all summary items if none selected
-          if (!values.summaryItems || (Array.isArray(values.summaryItems) && values.summaryItems.length === 0)) {
+          if (
+            !values.summaryItems ||
+            (Array.isArray(values.summaryItems) &&
+              values.summaryItems.length === 0)
+          ) {
             values.summaryItems = allSummaryItems;
           }
 
           if (values.isEnabled === undefined || values.isEnabled === null) {
             values.isEnabled = true;
+          }
+
+          // Clean up empty filters
+          if (values.filters && Array.isArray(values.filters)) {
+            values.filters = values.filters.filter(
+              (f: NotificationRuleCondition) => {
+                return (
+                  f.value &&
+                  Array.isArray(f.value) &&
+                  f.value.length > 0
+                );
+              },
+            );
+          }
+
+          if (!values.filterCondition) {
+            values.filterCondition = FilterCondition.Any;
           }
 
           return Promise.resolve(values);
@@ -200,10 +363,28 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           // If sendFirstReportAt was changed and is in the future, use it as nextSendAt.
           // Otherwise leave nextSendAt alone — the worker manages it after the first send.
           if (values.sendFirstReportAt) {
-            const firstReportDate: Date = new Date(values.sendFirstReportAt as unknown as string);
-            if (firstReportDate.getTime() > OneUptimeDate.getCurrentDate().getTime()) {
+            const firstReportDate: Date = new Date(
+              values.sendFirstReportAt as unknown as string,
+            );
+            if (
+              firstReportDate.getTime() >
+              OneUptimeDate.getCurrentDate().getTime()
+            ) {
               values.nextSendAt = firstReportDate;
             }
+          }
+
+          // Clean up empty filters
+          if (values.filters && Array.isArray(values.filters)) {
+            values.filters = values.filters.filter(
+              (f: NotificationRuleCondition) => {
+                return (
+                  f.value &&
+                  Array.isArray(f.value) &&
+                  f.value.length > 0
+                );
+              },
+            );
           }
 
           return Promise.resolve(values);
@@ -325,6 +506,64 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               },
             ),
           },
+          {
+            field: {
+              filterCondition: true,
+            },
+            title: "Filter Condition",
+            description: `Choose whether ${typeLabel.toLowerCase()}s must match ALL filters or ANY filter. If no filters are added, the summary will include all ${typeLabel.toLowerCase()}s.`,
+            fieldType: FormFieldSchemaType.RadioButton,
+            required: false,
+            stepId: "filters",
+            radioButtonOptions: [
+              {
+                title: "Any",
+                value: FilterCondition.Any,
+              },
+              {
+                title: "All",
+                value: FilterCondition.All,
+              },
+            ],
+          },
+          {
+            field: {
+              filters: true,
+            },
+            title: "Filter Conditions",
+            description: `Only include ${typeLabel.toLowerCase()}s that match these conditions. Leave empty to include all.`,
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            stepId: "filters",
+            getCustomElement: (
+              value: FormValues<WorkspaceNotificationSummary>,
+              elementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <NotificationRuleConditions
+                  eventType={eventType}
+                  monitors={monitors}
+                  labels={labels}
+                  alertStates={alertStates}
+                  alertSeverities={alertSeverities}
+                  incidentSeverities={incidentSeverities}
+                  incidentStates={incidentStates}
+                  scheduledMaintenanceStates={[]}
+                  monitorStatus={[]}
+                  onChange={(
+                    conditions: Array<NotificationRuleCondition>,
+                  ) => {
+                    elementProps.onChange(conditions);
+                  }}
+                  value={
+                    (value.filters as
+                      | Array<NotificationRuleCondition>
+                      | undefined) || []
+                  }
+                />
+              );
+            },
+          },
         ]}
         formSteps={[
           {
@@ -338,6 +577,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           {
             title: "Content",
             id: "content",
+          },
+          {
+            title: "Filters",
+            id: "filters",
           },
         ]}
         showRefreshButton={true}
@@ -452,9 +695,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
 
       {showTestSuccessModal ? (
         <ConfirmModal
-          title={
-            testError ? `Test Failed` : `Summary Sent`
-          }
+          title={testError ? `Test Failed` : `Summary Sent`}
           error={testError}
           description={`The test summary was sent successfully. Check your ${getWorkspaceTypeDisplayName(props.workspaceType)} channel to see how it looks.`}
           submitButtonType={ButtonStyleType.NORMAL}

@@ -16,6 +16,7 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
+import Label from "../../Models/DatabaseModels/Label";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
 import WorkspaceMessagePayload, {
@@ -29,6 +30,19 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
+import NotificationRuleCondition, {
+  NotificationRuleConditionCheckOn,
+} from "../../Types/Workspace/NotificationRules/NotificationRuleCondition";
+import FilterCondition from "../../Types/Filter/FilterCondition";
+import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
+import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
+
+// NOTE ON FORMATTING:
+// WorkspacePayloadMarkdown text goes through SlackifyMarkdown which converts
+// standard markdown to Slack mrkdwn. So we must use:
+//   **bold**  (NOT *bold*)
+//   _italic_  (same in both)
+//   [text](url)  (NOT <url|text>)
 
 interface TimelineData {
   ackBy?: string;
@@ -139,6 +153,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     return { _type: "WorkspacePayloadMarkdown", text };
   }
 
+  private static bold(text: string): string {
+    return `**${text}**`;
+  }
+
+  private static link(url: string, text: string): string {
+    return `[${text}](${url})`;
+  }
+
   private static formatDuration(totalMinutes: number): string {
     if (totalMinutes < 1) {
       return "< 1m";
@@ -171,6 +193,143 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     return items.includes(item);
   }
 
+  // Check if an item matches the summary's filter conditions
+  private static matchesFilters(data: {
+    filters: Array<NotificationRuleCondition> | undefined;
+    filterCondition: FilterCondition | undefined;
+    values: {
+      [key in NotificationRuleConditionCheckOn]:
+        | string
+        | Array<string>
+        | undefined;
+    };
+  }): boolean {
+    if (!data.filters || data.filters.length === 0) {
+      return true; // no filters = include everything
+    }
+
+    const rule: IncidentNotificationRule = {
+      filters: data.filters,
+      filterCondition: data.filterCondition || FilterCondition.Any,
+    } as IncidentNotificationRule;
+
+    return WorkspaceNotificationRuleUtil.isRuleMatching({
+      notificationRule: rule,
+      values: data.values,
+    });
+  }
+
+  // Build values map for an incident
+  private static buildIncidentValues(incident: Incident): {
+    [key in NotificationRuleConditionCheckOn]:
+      | string
+      | Array<string>
+      | undefined;
+  } {
+    return {
+      [NotificationRuleConditionCheckOn.IncidentTitle]:
+        incident.title || "",
+      [NotificationRuleConditionCheckOn.IncidentDescription]:
+        incident.description || "",
+      [NotificationRuleConditionCheckOn.IncidentSeverity]:
+        incident.incidentSeverity?._id?.toString() || "",
+      [NotificationRuleConditionCheckOn.IncidentState]:
+        incident.currentIncidentState?._id?.toString() || "",
+      [NotificationRuleConditionCheckOn.IncidentLabels]:
+        incident.labels?.map((l: Label) => {
+          return l._id?.toString() || "";
+        }) || [],
+      [NotificationRuleConditionCheckOn.Monitors]:
+        incident.monitors?.map((m: Incident) => {
+          return m._id?.toString() || "";
+        }) || [],
+      // unused for incidents
+      [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
+      [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
+      [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
+      [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.AlertState]: undefined,
+      [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
+        undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+        undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
+    };
+  }
+
+  // Build values map for an alert
+  private static buildAlertValues(alert: Alert): {
+    [key in NotificationRuleConditionCheckOn]:
+      | string
+      | Array<string>
+      | undefined;
+  } {
+    return {
+      [NotificationRuleConditionCheckOn.AlertTitle]: alert.title || "",
+      [NotificationRuleConditionCheckOn.AlertDescription]:
+        alert.description || "",
+      [NotificationRuleConditionCheckOn.AlertSeverity]:
+        alert.alertSeverity?._id?.toString() || "",
+      [NotificationRuleConditionCheckOn.AlertState]:
+        alert.currentAlertState?._id?.toString() || "",
+      [NotificationRuleConditionCheckOn.AlertLabels]:
+        alert.labels?.map((l: Label) => {
+          return l._id?.toString() || "";
+        }) || [],
+      [NotificationRuleConditionCheckOn.Monitors]:
+        alert.monitors?.map((m: Alert) => {
+          return m._id?.toString() || "";
+        }) || [],
+      // unused for alerts
+      [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentState]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
+        undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+        undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
+    };
+  }
+
   // ───────────────────────── main builder ─────────────────────────
 
   @CaptureSpan()
@@ -194,19 +353,22 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       OneUptimeDate.getCurrentDate(),
     );
 
-    // ── Title header ──
-    blocks.push(Service.header(`${type} Summary`));
+    // Title
+    blocks.push(
+      Service.header(
+        `${type} Summary — ${fromDateStr} to ${toDateStr}`,
+      ),
+    );
 
-    // ── Period info ──
     blocks.push(
       Service.md(
-        `_${fromDateStr}  →  ${toDateStr}  (${days} day${days !== 1 ? "s" : ""})_`,
+        `_Reporting period: ${Service.bold(String(days))} day${days !== 1 ? "s" : ""}_`,
       ),
     );
 
     blocks.push(Service.divider());
 
-    // ── Build type-specific content ──
+    // Build type-specific content
     if (
       type === WorkspaceNotificationSummaryType.Incident ||
       type === WorkspaceNotificationSummaryType.IncidentEpisode
@@ -217,6 +379,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         type,
         fromDate,
         projectId: summary.projectId!,
+        filters: summary.filters || undefined,
+        filterCondition: summary.filterCondition || undefined,
       });
     } else {
       await this.buildAlertBlocks({
@@ -225,14 +389,16 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         type,
         fromDate,
         projectId: summary.projectId!,
+        filters: summary.filters || undefined,
+        filterCondition: summary.filterCondition || undefined,
       });
     }
 
-    // ── Footer ──
+    // Footer
     blocks.push(Service.divider());
     blocks.push(
       Service.md(
-        `_Sent by OneUptime  •  Summary: ${summary.name || "Untitled"}_`,
+        `_Sent by OneUptime  •  ${summary.name || "Untitled"}_`,
       ),
     );
 
@@ -248,6 +414,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     type: WorkspaceNotificationSummaryType;
     fromDate: Date;
     projectId: ObjectID;
+    filters?: Array<NotificationRuleCondition> | undefined;
+    filterCondition?: FilterCondition | undefined;
   }): Promise<void> {
     if (data.type === WorkspaceNotificationSummaryType.IncidentEpisode) {
       await this.buildIncidentEpisodeBlocks(data);
@@ -256,7 +424,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     const { blocks, items, fromDate, projectId } = data;
 
-    const incidents: Array<Incident> = await IncidentService.findAllBy({
+    let incidents: Array<Incident> = await IncidentService.findAllBy({
       query: {
         projectId,
         createdAt: QueryHelper.greaterThanEqualTo(fromDate),
@@ -264,14 +432,17 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       select: {
         _id: true,
         title: true,
+        description: true,
         incidentNumber: true,
         incidentNumberWithPrefix: true,
-        incidentSeverity: { name: true },
+        incidentSeverity: { name: true, _id: true },
         currentIncidentState: {
           name: true,
+          _id: true,
           isResolvedState: true,
           isAcknowledgedState: true,
         },
+        labels: { _id: true, name: true },
         monitors: { name: true, _id: true },
         createdAt: true,
         declaredAt: true,
@@ -279,9 +450,20 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       props: { isRoot: true },
     });
 
+    // Apply filters
+    if (data.filters && data.filters.length > 0) {
+      incidents = incidents.filter((inc: Incident) => {
+        return Service.matchesFilters({
+          filters: data.filters,
+          filterCondition: data.filterCondition,
+          values: Service.buildIncidentValues(inc),
+        });
+      });
+    }
+
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-    // ── Overview stats ──
+    // Overview stats
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
       const resolved: number = incidents.filter((i: Incident) => {
         return i.currentIncidentState?.isResolvedState;
@@ -290,13 +472,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
       blocks.push(
         Service.md(
-          `*Total:* ${incidents.length} incident${incidents.length !== 1 ? "s" : ""}    |    ` +
-            `*Open:* ${open}    |    *Resolved:* ${resolved}`,
+          `${Service.bold("Total:")} ${incidents.length} incident${incidents.length !== 1 ? "s" : ""}  ·  ` +
+            `${Service.bold("Open:")} ${open}  ·  ${Service.bold("Resolved:")} ${resolved}`,
         ),
       );
     }
 
-    // ── Severity breakdown ──
+    // Severity breakdown
     if (
       Service.has(items, WorkspaceNotificationSummaryItem.SeverityBreakdown)
     ) {
@@ -308,13 +490,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, count] of map) {
-          parts.push(`${sev}: *${count}*`);
+          parts.push(`${sev}: ${Service.bold(String(count))}`);
         }
-        blocks.push(Service.md(`*By Severity:*  ${parts.join("  |  ")}`));
+        blocks.push(
+          Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
+        );
       }
     }
 
-    // ── State breakdown ──
+    // State breakdown
     if (Service.has(items, WorkspaceNotificationSummaryItem.StateBreakdown)) {
       const map: Map<string, number> = new Map();
       for (const i of incidents) {
@@ -324,13 +508,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, count] of map) {
-          parts.push(`${state}: *${count}*`);
+          parts.push(`${state}: ${Service.bold(String(count))}`);
         }
-        blocks.push(Service.md(`*By State:*  ${parts.join("  |  ")}`));
+        blocks.push(
+          Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
+        );
       }
     }
 
-    // ── Timeline data for MTTA/MTTR/who ──
+    // Timeline data for MTTA/MTTR/who
     const needTimeline: boolean =
       Service.has(items, WorkspaceNotificationSummaryItem.WhoAcknowledged) ||
       Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved) ||
@@ -396,30 +582,33 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       }
     }
 
-    // ── MTTA / MTTR ──
-    if (Service.has(items, WorkspaceNotificationSummaryItem.TimeToAcknowledge)) {
+    // MTTA
+    if (
+      Service.has(items, WorkspaceNotificationSummaryItem.TimeToAcknowledge)
+    ) {
       const { avg, count } = this.computeAvg(tlMap, "ack");
       blocks.push(
         Service.md(
           count > 0
-            ? `*Mean Time to Acknowledge (MTTA):*  ${Service.formatDuration(avg)}  _(${count} acknowledged)_`
-            : `*Mean Time to Acknowledge (MTTA):*  _No incidents acknowledged in this period_`,
+            ? `${Service.bold("MTTA (Mean Time to Acknowledge):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} acknowledged)_`
+            : `${Service.bold("MTTA (Mean Time to Acknowledge):")}  _No incidents acknowledged_`,
         ),
       );
     }
 
+    // MTTR
     if (Service.has(items, WorkspaceNotificationSummaryItem.TimeToResolve)) {
       const { avg, count } = this.computeAvg(tlMap, "resolve");
       blocks.push(
         Service.md(
           count > 0
-            ? `*Mean Time to Resolve (MTTR):*  ${Service.formatDuration(avg)}  _(${count} resolved)_`
-            : `*Mean Time to Resolve (MTTR):*  _No incidents resolved in this period_`,
+            ? `${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} resolved)_`
+            : `${Service.bold("MTTR (Mean Time to Resolve):")}  _No incidents resolved_`,
         ),
       );
     }
 
-    // ── Resources affected ──
+    // Resources affected
     if (
       Service.has(items, WorkspaceNotificationSummaryItem.ResourcesAffected)
     ) {
@@ -436,61 +625,58 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (names.size > 0) {
         blocks.push(
           Service.md(
-            `*Resources Affected (${names.size}):*  ${Array.from(names).join(", ")}`,
+            `${Service.bold(`Resources Affected (${names.size}):`)}  ${Array.from(names).join(", ")}`,
           ),
         );
       }
     }
 
-    // ── Detailed list ──
+    // Detailed list
     if (Service.has(items, WorkspaceNotificationSummaryItem.ListWithLinks)) {
       blocks.push(Service.divider());
-      blocks.push(Service.md(`*Incident Details*`));
 
       if (incidents.length === 0) {
         blocks.push(
           Service.md(`_No incidents reported in this period._`),
         );
+        return;
       }
 
       for (const inc of incidents) {
         const id: string = inc._id?.toString() || "";
         const display: string =
           inc.incidentNumberWithPrefix || `#${inc.incidentNumber || ""}`;
-        const link: string = URL.fromString(dashboardUrl.toString())
+        const linkUrl: string = URL.fromString(dashboardUrl.toString())
           .addRoute(`/${projectId.toString()}/incidents/${id}`)
           .toString();
         const td: TimelineData | undefined = tlMap.get(id);
 
-        // Line 1: title with link
-        let text: string = `*<${link}|${display} — ${inc.title || "Untitled"}>*\n`;
+        // Title line with link
+        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${inc.title || "Untitled"}`))}`;
 
-        // Line 2: meta info
+        // Meta line
         const meta: Array<string> = [];
         if (inc.incidentSeverity?.name) {
-          meta.push(`Severity: *${inc.incidentSeverity.name}*`);
+          meta.push(`Severity: ${Service.bold(inc.incidentSeverity.name)}`);
         }
         if (inc.currentIncidentState?.name) {
-          meta.push(`State: *${inc.currentIncidentState.name}*`);
+          meta.push(`State: ${Service.bold(inc.currentIncidentState.name)}`);
         }
         if (inc.declaredAt) {
           meta.push(`Declared: ${Service.formatDate(inc.declaredAt)}`);
         }
         if (meta.length > 0) {
-          text += meta.join("  |  ");
+          text += `\n${meta.join("  ·  ")}`;
         }
 
-        // Line 3: ack & resolve
+        // Ack & resolve line
         const ackResolve: Array<string> = [];
         if (
-          Service.has(
-            items,
-            WorkspaceNotificationSummaryItem.WhoAcknowledged,
-          )
+          Service.has(items, WorkspaceNotificationSummaryItem.WhoAcknowledged)
         ) {
           if (td?.ackBy && td?.ackAt) {
             ackResolve.push(
-              `Acknowledged by *${td.ackBy}* (${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))})`,
+              `Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))}`,
             );
           } else {
             ackResolve.push(`_Not yet acknowledged_`);
@@ -501,14 +687,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         ) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
-              `Resolved by *${td.resolvedBy}* (${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))})`,
+              `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
             );
           } else if (!inc.currentIncidentState?.isResolvedState) {
             ackResolve.push(`_Not yet resolved_`);
           }
         }
         if (ackResolve.length > 0) {
-          text += `\n${ackResolve.join("  |  ")}`;
+          text += `\n${ackResolve.join("  ·  ")}`;
         }
 
         blocks.push(Service.md(text));
@@ -524,6 +710,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     items: Array<WorkspaceNotificationSummaryItem>;
     fromDate: Date;
     projectId: ObjectID;
+    filters?: Array<NotificationRuleCondition> | undefined;
+    filterCondition?: FilterCondition | undefined;
   }): Promise<void> {
     const { blocks, items, fromDate, projectId } = data;
 
@@ -536,8 +724,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         select: {
           _id: true,
           title: true,
-          incidentSeverity: { name: true },
-          incidentState: { name: true, isResolvedState: true },
+          description: true,
+          incidentSeverity: { name: true, _id: true },
+          incidentState: { name: true, _id: true, isResolvedState: true },
           createdAt: true,
           resolvedAt: true,
         },
@@ -552,8 +741,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       }).length;
       blocks.push(
         Service.md(
-          `*Total:* ${episodes.length} episode${episodes.length !== 1 ? "s" : ""}    |    ` +
-            `*Open:* ${episodes.length - resolved}    |    *Resolved:* ${resolved}`,
+          `${Service.bold("Total:")} ${episodes.length} episode${episodes.length !== 1 ? "s" : ""}  ·  ` +
+            `${Service.bold("Open:")} ${episodes.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
         ),
       );
     }
@@ -569,9 +758,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: *${c}*`);
+          parts.push(`${sev}: ${Service.bold(String(c))}`);
         }
-        blocks.push(Service.md(`*By Severity:*  ${parts.join("  |  ")}`));
+        blocks.push(
+          Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
+        );
       }
     }
 
@@ -584,9 +775,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: *${c}*`);
+          parts.push(`${state}: ${Service.bold(String(c))}`);
         }
-        blocks.push(Service.md(`*By State:*  ${parts.join("  |  ")}`));
+        blocks.push(
+          Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
+        );
       }
     }
 
@@ -605,45 +798,47 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `*Mean Time to Resolve (MTTR):*  ${Service.formatDuration(Math.round(total / count))}  _(${count} resolved)_`
-            : `*Mean Time to Resolve (MTTR):*  _No episodes resolved in this period_`,
+            ? `${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(Math.round(total / count)))}  _(${count} resolved)_`
+            : `${Service.bold("MTTR (Mean Time to Resolve):")}  _No episodes resolved_`,
         ),
       );
     }
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.ListWithLinks)) {
       blocks.push(Service.divider());
-      blocks.push(Service.md(`*Episode Details*`));
 
       if (episodes.length === 0) {
         blocks.push(
           Service.md(`_No incident episodes in this period._`),
         );
+        return;
       }
 
       for (const ep of episodes) {
         const id: string = ep._id?.toString() || "";
-        const link: string = URL.fromString(dashboardUrl.toString())
+        const linkUrl: string = URL.fromString(dashboardUrl.toString())
           .addRoute(`/${projectId.toString()}/incidents/episodes/${id}`)
           .toString();
 
-        let text: string = `*<${link}|${ep.title || "Untitled Episode"}>*\n`;
+        let text: string = `${Service.bold(Service.link(linkUrl, ep.title || "Untitled Episode"))}`;
         const meta: Array<string> = [];
         if (ep.incidentSeverity?.name) {
-          meta.push(`Severity: *${ep.incidentSeverity.name}*`);
+          meta.push(`Severity: ${Service.bold(ep.incidentSeverity.name)}`);
         }
         if (ep.incidentState?.name) {
-          meta.push(`State: *${ep.incidentState.name}*`);
+          meta.push(`State: ${Service.bold(ep.incidentState.name)}`);
         }
         if (ep.createdAt) {
           meta.push(`Created: ${Service.formatDate(ep.createdAt)}`);
         }
-        if (ep.resolvedAt) {
+        if (ep.resolvedAt && ep.createdAt) {
           meta.push(
-            `Resolved in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(ep.createdAt!, ep.resolvedAt))}`,
+            `Resolved in ${Service.bold(Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(ep.createdAt, ep.resolvedAt)))}`,
           );
         }
-        text += meta.join("  |  ");
+        if (meta.length > 0) {
+          text += `\n${meta.join("  ·  ")}`;
+        }
         blocks.push(Service.md(text));
       }
     }
@@ -658,6 +853,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     type: WorkspaceNotificationSummaryType;
     fromDate: Date;
     projectId: ObjectID;
+    filters?: Array<NotificationRuleCondition> | undefined;
+    filterCondition?: FilterCondition | undefined;
   }): Promise<void> {
     if (data.type === WorkspaceNotificationSummaryType.AlertEpisode) {
       await this.buildAlertEpisodeBlocks(data);
@@ -666,7 +863,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     const { blocks, items, fromDate, projectId } = data;
 
-    const alerts: Array<Alert> = await AlertService.findAllBy({
+    let alerts: Array<Alert> = await AlertService.findAllBy({
       query: {
         projectId,
         createdAt: QueryHelper.greaterThanEqualTo(fromDate),
@@ -674,19 +871,33 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       select: {
         _id: true,
         title: true,
+        description: true,
         alertNumber: true,
         alertNumberWithPrefix: true,
-        alertSeverity: { name: true },
+        alertSeverity: { name: true, _id: true },
         currentAlertState: {
           name: true,
+          _id: true,
           isResolvedState: true,
           isAcknowledgedState: true,
         },
+        labels: { _id: true, name: true },
         monitors: { name: true, _id: true },
         createdAt: true,
       },
       props: { isRoot: true },
     });
+
+    // Apply filters
+    if (data.filters && data.filters.length > 0) {
+      alerts = alerts.filter((alert: Alert) => {
+        return Service.matchesFilters({
+          filters: data.filters,
+          filterCondition: data.filterCondition,
+          values: Service.buildAlertValues(alert),
+        });
+      });
+    }
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
@@ -696,8 +907,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       }).length;
       blocks.push(
         Service.md(
-          `*Total:* ${alerts.length} alert${alerts.length !== 1 ? "s" : ""}    |    ` +
-            `*Open:* ${alerts.length - resolved}    |    *Resolved:* ${resolved}`,
+          `${Service.bold("Total:")} ${alerts.length} alert${alerts.length !== 1 ? "s" : ""}  ·  ` +
+            `${Service.bold("Open:")} ${alerts.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
         ),
       );
     }
@@ -713,9 +924,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: *${c}*`);
+          parts.push(`${sev}: ${Service.bold(String(c))}`);
         }
-        blocks.push(Service.md(`*By Severity:*  ${parts.join("  |  ")}`));
+        blocks.push(
+          Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
+        );
       }
     }
 
@@ -728,13 +941,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: *${c}*`);
+          parts.push(`${state}: ${Service.bold(String(c))}`);
         }
-        blocks.push(Service.md(`*By State:*  ${parts.join("  |  ")}`));
+        blocks.push(
+          Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
+        );
       }
     }
 
-    // ── Timeline data ──
+    // Timeline data
     const needTimeline: boolean =
       Service.has(items, WorkspaceNotificationSummaryItem.WhoAcknowledged) ||
       Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved) ||
@@ -797,13 +1012,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       }
     }
 
-    if (Service.has(items, WorkspaceNotificationSummaryItem.TimeToAcknowledge)) {
+    if (
+      Service.has(items, WorkspaceNotificationSummaryItem.TimeToAcknowledge)
+    ) {
       const { avg, count } = this.computeAvg(tlMap, "ack");
       blocks.push(
         Service.md(
           count > 0
-            ? `*Mean Time to Acknowledge (MTTA):*  ${Service.formatDuration(avg)}  _(${count} acknowledged)_`
-            : `*Mean Time to Acknowledge (MTTA):*  _No alerts acknowledged in this period_`,
+            ? `${Service.bold("MTTA (Mean Time to Acknowledge):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} acknowledged)_`
+            : `${Service.bold("MTTA (Mean Time to Acknowledge):")}  _No alerts acknowledged_`,
         ),
       );
     }
@@ -813,8 +1030,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `*Mean Time to Resolve (MTTR):*  ${Service.formatDuration(avg)}  _(${count} resolved)_`
-            : `*Mean Time to Resolve (MTTR):*  _No alerts resolved in this period_`,
+            ? `${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} resolved)_`
+            : `${Service.bold("MTTR (Mean Time to Resolve):")}  _No alerts resolved_`,
         ),
       );
     }
@@ -835,7 +1052,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (names.size > 0) {
         blocks.push(
           Service.md(
-            `*Resources Affected (${names.size}):*  ${Array.from(names).join(", ")}`,
+            `${Service.bold(`Resources Affected (${names.size}):`)}  ${Array.from(names).join(", ")}`,
           ),
         );
       }
@@ -843,35 +1060,35 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.ListWithLinks)) {
       blocks.push(Service.divider());
-      blocks.push(Service.md(`*Alert Details*`));
 
       if (alerts.length === 0) {
         blocks.push(Service.md(`_No alerts reported in this period._`));
+        return;
       }
 
       for (const a of alerts) {
         const id: string = a._id?.toString() || "";
         const display: string =
           a.alertNumberWithPrefix || `#${a.alertNumber || ""}`;
-        const link: string = URL.fromString(dashboardUrl.toString())
+        const linkUrl: string = URL.fromString(dashboardUrl.toString())
           .addRoute(`/${projectId.toString()}/alerts/${id}`)
           .toString();
         const td: TimelineData | undefined = tlMap.get(id);
 
-        let text: string = `*<${link}|${display} — ${a.title || "Untitled"}>*\n`;
+        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${a.title || "Untitled"}`))}`;
 
         const meta: Array<string> = [];
         if (a.alertSeverity?.name) {
-          meta.push(`Severity: *${a.alertSeverity.name}*`);
+          meta.push(`Severity: ${Service.bold(a.alertSeverity.name)}`);
         }
         if (a.currentAlertState?.name) {
-          meta.push(`State: *${a.currentAlertState.name}*`);
+          meta.push(`State: ${Service.bold(a.currentAlertState.name)}`);
         }
         if (a.createdAt) {
           meta.push(`Created: ${Service.formatDate(a.createdAt)}`);
         }
         if (meta.length > 0) {
-          text += meta.join("  |  ");
+          text += `\n${meta.join("  ·  ")}`;
         }
 
         const ackResolve: Array<string> = [];
@@ -880,23 +1097,25 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         ) {
           if (td?.ackBy && td?.ackAt) {
             ackResolve.push(
-              `Acknowledged by *${td.ackBy}* (${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))})`,
+              `Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))}`,
             );
           } else {
             ackResolve.push(`_Not yet acknowledged_`);
           }
         }
-        if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
+        if (
+          Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)
+        ) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
-              `Resolved by *${td.resolvedBy}* (${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))})`,
+              `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
             );
           } else if (!a.currentAlertState?.isResolvedState) {
             ackResolve.push(`_Not yet resolved_`);
           }
         }
         if (ackResolve.length > 0) {
-          text += `\n${ackResolve.join("  |  ")}`;
+          text += `\n${ackResolve.join("  ·  ")}`;
         }
 
         blocks.push(Service.md(text));
@@ -912,6 +1131,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     items: Array<WorkspaceNotificationSummaryItem>;
     fromDate: Date;
     projectId: ObjectID;
+    filters?: Array<NotificationRuleCondition> | undefined;
+    filterCondition?: FilterCondition | undefined;
   }): Promise<void> {
     const { blocks, items, fromDate, projectId } = data;
 
@@ -924,8 +1145,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         select: {
           _id: true,
           title: true,
-          alertSeverity: { name: true },
-          alertState: { name: true, isResolvedState: true },
+          description: true,
+          alertSeverity: { name: true, _id: true },
+          alertState: { name: true, _id: true, isResolvedState: true },
           createdAt: true,
           resolvedAt: true,
         },
@@ -940,8 +1162,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       }).length;
       blocks.push(
         Service.md(
-          `*Total:* ${episodes.length} episode${episodes.length !== 1 ? "s" : ""}    |    ` +
-            `*Open:* ${episodes.length - resolved}    |    *Resolved:* ${resolved}`,
+          `${Service.bold("Total:")} ${episodes.length} episode${episodes.length !== 1 ? "s" : ""}  ·  ` +
+            `${Service.bold("Open:")} ${episodes.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
         ),
       );
     }
@@ -957,9 +1179,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: *${c}*`);
+          parts.push(`${sev}: ${Service.bold(String(c))}`);
         }
-        blocks.push(Service.md(`*By Severity:*  ${parts.join("  |  ")}`));
+        blocks.push(
+          Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
+        );
       }
     }
 
@@ -972,9 +1196,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: *${c}*`);
+          parts.push(`${state}: ${Service.bold(String(c))}`);
         }
-        blocks.push(Service.md(`*By State:*  ${parts.join("  |  ")}`));
+        blocks.push(
+          Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
+        );
       }
     }
 
@@ -993,45 +1219,47 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `*Mean Time to Resolve (MTTR):*  ${Service.formatDuration(Math.round(total / count))}  _(${count} resolved)_`
-            : `*Mean Time to Resolve (MTTR):*  _No episodes resolved in this period_`,
+            ? `${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(Math.round(total / count)))}  _(${count} resolved)_`
+            : `${Service.bold("MTTR (Mean Time to Resolve):")}  _No episodes resolved_`,
         ),
       );
     }
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.ListWithLinks)) {
       blocks.push(Service.divider());
-      blocks.push(Service.md(`*Episode Details*`));
 
       if (episodes.length === 0) {
         blocks.push(
           Service.md(`_No alert episodes in this period._`),
         );
+        return;
       }
 
       for (const ep of episodes) {
         const id: string = ep._id?.toString() || "";
-        const link: string = URL.fromString(dashboardUrl.toString())
+        const linkUrl: string = URL.fromString(dashboardUrl.toString())
           .addRoute(`/${projectId.toString()}/alerts/episodes/${id}`)
           .toString();
 
-        let text: string = `*<${link}|${ep.title || "Untitled Episode"}>*\n`;
+        let text: string = `${Service.bold(Service.link(linkUrl, ep.title || "Untitled Episode"))}`;
         const meta: Array<string> = [];
         if (ep.alertSeverity?.name) {
-          meta.push(`Severity: *${ep.alertSeverity.name}*`);
+          meta.push(`Severity: ${Service.bold(ep.alertSeverity.name)}`);
         }
         if (ep.alertState?.name) {
-          meta.push(`State: *${ep.alertState.name}*`);
+          meta.push(`State: ${Service.bold(ep.alertState.name)}`);
         }
         if (ep.createdAt) {
           meta.push(`Created: ${Service.formatDate(ep.createdAt)}`);
         }
-        if (ep.resolvedAt) {
+        if (ep.resolvedAt && ep.createdAt) {
           meta.push(
-            `Resolved in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(ep.createdAt!, ep.resolvedAt))}`,
+            `Resolved in ${Service.bold(Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(ep.createdAt, ep.resolvedAt)))}`,
           );
         }
-        text += meta.join("  |  ");
+        if (meta.length > 0) {
+          text += `\n${meta.join("  ·  ")}`;
+        }
         blocks.push(Service.md(text));
       }
     }
