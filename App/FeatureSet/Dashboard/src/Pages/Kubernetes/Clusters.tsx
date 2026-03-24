@@ -152,13 +152,6 @@ const KubernetesClusters: FunctionComponent<
             title: "Pods",
             type: FieldType.Number,
           },
-          {
-            field: {
-              provider: true,
-            },
-            title: "Provider",
-            type: FieldType.Text,
-          },
         ]}
         onViewPage={(item: KubernetesCluster): Promise<Route> => {
           return Promise.resolve(

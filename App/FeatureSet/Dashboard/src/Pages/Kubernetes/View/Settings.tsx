@@ -47,13 +47,6 @@ const KubernetesClusterSettings: FunctionComponent<
               title: "Cluster Identifier",
               fieldType: FieldType.Text,
             },
-            {
-              field: {
-                provider: true,
-              },
-              title: "Provider",
-              fieldType: FieldType.Text,
-            },
           ],
         }}
       />
