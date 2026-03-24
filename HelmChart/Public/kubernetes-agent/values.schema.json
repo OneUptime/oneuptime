@@ -203,6 +203,38 @@
       "type": "string",
       "description": "Collection interval for metrics (e.g., 30s, 1m)"
     },
+    "serviceMesh": {
+      "type": "object",
+      "description": "Service mesh observability (Istio / Linkerd sidecar metrics)",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "provider": {
+          "type": "string",
+          "enum": ["istio", "linkerd"]
+        },
+        "istio": {
+          "type": "object",
+          "properties": {
+            "scrapeInterval": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "linkerd": {
+          "type": "object",
+          "properties": {
+            "scrapeInterval": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "serviceAccount": {
       "type": "object",
       "description": "Service account configuration",
