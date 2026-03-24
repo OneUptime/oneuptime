@@ -47,35 +47,26 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Key
-            </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Value
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-100">
-          {data.map((item: Item, index: number) => {
-            return (
-              <tr key={index} className="hover:bg-gray-50/50">
-                <td className="px-4 py-2 text-sm font-mono font-medium text-indigo-700 whitespace-nowrap">
-                  {item.key}
-                </td>
-                <td className="px-4 py-2 text-sm font-mono text-gray-600 break-all">
-                  {item.value || (
-                    <span className="text-gray-400 italic">empty</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="px-4 py-3">
+      <div className="flex flex-wrap gap-2">
+        {data.map((item: Item, index: number) => {
+          return (
+            <div
+              key={index}
+              className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 text-sm overflow-hidden"
+            >
+              <span className="px-2.5 py-1.5 font-mono font-medium text-gray-700 bg-gray-100 border-r border-gray-200">
+                {item.key}
+              </span>
+              <span className="px-2.5 py-1.5 font-mono text-gray-600">
+                {item.value || (
+                  <span className="text-gray-400 italic">empty</span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
