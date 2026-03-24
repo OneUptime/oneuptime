@@ -71,7 +71,6 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           channelNames: true,
           teamName: true,
           summaryItems: true,
-          sendFirstReportAt: true,
           filters: true,
           filterCondition: true,
         },
