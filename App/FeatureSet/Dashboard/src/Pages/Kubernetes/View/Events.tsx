@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Card from "Common/UI/Components/Card/Card";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -11,10 +10,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -25,26 +24,45 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { getKvValue, getKvStringValue } from "../Utils/KubernetesObjectParser";
-import { KubernetesEvent } from "../Utils/KubernetesObjectFetcher";
-import FilterButtons, {
-  type FilterButtonOption,
-} from "Common/UI/Components/FilterButtons/FilterButtons";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import Table from "Common/UI/Components/Table/Table";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Column from "Common/UI/Components/Table/Types/Column";
+import Filter from "Common/UI/Components/Filters/Types/Filter";
+import FilterData from "Common/UI/Components/Filters/Types/FilterData";
+import Search from "Common/Types/BaseDatabase/Search";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+
+interface KubernetesEventRow {
+  timestamp: string;
+  type: string;
+  reason: string;
+  objectKind: string;
+  objectName: string;
+  object: string;
+  namespace: string;
+  message: string;
+}
+
+const PAGE_SIZE: number = 25;
 
 const KubernetesClusterEvents: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
-  const [events, setEvents] = useState<Array<KubernetesEvent>>([]);
+  const [events, setEvents] = useState<Array<KubernetesEventRow>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [namespaceFilter, setNamespaceFilter] = useState<string>("all");
-  const [searchText, setSearchText] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
+  const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+  const [filterData, setFilterData] = useState<FilterData<KubernetesEventRow>>(
+    {},
+  );
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -56,9 +74,9 @@ const KubernetesClusterEvents: FunctionComponent<
           clusterIdentifier: true,
         },
       });
-      setCluster(item);
 
       if (!item?.clusterIdentifier) {
+        setError("Cluster not found.");
         setIsLoading(false);
         return;
       }
@@ -93,12 +111,11 @@ const KubernetesClusterEvents: FunctionComponent<
       const listResult: ListResult<Log> =
         await AnalyticsModelAPI.getList<Log>(eventsQueryOptions);
 
-      const k8sEvents: Array<KubernetesEvent> = [];
+      const k8sEvents: Array<KubernetesEventRow> = [];
 
       for (const log of listResult.data) {
         const attrs: JSONObject = log.attributes || {};
 
-        // Filter to only k8s events from this cluster
         if (
           attrs["resource.k8s.cluster.name"] !== item.clusterIdentifier &&
           attrs["k8s.cluster.name"] !== item.clusterIdentifier
@@ -106,7 +123,6 @@ const KubernetesClusterEvents: FunctionComponent<
           continue;
         }
 
-        // Parse the body which is OTLP kvlistValue JSON
         let bodyObj: JSONObject | null = null;
         try {
           if (typeof log.body === "string") {
@@ -120,14 +136,12 @@ const KubernetesClusterEvents: FunctionComponent<
           continue;
         }
 
-        const topKvList: JSONObject | undefined = bodyObj["kvlistValue"] as
-          | JSONObject
-          | undefined;
+        const topKvList: JSONObject | undefined = (bodyObj["kvlistValue"] ||
+          bodyObj["kvlist_value"]) as JSONObject | undefined;
         if (!topKvList) {
           continue;
         }
 
-        // Get the "object" which is the actual k8s Event
         const objectVal: string | JSONObject | null = getKvValue(
           topKvList,
           "object",
@@ -141,7 +155,6 @@ const KubernetesClusterEvents: FunctionComponent<
         const reason: string = getKvStringValue(objectKvList, "reason") || "";
         const note: string = getKvStringValue(objectKvList, "note") || "";
 
-        // Get regarding object details using shared parser
         const regardingKv: string | JSONObject | null = getKvValue(
           objectKvList,
           "regarding",
@@ -179,6 +192,7 @@ const KubernetesClusterEvents: FunctionComponent<
             reason: reason || "Unknown",
             objectKind: objectKind || "Unknown",
             objectName: objectName || "Unknown",
+            object: `${objectKind || "Unknown"}/${objectName || "Unknown"}`,
             namespace: namespace || "default",
             message: note || "",
           });
@@ -198,6 +212,145 @@ const KubernetesClusterEvents: FunctionComponent<
     });
   }, []);
 
+  // Build filters from data
+  const filters: Array<Filter<KubernetesEventRow>> = useMemo(() => {
+    const types: Array<string> = Array.from(
+      new Set(
+        events.map((e: KubernetesEventRow) => {
+          return e.type;
+        }),
+      ),
+    ).sort();
+
+    const namespaces: Array<string> = Array.from(
+      new Set(
+        events
+          .map((e: KubernetesEventRow) => {
+            return e.namespace;
+          })
+          .filter(Boolean),
+      ),
+    ).sort();
+
+    const reasons: Array<string> = Array.from(
+      new Set(
+        events
+          .map((e: KubernetesEventRow) => {
+            return e.reason;
+          })
+          .filter(Boolean),
+      ),
+    ).sort();
+
+    const objectKinds: Array<string> = Array.from(
+      new Set(
+        events
+          .map((e: KubernetesEventRow) => {
+            return e.objectKind;
+          })
+          .filter(Boolean),
+      ),
+    ).sort();
+
+    return [
+      {
+        title: "Type",
+        key: "type",
+        type: FieldType.Dropdown,
+        filterDropdownOptions: types.map((t: string) => {
+          return { label: t, value: t };
+        }),
+      },
+      {
+        title: "Reason",
+        key: "reason",
+        type: FieldType.Dropdown,
+        filterDropdownOptions: reasons.map((r: string) => {
+          return { label: r, value: r };
+        }),
+      },
+      {
+        title: "Object Kind",
+        key: "objectKind",
+        type: FieldType.Dropdown,
+        filterDropdownOptions: objectKinds.map((k: string) => {
+          return { label: k, value: k };
+        }),
+      },
+      {
+        title: "Namespace",
+        key: "namespace",
+        type: FieldType.Dropdown,
+        filterDropdownOptions: namespaces.map((ns: string) => {
+          return { label: ns, value: ns };
+        }),
+      },
+      {
+        title: "Message",
+        key: "message",
+        type: FieldType.Text,
+      },
+    ];
+  }, [events]);
+
+  // Filter and sort data client-side
+  const processedData: Array<KubernetesEventRow> = useMemo(() => {
+    let data: Array<KubernetesEventRow> = [...events];
+
+    for (const key of Object.keys(filterData) as Array<
+      keyof KubernetesEventRow
+    >) {
+      const value: unknown = filterData[key];
+      if (!value) {
+        continue;
+      }
+
+      if (value instanceof Search) {
+        const searchText: string = value.toString().toLowerCase();
+        data = data.filter((r: KubernetesEventRow) => {
+          const fieldValue: string = (r[key] as string) || "";
+          return fieldValue.toLowerCase().includes(searchText);
+        });
+      } else if (value instanceof Includes) {
+        const includeValues: Array<string> = value.values as Array<string>;
+        data = data.filter((r: KubernetesEventRow) => {
+          const fieldValue: string = (r[key] as string) || "";
+          return includeValues.includes(fieldValue);
+        });
+      } else if (typeof value === "string") {
+        data = data.filter((r: KubernetesEventRow) => {
+          const fieldValue: string = (r[key] as string) || "";
+          return fieldValue === value;
+        });
+      } else if (Array.isArray(value)) {
+        const includeValues: Array<string> = value.map((v: unknown) => {
+          return String(v);
+        });
+        data = data.filter((r: KubernetesEventRow) => {
+          const fieldValue: string = (r[key] as string) || "";
+          return includeValues.includes(fieldValue);
+        });
+      }
+    }
+
+    if (sortBy) {
+      data.sort((a: KubernetesEventRow, b: KubernetesEventRow) => {
+        const aVal: string = (a[sortBy as keyof KubernetesEventRow] as string) || "";
+        const bVal: string = (b[sortBy as keyof KubernetesEventRow] as string) || "";
+        const cmp: number = aVal.localeCompare(bVal);
+        return sortOrder === SortOrder.Descending ? -cmp : cmp;
+      });
+    }
+
+    return data;
+  }, [events, filterData, sortBy, sortOrder]);
+
+  // Paginate
+  const paginatedData: Array<KubernetesEventRow> = useMemo(() => {
+    const start: number = (currentPage - 1) * PAGE_SIZE;
+    return processedData.slice(start, start + PAGE_SIZE);
+  }, [processedData, currentPage]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -206,202 +359,145 @@ const KubernetesClusterEvents: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!cluster) {
-    return <ErrorMessage message="Cluster not found." />;
-  }
-
-  // Compute filter options
-  const namespaces: Array<string> = Array.from(
-    new Set(
-      events.map((e: KubernetesEvent) => {
-        return e.namespace;
-      }),
-    ),
-  ).sort();
-
-  const warningCount: number = events.filter((e: KubernetesEvent) => {
-    return e.type.toLowerCase() === "warning";
-  }).length;
-  const normalCount: number = events.length - warningCount;
-
-  // Apply filters
-  const filteredEvents: Array<KubernetesEvent> = events.filter(
-    (e: KubernetesEvent) => {
-      if (typeFilter === "warning" && e.type.toLowerCase() !== "warning") {
-        return false;
-      }
-      if (typeFilter === "normal" && e.type.toLowerCase() === "warning") {
-        return false;
-      }
-      if (namespaceFilter !== "all" && e.namespace !== namespaceFilter) {
-        return false;
-      }
-      if (searchText.trim()) {
-        const search: string = searchText.toLowerCase();
+  const tableColumns: Array<Column<KubernetesEventRow>> = [
+    {
+      title: "Time",
+      type: FieldType.Element,
+      key: "timestamp",
+      getElement: (event: KubernetesEventRow): ReactElement => {
         return (
-          e.message.toLowerCase().includes(search) ||
-          e.reason.toLowerCase().includes(search) ||
-          e.objectName.toLowerCase().includes(search) ||
-          e.objectKind.toLowerCase().includes(search)
+          <span className="text-sm text-gray-500 whitespace-nowrap">
+            {event.timestamp}
+          </span>
         );
-      }
-      return true;
+      },
     },
-  );
+    {
+      title: "Type",
+      type: FieldType.Element,
+      key: "type",
+      getElement: (event: KubernetesEventRow): ReactElement => {
+        const isWarning: boolean = event.type.toLowerCase() === "warning";
+        return (
+          <span
+            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+              isWarning
+                ? "bg-yellow-50 text-yellow-700"
+                : "bg-green-50 text-green-700"
+            }`}
+          >
+            {event.type}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Reason",
+      type: FieldType.Element,
+      key: "reason",
+      getElement: (event: KubernetesEventRow): ReactElement => {
+        return (
+          <span className="font-medium text-gray-900">{event.reason}</span>
+        );
+      },
+    },
+    {
+      title: "Object",
+      type: FieldType.Element,
+      key: "object",
+      disableSort: true,
+      getElement: (event: KubernetesEventRow): ReactElement => {
+        return <span className="text-gray-900">{event.object}</span>;
+      },
+    },
+    {
+      title: "Namespace",
+      type: FieldType.Element,
+      key: "namespace",
+      getElement: (event: KubernetesEventRow): ReactElement => {
+        return (
+          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700">
+            {event.namespace}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Message",
+      type: FieldType.Element,
+      key: "message",
+      disableSort: true,
+      getElement: (event: KubernetesEventRow): ReactElement => {
+        return (
+          <span className="text-sm text-gray-500">{event.message}</span>
+        );
+      },
+    },
+  ];
 
-  const filterOptions: Array<FilterButtonOption> = [
-    { label: "All Types", value: "all" },
-    { label: "Warnings", value: "warning", badge: warningCount },
-    { label: "Normal", value: "normal", badge: normalCount },
+  const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
+
+  const cardButtons: Array<CardButtonSchema> = [
+    {
+      title: "",
+      buttonStyle: ButtonStyleType.ICON,
+      className: "py-0 pr-0 pl-1 mt-1",
+      onClick: () => {
+        setShowFilterModal(true);
+      },
+      icon: IconProp.Filter,
+    },
   ];
 
   return (
-    <Fragment>
-      <Card
-        title="Kubernetes Events"
-        description="Events from the last 24 hours collected by the k8sobjects receiver."
-      >
-        {/* Event Summary Banner */}
-        <div className="flex items-center gap-4 px-4 pt-4 pb-2">
-          <div className="text-sm text-gray-600">
-            <span className="font-semibold text-gray-900">{events.length}</span>{" "}
-            total events
-          </div>
-          {warningCount > 0 && (
-            <StatusBadge
-              text={`${warningCount} Warning${warningCount !== 1 ? "s" : ""}`}
-              type={StatusBadgeType.Warning}
-            />
-          )}
-          <StatusBadge
-            text={`${normalCount} Normal`}
-            type={StatusBadgeType.Success}
-          />
-        </div>
-
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-200">
-          <FilterButtons
-            options={filterOptions}
-            selectedValue={typeFilter}
-            onSelect={setTypeFilter}
-          />
-
-          {/* Namespace Filter */}
-          <select
-            value={namespaceFilter}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-              setNamespaceFilter(e.target.value);
-            }}
-            className="px-3 py-1.5 text-xs rounded-md border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="all">All Namespaces</option>
-            {namespaces.map((ns: string) => {
-              return (
-                <option key={ns} value={ns}>
-                  {ns}
-                </option>
-              );
-            })}
-          </select>
-
-          {/* Text Search */}
-          <input
-            type="text"
-            placeholder="Search events..."
-            value={searchText}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setSearchText(e.target.value);
-            }}
-            className="px-3 py-1.5 text-xs rounded-md border border-gray-200 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-64"
-          />
-
-          {/* Results Count */}
-          <span className="text-xs text-gray-500 ml-auto">
-            Showing {filteredEvents.length} of {events.length}
-          </span>
-        </div>
-
-        {events.length === 0 ? (
-          <p className="text-gray-500 text-sm p-4">
-            No Kubernetes events found in the last 24 hours. Events will appear
-            here once the kubernetes-agent is sending data.
-          </p>
-        ) : filteredEvents.length === 0 ? (
-          <p className="text-gray-500 text-sm p-4 text-center">
-            No events match the current filters.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Time
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Reason
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Object
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Namespace
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Message
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEvents.map((event: KubernetesEvent, index: number) => {
-                  const isWarning: boolean =
-                    event.type.toLowerCase() === "warning";
-                  return (
-                    <tr
-                      key={index}
-                      className={isWarning ? "bg-amber-50/50" : ""}
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {event.timestamp}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        <StatusBadge
-                          text={event.type}
-                          type={
-                            isWarning
-                              ? StatusBadgeType.Warning
-                              : StatusBadgeType.Success
-                          }
-                        />
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {event.reason}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {event.objectKind}/{event.objectName}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        <StatusBadge
-                          text={event.namespace}
-                          type={StatusBadgeType.Info}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 max-w-md">
-                        {event.message}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-    </Fragment>
+    <Card
+      title="Kubernetes Events"
+      description="Events from the last 24 hours collected by the k8sobjects receiver."
+      buttons={cardButtons}
+    >
+      <Table<KubernetesEventRow>
+        id="kubernetes-events-table"
+        columns={tableColumns}
+        data={paginatedData}
+        singularLabel="Kubernetes Event"
+        pluralLabel="Kubernetes Events"
+        isLoading={false}
+        error=""
+        currentPageNumber={currentPage}
+        totalItemsCount={processedData.length}
+        itemsOnPage={paginatedData.length}
+        onNavigateToPage={(page: number) => {
+          setCurrentPage(page);
+        }}
+        sortBy={sortBy as keyof KubernetesEventRow | null}
+        sortOrder={sortOrder}
+        onSortChanged={(
+          newSortBy: keyof KubernetesEventRow | null,
+          newSortOrder: SortOrder,
+        ) => {
+          setSortBy(newSortBy as string | null);
+          setSortOrder(newSortOrder);
+        }}
+        filters={filters}
+        showFilterModal={showFilterModal}
+        filterData={filterData}
+        onFilterChanged={(newFilterData: FilterData<KubernetesEventRow>) => {
+          setFilterData(newFilterData);
+          setCurrentPage(1);
+        }}
+        onFilterModalOpen={() => {
+          setShowFilterModal(true);
+        }}
+        onFilterModalClose={() => {
+          setShowFilterModal(false);
+        }}
+        noItemsMessage={
+          hasActiveFilters
+            ? "No events match the current filters."
+            : "No Kubernetes events found in the last 24 hours. Events will appear here once the kubernetes-agent is sending data."
+        }
+      />
+    </Card>
   );
 };
 
