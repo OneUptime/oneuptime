@@ -718,6 +718,10 @@ export default class StatusPageAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/.well-known/acme-challenge/:token`,
       async (req: ExpressRequest, res: ExpressResponse) => {
+        logger.debug(
+          `ACME challenge validation request received for token: ${req.params["token"]} from host: ${req.headers["host"]}`,
+        );
+
         const challenge: AcmeChallenge | null =
           await AcmeChallengeService.findOneBy({
             query: {
@@ -732,6 +736,9 @@ export default class StatusPageAPI extends BaseAPI<
           });
 
         if (!challenge) {
+          logger.error(
+            `ACME challenge not found for token: ${req.params["token"]} from host: ${req.headers["host"]}`,
+          );
           return Response.sendErrorResponse(
             req,
             res,

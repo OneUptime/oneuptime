@@ -321,6 +321,7 @@ export default class GreenlockUtil {
       }
     } catch (e) {
       logger.error(`Error ordering certificate for domain: ${data.domain}`);
+      logger.error(e);
 
       if (e instanceof Exception) {
         throw e;
