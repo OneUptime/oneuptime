@@ -35,7 +35,8 @@ const Bar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isHovered, setIsHovered] = useState(false);
-  const barRef = useRef<HTMLDivElement>(null);
+  const barRef: React.RefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement>(null);
 
   // calculate bar width.
   let barWidth: number =
