@@ -108,6 +108,39 @@ function toYaml(obj: unknown, indent: number = 0): string {
   return String(obj);
 }
 
+/**
+ * Remove noisy internal Kubernetes fields that are not useful for users.
+ * - managedFields: internal API server field ownership tracking
+ * - resourceVersion: internal etcd revision
+ * - uid: internal object UUID
+ * - generation: internal object version counter
+ * - selfLink: deprecated API field
+ */
+function cleanK8sObject(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = { ...obj };
+
+  // Clean metadata sub-fields
+  if (
+    cleaned["metadata"] &&
+    typeof cleaned["metadata"] === "object" &&
+    !Array.isArray(cleaned["metadata"])
+  ) {
+    const metadata: Record<string, unknown> = {
+      ...(cleaned["metadata"] as Record<string, unknown>),
+    };
+    delete metadata["managedFields"];
+    delete metadata["uid"];
+    delete metadata["resourceVersion"];
+    delete metadata["generation"];
+    delete metadata["selfLink"];
+    cleaned["metadata"] = metadata;
+  }
+
+  return cleaned;
+}
+
 const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -129,7 +162,9 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
         });
 
         if (result && Object.keys(result).length > 0) {
-          const yaml: string = toYaml(result);
+          // Remove noisy internal Kubernetes fields before rendering
+          const cleaned: Record<string, unknown> = cleanK8sObject(result);
+          const yaml: string = toYaml(cleaned);
           setYamlContent(yaml);
         } else {
           setYamlContent("");
