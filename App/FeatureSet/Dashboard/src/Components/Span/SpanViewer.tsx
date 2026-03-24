@@ -178,6 +178,31 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     setIsLoading(false);
   };
 
+  // Compute self-time for this span (must be before early returns to preserve hook order)
+  const selfTimeInfo: SpanSelfTime | null = React.useMemo(() => {
+    if (!span || !props.allTraceSpans || props.allTraceSpans.length === 0) {
+      return null;
+    }
+
+    const spanDataList: SpanData[] = props.allTraceSpans.map(
+      (s: Span): SpanData => {
+        return {
+          spanId: s.spanId!,
+          parentSpanId: s.parentSpanId || undefined,
+          startTimeUnixNano: s.startTimeUnixNano!,
+          endTimeUnixNano: s.endTimeUnixNano!,
+          durationUnixNano: s.durationUnixNano!,
+          serviceId: s.serviceId?.toString(),
+          name: s.name,
+        };
+      },
+    );
+
+    const selfTimes: Map<string, SpanSelfTime> =
+      CriticalPathUtil.computeSelfTimes(spanDataList);
+    return selfTimes.get(span.spanId!) || null;
+  }, [span, props.allTraceSpans]);
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -541,31 +566,6 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
       />
     );
   };
-
-  // Compute self-time for this span
-  const selfTimeInfo: SpanSelfTime | null = React.useMemo(() => {
-    if (!span || !props.allTraceSpans || props.allTraceSpans.length === 0) {
-      return null;
-    }
-
-    const spanDataList: SpanData[] = props.allTraceSpans.map(
-      (s: Span): SpanData => {
-        return {
-          spanId: s.spanId!,
-          parentSpanId: s.parentSpanId || undefined,
-          startTimeUnixNano: s.startTimeUnixNano!,
-          endTimeUnixNano: s.endTimeUnixNano!,
-          durationUnixNano: s.durationUnixNano!,
-          serviceId: s.serviceId?.toString(),
-          name: s.name,
-        };
-      },
-    );
-
-    const selfTimes: Map<string, SpanSelfTime> =
-      CriticalPathUtil.computeSelfTimes(spanDataList);
-    return selfTimes.get(span.spanId!) || null;
-  }, [span, props.allTraceSpans]);
 
   const getLinksContentElement: GetReactElementFunction = (): ReactElement => {
     if (!span) {

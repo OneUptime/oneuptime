@@ -18,7 +18,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -1560,45 +1559,53 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {selectedSpans.length > 0 ? (
-          <SideOver
-            title="View Span"
-            description="View the span details."
-            onClose={() => {
-              setSelectedSpans([]);
-            }}
-            size={SideOverSize.Large}
-          >
-            <SpanViewer
-              id={"span-viewer"}
-              openTelemetrySpanId={selectedSpans[0] as string}
-              traceStartTimeInUnixNano={spans[0]!.startTimeUnixNano!}
+        {selectedSpans.length > 0 && spans.length > 0 ? (() => {
+          const selectedSpan: Span | undefined = spans.find(
+            (span: Span) => {
+              return span.spanId?.toString() === selectedSpans[0]!;
+            },
+          );
+
+          if (!selectedSpan) {
+            return <></>;
+          }
+
+          const telemetryService: Service | undefined = telemetryServices.find(
+            (service: Service) => {
+              return (
+                service._id?.toString() ===
+                selectedSpan.serviceId?.toString()
+              );
+            },
+          );
+
+          if (!telemetryService) {
+            return <></>;
+          }
+
+          return (
+            <SideOver
+              title="View Span"
+              description="View the span details."
               onClose={() => {
                 setSelectedSpans([]);
               }}
-              telemetryService={
-                telemetryServices.find((service: Service) => {
-                  const selectedSpan: Span | undefined = spans.find(
-                    (span: Span) => {
-                      return span.spanId?.toString() === selectedSpans[0]!;
-                    },
-                  );
-
-                  if (!selectedSpan) {
-                    throw new BadDataException("Selected span not found");
-                  }
-
-                  return (
-                    service._id?.toString() ===
-                    selectedSpan.serviceId?.toString()
-                  );
-                })!
-              }
-              divisibilityFactor={divisibilityFactor}
-              allTraceSpans={spans}
-            />
-          </SideOver>
-        ) : (
+              size={SideOverSize.Large}
+            >
+              <SpanViewer
+                id={"span-viewer"}
+                openTelemetrySpanId={selectedSpans[0] as string}
+                traceStartTimeInUnixNano={spans[0]!.startTimeUnixNano!}
+                onClose={() => {
+                  setSelectedSpans([]);
+                }}
+                telemetryService={telemetryService}
+                divisibilityFactor={divisibilityFactor}
+                allTraceSpans={spans}
+              />
+            </SideOver>
+          );
+        })() : (
           <></>
         )}
       </div>
