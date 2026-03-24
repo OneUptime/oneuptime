@@ -93,6 +93,14 @@ const KubernetesClusterOverview: FunctionComponent<
   const [nodeCount, setNodeCount] = useState<number>(0);
   const [podCount, setPodCount] = useState<number>(0);
   const [namespaceCount, setNamespaceCount] = useState<number>(0);
+  const [deploymentCount, setDeploymentCount] = useState<number>(0);
+  const [statefulSetCount, setStatefulSetCount] = useState<number>(0);
+  const [daemonSetCount, setDaemonSetCount] = useState<number>(0);
+  const [jobCount, setJobCount] = useState<number>(0);
+  const [cronJobCount, setCronJobCount] = useState<number>(0);
+  const [containerCount, setContainerCount] = useState<number>(0);
+  const [pvcCount, setPvcCount] = useState<number>(0);
+  const [pvCount, setPvCount] = useState<number>(0);
   const [podHealthSummary, setPodHealthSummary] = useState<{
     running: number;
     pending: number;
@@ -166,6 +174,54 @@ const KubernetesClusterOverview: FunctionComponent<
         setPodCount(pods.length);
         setNamespaceCount(namespaces.length);
 
+        // Fetch additional resource counts from metrics
+        const [
+          deployments,
+          statefulSets,
+          daemonSets,
+          jobs,
+          cronJobs,
+          containers,
+        ]: Array<Array<KubernetesResource>> = await Promise.all([
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "k8s.deployment.desired",
+            resourceNameAttribute: "resource.k8s.deployment.name",
+          }),
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "k8s.statefulset.desired_pods",
+            resourceNameAttribute: "resource.k8s.statefulset.name",
+          }),
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "k8s.daemonset.desired_scheduled_nodes",
+            resourceNameAttribute: "resource.k8s.daemonset.name",
+          }),
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "k8s.job.active_pods",
+            resourceNameAttribute: "resource.k8s.job.name",
+          }),
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "k8s.cronjob.active_jobs",
+            resourceNameAttribute: "resource.k8s.cronjob.name",
+          }),
+          KubernetesResourceUtils.fetchResourceList({
+            clusterIdentifier: item.clusterIdentifier,
+            metricName: "container.cpu.utilization",
+            resourceNameAttribute: "resource.k8s.container.name",
+          }),
+        ]);
+
+        setDeploymentCount(deployments.length);
+        setStatefulSetCount(statefulSets.length);
+        setDaemonSetCount(daemonSets.length);
+        setJobCount(jobs.length);
+        setCronJobCount(cronJobs.length);
+        setContainerCount(containers.length);
+
         // Top resource consumers
         const sortedByCpu: Array<KubernetesResource> = [...pods]
           .filter((p: KubernetesResource) => {
@@ -191,7 +247,9 @@ const KubernetesClusterOverview: FunctionComponent<
 
         // Fetch pod and node objects for health status
         try {
-          const [podObjects, nodeObjects]: [
+          const [podObjects, nodeObjects, pvcObjects, pvObjects]: [
+            Map<string, KubernetesObjectType>,
+            Map<string, KubernetesObjectType>,
             Map<string, KubernetesObjectType>,
             Map<string, KubernetesObjectType>,
           ] = await Promise.all([
@@ -203,7 +261,18 @@ const KubernetesClusterOverview: FunctionComponent<
               clusterIdentifier: item.clusterIdentifier,
               resourceType: "nodes",
             }),
+            fetchK8sObjectsBatch({
+              clusterIdentifier: item.clusterIdentifier,
+              resourceType: "persistentvolumeclaims",
+            }),
+            fetchK8sObjectsBatch({
+              clusterIdentifier: item.clusterIdentifier,
+              resourceType: "persistentvolumes",
+            }),
           ]);
+
+          setPvcCount(pvcObjects.size);
+          setPvCount(pvObjects.size);
 
           // Calculate pod health
           let running: number = 0;
@@ -343,6 +412,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "Deployments",
       description: "Manage replica sets and rollouts",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTS,
+      count: deploymentCount > 0 ? deploymentCount : undefined,
       icon: IconProp.Layers,
       iconBgClass: "bg-blue-100",
       iconTextClass: "text-blue-600",
@@ -351,6 +421,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "StatefulSets",
       description: "Ordered, stateful pod management",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS,
+      count: statefulSetCount > 0 ? statefulSetCount : undefined,
       icon: IconProp.Database,
       iconBgClass: "bg-purple-100",
       iconTextClass: "text-purple-600",
@@ -359,6 +430,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "DaemonSets",
       description: "Run pods on every node",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_DAEMONSETS,
+      count: daemonSetCount > 0 ? daemonSetCount : undefined,
       icon: IconProp.Settings,
       iconBgClass: "bg-orange-100",
       iconTextClass: "text-orange-600",
@@ -367,6 +439,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "Jobs",
       description: "Run-to-completion workloads",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_JOBS,
+      count: jobCount > 0 ? jobCount : undefined,
       icon: IconProp.Play,
       iconBgClass: "bg-amber-100",
       iconTextClass: "text-amber-600",
@@ -375,6 +448,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "CronJobs",
       description: "Scheduled recurring tasks",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_CRONJOBS,
+      count: cronJobCount > 0 ? cronJobCount : undefined,
       icon: IconProp.Clock,
       iconBgClass: "bg-teal-100",
       iconTextClass: "text-teal-600",
@@ -395,6 +469,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "Containers",
       description: "Running container instances",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS,
+      count: containerCount > 0 ? containerCount : undefined,
       icon: IconProp.Cube,
       iconBgClass: "bg-cyan-100",
       iconTextClass: "text-cyan-600",
@@ -403,6 +478,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "PVCs",
       description: "Persistent volume claims",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_PVCS,
+      count: pvcCount > 0 ? pvcCount : undefined,
       icon: IconProp.Disc,
       iconBgClass: "bg-rose-100",
       iconTextClass: "text-rose-600",
@@ -411,6 +487,7 @@ const KubernetesClusterOverview: FunctionComponent<
       title: "PVs",
       description: "Persistent volumes",
       pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_PVS,
+      count: pvCount > 0 ? pvCount : undefined,
       icon: IconProp.Disc,
       iconBgClass: "bg-fuchsia-100",
       iconTextClass: "text-fuchsia-600",
