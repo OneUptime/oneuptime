@@ -1000,58 +1000,114 @@ const KubernetesClusterOverview: FunctionComponent<
       </Card>
 
       {/* Recent Warning Events */}
-      {recentWarnings.length > 0 && (
-        <Card
-          title="Recent Warnings"
-          description="Latest warning events from the cluster."
-        >
-          <div className="p-4">
-            <div className="space-y-3">
-              {recentWarnings.map((event: KubernetesEvent, index: number) => {
-                return (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-amber-50/50 border border-amber-100"
-                  >
-                    <StatusBadge
-                      text={event.reason}
-                      type={StatusBadgeType.Warning}
-                      className="mt-0.5"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-gray-800">
-                        {event.message}
+      {recentWarnings.length > 0 &&
+        (() => {
+          // Deduplicate warnings by reason+object, keep latest timestamp and count
+          const deduped: Array<
+            KubernetesEvent & { count: number; latestTime: string }
+          > = [];
+          const seen: Map<
+            string,
+            KubernetesEvent & { count: number; latestTime: string }
+          > = new Map();
+
+          for (const event of recentWarnings) {
+            const dedupeKey: string = `${event.reason}:${event.objectKind}/${event.objectName}:${event.namespace}`;
+            const existing:
+              | (KubernetesEvent & { count: number; latestTime: string })
+              | undefined = seen.get(dedupeKey);
+            if (existing) {
+              existing.count++;
+            } else {
+              const entry: KubernetesEvent & {
+                count: number;
+                latestTime: string;
+              } = {
+                ...event,
+                count: 1,
+                latestTime: event.timestamp,
+              };
+              seen.set(dedupeKey, entry);
+              deduped.push(entry);
+            }
+          }
+
+          return (
+            <Card
+              title="Recent Warnings"
+              description="Latest warning events from the cluster."
+            >
+              <div className="divide-y divide-gray-100">
+                {deduped.map(
+                  (
+                    event: KubernetesEvent & {
+                      count: number;
+                      latestTime: string;
+                    },
+                    index: number,
+                  ) => {
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
+                          <Icon
+                            icon={IconProp.Alert}
+                            className="h-3.5 w-3.5 text-amber-600"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-medium text-gray-900">
+                              {event.reason}
+                            </span>
+                            {event.count > 1 && (
+                              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
+                                ×{event.count}
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-400 ml-auto flex-shrink-0">
+                              {formatRelativeTime(event.latestTime)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 line-clamp-2">
+                            {event.message}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600">
+                              {event.objectKind}/{event.objectName}
+                            </span>
+                            <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
+                              {event.namespace}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        <span className="font-medium">
-                          {event.objectKind}/{event.objectName}
-                        </span>{" "}
-                        in {event.namespace} &middot;{" "}
-                        {formatRelativeTime(event.timestamp)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-3">
-              <span
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route,
-                      { modelId: modelId },
-                    ),
-                  );
-                }}
-                className="text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
-              >
-                View All Events →
-              </span>
-            </div>
-          </div>
-        </Card>
-      )}
+                    );
+                  },
+                )}
+              </div>
+              <div className="px-5 py-3 border-t border-gray-100">
+                <span
+                  onClick={() => {
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[
+                          PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS
+                        ] as Route,
+                        { modelId: modelId },
+                      ),
+                    );
+                  }}
+                  className="text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
+                >
+                  View All Events →
+                </span>
+              </div>
+            </Card>
+          );
+        })()}
 
       {/* Cluster Details */}
       <CardModelDetail<KubernetesCluster>
