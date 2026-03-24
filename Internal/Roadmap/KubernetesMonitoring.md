@@ -2,7 +2,7 @@
 
 ## Context
 
-OneUptime has foundational infrastructure for Kubernetes monitoring: OTLP ingestion (HTTP and gRPC), ClickHouse metric/log/trace storage, telemetry-based monitors (Metrics, Logs, Traces), and a Helm chart for deploying OneUptime itself on Kubernetes. A `Kubernetes` monitor type exists in the `MonitorType` enum but is currently disabled and has no implementation. The OpenTelemetry Collector config supports OTLP receivers but has no Kubernetes-specific receivers (kubelet, kube-state-metrics, Prometheus). Server monitoring exists but is limited to basic VM-level checks.
+OneUptime has comprehensive Kubernetes monitoring infrastructure: OTLP ingestion (HTTP and gRPC), ClickHouse metric/log/trace storage, telemetry-based monitors (Metrics, Logs, Traces, Kubernetes), a kubernetes-agent Helm chart with kubeletstats/k8s_cluster/k8sobjects/prometheus receivers, 40+ dashboard pages for cluster/workload/node/pod/event exploration, HPA/VPA monitoring, service mesh observability, and 12 pre-built alert templates. The `MonitorType.Kubernetes` is fully enabled with monitor creation forms, metric catalog, and template picker.
 
 This plan proposes a phased implementation to deliver first-class Kubernetes monitoring — from cluster health and workload observability to intelligent alerting — leveraging OneUptime's all-in-one observability platform (metrics, logs, traces, incidents, status pages).
 
@@ -13,7 +13,7 @@ This plan proposes a phased implementation to deliver first-class Kubernetes mon
 - **Telemetry-Based Monitors** - Metric, Log, Trace, and Exception monitors with configurable criteria
 - **Helm Chart** - OneUptime deploys on Kubernetes with KEDA auto-scaling support
 - **OpenTelemetry Collector** - Deployed via Helm, accepts OTLP on ports 4317/4318
-- **MonitorType.Kubernetes** - Enum value defined (but disabled and unimplemented)
+- **MonitorType.Kubernetes** - Enum value defined, fully enabled and implemented
 - **Phase 1.1: kubernetes-agent Helm Chart** - Full chart with kubeletstats, k8s_cluster, k8sobjects receivers, DaemonSet for logs, RBAC, configmaps, secret management
 - **Phase 1.2: KubernetesCluster Database Model & Auto-Discovery** - Full model with provider detection, otelCollectorStatus, cached counts; auto-discovery via `findOrCreateByClusterIdentifier()`; disconnect detection after 5 min
 - **Phase 1.3: Kubernetes Observability Product (Dashboard/Routes)** - Full sidebar navigation, 40+ routes, cluster list with onboarding guide, breadcrumbs
@@ -27,6 +27,10 @@ This plan proposes a phased implementation to deliver first-class Kubernetes mon
 - **Phase 3.1: Kubernetes Log Collection** - DaemonSet with filelog receiver in kubernetes-agent Helm chart, logs tab on pod detail pages
 - **Phase 3.3: Kubernetes-to-Telemetry Correlation** - Metrics, Logs, Events, YAML, and Containers tabs on all resource detail pages
 - **Phase 4.10: Live YAML / Resource Inspection** - YAML tab component showing live resource specs
+- **Phase 2.1: Enable MonitorType.Kubernetes** - Kubernetes enabled in `getAllMonitorTypeProps()`, `getActiveMonitorTypes()`, and `getMonitorTypeCategories()`; full monitor creation form with cluster/resource selection; `monitorKubernetes()` implemented in TelemetryMonitor worker
+- **Phase 2.2: Kubernetes-Aware Alert Templates** - 12 alert templates (CrashLoopBackOff, Pod Pending, Node NotReady, High CPU/Memory/Disk, Replica Mismatch, Job Failures, etcd No Leader, API Server Throttling, Scheduler Backlog, DaemonSet Unavailable) with template picker UI and metric catalog
+- **Phase 2.3: HPA and VPA Monitoring** - HPA and VPA list and detail pages, Helm chart config for HPA/VPA metrics collection via k8s_cluster receiver, metrics in KubernetesMetricCatalog
+- **Phase 3.1: Service Mesh Observability** - Service mesh dashboard with Istio and Linkerd support, Prometheus scrape configs for service mesh metrics in kubernetes-agent Helm chart
 
 ---
 
@@ -171,19 +175,19 @@ There are two separate Helm charts. OneUptime's own OTel Collector is **not modi
 
 | Feature | OneUptime | DataDog | New Relic | Grafana/Prometheus | Priority |
 |---------|-----------|---------|-----------|-------------------|----------|
-| K8s metric collection (kubelet, kube-state-metrics) | None | Agent auto-discovery | K8s integration | Prometheus + kube-state-metrics | **P0** |
-| Cluster overview dashboard | None | Out-of-box | Pre-built | Pre-built via mixins | **P0** |
-| Pod/Container resource metrics | None | Live Containers | K8s cluster explorer | cAdvisor + Grafana | **P0** |
-| Node health monitoring | None | Host Map + agent | Infrastructure UI | node-exporter + Grafana | **P0** |
-| Kubernetes event ingestion | None | Auto-collected | K8s events integration | Eventrouter/Exporter | **P0** |
-| Workload health alerts (CrashLoopBackOff, OOMKilled, etc.) | None | Auto-monitors | Pre-built alerts | PrometheusRule CRDs | **P1** |
-| Namespace/workload cost attribution | None | Container cost allocation | None | Kubecost integration | **P1** |
-| K8s resource inventory (deployments, services, ingresses) | None | Orchestrator Explorer | Cluster explorer | None native | **P1** |
-| HPA/VPA monitoring | None | Yes | Partial | Prometheus metrics | **P1** |
-| Multi-cluster support | None | Yes | Yes | Thanos/Cortex | **P0** |
-| K8s log collection (pod stdout/stderr) | Via Fluentd example | DaemonSet agent | Fluent Bit integration | Loki + Promtail | **P2** |
-| Service mesh observability (Istio, Linkerd) | None | Yes | Yes | Partial | **P2** |
-| Control plane monitoring (etcd, API server, scheduler, controller-manager) | None | Yes (Agent check) | K8s integration | Prometheus scrape + mixins | **P0** |
+| K8s metric collection (kubelet, kube-state-metrics) | **Done** | Agent auto-discovery | K8s integration | Prometheus + kube-state-metrics | ~~P0~~ |
+| Cluster overview dashboard | **Done** | Out-of-box | Pre-built | Pre-built via mixins | ~~P0~~ |
+| Pod/Container resource metrics | **Done** | Live Containers | K8s cluster explorer | cAdvisor + Grafana | ~~P0~~ |
+| Node health monitoring | **Done** | Host Map + agent | Infrastructure UI | node-exporter + Grafana | ~~P0~~ |
+| Kubernetes event ingestion | **Done** | Auto-collected | K8s events integration | Eventrouter/Exporter | ~~P0~~ |
+| Workload health alerts (CrashLoopBackOff, OOMKilled, etc.) | **Done** | Auto-monitors | Pre-built alerts | PrometheusRule CRDs | ~~P1~~ |
+| Namespace/workload cost attribution | None | Container cost allocation | None | Kubecost integration | **P3** |
+| K8s resource inventory (deployments, services, ingresses) | **Done** | Orchestrator Explorer | Cluster explorer | None native | ~~P1~~ |
+| HPA/VPA monitoring | **Done** | Yes | Partial | Prometheus metrics | ~~P1~~ |
+| Multi-cluster support | **Done** | Yes | Yes | Thanos/Cortex | ~~P0~~ |
+| K8s log collection (pod stdout/stderr) | **Done** | DaemonSet agent | Fluent Bit integration | Loki + Promtail | ~~P2~~ |
+| Service mesh observability (Istio, Linkerd) | **Done** | Yes | Yes | Partial | ~~P2~~ |
+| Control plane monitoring (etcd, API server, scheduler, controller-manager) | **Done** | Yes (Agent check) | K8s integration | Prometheus scrape + mixins | ~~P0~~ |
 | Network policy monitoring | None | NPM | None | Cilium Hubble | **P3** |
 | eBPF-based deep observability | None | Universal Service Monitoring | Pixie | Cilium/Tetragon | **P3** |
 
@@ -191,108 +195,9 @@ There are two separate Helm charts. OneUptime's own OTel Collector is **not modi
 
 ---
 
-## Phase 1: Foundation (P0) — COMPLETED
+## Phases 1–3: Foundation, Alerting, and Advanced Observability — COMPLETED
 
-All Phase 1 items have been implemented. See the Completed section above for details.
-
----
-
-## Phase 2: Intelligent Alerting & Workload Health (P1) — Actionable Monitoring
-
-### 2.1 Enable MonitorType.Kubernetes
-
-**Current**: `MonitorType.Kubernetes` exists in the enum but is disabled.
-**Target**: Enable it and wire it to cluster-scoped monitoring.
-
-**Implementation**:
-
-- Enable Kubernetes in `getAllMonitorTypeProps()` and `getActiveMonitorTypes()`
-- Kubernetes monitor creation flow:
-  1. Select cluster (from auto-discovered clusters)
-  2. Select resource scope: Cluster / Namespace / Workload / Node / Pod
-  3. Configure conditions (metric thresholds, event patterns, state changes)
-- Monitor evaluation: query ClickHouse for K8s metrics scoped to the selected cluster and resource
-- Link monitors to the Kubernetes product pages (click a pod → see its monitors)
-
-**Files to modify**:
-- `Common/Types/Monitor/MonitorType.ts` (enable Kubernetes type)
-- `App/FeatureSet/Dashboard/src/Pages/Monitor/MonitorCreate.tsx` (add K8s cluster/resource selection)
-- `Worker/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts` (support K8s-specific criteria evaluation)
-
-### 2.2 Kubernetes-Aware Alert Templates
-
-**Current**: Generic metric threshold alerts only. Users must manually configure alerts for K8s failure modes.
-**Target**: Pre-built alert templates for common Kubernetes failure patterns.
-
-**Implementation**:
-
-- Create alert templates for critical K8s conditions:
-  - **CrashLoopBackOff**: Alert when `k8s.container.restarts` increases rapidly (> N restarts in M minutes)
-  - **OOMKilled**: Alert on container termination reason = OOMKilled
-  - **Pod Pending**: Alert when pods remain in Pending phase for > N minutes
-  - **Node NotReady**: Alert when node condition transitions to NotReady
-  - **High Resource Utilization**: Alert when node CPU > 90% or memory > 85% sustained
-  - **Deployment Replica Mismatch**: Alert when available replicas < desired replicas for > N minutes
-  - **PVC Disk Full**: Alert when PV usage > 90% capacity
-  - **Failed Scheduling**: Alert on repeated FailedScheduling events
-  - **Image Pull Failures**: Alert on ErrImagePull/ImagePullBackOff events
-  - **Job/CronJob Failures**: Alert when job completion fails
-  - **etcd No Leader**: `etcd_server_has_leader == 0` — critical, immediate page
-  - **etcd Frequent Leader Elections**: rate of `etcd_server_leader_changes_seen_total` > 3/hour — warning
-  - **etcd High WAL Fsync Latency**: p99 > 100ms — warning; > 500ms — critical
-  - **etcd DB Size Near Quota**: > 80% of quota — warning; > 90% — critical
-  - **API Server Throttling**: `apiserver_dropped_requests_total` rate > 0 — critical
-  - **API Server Latency**: p99 > 1s for non-WATCH verbs — warning
-  - **Scheduler Backlog**: `scheduler_pending_pods` > 0 for > 5 minutes — warning
-- One-click enable for each alert template during K8s monitoring setup
-- Auto-route alerts to the OneUptime incident management system
-
-**Files to modify**:
-- `Common/Types/Monitor/Templates/KubernetesAlertTemplates.ts` (new)
-- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/AlertSetup.tsx` (new - guided alert configuration)
-- `Worker/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts` (support K8s-specific criteria evaluation)
-
-### 2.3 HPA and VPA Monitoring (was 2.4)
-
-**Current**: No autoscaler visibility.
-**Target**: Track HPA/VPA behavior and scaling events.
-
-**Implementation**:
-
-- Ingest HPA metrics from `k8s_cluster` receiver:
-  - `k8s.hpa.current_replicas`, `k8s.hpa.desired_replicas`, `k8s.hpa.min_replicas`, `k8s.hpa.max_replicas`
-  - Target metric values vs actual
-- HPA overview page within cluster:
-  - List all HPAs with current/desired/min/max replicas
-  - Time-series chart showing scaling events overlaid with the target metric
-  - Alert when HPA is at max replicas sustained (capacity ceiling)
-  - Alert when scale-up frequency is abnormally high (thrashing)
-
-**Files to modify**:
-- `App/FeatureSet/Dashboard/src/Pages/Kubernetes/Autoscaling.tsx` (new)
-
----
-
-## Phase 3: Advanced Observability (P2) — Correlation & Deep Visibility
-
-### 3.1 Service Mesh Observability
-
-**Current**: No service mesh integration.
-**Target**: Ingest and visualize service mesh metrics from Istio, Linkerd, or similar.
-
-**Implementation**:
-
-- Add Prometheus receiver to the `kubernetes-agent` OTel Collector config for scraping service mesh metrics:
-  - Istio: `istio_requests_total`, `istio_request_duration_milliseconds`, `istio_tcp_connections_opened_total`
-  - Linkerd: `request_total`, `response_latency_ms`
-- Service-to-service traffic map from mesh metrics
-- mTLS status visibility
-- Circuit breaker and retry metrics
-- Dashboard templates for Istio and Linkerd
-
-**Files to modify**:
-- `HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml` (add prometheus receiver for mesh metrics)
-- `Common/Types/Dashboard/Templates/ServiceMesh.ts` (new - mesh dashboard templates)
+All Phase 1 (P0), Phase 2 (P1), and Phase 3 (P2) items have been implemented. See the Completed section above for details.
 
 ---
 
@@ -493,19 +398,9 @@ The roadmap achieves **feature parity** on core K8s monitoring by P2. This is ne
 
 ---
 
-## Quick Wins (Can Ship This Week)
-
-1. **Enable Kubernetes MonitorType** - Uncomment the Kubernetes entry in `getAllMonitorTypeProps()` and wire it to existing telemetry monitors
-
----
-
 ## Recommended Implementation Order
 
-1. **Quick Win** - Enable MonitorType.Kubernetes (makes K8s data actionable)
-2. **Phase 2.2** - K8s-aware alert templates, including etcd/control plane alerts
-3. **Phase 2.3** - HPA/VPA monitoring
-4. **Phase 3.1** - Service mesh observability
-5. **Phase 4.x** - Cost attribution, network policies, eBPF, compliance, GitOps, AI RCA, incident automation, status page automation, topology map, managed provider integrations, deployment tracking
+1. **Phase 4.x** - Cost attribution, network policies, eBPF, compliance, GitOps, AI RCA, incident automation, status page automation, topology map, managed provider integrations, deployment tracking
 
 ## Verification
 
