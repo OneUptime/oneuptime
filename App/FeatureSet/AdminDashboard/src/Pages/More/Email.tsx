@@ -147,9 +147,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
           name="Send Announcement Email"
           isLoading={isSendingAll}
           error={error || ""}
-          submitButtonText="Send to All Users"
-          maxPrimaryButtonWidth={true}
-          submitButtonStyleType={ButtonStyleType.DANGER}
+          hideSubmitButton={true}
           onChange={(values: JSONObject) => {
             setCurrentFormValues(values as JSONObject);
           }}
@@ -180,25 +178,12 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.LongText,
             },
           ]}
-          onSubmit={async (values: JSONObject) => {
-            const subject: string = String(values["subject"] || "").trim();
-            const message: string = String(values["message"] || "").trim();
-
-            if (!subject || !message) {
-              setSuccess("");
-              setError("Please fill in all fields.");
-              return;
-            }
-
-            setPendingSubject(subject);
-            setPendingMessage(message);
-            setShowConfirmModal(true);
-          }}
+          onSubmit={async () => {}}
           footer={
-            <div className="mt-3">
+            <div className="flex w-full justify-end mt-3 space-x-3">
               <Button
                 title="Send Test Email"
-                buttonStyle={ButtonStyleType.LINK}
+                buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   const subject: string = String(
                     currentFormValues["subject"] || "",
@@ -221,6 +206,30 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
                   setTestError("");
                   setTestSuccess("");
                   setShowTestModal(true);
+                }}
+              />
+              <Button
+                title="Send to All Users"
+                buttonStyle={ButtonStyleType.PRIMARY}
+                isLoading={isSendingAll}
+                onClick={() => {
+                  const subject: string = String(
+                    currentFormValues["subject"] || "",
+                  ).trim();
+                  const message: string = String(
+                    currentFormValues["message"] || "",
+                  ).trim();
+
+                  if (!subject || !message) {
+                    setSuccess("");
+                    setError("Please fill in all fields.");
+                    return;
+                  }
+
+                  setError("");
+                  setPendingSubject(subject);
+                  setPendingMessage(message);
+                  setShowConfirmModal(true);
                 }}
               />
             </div>
