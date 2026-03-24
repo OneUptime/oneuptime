@@ -41,6 +41,8 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.SEND_EMAIL]: new Route(`/admin/send-email`),
+
+  [PageMap.MORE_EMAIL]: new Route(`/admin/more/email`),
 };
 
 export class RouteUtil {

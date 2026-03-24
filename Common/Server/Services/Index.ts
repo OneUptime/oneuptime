@@ -198,6 +198,7 @@ import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
+import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
 import MonitorLogService from "./MonitorLogService";
@@ -416,6 +417,7 @@ const services: Array<BaseService> = [
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,
   WorkspaceNotificationLogService,
+  WorkspaceNotificationSummaryService,
 
   ProjectSCIMLogService,
   StatusPageSCIMLogService,

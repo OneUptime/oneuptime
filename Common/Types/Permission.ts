@@ -771,6 +771,11 @@ enum Permission {
   EditWorkspaceNotificationRule = "EditWorkspaceNotificationRule",
   ReadWorkspaceNotificationRule = "ReadWorkspaceNotificationRule",
 
+  CreateWorkspaceNotificationSummary = "CreateWorkspaceNotificationSummary",
+  DeleteWorkspaceNotificationSummary = "DeleteWorkspaceNotificationSummary",
+  EditWorkspaceNotificationSummary = "EditWorkspaceNotificationSummary",
+  ReadWorkspaceNotificationSummary = "ReadWorkspaceNotificationSummary",
+
   // Alert Episode Permissions
   CreateAlertEpisode = "CreateAlertEpisode",
   DeleteAlertEpisode = "DeleteAlertEpisode",
@@ -1384,6 +1389,43 @@ export class PermissionHelper {
         permission: Permission.ReadWorkspaceNotificationRule,
         title: "Read Workspace Notification Rule",
         description: "This permission can read alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      {
+        permission: Permission.CreateWorkspaceNotificationSummary,
+        title: "Create Workspace Notification Summary",
+        description:
+          "This permission can create workspace notification summaries for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteWorkspaceNotificationSummary,
+        title: "Delete Workspace Notification Summary",
+        description:
+          "This permission can delete workspace notification summaries of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditWorkspaceNotificationSummary,
+        title: "Edit Workspace Notification Summary",
+        description:
+          "This permission can edit workspace notification summaries of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadWorkspaceNotificationSummary,
+        title: "Read Workspace Notification Summary",
+        description:
+          "This permission can read workspace notification summaries of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         group: PermissionGroup.Settings,

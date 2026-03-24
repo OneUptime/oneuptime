@@ -13,6 +13,7 @@ import SettingsProbes from "./Pages/Settings/Probes/Index";
 import SettingsAIAgents from "./Pages/Settings/AIAgents/Index";
 import SettingsLlmProviders from "./Pages/Settings/LlmProviders/Index";
 import SendEmail from "./Pages/SendEmail/Index";
+import MoreEmail from "./Pages/More/Email";
 import Users from "./Pages/Users/Index";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
@@ -154,6 +155,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SEND_EMAIL]?.toString() || ""}
           element={<SendEmail />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.MORE_EMAIL]?.toString() || ""}
+          element={<MoreEmail />}
         />
       </Routes>
     </MasterPage>

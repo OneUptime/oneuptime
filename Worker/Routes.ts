@@ -110,6 +110,9 @@ import "./Jobs/StatusPageOwners/SendOwnerAddedNotification";
 // Status Page Reports
 import "./Jobs/StatusPage/SendReportsToSubscribers";
 
+// Workspace Notification Summaries
+import "./Jobs/WorkspaceNotificationSummary/SendSummary";
+
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";

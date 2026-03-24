@@ -25,6 +25,8 @@ enum PageMap {
   SETTINGS_DATA_RETENTION = "SETTINGS_DATA_RETENTION",
 
   SEND_EMAIL = "SEND_EMAIL",
+
+  MORE_EMAIL = "MORE_EMAIL",
 }
 
 export default PageMap;

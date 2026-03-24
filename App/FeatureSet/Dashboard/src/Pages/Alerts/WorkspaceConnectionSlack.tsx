@@ -1,5 +1,7 @@
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleTable from "../../Components/Workspace/WorkspaceNotificationRulesTable";
+import WorkspaceSummaryTable from "../../Components/Workspace/WorkspaceSummaryTable";
+import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
@@ -97,6 +99,21 @@ When you react with a pin emoji, OneUptime will automatically save the message c
               `}
             />
           </Card>
+        </>
+      ),
+    },
+    {
+      name: "Summary",
+      children: (
+        <>
+          <WorkspaceSummaryTable
+            workspaceType={WorkspaceType.Slack}
+            summaryType={WorkspaceNotificationSummaryType.Alert}
+          />
+          <WorkspaceSummaryTable
+            workspaceType={WorkspaceType.Slack}
+            summaryType={WorkspaceNotificationSummaryType.AlertEpisode}
+          />
         </>
       ),
     },
