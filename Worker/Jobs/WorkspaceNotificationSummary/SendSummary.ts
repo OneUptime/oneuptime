@@ -32,8 +32,8 @@ RunCron(
 
     for (const summary of summariesToSend) {
       try {
-        // Calculate next send time based on recurring interval
-        const nextSendAt: Date = Recurring.getNextDate(
+        // Calculate next send time using calendar-correct math
+        const nextSendAt: Date = Recurring.getNextDateInterval(
           summary.nextSendAt!,
           summary.recurringInterval!,
         );
@@ -61,6 +61,28 @@ RunCron(
           `WorkspaceNotificationSummary:SendSummary: Error sending summary ${summary.id?.toString()}`,
         );
         logger.error(err);
+
+        // Roll back nextSendAt so it will be retried on the next cron run
+        try {
+          await WorkspaceNotificationSummaryService.updateOneById({
+            id: summary.id!,
+            data: {
+              nextSendAt: summary.nextSendAt!,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          logger.debug(
+            `WorkspaceNotificationSummary:SendSummary: Rolled back nextSendAt for summary ${summary.id?.toString()} — will retry on next cron run`,
+          );
+        } catch (rollbackErr) {
+          logger.error(
+            `WorkspaceNotificationSummary:SendSummary: Failed to roll back nextSendAt for summary ${summary.id?.toString()}`,
+          );
+          logger.error(rollbackErr);
+        }
       }
     }
   },

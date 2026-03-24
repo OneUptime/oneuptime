@@ -207,7 +207,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       setTestError(undefined);
 
       const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
-        await API.get({
+        await API.post({
           url: URL.fromString(APP_API_URL.toString()).addRoute(
             `/workspace-notification-summary/test/${summaryId.toString()}`,
           ),
@@ -286,9 +286,19 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           values.projectId = ProjectUtil.getCurrentProjectId()!;
           values.workspaceType = props.workspaceType;
 
-          // Set nextSendAt: use sendFirstReportAt if provided, otherwise compute from interval
+          // Set nextSendAt based on sendFirstReportAt or recurringInterval
           if (values.sendFirstReportAt) {
-            values.nextSendAt = values.sendFirstReportAt;
+            const firstReportDate: Date = new Date(
+              values.sendFirstReportAt as unknown as string,
+            );
+            if (
+              firstReportDate.getTime() >
+              OneUptimeDate.getCurrentDate().getTime()
+            ) {
+              values.nextSendAt = firstReportDate;
+            } else {
+              values.nextSendAt = values.sendFirstReportAt;
+            }
           } else if (values.recurringInterval) {
             const recurring: Recurring = Recurring.fromJSON(
               values.recurringInterval,
@@ -328,7 +338,17 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           if (values.filters && Array.isArray(values.filters)) {
             values.filters = values.filters.filter(
               (f: NotificationRuleCondition) => {
-                return f.value && Array.isArray(f.value) && f.value.length > 0;
+                if (!f.value) {
+                  return false;
+                }
+                if (Array.isArray(f.value)) {
+                  return f.value.length > 0;
+                }
+                // String-based conditions (e.g., title contains "X")
+                if (typeof f.value === "string") {
+                  return f.value.trim().length > 0;
+                }
+                return true;
               },
             );
           }
@@ -340,41 +360,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           return Promise.resolve(values);
         }}
         onBeforeEdit={(values: WorkspaceNotificationSummary) => {
-          // Parse channel names from comma-separated string
-          if (values.channelNames && typeof values.channelNames === "string") {
-            values.channelNames = (values.channelNames as unknown as string)
-              .split(",")
-              .map((name: string) => {
-                return name.trim();
-              })
-              .filter((name: string) => {
-                return name.length > 0;
-              });
-          }
-
-          /*
-           * If sendFirstReportAt was changed and is in the future, use it as nextSendAt.
-           * Otherwise leave nextSendAt alone — the worker manages it after the first send.
-           */
-          if (values.sendFirstReportAt) {
-            const firstReportDate: Date = new Date(
-              values.sendFirstReportAt as unknown as string,
-            );
-            if (
-              firstReportDate.getTime() >
-              OneUptimeDate.getCurrentDate().getTime()
-            ) {
-              values.nextSendAt = firstReportDate;
-            }
-          }
-
-          // Clean up empty filters
-          if (values.filters && Array.isArray(values.filters)) {
-            values.filters = values.filters.filter(
-              (f: NotificationRuleCondition) => {
-                return f.value && Array.isArray(f.value) && f.value.length > 0;
-              },
-            );
+          // Convert channelNames from JSON array to comma-separated string for the text input
+          if (values.channelNames && Array.isArray(values.channelNames)) {
+            values.channelNames = (values.channelNames as Array<string>).join(
+              ", ",
+            ) as unknown as Array<string>;
           }
 
           return Promise.resolve(values);
@@ -414,6 +404,22 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             required: true,
             placeholder: "#incidents-summary, #engineering",
           },
+          ...(props.workspaceType === WorkspaceType.MicrosoftTeams
+            ? [
+                {
+                  field: {
+                    teamName: true,
+                  },
+                  stepId: "basic",
+                  title: "Team Name",
+                  description:
+                    "The name of the Microsoft Teams team where the summary will be posted.",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  placeholder: "Engineering Team",
+                },
+              ]
+            : []),
           {
             field: {
               isEnabled: true,
@@ -686,9 +692,19 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={testError ? `Test Failed` : `Summary Sent`}
           error={testError}
-          description={`The test summary was sent successfully. Check your ${getWorkspaceTypeDisplayName(props.workspaceType)} channel to see how it looks.`}
+          description={
+            testError
+              ? `The test summary could not be sent. Please check your channel names and workspace connection settings.`
+              : `The test summary was sent successfully. Check your ${getWorkspaceTypeDisplayName(props.workspaceType)} channel to see how it looks.`
+          }
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
+          onClose={() => {
+            setShowTestSuccessModal(false);
+            setTestSummary(undefined);
+            setShowTestModal(false);
+            setTestError("");
+          }}
           onSubmit={async () => {
             setShowTestSuccessModal(false);
             setTestSummary(undefined);

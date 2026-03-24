@@ -17,6 +17,11 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Label from "../../Models/DatabaseModels/Label";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
+import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
+import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
+import logger from "../Utils/Logger";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
 import WorkspaceMessagePayload, {
@@ -124,10 +129,53 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       teamId: summary.teamName || undefined,
     };
 
-    await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-      projectId: summary.projectId,
-      messagePayloadsByWorkspace: [messagePayload],
-    });
+    try {
+      await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+        projectId: summary.projectId,
+        messagePayloadsByWorkspace: [messagePayload],
+      });
+
+      // Log successful send
+      for (const channelName of summary.channelNames) {
+        await WorkspaceNotificationLogService.createWorkspaceLog(
+          {
+            projectId: summary.projectId!,
+            workspaceType: summary.workspaceType!,
+            channelName: channelName,
+            actionType: WorkspaceNotificationActionType.SendMessage,
+            status: WorkspaceNotificationStatus.Success,
+            statusMessage: data.isTest
+              ? "Test summary sent successfully"
+              : "Summary sent successfully",
+            message: `${summary.summaryType || ""} summary "${summary.name || "Untitled"}" sent to channel "${channelName}"`,
+          },
+          { isRoot: true },
+        );
+      }
+    } catch (err) {
+      // Log failed send
+      for (const channelName of summary.channelNames) {
+        await WorkspaceNotificationLogService.createWorkspaceLog(
+          {
+            projectId: summary.projectId!,
+            workspaceType: summary.workspaceType!,
+            channelName: channelName,
+            actionType: WorkspaceNotificationActionType.SendMessage,
+            status: WorkspaceNotificationStatus.Error,
+            statusMessage: err instanceof Error ? err.message : "Unknown error",
+            message: `Failed to send ${summary.summaryType || ""} summary "${summary.name || "Untitled"}" to channel "${channelName}"`,
+          },
+          { isRoot: true },
+        ).catch((logErr: unknown) => {
+          logger.error(
+            "Failed to create workspace notification log for summary send failure",
+          );
+          logger.error(logErr);
+        });
+      }
+
+      throw err; // Re-throw so caller knows it failed
+    }
 
     if (!data.isTest) {
       await this.updateOneById({
@@ -242,7 +290,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           return l._id?.toString() || "";
         }) || [],
       [NotificationRuleConditionCheckOn.Monitors]:
-        incident.monitors?.map((m: Incident) => {
+        incident.monitors?.map((m: Monitor) => {
           return m._id?.toString() || "";
         }) || [],
       // unused for incidents
@@ -326,6 +374,109 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
       [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
       [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
+    };
+  }
+
+  // Build values map for an incident episode
+  private static buildIncidentEpisodeValues(episode: IncidentEpisode): {
+    [key in NotificationRuleConditionCheckOn]:
+      | string
+      | Array<string>
+      | undefined;
+  } {
+    return {
+      [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]:
+        episode.title || "",
+      [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+        episode.description || "",
+      [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]:
+        episode.incidentSeverity?._id?.toString() || "",
+      [NotificationRuleConditionCheckOn.IncidentEpisodeState]:
+        episode.currentIncidentState?._id?.toString() || "",
+      [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]:
+        episode.labels?.map((l: Label) => {
+          return l._id?.toString() || "";
+        }) || [],
+      // unused for incident episodes
+      [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentState]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
+      [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
+      [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
+      [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.AlertState]: undefined,
+      [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+      [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
+      [NotificationRuleConditionCheckOn.Monitors]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
+        undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+    };
+  }
+
+  // Build values map for an alert episode
+  private static buildAlertEpisodeValues(episode: AlertEpisode): {
+    [key in NotificationRuleConditionCheckOn]:
+      | string
+      | Array<string>
+      | undefined;
+  } {
+    return {
+      [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: episode.title || "",
+      [NotificationRuleConditionCheckOn.AlertEpisodeDescription]:
+        episode.description || "",
+      [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]:
+        episode.alertSeverity?._id?.toString() || "",
+      [NotificationRuleConditionCheckOn.AlertEpisodeState]:
+        episode.currentAlertState?._id?.toString() || "",
+      [NotificationRuleConditionCheckOn.AlertEpisodeLabels]:
+        episode.labels?.map((l: Label) => {
+          return l._id?.toString() || "";
+        }) || [],
+      // unused for alert episodes
+      [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentState]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+      [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
+      [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
+      [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
+      [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
+      [NotificationRuleConditionCheckOn.AlertState]: undefined,
+      [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
+      [NotificationRuleConditionCheckOn.Monitors]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
+      [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
+        undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
+      [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
+      [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
     };
   }
 
@@ -706,7 +857,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   }): Promise<void> {
     const { blocks, items, fromDate, projectId } = data;
 
-    const episodes: Array<IncidentEpisode> =
+    let episodes: Array<IncidentEpisode> =
       await IncidentEpisodeService.findAllBy({
         query: {
           projectId,
@@ -722,11 +873,23 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
             _id: true,
             isResolvedState: true,
           },
+          labels: { _id: true, name: true },
           createdAt: true,
           resolvedAt: true,
         },
         props: { isRoot: true },
       });
+
+    // Apply filters
+    if (data.filters && data.filters.length > 0) {
+      episodes = episodes.filter((ep: IncidentEpisode) => {
+        return Service.matchesFilters({
+          filters: data.filters,
+          filterCondition: data.filterCondition,
+          values: Service.buildIncidentEpisodeValues(ep),
+        });
+      });
+    }
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
@@ -1123,7 +1286,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   }): Promise<void> {
     const { blocks, items, fromDate, projectId } = data;
 
-    const episodes: Array<AlertEpisode> = await AlertEpisodeService.findAllBy({
+    let episodes: Array<AlertEpisode> = await AlertEpisodeService.findAllBy({
       query: {
         projectId,
         createdAt: QueryHelper.greaterThanEqualTo(fromDate),
@@ -1134,11 +1297,23 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         description: true,
         alertSeverity: { name: true, _id: true },
         currentAlertState: { name: true, _id: true, isResolvedState: true },
+        labels: { _id: true, name: true },
         createdAt: true,
         resolvedAt: true,
       },
       props: { isRoot: true },
     });
+
+    // Apply filters
+    if (data.filters && data.filters.length > 0) {
+      episodes = episodes.filter((ep: AlertEpisode) => {
+        return Service.matchesFilters({
+          filters: data.filters,
+          filterCondition: data.filterCondition,
+          values: Service.buildAlertEpisodeValues(ep),
+        });
+      });
+    }
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
