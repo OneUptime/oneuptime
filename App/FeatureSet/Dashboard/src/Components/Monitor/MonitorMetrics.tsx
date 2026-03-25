@@ -1,13 +1,12 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
-import OneUptimeDate from "Common/Types/Date";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricView from "../Metrics/MetricView";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
@@ -29,6 +28,11 @@ import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import RangeStartAndEndDateEdit from "Common/UI/Components/Date/RangeStartAndEndDateEdit";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -85,11 +89,9 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   const monitorMetricTypesByMonitor: Array<MonitorMetricType> =
     MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(monitorType);
 
-  // set it to past 1 hour
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -1);
-
-  const startAndEndDate: InBetween<Date> = new InBetween(startDate, endDate);
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
 
   type GetQueryConfigByMonitorMetricTypesFunction =
     () => Array<MetricQueryConfigData>;
@@ -269,10 +271,28 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     };
 
   const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: startAndEndDate,
+    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate({
+      range: TimeRange.PAST_ONE_HOUR,
+    }),
     queryConfigs: getQueryConfigByMonitorMetricTypes(),
     formulaConfigs: [],
   });
+
+  const handleTimeRangeChange: (
+    newTimeRange: RangeStartAndEndDateTime,
+  ) => void = useCallback(
+    (newTimeRange: RangeStartAndEndDateTime): void => {
+      setTimeRange(newTimeRange);
+      const dateRange = RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
+      setMetricViewData((prev: MetricViewData) => {
+        return {
+          ...prev,
+          startAndEndDate: dateRange,
+        };
+      });
+    },
+    [],
+  );
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -288,9 +308,18 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      <div className="mb-4 flex items-center justify-end">
+        <div className="w-64">
+          <RangeStartAndEndDateEdit
+            value={timeRange}
+            onChange={handleTimeRangeChange}
+          />
+        </div>
+      </div>
       <MetricView
         data={metricViewData}
         hideQueryElements={true}
+        hideStartAndEndDate={true}
         onChange={(data: MetricViewData) => {
           setMetricViewData({
             ...data,
