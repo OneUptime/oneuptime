@@ -9,6 +9,8 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
 import React, {
   Fragment,
   FunctionComponent,
@@ -86,7 +88,7 @@ function buildMetricViewData(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Section component — one Card per control plane component
+// Section component — Card with time picker in rightElement
 // ──────────────────────────────────────────────────────────────────────────────
 
 interface SectionProps {
@@ -94,6 +96,8 @@ interface SectionProps {
   description: string;
   icon: IconProp;
   data: MetricViewData;
+  timeRange: RangeStartAndEndDateTime;
+  onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
 }
 
 const ControlPlaneSection: FunctionComponent<SectionProps> = (
@@ -103,14 +107,17 @@ const ControlPlaneSection: FunctionComponent<SectionProps> = (
     <Card
       title={
         <div className="flex items-center gap-2">
-          <Icon
-            icon={props.icon}
-            className="h-5 w-5 text-gray-500"
-          />
+          <Icon icon={props.icon} className="h-5 w-5 text-gray-500" />
           <span>{props.title}</span>
         </div>
       }
       description={props.description}
+      rightElement={
+        <RangeStartAndEndDateView
+          dashboardStartAndEndDate={props.timeRange}
+          onChange={props.onTimeRangeChange}
+        />
+      }
     >
       <MetricView
         data={props.data}
@@ -124,7 +131,7 @@ const ControlPlaneSection: FunctionComponent<SectionProps> = (
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Metric specs per control plane component
+// Metric specs: etcd
 // ──────────────────────────────────────────────────────────────────────────────
 
 function getEtcdQueries(cluster: string): Array<MetricQueryConfigData> {
@@ -146,7 +153,8 @@ function getEtcdQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "etcd_db_size_in_use",
         title: "Database Size In Use",
-        description: "Actual used size of the etcd database (after compaction).",
+        description:
+          "Actual used size of the etcd database (after compaction).",
         legend: "In Use",
         legendUnit: "",
         metricName: "etcd_mvcc_db_total_size_in_use_in_bytes",
@@ -233,6 +241,10 @@ function getEtcdQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Metric specs: API Server
+// ──────────────────────────────────────────────────────────────────────────────
+
 function getApiServerQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
     buildQuery(
@@ -314,6 +326,10 @@ function getApiServerQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Metric specs: Scheduler
+// ──────────────────────────────────────────────────────────────────────────────
+
 function getSchedulerQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
     buildQuery(
@@ -333,7 +349,8 @@ function getSchedulerQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "scheduler_latency",
         title: "Scheduling Latency",
-        description: "End-to-end scheduling duration from pod creation to binding.",
+        description:
+          "End-to-end scheduling duration from pod creation to binding.",
         legend: "Latency",
         legendUnit: "seconds",
         metricName: "scheduler_e2e_scheduling_duration_seconds_sum",
@@ -345,7 +362,8 @@ function getSchedulerQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "scheduler_attempts",
         title: "Scheduling Attempts",
-        description: "Number of scheduling attempts by result (scheduled, unschedulable, error).",
+        description:
+          "Number of scheduling attempts by result (scheduled, unschedulable, error).",
         legend: "Attempts",
         legendUnit: "",
         metricName: "scheduler_schedule_attempts_total",
@@ -357,7 +375,8 @@ function getSchedulerQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "scheduler_preemptions",
         title: "Preemption Attempts",
-        description: "Number of preemption attempts to free resources for higher-priority pods.",
+        description:
+          "Number of preemption attempts to free resources for higher-priority pods.",
         legend: "Preemptions",
         legendUnit: "",
         metricName: "scheduler_preemption_attempts_total",
@@ -369,7 +388,8 @@ function getSchedulerQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "scheduler_queue_duration",
         title: "Queue Wait Duration",
-        description: "Time pods spend in the scheduling queue before being scheduled.",
+        description:
+          "Time pods spend in the scheduling queue before being scheduled.",
         legend: "Duration",
         legendUnit: "seconds",
         metricName: "scheduler_scheduling_attempt_duration_seconds_sum",
@@ -379,6 +399,10 @@ function getSchedulerQueries(cluster: string): Array<MetricQueryConfigData> {
     ),
   ];
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Metric specs: Controller Manager
+// ──────────────────────────────────────────────────────────────────────────────
 
 function getControllerManagerQueries(
   cluster: string,
@@ -401,7 +425,8 @@ function getControllerManagerQueries(
       {
         variable: "controller_queue_latency",
         title: "Queue Latency",
-        description: "Time items spend waiting in the work queue before processing.",
+        description:
+          "Time items spend waiting in the work queue before processing.",
         legend: "Latency",
         legendUnit: "seconds",
         metricName: "workqueue_queue_duration_seconds_sum",
@@ -442,6 +467,217 @@ function getControllerManagerQueries(
         legend: "Adds",
         legendUnit: "",
         metricName: "workqueue_adds_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+  ];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Metric specs: CoreDNS
+// ──────────────────────────────────────────────────────────────────────────────
+
+function getCoreDnsQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "coredns_requests",
+        title: "DNS Requests",
+        description: "Total DNS queries received by CoreDNS.",
+        legend: "Requests",
+        legendUnit: "req/s",
+        metricName: "coredns_dns_requests_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "coredns_responses",
+        title: "DNS Responses",
+        description:
+          "Total DNS responses sent, broken down by response code (NOERROR, NXDOMAIN, SERVFAIL, etc.).",
+        legend: "Responses",
+        legendUnit: "resp/s",
+        metricName: "coredns_dns_responses_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "coredns_request_duration",
+        title: "Request Duration",
+        description:
+          "DNS request processing time. High latency affects all service-to-service communication.",
+        legend: "Duration",
+        legendUnit: "seconds",
+        metricName: "coredns_dns_request_duration_seconds_sum",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "coredns_cache_hits",
+        title: "Cache Hits",
+        description:
+          "DNS cache hit count. Higher is better — reduces upstream lookups.",
+        legend: "Hits",
+        legendUnit: "",
+        metricName: "coredns_cache_hits_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "coredns_cache_misses",
+        title: "Cache Misses",
+        description:
+          "DNS cache miss count. High misses cause more upstream queries and higher latency.",
+        legend: "Misses",
+        legendUnit: "",
+        metricName: "coredns_cache_misses_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "coredns_cache_size",
+        title: "Cache Size",
+        description: "Current number of entries in the DNS cache.",
+        legend: "Entries",
+        legendUnit: "",
+        metricName: "coredns_cache_entries",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "coredns_panics",
+        title: "Panics",
+        description:
+          "Number of CoreDNS panics. Any non-zero value is a critical issue.",
+        legend: "Panics",
+        legendUnit: "",
+        metricName: "coredns_panics_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "coredns_forward_requests",
+        title: "Forward Requests",
+        description:
+          "DNS queries forwarded to upstream resolvers (external DNS).",
+        legend: "Forwarded",
+        legendUnit: "",
+        metricName: "coredns_forward_requests_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "coredns_forward_errors",
+        title: "Forward Errors",
+        description:
+          "Errors when forwarding DNS queries upstream. Indicates upstream DNS problems.",
+        legend: "Errors",
+        legendUnit: "",
+        metricName: "coredns_forward_responses_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+  ];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Metric specs: kube-proxy
+// ──────────────────────────────────────────────────────────────────────────────
+
+function getKubeProxyQueries(cluster: string): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "kubeproxy_sync_rules_duration",
+        title: "Sync Proxy Rules Duration",
+        description:
+          "Time taken to sync iptables/IPVS proxy rules. High latency means slow network rule updates.",
+        legend: "Duration",
+        legendUnit: "seconds",
+        metricName: "kubeproxy_sync_proxy_rules_duration_seconds_sum",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "kubeproxy_sync_rules_count",
+        title: "Sync Proxy Rules Count",
+        description: "Number of proxy rule sync operations performed.",
+        legend: "Syncs",
+        legendUnit: "",
+        metricName: "kubeproxy_sync_proxy_rules_duration_seconds_count",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "kubeproxy_network_programming_duration",
+        title: "Network Programming Duration",
+        description:
+          "End-to-end time from API server event to network rules being applied. Critical for service endpoint updates.",
+        legend: "Duration",
+        legendUnit: "seconds",
+        metricName: "kubeproxy_network_programming_duration_seconds_sum",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "kubeproxy_sync_rules_last_timestamp",
+        title: "Last Sync Timestamp",
+        description:
+          "Timestamp of the last successful proxy rules sync. Stale values indicate kube-proxy issues.",
+        legend: "Timestamp",
+        legendUnit: "",
+        metricName:
+          "kubeproxy_sync_proxy_rules_last_timestamp_seconds",
+        aggregation: AggregationType.Max,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "kubeproxy_service_changes",
+        title: "Service Changes",
+        description:
+          "Number of service change events processed by kube-proxy.",
+        legend: "Changes",
+        legendUnit: "",
+        metricName: "kubeproxy_sync_proxy_rules_service_changes_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "kubeproxy_endpoint_changes",
+        title: "Endpoint Changes",
+        description:
+          "Number of endpoint change events processed. Spikes correlate with deployments or scaling.",
+        legend: "Changes",
+        legendUnit: "",
+        metricName: "kubeproxy_sync_proxy_rules_endpoint_changes_total",
         aggregation: AggregationType.Sum,
       },
       cluster,
@@ -538,16 +774,102 @@ const KubernetesClusterControlPlane: FunctionComponent<
     getControllerManagerQueries(clusterIdentifier),
     startAndEndDate,
   );
+  const coreDnsData: MetricViewData = buildMetricViewData(
+    getCoreDnsQueries(clusterIdentifier),
+    startAndEndDate,
+  );
+  const kubeProxyData: MetricViewData = buildMetricViewData(
+    getKubeProxyQueries(clusterIdentifier),
+    startAndEndDate,
+  );
+
+  const tabs: Array<Tab> = [
+    {
+      name: "etcd",
+      children: (
+        <ControlPlaneSection
+          title="etcd"
+          description="Distributed key-value store backing all cluster state. Monitors database size, disk I/O latency, leader stability, and replication health."
+          icon={IconProp.Database}
+          data={etcdData}
+          timeRange={timeRange}
+          onTimeRangeChange={handleTimeRangeChange}
+        />
+      ),
+    },
+    {
+      name: "API Server",
+      children: (
+        <ControlPlaneSection
+          title="API Server"
+          description="Central management entity that validates and serves all REST operations. Tracks request throughput, latency, error rates, and connection health."
+          icon={IconProp.Globe}
+          data={apiServerData}
+          timeRange={timeRange}
+          onTimeRangeChange={handleTimeRangeChange}
+        />
+      ),
+    },
+    {
+      name: "Scheduler",
+      children: (
+        <ControlPlaneSection
+          title="Scheduler"
+          description="Assigns pods to nodes based on resource requirements, affinity, and constraints. Monitors scheduling throughput, queue pressure, and preemption activity."
+          icon={IconProp.AdjustmentHorizontal}
+          data={schedulerData}
+          timeRange={timeRange}
+          onTimeRangeChange={handleTimeRangeChange}
+        />
+      ),
+    },
+    {
+      name: "Controller Manager",
+      children: (
+        <ControlPlaneSection
+          title="Controller Manager"
+          description="Runs core control loops that reconcile cluster state. Tracks work queue depth, processing latency, retries, and throughput across all controllers."
+          icon={IconProp.Settings}
+          data={controllerData}
+          timeRange={timeRange}
+          onTimeRangeChange={handleTimeRangeChange}
+        />
+      ),
+    },
+    {
+      name: "CoreDNS",
+      children: (
+        <ControlPlaneSection
+          title="CoreDNS"
+          description="Cluster DNS server handling all in-cluster name resolution. Monitors query throughput, latency, cache efficiency, forwarding, and errors."
+          icon={IconProp.Globe}
+          data={coreDnsData}
+          timeRange={timeRange}
+          onTimeRangeChange={handleTimeRangeChange}
+        />
+      ),
+    },
+    {
+      name: "kube-proxy",
+      children: (
+        <ControlPlaneSection
+          title="kube-proxy"
+          description="Network proxy on each node maintaining iptables/IPVS rules for Service routing. Monitors rule sync latency, network programming time, and change events."
+          icon={IconProp.Signal}
+          data={kubeProxyData}
+          timeRange={timeRange}
+          onTimeRangeChange={handleTimeRangeChange}
+        />
+      ),
+    },
+  ];
 
   return (
     <Fragment>
       {/* Info banner */}
       <div className="mb-5 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
         <div className="flex-shrink-0 mt-0.5">
-          <Icon
-            icon={IconProp.Info}
-            className="h-5 w-5 text-blue-500"
-          />
+          <Icon icon={IconProp.Info} className="h-5 w-5 text-blue-500" />
         </div>
         <div>
           <p className="text-sm font-medium text-blue-800">
@@ -560,50 +882,13 @@ const KubernetesClusterControlPlane: FunctionComponent<
             </code>{" "}
             in the kubernetes-agent Helm chart values. This is typically only
             available for self-managed clusters, not managed services like EKS,
-            GKE, or AKS.
+            GKE, or AKS. CoreDNS metrics are available on all clusters.
           </p>
         </div>
       </div>
 
-      {/* Global time range picker */}
-      <div className="mb-5 flex items-center justify-end">
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={timeRange}
-          onChange={handleTimeRangeChange}
-        />
-      </div>
-
-      {/* etcd */}
-      <ControlPlaneSection
-        title="etcd"
-        description="Distributed key-value store backing all cluster state. Monitors database size, disk I/O latency, leader stability, and replication health."
-        icon={IconProp.Database}
-        data={etcdData}
-      />
-
-      {/* API Server */}
-      <ControlPlaneSection
-        title="API Server"
-        description="Central management entity that validates and serves all REST operations. Tracks request throughput, latency, error rates, and connection health."
-        icon={IconProp.Globe}
-        data={apiServerData}
-      />
-
-      {/* Scheduler */}
-      <ControlPlaneSection
-        title="Scheduler"
-        description="Assigns pods to nodes based on resource requirements, affinity, and constraints. Monitors scheduling throughput, queue pressure, and preemption activity."
-        icon={IconProp.AdjustmentHorizontal}
-        data={schedulerData}
-      />
-
-      {/* Controller Manager */}
-      <ControlPlaneSection
-        title="Controller Manager"
-        description="Runs core control loops that reconcile cluster state. Tracks work queue depth, processing latency, retries, and throughput across all controllers."
-        icon={IconProp.Settings}
-        data={controllerData}
-      />
+      {/* Tabbed content */}
+      <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

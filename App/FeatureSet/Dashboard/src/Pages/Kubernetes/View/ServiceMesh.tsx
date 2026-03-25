@@ -10,6 +10,8 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
 import React, {
   Fragment,
   FunctionComponent,
@@ -94,6 +96,8 @@ interface SectionProps {
   description: string;
   icon: IconProp;
   data: MetricViewData;
+  timeRange: RangeStartAndEndDateTime;
+  onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
 }
 
 const MeshSection: FunctionComponent<SectionProps> = (
@@ -108,6 +112,12 @@ const MeshSection: FunctionComponent<SectionProps> = (
         </div>
       }
       description={props.description}
+      rightElement={
+        <RangeStartAndEndDateView
+          dashboardStartAndEndDate={props.timeRange}
+          onChange={props.onTimeRangeChange}
+        />
+      }
     >
       <MetricView
         data={props.data}
@@ -124,7 +134,9 @@ const MeshSection: FunctionComponent<SectionProps> = (
 // Istio metric specs
 // ──────────────────────────────────────────────────────────────────────────────
 
-function getIstioQueries(cluster: string): Array<MetricQueryConfigData> {
+function getIstioTrafficQueries(
+  cluster: string,
+): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
@@ -156,8 +168,7 @@ function getIstioQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "istio_request_bytes",
         title: "Request Size",
-        description:
-          "Size of HTTP request bodies flowing through the mesh.",
+        description: "Size of HTTP request bodies flowing through the mesh.",
         legend: "Size",
         legendUnit: "",
         metricName: "istio_request_bytes_sum",
@@ -170,8 +181,7 @@ function getIstioQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "istio_response_bytes",
         title: "Response Size",
-        description:
-          "Size of HTTP response bodies flowing through the mesh.",
+        description: "Size of HTTP response bodies flowing through the mesh.",
         legend: "Size",
         legendUnit: "",
         metricName: "istio_response_bytes_sum",
@@ -198,8 +208,7 @@ function getIstioQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "istio_tcp_received_bytes",
         title: "TCP Bytes Received",
-        description:
-          "Total bytes received over TCP connections in the mesh.",
+        description: "Total bytes received over TCP connections in the mesh.",
         legend: "Received",
         legendUnit: "",
         metricName: "istio_tcp_received_bytes_total",
@@ -237,11 +246,9 @@ function getIstioQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Istio Pilot / Control Plane metric specs
-// ──────────────────────────────────────────────────────────────────────────────
-
-function getIstioPilotQueries(cluster: string): Array<MetricQueryConfigData> {
+function getIstioPilotQueries(
+  cluster: string,
+): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
@@ -324,10 +331,6 @@ function getIstioPilotQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Envoy Proxy metric specs
-// ──────────────────────────────────────────────────────────────────────────────
-
 function getEnvoyQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
     buildQuery(
@@ -402,7 +405,9 @@ function getEnvoyQueries(cluster: string): Array<MetricQueryConfigData> {
 // Linkerd metric specs
 // ──────────────────────────────────────────────────────────────────────────────
 
-function getLinkerdQueries(cluster: string): Array<MetricQueryConfigData> {
+function getLinkerdTrafficQueries(
+  cluster: string,
+): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
@@ -500,10 +505,6 @@ function getLinkerdQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Linkerd Control Plane metric specs
-// ──────────────────────────────────────────────────────────────────────────────
-
 function getLinkerdControlPlaneQueries(
   cluster: string,
 ): Array<MetricQueryConfigData> {
@@ -543,6 +544,278 @@ function getLinkerdControlPlaneQueries(
         legend: "Injections",
         legendUnit: "",
         metricName: "proxy_injector_injection_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+  ];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Cilium metric specs
+// ──────────────────────────────────────────────────────────────────────────────
+
+function getCiliumDataPlaneQueries(
+  cluster: string,
+): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "cilium_forward_count",
+        title: "Forwarded Packets",
+        description:
+          "Total packets forwarded by Cilium datapath (eBPF). Core throughput indicator.",
+        legend: "Forwarded",
+        legendUnit: "pkt/s",
+        metricName: "cilium_forward_count_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_forward_bytes",
+        title: "Forwarded Bytes",
+        description: "Total bytes forwarded through the Cilium datapath.",
+        legend: "Bytes",
+        legendUnit: "",
+        metricName: "cilium_forward_bytes_total",
+        aggregation: AggregationType.Sum,
+        yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_drop_count",
+        title: "Dropped Packets",
+        description:
+          "Packets dropped by Cilium, by reason (policy denied, invalid, etc.). Non-zero needs attention.",
+        legend: "Dropped",
+        legendUnit: "",
+        metricName: "cilium_drop_count_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_drop_bytes",
+        title: "Dropped Bytes",
+        description: "Total bytes dropped by Cilium datapath.",
+        legend: "Bytes",
+        legendUnit: "",
+        metricName: "cilium_drop_bytes_total",
+        aggregation: AggregationType.Sum,
+        yAxisFormatter: KubernetesResourceUtils.formatBytesForChart,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_policy_verdict",
+        title: "Policy Verdicts",
+        description:
+          "Network policy enforcement decisions (forwarded, denied, dropped).",
+        legend: "Verdicts",
+        legendUnit: "",
+        metricName: "cilium_policy_l4_filter_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_endpoint_count",
+        title: "Managed Endpoints",
+        description:
+          "Number of endpoints (pods) managed by Cilium on each node.",
+        legend: "Endpoints",
+        legendUnit: "",
+        metricName: "cilium_endpoint_count",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_endpoint_regenerations",
+        title: "Endpoint Regenerations",
+        description:
+          "BPF program regenerations for endpoints. Triggered by policy or identity changes.",
+        legend: "Regenerations",
+        legendUnit: "",
+        metricName: "cilium_endpoint_regenerations_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_endpoint_regeneration_time",
+        title: "Regeneration Duration",
+        description:
+          "Time to regenerate BPF programs. High values impact pod readiness.",
+        legend: "Duration",
+        legendUnit: "seconds",
+        metricName:
+          "cilium_endpoint_regeneration_time_stats_seconds_sum",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+  ];
+}
+
+function getCiliumControlPlaneQueries(
+  cluster: string,
+): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "cilium_identity_count",
+        title: "Security Identities",
+        description:
+          "Number of unique security identities allocated. Each identity represents a set of labels.",
+        legend: "Identities",
+        legendUnit: "",
+        metricName: "cilium_identity_count",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_policy_count",
+        title: "Policy Rules",
+        description:
+          "Number of network policy rules loaded into the BPF datapath.",
+        legend: "Rules",
+        legendUnit: "",
+        metricName: "cilium_policy_count",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_policy_import_errors",
+        title: "Policy Import Errors",
+        description:
+          "Errors importing network policies. Non-zero values indicate misconfigured policies.",
+        legend: "Errors",
+        legendUnit: "",
+        metricName: "cilium_policy_import_errors_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_bpf_map_ops",
+        title: "BPF Map Operations",
+        description:
+          "eBPF map operations (lookup, update, delete). Shows datapath activity.",
+        legend: "Operations",
+        legendUnit: "",
+        metricName: "cilium_bpf_map_ops_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_ipam_available",
+        title: "Available IPs (IPAM)",
+        description:
+          "Number of available IP addresses in the IPAM pool. Low values may prevent pod scheduling.",
+        legend: "Available",
+        legendUnit: "",
+        metricName: "cilium_ip_addresses",
+        aggregation: AggregationType.Avg,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "cilium_errors_warnings",
+        title: "Agent Errors",
+        description:
+          "Cilium agent errors and warnings. Monitors overall agent health.",
+        legend: "Errors",
+        legendUnit: "",
+        metricName: "cilium_errors_warnings_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+  ];
+}
+
+function getCiliumHubbleQueries(
+  cluster: string,
+): Array<MetricQueryConfigData> {
+  return [
+    buildQuery(
+      {
+        variable: "hubble_flows_processed",
+        title: "Flows Processed",
+        description:
+          "Total network flows observed and processed by Hubble. Core observability throughput.",
+        legend: "Flows",
+        legendUnit: "flow/s",
+        metricName: "hubble_flows_processed_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "hubble_tcp_flags",
+        title: "TCP Flags",
+        description:
+          "TCP flag distribution (SYN, FIN, RST). Useful for detecting connection issues.",
+        legend: "Flags",
+        legendUnit: "",
+        metricName: "hubble_tcp_flags_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "hubble_dns_queries",
+        title: "DNS Queries Observed",
+        description:
+          "DNS queries observed by Hubble. Provides L7 visibility into DNS traffic.",
+        legend: "Queries",
+        legendUnit: "",
+        metricName: "hubble_dns_queries_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "hubble_dns_responses",
+        title: "DNS Responses Observed",
+        description: "DNS responses observed by Hubble, by response code.",
+        legend: "Responses",
+        legendUnit: "",
+        metricName: "hubble_dns_responses_total",
+        aggregation: AggregationType.Sum,
+      },
+      cluster,
+    ),
+    buildQuery(
+      {
+        variable: "hubble_drop_total",
+        title: "Dropped Flows",
+        description:
+          "Flows dropped as observed by Hubble. Correlates with Cilium drop reasons.",
+        legend: "Dropped",
+        legendUnit: "",
+        metricName: "hubble_drop_total",
         aggregation: AggregationType.Sum,
       },
       cluster,
@@ -623,8 +896,8 @@ const KubernetesClusterServiceMesh: FunctionComponent<
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
   // Build all metric view data
-  const istioData: MetricViewData = buildMetricViewData(
-    getIstioQueries(clusterIdentifier),
+  const istioTrafficData: MetricViewData = buildMetricViewData(
+    getIstioTrafficQueries(clusterIdentifier),
     startAndEndDate,
   );
   const istioPilotData: MetricViewData = buildMetricViewData(
@@ -635,14 +908,114 @@ const KubernetesClusterServiceMesh: FunctionComponent<
     getEnvoyQueries(clusterIdentifier),
     startAndEndDate,
   );
-  const linkerdData: MetricViewData = buildMetricViewData(
-    getLinkerdQueries(clusterIdentifier),
+  const linkerdTrafficData: MetricViewData = buildMetricViewData(
+    getLinkerdTrafficQueries(clusterIdentifier),
     startAndEndDate,
   );
   const linkerdControlPlaneData: MetricViewData = buildMetricViewData(
     getLinkerdControlPlaneQueries(clusterIdentifier),
     startAndEndDate,
   );
+  const ciliumDataPlaneData: MetricViewData = buildMetricViewData(
+    getCiliumDataPlaneQueries(clusterIdentifier),
+    startAndEndDate,
+  );
+  const ciliumControlPlaneData: MetricViewData = buildMetricViewData(
+    getCiliumControlPlaneQueries(clusterIdentifier),
+    startAndEndDate,
+  );
+  const ciliumHubbleData: MetricViewData = buildMetricViewData(
+    getCiliumHubbleQueries(clusterIdentifier),
+    startAndEndDate,
+  );
+
+  const tabs: Array<Tab> = [
+    {
+      name: "Cilium",
+      children: (
+        <Fragment>
+          <MeshSection
+            title="Data Plane — eBPF"
+            description="Packet forwarding, drops, and policy enforcement at the eBPF datapath layer. Covers throughput, endpoint management, and BPF program regeneration."
+            icon={IconProp.ArrowCircleRight}
+            data={ciliumDataPlaneData}
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+          <MeshSection
+            title="Control Plane — Agent"
+            description="Cilium agent managing security identities, network policies, BPF maps, and IPAM. Monitors policy health, identity allocation, and agent errors."
+            icon={IconProp.Settings}
+            data={ciliumControlPlaneData}
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+          <MeshSection
+            title="Hubble — Observability"
+            description="Hubble network flow observability layer. Tracks flow processing throughput, DNS visibility, TCP connection flags, and dropped flows."
+            icon={IconProp.Eye}
+            data={ciliumHubbleData}
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+        </Fragment>
+      ),
+    },
+    {
+      name: "Istio",
+      children: (
+        <Fragment>
+          <MeshSection
+            title="Data Plane — Traffic"
+            description="HTTP and TCP traffic flowing through Envoy sidecar proxies. Covers request throughput, latency, payload sizes, and connection lifecycle."
+            icon={IconProp.ArrowCircleRight}
+            data={istioTrafficData}
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+          <MeshSection
+            title="Control Plane — Pilot (istiod)"
+            description="Istio Pilot manages xDS configuration distribution to all Envoy proxies. Monitors push throughput, errors, convergence time, and listener conflicts."
+            icon={IconProp.Settings}
+            data={istioPilotData}
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+          <MeshSection
+            title="Envoy Proxy"
+            description="Low-level Envoy sidecar proxy metrics. Tracks upstream connection pools, request timeouts, retries, and connection failures."
+            icon={IconProp.Globe}
+            data={envoyData}
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+        </Fragment>
+      ),
+    },
+    {
+      name: "Linkerd",
+      children: (
+        <Fragment>
+          <MeshSection
+            title="Data Plane — Traffic"
+            description="Request throughput, response latency, and TCP connection metrics from Linkerd proxy sidecars."
+            icon={IconProp.ArrowCircleRight}
+            data={linkerdTrafficData}
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+          <MeshSection
+            title="Control Plane"
+            description="Linkerd control plane components: identity (mTLS certificate issuance), destination (service discovery), and proxy injector (sidecar injection)."
+            icon={IconProp.Settings}
+            data={linkerdControlPlaneData}
+            timeRange={timeRange}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+        </Fragment>
+      ),
+    },
+  ];
 
   return (
     <Fragment>
@@ -664,78 +1037,14 @@ const KubernetesClusterServiceMesh: FunctionComponent<
             <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
               serviceMesh.provider
             </code>{" "}
-            to be configured in the kubernetes-agent Helm chart values.
-            Supported providers are Istio and Linkerd. Only the sections
-            matching your provider will show data.
+            to be configured in the kubernetes-agent Helm chart values. Select
+            the tab matching your provider below.
           </p>
         </div>
       </div>
 
-      {/* Global time range picker */}
-      <div className="mb-5 flex items-center justify-end">
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={timeRange}
-          onChange={handleTimeRangeChange}
-        />
-      </div>
-
-      {/* ── Istio Sections ─────────────────────────────────────────────── */}
-
-      <div className="mb-2">
-        <h2 className="text-lg font-semibold text-gray-900">Istio</h2>
-        <p className="text-sm text-gray-500">
-          Metrics from Istio Envoy sidecars and Pilot (istiod) control plane.
-        </p>
-      </div>
-
-      {/* Istio Data Plane */}
-      <MeshSection
-        title="Data Plane — Traffic"
-        description="HTTP and TCP traffic flowing through Envoy sidecar proxies. Covers request throughput, latency, payload sizes, and connection lifecycle."
-        icon={IconProp.ArrowCircleRight}
-        data={istioData}
-      />
-
-      {/* Istio Control Plane (Pilot / istiod) */}
-      <MeshSection
-        title="Control Plane — Pilot (istiod)"
-        description="Istio Pilot manages xDS configuration distribution to all Envoy proxies. Monitors push throughput, errors, convergence time, and listener conflicts."
-        icon={IconProp.Settings}
-        data={istioPilotData}
-      />
-
-      {/* Envoy Proxy internals */}
-      <MeshSection
-        title="Envoy Proxy"
-        description="Low-level Envoy sidecar proxy metrics. Tracks upstream connection pools, request timeouts, retries, and connection failures."
-        icon={IconProp.Globe}
-        data={envoyData}
-      />
-
-      {/* ── Linkerd Sections ───────────────────────────────────────────── */}
-
-      <div className="mb-2 mt-6">
-        <h2 className="text-lg font-semibold text-gray-900">Linkerd</h2>
-        <p className="text-sm text-gray-500">
-          Metrics from Linkerd proxy sidecars and control plane components.
-        </p>
-      </div>
-
-      {/* Linkerd Data Plane */}
-      <MeshSection
-        title="Data Plane — Traffic"
-        description="Request throughput, response latency, and TCP connection metrics from Linkerd proxy sidecars."
-        icon={IconProp.ArrowCircleRight}
-        data={linkerdData}
-      />
-
-      {/* Linkerd Control Plane */}
-      <MeshSection
-        title="Control Plane"
-        description="Linkerd control plane components: identity (mTLS certificate issuance), destination (service discovery), and proxy injector (sidecar injection)."
-        icon={IconProp.Settings}
-        data={linkerdControlPlaneData}
-      />
+      {/* Tabbed content: Cilium | Istio | Linkerd */}
+      <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

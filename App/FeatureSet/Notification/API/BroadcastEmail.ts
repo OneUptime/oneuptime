@@ -41,13 +41,15 @@ router.post(
         throw new BadDataException("Test email address is required");
       }
 
+      const htmlMessage: string = message.replace(/\n/g, "<br>");
+
       const mail: EmailMessage = {
         templateType: EmailTemplateType.SimpleMessage,
         toEmail: new Email(testEmail),
         subject: subject,
         vars: {
           subject: subject,
-          message: message,
+          message: htmlMessage,
         },
         body: "",
       };
@@ -99,13 +101,15 @@ router.post(
         }
 
         try {
+          const htmlMessage: string = message.replace(/\n/g, "<br>");
+
           const mail: EmailMessage = {
             templateType: EmailTemplateType.SimpleMessage,
             toEmail: user.email,
             subject: subject,
             vars: {
               subject: subject,
-              message: message,
+              message: htmlMessage,
             },
             body: "",
           };
