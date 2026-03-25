@@ -142,10 +142,6 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     props.component.arguments.metricQueryConfigs,
   ]);
 
-  useEffect(() => {
-    fetchAggregatedResults();
-  }, []);
-
   if (isLoading) {
     return <ComponentLoader />;
   }

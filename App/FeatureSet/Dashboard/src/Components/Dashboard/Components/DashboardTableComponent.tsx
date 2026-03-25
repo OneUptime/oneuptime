@@ -113,10 +113,6 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     }
   }, [props.component.arguments.metricQueryConfig]);
 
-  useEffect(() => {
-    fetchAggregatedResults();
-  }, []);
-
   if (isLoading) {
     return <ComponentLoader />;
   }

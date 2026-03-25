@@ -6,7 +6,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
-import DashboardValueComponent from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
+import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -15,10 +15,10 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
-  component: DashboardValueComponent;
+  component: DashboardValueComponentType;
 }
 
-const DashboardValueComponent: FunctionComponent<ComponentProps> = (
+const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [metricResults, setMetricResults] = React.useState<
@@ -100,10 +100,6 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     fetchAggregatedResults();
   }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
-
-  useEffect(() => {
-    fetchAggregatedResults();
-  }, []);
 
   useEffect(() => {
     // set metricQueryConfig to the new value only if it is different from the previous value
@@ -218,4 +214,4 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardValueComponent;
+export default DashboardValueComponentElement;

@@ -101,10 +101,6 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
 
   useEffect(() => {
-    fetchAggregatedResults();
-  }, []);
-
-  useEffect(() => {
     if (
       JSONFunctions.isJSONObjectDifferent(
         metricQueryConfig || {},
