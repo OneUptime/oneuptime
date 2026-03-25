@@ -6,6 +6,9 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import UserService from "Common/Server/Services/UserService";
+import Markdown, {
+  MarkdownContentType,
+} from "Common/Server/Types/Markdown";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -41,7 +44,10 @@ router.post(
         throw new BadDataException("Test email address is required");
       }
 
-      const htmlMessage: string = message.replace(/\n/g, "<br>");
+      const htmlMessage: string = await Markdown.convertToHTML(
+        message,
+        MarkdownContentType.Email,
+      );
 
       const mail: EmailMessage = {
         templateType: EmailTemplateType.SimpleMessage,
@@ -92,6 +98,11 @@ router.post(
         },
       });
 
+      const htmlMessage: string = await Markdown.convertToHTML(
+        message,
+        MarkdownContentType.Email,
+      );
+
       let sentCount: number = 0;
       let errorCount: number = 0;
 
@@ -101,8 +112,6 @@ router.post(
         }
 
         try {
-          const htmlMessage: string = message.replace(/\n/g, "<br>");
-
           const mail: EmailMessage = {
             templateType: EmailTemplateType.SimpleMessage,
             toEmail: user.email,

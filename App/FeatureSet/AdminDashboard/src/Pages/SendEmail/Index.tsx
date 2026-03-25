@@ -121,10 +121,10 @@ const SendEmail: FunctionComponent = (): ReactElement => {
               },
               title: "Message",
               description:
-                "The body of the announcement email. This will be displayed in a branded OneUptime email template.",
+                "The body of the announcement email. This will be displayed in a branded OneUptime email template. You can use Markdown formatting.",
               placeholder: "Enter your announcement message here...",
               required: true,
-              fieldType: FormFieldSchemaType.LongText,
+              fieldType: FormFieldSchemaType.Markdown,
             },
             {
               field: {
@@ -236,10 +236,10 @@ const SendEmail: FunctionComponent = (): ReactElement => {
               },
               title: "Message",
               description:
-                "The body of the announcement email. This will be sent to all registered users.",
+                "The body of the announcement email. This will be sent to all registered users. You can use Markdown formatting.",
               placeholder: "Enter your announcement message here...",
               required: true,
-              fieldType: FormFieldSchemaType.LongText,
+              fieldType: FormFieldSchemaType.Markdown,
             },
           ]}
           onSubmit={async (values: JSONObject) => {
