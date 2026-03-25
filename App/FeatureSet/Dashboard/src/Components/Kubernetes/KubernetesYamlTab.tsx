@@ -296,7 +296,7 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
         },
       ]}
     >
-      <div className="overflow-auto max-h-[600px] bg-gray-50 rounded-lg border border-gray-200">
+      <div className="overflow-x-auto bg-gray-50 rounded-lg border border-gray-200">
         <table className="w-full">
           <tbody>
             {lines.map((line: string, index: number) => {

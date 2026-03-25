@@ -3,6 +3,9 @@ import LineChart, { ComponentProps as LineChartProps } from "../Line/LineChart";
 import BarChartElement, {
   ComponentProps as BarChartProps,
 } from "../Bar/BarChart";
+import AreaChartElement, {
+  ComponentProps as AreaChartProps,
+} from "../Area/AreaChart";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum ChartType {
@@ -16,7 +19,7 @@ export interface Chart {
   title: string;
   description?: string | undefined;
   type: ChartType;
-  props: LineChartProps | BarChartProps;
+  props: LineChartProps | BarChartProps | AreaChartProps;
 }
 
 export interface ComponentProps {
@@ -31,71 +34,75 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const syncId: string = Text.generateRandomText(10);
 
+  const gridCols: string =
+    props.charts.length > 1 ? "lg:grid-cols-2" : "lg:grid-cols-1";
+
   return (
-    <div className="lg:grid grid-cols-1 gap-5 space-y-5 lg:space-y-0">
+    <div
+      className={`grid grid-cols-1 ${gridCols} gap-4 space-y-4 lg:space-y-0`}
+    >
       {props.charts.map((chart: Chart, index: number) => {
-        switch (chart.type) {
-          case ChartType.LINE:
-            return (
-              <div
-                key={index}
-                className={`p-6 ${props.hideCard ? "" : "rounded-md bg-white shadow"} ${props.chartCssClass || ""}`}
-              >
-                <h2
-                  data-testid="card-details-heading"
-                  id="card-details-heading"
-                  className="text-lg font-medium leading-6 text-gray-900"
-                >
-                  {chart.title}
-                </h2>
-                {chart.description && (
-                  <p
-                    data-testid="card-description"
-                    className="mt-1 text-sm text-gray-500 w-full hidden md:block"
-                  >
-                    {chart.description}
-                  </p>
-                )}
+        const cardClass: string = props.hideCard
+          ? ""
+          : "rounded-lg border border-gray-200 bg-white shadow-sm";
+
+        const chartContent: ReactElement = (() => {
+          switch (chart.type) {
+            case ChartType.LINE:
+              return (
                 <LineChart
                   key={index}
                   {...(chart.props as LineChartProps)}
                   syncid={syncId}
                   heightInPx={props.heightInPx}
                 />
-              </div>
-            );
-          case ChartType.BAR:
-            return (
-              <div
-                key={index}
-                className={`p-6 ${props.hideCard ? "" : "rounded-md bg-white shadow"} ${props.chartCssClass || ""}`}
-              >
-                <h2
-                  data-testid="card-details-heading"
-                  id="card-details-heading"
-                  className="text-lg font-medium leading-6 text-gray-900"
-                >
-                  {chart.title}
-                </h2>
-                {chart.description && (
-                  <p
-                    data-testid="card-description"
-                    className="mt-1 text-sm text-gray-500 w-full hidden md:block"
-                  >
-                    {chart.description}
-                  </p>
-                )}
+              );
+            case ChartType.BAR:
+              return (
                 <BarChartElement
                   key={index}
                   {...(chart.props as BarChartProps)}
                   syncid={syncId}
                   heightInPx={props.heightInPx}
                 />
-              </div>
-            );
-          default:
-            return <></>;
-        }
+              );
+            case ChartType.AREA:
+              return (
+                <AreaChartElement
+                  key={index}
+                  {...(chart.props as AreaChartProps)}
+                  syncid={syncId}
+                  heightInPx={props.heightInPx}
+                />
+              );
+            default:
+              return <></>;
+          }
+        })();
+
+        return (
+          <div
+            key={index}
+            className={`p-5 ${cardClass} ${props.chartCssClass || ""}`}
+          >
+            <h2
+              data-testid="card-details-heading"
+              id="card-details-heading"
+              className="text-base font-semibold leading-6 text-gray-900"
+            >
+              {chart.title}
+            </h2>
+            {chart.description && (
+              <p
+                data-testid="card-description"
+                className="mt-0.5 text-sm text-gray-500 w-full hidden md:block"
+              >
+                {chart.description}
+              </p>
+            )}
+            {chartContent}
+          </div>
+        );
       })}
     </div>
   );

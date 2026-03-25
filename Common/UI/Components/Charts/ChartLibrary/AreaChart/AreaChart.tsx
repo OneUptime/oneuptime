@@ -1,17 +1,16 @@
-// Tremor Raw LineChart [v0.3.1]
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// AreaChart - Based on Tremor Raw LineChart pattern with gradient area fills
 
 "use client";
 
 import React from "react";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import {
+  Area,
+  AreaChart as RechartsAreaChart,
   CartesianGrid,
   Dot,
   Label,
-  Line,
   Legend as RechartsLegend,
-  LineChart as RechartsLineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -25,6 +24,7 @@ import {
   AvailableChartColorsKeys,
   constructCategoryColors,
   getColorClassName,
+  getColorHex,
 } from "../Utils/ChartColors";
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
@@ -55,7 +55,6 @@ const LegendItem: ({
   return (
     <li
       className={cx(
-        // base
         "group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition",
         hasOnValueChange
           ? "cursor-pointer hover:bg-gray-100"
@@ -76,9 +75,7 @@ const LegendItem: ({
       />
       <p
         className={cx(
-          // base
           "truncate whitespace-nowrap text-xs",
-          // text color
           "text-gray-700",
           hasOnValueChange && "group-hover:text-gray-900",
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
@@ -105,6 +102,7 @@ const ScrollButton: ({
   onClick,
   disabled,
 }: ScrollButtonProps) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Icon: React.ElementType<any, keyof React.JSX.IntrinsicElements> = icon;
   const [isPressed, setIsPressed] = React.useState(false);
   const intervalRef: React.MutableRefObject<NodeJS.Timeout | null> =
@@ -134,7 +132,6 @@ const ScrollButton: ({
     <button
       type="button"
       className={cx(
-        // base
         "group inline-flex size-5 items-center truncate rounded transition",
         disabled
           ? "cursor-not-allowed text-gray-400"
@@ -306,6 +303,7 @@ const Legend: React.ForwardRefExoticComponent<
                 key={`item-${index}`}
                 name={category}
                 color={colors[index] as AvailableChartColorsKeys}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onClick={onClickLegendItem as any}
                 activeLegend={activeLegend!}
               />
@@ -317,9 +315,7 @@ const Legend: React.ForwardRefExoticComponent<
             <div
               ref={scrollButtonsRef}
               className={cx(
-                // base
                 "absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1",
-                // background color
                 "bg-white",
               )}
             >
@@ -349,7 +345,19 @@ const Legend: React.ForwardRefExoticComponent<
 
 Legend.displayName = "Legend";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PayloadItem = {
+  category: string;
+  value: number;
+  index: string;
+  color: AvailableChartColorsKeys;
+  type?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any;
+};
+
 const ChartLegend: (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { payload }: any,
   categoryColors: Map<string, AvailableChartColorsKeys>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
@@ -359,6 +367,7 @@ const ChartLegend: (
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
 ) => React.JSX.Element = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { payload }: any,
   categoryColors: Map<string, AvailableChartColorsKeys>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
@@ -402,9 +411,11 @@ const ChartLegend: (
     >
       <Legend
         categories={legendPayload.map((entry: PayloadItem) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return entry.value as any;
         })}
         colors={legendPayload.map((entry: PayloadItem) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return categoryColors.get(entry.value! as any)!;
         })}
         onClickLegendItem={onClick!}
@@ -418,21 +429,6 @@ const ChartLegend: (
 //#region Tooltip
 
 type TooltipProps = Pick<ChartTooltipProps, "active" | "payload" | "label">;
-
-export type PayloadItem = {
-  // eslint-disable-next-line react/no-unused-prop-types
-  category: string;
-  // eslint-disable-next-line react/no-unused-prop-types
-  value: number;
-  // eslint-disable-next-line react/no-unused-prop-types
-  index: string;
-  // eslint-disable-next-line react/no-unused-prop-types
-  color: AvailableChartColorsKeys;
-  // eslint-disable-next-line react/no-unused-prop-types
-  type?: string;
-  // eslint-disable-next-line react/no-unused-prop-types
-  payload: any;
-};
 
 interface ChartTooltipProps {
   active: boolean | undefined;
@@ -459,20 +455,15 @@ const ChartTooltip: ({
     return (
       <div
         className={cx(
-          // base
           "rounded-md border text-sm shadow-md",
-          // border color
           "border-gray-200",
-          // background color
           "bg-white",
         )}
       >
         <div className={cx("border-b border-inherit px-4 py-2")}>
           <p
             className={cx(
-              // base
               "font-medium",
-              // text color
               "text-gray-900",
             )}
           >
@@ -497,9 +488,7 @@ const ChartTooltip: ({
                     />
                     <p
                       className={cx(
-                        // base
                         "whitespace-nowrap text-right",
-                        // text color
                         "text-gray-700",
                       )}
                     >
@@ -508,9 +497,7 @@ const ChartTooltip: ({
                   </div>
                   <p
                     className={cx(
-                      // base
                       "whitespace-nowrap text-right font-medium tabular-nums",
-                      // text color
                       "text-gray-900",
                     )}
                   >
@@ -527,7 +514,7 @@ const ChartTooltip: ({
   return null;
 };
 
-//#region LineChart
+//#region AreaChart
 
 interface ActiveDot {
   index?: number;
@@ -540,9 +527,10 @@ type BaseEventProps = {
   [key: string]: number | string;
 };
 
-type LineChartEventProps = BaseEventProps | null | undefined;
+type AreaChartEventProps = BaseEventProps | null | undefined;
 
-interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
+interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>[];
   index: string;
   categories: string[];
@@ -560,7 +548,7 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   minValue?: number;
   maxValue?: number;
   allowDecimals?: boolean;
-  onValueChange?: (value: LineChartEventProps) => void;
+  onValueChange?: (value: AreaChartEventProps) => void;
   enableLegendSlider?: boolean;
   tickGap?: number;
   connectNulls?: boolean;
@@ -573,10 +561,10 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   syncid?: string | undefined;
 }
 
-const LineChart: React.ForwardRefExoticComponent<
-  LineChartProps & React.RefAttributes<HTMLDivElement>
-> = React.forwardRef<HTMLDivElement, LineChartProps>(
-  (props: LineChartProps, ref: React.ForwardedRef<HTMLDivElement>) => {
+const AreaChart: React.ForwardRefExoticComponent<
+  AreaChartProps & React.RefAttributes<HTMLDivElement>
+> = React.forwardRef<HTMLDivElement, AreaChartProps>(
+  (props: AreaChartProps, ref: React.ForwardedRef<HTMLDivElement>) => {
     const {
       data = [],
       categories = [],
@@ -629,11 +617,13 @@ const LineChart: React.ForwardRefExoticComponent<
       maxValue,
     );
     const hasOnValueChange: boolean = Boolean(onValueChange);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prevActiveRef: React.MutableRefObject<boolean | undefined> =
       React.useRef<boolean | undefined>(undefined);
     const prevLabelRef: React.MutableRefObject<string | undefined> =
       React.useRef<string | undefined>(undefined);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function onDotClick(itemData: any, event: React.MouseEvent): void {
       event.stopPropagation();
 
@@ -689,7 +679,7 @@ const LineChart: React.ForwardRefExoticComponent<
     return (
       <div ref={ref} className={cx("h-80 w-full", className)} {...other}>
         <ResponsiveContainer>
-          <RechartsLineChart
+          <RechartsAreaChart
             data={data}
             syncId={props.syncid?.toString() || ""}
             onClick={
@@ -699,7 +689,7 @@ const LineChart: React.ForwardRefExoticComponent<
                     setActiveLegend(undefined);
                     onValueChange?.(null);
                   }
-                : () => {} // do nothing
+                : () => {}
             }
             margin={{
               bottom: (xAxisLabel ? 30 : undefined) as unknown as number,
@@ -708,6 +698,27 @@ const LineChart: React.ForwardRefExoticComponent<
               top: 5,
             }}
           >
+            <defs>
+              {categories.map((category: string, i: number) => {
+                const colorKey: AvailableChartColorsKeys =
+                  (colors[i % colors.length] as AvailableChartColorsKeys) ||
+                  "blue";
+                const hex: string = getColorHex(colorKey);
+                return (
+                  <linearGradient
+                    key={category}
+                    id={`gradient-${category.replace(/[^a-zA-Z0-9]/g, "_")}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor={hex} stopOpacity={0.2} />
+                    <stop offset="100%" stopColor={hex} stopOpacity={0.01} />
+                  </linearGradient>
+                );
+              })}
+            </defs>
             {showGridLines ? (
               <CartesianGrid
                 className={cx("stroke-gray-200 stroke-1")}
@@ -724,17 +735,18 @@ const LineChart: React.ForwardRefExoticComponent<
               ticks={
                 startEndOnly
                   ? ([
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (data[0] as any)[index],
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (data[data.length - 1] as any)[index],
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     ] as any)
                   : undefined
               }
               fill=""
               stroke=""
               className={cx(
-                // base
                 "text-xs",
-                // text fill
                 "fill-gray-500",
               )}
               tickLine={false}
@@ -762,9 +774,7 @@ const LineChart: React.ForwardRefExoticComponent<
               fill=""
               stroke=""
               className={cx(
-                // base
                 "text-xs",
-                // text fill
                 "fill-gray-500",
               )}
               tickFormatter={valueFormatter}
@@ -789,8 +799,11 @@ const LineChart: React.ForwardRefExoticComponent<
               cursor={{ stroke: "#d1d5db", strokeWidth: 1 }}
               offset={20}
               position={{ y: 0 }}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               content={({ active, payload, label }: any) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const cleanPayload: TooltipProps["payload"] = payload
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   ? payload.map((item: any) => {
                       return {
                         category: item.dataKey,
@@ -838,6 +851,7 @@ const LineChart: React.ForwardRefExoticComponent<
               <RechartsLegend
                 verticalAlign="top"
                 height={legendHeight}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 content={({ payload }: any) => {
                   return ChartLegend(
                     { payload },
@@ -857,29 +871,42 @@ const LineChart: React.ForwardRefExoticComponent<
               />
             ) : null}
             {categories.map((category: string) => {
+              const gradientId: string = `gradient-${category.replace(/[^a-zA-Z0-9]/g, "_")}`;
+              const colorKey: AvailableChartColorsKeys = categoryColors.get(
+                category,
+              ) as AvailableChartColorsKeys;
+              const hex: string = getColorHex(colorKey);
+
               return (
-                <Line
-                  className={cx(
-                    getColorClassName(
-                      categoryColors.get(category) as AvailableChartColorsKeys,
-                      "stroke",
-                    ),
-                  )}
+                <Area
+                  key={category}
+                  name={category}
+                  type={props.curve || ChartCurve.MONOTONE}
+                  dataKey={category}
+                  stroke={hex}
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  fill={`url(#${gradientId})`}
+                  fillOpacity={1}
                   strokeOpacity={
                     activeDot || (activeLegend && activeLegend !== category)
                       ? 0.3
                       : 1
                   }
-                  activeDot={(props: any) => {
+                  isAnimationActive={false}
+                  connectNulls={connectNulls}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  activeDot={(dotProps: any) => {
                     const {
                       cx: cxCoord,
                       cy: cyCoord,
                       stroke,
-                      strokeLinecap,
-                      strokeLinejoin,
+                      strokeLinecap: slc,
+                      strokeLinejoin: slj,
                       strokeWidth,
                       dataKey,
-                    } = props;
+                    } = dotProps;
                     return (
                       <Dot
                         className={cx(
@@ -897,26 +924,28 @@ const LineChart: React.ForwardRefExoticComponent<
                         r={5}
                         fill=""
                         stroke={stroke}
-                        strokeLinecap={strokeLinecap}
-                        strokeLinejoin={strokeLinejoin}
+                        strokeLinecap={slc}
+                        strokeLinejoin={slj}
                         strokeWidth={strokeWidth}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         onClick={(_: any, event: any) => {
-                          return onDotClick(props, event);
+                          return onDotClick(dotProps, event);
                         }}
                       />
                     );
                   }}
-                  dot={(props: any) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  dot={(dotProps: any) => {
                     const {
                       stroke,
-                      strokeLinecap,
-                      strokeLinejoin,
+                      strokeLinecap: slc,
+                      strokeLinejoin: slj,
                       strokeWidth,
                       cx: cxCoord,
                       cy: cyCoord,
                       dataKey,
-                      index,
-                    } = props;
+                      index: dotIndex,
+                    } = dotProps;
 
                     if (
                       (hasOnlyOneValueForKey(data, category) &&
@@ -924,19 +953,19 @@ const LineChart: React.ForwardRefExoticComponent<
                           activeDot ||
                           (activeLegend && activeLegend !== category)
                         )) ||
-                      (activeDot?.index === index &&
+                      (activeDot?.index === dotIndex &&
                         activeDot?.dataKey === category)
                     ) {
                       return (
                         <Dot
-                          key={index}
+                          key={dotIndex}
                           cx={cxCoord}
                           cy={cyCoord}
                           r={5}
                           stroke={stroke}
                           fill=""
-                          strokeLinecap={strokeLinecap}
-                          strokeLinejoin={strokeLinejoin}
+                          strokeLinecap={slc}
+                          strokeLinejoin={slj}
                           strokeWidth={strokeWidth}
                           className={cx(
                             "stroke-white",
@@ -951,54 +980,18 @@ const LineChart: React.ForwardRefExoticComponent<
                         />
                       );
                     }
-                    return <React.Fragment key={index}></React.Fragment>;
+                    return <React.Fragment key={dotIndex}></React.Fragment>;
                   }}
-                  key={category}
-                  name={category}
-                  type={props.curve || ChartCurve.LINEAR}
-                  dataKey={category}
-                  stroke=""
-                  strokeWidth={2}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  isAnimationActive={false}
-                  connectNulls={connectNulls}
                 />
               );
             })}
-            {/* hidden lines to increase clickable target area */}
-            {onValueChange
-              ? categories.map((category: string) => {
-                  return (
-                    <Line
-                      className={cx("cursor-pointer")}
-                      strokeOpacity={0}
-                      key={category}
-                      name={category}
-                      type={props.curve || ChartCurve.LINEAR}
-                      dataKey={category}
-                      stroke="transparent"
-                      fill="transparent"
-                      legendType="none"
-                      tooltipType="none"
-                      strokeWidth={12}
-                      connectNulls={connectNulls}
-                      onClick={(props: any, event: any) => {
-                        event.stopPropagation();
-                        const { name } = props;
-                        onCategoryClick(name);
-                      }}
-                    />
-                  );
-                })
-              : null}
-          </RechartsLineChart>
+          </RechartsAreaChart>
         </ResponsiveContainer>
       </div>
     );
   },
 );
 
-LineChart.displayName = "LineChart";
+AreaChart.displayName = "AreaChart";
 
-export { LineChart, type LineChartEventProps, type TooltipProps };
+export { AreaChart, type AreaChartEventProps, type TooltipProps };
