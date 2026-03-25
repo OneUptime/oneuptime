@@ -66,12 +66,14 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
       <div className="pt-3 pb-5">
         <div className="space-y-5">
           {props.showFilter &&
-            !props.isFilterLoading &&
-            !props.filterError &&
             props.filters &&
             props.filters
               .filter((filter: Filter<T>) => {
-                return !filter.isAdvancedFilter || showMoreFilters;
+                if (filter.isAdvancedFilter) {
+                  // Hide advanced filters if not toggled on, or if they are still loading/errored
+                  return showMoreFilters && !props.isFilterLoading && !props.filterError;
+                }
+                return true;
               })
               .map((filter: Filter<T>, i: number) => {
                 return (
@@ -127,6 +129,16 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                 );
               })}
         </div>
+        {props.showFilter && props.isFilterLoading && !props.filterError && (
+          <ComponentLoader />
+        )}
+
+        {props.showFilter && props.filterError && (
+          <ErrorMessage
+            message={props.filterError}
+            onRefreshClick={props.onFilterRefreshClick}
+          />
+        )}
         {showAdvancedFilterButton && (
           <Button
             className="-ml-3 mt-1"
@@ -146,16 +158,6 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
           />
         )}
       </div>
-      {props.showFilter && props.isFilterLoading && !props.filterError && (
-        <ComponentLoader />
-      )}
-
-      {props.showFilter && props.filterError && (
-        <ErrorMessage
-          message={props.filterError}
-          onRefreshClick={props.onFilterRefreshClick}
-        />
-      )}
     </div>
   );
 };
