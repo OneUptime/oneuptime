@@ -5,6 +5,14 @@ import ComponentMetadata, {
   ComponentType,
 } from "./../Component";
 
+export enum ConditionValueType {
+  Text = "text",
+  Boolean = "boolean",
+  Number = "number",
+  Null = "null",
+  Undefined = "undefined",
+}
+
 export enum ConditionOperator {
   EqualTo = "==",
   NotEqualTo = "!=",
@@ -28,6 +36,15 @@ const components: Array<ComponentMetadata> = [
     componentType: ComponentType.Component,
     arguments: [
       {
+        type: ComponentInputType.ValueType,
+        name: "Input 1 Type",
+        description:
+          "Type of Input 1. Defaults to Text if not selected.",
+        placeholder: "Text",
+        required: false,
+        id: "input-1-type",
+      },
+      {
         type: ComponentInputType.Text,
         name: "Input 1",
         description: "Input 1",
@@ -42,6 +59,15 @@ const components: Array<ComponentMetadata> = [
         placeholder: "Equal To",
         required: true,
         id: "operator",
+      },
+      {
+        type: ComponentInputType.ValueType,
+        name: "Input 2 Type",
+        description:
+          "Type of Input 2. Defaults to Text if not selected.",
+        placeholder: "Text",
+        required: false,
+        id: "input-2-type",
       },
       {
         type: ComponentInputType.Text,

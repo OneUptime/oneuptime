@@ -9,6 +9,7 @@ import ComponentMetadata, {
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import Components, {
   ConditionOperator,
+  ConditionValueType,
 } from "../../../../../Types/Workflow/Components/Condition";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
@@ -61,29 +62,68 @@ export default class IfElse extends ComponentCode {
        * Inject dependencies
        */
 
-      for (const key in args) {
-        if (key === "operator") {
-          continue;
+      // Get explicit types from dropdowns, default to text
+      let input1Type: ConditionValueType =
+        (args["input-1-type"] as ConditionValueType) ||
+        ConditionValueType.Text;
+      let input2Type: ConditionValueType =
+        (args["input-2-type"] as ConditionValueType) ||
+        ConditionValueType.Text;
+
+      // When types differ, coerce both to the more specific type
+      // so comparisons like text "true" == boolean true work correctly.
+      // Priority: Null/Undefined keep as-is, Boolean > Number > Text.
+      if (input1Type !== input2Type) {
+        const isNullish = (t: ConditionValueType): boolean =>
+          t === ConditionValueType.Null ||
+          t === ConditionValueType.Undefined;
+
+        if (!isNullish(input1Type) && !isNullish(input2Type)) {
+          const typePriority: Record<string, number> = {
+            [ConditionValueType.Boolean]: 2,
+            [ConditionValueType.Number]: 1,
+            [ConditionValueType.Text]: 0,
+          };
+
+          const p1: number = typePriority[input1Type] ?? 0;
+          const p2: number = typePriority[input2Type] ?? 0;
+          const commonType: ConditionValueType =
+            p1 >= p2 ? input1Type : input2Type;
+          input1Type = commonType;
+          input2Type = commonType;
         }
-
-        const value: JSONValue = args[key];
-
-        let shouldHaveQuotes: boolean = false;
-
-        if (
-          typeof value === "string" &&
-          value !== "null" &&
-          value !== "undefined"
-        ) {
-          shouldHaveQuotes = true;
-        }
-
-        if (typeof value === "object") {
-          args[key] = JSON.stringify(args[key]);
-        }
-
-        args[key] = shouldHaveQuotes ? `"${args[key]}"` : args[key];
       }
+
+      type FormatValueFunction = (
+        value: JSONValue,
+        valueType: ConditionValueType,
+      ) => string;
+
+      const formatValue: FormatValueFunction = (
+        value: JSONValue,
+        valueType: ConditionValueType,
+      ): string => {
+        const strValue: string = typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value ?? "");
+
+        switch (valueType) {
+          case ConditionValueType.Boolean:
+            return strValue === "true" ? "true" : "false";
+          case ConditionValueType.Number:
+            return isNaN(Number(strValue)) ? "0" : String(Number(strValue));
+          case ConditionValueType.Null:
+            return "null";
+          case ConditionValueType.Undefined:
+            return "undefined";
+          case ConditionValueType.Text:
+          default:
+            return `"${strValue}"`;
+        }
+      };
+
+      args["input-1"] = formatValue(args["input-1"], input1Type);
+      args["input-2"] = formatValue(args["input-2"], input2Type);
 
       type SerializeFunction = (arg: string) => string;
 
@@ -107,13 +147,13 @@ export default class IfElse extends ComponentCode {
                     `;
 
       if (args["operator"] === ConditionOperator.Contains) {
-        code += `return input1.includes(input2);`;
+        code += `return String(input1).includes(String(input2));`;
       } else if (args["operator"] === ConditionOperator.DoesNotContain) {
-        code += `return !input1.includes(input2);`;
+        code += `return !String(input1).includes(String(input2));`;
       } else if (args["operator"] === ConditionOperator.StartsWith) {
-        code += `return input1.startsWith(input2);`;
+        code += `return String(input1).startsWith(String(input2));`;
       } else if (args["operator"] === ConditionOperator.EndsWith) {
-        code += `return input1.endsWith(input2);`;
+        code += `return String(input1).endsWith(String(input2));`;
       } else {
         code += `return input1 ${(args["operator"] as string) || "=="} input2;`;
       }

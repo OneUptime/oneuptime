@@ -26,6 +26,7 @@ export enum ComponentInputType {
   HTML = "HTML",
   Operator = "Operator",
   Markdown = "Markdown",
+  ValueType = "Value Type",
 }
 
 export enum ComponentType {
