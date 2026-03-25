@@ -572,7 +572,7 @@ readinessProbe: # Readiness probe configuration
   timeoutSeconds: 120
 
 home:
-  enabled: true
+  enabled: false
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
