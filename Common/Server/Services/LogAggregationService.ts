@@ -25,6 +25,7 @@ export interface HistogramRequest {
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
+  attributes?: Record<string, string> | undefined;
 }
 
 export interface FacetValue {
@@ -43,6 +44,7 @@ export interface FacetRequest {
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
+  attributes?: Record<string, string> | undefined;
 }
 
 export type AnalyticsChartType = "timeseries" | "toplist" | "table";
@@ -589,7 +591,7 @@ export class LogAggregationService {
     statement: Statement,
     request: Pick<
       HistogramRequest,
-      "serviceIds" | "severityTexts" | "bodySearchText" | "traceIds" | "spanIds"
+      "serviceIds" | "severityTexts" | "bodySearchText" | "traceIds" | "spanIds" | "attributes"
     >,
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {
@@ -639,6 +641,22 @@ export class LogAggregationService {
           value: `%${request.bodySearchText.trim()}%`,
         }}`,
       );
+    }
+
+    if (request.attributes && Object.keys(request.attributes).length > 0) {
+      for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
+        LogAggregationService.validateFacetKey(attrKey);
+
+        statement.append(
+          SQL` AND JSONExtractString(attributes, ${{
+            type: TableColumnType.Text,
+            value: attrKey,
+          }}) = ${{
+            type: TableColumnType.Text,
+            value: attrValue,
+          }}`,
+        );
+      }
     }
   }
 

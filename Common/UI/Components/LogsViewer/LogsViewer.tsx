@@ -87,6 +87,7 @@ export interface ComponentProps {
   onFacetExclude?: (facetKey: string, value: string) => void;
   showFacetSidebar?: boolean;
   activeFilters?: Array<ActiveFilter> | undefined;
+  baseActiveFilters?: Array<ActiveFilter> | undefined;
   onRemoveFilter?: ((facetKey: string, value: string) => void) | undefined;
   onClearAllFilters?: (() => void) | undefined;
   valueSuggestions?: Record<string, Array<string>> | undefined;
@@ -829,11 +830,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* Active filter chips */}
-      {enrichedActiveFilters.length > 0 && props.onRemoveFilter && (
+      {/* Active filter chips (read-only base filters + user-applied filters) */}
+      {((props.baseActiveFilters && props.baseActiveFilters.length > 0) ||
+        (enrichedActiveFilters.length > 0 && props.onRemoveFilter)) && (
         <ActiveFilterChips
-          filters={enrichedActiveFilters}
-          onRemove={props.onRemoveFilter}
+          filters={[
+            ...(props.baseActiveFilters || []),
+            ...enrichedActiveFilters,
+          ]}
+          onRemove={props.onRemoveFilter || (() => {})}
           onClearAll={props.onClearAllFilters || (() => {})}
         />
       )}

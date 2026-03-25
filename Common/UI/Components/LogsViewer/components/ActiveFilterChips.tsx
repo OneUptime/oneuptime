@@ -16,9 +16,39 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
     return null;
   }
 
+  const readOnlyFilters: Array<ActiveFilter> = props.filters.filter(
+    (f: ActiveFilter) => {
+      return f.readOnly;
+    },
+  );
+  const removableFilters: Array<ActiveFilter> = props.filters.filter(
+    (f: ActiveFilter) => {
+      return !f.readOnly;
+    },
+  );
+
   return (
     <div className="flex flex-wrap items-center gap-1.5 px-0.5">
-      {props.filters.map((filter: ActiveFilter) => {
+      {readOnlyFilters.map((filter: ActiveFilter) => {
+        const chipKey: string = `readonly:${filter.facetKey}:${filter.value}`;
+        return (
+          <span
+            key={chipKey}
+            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-gray-100 py-0.5 pl-2 pr-2 text-xs text-gray-700"
+            title={`${filter.displayKey}: ${filter.displayValue} (applied filter)`}
+          >
+            <Icon
+              icon={IconProp.Lock}
+              className="h-2.5 w-2.5 text-gray-400"
+            />
+            <span className="font-medium text-gray-500">
+              {filter.displayKey}:
+            </span>
+            <span>{filter.displayValue}</span>
+          </span>
+        );
+      })}
+      {removableFilters.map((filter: ActiveFilter) => {
         const chipKey: string = `${filter.facetKey}:${filter.value}`;
         return (
           <span
@@ -42,7 +72,7 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
           </span>
         );
       })}
-      {props.filters.length > 1 && (
+      {removableFilters.length > 1 && (
         <button
           type="button"
           className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"

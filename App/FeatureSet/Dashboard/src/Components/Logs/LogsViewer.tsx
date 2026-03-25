@@ -323,6 +323,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     });
   }, [props.serviceIds]);
 
+  // Extract attribute filters from logQuery for histogram/facets API calls
+  const logQueryAttributes: Record<string, string> | undefined = useMemo(() => {
+    if (!props.logQuery) {
+      return undefined;
+    }
+
+    const attributes: Record<string, string> | undefined = (props.logQuery as any).attributes as Record<string, string> | undefined;
+
+    if (!attributes || Object.keys(attributes).length === 0) {
+      return undefined;
+    }
+
+    return attributes;
+  }, [props.logQuery]);
+
   const savedViewOptions: Array<LogsSavedViewOption> = useMemo(() => {
     return [...savedViews]
       .sort((left: LogSavedView, right: LogSavedView) => {
@@ -536,6 +551,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["spanIds"] = Array.from(spanFilterValues);
         }
 
+        if (logQueryAttributes) {
+          (requestData as any)["attributes"] = logQueryAttributes;
+        }
+
         const response: HTTPResponse<JSONObject> = await postApi(
           "/telemetry/logs/histogram",
           requestData,
@@ -551,7 +570,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setHistogramLoading(false);
       }
-    }, [serviceIdStrings, appliedFacetFilters, timeRange]);
+    }, [serviceIdStrings, appliedFacetFilters, timeRange, logQueryAttributes]);
 
   // --- Fetch facets ---
 
@@ -574,6 +593,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["serviceIds"] = serviceIdStrings;
         }
 
+        if (logQueryAttributes) {
+          (requestData as any)["attributes"] = logQueryAttributes;
+        }
+
         const response: HTTPResponse<JSONObject> = await postApi(
           "/telemetry/logs/facets",
           requestData,
@@ -589,7 +612,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setFacetLoading(false);
       }
-    }, [serviceIdStrings, timeRange]);
+    }, [serviceIdStrings, timeRange, logQueryAttributes]);
 
   // --- Handlers (defined before effects that reference them) ---
 
@@ -1065,6 +1088,68 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       [handleFacetInclude],
     );
 
+  // Build read-only base filter chips from props (serviceIds, traceIds, spanIds, logQuery attributes)
+  const baseActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    const filters: Array<ActiveFilter> = [];
+
+    if (props.serviceIds && props.serviceIds.length > 0) {
+      for (const serviceId of props.serviceIds) {
+        filters.push({
+          facetKey: "serviceId",
+          value: serviceId.toString(),
+          displayKey: "Service",
+          displayValue: serviceId.toString(),
+          readOnly: true,
+        });
+      }
+    }
+
+    if (props.traceIds && props.traceIds.length > 0) {
+      for (const traceId of props.traceIds) {
+        filters.push({
+          facetKey: "traceId",
+          value: traceId,
+          displayKey: "Trace",
+          displayValue: traceId,
+          readOnly: true,
+        });
+      }
+    }
+
+    if (props.spanIds && props.spanIds.length > 0) {
+      for (const spanId of props.spanIds) {
+        filters.push({
+          facetKey: "spanId",
+          value: spanId,
+          displayKey: "Span",
+          displayValue: spanId,
+          readOnly: true,
+        });
+      }
+    }
+
+    if (logQueryAttributes) {
+      const attributeDisplayNames: Record<string, string> = {
+        "resource.k8s.cluster.name": "Cluster",
+        "resource.k8s.pod.name": "Pod",
+        "resource.k8s.container.name": "Container",
+        "resource.k8s.namespace.name": "Namespace",
+      };
+
+      for (const [attrKey, attrValue] of Object.entries(logQueryAttributes)) {
+        filters.push({
+          facetKey: `attributes.${attrKey}`,
+          value: attrValue,
+          displayKey: attributeDisplayNames[attrKey] || attrKey,
+          displayValue: attrValue,
+          readOnly: true,
+        });
+      }
+    }
+
+    return filters;
+  }, [props.serviceIds, props.traceIds, props.spanIds, logQueryAttributes]);
+
   // Build activeFilters array for UI display
   const activeFilters: Array<ActiveFilter> = useMemo(() => {
     const filters: Array<ActiveFilter> = [];
@@ -1267,6 +1352,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           onFacetExclude={handleFacetExclude}
           showFacetSidebar={true}
           activeFilters={activeFilters}
+          baseActiveFilters={baseActiveFilters}
           onRemoveFilter={handleRemoveFilter}
           onClearAllFilters={handleClearAllFilters}
           valueSuggestions={valueSuggestions}

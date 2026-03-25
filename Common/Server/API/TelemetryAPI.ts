@@ -158,6 +158,10 @@ router.post(
         ? (body["spanIds"] as Array<string>)
         : undefined;
 
+      const attributes: Record<string, string> | undefined = body["attributes"]
+        ? (body["attributes"] as Record<string, string>)
+        : undefined;
+
       const request: HistogramRequest = {
         projectId: databaseProps.tenantId,
         startTime,
@@ -168,6 +172,7 @@ router.post(
         bodySearchText,
         traceIds,
         spanIds,
+        attributes,
       };
 
       const buckets: Array<HistogramBucket> =
@@ -242,6 +247,10 @@ router.post(
         ? (body["spanIds"] as Array<string>)
         : undefined;
 
+      const attributes: Record<string, string> | undefined = body["attributes"]
+        ? (body["attributes"] as Record<string, string>)
+        : undefined;
+
       const facets: Record<string, Array<FacetValue>> = {};
 
       for (const facetKey of facetKeys) {
@@ -256,6 +265,7 @@ router.post(
           bodySearchText,
           traceIds,
           spanIds,
+          attributes,
         };
 
         facets[facetKey] = await LogAggregationService.getFacetValues(request);

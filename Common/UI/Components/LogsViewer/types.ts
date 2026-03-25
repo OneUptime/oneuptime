@@ -22,6 +22,7 @@ export interface ActiveFilter {
   value: string;
   displayKey: string;
   displayValue: string;
+  readOnly?: boolean | undefined;
 }
 
 export type LogsViewMode = "list" | "analytics";
