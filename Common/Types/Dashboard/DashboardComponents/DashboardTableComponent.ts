@@ -3,13 +3,12 @@ import ObjectID from "../../ObjectID";
 import DashboardComponentType from "../DashboardComponentType";
 import BaseComponent from "./DashboardBaseComponent";
 
-export default interface DashboardValueComponent extends BaseComponent {
-  componentType: DashboardComponentType.Value;
+export default interface DashboardTableComponent extends BaseComponent {
+  componentType: DashboardComponentType.Table;
   componentId: ObjectID;
   arguments: {
     metricQueryConfig?: MetricQueryConfigData | undefined;
-    title: string;
-    warningThreshold?: number | undefined;
-    criticalThreshold?: number | undefined;
+    tableTitle?: string | undefined;
+    maxRows?: number | undefined;
   };
 }

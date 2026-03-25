@@ -31,10 +31,24 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
+  // Resolve query configs - support both single and multi-query
+  const resolveQueryConfigs: () => Array<MetricQueryConfigData> = () => {
+    if (
+      props.component.arguments.metricQueryConfigs &&
+      props.component.arguments.metricQueryConfigs.length > 0
+    ) {
+      return props.component.arguments.metricQueryConfigs;
+    }
+    if (props.component.arguments.metricQueryConfig) {
+      return [props.component.arguments.metricQueryConfig];
+    }
+    return [];
+  };
+
+  const queryConfigs: Array<MetricQueryConfigData> = resolveQueryConfigs();
+
   const metricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig
-      ? [props.component.arguments.metricQueryConfig]
-      : [],
+    queryConfigs: queryConfigs,
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
@@ -97,24 +111,36 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricTypes]);
+  }, [props.dashboardStartAndEndDate, props.metricTypes, props.refreshTick]);
 
-  const [metricQueryConfig, setMetricQueryConfig] = React.useState<
-    MetricQueryConfigData | undefined
-  >(props.component.arguments.metricQueryConfig);
+  const [prevQueryConfigs, setPrevQueryConfigs] = React.useState<
+    Array<MetricQueryConfigData> | MetricQueryConfigData | undefined
+  >(
+    props.component.arguments.metricQueryConfigs ||
+      props.component.arguments.metricQueryConfig,
+  );
 
   useEffect(() => {
-    // set metricQueryConfig to the new value only if it is different from the previous value
+    const currentConfigs:
+      | Array<MetricQueryConfigData>
+      | MetricQueryConfigData
+      | undefined =
+      props.component.arguments.metricQueryConfigs ||
+      props.component.arguments.metricQueryConfig;
+
     if (
       JSONFunctions.isJSONObjectDifferent(
-        metricQueryConfig || {},
-        props.component.arguments.metricQueryConfig || {},
+        prevQueryConfigs || {},
+        currentConfigs || {},
       )
     ) {
-      setMetricQueryConfig(props.component.arguments.metricQueryConfig);
+      setPrevQueryConfigs(currentConfigs);
       fetchAggregatedResults();
     }
-  }, [props.component.arguments.metricQueryConfig]);
+  }, [
+    props.component.arguments.metricQueryConfig,
+    props.component.arguments.metricQueryConfigs,
+  ]);
 
   useEffect(() => {
     fetchAggregatedResults();
@@ -142,35 +168,57 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     heightOfChart = undefined;
   }
 
-  // add title and description.
-
   type GetMetricChartType = () => MetricChartType;
 
-  // Convert dashboard chart type to metric chart type
   const getMetricChartType: GetMetricChartType = (): MetricChartType => {
     if (props.component.arguments.chartType === DashboardChartType.Bar) {
       return MetricChartType.BAR;
+    }
+    if (
+      props.component.arguments.chartType === DashboardChartType.Area ||
+      props.component.arguments.chartType === DashboardChartType.StackedArea
+    ) {
+      return MetricChartType.AREA;
     }
     return MetricChartType.LINE;
   };
 
   const chartMetricViewData: MetricViewData = {
-    queryConfigs: props.component.arguments.metricQueryConfig
-      ? [
-          {
-            ...props.component.arguments.metricQueryConfig!,
+    queryConfigs: queryConfigs.map(
+      (config: MetricQueryConfigData, index: number) => {
+        // For the first query, apply the chart-level title/description/legend
+        if (index === 0) {
+          return {
+            ...config,
             metricAliasData: {
-              title: props.component.arguments.chartTitle || undefined,
+              title:
+                config.metricAliasData?.title ||
+                props.component.arguments.chartTitle ||
+                undefined,
               description:
-                props.component.arguments.chartDescription || undefined,
-              metricVariable: undefined,
-              legend: props.component.arguments.legendText || undefined,
-              legendUnit: props.component.arguments.legendUnit || undefined,
+                config.metricAliasData?.description ||
+                props.component.arguments.chartDescription ||
+                undefined,
+              metricVariable:
+                config.metricAliasData?.metricVariable || undefined,
+              legend:
+                config.metricAliasData?.legend ||
+                props.component.arguments.legendText ||
+                undefined,
+              legendUnit:
+                config.metricAliasData?.legendUnit ||
+                props.component.arguments.legendUnit ||
+                undefined,
             },
-            chartType: getMetricChartType(),
-          },
-        ]
-      : [],
+            chartType: config.chartType || getMetricChartType(),
+          };
+        }
+        return {
+          ...config,
+          chartType: config.chartType || getMetricChartType(),
+        };
+      },
+    ),
     startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),

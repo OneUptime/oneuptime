@@ -3,12 +3,14 @@ import ObjectID from "../../ObjectID";
 import DashboardComponentType from "../DashboardComponentType";
 import BaseComponent from "./DashboardBaseComponent";
 
-export default interface DashboardValueComponent extends BaseComponent {
-  componentType: DashboardComponentType.Value;
+export default interface DashboardGaugeComponent extends BaseComponent {
+  componentType: DashboardComponentType.Gauge;
   componentId: ObjectID;
   arguments: {
     metricQueryConfig?: MetricQueryConfigData | undefined;
-    title: string;
+    gaugeTitle?: string | undefined;
+    minValue?: number | undefined;
+    maxValue?: number | undefined;
     warningThreshold?: number | undefined;
     criticalThreshold?: number | undefined;
   };

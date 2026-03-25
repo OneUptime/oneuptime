@@ -22,6 +22,7 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
         isBold: false,
         isItalic: false,
         isUnderline: false,
+        isMarkdown: false,
       },
       componentId: ObjectID.generate(),
       minHeightInDashboardUnits: 1,
@@ -68,6 +69,16 @@ export default class DashboardTextComponentUtil extends DashboardBaseComponentUt
       required: false,
       type: ComponentInputType.Boolean,
       id: "isUnderline",
+      placeholder: "false",
+    });
+
+    componentArguments.push({
+      name: "Markdown",
+      description:
+        "Enable markdown rendering (headers, links, lists, code blocks, tables, images)",
+      required: false,
+      type: ComponentInputType.Boolean,
+      id: "isMarkdown",
       placeholder: "false",
     });
 

@@ -55,6 +55,26 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
       id: "metricQueryConfig",
     });
 
+    componentArguments.push({
+      name: "Warning Threshold",
+      description:
+        "Values above this threshold will be shown with a yellow background",
+      required: false,
+      type: ComponentInputType.Number,
+      id: "warningThreshold",
+      isAdvanced: true,
+    });
+
+    componentArguments.push({
+      name: "Critical Threshold",
+      description:
+        "Values above this threshold will be shown with a red background",
+      required: false,
+      type: ComponentInputType.Number,
+      id: "criticalThreshold",
+      isAdvanced: true,
+    });
+
     return componentArguments;
   }
 }

@@ -43,6 +43,10 @@ import URL from "../../../Types/API/URL";
 import IP from "../../../Types/IP/IP";
 import Hostname from "../../../Types/API/Hostname";
 import Port from "../../../Types/Port";
+import MetricMonitorResponse, {
+  KubernetesAffectedResource,
+  KubernetesResourceBreakdown,
+} from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
@@ -545,6 +549,11 @@ ${contextBlock}
     monitorStep: MonitorStep;
     monitor: Monitor;
   }): string | null {
+    // Handle Kubernetes monitors with rich resource context
+    if (input.monitor.monitorType === MonitorType.Kubernetes) {
+      return MonitorCriteriaEvaluator.buildKubernetesRootCauseContext(input);
+    }
+
     const requestDetails: Array<string> = [];
     const responseDetails: Array<string> = [];
     const failureDetails: Array<string> = [];
@@ -651,6 +660,293 @@ ${contextBlock}
     }
 
     return sections.join("\n");
+  }
+
+  private static buildKubernetesRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const breakdown: KubernetesResourceBreakdown | undefined =
+      metricResponse.kubernetesResourceBreakdown;
+
+    if (!breakdown) {
+      return null;
+    }
+
+    const sections: Array<string> = [];
+
+    // Cluster context
+    const clusterDetails: Array<string> = [];
+    clusterDetails.push(`- Cluster: ${breakdown.clusterName}`);
+    clusterDetails.push(`- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`);
+
+    if (breakdown.attributes["k8s.namespace.name"]) {
+      clusterDetails.push(
+        `- Namespace: ${breakdown.attributes["k8s.namespace.name"]}`,
+      );
+    }
+
+    sections.push(
+      `**Kubernetes Cluster Details**\n${clusterDetails.join("\n")}`,
+    );
+
+    // Affected resources
+    if (
+      breakdown.affectedResources &&
+      breakdown.affectedResources.length > 0
+    ) {
+      const resourceLines: Array<string> = [];
+
+      // Sort by metric value descending (worst first)
+      const sortedResources: Array<KubernetesAffectedResource> = [
+        ...breakdown.affectedResources,
+      ].sort(
+        (
+          a: KubernetesAffectedResource,
+          b: KubernetesAffectedResource,
+        ) => {
+          return b.metricValue - a.metricValue;
+        },
+      );
+
+      // Show top 10 affected resources
+      const resourcesToShow: Array<KubernetesAffectedResource> =
+        sortedResources.slice(0, 10);
+
+      for (const resource of resourcesToShow) {
+        const details: Array<string> = [];
+
+        if (resource.namespace) {
+          details.push(`Namespace: \`${resource.namespace}\``);
+        }
+        if (resource.workloadType && resource.workloadName) {
+          details.push(
+            `${resource.workloadType}: \`${resource.workloadName}\``,
+          );
+        }
+        if (resource.podName) {
+          details.push(`Pod: \`${resource.podName}\``);
+        }
+        if (resource.containerName) {
+          details.push(`Container: \`${resource.containerName}\``);
+        }
+        if (resource.nodeName) {
+          details.push(`Node: \`${resource.nodeName}\``);
+        }
+
+        details.push(`Value: **${resource.metricValue}**`);
+
+        resourceLines.push(`- ${details.join(" | ")}`);
+      }
+
+      if (sortedResources.length > 10) {
+        resourceLines.push(
+          `- ... and ${sortedResources.length - 10} more affected resources`,
+        );
+      }
+
+      sections.push(
+        `\n\n**Affected Resources** (${sortedResources.length} total)\n${resourceLines.join("\n")}`,
+      );
+
+      // Add root cause analysis based on metric type
+      const analysis: string | null =
+        MonitorCriteriaEvaluator.buildKubernetesRootCauseAnalysis({
+          breakdown: breakdown,
+          topResource: resourcesToShow[0]!,
+        });
+
+      if (analysis) {
+        sections.push(`\n\n**Root Cause Analysis**\n${analysis}`);
+      }
+    }
+
+    return sections.join("\n");
+  }
+
+  private static buildKubernetesRootCauseAnalysis(input: {
+    breakdown: KubernetesResourceBreakdown;
+    topResource: KubernetesAffectedResource;
+  }): string | null {
+    const { breakdown, topResource } = input;
+    const metricName: string = breakdown.metricName;
+    const lines: Array<string> = [];
+
+    if (
+      metricName === "k8s.container.restarts" ||
+      metricName.includes("restart")
+    ) {
+      lines.push(
+        `Container restart count is elevated, indicating a potential CrashLoopBackOff condition.`,
+      );
+      if (topResource.containerName) {
+        lines.push(
+          `The container \`${topResource.containerName}\` in pod \`${topResource.podName || "unknown"}\` has restarted **${topResource.metricValue}** times.`,
+        );
+      }
+      lines.push(
+        `Common causes: application crash on startup, misconfigured environment variables, missing dependencies, OOM (Out of Memory) kills, failed health checks, or missing config maps/secrets.`,
+      );
+      lines.push(
+        `Recommended actions: Check container logs with \`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous\` and inspect events with \`kubectl describe pod ${topResource.podName || "<pod-name>"}\`.`,
+      );
+    } else if (
+      metricName === "k8s.pod.phase" &&
+      breakdown.attributes["k8s.pod.phase"] === "Pending"
+    ) {
+      lines.push(
+        `Pods are stuck in Pending phase and unable to be scheduled.`,
+      );
+      lines.push(
+        `Common causes: insufficient CPU/memory resources on nodes, node affinity/taint restrictions preventing scheduling, PersistentVolumeClaim pending, or resource quota exceeded.`,
+      );
+      if (topResource.podName) {
+        lines.push(
+          `Recommended actions: Check scheduling events with \`kubectl describe pod ${topResource.podName}\` and verify node resources with \`kubectl describe nodes\`.`,
+        );
+      }
+    } else if (
+      metricName === "k8s.node.condition_ready" ||
+      metricName.includes("node") && metricName.includes("condition")
+    ) {
+      lines.push(`One or more nodes have transitioned to a NotReady state.`);
+      if (topResource.nodeName) {
+        lines.push(
+          `Node \`${topResource.nodeName}\` is reporting NotReady (value: ${topResource.metricValue}).`,
+        );
+      }
+      lines.push(
+        `Common causes: kubelet process failure, node resource exhaustion (disk pressure, memory pressure, PID pressure), network connectivity issues, or underlying VM/hardware failure.`,
+      );
+      lines.push(
+        `Recommended actions: Check node conditions with \`kubectl describe node ${topResource.nodeName || "<node-name>"}\` and verify kubelet status on the node.`,
+      );
+    } else if (
+      metricName === "k8s.node.cpu.utilization" ||
+      metricName.includes("cpu") && metricName.includes("utilization")
+    ) {
+      lines.push(`Node CPU utilization has exceeded the configured threshold.`);
+      if (topResource.nodeName) {
+        lines.push(
+          `Node \`${topResource.nodeName}\` is at **${topResource.metricValue.toFixed(1)}%** CPU utilization.`,
+        );
+      }
+      lines.push(
+        `Common causes: resource-intensive workloads, insufficient resource limits on pods, noisy neighbor pods consuming excessive CPU, or insufficient cluster capacity.`,
+      );
+      lines.push(
+        `Recommended actions: Identify top CPU consumers with \`kubectl top pods --all-namespaces --sort-by=cpu\` and consider scaling the cluster or adjusting pod resource limits.`,
+      );
+    } else if (
+      metricName === "k8s.node.memory.usage" ||
+      metricName.includes("memory") && metricName.includes("usage")
+    ) {
+      lines.push(
+        `Node memory utilization has exceeded the configured threshold.`,
+      );
+      if (topResource.nodeName) {
+        lines.push(
+          `Node \`${topResource.nodeName}\` memory usage is at **${topResource.metricValue.toFixed(1)}%**.`,
+        );
+      }
+      lines.push(
+        `Common causes: memory leaks in applications, insufficient memory limits on pods, too many pods scheduled on the node, or growing dataset sizes.`,
+      );
+      lines.push(
+        `Recommended actions: Check memory consumers with \`kubectl top pods --all-namespaces --sort-by=memory\` and review pod memory limits. Consider scaling the cluster or adding nodes with more memory.`,
+      );
+    } else if (
+      metricName === "k8s.deployment.unavailable_replicas" ||
+      metricName.includes("unavailable")
+    ) {
+      lines.push(
+        `Deployment has unavailable replicas, indicating a mismatch between desired and available replicas.`,
+      );
+      if (topResource.workloadName) {
+        lines.push(
+          `${topResource.workloadType || "Deployment"} \`${topResource.workloadName}\` has **${topResource.metricValue}** unavailable replica(s).`,
+        );
+      }
+      lines.push(
+        `Common causes: failed rolling update, image pull errors (wrong image tag or missing registry credentials), pod crash loops, insufficient cluster resources to schedule new pods, or PodDisruptionBudget blocking updates.`,
+      );
+      lines.push(
+        `Recommended actions: Check deployment rollout status with \`kubectl rollout status deployment/${topResource.workloadName || "<deployment>"}\` and inspect pod events.`,
+      );
+    } else if (
+      metricName === "k8s.job.failed_pods" ||
+      metricName.includes("job") && metricName.includes("fail")
+    ) {
+      lines.push(`Kubernetes Job has failed pods.`);
+      if (topResource.workloadName) {
+        lines.push(
+          `Job \`${topResource.workloadName}\` has **${topResource.metricValue}** failed pod(s).`,
+        );
+      }
+      lines.push(
+        `Common causes: application error or non-zero exit code, resource limits exceeded (OOMKilled), misconfigured command or arguments, missing environment variables, or timeout exceeded.`,
+      );
+      lines.push(
+        `Recommended actions: Check job status with \`kubectl describe job ${topResource.workloadName || "<job-name>"}\` and review pod logs for the failed pod(s).`,
+      );
+    } else if (
+      metricName === "k8s.node.filesystem.usage" ||
+      metricName.includes("disk") ||
+      metricName.includes("filesystem")
+    ) {
+      lines.push(
+        `Node disk/filesystem usage has exceeded the configured threshold.`,
+      );
+      if (topResource.nodeName) {
+        lines.push(
+          `Node \`${topResource.nodeName}\` filesystem usage is at **${topResource.metricValue.toFixed(1)}%**.`,
+        );
+      }
+      lines.push(
+        `Common causes: container image layers consuming disk space, excessive logging, large emptyDir volumes, or accumulation of unused container images.`,
+      );
+      lines.push(
+        `Recommended actions: Clean up unused images with \`docker system prune\` or \`crictl rmi --prune\`, check for large log files, and review PersistentVolumeClaim usage.`,
+      );
+    } else if (
+      metricName === "k8s.daemonset.misscheduled_nodes" ||
+      metricName.includes("daemonset")
+    ) {
+      lines.push(
+        `DaemonSet has misscheduled or unavailable nodes.`,
+      );
+      if (topResource.workloadName) {
+        lines.push(
+          `DaemonSet \`${topResource.workloadName}\` has **${topResource.metricValue}** misscheduled node(s).`,
+        );
+      }
+      lines.push(
+        `Common causes: node taints preventing scheduling, incorrect node selectors, or node affinity rules excluding certain nodes.`,
+      );
+      lines.push(
+        `Recommended actions: Check DaemonSet status with \`kubectl describe daemonset ${topResource.workloadName || "<daemonset>"}\` and verify node labels and taints.`,
+      );
+    } else {
+      // Generic Kubernetes context
+      lines.push(
+        `Kubernetes metric \`${metricName}\` (${breakdown.metricFriendlyName}) has breached the configured threshold.`,
+      );
+      if (topResource.podName) {
+        lines.push(`Most affected pod: \`${topResource.podName}\``);
+      }
+      if (topResource.nodeName) {
+        lines.push(`Most affected node: \`${topResource.nodeName}\``);
+      }
+      lines.push(
+        `Recommended actions: Investigate the affected resources using \`kubectl describe\` and \`kubectl logs\` commands.`,
+      );
+    }
+
+    return lines.join("\n");
   }
 
   private static getMonitorDestinationString(input: {

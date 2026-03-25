@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import DashboardGaugeComponent from "Common/Types/Dashboard/DashboardComponents/DashboardGaugeComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -6,27 +7,24 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
-import DashboardValueComponent from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
-import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import MetricType from "Common/Models/DatabaseModels/MetricType";
+import JSONFunctions from "Common/Types/JSONFunctions";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
-  component: DashboardValueComponent;
+  component: DashboardGaugeComponent;
 }
 
-const DashboardValueComponent: FunctionComponent<ComponentProps> = (
+const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [metricResults, setMetricResults] = React.useState<
     Array<AggregatedResult>
   >([]);
-  const [aggregationType, setAggregationType] = React.useState<AggregationType>(
-    AggregationType.Avg,
-  );
+  const [aggregationType, setAggregationType] =
+    React.useState<AggregationType>(AggregationType.Avg);
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -74,6 +72,7 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
         setIsLoading(false);
         return;
       }
+
       setAggregationType(
         (metricViewData.queryConfigs[0].metricQueryData.filterData
           ?.aggegationType as AggregationType) || AggregationType.Avg,
@@ -106,7 +105,6 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
   }, []);
 
   useEffect(() => {
-    // set metricQueryConfig to the new value only if it is different from the previous value
     if (
       JSONFunctions.isJSONObjectDifferent(
         metricQueryConfig || {},
@@ -126,13 +124,7 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  let heightOfText: number | undefined =
-    (props.dashboardComponentHeightInPx || 0) - 100;
-
-  if (heightOfText < 0) {
-    heightOfText = undefined;
-  }
-
+  // Calculate aggregated value
   let aggregatedValue: number = 0;
   let avgCount: number = 0;
 
@@ -159,63 +151,114 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
     aggregatedValue = aggregatedValue / avgCount;
   }
 
-  // round to 2 decimal places
   aggregatedValue = Math.round(aggregatedValue * 100) / 100;
 
-  const valueHeightInPx: number = props.dashboardComponentHeightInPx * 0.4;
-  const titleHeightInPx: number = props.dashboardComponentHeightInPx * 0.13;
-
-  const unit: string | undefined =
-    props.metricTypes?.find((item: MetricType) => {
-      return (
-        item.name?.toString() ===
-        props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString()
-      );
-    })?.unit || "";
-
-  // Determine color based on thresholds
-  let valueColorClass: string = "text-gray-800";
-  let bgColorClass: string = "";
+  const minValue: number = props.component.arguments.minValue ?? 0;
+  const maxValue: number = props.component.arguments.maxValue ?? 100;
   const warningThreshold: number | undefined =
     props.component.arguments.warningThreshold;
   const criticalThreshold: number | undefined =
     props.component.arguments.criticalThreshold;
 
+  // Calculate percentage for the gauge arc
+  const range: number = maxValue - minValue;
+  const percentage: number =
+    range > 0
+      ? Math.min(Math.max((aggregatedValue - minValue) / range, 0), 1)
+      : 0;
+
+  // Determine color based on thresholds
+  let gaugeColor: string = "#10b981"; // green
   if (
     criticalThreshold !== undefined &&
     aggregatedValue >= criticalThreshold
   ) {
-    valueColorClass = "text-red-700";
-    bgColorClass = "bg-red-50";
+    gaugeColor = "#ef4444"; // red
   } else if (
     warningThreshold !== undefined &&
     aggregatedValue >= warningThreshold
   ) {
-    valueColorClass = "text-yellow-700";
-    bgColorClass = "bg-yellow-50";
+    gaugeColor = "#f59e0b"; // yellow
   }
 
+  // SVG gauge rendering
+  const size: number = Math.min(
+    props.dashboardComponentWidthInPx - 20,
+    props.dashboardComponentHeightInPx - 50,
+  );
+  const gaugeSize: number = Math.max(size, 60);
+  const strokeWidth: number = Math.max(gaugeSize * 0.12, 8);
+  const radius: number = (gaugeSize - strokeWidth) / 2;
+  const centerX: number = gaugeSize / 2;
+  const centerY: number = gaugeSize / 2;
+
+  // Semi-circle arc (180 degrees, from left to right)
+  const startAngle: number = Math.PI;
+  const endAngle: number = 0;
+  const sweepAngle: number = startAngle - endAngle;
+  const currentAngle: number = startAngle - sweepAngle * percentage;
+
+  const arcStartX: number = centerX + radius * Math.cos(startAngle);
+  const arcStartY: number = centerY - radius * Math.sin(startAngle);
+  const arcEndX: number = centerX + radius * Math.cos(endAngle);
+  const arcEndY: number = centerY - radius * Math.sin(endAngle);
+  const arcCurrentX: number = centerX + radius * Math.cos(currentAngle);
+  const arcCurrentY: number = centerY - radius * Math.sin(currentAngle);
+
+  const backgroundPath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 0 1 ${arcEndX} ${arcEndY}`;
+  const valuePath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 ${percentage > 0.5 ? 1 : 0} 1 ${arcCurrentX} ${arcCurrentY}`;
+
+  const titleHeightInPx: number = Math.max(
+    props.dashboardComponentHeightInPx * 0.1,
+    12,
+  );
+  const valueHeightInPx: number = Math.max(gaugeSize * 0.2, 14);
+
   return (
-    <div className={`w-full text-center h-full m-auto rounded ${bgColorClass}`}>
-      <div
-        style={{
-          fontSize: titleHeightInPx > 0 ? `${titleHeightInPx}px` : "",
-        }}
-        className="text-center text-bold mb-1 truncate"
+    <div className="w-full text-center h-full flex flex-col items-center justify-center">
+      {props.component.arguments.gaugeTitle && (
+        <div
+          style={{
+            fontSize: titleHeightInPx > 0 ? `${titleHeightInPx}px` : "",
+          }}
+          className="text-center font-semibold text-gray-700 mb-1 truncate"
+        >
+          {props.component.arguments.gaugeTitle}
+        </div>
+      )}
+      <svg
+        width={gaugeSize}
+        height={gaugeSize / 2 + strokeWidth}
+        viewBox={`0 0 ${gaugeSize} ${gaugeSize / 2 + strokeWidth}`}
       >
-        {props.component.arguments.title || " "}
-      </div>
+        <path
+          d={backgroundPath}
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+        />
+        {percentage > 0 && (
+          <path
+            d={valuePath}
+            fill="none"
+            stroke={gaugeColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+        )}
+      </svg>
       <div
-        className={`text-center text-semibold truncate ${valueColorClass}`}
+        className="font-bold text-gray-800"
         style={{
           fontSize: valueHeightInPx > 0 ? `${valueHeightInPx}px` : "",
+          marginTop: `-${gaugeSize * 0.15}px`,
         }}
       >
-        {aggregatedValue || "0"}
-        {unit}
+        {aggregatedValue}
       </div>
     </div>
   );
 };
 
-export default DashboardValueComponent;
+export default DashboardGaugeComponentElement;

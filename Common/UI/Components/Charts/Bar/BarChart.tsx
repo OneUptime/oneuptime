@@ -69,6 +69,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       showTooltip={true}
       yAxisWidth={60}
       syncid={props.sync ? props.syncid : undefined}
+      onValueChange={() => {}}
     />
   );
 };

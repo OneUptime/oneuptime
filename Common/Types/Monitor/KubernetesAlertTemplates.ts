@@ -88,8 +88,18 @@ export function buildOfflineCriteriaInstance(args: {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  incidentTitle?: string;
+  incidentDescription?: string;
+  criteriaName?: string;
+  criteriaDescription?: string;
 }): MonitorCriteriaInstance {
   const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+  const incidentTitle: string =
+    args.incidentTitle || `${args.monitorName} - Alert Triggered`;
+  const incidentDescription: string =
+    args.incidentDescription ||
+    `${args.monitorName} has triggered an alert condition. See root cause for detailed Kubernetes resource information.`;
 
   instance.data = {
     id: ObjectID.generate().toString(),
@@ -108,8 +118,8 @@ export function buildOfflineCriteriaInstance(args: {
     ],
     incidents: [
       {
-        title: `${args.monitorName} - Alert Triggered`,
-        description: `${args.monitorName} has triggered an alert condition.`,
+        title: incidentTitle,
+        description: incidentDescription,
         incidentSeverityId: args.incidentSeverityId,
         autoResolveIncident: true,
         id: ObjectID.generate().toString(),
@@ -118,8 +128,8 @@ export function buildOfflineCriteriaInstance(args: {
     ],
     alerts: [
       {
-        title: `${args.monitorName} - Alert`,
-        description: `${args.monitorName} has triggered an alert condition.`,
+        title: incidentTitle,
+        description: incidentDescription,
         alertSeverityId: args.alertSeverityId,
         autoResolveAlert: true,
         id: ObjectID.generate().toString(),
@@ -129,8 +139,9 @@ export function buildOfflineCriteriaInstance(args: {
     changeMonitorStatus: true,
     createIncidents: true,
     createAlerts: true,
-    name: `${args.monitorName} - Unhealthy`,
-    description: `Criteria for detecting unhealthy state.`,
+    name: args.criteriaName || `${args.monitorName} - Unhealthy`,
+    description:
+      args.criteriaDescription || `Criteria for detecting unhealthy state.`,
   };
 
   return instance;
@@ -239,6 +250,11 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 5,
+        incidentTitle: `[K8s] CrashLoopBackOff Detected - ${args.monitorName}`,
+        incidentDescription: `A container in the Kubernetes cluster is repeatedly crashing and restarting (CrashLoopBackOff). The container restart count has exceeded the threshold of 5 restarts. Check the root cause for the specific pod, container, and node details.`,
+        criteriaName: "CrashLoopBackOff - Container Restarts > 5",
+        criteriaDescription:
+          "Triggers when any container restart count exceeds 5 in the monitoring window, indicating a CrashLoopBackOff condition.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -278,6 +294,11 @@ const podPendingTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
+        incidentTitle: `[K8s] Pods Stuck in Pending - ${args.monitorName}`,
+        incidentDescription: `One or more pods in the Kubernetes cluster are stuck in Pending phase and cannot be scheduled. This typically indicates insufficient cluster resources, node affinity constraints, or unbound PersistentVolumeClaims. Check the root cause for specific pod and scheduling details.`,
+        criteriaName: "Pods Pending - Count > 0",
+        criteriaDescription:
+          "Triggers when any pods are in Pending phase, unable to be scheduled.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -316,6 +337,11 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.EqualTo,
         value: 0,
+        incidentTitle: `[K8s] Node Not Ready - ${args.monitorName}`,
+        incidentDescription: `A Kubernetes node has transitioned to NotReady state. This is a critical condition that affects all pods scheduled on this node. Check the root cause for the specific node name, conditions, and recommended actions.`,
+        criteriaName: "Node NotReady - Condition = 0",
+        criteriaDescription:
+          "Triggers when any node reports a NotReady condition (value 0).",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -353,6 +379,11 @@ const highCpuTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 90,
+        incidentTitle: `[K8s] High CPU Utilization (>90%) - ${args.monitorName}`,
+        incidentDescription: `Node CPU utilization has exceeded 90% in the Kubernetes cluster. Sustained high CPU usage can cause pod throttling, increased latency, and potential node instability. Check the root cause for the specific node and top CPU-consuming workloads.`,
+        criteriaName: "High CPU - Utilization > 90%",
+        criteriaDescription:
+          "Triggers when average node CPU utilization exceeds 90% over the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -390,6 +421,11 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 85,
+        incidentTitle: `[K8s] High Memory Utilization (>85%) - ${args.monitorName}`,
+        incidentDescription: `Node memory utilization has exceeded 85% in the Kubernetes cluster. High memory usage can lead to OOMKilled pods, node instability, and potential evictions. Check the root cause for the specific node and top memory-consuming workloads.`,
+        criteriaName: "High Memory - Utilization > 85%",
+        criteriaDescription:
+          "Triggers when average node memory utilization exceeds 85% over the monitoring window.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -428,6 +464,11 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
+        incidentTitle: `[K8s] Deployment Replica Mismatch - ${args.monitorName}`,
+        incidentDescription: `A Kubernetes deployment has unavailable replicas — the desired replica count does not match the available count. This may indicate a failed rollout, image pull errors, insufficient resources, or pod crash loops. Check the root cause for the specific deployment and replica details.`,
+        criteriaName: "Replica Mismatch - Unavailable > 0",
+        criteriaDescription:
+          "Triggers when any deployment has unavailable replicas.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -465,6 +506,11 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
+        incidentTitle: `[K8s] Job Failure Detected - ${args.monitorName}`,
+        incidentDescription: `A Kubernetes Job has one or more failed pods. This indicates the job's workload is failing to complete successfully. Check the root cause for the specific job name, failed pod details, and error information.`,
+        criteriaName: "Job Failures - Failed Pods > 0",
+        criteriaDescription:
+          "Triggers when any Kubernetes Job has failed pods.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -503,6 +549,11 @@ const etcdNoLeaderTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.EqualTo,
         value: 0,
+        incidentTitle: `[K8s] CRITICAL: etcd No Leader - ${args.monitorName}`,
+        incidentDescription: `The etcd cluster has no elected leader. This is a critical cluster health issue that can cause the Kubernetes API server to become unavailable. All cluster operations (scheduling, deployments, service discovery) will be affected.`,
+        criteriaName: "etcd No Leader - Has Leader = 0",
+        criteriaDescription:
+          "Triggers immediately when etcd reports no elected leader.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -541,6 +592,11 @@ const apiServerThrottlingTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
+        incidentTitle: `[K8s] CRITICAL: API Server Throttling - ${args.monitorName}`,
+        incidentDescription: `The Kubernetes API server is dropping requests due to throttling. This indicates the API server is overloaded and cannot process all incoming requests, affecting cluster operations.`,
+        criteriaName: "API Server Throttling - Dropped Requests > 0",
+        criteriaDescription:
+          "Triggers when the API server reports any dropped requests.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -579,6 +635,11 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
+        incidentTitle: `[K8s] Scheduler Backlog - ${args.monitorName}`,
+        incidentDescription: `The Kubernetes scheduler has a backlog of pods waiting to be scheduled. This indicates the scheduler is unable to find suitable nodes for pending pods, possibly due to resource constraints or scheduling conflicts.`,
+        criteriaName: "Scheduler Backlog - Pending Pods > 0",
+        criteriaDescription:
+          "Triggers when there are pods waiting to be scheduled for more than 5 minutes.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -616,6 +677,11 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 90,
+        incidentTitle: `[K8s] High Disk Usage (>90%) - ${args.monitorName}`,
+        incidentDescription: `Node disk/filesystem usage has exceeded 90% capacity. High disk usage can lead to pod evictions, inability to pull new container images, and node instability. Check the root cause for the specific node and disk usage details.`,
+        criteriaName: "High Disk - Usage > 90%",
+        criteriaDescription:
+          "Triggers when average node filesystem usage exceeds 90% capacity.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -654,6 +720,11 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
         metricAlias,
         filterType: FilterType.GreaterThan,
         value: 0,
+        incidentTitle: `[K8s] DaemonSet Unavailable Nodes - ${args.monitorName}`,
+        incidentDescription: `A DaemonSet has nodes where the daemon pod is not running as expected. This indicates misscheduled or unavailable daemon pods, which may affect cluster-wide services like logging, monitoring, or networking.`,
+        criteriaName: "DaemonSet Unavailable - Misscheduled > 0",
+        criteriaDescription:
+          "Triggers when a DaemonSet has nodes where daemon pods are not properly scheduled.",
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,

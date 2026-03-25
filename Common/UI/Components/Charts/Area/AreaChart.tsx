@@ -74,6 +74,7 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
       curve={props.curve || ChartCurve.MONOTONE}
       syncid={props.sync ? props.syncid : undefined}
       yAxisWidth={60}
+      onValueChange={() => {}}
     />
   );
 };

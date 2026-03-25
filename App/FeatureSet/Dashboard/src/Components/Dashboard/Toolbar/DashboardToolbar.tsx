@@ -7,9 +7,14 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
-import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
+import DashboardViewConfig, {
+  AutoRefreshInterval,
+  getAutoRefreshIntervalLabel,
+} from "Common/Types/Dashboard/DashboardViewConfig";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Loader from "Common/UI/Components/Loader/Loader";
+import DashboardVariableSelector from "./DashboardVariableSelector";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -23,6 +28,13 @@ export interface ComponentProps {
   startAndEndDate: RangeStartAndEndDateTime;
   onStartAndEndDateChange: (startAndEndDate: RangeStartAndEndDateTime) => void;
   dashboardViewConfig: DashboardViewConfig;
+  autoRefreshInterval: AutoRefreshInterval;
+  onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void;
+  isRefreshing?: boolean | undefined;
+  variables?: Array<DashboardVariable> | undefined;
+  onVariableValueChange?: ((variableId: string, value: string) => void) | undefined;
+  canResetZoom?: boolean | undefined;
+  onResetZoom?: (() => void) | undefined;
 }
 
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
@@ -58,6 +70,66 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 </div>
               )}
 
+            {/* Template variables */}
+            {props.variables &&
+              props.variables.length > 0 &&
+              props.onVariableValueChange && (
+                <div className="mt-1.5 mr-2">
+                  <DashboardVariableSelector
+                    variables={props.variables}
+                    onVariableValueChange={props.onVariableValueChange}
+                  />
+                </div>
+              )}
+
+            {/* Reset Zoom button */}
+            {props.canResetZoom && props.onResetZoom && !isEditMode && (
+              <Button
+                icon={IconProp.Refresh}
+                title="Reset Zoom"
+                buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
+                onClick={props.onResetZoom}
+                tooltip="Reset to original time range"
+              />
+            )}
+
+            {/* Auto-refresh dropdown - only show in view mode */}
+            {!isEditMode &&
+              props.dashboardViewConfig &&
+              props.dashboardViewConfig.components &&
+              props.dashboardViewConfig.components.length > 0 && (
+                <MoreMenu
+                  menuIcon={IconProp.Refresh}
+                  text={
+                    props.autoRefreshInterval !== AutoRefreshInterval.OFF
+                      ? getAutoRefreshIntervalLabel(props.autoRefreshInterval)
+                      : ""
+                  }
+                >
+                  {Object.values(AutoRefreshInterval).map(
+                    (interval: AutoRefreshInterval) => {
+                      return (
+                        <MoreMenuItem
+                          key={interval}
+                          text={getAutoRefreshIntervalLabel(interval)}
+                          onClick={() => {
+                            props.onAutoRefreshIntervalChange(interval);
+                          }}
+                        />
+                      );
+                    },
+                  )}
+                </MoreMenu>
+              )}
+
+            {/* Refreshing indicator */}
+            {props.isRefreshing &&
+              props.autoRefreshInterval !== AutoRefreshInterval.OFF && (
+                <div className="flex items-center ml-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                </div>
+              )}
+
             {isEditMode ? (
               <MoreMenu menuIcon={IconProp.Add} text="Add Component">
                 <MoreMenuItem
@@ -79,6 +151,20 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   key={"add-text"}
                   onClick={() => {
                     props.onAddComponentClick(DashboardComponentType.Text);
+                  }}
+                />
+                <MoreMenuItem
+                  text={"Add Table"}
+                  key={"add-table"}
+                  onClick={() => {
+                    props.onAddComponentClick(DashboardComponentType.Table);
+                  }}
+                />
+                <MoreMenuItem
+                  text={"Add Gauge"}
+                  key={"add-gauge"}
+                  onClick={() => {
+                    props.onAddComponentClick(DashboardComponentType.Gauge);
                   }}
                 />
               </MoreMenu>

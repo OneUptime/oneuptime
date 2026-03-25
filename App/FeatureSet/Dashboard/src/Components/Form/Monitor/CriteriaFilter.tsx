@@ -35,6 +35,13 @@ export interface ComponentProps {
   monitorStep: MonitorStep;
 }
 
+const isMetricOnlyMonitorType = (monitorType: MonitorType): boolean => {
+  return (
+    monitorType === MonitorType.Kubernetes ||
+    monitorType === MonitorType.Metrics
+  );
+};
+
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -76,6 +83,18 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         : "",
     );
   }, [criteriaFilter]);
+
+  const isMetricOnly: boolean = isMetricOnlyMonitorType(props.monitorType);
+
+  // Auto-select MetricValue for metric-only monitor types (Kubernetes, Metrics)
+  useEffect(() => {
+    if (isMetricOnly && criteriaFilter && criteriaFilter.checkOn !== CheckOn.MetricValue) {
+      props.onChange?.({
+        ...criteriaFilter,
+        checkOn: CheckOn.MetricValue,
+      });
+    }
+  }, [isMetricOnly]);
 
   if (isLoading) {
     return <></>;
@@ -168,6 +187,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <div className="rounded-md p-2 bg-gray-50 my-5 border-gray-200 border-solid border-2">
+        {/* Hide Filter Type dropdown for metric-only monitors since MetricValue is the only option */}
+        {!isMetricOnly && (
         <div className="">
           <FieldLabelElement title="Filter Type" />
           <Dropdown
@@ -186,6 +207,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
+        )}
 
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.DiskUsagePercent && (
@@ -210,7 +232,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (
             <div className="mt-1">
-              <FieldLabelElement title="Select Metric Variable" />
+              <FieldLabelElement
+                title={isMetricOnly ? "Metric" : "Select Metric Variable"}
+                description={isMetricOnly ? "Which metric query should this alert rule check?" : undefined}
+              />
               <Dropdown
                 value={selectedMetricVariableOption}
                 options={metricVariableOptions}
@@ -232,7 +257,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (
             <div className="mt-1">
-              <FieldLabelElement title="Select Aggregation" />
+              <FieldLabelElement
+                title={isMetricOnly ? "Aggregation" : "Select Aggregation"}
+                description={isMetricOnly ? "How to combine multiple data points (e.g. Average, Max, Min)." : undefined}
+              />
               <Dropdown
                 value={metricAggregationValue}
                 options={metricAggregationOptions}
@@ -350,7 +378,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {!criteriaFilter?.checkOn ||
           (criteriaFilter?.checkOn && (
             <div className="mt-1">
-              <FieldLabelElement title="Filter Condition" />
+              <FieldLabelElement
+                title={isMetricOnly ? "Condition" : "Filter Condition"}
+                description={isMetricOnly ? "When should this alert trigger?" : undefined}
+              />
               <Dropdown
                 value={filterConditionValue}
                 options={filterTypeOptions}
@@ -377,7 +408,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               checkOn: criteriaFilter?.checkOn,
             }) && (
               <div className="mt-1">
-                <FieldLabelElement title="Value" />
+                <FieldLabelElement
+                  title={isMetricOnly ? "Threshold" : "Value"}
+                  description={isMetricOnly ? "The value to compare against." : undefined}
+                />
                 <Input
                   placeholder={valuePlaceholder}
                   value={criteriaFilter?.value?.toString()}
@@ -425,7 +459,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         <div className="mt-3 -mr-2 w-full flex justify-end">
           <Button
-            title="Delete Filter"
+            title={isMetricOnly ? "Delete Rule" : "Delete Filter"}
             buttonStyle={ButtonStyleType.DANGER_OUTLINE}
             icon={IconProp.Trash}
             buttonSize={ButtonSize.Small}

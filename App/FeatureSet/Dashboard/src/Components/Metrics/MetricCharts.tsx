@@ -159,11 +159,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         });
       }
 
-      // Determine chart type - use BAR for bar chart type, AREA for everything else
-      const chartType: ChartType =
-        queryConfig.chartType === MetricChartType.BAR
-          ? ChartType.BAR
-          : ChartType.AREA;
+      let chartType: ChartType;
+      if (queryConfig.chartType === MetricChartType.BAR) {
+        chartType = ChartType.BAR;
+      } else if (queryConfig.chartType === MetricChartType.AREA) {
+        chartType = ChartType.AREA;
+      } else if (queryConfig.chartType === MetricChartType.LINE) {
+        chartType = ChartType.LINE;
+      } else {
+        chartType = ChartType.AREA;
+      }
 
       const chart: Chart = {
         id: index.toString(),

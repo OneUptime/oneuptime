@@ -2,10 +2,14 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import DashboardTextComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
 import DashboardChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
+import DashboardTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import DashboardGaugeComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardGaugeComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
+import DashboardTableComponent from "./DashboardTableComponent";
+import DashboardGaugeComponent from "./DashboardGaugeComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -37,6 +41,7 @@ export interface DashboardBaseComponentProps {
   dashboardViewConfig: DashboardViewConfig;
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   metricTypes: Array<MetricType>;
+  refreshTick?: number | undefined;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -402,6 +407,22 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isSelected={props.isSelected}
           isEditMode={props.isEditMode}
           component={component as DashboardValueComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.Table && (
+        <DashboardTableComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardTableComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.Gauge && (
+        <DashboardGaugeComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardGaugeComponentType}
         />
       )}
 

@@ -10,5 +10,6 @@ export default interface DashboardTextComponent extends BaseComponent {
     isBold: boolean;
     isItalic: boolean;
     isUnderline: boolean;
+    isMarkdown?: boolean | undefined;
   };
 }

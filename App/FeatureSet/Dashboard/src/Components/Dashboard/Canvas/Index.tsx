@@ -25,6 +25,7 @@ export interface ComponentProps {
     telemetryAttributes: string[];
   };
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
+  refreshTick?: number | undefined;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
@@ -221,6 +222,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           updateComponent(updatedComponent);
         }}
         isSelected={isSelected}
+        refreshTick={props.refreshTick}
         onClick={() => {
           // component is selected
           props.onComponentSelected(componentId);

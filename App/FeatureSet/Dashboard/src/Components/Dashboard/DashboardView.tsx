@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -9,12 +10,17 @@ import DashboardToolbar from "./Toolbar/DashboardToolbar";
 import DashboardCanvas from "./Canvas/Index";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
-import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
+import DashboardViewConfig, {
+  AutoRefreshInterval,
+  getAutoRefreshIntervalInMs,
+} from "Common/Types/Dashboard/DashboardViewConfig";
 import { ObjectType } from "Common/Types/JSON";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardValueComponentUtil from "Common/Utils/Dashboard/Components/DashboardValueComponent";
 import DashboardTextComponentUtil from "Common/Utils/Dashboard/Components/DashboardTextComponent";
+import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTableComponent";
+import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -30,6 +36,7 @@ import MetricUtil from "../Metrics/Utils/Metrics";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -48,6 +55,23 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     });
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  // Auto-refresh state
+  const [autoRefreshInterval, setAutoRefreshInterval] =
+    useState<AutoRefreshInterval>(AutoRefreshInterval.OFF);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [dashboardVariables, setDashboardVariables] = useState<
+    Array<DashboardVariable>
+  >([]);
+
+  // Zoom stack for time range
+  const [timeRangeStack, setTimeRangeStack] = useState<
+    Array<RangeStartAndEndDateTime>
+  >([]);
+  const autoRefreshTimerRef: React.MutableRefObject<ReturnType<
+    typeof setInterval
+  > | null> = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [refreshTick, setRefreshTick] = useState<number>(0);
 
   // ref for dashboard div.
 
@@ -140,13 +164,23 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      setDashboardViewConfig(
-        JSONFunctions.deserializeValue(
-          dashboard.dashboardViewConfig ||
-            DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
-        ) as DashboardViewConfig,
-      );
+      const config: DashboardViewConfig = JSONFunctions.deserializeValue(
+        dashboard.dashboardViewConfig ||
+          DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
+      ) as DashboardViewConfig;
+
+      setDashboardViewConfig(config);
       setDashboardName(dashboard.name || "Untitled Dashboard");
+
+      // Restore saved auto-refresh interval
+      if (config.refreshInterval) {
+        setAutoRefreshInterval(config.refreshInterval);
+      }
+
+      // Restore saved variables
+      if (config.variables) {
+        setDashboardVariables(config.variables);
+      }
     };
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
@@ -168,6 +202,47 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
+
+  // Auto-refresh timer management
+  const triggerRefresh: () => void = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshTick((prev: number) => {
+      return prev + 1;
+    });
+    // Brief indicator
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 500);
+  }, []);
+
+  useEffect(() => {
+    // Clear existing timer
+    if (autoRefreshTimerRef.current) {
+      clearInterval(autoRefreshTimerRef.current);
+      autoRefreshTimerRef.current = null;
+    }
+
+    // Don't auto-refresh in edit mode
+    if (dashboardMode === DashboardMode.Edit) {
+      return;
+    }
+
+    const intervalMs: number | null =
+      getAutoRefreshIntervalInMs(autoRefreshInterval);
+
+    if (intervalMs !== null) {
+      autoRefreshTimerRef.current = setInterval(() => {
+        triggerRefresh();
+      }, intervalMs);
+    }
+
+    return () => {
+      if (autoRefreshTimerRef.current) {
+        clearInterval(autoRefreshTimerRef.current);
+        autoRefreshTimerRef.current = null;
+      }
+    };
+  }, [autoRefreshInterval, dashboardMode, triggerRefresh]);
 
   const isEditMode: boolean = dashboardMode === DashboardMode.Edit;
 
@@ -219,15 +294,33 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         dashboardName={dashboardName}
         isSaving={isSaving}
         onSaveClick={() => {
+          // Save auto-refresh interval with the config
+          const configWithRefresh: DashboardViewConfig = {
+            ...dashboardViewConfig,
+            refreshInterval: autoRefreshInterval,
+          };
+          setDashboardViewConfig(configWithRefresh);
+
           saveDashboardViewConfig().catch((err: Error) => {
             setError(API.getFriendlyErrorMessage(err));
           });
           setDashboardMode(DashboardMode.View);
         }}
         startAndEndDate={startAndEndDate}
+        canResetZoom={timeRangeStack.length > 0}
+        onResetZoom={() => {
+          if (timeRangeStack.length > 0) {
+            const previousRange: RangeStartAndEndDateTime =
+              timeRangeStack[timeRangeStack.length - 1]!;
+            setStartAndEndDate(previousRange);
+            setTimeRangeStack(timeRangeStack.slice(0, -1));
+          }
+        }}
         onStartAndEndDateChange={(
           newStartAndEndDate: RangeStartAndEndDateTime,
         ) => {
+          // Push current range to zoom stack before changing
+          setTimeRangeStack([...timeRangeStack, startAndEndDate]);
           setStartAndEndDate(newStartAndEndDate);
         }}
         onCancelEditClick={async () => {
@@ -237,6 +330,26 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         onEditClick={() => {
           setDashboardMode(DashboardMode.Edit);
+        }}
+        autoRefreshInterval={autoRefreshInterval}
+        onAutoRefreshIntervalChange={(interval: AutoRefreshInterval) => {
+          setAutoRefreshInterval(interval);
+        }}
+        isRefreshing={isRefreshing}
+        variables={dashboardVariables}
+        onVariableValueChange={(variableId: string, value: string) => {
+          const updatedVariables: Array<DashboardVariable> =
+            dashboardVariables.map((v: DashboardVariable) => {
+              if (v.id === variableId) {
+                return { ...v, selectedValue: value };
+              }
+              return v;
+            });
+          setDashboardVariables(updatedVariables);
+          // Trigger refresh when variable changes
+          setRefreshTick((prev: number) => {
+            return prev + 1;
+          });
         }}
         onAddComponentClick={(componentType: DashboardComponentType) => {
           let newComponent: DashboardBaseComponent | null = null;
@@ -251,6 +364,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
           if (componentType === DashboardComponentType.Text) {
             newComponent = DashboardTextComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.Table) {
+            newComponent = DashboardTableComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.Gauge) {
+            newComponent = DashboardGaugeComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {
@@ -291,6 +412,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
             telemetryAttributes,
             metricTypes,
           }}
+          refreshTick={refreshTick}
         />
       </div>
     </div>

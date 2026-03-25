@@ -5,6 +5,7 @@ import MetricQueryData from "./MetricQueryData";
 export enum MetricChartType {
   LINE = "line",
   BAR = "bar",
+  AREA = "area",
 }
 
 export interface ChartSeries {

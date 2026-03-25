@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import {
   CheckOn,
   CriteriaFilter,
+  EvaluateOverTimeType,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -98,18 +99,39 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
       })}
       <div className="mt-3 -ml-3">
         <Button
-          title="Add Filter"
+          title={
+            props.monitorType === MonitorType.Kubernetes ||
+            props.monitorType === MonitorType.Metrics
+              ? "Add Rule"
+              : "Add Filter"
+          }
           buttonSize={ButtonSize.Small}
           icon={IconProp.Add}
           onClick={() => {
             const newCriteriaFilters: Array<CriteriaFilter> = [
               ...criteriaFilters,
             ];
-            newCriteriaFilters.push({
-              checkOn: CheckOn.IsOnline,
-              filterType: FilterType.EqualTo,
-              value: "",
-            });
+
+            const isMetricOnly: boolean =
+              props.monitorType === MonitorType.Kubernetes ||
+              props.monitorType === MonitorType.Metrics;
+
+            newCriteriaFilters.push(
+              isMetricOnly
+                ? {
+                    checkOn: CheckOn.MetricValue,
+                    filterType: FilterType.GreaterThan,
+                    value: "",
+                    metricMonitorOptions: {
+                      metricAggregationType: EvaluateOverTimeType.AnyValue,
+                    },
+                  }
+                : {
+                    checkOn: CheckOn.IsOnline,
+                    filterType: FilterType.EqualTo,
+                    value: "",
+                  },
+            );
 
             props.onChange?.(newCriteriaFilters);
           }}
@@ -117,8 +139,18 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
       </div>
       {showCantDeleteModal ? (
         <ConfirmModal
-          description={`We need at least one filter for this criteria. We cant delete one remaining filter. If you don't need filters, please feel free to delete criteria instead.`}
-          title={`Cannot delete last remaining filter.`}
+          description={
+            props.monitorType === MonitorType.Kubernetes ||
+            props.monitorType === MonitorType.Metrics
+              ? `At least one alert rule is required. If you don't need rules, you can delete the entire criteria instead.`
+              : `We need at least one filter for this criteria. We cant delete one remaining filter. If you don't need filters, please feel free to delete criteria instead.`
+          }
+          title={
+            props.monitorType === MonitorType.Kubernetes ||
+            props.monitorType === MonitorType.Metrics
+              ? `Cannot delete last remaining rule.`
+              : `Cannot delete last remaining filter.`
+          }
           onSubmit={() => {
             setShowCantDeleteModal(false);
           }}
