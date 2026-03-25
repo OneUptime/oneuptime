@@ -96,6 +96,10 @@ const DocsNav: NavGroup[] = [
     title: "Identity",
     links: [
       {
+        title: "SSO",
+        url: "/docs/identity/sso",
+      },
+      {
         title: "SCIM",
         url: "/docs/identity/scim",
       },
