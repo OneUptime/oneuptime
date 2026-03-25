@@ -212,6 +212,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             `/workspace-notification-summary/test/${summaryId.toString()}`,
           ),
           data: {},
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isSuccess()) {
