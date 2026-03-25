@@ -345,6 +345,7 @@ const Legend: React.ForwardRefExoticComponent<
 
 Legend.displayName = "Legend";
 
+/* eslint-disable react/no-unused-prop-types */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PayloadItem = {
   category: string;
@@ -355,6 +356,7 @@ type PayloadItem = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any;
 };
+/* eslint-enable react/no-unused-prop-types */
 
 const ChartLegend: (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -461,14 +463,7 @@ const ChartTooltip: ({
         )}
       >
         <div className={cx("border-b border-inherit px-4 py-2")}>
-          <p
-            className={cx(
-              "font-medium",
-              "text-gray-900",
-            )}
-          >
-            {label}
-          </p>
+          <p className={cx("font-medium", "text-gray-900")}>{label}</p>
         </div>
         <div className={cx("space-y-1 px-4 py-2")}>
           {legendPayload.map(
@@ -745,10 +740,7 @@ const AreaChart: React.ForwardRefExoticComponent<
               }
               fill=""
               stroke=""
-              className={cx(
-                "text-xs",
-                "fill-gray-500",
-              )}
+              className={cx("text-xs", "fill-gray-500")}
               tickLine={false}
               axisLine={false}
               minTickGap={tickGap}
@@ -773,10 +765,7 @@ const AreaChart: React.ForwardRefExoticComponent<
               tick={{ transform: "translate(-3, 0)" }}
               fill=""
               stroke=""
-              className={cx(
-                "text-xs",
-                "fill-gray-500",
-              )}
+              className={cx("text-xs", "fill-gray-500")}
               tickFormatter={valueFormatter}
               allowDecimals={allowDecimals}
             >
@@ -803,8 +792,8 @@ const AreaChart: React.ForwardRefExoticComponent<
               content={({ active, payload, label }: any) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const cleanPayload: TooltipProps["payload"] = payload
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  ? payload.map((item: any) => {
+                  ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    payload.map((item: any) => {
                       return {
                         category: item.dataKey,
                         value: item.value,

@@ -320,13 +320,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
               const tag: string | undefined =
                 parts.length > 1 ? parts[parts.length - 1] : undefined;
               return (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <span className="font-mono text-gray-900">
-                    {imageName}
-                  </span>
+                <div key={idx} className="flex items-center gap-2 text-sm">
+                  <span className="font-mono text-gray-900">{imageName}</span>
                   {tag && (
                     <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-700">
                       {tag}

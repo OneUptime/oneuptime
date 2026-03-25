@@ -71,7 +71,11 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
               .filter((filter: Filter<T>) => {
                 if (filter.isAdvancedFilter) {
                   // Hide advanced filters if not toggled on, or if they are still loading/errored
-                  return showMoreFilters && !props.isFilterLoading && !props.filterError;
+                  return (
+                    showMoreFilters &&
+                    !props.isFilterLoading &&
+                    !props.filterError
+                  );
                 }
                 return true;
               })

@@ -186,15 +186,22 @@ const KubernetesVolumeMountsTab: FunctionComponent<ComponentProps> = (
       {/* Search bar */}
       <Card
         title="Volume Mounts"
-        description={`${totalMountCount} mount${totalMountCount !== 1 ? "s" : ""} across ${allContainers.filter((c: KubernetesContainerSpec) => { return c.volumeMounts.length > 0; }).length} container${allContainers.filter((c: KubernetesContainerSpec) => { return c.volumeMounts.length > 0; }).length !== 1 ? "s" : ""}`}
+        description={`${totalMountCount} mount${totalMountCount !== 1 ? "s" : ""} across ${
+          allContainers.filter((c: KubernetesContainerSpec) => {
+            return c.volumeMounts.length > 0;
+          }).length
+        } container${
+          allContainers.filter((c: KubernetesContainerSpec) => {
+            return c.volumeMounts.length > 0;
+          }).length !== 1
+            ? "s"
+            : ""
+        }`}
       >
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Icon
-                icon={IconProp.Search}
-                className="h-4 w-4 text-gray-400"
-              />
+              <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
             </div>
             <Input
               placeholder="Search by volume name or mount path..."

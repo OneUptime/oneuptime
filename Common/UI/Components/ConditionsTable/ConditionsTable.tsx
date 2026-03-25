@@ -130,9 +130,7 @@ const ConditionsTable: FunctionComponent<ComponentProps> = (
             disableSort: true,
             getElement: (condition: Condition): ReactElement => {
               return (
-                <span className="text-gray-600">
-                  {condition.reason || "-"}
-                </span>
+                <span className="text-gray-600">{condition.reason || "-"}</span>
               );
             },
           },

@@ -28,6 +28,7 @@ import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -281,19 +282,17 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
 
   const handleTimeRangeChange: (
     newTimeRange: RangeStartAndEndDateTime,
-  ) => void = useCallback(
-    (newTimeRange: RangeStartAndEndDateTime): void => {
-      setTimeRange(newTimeRange);
-      const dateRange = RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
-      setMetricViewData((prev: MetricViewData) => {
-        return {
-          ...prev,
-          startAndEndDate: dateRange,
-        };
-      });
-    },
-    [],
-  );
+  ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
+    setTimeRange(newTimeRange);
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
+    setMetricViewData((prev: MetricViewData) => {
+      return {
+        ...prev,
+        startAndEndDate: dateRange,
+      };
+    });
+  }, []);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

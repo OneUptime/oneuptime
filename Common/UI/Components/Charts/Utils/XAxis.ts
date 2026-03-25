@@ -27,8 +27,10 @@ export default class XAxisUtil {
     const totalWeeks: number = totalDays / 7;
     const totalMonths: number = totalDays / 30;
 
-    // Thresholds are chosen so that the number of tick labels
-    // stays between ~6 and ~15 for any range, keeping the axis readable.
+    /*
+     * Thresholds are chosen so that the number of tick labels
+     * stays between ~6 and ~15 for any range, keeping the axis readable.
+     */
 
     if (totalSeconds <= 15) {
       return XAxisPrecision.EVERY_SECOND;

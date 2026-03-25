@@ -591,7 +591,12 @@ export class LogAggregationService {
     statement: Statement,
     request: Pick<
       HistogramRequest,
-      "serviceIds" | "severityTexts" | "bodySearchText" | "traceIds" | "spanIds" | "attributes"
+      | "serviceIds"
+      | "severityTexts"
+      | "bodySearchText"
+      | "traceIds"
+      | "spanIds"
+      | "attributes"
     >,
   ): void {
     if (request.serviceIds && request.serviceIds.length > 0) {

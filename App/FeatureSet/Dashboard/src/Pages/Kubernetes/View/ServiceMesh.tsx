@@ -32,9 +32,11 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Query builder helper
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Query builder helper
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 interface MetricQuerySpec {
   variable: string;
@@ -87,9 +89,11 @@ function buildMetricViewData(
   };
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Section component
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Section component
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 interface SectionProps {
   title: string;
@@ -130,13 +134,13 @@ const MeshSection: FunctionComponent<SectionProps> = (
   );
 };
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Istio metric specs
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Istio metric specs
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
-function getIstioTrafficQueries(
-  cluster: string,
-): Array<MetricQueryConfigData> {
+function getIstioTrafficQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
@@ -246,9 +250,7 @@ function getIstioTrafficQueries(
   ];
 }
 
-function getIstioPilotQueries(
-  cluster: string,
-): Array<MetricQueryConfigData> {
+function getIstioPilotQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
@@ -319,8 +321,7 @@ function getIstioPilotQueries(
       {
         variable: "pilot_conflict_outbound",
         title: "Outbound Listener Conflicts",
-        description:
-          "Number of outbound listener conflicts between services.",
+        description: "Number of outbound listener conflicts between services.",
         legend: "Conflicts",
         legendUnit: "",
         metricName: "pilot_conflict_outbound_listener_tcp_over_current_tcp",
@@ -401,9 +402,11 @@ function getEnvoyQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Linkerd metric specs
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Linkerd metric specs
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 function getLinkerdTrafficQueries(
   cluster: string,
@@ -551,9 +554,11 @@ function getLinkerdControlPlaneQueries(
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Cilium metric specs
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Cilium metric specs
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 function getCiliumDataPlaneQueries(
   cluster: string,
@@ -658,8 +663,7 @@ function getCiliumDataPlaneQueries(
           "Time to regenerate BPF programs. High values impact pod readiness.",
         legend: "Duration",
         legendUnit: "seconds",
-        metricName:
-          "cilium_endpoint_regeneration_time_stats_seconds_sum",
+        metricName: "cilium_endpoint_regeneration_time_stats_seconds_sum",
         aggregation: AggregationType.Avg,
       },
       cluster,
@@ -752,9 +756,7 @@ function getCiliumControlPlaneQueries(
   ];
 }
 
-function getCiliumHubbleQueries(
-  cluster: string,
-): Array<MetricQueryConfigData> {
+function getCiliumHubbleQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
     buildQuery(
       {
@@ -823,9 +825,11 @@ function getCiliumHubbleQueries(
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Main component
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Main component
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 const KubernetesClusterServiceMesh: FunctionComponent<
   PageComponentProps
@@ -848,15 +852,12 @@ const KubernetesClusterServiceMesh: FunctionComponent<
 
   const handleTimeRangeChange: (
     newTimeRange: RangeStartAndEndDateTime,
-  ) => void = useCallback(
-    (newTimeRange: RangeStartAndEndDateTime): void => {
-      setTimeRange(newTimeRange);
-      setStartAndEndDate(
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange),
-      );
-    },
-    [],
-  );
+  ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
+    setTimeRange(newTimeRange);
+    setStartAndEndDate(
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange),
+    );
+  }, []);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);

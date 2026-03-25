@@ -329,7 +329,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    const attributes: Record<string, string> | undefined = (props.logQuery as any).attributes as Record<string, string> | undefined;
+    const attributes: Record<string, string> | undefined = (
+      props.logQuery as any
+    ).attributes as Record<string, string> | undefined;
 
     if (!attributes || Object.keys(attributes).length === 0) {
       return undefined;

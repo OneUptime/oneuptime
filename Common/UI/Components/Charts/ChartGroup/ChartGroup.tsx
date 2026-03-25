@@ -38,10 +38,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     return index === props.charts.length - 1;
   };
 
-  type GetChartContentFunction = (
-    chart: Chart,
-    index: number,
-  ) => ReactElement;
+  type GetChartContentFunction = (chart: Chart, index: number) => ReactElement;
 
   const getChartContent: GetChartContentFunction = (
     chart: Chart,

@@ -32,9 +32,11 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Query builder helper
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Query builder helper
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 interface MetricQuerySpec {
   variable: string;
@@ -87,9 +89,11 @@ function buildMetricViewData(
   };
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Section component — Card with time picker in rightElement
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Section component — Card with time picker in rightElement
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 interface SectionProps {
   title: string;
@@ -130,9 +134,11 @@ const ControlPlaneSection: FunctionComponent<SectionProps> = (
   );
 };
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Metric specs: etcd
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Metric specs: etcd
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 function getEtcdQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
@@ -241,9 +247,11 @@ function getEtcdQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Metric specs: API Server
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Metric specs: API Server
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 function getApiServerQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
@@ -326,9 +334,11 @@ function getApiServerQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Metric specs: Scheduler
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Metric specs: Scheduler
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 function getSchedulerQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
@@ -400,9 +410,11 @@ function getSchedulerQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Metric specs: Controller Manager
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Metric specs: Controller Manager
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 function getControllerManagerQueries(
   cluster: string,
@@ -474,9 +486,11 @@ function getControllerManagerQueries(
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Metric specs: CoreDNS
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Metric specs: CoreDNS
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 function getCoreDnsQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
@@ -598,9 +612,11 @@ function getCoreDnsQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Metric specs: kube-proxy
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Metric specs: kube-proxy
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 function getKubeProxyQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
@@ -650,8 +666,7 @@ function getKubeProxyQueries(cluster: string): Array<MetricQueryConfigData> {
           "Timestamp of the last successful proxy rules sync. Stale values indicate kube-proxy issues.",
         legend: "Timestamp",
         legendUnit: "",
-        metricName:
-          "kubeproxy_sync_proxy_rules_last_timestamp_seconds",
+        metricName: "kubeproxy_sync_proxy_rules_last_timestamp_seconds",
         aggregation: AggregationType.Max,
       },
       cluster,
@@ -660,8 +675,7 @@ function getKubeProxyQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "kubeproxy_service_changes",
         title: "Service Changes",
-        description:
-          "Number of service change events processed by kube-proxy.",
+        description: "Number of service change events processed by kube-proxy.",
         legend: "Changes",
         legendUnit: "",
         metricName: "kubeproxy_sync_proxy_rules_service_changes_total",
@@ -685,9 +699,11 @@ function getKubeProxyQueries(cluster: string): Array<MetricQueryConfigData> {
   ];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Main component
-// ──────────────────────────────────────────────────────────────────────────────
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Main component
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
 
 const KubernetesClusterControlPlane: FunctionComponent<
   PageComponentProps
@@ -710,15 +726,12 @@ const KubernetesClusterControlPlane: FunctionComponent<
 
   const handleTimeRangeChange: (
     newTimeRange: RangeStartAndEndDateTime,
-  ) => void = useCallback(
-    (newTimeRange: RangeStartAndEndDateTime): void => {
-      setTimeRange(newTimeRange);
-      setStartAndEndDate(
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange),
-      );
-    },
-    [],
-  );
+  ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
+    setTimeRange(newTimeRange);
+    setStartAndEndDate(
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange),
+    );
+  }, []);
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);

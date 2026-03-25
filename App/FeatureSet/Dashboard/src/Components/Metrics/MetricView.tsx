@@ -465,7 +465,11 @@ const MetricView: FunctionComponent<ComponentProps> = (
       {metricResultsError && <ErrorMessage message={metricResultsError} />}
 
       {!isMetricResultsLoading && !metricResultsError && (
-        <div className={props.hideCardInCharts ? "" : "grid grid-cols-1 gap-4 mt-3"}>
+        <div
+          className={
+            props.hideCardInCharts ? "" : "grid grid-cols-1 gap-4 mt-3"
+          }
+        >
           {/** charts */}
           <MetricCharts
             hideCard={props.hideCardInCharts}

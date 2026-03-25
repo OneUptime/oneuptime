@@ -6,9 +6,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import UserService from "Common/Server/Services/UserService";
-import Markdown, {
-  MarkdownContentType,
-} from "Common/Server/Types/Markdown";
+import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Express, {
   ExpressRequest,
   ExpressResponse,

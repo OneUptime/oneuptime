@@ -7,6 +7,7 @@ import React, {
 import MetricView from "../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -34,20 +35,17 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
 
   const handleTimeRangeChange: (
     newTimeRange: RangeStartAndEndDateTime,
-  ) => void = useCallback(
-    (newTimeRange: RangeStartAndEndDateTime): void => {
-      setTimeRange(newTimeRange);
-      const dateRange =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
-      setMetricViewData((prev: MetricViewData) => {
-        return {
-          ...prev,
-          startAndEndDate: dateRange,
-        };
-      });
-    },
-    [],
-  );
+  ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
+    setTimeRange(newTimeRange);
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
+    setMetricViewData((prev: MetricViewData) => {
+      return {
+        ...prev,
+        startAndEndDate: dateRange,
+      };
+    });
+  }, []);
 
   return (
     <div>

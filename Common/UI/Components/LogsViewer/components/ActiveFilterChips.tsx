@@ -37,10 +37,7 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
             className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-gray-100 py-0.5 pl-2 pr-2 text-xs text-gray-700"
             title={`${filter.displayKey}: ${filter.displayValue} (applied filter)`}
           >
-            <Icon
-              icon={IconProp.Lock}
-              className="h-2.5 w-2.5 text-gray-400"
-            />
+            <Icon icon={IconProp.Lock} className="h-2.5 w-2.5 text-gray-400" />
             <span className="font-medium text-gray-500">
               {filter.displayKey}:
             </span>
