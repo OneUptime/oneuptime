@@ -64,19 +64,25 @@ export default class IfElse extends ComponentCode {
 
       // Get explicit types from dropdowns, default to text
       let input1Type: ConditionValueType =
-        (args["input-1-type"] as ConditionValueType) ||
-        ConditionValueType.Text;
+        (args["input-1-type"] as ConditionValueType) || ConditionValueType.Text;
       let input2Type: ConditionValueType =
-        (args["input-2-type"] as ConditionValueType) ||
-        ConditionValueType.Text;
+        (args["input-2-type"] as ConditionValueType) || ConditionValueType.Text;
 
-      // When types differ, coerce both to the more specific type
-      // so comparisons like text "true" == boolean true work correctly.
-      // Priority: Null/Undefined keep as-is, Boolean > Number > Text.
+      /*
+       * When types differ, coerce both to the more specific type
+       * so comparisons like text "true" == boolean true work correctly.
+       * Priority: Null/Undefined keep as-is, Boolean > Number > Text.
+       */
       if (input1Type !== input2Type) {
-        const isNullish = (t: ConditionValueType): boolean =>
-          t === ConditionValueType.Null ||
-          t === ConditionValueType.Undefined;
+        type IsNullishFunction = (t: ConditionValueType) => boolean;
+
+        const isNullish: IsNullishFunction = (
+          t: ConditionValueType,
+        ): boolean => {
+          return (
+            t === ConditionValueType.Null || t === ConditionValueType.Undefined
+          );
+        };
 
         if (!isNullish(input1Type) && !isNullish(input2Type)) {
           const typePriority: Record<string, number> = {
@@ -103,9 +109,10 @@ export default class IfElse extends ComponentCode {
         value: JSONValue,
         valueType: ConditionValueType,
       ): string => {
-        const strValue: string = typeof value === "object"
-          ? JSON.stringify(value)
-          : String(value ?? "");
+        const strValue: string =
+          typeof value === "object"
+            ? JSON.stringify(value)
+            : String(value ?? "");
 
         switch (valueType) {
           case ConditionValueType.Boolean:

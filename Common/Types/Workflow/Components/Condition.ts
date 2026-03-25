@@ -38,8 +38,7 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.ValueType,
         name: "Input 1 Type",
-        description:
-          "Type of Input 1. Defaults to Text if not selected.",
+        description: "Type of Input 1. Defaults to Text if not selected.",
         placeholder: "Text",
         required: false,
         id: "input-1-type",
@@ -63,8 +62,7 @@ const components: Array<ComponentMetadata> = [
       {
         type: ComponentInputType.ValueType,
         name: "Input 2 Type",
-        description:
-          "Type of Input 2. Defaults to Text if not selected.",
+        description: "Type of Input 2. Defaults to Text if not selected.",
         placeholder: "Text",
         required: false,
         id: "input-2-type",
