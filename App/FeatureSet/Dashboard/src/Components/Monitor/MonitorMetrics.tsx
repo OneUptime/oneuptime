@@ -32,7 +32,8 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateEdit from "Common/UI/Components/Date/RangeStartAndEndDateEdit";
+import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
+import Card from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -307,19 +308,21 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-end">
-        <div className="w-64">
-          <RangeStartAndEndDateEdit
-            value={timeRange}
-            onChange={handleTimeRangeChange}
-          />
-        </div>
-      </div>
+    <Card
+      title="Monitor Metrics"
+      description="Performance metrics collected from this monitor."
+      rightElement={
+        <RangeStartAndEndDateView
+          dashboardStartAndEndDate={timeRange}
+          onChange={handleTimeRangeChange}
+        />
+      }
+    >
       <MetricView
         data={metricViewData}
         hideQueryElements={true}
         hideStartAndEndDate={true}
+        hideCardInCharts={true}
         onChange={(data: MetricViewData) => {
           setMetricViewData({
             ...data,
@@ -328,7 +331,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
           });
         }}
       />
-    </div>
+    </Card>
   );
 };
 

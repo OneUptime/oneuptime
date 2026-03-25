@@ -11,7 +11,8 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateEdit from "Common/UI/Components/Date/RangeStartAndEndDateEdit";
+import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
+import Card from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -37,7 +38,8 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
   ) => void = useCallback(
     (newTimeRange: RangeStartAndEndDateTime): void => {
       setTimeRange(newTimeRange);
-      const dateRange = RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
+      const dateRange =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
       setMetricViewData((prev: MetricViewData) => {
         return {
           ...prev,
@@ -49,15 +51,16 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-end">
-        <div className="w-64">
-          <RangeStartAndEndDateEdit
-            value={timeRange}
-            onChange={handleTimeRangeChange}
-          />
-        </div>
-      </div>
+    <Card
+      title="Metrics"
+      description="Resource utilization metrics for this pod."
+      rightElement={
+        <RangeStartAndEndDateView
+          dashboardStartAndEndDate={timeRange}
+          onChange={handleTimeRangeChange}
+        />
+      }
+    >
       <MetricView
         data={{
           ...metricViewData,
@@ -65,6 +68,7 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
         }}
         hideQueryElements={true}
         hideStartAndEndDate={true}
+        hideCardInCharts={true}
         onChange={(data: MetricViewData) => {
           setMetricViewData({
             ...data,
@@ -73,7 +77,7 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
           });
         }}
       />
-    </div>
+    </Card>
   );
 };
 

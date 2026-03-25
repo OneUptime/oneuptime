@@ -37,6 +37,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   const gridCols: string =
     props.charts.length > 1 ? "lg:grid-cols-2" : "lg:grid-cols-1";
 
+  const isLastChart: (index: number) => boolean = (index: number): boolean => {
+    return index === props.charts.length - 1;
+  };
+
   return (
     <div
       className={`grid grid-cols-1 ${gridCols} gap-4 space-y-4 lg:space-y-0`}
@@ -45,6 +49,11 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
         const cardClass: string = props.hideCard
           ? ""
           : "rounded-lg border border-gray-200 bg-white shadow-sm";
+
+        const dividerClass: string =
+          props.hideCard && !isLastChart(index)
+            ? "border-b border-gray-200 pb-5"
+            : "";
 
         const chartContent: ReactElement = (() => {
           switch (chart.type) {
@@ -83,7 +92,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
         return (
           <div
             key={index}
-            className={`p-5 ${cardClass} ${props.chartCssClass || ""}`}
+            className={`p-5 ${cardClass} ${dividerClass} ${props.chartCssClass || ""}`}
           >
             <h2
               data-testid="card-details-heading"
