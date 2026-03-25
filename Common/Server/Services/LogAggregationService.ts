@@ -648,10 +648,10 @@ export class LogAggregationService {
         LogAggregationService.validateFacetKey(attrKey);
 
         statement.append(
-          SQL` AND JSONExtractString(attributes, ${{
+          SQL` AND attributes[${{
             type: TableColumnType.Text,
             value: attrKey,
-          }}) = ${{
+          }}] = ${{
             type: TableColumnType.Text,
             value: attrValue,
           }}`,
