@@ -34,65 +34,95 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const syncId: string = Text.generateRandomText(10);
 
-  const gridCols: string =
-    props.charts.length > 1 ? "lg:grid-cols-2" : "lg:grid-cols-1";
-
   const isLastChart: (index: number) => boolean = (index: number): boolean => {
     return index === props.charts.length - 1;
   };
+
+  type GetChartContentFunction = (
+    chart: Chart,
+    index: number,
+  ) => ReactElement;
+
+  const getChartContent: GetChartContentFunction = (
+    chart: Chart,
+    index: number,
+  ): ReactElement => {
+    switch (chart.type) {
+      case ChartType.LINE:
+        return (
+          <LineChart
+            key={index}
+            {...(chart.props as LineChartProps)}
+            syncid={syncId}
+            heightInPx={props.heightInPx}
+          />
+        );
+      case ChartType.BAR:
+        return (
+          <BarChartElement
+            key={index}
+            {...(chart.props as BarChartProps)}
+            syncid={syncId}
+            heightInPx={props.heightInPx}
+          />
+        );
+      case ChartType.AREA:
+        return (
+          <AreaChartElement
+            key={index}
+            {...(chart.props as AreaChartProps)}
+            syncid={syncId}
+            heightInPx={props.heightInPx}
+          />
+        );
+      default:
+        return <></>;
+    }
+  };
+
+  // When hideCard is true, render charts in a clean vertical stack with dividers
+  if (props.hideCard) {
+    return (
+      <div className="space-y-0">
+        {props.charts.map((chart: Chart, index: number) => {
+          return (
+            <div
+              key={index}
+              className={`${!isLastChart(index) ? "border-b border-gray-100" : ""} ${props.chartCssClass || ""}`}
+            >
+              <div className="px-1 pt-5 pb-4">
+                <div className="mb-1">
+                  <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
+                    {chart.title}
+                  </h3>
+                  {chart.description && (
+                    <p className="mt-0.5 text-xs text-gray-400 hidden md:block">
+                      {chart.description}
+                    </p>
+                  )}
+                </div>
+                {getChartContent(chart, index)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // When showing cards, use the grid layout
+  const gridCols: string =
+    props.charts.length > 1 ? "lg:grid-cols-2" : "lg:grid-cols-1";
 
   return (
     <div
       className={`grid grid-cols-1 ${gridCols} gap-4 space-y-4 lg:space-y-0`}
     >
       {props.charts.map((chart: Chart, index: number) => {
-        const cardClass: string = props.hideCard
-          ? ""
-          : "rounded-lg border border-gray-200 bg-white shadow-sm";
-
-        const dividerClass: string =
-          props.hideCard && !isLastChart(index)
-            ? "border-b border-gray-200 pb-5"
-            : "";
-
-        const chartContent: ReactElement = (() => {
-          switch (chart.type) {
-            case ChartType.LINE:
-              return (
-                <LineChart
-                  key={index}
-                  {...(chart.props as LineChartProps)}
-                  syncid={syncId}
-                  heightInPx={props.heightInPx}
-                />
-              );
-            case ChartType.BAR:
-              return (
-                <BarChartElement
-                  key={index}
-                  {...(chart.props as BarChartProps)}
-                  syncid={syncId}
-                  heightInPx={props.heightInPx}
-                />
-              );
-            case ChartType.AREA:
-              return (
-                <AreaChartElement
-                  key={index}
-                  {...(chart.props as AreaChartProps)}
-                  syncid={syncId}
-                  heightInPx={props.heightInPx}
-                />
-              );
-            default:
-              return <></>;
-          }
-        })();
-
         return (
           <div
             key={index}
-            className={`p-5 ${cardClass} ${dividerClass} ${props.chartCssClass || ""}`}
+            className={`p-5 rounded-lg border border-gray-200 bg-white shadow-sm ${props.chartCssClass || ""}`}
           >
             <h2
               data-testid="card-details-heading"
@@ -109,7 +139,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 {chart.description}
               </p>
             )}
-            {chartContent}
+            {getChartContent(chart, index)}
           </div>
         );
       })}
