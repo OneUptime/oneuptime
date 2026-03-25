@@ -124,8 +124,10 @@ router.post(
   ): Promise<void> => {
     try {
       if (await DatabaseConfig.shouldDisableSignup()) {
-        // Check if this user has been invited to a project.
-        // If so, allow them to sign up even if signup is disabled.
+        /*
+         * Check if this user has been invited to a project.
+         * If so, allow them to sign up even if signup is disabled.
+         */
         const data: JSONObject = req.body["data"] as JSONObject;
         const emailForInviteCheck: string | undefined = data?.["email"] as
           | string
