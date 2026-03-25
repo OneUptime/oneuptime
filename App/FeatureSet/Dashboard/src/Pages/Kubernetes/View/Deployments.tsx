@@ -160,6 +160,9 @@ const KubernetesClusterDeployments: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Deployments"
       description="All deployments running in this cluster."
       resources={resources}

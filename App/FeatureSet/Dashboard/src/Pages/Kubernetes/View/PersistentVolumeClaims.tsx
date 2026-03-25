@@ -104,6 +104,9 @@ const KubernetesClusterPVCs: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Persistent Volume Claims"
       description="All PVCs in this cluster with their current status."
       resources={resources}

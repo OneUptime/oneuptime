@@ -149,6 +149,9 @@ const KubernetesClusterStatefulSets: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="StatefulSets"
       description="All statefulsets running in this cluster."
       resources={resources}

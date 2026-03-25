@@ -147,6 +147,9 @@ const KubernetesClusterJobs: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Jobs"
       description="All jobs in this cluster."
       resources={resources}

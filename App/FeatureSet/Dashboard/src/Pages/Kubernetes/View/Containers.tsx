@@ -134,6 +134,9 @@ const KubernetesClusterContainers: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Containers"
       description="All containers running in this cluster."
       resources={resources}

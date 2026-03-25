@@ -10,6 +10,7 @@ import KubernetesResourceUtils, {
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import Table from "Common/UI/Components/Table/Table";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Link from "Common/UI/Components/Link/Link";
@@ -38,6 +39,7 @@ export interface ComponentProps {
   getViewRoute?: (resource: KubernetesResource) => Route;
   emptyMessage?: string;
   isLoading?: boolean;
+  onRefreshClick?: (() => void) | undefined;
 }
 
 const PAGE_SIZE: number = 25;
@@ -427,17 +429,25 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
 
   const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
 
-  const cardButtons: Array<CardButtonSchema> = [
-    {
-      title: "",
-      buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
-      onClick: () => {
-        setShowFilterModal(true);
-      },
-      icon: IconProp.Filter,
+  const cardButtons: Array<CardButtonSchema> = [];
+
+  if (props.onRefreshClick) {
+    cardButtons.push({
+      ...getRefreshButton(),
+      className: "py-0 pr-0 pl-0 mt-1",
+      onClick: props.onRefreshClick,
+    });
+  }
+
+  cardButtons.push({
+    title: "",
+    buttonStyle: ButtonStyleType.ICON,
+    className: "py-0 pr-0 pl-1 mt-1",
+    onClick: () => {
+      setShowFilterModal(true);
     },
-  ];
+    icon: IconProp.Filter,
+  });
 
   return (
     <Card

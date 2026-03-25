@@ -117,6 +117,9 @@ const KubernetesClusterNodes: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Nodes"
       description="All nodes in this cluster with their current resource usage."
       resources={resources}

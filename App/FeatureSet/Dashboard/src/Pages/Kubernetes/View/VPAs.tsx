@@ -106,6 +106,9 @@ const KubernetesClusterVPAs: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Vertical Pod Autoscalers"
       description="All VPAs in this cluster with their current status."
       resources={resources}

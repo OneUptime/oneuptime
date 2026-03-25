@@ -108,6 +108,9 @@ const KubernetesClusterNamespaces: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Namespaces"
       description="All namespaces in this cluster."
       resources={resources}

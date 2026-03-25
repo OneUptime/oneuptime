@@ -118,6 +118,9 @@ const KubernetesClusterHPAs: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Horizontal Pod Autoscalers"
       description="All HPAs in this cluster with their current scaling status."
       resources={resources}

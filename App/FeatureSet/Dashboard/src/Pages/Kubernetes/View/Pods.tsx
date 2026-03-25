@@ -155,6 +155,9 @@ const KubernetesClusterPods: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Pods"
       description="All pods running in this cluster with their current resource usage."
       resources={resources}

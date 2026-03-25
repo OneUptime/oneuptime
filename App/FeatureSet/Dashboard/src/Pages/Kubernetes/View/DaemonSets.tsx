@@ -141,6 +141,9 @@ const KubernetesClusterDaemonSets: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="DaemonSets"
       description="All daemonsets running in this cluster."
       resources={resources}

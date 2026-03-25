@@ -101,6 +101,9 @@ const KubernetesClusterPVs: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="Persistent Volumes"
       description="All PVs in this cluster with their current status."
       resources={resources}

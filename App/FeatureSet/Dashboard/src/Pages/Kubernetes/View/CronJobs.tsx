@@ -136,6 +136,9 @@ const KubernetesClusterCronJobs: FunctionComponent<
 
   return (
     <KubernetesResourceTable
+      onRefreshClick={() => {
+        fetchData().catch(() => {});
+      }}
       title="CronJobs"
       description="All cron jobs in this cluster."
       resources={resources}
