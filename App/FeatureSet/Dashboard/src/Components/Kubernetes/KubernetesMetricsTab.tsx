@@ -12,7 +12,6 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
-import Card from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -51,16 +50,13 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <Card
-      title="Metrics"
-      description="Resource utilization metrics for this pod."
-      rightElement={
+    <div>
+      <div className="flex items-center justify-end mb-4">
         <RangeStartAndEndDateView
           dashboardStartAndEndDate={timeRange}
           onChange={handleTimeRangeChange}
         />
-      }
-    >
+      </div>
       <MetricView
         data={{
           ...metricViewData,
@@ -77,7 +73,7 @@ const KubernetesMetricsTab: FunctionComponent<ComponentProps> = (
           });
         }}
       />
-    </Card>
+    </div>
   );
 };
 

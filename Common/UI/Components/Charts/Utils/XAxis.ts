@@ -27,67 +27,70 @@ export default class XAxisUtil {
     const totalWeeks: number = totalDays / 7;
     const totalMonths: number = totalDays / 30;
 
-    if (totalSeconds <= 100) {
+    // Thresholds are chosen so that the number of tick labels
+    // stays between ~6 and ~15 for any range, keeping the axis readable.
+
+    if (totalSeconds <= 15) {
       return XAxisPrecision.EVERY_SECOND;
     }
-    if (totalSeconds <= 500) {
+    if (totalSeconds <= 75) {
       return XAxisPrecision.EVERY_FIVE_SECONDS;
     }
-    if (totalSeconds <= 1000) {
+    if (totalSeconds <= 150) {
       return XAxisPrecision.EVERY_TEN_SECONDS;
     }
-    if (totalSeconds <= 3000) {
+    if (totalSeconds <= 450) {
       return XAxisPrecision.EVERY_THIRTY_SECONDS;
     }
-    if (totalMinutes <= 100) {
+    if (totalMinutes <= 15) {
       return XAxisPrecision.EVERY_MINUTE;
     }
-    if (totalMinutes <= 500) {
+    if (totalMinutes <= 75) {
       return XAxisPrecision.EVERY_FIVE_MINUTES;
     }
-    if (totalMinutes <= 1000) {
+    if (totalMinutes <= 150) {
       return XAxisPrecision.EVERY_TEN_MINUTES;
     }
-    if (totalMinutes <= 3000) {
+    if (totalMinutes <= 450) {
       return XAxisPrecision.EVERY_THIRTY_MINUTES;
     }
-    if (totalHours <= 80) {
+    if (totalHours <= 15) {
       return XAxisPrecision.EVERY_HOUR;
     }
-    if (totalHours <= 100) {
+    if (totalHours <= 30) {
       return XAxisPrecision.EVERY_TWO_HOURS;
     }
-    if (totalHours <= 150) {
+    if (totalHours <= 45) {
       return XAxisPrecision.EVERY_THREE_HOURS;
     }
-    if (totalHours <= 300) {
+    if (totalHours <= 90) {
       return XAxisPrecision.EVERY_SIX_HOURS;
     }
-    if (totalHours <= 1200) {
+    if (totalHours <= 180) {
       return XAxisPrecision.EVERY_TWELVE_HOURS;
     }
-    if (totalDays <= 100) {
+    if (totalDays <= 15) {
       return XAxisPrecision.EVERY_DAY;
     }
-    if (totalDays <= 200) {
+    if (totalDays <= 30) {
       return XAxisPrecision.EVERY_TWO_DAYS;
     }
-    if (totalWeeks <= 100) {
+    if (totalWeeks <= 15) {
       return XAxisPrecision.EVERY_WEEK;
     }
-    if (totalWeeks <= 200) {
+    if (totalWeeks <= 30) {
       return XAxisPrecision.EVERY_TWO_WEEKS;
     }
-    if (totalMonths <= 100) {
+    if (totalMonths <= 15) {
       return XAxisPrecision.EVERY_MONTH;
     }
-    if (totalMonths <= 200) {
+    if (totalMonths <= 30) {
       return XAxisPrecision.EVERY_TWO_MONTHS;
     }
-    if (totalMonths <= 300) {
+    if (totalMonths <= 45) {
       return XAxisPrecision.EVERY_THREE_MONTHS;
     }
-    if (totalMonths <= 600) {
+    if (totalMonths <= 90) {
       return XAxisPrecision.EVERY_SIX_MONTHS;
     }
     return XAxisPrecision.EVERY_YEAR;
