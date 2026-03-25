@@ -284,7 +284,7 @@ const podPendingTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Sum,
-        attributes: { "k8s.pod.phase": "Pending" },
+        attributes: { "resource.k8s.pod.phase": "Pending" },
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
