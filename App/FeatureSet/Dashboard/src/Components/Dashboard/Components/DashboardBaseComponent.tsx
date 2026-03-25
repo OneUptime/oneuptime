@@ -4,12 +4,16 @@ import DashboardChartComponentType from "Common/Types/Dashboard/DashboardCompone
 import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import DashboardTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import DashboardGaugeComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardGaugeComponent";
+import DashboardLogStreamComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
+import DashboardTraceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
 import DashboardTableComponent from "./DashboardTableComponent";
 import DashboardGaugeComponent from "./DashboardGaugeComponent";
+import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
+import DashboardTraceListComponent from "./DashboardTraceListComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -437,6 +441,22 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isEditMode={props.isEditMode}
           isSelected={props.isSelected}
           component={component as DashboardGaugeComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.LogStream && (
+        <DashboardLogStreamComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardLogStreamComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.TraceList && (
+        <DashboardTraceListComponent
+          {...props}
+          isEditMode={props.isEditMode}
+          isSelected={props.isSelected}
+          component={component as DashboardTraceListComponentType}
         />
       )}
 

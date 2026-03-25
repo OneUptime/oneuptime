@@ -4,6 +4,8 @@ enum DashboardComponentType {
   Text = `Text`,
   Table = `Table`,
   Gauge = `Gauge`,
+  LogStream = `LogStream`,
+  TraceList = `TraceList`,
 }
 
 export default DashboardComponentType;

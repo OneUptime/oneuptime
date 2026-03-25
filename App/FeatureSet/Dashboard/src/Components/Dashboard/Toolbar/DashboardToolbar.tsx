@@ -135,6 +135,24 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                       props.onAddComponentClick(DashboardComponentType.Gauge);
                     }}
                   />
+                  <MoreMenuItem
+                    text={"Log Stream"}
+                    key={"add-log-stream"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.LogStream,
+                      );
+                    }}
+                  />
+                  <MoreMenuItem
+                    text={"Trace List"}
+                    key={"add-trace-list"}
+                    onClick={() => {
+                      props.onAddComponentClick(
+                        DashboardComponentType.TraceList,
+                      );
+                    }}
+                  />
                 </MoreMenu>
 
                 <div className="w-px h-6 bg-gray-200 mx-1"></div>
