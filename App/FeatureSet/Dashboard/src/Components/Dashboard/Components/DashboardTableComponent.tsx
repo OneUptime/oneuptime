@@ -8,7 +8,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -114,7 +113,26 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   }, [props.component.arguments.metricQueryConfig]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    // Skeleton loading for table
+    return (
+      <div className="h-full flex flex-col animate-pulse">
+        <div className="h-3 w-24 bg-gray-100 rounded mb-3"></div>
+        <div className="flex-1 space-y-2">
+          <div className="flex gap-4">
+            <div className="h-3 w-32 bg-gray-100 rounded"></div>
+            <div className="h-3 w-16 bg-gray-100 rounded ml-auto"></div>
+          </div>
+          {Array.from({ length: 5 }).map((_: unknown, i: number) => {
+            return (
+              <div key={i} className="flex gap-4" style={{ opacity: 1 - i * 0.15 }}>
+                <div className="h-3 w-28 bg-gray-50 rounded"></div>
+                <div className="h-3 w-14 bg-gray-50 rounded ml-auto"></div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -141,42 +159,85 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
 
   const displayData: Array<AggregatedModel> = allData.slice(0, maxRows);
 
+  // Calculate max value for bar visualization
+  const maxDataValue: number =
+    displayData.length > 0
+      ? Math.max(
+          ...displayData.map((item: AggregatedModel) => {
+            return Math.abs(item.value);
+          }),
+        )
+      : 1;
+
   return (
     <div className="h-full overflow-auto flex flex-col">
       {props.component.arguments.tableTitle && (
-        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 px-1">
-          {props.component.arguments.tableTitle}
+        <div className="flex items-center justify-between mb-2 px-1">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+            {props.component.arguments.tableTitle}
+          </span>
+          <span className="text-xs text-gray-300 tabular-nums">
+            {displayData.length} rows
+          </span>
         </div>
       )}
       <div className="flex-1 overflow-auto rounded-md border border-gray-100">
         <table className="w-full text-sm text-left">
-          <thead className="text-xs text-gray-500 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
+          <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
             <tr>
-              <th className="px-4 py-2.5 font-medium tracking-wide">Timestamp</th>
-              <th className="px-4 py-2.5 font-medium tracking-wide text-right">Value</th>
+              <th className="px-4 py-2.5 font-medium tracking-wider" style={{ width: "45%" }}>
+                Timestamp
+              </th>
+              <th className="px-4 py-2.5 font-medium tracking-wider text-right" style={{ width: "25%" }}>
+                Value
+              </th>
+              <th className="px-4 py-2.5 font-medium tracking-wider" style={{ width: "30%" }}>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {displayData.map((item: AggregatedModel, index: number) => {
+              const roundedValue: number =
+                Math.round(item.value * 100) / 100;
+              const barWidth: number =
+                maxDataValue > 0
+                  ? (Math.abs(roundedValue) / maxDataValue) * 100
+                  : 0;
+
               return (
                 <tr
                   key={index}
-                  className="hover:bg-gray-50/50 transition-colors duration-100"
+                  className="hover:bg-gray-50/50 transition-colors duration-100 group"
                 >
                   <td className="px-4 py-2 text-gray-500 text-xs">
                     {OneUptimeDate.getDateAsLocalFormattedString(
                       OneUptimeDate.fromString(item.timestamp),
                     )}
                   </td>
-                  <td className="px-4 py-2 font-semibold text-gray-900 text-right tabular-nums">
-                    {Math.round(item.value * 100) / 100}
+                  <td className="px-4 py-2 font-semibold text-gray-900 text-right tabular-nums text-xs">
+                    {roundedValue}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="w-full h-3 bg-gray-50 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${barWidth}%`,
+                          background:
+                            "linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.4) 100%)",
+                        }}
+                      ></div>
+                    </div>
                   </td>
                 </tr>
               );
             })}
             {displayData.length === 0 && (
               <tr>
-                <td colSpan={2} className="px-4 py-8 text-center text-gray-400 text-sm">
+                <td
+                  colSpan={3}
+                  className="px-4 py-8 text-center text-gray-400 text-sm"
+                >
                   No data available
                 </td>
               </tr>

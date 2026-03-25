@@ -39,7 +39,19 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
 
   // have a grid with width cols and height rows
   return (
-    <div className={`grid grid-cols-${width}`}>
+    <div
+      className={`grid grid-cols-${width}`}
+      style={
+        props.isEditMode
+          ? {
+              backgroundImage:
+                "radial-gradient(circle, #d1d5db 0.8px, transparent 0.8px)",
+              backgroundSize: "20px 20px",
+              borderRadius: "8px",
+            }
+          : {}
+      }
+    >
       {Array.from(Array(height).keys()).map((_: number, index: number) => {
         return (
           <BlankRowElement

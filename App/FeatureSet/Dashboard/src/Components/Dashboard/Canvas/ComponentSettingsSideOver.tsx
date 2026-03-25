@@ -55,7 +55,7 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
       }}
       leftFooterElement={
         <Button
-          title={`Delete Component`}
+          title={`Delete Widget`}
           icon={IconProp.Trash}
           buttonStyle={ButtonStyleType.DANGER_OUTLINE}
           onClick={() => {
@@ -67,12 +67,12 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
       <>
         {showDeleteConfirmation && (
           <ConfirmModal
-            title={`Delete?`}
-            description={`Are you sure you want to delete this component? This action is not recoverable.`}
+            title={`Delete Widget?`}
+            description={`Are you sure you want to delete this widget? This action cannot be undone.`}
             onClose={() => {
               setShowDeleteConfirmation(false);
             }}
-            submitButtonText={"Delete"}
+            submitButtonText={"Delete Widget"}
             onSubmit={() => {
               props.onComponentDelete(component);
               setShowDeleteConfirmation(false);
@@ -81,6 +81,16 @@ const ComponentSettingsSideOver: FunctionComponent<ComponentProps> = (
             submitButtonType={ButtonStyleType.DANGER}
           />
         )}
+
+        {/* Widget type indicator */}
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 capitalize">
+            {component.componentType} Widget
+          </span>
+          <span className="text-xs text-gray-400">
+            {component.widthInDashboardUnits} x {component.heightInDashboardUnits} units
+          </span>
+        </div>
 
         <Divider />
 

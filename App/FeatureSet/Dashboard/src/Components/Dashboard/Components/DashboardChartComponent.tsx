@@ -3,12 +3,10 @@ import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import MetricCharts from "../../Metrics/MetricCharts";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   MetricChartType,
@@ -143,18 +141,39 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   ]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    // Skeleton loading for chart
+    return (
+      <div className="w-full h-full flex flex-col p-1 animate-pulse">
+        <div className="h-3 w-28 bg-gray-100 rounded mb-3"></div>
+        <div className="flex-1 flex items-end gap-1 px-2 pb-2">
+          {Array.from({ length: 12 }).map((_: unknown, i: number) => {
+            return (
+              <div
+                key={i}
+                className="flex-1 bg-gray-100 rounded-t"
+                style={{
+                  height: `${20 + Math.random() * 60}%`,
+                  opacity: 0.4 + Math.random() * 0.4,
+                }}
+              ></div>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-2">
-        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
           <div className="h-5 w-5 text-gray-300">
             <Icon icon={IconProp.ChartBar} />
           </div>
         </div>
-        <ErrorMessage message={error} />
+        <p className="text-xs text-gray-400 text-center max-w-48">
+          {error}
+        </p>
       </div>
     );
   }
@@ -224,7 +243,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div>
+    <div className="w-full h-full overflow-hidden">
       <MetricCharts
         metricResults={metricResults}
         metricTypes={props.metricTypes}

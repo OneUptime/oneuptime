@@ -54,11 +54,20 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="mx-3 mt-3 mb-2 rounded-lg bg-white border border-gray-200"
+      className="mx-3 mt-3 mb-2 rounded-lg bg-white border border-gray-200 overflow-hidden"
       style={{
-        boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
+        boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
       }}
     >
+      {/* Accent top bar */}
+      <div
+        className="h-0.5"
+        style={{
+          background: isEditMode
+            ? "linear-gradient(90deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)"
+            : "linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)",
+        }}
+      ></div>
       {/* Top row: Dashboard name + action buttons */}
       <div className="flex items-center justify-between px-5 py-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -66,8 +75,14 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             {props.dashboardName}
           </h1>
           {isEditMode && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></span>
               Editing
+            </span>
+          )}
+          {hasComponents && !isEditMode && (
+            <span className="text-xs text-gray-400 tabular-nums">
+              {props.dashboardViewConfig.components.length} widget{props.dashboardViewConfig.components.length !== 1 ? "s" : ""}
             </span>
           )}
           {/* Refreshing indicator */}

@@ -66,14 +66,18 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   const [topInPx, setTopInPx] = React.useState<number>(0);
   const [leftInPx, setLeftInPx] = React.useState<number>(0);
 
-  let className: string = `relative rounded-lg col-span-${widthOfComponent} row-span-${heightOfComponent} p-3 bg-white border border-gray-200 transition-all duration-200`;
+  let className: string = `relative rounded-lg col-span-${widthOfComponent} row-span-${heightOfComponent} p-3 bg-white border border-gray-200 transition-all duration-200 overflow-hidden`;
 
-  if (props.isEditMode) {
-    className += " cursor-pointer hover:border-gray-300";
+  if (props.isEditMode && !props.isSelected) {
+    className += " cursor-pointer hover:border-gray-300 hover:shadow-md";
   }
 
   if (props.isSelected && props.isEditMode) {
-    className += " !border-blue-400 ring-2 ring-blue-100";
+    className += " !border-blue-400 ring-2 ring-blue-50 shadow-lg shadow-blue-100/50";
+  }
+
+  if (!props.isEditMode) {
+    className += " hover:shadow-md";
   }
 
   const dashboardComponentRef: React.RefObject<HTMLDivElement> =
@@ -385,6 +389,15 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       onClick={props.onClick}
     >
       {getMoveElement()}
+
+      {/* Component type badge - visible in edit mode */}
+      {props.isEditMode && props.isSelected && (
+        <div className="absolute top-1.5 right-1.5 z-10">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 capitalize">
+            {component.componentType}
+          </span>
+        </div>
+      )}
 
       {component.componentType === DashboardComponentType.Text && (
         <DashboardTextComponent
