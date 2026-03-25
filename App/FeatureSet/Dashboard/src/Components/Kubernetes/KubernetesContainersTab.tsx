@@ -369,28 +369,63 @@ const KubernetesContainersTab: FunctionComponent<ComponentProps> = (
     });
   };
 
+  // Sort containers: running first, then waiting, then terminated
+  function getStatePriority(state: string): number {
+    const s: string = state.toLowerCase();
+    if (s === "running") {
+      return 0;
+    }
+    if (s === "waiting") {
+      return 1;
+    }
+    if (s === "terminated") {
+      return 2;
+    }
+    return 3;
+  }
+
+  const sortedContainers: Array<{
+    container: KubernetesContainerSpec;
+    isInit: boolean;
+  }> = [
+    ...props.initContainers.map((container: KubernetesContainerSpec) => {
+      return { container, isInit: true };
+    }),
+    ...props.containers.map((container: KubernetesContainerSpec) => {
+      return { container, isInit: false };
+    }),
+  ].sort(
+    (
+      a: { container: KubernetesContainerSpec; isInit: boolean },
+      b: { container: KubernetesContainerSpec; isInit: boolean },
+    ) => {
+      const aStatus: KubernetesContainerStatus | undefined = getStatus(
+        a.container.name,
+        a.isInit,
+      );
+      const bStatus: KubernetesContainerStatus | undefined = getStatus(
+        b.container.name,
+        b.isInit,
+      );
+      const aPriority: number = getStatePriority(aStatus?.state || "unknown");
+      const bPriority: number = getStatePriority(bStatus?.state || "unknown");
+      return aPriority - bPriority;
+    },
+  );
+
   return (
     <div className="space-y-4">
-      {props.initContainers.map(
-        (container: KubernetesContainerSpec, index: number) => {
+      {sortedContainers.map(
+        (
+          item: { container: KubernetesContainerSpec; isInit: boolean },
+          index: number,
+        ) => {
           return (
             <ContainerCard
-              key={`init-${index}`}
-              container={container}
-              status={getStatus(container.name, true)}
-              isInit={true}
-            />
-          );
-        },
-      )}
-      {props.containers.map(
-        (container: KubernetesContainerSpec, index: number) => {
-          return (
-            <ContainerCard
-              key={`container-${index}`}
-              container={container}
-              status={getStatus(container.name, false)}
-              isInit={false}
+              key={`${item.isInit ? "init" : "container"}-${index}`}
+              container={item.container}
+              status={getStatus(item.container.name, item.isInit)}
+              isInit={item.isInit}
             />
           );
         },

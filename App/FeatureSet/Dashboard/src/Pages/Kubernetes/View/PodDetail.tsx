@@ -313,14 +313,25 @@ const KubernetesClusterPodDetail: FunctionComponent<
       {
         title: "Images",
         value: (
-          <div className="space-y-1">
+          <div className="space-y-2">
             {containerImages.map((img: string, idx: number) => {
+              const parts: Array<string> = img.split(":");
+              const imageName: string = parts.slice(0, -1).join(":") || img;
+              const tag: string | undefined =
+                parts.length > 1 ? parts[parts.length - 1] : undefined;
               return (
                 <div
                   key={idx}
-                  className="text-xs font-mono bg-gray-50 px-2 py-1 rounded"
+                  className="flex items-center gap-2 text-sm"
                 >
-                  {img}
+                  <span className="font-mono text-gray-900">
+                    {imageName}
+                  </span>
+                  {tag && (
+                    <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-700">
+                      {tag}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -377,6 +388,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
         <KubernetesEnvVarsTab
           containers={podObject.spec.containers}
           initContainers={podObject.spec.initContainers}
+          containerStatuses={podObject.status.containerStatuses}
+          initContainerStatuses={podObject.status.initContainerStatuses}
         />
       ) : isLoadingObject ? (
         <PageLoader isVisible={true} />
@@ -393,6 +406,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
         <KubernetesVolumeMountsTab
           containers={podObject.spec.containers}
           initContainers={podObject.spec.initContainers}
+          containerStatuses={podObject.status.containerStatuses}
+          initContainerStatuses={podObject.status.initContainerStatuses}
         />
       ) : isLoadingObject ? (
         <PageLoader isVisible={true} />

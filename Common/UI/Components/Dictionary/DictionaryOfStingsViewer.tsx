@@ -1,4 +1,7 @@
 import Dictionary from "../../../Types/Dictionary";
+import Table from "../Table/Table";
+import FieldType from "../Types/FieldType";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -47,27 +50,53 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="px-4 py-3">
-      <div className="flex flex-wrap gap-2">
-        {data.map((item: Item, index: number) => {
-          return (
-            <div
-              key={index}
-              className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 text-sm overflow-hidden"
-            >
-              <span className="px-2.5 py-1.5 font-mono font-medium text-gray-700 bg-gray-100 border-r border-gray-200">
+    <Table<Item>
+      id="dictionary-viewer-table"
+      data={data}
+      singularLabel="Item"
+      pluralLabel="Items"
+      isLoading={false}
+      error=""
+      currentPageNumber={1}
+      totalItemsCount={data.length}
+      itemsOnPage={data.length}
+      disablePagination={true}
+      noItemsMessage="No items to display."
+      onNavigateToPage={() => {}}
+      sortBy={null}
+      sortOrder={SortOrder.Ascending}
+      onSortChanged={() => {}}
+      columns={[
+        {
+          title: "Key",
+          type: FieldType.Element,
+          key: "key",
+          disableSort: true,
+          getElement: (item: Item): ReactElement => {
+            return (
+              <span className="font-mono font-medium text-gray-900">
                 {item.key}
               </span>
-              <span className="px-2.5 py-1.5 font-mono text-gray-600">
+            );
+          },
+        },
+        {
+          title: "Value",
+          type: FieldType.Element,
+          key: "value",
+          disableSort: true,
+          getElement: (item: Item): ReactElement => {
+            return (
+              <span className="font-mono text-gray-600">
                 {item.value || (
                   <span className="text-gray-400 italic">empty</span>
                 )}
               </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+            );
+          },
+        },
+      ]}
+    />
   );
 };
 

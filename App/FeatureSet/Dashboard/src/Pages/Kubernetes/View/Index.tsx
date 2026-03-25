@@ -506,6 +506,15 @@ const KubernetesClusterOverview: FunctionComponent<
       iconBgClass: "bg-teal-100",
       iconTextClass: "text-teal-600",
     },
+    {
+      title: "Containers",
+      description: "Running container instances",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS,
+      count: containerCount > 0 ? containerCount : undefined,
+      icon: IconProp.Cube,
+      iconBgClass: "bg-cyan-100",
+      iconTextClass: "text-cyan-600",
+    },
   ];
 
   const infraLinks: Array<ResourceLink> = [
@@ -517,15 +526,6 @@ const KubernetesClusterOverview: FunctionComponent<
       icon: IconProp.Server,
       iconBgClass: "bg-slate-100",
       iconTextClass: "text-slate-600",
-    },
-    {
-      title: "Containers",
-      description: "Running container instances",
-      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS,
-      count: containerCount > 0 ? containerCount : undefined,
-      icon: IconProp.Cube,
-      iconBgClass: "bg-cyan-100",
-      iconTextClass: "text-cyan-600",
     },
     {
       title: "PVCs",

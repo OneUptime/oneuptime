@@ -1,5 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ExpandableText from "../ExpandableText/ExpandableText";
+import Table from "../Table/Table";
+import FieldType from "../Types/FieldType";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 
 export interface Condition {
   type: string;
@@ -22,16 +25,6 @@ const defaultNegativeTypes: Array<string> = [
   "PIDPressure",
   "NetworkUnavailable",
 ];
-
-function isConditionBad(
-  condition: Condition,
-  negativeTypes: Array<string>,
-): boolean {
-  if (negativeTypes.includes(condition.type)) {
-    return condition.status === "True";
-  }
-  return condition.status === "False";
-}
 
 function getStatusStyle(
   condition: Condition,
@@ -83,65 +76,93 @@ const ConditionsTable: FunctionComponent<ComponentProps> = (
   const negativeTypes: Array<string> =
     props.negativeTypes || defaultNegativeTypes;
 
-  if (props.conditions.length === 0) {
-    return (
-      <div className="text-gray-500 text-sm p-4">No conditions available.</div>
-    );
-  }
-
   return (
-    <div className={`overflow-x-auto ${props.className || ""}`}>
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Type
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Status
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Reason
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Message
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              Last Transition
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {props.conditions.map((condition: Condition, index: number) => {
-            const isBad: boolean = isConditionBad(condition, negativeTypes);
-            return (
-              <tr key={index} className={isBad ? "bg-red-50/50" : ""}>
-                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+    <div className={props.className || ""}>
+      <Table<Condition>
+        id="conditions-table"
+        data={props.conditions}
+        singularLabel="Condition"
+        pluralLabel="Conditions"
+        isLoading={false}
+        error=""
+        currentPageNumber={1}
+        totalItemsCount={props.conditions.length}
+        itemsOnPage={props.conditions.length}
+        disablePagination={true}
+        noItemsMessage="No conditions available."
+        onNavigateToPage={() => {}}
+        sortBy={null}
+        sortOrder={SortOrder.Ascending}
+        onSortChanged={() => {}}
+        columns={[
+          {
+            title: "Type",
+            type: FieldType.Element,
+            key: "type",
+            disableSort: true,
+            getElement: (condition: Condition): ReactElement => {
+              return (
+                <span className="font-medium text-gray-900">
                   {condition.type}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                  <span
-                    className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusStyle(condition, negativeTypes)}`}
-                  >
-                    {condition.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                </span>
+              );
+            },
+          },
+          {
+            title: "Status",
+            type: FieldType.Element,
+            key: "status",
+            disableSort: true,
+            getElement: (condition: Condition): ReactElement => {
+              return (
+                <span
+                  className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusStyle(condition, negativeTypes)}`}
+                >
+                  {condition.status}
+                </span>
+              );
+            },
+          },
+          {
+            title: "Reason",
+            type: FieldType.Element,
+            key: "reason",
+            disableSort: true,
+            getElement: (condition: Condition): ReactElement => {
+              return (
+                <span className="text-gray-600">
                   {condition.reason || "-"}
-                </td>
-                <td className="px-4 py-3 text-sm max-w-md">
-                  <ExpandableText text={condition.message || "-"} />
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                  <span title={condition.lastTransitionTime || ""}>
-                    {formatRelativeTime(condition.lastTransitionTime || "")}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </span>
+              );
+            },
+          },
+          {
+            title: "Message",
+            type: FieldType.Element,
+            key: "message",
+            disableSort: true,
+            getElement: (condition: Condition): ReactElement => {
+              return <ExpandableText text={condition.message || "-"} />;
+            },
+          },
+          {
+            title: "Last Transition",
+            type: FieldType.Element,
+            key: "lastTransitionTime",
+            disableSort: true,
+            getElement: (condition: Condition): ReactElement => {
+              return (
+                <span
+                  className="text-gray-500"
+                  title={condition.lastTransitionTime || ""}
+                >
+                  {formatRelativeTime(condition.lastTransitionTime || "")}
+                </span>
+              );
+            },
+          },
+        ]}
+      />
     </div>
   );
 };

@@ -1,6 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import { KubernetesContainerSpec } from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
+import {
+  KubernetesContainerSpec,
+  KubernetesContainerStatus,
+} from "../../Pages/Kubernetes/Utils/KubernetesObjectParser";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
@@ -9,10 +12,13 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import type Columns from "Common/UI/Components/Table/Types/Columns";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Input from "Common/UI/Components/Input/Input";
 
 export interface ComponentProps {
   containers: Array<KubernetesContainerSpec>;
   initContainers: Array<KubernetesContainerSpec>;
+  containerStatuses?: Array<KubernetesContainerStatus> | undefined;
+  initContainerStatuses?: Array<KubernetesContainerStatus> | undefined;
 }
 
 interface VolumeMountRow {
@@ -26,10 +32,69 @@ const KubernetesVolumeMountsTab: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [search, setSearch] = useState<string>("");
 
-  const allContainers: Array<KubernetesContainerSpec> = [
-    ...props.initContainers,
-    ...props.containers,
-  ];
+  const getStatus: (
+    name: string,
+    isInit: boolean,
+  ) => KubernetesContainerStatus | undefined = (
+    name: string,
+    isInit: boolean,
+  ): KubernetesContainerStatus | undefined => {
+    const statuses: Array<KubernetesContainerStatus> | undefined = isInit
+      ? props.initContainerStatuses
+      : props.containerStatuses;
+    return statuses?.find((s: KubernetesContainerStatus) => {
+      return s.name === name;
+    });
+  };
+
+  function getStatePriority(state: string): number {
+    const s: string = state.toLowerCase();
+    if (s === "running") {
+      return 0;
+    }
+    if (s === "waiting") {
+      return 1;
+    }
+    if (s === "terminated") {
+      return 2;
+    }
+    return 3;
+  }
+
+  const sortedContainers: Array<{
+    container: KubernetesContainerSpec;
+    isInit: boolean;
+  }> = [
+    ...props.initContainers.map((container: KubernetesContainerSpec) => {
+      return { container, isInit: true };
+    }),
+    ...props.containers.map((container: KubernetesContainerSpec) => {
+      return { container, isInit: false };
+    }),
+  ].sort(
+    (
+      a: { container: KubernetesContainerSpec; isInit: boolean },
+      b: { container: KubernetesContainerSpec; isInit: boolean },
+    ) => {
+      const aStatus: KubernetesContainerStatus | undefined = getStatus(
+        a.container.name,
+        a.isInit,
+      );
+      const bStatus: KubernetesContainerStatus | undefined = getStatus(
+        b.container.name,
+        b.isInit,
+      );
+      const aPriority: number = getStatePriority(aStatus?.state || "unknown");
+      const bPriority: number = getStatePriority(bStatus?.state || "unknown");
+      return aPriority - bPriority;
+    },
+  );
+
+  const allContainers: Array<KubernetesContainerSpec> = sortedContainers.map(
+    (item: { container: KubernetesContainerSpec; isInit: boolean }) => {
+      return item.container;
+    },
+  );
 
   if (allContainers.length === 0) {
     return (
@@ -119,43 +184,51 @@ const KubernetesVolumeMountsTab: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-4">
       {/* Search bar */}
-      <div className="px-4 pt-4">
-        <div className="relative">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+      <Card
+        title="Volume Mounts"
+        description={`${totalMountCount} mount${totalMountCount !== 1 ? "s" : ""} across ${allContainers.filter((c: KubernetesContainerSpec) => { return c.volumeMounts.length > 0; }).length} container${allContainers.filter((c: KubernetesContainerSpec) => { return c.volumeMounts.length > 0; }).length !== 1 ? "s" : ""}`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Icon
+                icon={IconProp.Search}
+                className="h-4 w-4 text-gray-400"
+              />
+            </div>
+            <Input
+              placeholder="Search by volume name or mount path..."
+              value={search}
+              onChange={(value: string) => {
+                setSearch(value);
+              }}
+              className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Search by volume name or mount path..."
-            value={search}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setSearch(e.target.value);
-            }}
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-20 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
-          <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
-            {search && (
-              <span className="text-xs text-gray-400 tabular-nums">
-                {totalMatchCount}/{totalMountCount}
+          {search && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm text-gray-500 tabular-nums">
+                {totalMatchCount} of {totalMountCount}
               </span>
-            )}
-            {search && (
               <button
                 onClick={() => {
                   setSearch("");
                 }}
-                className="rounded p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="rounded-md p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               >
-                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+                <Icon icon={IconProp.Close} className="h-4 w-4" />
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
+      </Card>
 
-      {allContainers.map(
-        (container: KubernetesContainerSpec, containerIdx: number) => {
-          if (container.volumeMounts.length === 0) {
+      {sortedContainers.map(
+        (
+          item: { container: KubernetesContainerSpec; isInit: boolean },
+          containerIdx: number,
+        ) => {
+          if (item.container.volumeMounts.length === 0) {
             return null;
           }
 
@@ -164,7 +237,7 @@ const KubernetesVolumeMountsTab: FunctionComponent<ComponentProps> = (
             mountPath: string;
             readOnly: boolean;
           }> = search
-            ? container.volumeMounts.filter(
+            ? item.container.volumeMounts.filter(
                 (m: { name: string; mountPath: string; readOnly: boolean }) => {
                   return (
                     m.name.toLowerCase().includes(searchLower) ||
@@ -172,13 +245,11 @@ const KubernetesVolumeMountsTab: FunctionComponent<ComponentProps> = (
                   );
                 },
               )
-            : container.volumeMounts;
+            : item.container.volumeMounts;
 
           if (filteredMounts.length === 0) {
             return null;
           }
-
-          const isInit: boolean = containerIdx < props.initContainers.length;
 
           const tableData: Array<VolumeMountRow> = filteredMounts.map(
             (mount: {
@@ -197,7 +268,7 @@ const KubernetesVolumeMountsTab: FunctionComponent<ComponentProps> = (
           return (
             <Card
               key={containerIdx}
-              title={`${isInit ? "Init Container: " : ""}${container.name}`}
+              title={`${item.isInit ? "Init Container: " : ""}${item.container.name}`}
               description={`${filteredMounts.length} volume mount${filteredMounts.length !== 1 ? "s" : ""}`}
             >
               <LocalTable

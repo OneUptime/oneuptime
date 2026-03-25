@@ -137,6 +137,17 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Clock}
           badge={counts.cronJobs}
         />
+        <SideMenuItem
+          link={{
+            title: "Containers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Cube}
+          badge={counts.containers}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Infrastructure">
@@ -150,17 +161,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Server}
           badge={counts.nodes}
-        />
-        <SideMenuItem
-          link={{
-            title: "Containers",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Cube}
-          badge={counts.containers}
         />
         <SideMenuItem
           link={{
