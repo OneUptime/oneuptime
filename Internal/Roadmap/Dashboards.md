@@ -36,6 +36,7 @@ The following features have been implemented:
 | Threshold lines / color coding | None | Yes | Yes | Yes | **P0** |
 | Legend interaction (show/hide) | None | Yes | Yes | Yes | **P0** |
 | Chart zoom | None | Yes | Yes | Yes | **P0** |
+| Unified query plugin interface | None | Datasource plugins | Yes | NRQL | **P0** |
 | Dashboard linking / drill-down | None | Data links | Yes | Facet linking | **P1** |
 | Annotations / event overlays | None | Yes | Yes | Yes (Labs) | **P1** |
 | Row/section grouping | None | Collapsible rows | Groups | No | **P1** |
@@ -46,9 +47,96 @@ The following features have been implemented:
 | TV/Kiosk mode | Full-screen only | Kiosk mode | Yes | Auto-cycling | **P1** |
 | CSV export | None | Yes | Yes | Yes | **P1** |
 | Custom time per widget | None | No | No | No | **P1** |
+| Perses/Grafana import | None | N/A | No | No | **P1** |
 | AI dashboard creation | None | None | None | None | **P2** |
 | Dashboard-as-code SDK | None | Foundation SDK | No | No | **P2** |
 | Terraform provider | None | Yes | Yes | Yes | **P2** |
+
+---
+
+## Architecture: Query Plugin Interface & Perses Compatibility
+
+Before implementing features, we should establish a `QueryPlugin` interface that all widget data sources use. This is a foundational architectural change that enables Phase 2 (logs, traces) and Phase 4 (Dashboard-as-Code) cleanly.
+
+### Why Not Adopt Perses Wholesale?
+
+[Perses](https://perses.dev) is a CNCF Sandbox project providing an open dashboard specification and embeddable UI components. We evaluated it as a potential protocol for our dashboard system. The decision is to **selectively borrow patterns** rather than adopt it fully:
+
+**Against full adoption:**
+- Our `AggregateBy` API queries ClickHouse directly. Perses assumes Prometheus/PromQL as the primary query language — mapping our ClickHouse aggregation queries into Perses's `PrometheusTimeSeriesQuery` plugin model adds unnecessary indirection.
+- Phase 2 (click-to-correlate, cross-signal correlation) is our biggest differentiator. Perses has basic Tempo/Loki plugins but nothing like unified correlation. Adopting their panel model would constrain our ability to build these features.
+- Perses is still CNCF Sandbox stage with data model structs marked deprecated in favor of a new `perses/spec` repo. The spec is not yet stable enough to build a product on.
+- Maintaining a translation layer between Perses spec and our internal `DashboardViewConfig` format for every feature would add ongoing overhead.
+
+**What we selectively adopt:**
+
+| Perses Concept | Where It Helps | How |
+|---|---|---|
+| `kind`+`spec` plugin pattern | Phase 1.9 (QueryPlugin), Phase 2.1-2.2 | Formalize widget data sources as plugins instead of hardcoding every widget type |
+| Variable model with scoping | Phase 1.2 (Template Variables) | Adopt query-based, list, and text variable types with dashboard → project → global scoping |
+| Decoupled layout from panels | Phase 3.4 (Sections) | Separate panel definitions from grid positions to make sections/grouping cleaner |
+| Dashboard JSON schema | Phase 3.2 (Import/Export) | Support importing Perses-format dashboards alongside native format for Grafana migration path |
+
+### 1.9 Unified Query Plugin Interface
+
+**Current**: Widgets are hardcoded to query metrics via `MetricQueryConfigData` and the `AggregateBy` API. Adding logs or traces as data sources requires duplicating the entire query path.
+**Target**: A `QueryPlugin` interface that abstracts data sources, enabling any widget to query metrics, logs, or traces through a unified contract.
+
+**Design**:
+
+```typescript
+// The plugin pattern borrowed from Perses: kind + spec
+interface QueryPlugin {
+  kind: "MetricQuery" | "LogQuery" | "TraceQuery" | "FormulaQuery";
+  spec: MetricQuerySpec | LogQuerySpec | TraceQuerySpec | FormulaQuerySpec;
+}
+
+interface MetricQuerySpec {
+  metricName: string;
+  attributes: JSONObject;
+  aggregationType: AggregationType;
+  groupBy?: string[];
+}
+
+interface LogQuerySpec {
+  severityFilter?: SeverityLevel[];
+  serviceFilter?: string[];
+  bodyContains?: string;
+  attributes?: JSONObject;
+}
+
+interface TraceQuerySpec {
+  serviceFilter?: string[];
+  operationFilter?: string[];
+  statusFilter?: TraceStatus[];
+  minDuration?: Duration;
+}
+
+interface FormulaQuerySpec {
+  formula: string;           // e.g., "a / b * 100"
+  queries: Record<string, QueryPlugin>;  // named sub-queries
+}
+
+// Each widget stores an array of QueryPlugins instead of MetricQueryConfigData
+interface DashboardWidgetConfig {
+  queries: QueryPlugin[];
+  // ... other widget config
+}
+```
+
+**Benefits**:
+- Log stream and trace list widgets (Phase 2.1, 2.2) plug in without new query plumbing
+- Cross-signal correlation (Phase 2.3) becomes a multi-query widget with mixed `kind` values
+- Formula queries (Phase 1.4) compose naturally across query types
+- Future data sources (e.g., external Prometheus, custom APIs) add a new `kind` without touching widget code
+- Aligns with Perses's extensibility model without coupling to their spec
+
+**Files to modify**:
+- `Common/Types/Dashboard/QueryPlugin.ts` (new - interface definitions)
+- `Common/Types/Metrics/MetricsQuery.ts` (refactor to implement MetricQuerySpec)
+- `Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI.ts` (add query resolver that dispatches by `kind`)
+- `Common/Server/API/BaseAnalyticsAPI.ts` (add unified query endpoint)
+- `App/FeatureSet/Dashboard/src/Components/Metrics/Utils/Metrics.ts` (refactor fetchResults to use QueryPlugin)
 
 ---
 
@@ -98,6 +186,7 @@ Each chart type needs:
 - Variables can be referenced in metric queries as `$variable_name`
 - When a variable changes, all widgets re-query with the new value
 - Support cascading variables (variable B's query depends on variable A's value)
+- **Scoping model (from Perses)**: Variables can be defined at dashboard, project, or global scope. Dashboard-level overrides project-level, which overrides global. This lets teams define org-wide variables (e.g., `$environment`) once and reuse across dashboards.
 
 **Files to modify**:
 - `Common/Types/Dashboard/DashboardVariable.ts` (new)
@@ -124,22 +213,24 @@ Each chart type needs:
 - `App/FeatureSet/Dashboard/src/Components/Dashboard/DashboardView.tsx` (implement refresh timer)
 - `Common/Types/Dashboard/DashboardViewConfig.ts` (store refresh interval)
 
-### 1.4 Multiple Queries per Chart
+### 1.4 Multiple Queries per Chart with Formulas
 
 **Current**: Single `MetricQueryConfigData` per chart.
-**Target**: Overlay multiple metric series on a single chart for correlation.
+**Target**: Overlay multiple metric series on a single chart for correlation, with cross-query formulas.
 
 **Implementation**:
 
-- Change chart component's data source from single `MetricQueryConfigData` to `MetricQueryConfigData[]`
+- Change chart component's data source from single `MetricQueryConfigData` to `QueryPlugin[]` (using the new unified interface)
 - Each query gets its own alias and legend entry
-- Support formula references across queries (e.g., `a / b * 100`)
+- Support `FormulaQuery` plugin kind for cross-query formulas (e.g., `a / b * 100` where `a` and `b` reference other queries by alias)
 - Y-axis: support dual Y-axes for metrics with different scales
+- Formula evaluation happens server-side to avoid shipping raw data to the client
 
 **Files to modify**:
-- `Common/Utils/Dashboard/Components/DashboardChartComponent.ts` (change to array)
+- `Common/Utils/Dashboard/Components/DashboardChartComponent.ts` (change to QueryPlugin array)
 - `App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardChartComponent.tsx` (render multiple series)
 - `App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/ComponentSettingsSideOver.tsx` (multi-query config UI)
+- `Common/Server/Services/FormulaEvaluator.ts` (new - server-side formula evaluation)
 
 ### 1.5 Full Markdown Support for Text Widget
 
@@ -208,7 +299,7 @@ Each chart type needs:
 
 ## Phase 2: Observability Integration (P0-P1) — Leverage the Full Platform
 
-This is where OneUptime can differentiate: metrics, logs, and traces in one platform.
+This is where OneUptime can differentiate: metrics, logs, and traces in one platform. The `QueryPlugin` interface from Phase 1.9 makes this phase significantly easier — each new signal type is a new `kind` in the plugin system rather than a new query pipeline.
 
 ### 2.1 Log Stream Widget
 
@@ -218,6 +309,7 @@ This is where OneUptime can differentiate: metrics, logs, and traces in one plat
 **Implementation**:
 
 - New `DashboardComponentType.LogStream` widget type
+- Uses `QueryPlugin` with `kind: "LogQuery"` — same interface as metric widgets
 - Configuration: log query filter, severity filter, service filter, max rows
 - Renders as a scrolling log list with severity color coding, timestamp, and body
 - Click a log entry to expand and see full details
@@ -227,6 +319,7 @@ This is where OneUptime can differentiate: metrics, logs, and traces in one plat
 - `Common/Types/Dashboard/DashboardComponentType.ts` (add LogStream)
 - `Common/Utils/Dashboard/Components/DashboardLogStreamComponent.ts` (new - config)
 - `App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardLogStreamComponent.tsx` (new - rendering)
+- `Common/Server/Services/LogQueryResolver.ts` (new - implements QueryPlugin for logs)
 
 ### 2.2 Trace List Widget
 
@@ -236,6 +329,7 @@ This is where OneUptime can differentiate: metrics, logs, and traces in one plat
 **Implementation**:
 
 - New `DashboardComponentType.TraceList` widget type
+- Uses `QueryPlugin` with `kind: "TraceQuery"` — same interface as metric and log widgets
 - Configuration: service filter, operation filter, status filter, min duration
 - Renders as a table: trace ID, operation, service, duration, status, timestamp
 - Click a row to navigate to the full trace view
@@ -245,6 +339,7 @@ This is where OneUptime can differentiate: metrics, logs, and traces in one plat
 - `Common/Types/Dashboard/DashboardComponentType.ts` (add TraceList)
 - `Common/Utils/Dashboard/Components/DashboardTraceListComponent.ts` (new)
 - `App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTraceListComponent.tsx` (new)
+- `Common/Server/Services/TraceQueryResolver.ts` (new - implements QueryPlugin for traces)
 
 ### 2.3 Click-to-Correlate Across Signals
 
@@ -257,8 +352,10 @@ This is where OneUptime can differentiate: metrics, logs, and traces in one plat
   - Logs from the same service and time window (+/- 5 minutes around the clicked point)
   - Traces from the same service and time window
   - Filtered by the same template variables
+- The correlation panel uses the `QueryPlugin` interface internally — it fires a `LogQuery` and `TraceQuery` scoped to the clicked timestamp and service context
 - The correlation panel appears as a slide-over or split view below the chart
 - This is a major differentiator vs Grafana (which requires separate datasources) and ties into OneUptime's all-in-one advantage
+- No competitor, including Perses, has this level of built-in cross-signal correlation
 
 **Files to modify**:
 - `App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardChartComponent.tsx` (add click handler)
@@ -337,21 +434,25 @@ This is where OneUptime can differentiate: metrics, logs, and traces in one plat
 - `Common/Models/DatabaseModels/Dashboard.ts` (add isPublic, publicAccessToken)
 - `App/FeatureSet/Dashboard/src/Pages/Public/Dashboard.tsx` (new - public dashboard view)
 
-### 3.2 JSON Import/Export
+### 3.2 JSON Import/Export with Perses & Grafana Compatibility
 
 **Current**: No import/export capability.
-**Target**: Export dashboards as JSON and re-import for backup, migration, and dashboard-as-code.
+**Target**: Export dashboards as JSON and re-import for backup, migration, and dashboard-as-code. Support importing Perses and Grafana dashboard formats.
 
 **Implementation**:
 
-- Export: serialize `dashboardViewConfig` + metadata (name, description, variables) as a JSON file download
-- Import: upload a JSON file, validate schema, create a new dashboard from the config
+- **Native export**: Serialize `dashboardViewConfig` + metadata (name, description, variables) as a JSON file download. Include a schema version for forward compatibility.
+- **Perses-compatible export**: Alongside native format, output a Perses-spec-compatible JSON. This gives users interoperability with the CNCF ecosystem without coupling our internals. Map our `QueryPlugin` kinds to Perses panel plugin types where possible.
+- **Grafana import**: Perses already has tooling to convert Grafana dashboards to Perses format. By supporting Perses import, we get Grafana migration for free: Grafana → Perses → OneUptime.
+- **Import pipeline**: Upload a JSON file → detect format (native, Perses, Grafana) → translate to `DashboardViewConfig` → validate → create dashboard.
 - Handle version compatibility (include a schema version in the export)
 
 **Files to modify**:
 - `App/FeatureSet/Dashboard/src/Pages/Dashboards/Dashboards.tsx` (add import button)
 - `App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Settings.tsx` (add export button)
 - `Common/Server/API/DashboardImportExportAPI.ts` (new)
+- `Common/Server/Utils/Dashboard/PersesConverter.ts` (new - bidirectional Perses format conversion)
+- `Common/Server/Utils/Dashboard/GrafanaConverter.ts` (new - Grafana JSON to native format)
 
 ### 3.3 Dashboard Versioning
 
@@ -371,22 +472,25 @@ This is where OneUptime can differentiate: metrics, logs, and traces in one plat
 - `Common/Server/Services/DashboardService.ts` (create version on save)
 - `App/FeatureSet/Dashboard/src/Pages/Dashboards/View/VersionHistory.tsx` (new)
 
-### 3.4 Row/Section Grouping
+### 3.4 Row/Section Grouping with Decoupled Layout
 
-**Current**: Components placed freely with no grouping.
-**Target**: Collapsible rows/sections for organizing related panels.
+**Current**: Components placed freely with no grouping. Panel definitions and grid positions are mixed together in each component.
+**Target**: Collapsible rows/sections for organizing related panels, with layout decoupled from panel definitions.
 
 **Implementation**:
 
+- **Decouple layout from panels** (pattern from Perses): Separate panel definitions (what to render) from layout definitions (where to render it). Panels are stored in a `panels` map keyed by ID. Layouts reference panels by `$ref`. This makes it easier to rearrange panels without modifying their query/display config.
 - Add a "Section" component type that acts as a collapsible container
 - Section has a title bar that can be clicked to collapse/expand
 - When collapsed, hides all components within the section's vertical range
 - Sections can be nested one level deep
+- Migration: existing `DashboardViewConfig` components are automatically split into panel + layout entries on first load
 
 **Files to modify**:
+- `Common/Types/Dashboard/DashboardViewConfig.ts` (add panels map + layouts array, deprecate inline component positions)
 - `Common/Types/Dashboard/DashboardComponentType.ts` (add Section)
 - `App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSectionComponent.tsx` (new)
-- `App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx` (handle section collapse)
+- `App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx` (handle section collapse, resolve panel refs)
 
 ### 3.5 TV/Kiosk Mode
 
@@ -489,10 +593,10 @@ This is where OneUptime can differentiate: metrics, logs, and traces in one plat
 - Respect public/private data boundaries (only show metrics the customer should see)
 - This is unique to OneUptime - no competitor has integrated observability dashboards with status pages
 
-### 4.5 Dashboard-as-Code SDK
+### 4.5 Dashboard-as-Code SDK (Perses-Compatible)
 
 **Current**: No programmatic dashboard creation.
-**Target**: TypeScript SDK for defining dashboards as code.
+**Target**: TypeScript SDK for defining dashboards as code, with optional Perses-compatible output.
 
 **Implementation**:
 
@@ -504,10 +608,18 @@ const dashboard = new Dashboard("Service Health")
     .addChart({ metric: "http.server.duration", aggregation: "p50", groupBy: ["$service"] })
   .addRow("Throughput")
     .addChart({ metric: "http.server.request.count", aggregation: "rate", groupBy: ["$service"] })
+
+// Output native OneUptime format
+dashboard.toJSON();
+
+// Output Perses-compatible format for ecosystem interop
+dashboard.toPerses();
 ```
 
 - SDK generates the JSON config and uses the Dashboard API to create/update
 - Git-based provisioning: store dashboard definitions in repo, CI/CD syncs to OneUptime
+- `toPerses()` output allows users to share dashboard definitions with teams using Perses or other CNCF-compatible tools
+- Perses's CUE SDK patterns can inform our builder API design
 
 ### 4.6 Anomaly Detection Overlays
 
@@ -519,6 +631,18 @@ const dashboard = new Dashboard("Service Health")
 - Automatically overlay expected range bands (baseline +/- N sigma) on metric charts
 - Highlight data points outside the expected range with color indicators
 - Click an anomaly to see correlated changes across metrics, logs, and traces
+
+### 4.7 Terraform / OpenTofu Provider
+
+**Current**: No infrastructure-as-code support for dashboards.
+**Target**: Manage dashboards via Terraform/OpenTofu for GitOps workflows.
+
+**Implementation**:
+
+- Expose dashboard CRUD via a well-documented REST API (already exists)
+- Build a Terraform provider that maps dashboard resources to the API
+- Support `oneuptime_dashboard`, `oneuptime_dashboard_variable`, and `oneuptime_dashboard_template` resources
+- This complements the Dashboard-as-Code SDK (4.5) — SDK for developers, Terraform for ops teams
 
 ---
 
@@ -534,35 +658,49 @@ const dashboard = new Dashboard("Service Health")
 
 ## Recommended Implementation Order
 
-1. **Quick Wins** - Auto-refresh, markdown, legend toggle, stacked area, chart zoom
-2. **Phase 1.1** - More chart types (Area, Pie, Table, Gauge)
-3. **Phase 1.2** - Template variables (highest-impact feature for dashboard usability)
-4. **Phase 1.4** - Multiple queries per chart
-5. **Phase 1.6** - Threshold lines & color coding
-6. **Phase 2.1** - Log stream widget (leverages all-in-one platform)
-7. **Phase 2.2** - Trace list widget
-8. **Phase 2.3** - Click-to-correlate (major differentiator)
-9. **Phase 2.4** - Annotations / event overlays
-10. **Phase 2.5** - Alert integration
-11. **Phase 3.1** - Public/shared dashboards
-12. **Phase 3.2** - JSON import/export
-13. **Phase 3.4** - Row/section grouping
-14. **Phase 3.5** - TV/Kiosk mode
-15. **Phase 3.3** - Dashboard versioning
-16. **Phase 2.6** - SLO widget (depends on SLO/SLI from Metrics roadmap)
-17. **Phase 4.2** - Pre-built dashboard templates
-18. **Phase 4.3** - Auto-generated dashboards
-19. **Phase 4.1** - AI-powered dashboard creation
-20. **Phase 4.4** - Customer-facing dashboards on status pages
-21. **Phase 4.5** - Dashboard-as-code SDK
+### Phase 0: Architecture Foundation
+1. **Phase 1.9** - QueryPlugin interface (enables everything else; do this first)
+
+### Phase 1: Core Features
+2. **Quick Wins** - Auto-refresh, markdown, legend toggle, stacked area, chart zoom
+3. **Phase 1.1** - More chart types (Area, Pie, Table, Gauge)
+4. **Phase 1.2** - Template variables with scoping (highest-impact feature for dashboard usability)
+5. **Phase 1.4** - Multiple queries per chart with formulas
+6. **Phase 1.6** - Threshold lines & color coding
+
+### Phase 2: Platform Leverage (Differentiators)
+7. **Phase 2.1** - Log stream widget (leverages all-in-one platform + QueryPlugin)
+8. **Phase 2.2** - Trace list widget (leverages all-in-one platform + QueryPlugin)
+9. **Phase 2.3** - Click-to-correlate (major differentiator — no competitor has this built-in)
+10. **Phase 2.4** - Annotations / event overlays
+11. **Phase 2.5** - Alert integration
+
+### Phase 3: Collaboration
+12. **Phase 3.1** - Public/shared dashboards
+13. **Phase 3.2** - JSON import/export with Perses & Grafana compatibility
+14. **Phase 3.4** - Row/section grouping with decoupled layout
+15. **Phase 3.5** - TV/Kiosk mode
+16. **Phase 3.3** - Dashboard versioning
+17. **Phase 2.6** - SLO widget (depends on SLO/SLI from Metrics roadmap)
+
+### Phase 4: Differentiation
+18. **Phase 4.2** - Pre-built dashboard templates
+19. **Phase 4.3** - Auto-generated dashboards
+20. **Phase 4.1** - AI-powered dashboard creation
+21. **Phase 4.4** - Customer-facing dashboards on status pages
+22. **Phase 4.5** - Dashboard-as-code SDK (Perses-compatible)
+23. **Phase 4.7** - Terraform / OpenTofu provider
+24. **Phase 4.6** - Anomaly detection overlays
 
 ## Verification
 
 For each feature:
-1. Unit tests for new widget types, template variable resolution, CSV export logic
-2. Integration tests for new API endpoints (annotations, public dashboards, import/export)
+1. Unit tests for new widget types, template variable resolution, CSV export logic, QueryPlugin dispatching
+2. Integration tests for new API endpoints (annotations, public dashboards, import/export, Perses/Grafana conversion)
 3. Manual verification via the dev server at `https://oneuptimedev.genosyn.com/dashboard/{projectId}/dashboards`
 4. Visual regression testing for new chart types (ensure correct rendering across browsers)
 5. Performance testing: verify dashboards with 20+ widgets and auto-refresh don't cause excessive API load
 6. Test template variables with edge cases: empty results, special characters, multi-value selections
 7. Verify public dashboards don't leak private data
+8. Test Perses/Grafana import with real-world dashboard exports to validate conversion fidelity
+9. Test QueryPlugin interface with mixed query types (metric + log + trace) on a single dashboard
