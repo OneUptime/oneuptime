@@ -170,8 +170,9 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     })?.unit || "";
 
   // Determine color based on thresholds
-  let valueColorClass: string = "text-gray-800";
-  let bgColorClass: string = "";
+  let valueColorClass: string = "text-gray-900";
+  let bgStyle: React.CSSProperties = {};
+  let statusDotColor: string = "";
   const warningThreshold: number | undefined =
     props.component.arguments.warningThreshold;
   const criticalThreshold: number | undefined =
@@ -181,34 +182,53 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     criticalThreshold !== undefined &&
     aggregatedValue >= criticalThreshold
   ) {
-    valueColorClass = "text-red-700";
-    bgColorClass = "bg-red-50";
+    valueColorClass = "text-red-600";
+    bgStyle = { background: "linear-gradient(135deg, rgba(254, 226, 226, 0.5) 0%, rgba(254, 202, 202, 0.3) 100%)" };
+    statusDotColor = "bg-red-500";
   } else if (
     warningThreshold !== undefined &&
     aggregatedValue >= warningThreshold
   ) {
-    valueColorClass = "text-yellow-700";
-    bgColorClass = "bg-yellow-50";
+    valueColorClass = "text-amber-600";
+    bgStyle = { background: "linear-gradient(135deg, rgba(254, 243, 199, 0.5) 0%, rgba(253, 230, 138, 0.3) 100%)" };
+    statusDotColor = "bg-amber-500";
   }
 
   return (
-    <div className={`w-full text-center h-full m-auto rounded ${bgColorClass}`}>
-      <div
-        style={{
-          fontSize: titleHeightInPx > 0 ? `${titleHeightInPx}px` : "",
-        }}
-        className="text-center text-bold mb-1 truncate"
-      >
-        {props.component.arguments.title || " "}
+    <div
+      className="w-full h-full flex flex-col items-center justify-center rounded-md"
+      style={bgStyle}
+    >
+      <div className="flex items-center gap-1.5 mb-1">
+        {statusDotColor && (
+          <span className={`w-2 h-2 rounded-full ${statusDotColor} inline-block`}></span>
+        )}
+        <span
+          style={{
+            fontSize: titleHeightInPx > 0 ? `${Math.min(titleHeightInPx, 16)}px` : "13px",
+          }}
+          className="text-center font-medium text-gray-500 truncate uppercase tracking-wide"
+        >
+          {props.component.arguments.title || " "}
+        </span>
       </div>
       <div
-        className={`text-center text-semibold truncate ${valueColorClass}`}
+        className={`text-center font-bold truncate ${valueColorClass}`}
         style={{
           fontSize: valueHeightInPx > 0 ? `${valueHeightInPx}px` : "",
+          lineHeight: 1.1,
+          letterSpacing: "-0.02em",
         }}
       >
         {aggregatedValue || "0"}
-        {unit}
+        <span
+          className="text-gray-400 font-normal"
+          style={{
+            fontSize: valueHeightInPx > 0 ? `${valueHeightInPx * 0.35}px` : "",
+          }}
+        >
+          {unit ? ` ${unit}` : ""}
+        </span>
       </div>
     </div>
   );

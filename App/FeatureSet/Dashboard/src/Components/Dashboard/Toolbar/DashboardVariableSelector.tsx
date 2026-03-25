@@ -14,7 +14,7 @@ const DashboardVariableSelector: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
+    <div className="flex flex-wrap gap-3 items-center">
       {props.variables.map((variable: DashboardVariable) => {
         const options: Array<string> = variable.customListValues
           ? variable.customListValues.split(",").map((v: string) => {
@@ -23,13 +23,13 @@ const DashboardVariableSelector: FunctionComponent<ComponentProps> = (
           : [];
 
         return (
-          <div key={variable.id} className="flex items-center gap-1">
-            <label className="text-xs font-medium text-gray-500">
-              {variable.label || variable.name}:
+          <div key={variable.id} className="flex items-center gap-1.5">
+            <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              {variable.label || variable.name}
             </label>
             {options.length > 0 ? (
               <select
-                className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
+                className="text-xs border border-gray-200 rounded-md px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
                 value={variable.selectedValue || variable.defaultValue || ""}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                   props.onVariableValueChange(variable.id, e.target.value);
@@ -47,7 +47,7 @@ const DashboardVariableSelector: FunctionComponent<ComponentProps> = (
             ) : (
               <input
                 type="text"
-                className="text-xs border border-gray-200 rounded px-2 py-1 bg-white w-24"
+                className="text-xs border border-gray-200 rounded-md px-2.5 py-1.5 bg-white text-gray-700 w-28 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
                 value={variable.selectedValue || variable.defaultValue || ""}
                 placeholder={variable.name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

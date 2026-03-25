@@ -179,11 +179,11 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
 
   // SVG gauge rendering
   const size: number = Math.min(
-    props.dashboardComponentWidthInPx - 20,
-    props.dashboardComponentHeightInPx - 50,
+    props.dashboardComponentWidthInPx - 40,
+    props.dashboardComponentHeightInPx - 60,
   );
-  const gaugeSize: number = Math.max(size, 60);
-  const strokeWidth: number = Math.max(gaugeSize * 0.12, 8);
+  const gaugeSize: number = Math.max(size, 80);
+  const strokeWidth: number = Math.max(gaugeSize * 0.1, 8);
   const radius: number = (gaugeSize - strokeWidth) / 2;
   const centerX: number = gaugeSize / 2;
   const centerY: number = gaugeSize / 2;
@@ -204,11 +204,14 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   const backgroundPath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 0 1 ${arcEndX} ${arcEndY}`;
   const valuePath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 ${percentage > 0.5 ? 1 : 0} 1 ${arcCurrentX} ${arcCurrentY}`;
 
-  const titleHeightInPx: number = Math.max(
-    props.dashboardComponentHeightInPx * 0.1,
-    12,
+  const titleHeightInPx: number = Math.min(
+    Math.max(props.dashboardComponentHeightInPx * 0.1, 12),
+    16,
   );
-  const valueHeightInPx: number = Math.max(gaugeSize * 0.2, 14);
+  const valueHeightInPx: number = Math.max(gaugeSize * 0.22, 16);
+
+  // Generate a unique gradient ID for this component instance
+  const gradientId: string = `gauge-gradient-${props.componentId?.toString() || "default"}`;
 
   return (
     <div className="w-full text-center h-full flex flex-col items-center justify-center">
@@ -217,41 +220,69 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
           style={{
             fontSize: titleHeightInPx > 0 ? `${titleHeightInPx}px` : "",
           }}
-          className="text-center font-semibold text-gray-700 mb-1 truncate"
+          className="text-center font-medium text-gray-500 mb-2 truncate uppercase tracking-wide"
         >
           {props.component.arguments.gaugeTitle}
         </div>
       )}
       <svg
         width={gaugeSize}
-        height={gaugeSize / 2 + strokeWidth}
-        viewBox={`0 0 ${gaugeSize} ${gaugeSize / 2 + strokeWidth}`}
+        height={gaugeSize / 2 + strokeWidth + 4}
+        viewBox={`0 0 ${gaugeSize} ${gaugeSize / 2 + strokeWidth + 4}`}
       >
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={gaugeColor} stopOpacity="0.7" />
+            <stop offset="100%" stopColor={gaugeColor} stopOpacity="1" />
+          </linearGradient>
+          <filter id={`gauge-shadow-${props.componentId?.toString() || "default"}`}>
+            <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.1" />
+          </filter>
+        </defs>
+        {/* Background track */}
         <path
           d={backgroundPath}
           fill="none"
-          stroke="#e5e7eb"
-          strokeWidth={strokeWidth}
+          stroke="#f3f4f6"
+          strokeWidth={strokeWidth + 2}
           strokeLinecap="round"
         />
+        {/* Value arc */}
         {percentage > 0 && (
           <path
             d={valuePath}
             fill="none"
-            stroke={gaugeColor}
+            stroke={`url(#${gradientId})`}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
+            filter={`url(#gauge-shadow-${props.componentId?.toString() || "default"})`}
           />
         )}
       </svg>
+      {/* Value display */}
       <div
-        className="font-bold text-gray-800"
         style={{
-          fontSize: valueHeightInPx > 0 ? `${valueHeightInPx}px` : "",
-          marginTop: `-${gaugeSize * 0.15}px`,
+          marginTop: `-${gaugeSize * 0.18}px`,
         }}
       >
-        {aggregatedValue}
+        <div
+          className="font-bold text-gray-900"
+          style={{
+            fontSize: valueHeightInPx > 0 ? `${valueHeightInPx}px` : "",
+            lineHeight: 1.1,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {aggregatedValue}
+        </div>
+      </div>
+      {/* Min/Max labels */}
+      <div
+        className="flex justify-between w-full px-4 mt-1"
+        style={{ maxWidth: `${gaugeSize + 10}px` }}
+      >
+        <span className="text-xs text-gray-400">{minValue}</span>
+        <span className="text-xs text-gray-400">{maxValue}</span>
       </div>
     </div>
   );

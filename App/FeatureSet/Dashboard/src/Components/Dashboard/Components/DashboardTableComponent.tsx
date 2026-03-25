@@ -119,9 +119,11 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
 
   if (error) {
     return (
-      <div className="m-auto flex flex-col justify-center w-full h-full">
-        <div className="h-7 w-7 text-gray-400 w-full text-center mx-auto">
-          <Icon icon={IconProp.TableCells} />
+      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
+        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
+          <div className="h-5 w-5 text-gray-300">
+            <Icon icon={IconProp.TableCells} />
+          </div>
         </div>
         <ErrorMessage message={error} />
       </div>
@@ -140,46 +142,48 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   const displayData: Array<AggregatedModel> = allData.slice(0, maxRows);
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full overflow-auto flex flex-col">
       {props.component.arguments.tableTitle && (
-        <div className="text-sm font-semibold text-gray-700 mb-2 px-1">
+        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 px-1">
           {props.component.arguments.tableTitle}
         </div>
       )}
-      <table className="w-full text-sm text-left">
-        <thead className="text-xs text-gray-500 uppercase bg-gray-50 sticky top-0">
-          <tr>
-            <th className="px-3 py-2">Timestamp</th>
-            <th className="px-3 py-2">Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayData.map((item: AggregatedModel, index: number) => {
-            return (
-              <tr
-                key={index}
-                className="border-b border-gray-100 hover:bg-gray-50"
-              >
-                <td className="px-3 py-1.5 text-gray-600">
-                  {OneUptimeDate.getDateAsLocalFormattedString(
-                    OneUptimeDate.fromString(item.timestamp),
-                  )}
-                </td>
-                <td className="px-3 py-1.5 font-medium">
-                  {Math.round(item.value * 100) / 100}
+      <div className="flex-1 overflow-auto rounded-md border border-gray-100">
+        <table className="w-full text-sm text-left">
+          <thead className="text-xs text-gray-500 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
+            <tr>
+              <th className="px-4 py-2.5 font-medium tracking-wide">Timestamp</th>
+              <th className="px-4 py-2.5 font-medium tracking-wide text-right">Value</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {displayData.map((item: AggregatedModel, index: number) => {
+              return (
+                <tr
+                  key={index}
+                  className="hover:bg-gray-50/50 transition-colors duration-100"
+                >
+                  <td className="px-4 py-2 text-gray-500 text-xs">
+                    {OneUptimeDate.getDateAsLocalFormattedString(
+                      OneUptimeDate.fromString(item.timestamp),
+                    )}
+                  </td>
+                  <td className="px-4 py-2 font-semibold text-gray-900 text-right tabular-nums">
+                    {Math.round(item.value * 100) / 100}
+                  </td>
+                </tr>
+              );
+            })}
+            {displayData.length === 0 && (
+              <tr>
+                <td colSpan={2} className="px-4 py-8 text-center text-gray-400 text-sm">
+                  No data available
                 </td>
               </tr>
-            );
-          })}
-          {displayData.length === 0 && (
-            <tr>
-              <td colSpan={2} className="px-3 py-4 text-center text-gray-400">
-                No data available
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

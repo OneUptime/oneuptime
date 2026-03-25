@@ -266,9 +266,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   return (
     <div
       ref={dashboardViewRef}
+      className="min-h-screen"
       style={{
         minWidth: "1000px",
         width: `calc(100% - ${sideBarWidth}px)`,
+        background: isEditMode
+          ? "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)"
+          : "#fafbfc",
       }}
     >
       <DashboardToolbar
@@ -391,7 +395,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           setDashboardViewConfig(newDashboardConfig);
         }}
       />
-      <div ref={dashboardCanvasRef}>
+      <div ref={dashboardCanvasRef} className="px-1 pb-4">
         <DashboardCanvas
           dashboardViewConfig={dashboardViewConfig}
           onDashboardViewConfigChange={(newConfig: DashboardViewConfig) => {

@@ -148,9 +148,11 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   if (error) {
     return (
-      <div className="m-auto flex flex-col justify-center w-full h-full">
-        <div className="h-7 w-7 text-gray-400 w-full text-center mx-auto">
-          <Icon icon={IconProp.ChartBar} />
+      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
+        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
+          <div className="h-5 w-5 text-gray-300">
+            <Icon icon={IconProp.ChartBar} />
+          </div>
         </div>
         <ErrorMessage message={error} />
       </div>
