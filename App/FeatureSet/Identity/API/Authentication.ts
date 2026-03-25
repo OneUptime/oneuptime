@@ -53,6 +53,8 @@ import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -122,13 +124,48 @@ router.post(
   ): Promise<void> => {
     try {
       if (await DatabaseConfig.shouldDisableSignup()) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException(
-            "Sign up is disabled on this OneUptime Server. Please contact your server admin to enable it.",
-          ),
-        );
+        // Check if this user has been invited to a project.
+        // If so, allow them to sign up even if signup is disabled.
+        const data: JSONObject = req.body["data"] as JSONObject;
+        const emailForInviteCheck: string | undefined = data?.["email"] as
+          | string
+          | undefined;
+
+        let hasInvitation: boolean = false;
+
+        if (emailForInviteCheck) {
+          const invitedUser: User | null = await UserService.findOneBy({
+            query: { email: new Email(emailForInviteCheck) },
+            select: { _id: true },
+            props: { isRoot: true },
+          });
+
+          if (invitedUser) {
+            const pendingInvitation: TeamMember | null =
+              await TeamMemberService.findOneBy({
+                query: {
+                  userId: invitedUser.id!,
+                  hasAcceptedInvitation: false,
+                },
+                select: { _id: true },
+                props: { isRoot: true },
+              });
+
+            if (pendingInvitation) {
+              hasInvitation = true;
+            }
+          }
+        }
+
+        if (!hasInvitation) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException(
+              "Sign up is disabled on this OneUptime Server. Please contact your server admin to enable it.",
+            ),
+          );
+        }
       }
 
       const miscDataProps: JSONObject =
