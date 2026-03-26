@@ -1023,12 +1023,41 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug("Sending message to Microsoft Teams with data:");
     logger.debug(data);
 
-    const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
-      messageBlocks: data.workspaceMessagePayload.messageBlocks,
-    });
+    // Teams adaptive cards have a ~28KB payload limit.
+    // Split message blocks into chunks of 40 to avoid hitting the limit.
+    const maxBlocksPerCard: number = 40;
+    const allMessageBlocks: Array<WorkspaceMessageBlock> =
+      data.workspaceMessagePayload.messageBlocks;
 
-    logger.debug("Adaptive card built successfully:");
-    logger.debug(JSON.stringify(adaptiveCard, null, 2));
+    const adaptiveCards: Array<JSONObject> = [];
+
+    if (allMessageBlocks.length <= maxBlocksPerCard) {
+      adaptiveCards.push(
+        this.buildAdaptiveCardFromMessageBlocks({
+          messageBlocks: allMessageBlocks,
+        }),
+      );
+    } else {
+      for (
+        let i: number = 0;
+        i < allMessageBlocks.length;
+        i += maxBlocksPerCard
+      ) {
+        const chunk: Array<WorkspaceMessageBlock> = allMessageBlocks.slice(
+          i,
+          i + maxBlocksPerCard,
+        );
+        adaptiveCards.push(
+          this.buildAdaptiveCardFromMessageBlocks({
+            messageBlocks: chunk,
+          }),
+        );
+      }
+    }
+
+    logger.debug(
+      `Built ${adaptiveCards.length} adaptive card(s) from ${allMessageBlocks.length} message blocks`,
+    );
 
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
@@ -1122,18 +1151,24 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           );
         }
 
-        const thread: WorkspaceThread = await this.sendAdaptiveCardToChannel({
-          authToken: data.authToken,
-          teamId: data.workspaceMessagePayload.teamId!,
-          workspaceChannel: channel,
-          adaptiveCard: adaptiveCard,
-          projectId: data.projectId,
-        });
+        // Send each adaptive card chunk to the channel
+        let lastThread: WorkspaceThread | undefined;
+        for (const adaptiveCard of adaptiveCards) {
+          lastThread = await this.sendAdaptiveCardToChannel({
+            authToken: data.authToken,
+            teamId: data.workspaceMessagePayload.teamId!,
+            workspaceChannel: channel,
+            adaptiveCard: adaptiveCard,
+            projectId: data.projectId,
+          });
+        }
 
-        logger.debug(
-          `Message sent successfully to channel ${channel.name}, thread: ${JSON.stringify(thread)}`,
-        );
-        workspaceMessageResponse.threads.push(thread);
+        if (lastThread) {
+          logger.debug(
+            `Message sent successfully to channel ${channel.name}, thread: ${JSON.stringify(lastThread)}`,
+          );
+          workspaceMessageResponse.threads.push(lastThread);
+        }
       } catch (e) {
         logger.error(`Error sending message to channel ID ${channel.id}:`);
         logger.error(e);

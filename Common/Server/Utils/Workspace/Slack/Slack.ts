@@ -1129,13 +1129,37 @@ export default class SlackUtil extends WorkspaceBase {
           }
         }
 
-        const thread: WorkspaceThread = await this.sendPayloadBlocksToChannel({
-          authToken: data.authToken,
-          workspaceChannel: channel,
-          blocks: blocks,
-        });
+        // Slack has a limit of 50 blocks per message. Split into batches if needed.
+        const maxBlocksPerMessage: number = 50;
+        let lastThread: WorkspaceThread | undefined;
 
-        workspaspaceMessageResponse.threads.push(thread);
+        if (blocks.length <= maxBlocksPerMessage) {
+          lastThread = await this.sendPayloadBlocksToChannel({
+            authToken: data.authToken,
+            workspaceChannel: channel,
+            blocks: blocks,
+          });
+        } else {
+          for (
+            let i: number = 0;
+            i < blocks.length;
+            i += maxBlocksPerMessage
+          ) {
+            const chunk: Array<JSONObject> = blocks.slice(
+              i,
+              i + maxBlocksPerMessage,
+            );
+            lastThread = await this.sendPayloadBlocksToChannel({
+              authToken: data.authToken,
+              workspaceChannel: channel,
+              blocks: chunk,
+            });
+          }
+        }
+
+        if (lastThread) {
+          workspaspaceMessageResponse.threads.push(lastThread);
+        }
 
         logger.debug(`Message sent to channel ID ${channel.id} successfully.`);
       } catch (e) {
