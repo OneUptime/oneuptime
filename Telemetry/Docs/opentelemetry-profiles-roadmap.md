@@ -116,7 +116,11 @@ message Sample {
 }
 ```
 
-### 1.2 Register HTTP Endpoint
+### 1.2 Add TelemetryType Enum Value
+
+In `Common/Types/Telemetry/TelemetryType.ts`, add `Profile = "Profile"` to the existing enum (currently: Metric, Trace, Log, Exception).
+
+### 1.3 Register HTTP Endpoint
 
 In `Telemetry/API/OTelIngest.ts`, add:
 
@@ -124,28 +128,37 @@ In `Telemetry/API/OTelIngest.ts`, add:
 POST /otlp/v1/profiles
 ```
 
-Follow the same pattern as traces/metrics/logs:
-1. Parse protobuf or JSON body via `OtelRequestMiddleware`
-2. Authenticate via `TelemetryIngest` middleware
+Follow the same middleware chain as traces/metrics/logs:
+1. `OpenTelemetryRequestMiddleware.getProductType` — Decode protobuf/JSON, set `ProductType.Profiles`
+2. `TelemetryIngest.isAuthorizedServiceMiddleware` — Validate `x-oneuptime-token`, extract `projectId`
 3. Return 202 immediately
 4. Queue for async processing
 
-### 1.3 Register gRPC Service
+### 1.4 Register gRPC Service
 
 In `Telemetry/GrpcServer.ts`, register the `ProfilesService/Export` RPC handler alongside the existing trace/metrics/logs handlers.
 
-### 1.4 Update OTel Collector Config
+### 1.5 Update OTel Collector Config
 
-In `OTelCollector/otel-collector-config.template.yaml`, add a `profiles` pipeline:
+In `OTelCollector/otel-collector-config.template.yaml`, add a `profiles` pipeline to the existing three pipelines (traces, metrics, logs):
 
 ```yaml
 service:
   pipelines:
     profiles:
       receivers: [otlp]
-      processors: [batch]
+      processors: []
       exporters: [otlphttp]
 ```
+
+**Note:** The OTel Collector in OneUptime is primarily used by the Kubernetes Agent. The main telemetry service handles OTLP ingestion directly. Also note: the OTel Arrow receiver does NOT yet support profiles.
+
+### 1.6 Helm Chart Updates
+
+In `HelmChart/Public/oneuptime/templates/telemetry.yaml`:
+- No port changes needed (profiles use the same gRPC 4317 and HTTP 3403 ports)
+- Add `TELEMETRY_PROFILE_FLUSH_BATCH_SIZE` environment variable
+- Update KEDA autoscaling config to account for profiles queue load
 
 ### Estimated Effort: 1-2 weeks
 
@@ -175,8 +188,11 @@ Create `Common/Models/AnalyticsModels/Profile.ts` following the pattern of `Span
 | `unit` | String | e.g., `nanoseconds`, `bytes`, `count` |
 | `periodType` | String | Sampling period type |
 | `period` | Int64 | Sampling period value |
-| `attributes` | String (JSON) | Profile-level attributes |
+| `attributes` | String (JSON) | Profile-level attributes (note: `KeyValueAndUnit`, not `KeyValue` — includes `unit` field) |
 | `resourceAttributes` | String (JSON) | Resource attributes |
+| `originalPayloadFormat` | String | e.g., `pprofext` — for pprof round-tripping |
+| `originalPayload` | String (base64) | Raw pprof bytes (optional, for lossless re-export) |
+| `retentionDate` | DateTime64 | TTL column for automatic expiry (pattern from existing tables) |
 
 **Proposed ClickHouse Table: `profile_sample`**
 
@@ -187,14 +203,17 @@ This is the high-volume table storing individual samples (denormalized for query
 | `projectId` | String (ObjectID) | Tenant ID |
 | `serviceId` | String (ObjectID) | Service reference |
 | `profileId` | String | FK to profile table |
-| `traceId` | String | Trace correlation |
-| `spanId` | String | Span correlation |
+| `traceId` | String | Trace correlation (from Link table) |
+| `spanId` | String | Span correlation (from Link table) |
 | `time` | DateTime64(9) | Sample timestamp |
 | `stacktrace` | Array(String) | Fully-resolved stack frames (function@file:line) |
 | `stacktraceHash` | String | Hash of stacktrace for grouping |
+| `frameTypes` | Array(String) | Per-frame runtime type (`kernel`, `native`, `jvm`, `cpython`, `go`, `v8js`, etc.) |
 | `value` | Int64 | Sample value (CPU time, bytes, count) |
 | `profileType` | String | Denormalized for filtering |
 | `labels` | String (JSON) | Sample-level labels |
+| `buildId` | String | Executable build ID (for deferred symbolization) |
+| `retentionDate` | DateTime64 | TTL column for automatic expiry |
 
 **Table Engine & Indexing:**
 - Engine: `MergeTree`
@@ -209,10 +228,24 @@ This is the high-volume table storing individual samples (denormalized for query
 **Why two tables?**
 - The `profile` table stores metadata and is low-volume — used for listing/filtering profiles.
 - The `profile_sample` table stores denormalized samples — high-volume but optimized for flamegraph aggregation queries.
+- This mirrors the existing pattern where `ExceptionInstance` (ClickHouse) is a sub-signal of `Span`, with its own table but linked via `traceId`/`spanId`.
 - Alternative: A single table with nested arrays for samples. This is more storage-efficient but makes aggregation queries harder. Start with two tables and revisit if needed.
 
 **Denormalization strategy:**
-The OTLP Profiles wire format uses dictionary-based deduplication (string tables, function tables, location tables). At ingestion time, we should **resolve all references** and store fully-materialized stack frames. This trades storage space for query simplicity — the same approach used for span attributes today.
+The OTLP Profiles wire format uses dictionary-based deduplication (string tables, function tables, location tables). **Critically, the `ProfilesDictionary` is shared across ALL profiles in a `ProfilesData` batch** — you cannot process individual profiles without the batch-level dictionary context.
+
+At ingestion time, we should **resolve all dictionary references** and store fully-materialized stack frames. This trades storage space for query simplicity — the same approach used for span attributes today.
+
+**Inline frame handling:**
+`Location.lines` is a repeated field supporting inlined functions — a single location can expand to multiple logical frames. The denormalization logic must expand these into the full stacktrace array.
+
+**`original_payload` storage decision:**
+The `Profile` message includes `original_payload_format` and `original_payload` fields containing the raw pprof bytes. Storing this enables lossless pprof round-trip export but significantly increases storage. Options:
+- **Store always**: Full pprof compatibility, ~2-5x storage increase
+- **Store on demand**: Only when `original_payload_format` is set (opt-in by producer)
+- **Don't store**: Reconstruct pprof from denormalized data (lossy for some edge cases)
+
+Recommendation: Store on demand (option 2) — only persist when the producer explicitly includes it.
 
 **Expected data volume:**
 - A typical eBPF profiler generates ~10-100 samples/second per process
@@ -222,7 +255,17 @@ The OTLP Profiles wire format uses dictionary-based deduplication (string tables
 
 ### 2.3 Create Database Service
 
-Create `Common/Server/Services/ProfileService.ts` extending `AnalyticsDatabaseService<Profile>`.
+Create `Common/Server/Services/ProfileService.ts` and `Common/Server/Services/ProfileSampleService.ts` extending `AnalyticsDatabaseService<Profile>` and `AnalyticsDatabaseService<ProfileSample>`.
+
+Add `TableBillingAccessControl` to both models following the pattern in existing analytics models to enable plan-based billing constraints on profile ingestion/querying.
+
+### 2.4 Data Migration
+
+Follow the migration pattern from `Worker/DataMigrations/AddRetentionDateAndSkipIndexesToTelemetryTables.ts`:
+- Add `retentionDate` column with TTL expression: `retentionDate DELETE`
+- Add skip indexes: `bloom_filter` on `traceId`, `profileId`, `stacktraceHash`; `set` on `profileType`
+- Apply `ZSTD(3)` codec on `stacktrace` and `labels` columns (high compression benefit)
+- Default retention: 15 days (matching existing telemetry defaults)
 
 ### Estimated Effort: 2-3 weeks
 
@@ -265,25 +308,49 @@ Create `Telemetry/Services/Queue/ProfilesQueueService.ts`:
 
 **Denormalization logic** (the hardest part of this phase):
 
-The OTLP Profile message uses dictionary tables for compression. The ingestion service must resolve these:
+The OTLP Profile message uses dictionary tables for compression. **The dictionary is batch-scoped** — it lives on the `ProfilesData` message, not on individual `Profile` messages. The ingestion service must pass the dictionary when processing each profile.
 
 ```
-For each sample in profile.sample:
-  For each location_index in sample.location_index:
-    location = profile.location[location_index]
-    For each line in location.line:
-      function = profile.function[line.function_index]
-      function_name = profile.string_table[function.name]
-      file_name = profile.string_table[function.filename]
-      frame = "${function_name}@${file_name}:${line.line}"
-    Build stacktrace array from frames
-  Compute stacktrace_hash = hash(stacktrace)
-  Extract value from sample.value[type_index]
-  Write denormalized row to buffer
+dictionary = profilesData.dictionary  // batch-level dictionary
+
+For each resourceProfiles in profilesData.resource_profiles:
+  For each scopeProfiles in resourceProfiles.scope_profiles:
+    For each profile in scopeProfiles.profiles:
+      For each sample in profile.sample:
+        stack = dictionary.stack_table[sample.stack_index]
+        For each location_index in stack.location_indices:
+          location = dictionary.location_table[location_index]
+          // Handle INLINE FRAMES: location.lines is repeated
+          For each line in location.lines:
+            function = dictionary.function_table[line.function_index]
+            function_name = dictionary.string_table[function.name_strindex]
+            system_name = dictionary.string_table[function.system_name_strindex]  // mangled name
+            file_name = dictionary.string_table[function.filename_strindex]
+            frame_type = attributes[profile.frame.type]  // kernel, native, jvm, etc.
+            frame = "${function_name}@${file_name}:${line.line}"
+          Build stacktrace array from all frames (including inlined)
+        Compute stacktrace_hash = SHA256(stacktrace)
+
+        // Resolve trace correlation from Link table
+        link = dictionary.link_table[sample.link_index]
+        trace_id = link.trace_id
+        span_id = link.span_id
+
+        // Note: sample.timestamps_unix_nano is REPEATED (multiple timestamps per sample)
+        // Use first timestamp as sample time, store all if needed
+
+        Extract value from sample.values[type_index]
+        Write denormalized row to buffer
 ```
+
+**Mixed-runtime stacks:**
+The eBPF agent produces stacks that cross kernel/native/managed boundaries (e.g., kernel → libc → JVM → application Java code). Each frame has a `profile.frame.type` attribute. Store this per-frame in the `frameTypes` array column for proper rendering.
+
+**Unsymbolized frames:**
+Not all frames will be symbolized at ingestion time (especially native/kernel frames from eBPF). Store the mapping `build_id` attributes (`process.executable.build_id.gnu`, `.go`, `.htlhash`) so frames can be symbolized later when debug info becomes available. See Phase 6 for symbolization pipeline.
 
 **pprof interoperability:**
-Store enough metadata to reconstruct pprof format for export. The OTLP Profiles format supports round-trip conversion to/from pprof with no information loss.
+If `original_payload_format` is set (e.g., `pprofext`), store the `original_payload` bytes for lossless re-export. The OTLP Profiles format supports round-trip conversion to/from pprof with no information loss.
 
 ### Estimated Effort: 2-3 weeks
 
@@ -374,15 +441,25 @@ Add to `App/FeatureSet/Dashboard/src/`:
 | `Components/Profiles/DiffFlameGraph.tsx` | Side-by-side or differential flamegraph comparing two time ranges |
 | `Components/Profiles/ProfileTimeline.tsx` | Timeline showing profile sample density over time |
 
-### 5.3 Cross-Signal Integration
+**Frame type color coding:**
+Mixed-runtime stacks from the eBPF agent contain frames from different runtimes (kernel, native, JVM, CPython, Go, V8, etc.). The flamegraph component should color-code frames by their `profile.frame.type` attribute so users can visually distinguish application code from kernel/native/runtime internals. Suggested palette:
+- Kernel frames: red/orange
+- Native (C/C++/Rust): blue
+- JVM/Go/V8/CPython/Ruby: green shades (per runtime)
+
+### 5.3 Sidebar Navigation
+
+Create `Pages/Profiles/SideMenu.tsx` following the existing pattern (see `Pages/Traces/SideMenu.tsx`, `Pages/Metrics/SideMenu.tsx`, `Pages/Logs/SideMenu.tsx`):
+- Main section: "Profiles" → PageMap.PROFILES
+- Documentation section: Link to PROFILES_DOCUMENTATION route
+
+Add "Profiles" entry to the main dashboard navigation sidebar.
+
+### 5.4 Cross-Signal Integration
 
 - **Trace Detail Page**: Add a "Profile" tab/button on `TraceExplorer.tsx` that links to the flamegraph filtered by `traceId`.
 - **Span Detail**: When viewing a span, show an inline flamegraph if profile samples exist for that `spanId`.
 - **Service Overview**: Add a "Profiles" tab on the service detail page showing aggregated flamegraphs.
-
-### 5.4 Navigation
-
-Add "Profiles" to the dashboard sidebar navigation alongside Traces, Metrics, and Logs.
 
 ### Estimated Effort: 3-4 weeks
 
@@ -394,28 +471,49 @@ Add "Profiles" to the dashboard sidebar navigation alongside Traces, Metrics, an
 
 ### 6.1 Data Retention & Billing
 
-- Add `profileRetentionInDays` to service-level settings (alongside existing telemetry retention)
-- Add billing metering for profile sample ingestion (samples/month)
-- Apply TTL rules on ClickHouse tables
+- Add `profileRetentionInDays` to service-level settings (alongside existing `retainTelemetryDataForDays`)
+- Add billing metering for profile sample ingestion (samples/month) via `TableBillingAccessControl`
+- Apply TTL rules on ClickHouse tables using `retentionDate DELETE` pattern
 
 ### 6.2 Performance Optimization
 
 - **Materialized Views**: Pre-aggregate top functions per service per hour for fast dashboard loading
 - **Sampling**: For high-volume services, support server-side downsampling of profile data
-- **Compression**: Evaluate dictionary encoding for `stacktrace` column (high repetition rate)
+- **Compression**: Apply `ZSTD(3)` codec on `stacktrace`, `labels`, and `originalPayload` columns
 - **Query Caching**: Cache aggregated flamegraph results for repeated time ranges
 
-### 6.3 Alerting Integration
+### 6.3 Symbolization Pipeline
 
-- Allow alerting on profile metrics (e.g., "alert when function X exceeds Y% of CPU")
+**This is a significant piece of work.** Symbolization is NOT yet standardized in the OTel Profiles spec. OneUptime needs its own strategy:
+
+1. **Store build IDs at ingestion**: Persist `process.executable.build_id.gnu`, `.go`, `.htlhash` attributes from mappings
+2. **Accept symbol uploads**: Provide an API endpoint where users can upload debug symbols (DWARF, PDB, source maps) keyed by build ID
+3. **Deferred symbolization**: When symbols are uploaded, re-symbolize existing unsymbolized frames in ClickHouse by matching `buildId` + address
+4. **Symbol storage**: Store uploaded symbols in object storage (S3/MinIO), indexed by build ID hash
+
+This can be deferred to a later release — the eBPF agent handles on-target symbolization for Go, and many runtimes (JVM, CPython, V8) provide symbol info at collection time. Native/kernel frames are the main gap.
+
+### 6.4 Alerting & Monitoring Integration
+
+Following the existing pattern in `Worker/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts`:
+- Add `MonitorStepProfileMonitor` configuration type
+- Add `ProfileMonitorResponse` response type
+- Add `MonitorType.Profiles` to the monitor type enum
+- Enable alerting on profile metrics (e.g., "alert when function X exceeds Y% of CPU")
 - Surface profile data in incident timelines
 
-### 6.4 pprof Export
+### 6.5 pprof Export
 
 - Add `GET /profiles/:profileId/pprof` endpoint that converts stored data back to pprof format
+- If `original_payload` was stored, return it directly (lossless)
+- Otherwise, reconstruct pprof from denormalized data
 - Enables users to download and analyze profiles with existing tools (go tool pprof, etc.)
 
-### Estimated Effort: 2-3 weeks
+### 6.6 Conformance Validation
+
+Integrate the OTel `profcheck` conformance checker tool into CI to validate that OneUptime correctly accepts and processes compliant profiles. This catches regressions when upgrading proto definitions.
+
+### Estimated Effort: 3-4 weeks
 
 ---
 
@@ -447,10 +545,12 @@ Add `Telemetry/Docs/profileData.example.json` with a sample OTLP Profiles payloa
 | 3 | Ingestion Service | 2-3 weeks | Phase 1, 2 |
 | 4 | Query API | 2 weeks | Phase 2, 3 |
 | 5 | Frontend — Profiles UI | 3-4 weeks | Phase 4 |
-| 6 | Production Hardening | 2-3 weeks | Phase 5 |
+| 6 | Production Hardening (incl. symbolization, alerting, conformance) | 3-4 weeks | Phase 5 |
 | 7 | Documentation & Launch | 1 week | Phase 6 |
 
-**Total estimated effort: 13-19 weeks** (with parallelization of phases 4+5, closer to 10-14 weeks)
+**Total estimated effort: 14-21 weeks** (with parallelization of phases 4+5, closer to 11-16 weeks)
+
+**Suggested MVP scope (Phases 1-5):** Ship ingestion + storage + basic flamegraph UI first (~9-14 weeks). Symbolization, alerting integration, and pprof export can follow as iterative improvements.
 
 ---
 
@@ -459,10 +559,14 @@ Add `Telemetry/Docs/profileData.example.json` with a sample OTLP Profiles payloa
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | OTLP Profiles is still Alpha — proto schema may change | Breaking changes to ingestion | Pin to specific OTLP proto version (v1.10.0+), add version detection |
-| High storage volume from continuous profiling | ClickHouse disk/cost growth | Server-side sampling, aggressive TTL defaults (7 days), compression tuning |
-| Flamegraph rendering performance with large profiles | Slow UI | Limit to top 10K stacktraces, lazy-load deep frames, pre-aggregate |
-| Denormalization complexity in ingestion | Bugs, data loss | Extensive unit tests with real pprof data, conformance checker validation |
+| `v1development` package path will change to `v1` at GA | Proto import path migration | Abstract proto version behind internal types; plan migration script for when GA lands |
+| High storage volume from continuous profiling | ClickHouse disk/cost growth | Server-side sampling, aggressive TTL defaults (15 days), ZSTD(3) compression |
+| Flamegraph rendering performance with large profiles | Slow UI | Limit to top 10K stacktraces, lazy-load deep frames, pre-aggregate via materialized views |
+| Denormalization complexity (batch-scoped dictionary, inline frames, mixed runtimes) | Bugs, data loss | Extensive unit tests with real pprof data, conformance checker validation, test with eBPF agent output |
+| Symbolization is not standardized | Unsymbolized frames in flamegraphs | Store build IDs for deferred symbolization; accept eBPF agent's on-target symbolization as baseline |
+| Semantic conventions are minimal (only `profile.frame.type`) | Schema may need changes as conventions mature | Keep attribute storage flexible (JSON columns); avoid hardcoding specific attribute names |
 | Limited client-side instrumentation maturity | Low adoption | Start with eBPF profiler (no code changes needed), expand as ecosystem matures |
+| `original_payload` can be large | Storage bloat | Store on-demand only (when producer sets `original_payload_format`), not by default |
 
 ---
 

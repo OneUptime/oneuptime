@@ -163,6 +163,7 @@ const DashboardAuthenticationSettings: FunctionComponent<
                 formType: FormType.Update,
                 modelType: Dashboard,
                 steps: [],
+                doNotFetchExistingModel: true,
               }}
               modelIdToEdit={modelId}
             />

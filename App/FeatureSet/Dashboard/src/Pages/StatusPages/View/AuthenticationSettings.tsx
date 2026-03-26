@@ -103,12 +103,15 @@ const StatusPageDelete: FunctionComponent<
               placeholder: "No",
             },
             {
-              field: {
-                masterPassword: true,
-              },
               title: "Master Password",
-              fieldType: FieldType.HiddenText,
-              placeholder: "Not Set",
+              fieldType: FieldType.Element,
+              getElement: (): ReactElement => {
+                return (
+                  <p>
+                    {isMasterPasswordSet ? "Password is set." : "Not set."}
+                  </p>
+                );
+              },
             },
           ],
           modelId: modelId,
@@ -151,6 +154,7 @@ const StatusPageDelete: FunctionComponent<
             formType: FormType.Update,
             modelType: StatusPage,
             steps: [],
+            doNotFetchExistingModel: true,
           }}
           modelIdToEdit={modelId}
         />
